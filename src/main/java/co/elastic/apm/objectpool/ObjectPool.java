@@ -14,7 +14,7 @@ public class ObjectPool<T extends Recyclable> implements Closeable {
                 FixedSizeStack<T> stack = new FixedSizeStack<>(maxNumPooledObjectsPerThread);
                 if (preAllocate) {
                     for (int i = 0; i < maxNumPooledObjectsPerThread; i++) {
-                        objectPool.get().push(recyclableObjectFactory.createInstance());
+                        stack.push(recyclableObjectFactory.createInstance());
                     }
                 }
                 return stack;
@@ -37,7 +37,7 @@ public class ObjectPool<T extends Recyclable> implements Closeable {
         objectPool.get().push(obj);
     }
 
-    int getCurrentThreadsQueueSize(Class<? extends Recyclable> type) {
+    int getCurrentThreadsQueueSize() {
         return objectPool.get().size();
     }
 
