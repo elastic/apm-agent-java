@@ -54,6 +54,23 @@ public class ObjectPoolTest {
         assertThat(instance).isSameAs(objectPool.createInstance());
     }
 
+    @Test
+    public void testRecycleInDifferentThread() throws Exception {
+        objectPool.recycle(new TestRecyclable());
+        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+        TestRecyclable instance = objectPool.createInstance();
+        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(0);
+
+        final Thread t1 = new Thread(() -> {
+            objectPool.recycle(instance);
+            assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+        });
+        t1.start();
+        t1.join();
+
+        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+    }
+
     private static class TestRecyclable implements Recyclable {
 
         private int state;
