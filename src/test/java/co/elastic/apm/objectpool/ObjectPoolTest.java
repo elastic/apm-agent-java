@@ -1,5 +1,6 @@
 package co.elastic.apm.objectpool;
 
+import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +12,7 @@ public class ObjectPoolTest {
 
     @BeforeEach
     void setUp() {
-        objectPool = new ObjectPool<>(10, false, TestRecyclable::new);
+        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
     }
 
     @Test
@@ -19,18 +20,18 @@ public class ObjectPoolTest {
         for (int i = 0; i < 20; i++) {
             objectPool.recycle(new TestRecyclable(i));
         }
-        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(10);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(10);
     }
 
     @Test
     public void testDifferentThreads_DifferentQueues() throws Exception {
         objectPool.recycle(new TestRecyclable());
-        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
 
         final Thread t1 = new Thread(() -> {
             objectPool.recycle(new TestRecyclable());
             objectPool.recycle(new TestRecyclable());
-            assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(2);
+            assertThat(objectPool.getObjectPoolSize()).isEqualTo(2);
         });
         t1.start();
         t1.join();
@@ -39,7 +40,7 @@ public class ObjectPoolTest {
             objectPool.recycle(new TestRecyclable());
             objectPool.recycle(new TestRecyclable());
             objectPool.recycle(new TestRecyclable());
-            assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(3);
+            assertThat(objectPool.getObjectPoolSize()).isEqualTo(3);
         });
         t2.start();
         t2.join();
@@ -57,18 +58,18 @@ public class ObjectPoolTest {
     @Test
     public void testRecycleInDifferentThread() throws Exception {
         objectPool.recycle(new TestRecyclable());
-        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
         TestRecyclable instance = objectPool.createInstance();
-        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(0);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
 
         final Thread t1 = new Thread(() -> {
             objectPool.recycle(instance);
-            assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+            assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
         });
         t1.start();
         t1.join();
 
-        assertThat(objectPool.getCurrentThreadsQueueSize()).isEqualTo(1);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
     }
 
     private static class TestRecyclable implements Recyclable {
