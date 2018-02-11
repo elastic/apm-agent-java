@@ -5,7 +5,7 @@ import co.elastic.apm.intake.Context;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
-import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
+import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -41,7 +41,8 @@ import java.util.Map;
 })
 public class Transaction implements Recyclable {
 
-    private static final ObjectPool<Transaction> transactionPool = new ThreadLocalObjectPool<>(10, true, new RecyclableObjectFactory<co.elastic.apm.intake.transactions.Transaction>() {
+    private static final ObjectPool<Transaction> transactionPool = new RingBufferObjectPool<>(10, true,
+        new RecyclableObjectFactory<co.elastic.apm.intake.transactions.Transaction>() {
         @Override
         public Transaction createInstance() {
             return new Transaction();

@@ -1,49 +1,51 @@
 package co.elastic.apm.objectpool;
 
-import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
+import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 public class ObjectPoolTest {
 
+    private static final int MAX_SIZE = 16;
     private ObjectPool<TestRecyclable> objectPool;
 
     @BeforeEach
     void setUp() {
-        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
+//        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
+        objectPool = new RingBufferObjectPool<>(MAX_SIZE, false, TestRecyclable::new);
     }
 
     @Test
     public void testMaxElements() throws Exception {
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < MAX_SIZE * 2; i++) {
             objectPool.recycle(new TestRecyclable(i));
         }
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(10);
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(MAX_SIZE);
     }
 
     @Test
-    public void testDifferentThreads_DifferentQueues() throws Exception {
-        objectPool.recycle(new TestRecyclable());
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+    public void testOverconsume() throws Exception {
+        for (int i = 0; i < MAX_SIZE * 2; i++) {
+            objectPool.recycle(new TestRecyclable(i));
+        }
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(MAX_SIZE);
 
-        final Thread t1 = new Thread(() -> {
-            objectPool.recycle(new TestRecyclable());
-            objectPool.recycle(new TestRecyclable());
-            assertThat(objectPool.getObjectPoolSize()).isEqualTo(2);
-        });
-        t1.start();
-        t1.join();
+        for (int i = 0; i < MAX_SIZE; i++) {
+            assertThat(objectPool.createInstance()).isNotNull();
+        }
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
 
-        final Thread t2 = new Thread(() -> {
-            objectPool.recycle(new TestRecyclable());
-            objectPool.recycle(new TestRecyclable());
-            objectPool.recycle(new TestRecyclable());
-            assertThat(objectPool.getObjectPoolSize()).isEqualTo(3);
-        });
-        t2.start();
-        t2.join();
+        assertThat(objectPool.createInstance()).isNotNull();
+    }
+
+    @Test
+    public void testEmpty() throws Exception {
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
+        assertThat(objectPool.createInstance()).isNotNull();
+        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
     }
 
     @Test
@@ -62,12 +64,18 @@ public class ObjectPoolTest {
         TestRecyclable instance = objectPool.createInstance();
         assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
 
-        final Thread t1 = new Thread(() -> {
-            objectPool.recycle(instance);
-            assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+        assertSoftly(softly -> {
+            final Thread t1 = new Thread(() -> {
+                objectPool.recycle(instance);
+                assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+            });
+            t1.start();
+            try {
+                t1.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         });
-        t1.start();
-        t1.join();
 
         assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
     }
