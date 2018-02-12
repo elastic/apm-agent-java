@@ -1,98 +1,32 @@
-package co.elastic.apm;
+package co.elastic.apm.instrumentation.servletapi;
 
 import co.elastic.apm.intake.Context;
 import co.elastic.apm.intake.Request;
 import co.elastic.apm.intake.Response;
 import co.elastic.apm.intake.User;
-import co.elastic.apm.intake.errors.Agent;
-import co.elastic.apm.intake.errors.Framework;
-import co.elastic.apm.intake.errors.Language;
-import co.elastic.apm.intake.errors.Process;
-import co.elastic.apm.intake.errors.Runtime;
-import co.elastic.apm.intake.errors.Service;
 import co.elastic.apm.intake.errors.Stacktrace;
-import co.elastic.apm.intake.errors.System;
-import co.elastic.apm.intake.transactions.Payload;
 import co.elastic.apm.intake.transactions.Span;
 import co.elastic.apm.intake.transactions.Transaction;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
-import okio.BufferedSink;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.net.InetAddress;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-public class Playground {
+public class ServletTransactionFactory {
 
-    public static final HashMap<Integer, String> STATUS_CODES_AS_STRING = new HashMap<>();
+    private static final HashMap<Integer, String> STATUS_CODES_AS_STRING = new HashMap<>();
 
     static {
         for (int i = 100; i < 600; i++) {
             STATUS_CODES_AS_STRING.put(i, Integer.toString(1));
-        }
-    }
-
-    public static void report(Transaction transaction, String apmServerUrl) {
-        Payload payload = new Payload(getService("Spring MVC", "3.0"), ProcessInformationSupplier.ProcessInformationHolder.INSTANCE.getProcessInformation(), getSystem());
-        payload.getTransactions().add(transaction);
-        reportPayload(payload, apmServerUrl);
-        payload.recycle();
-    }
-
-    private static void reportPayload(Payload payload, final String apmServerUrl) {
-        final ObjectMapper objectMapper = new ObjectMapper();
-        OkHttpClient client = new OkHttpClient();
-
-        MediaType mediaTypeJson = MediaType.parse("application/json");
-        okhttp3.Request request = new okhttp3.Request.Builder()
-            .url(apmServerUrl + "/v1/transactions")
-            .post(new RequestBody() {
-                @Override
-                public MediaType contentType() {
-                    return mediaTypeJson;
-                }
-
-                @Override
-                public void writeTo(BufferedSink sink) throws IOException {
-                    objectMapper.writeValue(sink.outputStream(), payload);
-                }
-            })
-            .build();
-
-        /*client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onResponse(Call call, okhttp3.Response response) throws IOException {
-                response.close();
-            }
-        });*/
-        try {
-            client.newCall(request).execute();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -308,127 +242,4 @@ public class Playground {
         }
     }
 
-    // TODO
-    private static Service getService(String frameworkName, String frameworkVersion) {
-        return new Service()
-            .withName("java-test")
-            .withVersion("1.0")
-            .withEnvironment("test")
-            .withAgent(new Agent().withName("elastic-apm-java").withVersion("0.1-SNAPSHOT"))
-            .withRuntime(new Runtime().withName("java").withVersion(java.lang.System.getProperty("java.version")))
-            .withFramework(new Framework().withName(frameworkName).withVersion(frameworkVersion))
-            .withLanguage(new Language().withName("Java").withVersion(java.lang.System.getProperty("java.version")));
-    }
-
-    private static System getSystem() {
-        return new System()
-            .withArchitecture(java.lang.System.getProperty("os.arch"))
-            .withPlatform(java.lang.System.getProperty("os.name"))
-            .withHostname(getNameOfLocalHost());
-    }
-
-    public static String getNameOfLocalHost() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            return getHostNameFromEnv();
-        }
-    }
-
-    static String getHostNameFromEnv() {
-        // try environment properties.
-        String host = java.lang.System.getenv("COMPUTERNAME");
-        if (host == null) {
-            host = java.lang.System.getenv("HOSTNAME");
-        }
-        if (host == null) {
-            host = java.lang.System.getenv("HOST");
-        }
-        return host;
-    }
-
-    public interface ProcessInformationSupplier {
-
-        Process getProcessInformation();
-
-        enum ProcessInformationHolder implements ProcessInformationSupplier {
-            INSTANCE;
-
-            private final Process process;
-
-            ProcessInformationHolder() {
-                Process localProcess;
-                try {
-                    localProcess = new ProcessInformationSupplier.ForJava9CompatibleVM().getProcessInformation();
-                } catch (Exception | Error e) {
-                    localProcess = new ProcessInformationSupplier.ForLegacyVM().getProcessInformation();
-                }
-                process = localProcess;
-            }
-
-            @Override
-            public Process getProcessInformation() {
-                return process;
-            }
-        }
-
-        class ForLegacyVM implements ProcessInformationSupplier {
-
-
-            private final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-
-            @Override
-            public Process getProcessInformation() {
-                Process process = new Process();
-                process.withPid(getPid());
-                process.withArgv(runtimeMXBean.getInputArguments());
-                process.withTitle(getTitle());
-                return process;
-            }
-
-            private String getTitle() {
-                String javaHome = java.lang.System.getProperty("java.home");
-                final String title = javaHome + File.separator + "bin" + File.separator + "java";
-                if (java.lang.System.getProperty("os.name").startsWith("Win")) {
-                    return title + ".exe";
-                }
-                return title;
-            }
-
-            private long getPid() {
-                // format: pid@host
-                String pidAtHost = runtimeMXBean.getName();
-                Matcher matcher = Pattern.compile("(\\d+)@.*").matcher(pidAtHost);
-                if (matcher.matches()) {
-                    return Long.parseLong(matcher.group(1));
-                } else {
-                    return 0;
-                }
-            }
-
-        }
-
-        class ForJava9CompatibleVM implements ProcessInformationSupplier {
-
-
-            @Override
-            public Process getProcessInformation() {
-                final Process process = new Process();
-                ProcessHandle processHandle = ProcessHandle.current();
-                process.withPid(processHandle.pid());
-                process.withPpid(processHandle.parent()
-                    .map(ProcessHandle::pid)
-                    .orElse(0L));
-                process.withArgv(processHandle.info()
-                    .arguments()
-                    .map(Arrays::asList)
-                    .orElse(null));
-                process.withTitle(processHandle.info().command().orElse(null));
-
-                return process;
-            }
-
-        }
-
-    }
 }
