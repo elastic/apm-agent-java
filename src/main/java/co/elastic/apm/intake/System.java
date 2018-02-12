@@ -1,5 +1,5 @@
 
-package co.elastic.apm.intake.errors;
+package co.elastic.apm.intake;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,6 +20,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
     "hostname",
     "platform"
 })
+// TODO: make immutable
 public class System {
 
     /**

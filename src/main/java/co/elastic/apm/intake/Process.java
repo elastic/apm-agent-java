@@ -1,5 +1,5 @@
 
-package co.elastic.apm.intake.errors;
+package co.elastic.apm.intake;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,6 +24,7 @@ import java.util.List;
     "title",
     "argv"
 })
+// TODO: make immutable
 public class Process {
 
     /**

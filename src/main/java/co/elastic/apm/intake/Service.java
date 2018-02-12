@@ -1,6 +1,10 @@
 
-package co.elastic.apm.intake.errors;
+package co.elastic.apm.intake;
 
+import co.elastic.apm.intake.errors.Agent;
+import co.elastic.apm.intake.errors.Framework;
+import co.elastic.apm.intake.errors.Language;
+import co.elastic.apm.intake.errors.Runtime;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -24,6 +28,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
     "runtime",
     "version"
 })
+// TODO: make immutable
 public class Service {
 
     /**

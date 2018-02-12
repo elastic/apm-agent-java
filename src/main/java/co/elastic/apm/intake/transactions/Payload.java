@@ -1,9 +1,9 @@
 
 package co.elastic.apm.intake.transactions;
 
-import co.elastic.apm.intake.errors.Process;
-import co.elastic.apm.intake.errors.Service;
-import co.elastic.apm.intake.errors.System;
+import co.elastic.apm.intake.Process;
+import co.elastic.apm.intake.Service;
+import co.elastic.apm.intake.System;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
