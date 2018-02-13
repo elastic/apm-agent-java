@@ -49,7 +49,11 @@ public class Transaction implements Recyclable {
         }
     });
 
-    private Transaction() {
+    /**
+     * @deprecated use {@link #create()}
+     */
+    @Deprecated
+    public Transaction() {
     }
 
     public static Transaction create() {

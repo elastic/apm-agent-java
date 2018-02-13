@@ -23,7 +23,7 @@ public class ObjectPoolTest {
         for (int i = 0; i < MAX_SIZE * 2; i++) {
             objectPool.recycle(new TestRecyclable(i));
         }
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(MAX_SIZE);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(MAX_SIZE);
     }
 
     @Test
@@ -31,21 +31,21 @@ public class ObjectPoolTest {
         for (int i = 0; i < MAX_SIZE * 2; i++) {
             objectPool.recycle(new TestRecyclable(i));
         }
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(MAX_SIZE);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(MAX_SIZE);
 
         for (int i = 0; i < MAX_SIZE; i++) {
             assertThat(objectPool.createInstance()).isNotNull();
         }
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
 
         assertThat(objectPool.createInstance()).isNotNull();
     }
 
     @Test
     public void testEmpty() throws Exception {
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
         assertThat(objectPool.createInstance()).isNotNull();
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
     }
 
     @Test
@@ -60,14 +60,14 @@ public class ObjectPoolTest {
     @Test
     public void testRecycleInDifferentThread() throws Exception {
         objectPool.recycle(new TestRecyclable());
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
         TestRecyclable instance = objectPool.createInstance();
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(0);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
 
         assertSoftly(softly -> {
             final Thread t1 = new Thread(() -> {
                 objectPool.recycle(instance);
-                assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+                assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
             });
             t1.start();
             try {
@@ -77,7 +77,7 @@ public class ObjectPoolTest {
             }
         });
 
-        assertThat(objectPool.getObjectPoolSize()).isEqualTo(1);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
     }
 
     private static class TestRecyclable implements Recyclable {

@@ -1,19 +1,22 @@
 package co.elastic.apm.objectpool.impl;
 
-import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 
-public class ThreadLocalObjectPool<T extends Recyclable> implements ObjectPool<T> {
+import java.util.Collection;
+
+public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
     private final ThreadLocal<FixedSizeStack<T>> objectPool;
-    private final RecyclableObjectFactory<T> recyclableObjectFactory;
+    private final int maxNumPooledObjectsPerThread;
 
     public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final RecyclableObjectFactory<T> recyclableObjectFactory) {
+        super(recyclableObjectFactory);
+        this.maxNumPooledObjectsPerThread = maxNumPooledObjectsPerThread;
         this.objectPool = new ThreadLocal<FixedSizeStack<T>>() {
             @Override
             protected FixedSizeStack<T> initialValue() {
-                FixedSizeStack<T> stack = new FixedSizeStack<T>(maxNumPooledObjectsPerThread);
+                FixedSizeStack<T> stack = new FixedSizeStack<>(maxNumPooledObjectsPerThread);
                 if (preAllocate) {
                     for (int i = 0; i < maxNumPooledObjectsPerThread; i++) {
                         stack.push(recyclableObjectFactory.createInstance());
@@ -22,17 +25,11 @@ public class ThreadLocalObjectPool<T extends Recyclable> implements ObjectPool<T
                 return stack;
             }
         };
-        this.recyclableObjectFactory = recyclableObjectFactory;
     }
 
     @Override
-    public T createInstance() {
-        T obj = objectPool.get().pop();
-        if (obj != null) {
-            return obj;
-        } else {
-            return recyclableObjectFactory.createInstance();
-        }
+    public T tryCreateInstance() {
+        return objectPool.get().pop();
     }
 
     @Override
@@ -42,13 +39,18 @@ public class ThreadLocalObjectPool<T extends Recyclable> implements ObjectPool<T
     }
 
     @Override
-    public int getObjectPoolSize() {
+    public int getObjectsInPool() {
         return objectPool.get().size();
     }
 
     @Override
     public void close() {
         objectPool.remove();
+    }
+
+    @Override
+    public int getSize() {
+        return maxNumPooledObjectsPerThread;
     }
 
     // inspired by https://stackoverflow.com/questions/7727919/creating-a-fixed-size-stack/7728703#7728703
