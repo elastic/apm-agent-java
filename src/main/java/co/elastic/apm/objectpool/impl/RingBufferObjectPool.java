@@ -9,14 +9,14 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.Sequencer;
 
-import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RingBufferObjectPool<T extends Recyclable> implements ObjectPool<T> {
 
     private final RecyclableObjectFactory<T> recyclableObjectFactory;
     private final RingBuffer<PooledObjectHolder<T>> ringBuffer;
     private final Sequence sequence;
-    private final LongAdder garbageCreated = new LongAdder();
+    private final AtomicInteger garbageCreated = new AtomicInteger();
     private final EventTranslatorOneArg<PooledObjectHolder<T>, T> translator =
         new EventTranslatorOneArg<PooledObjectHolder<T>, T>() {
             public void translateTo(PooledObjectHolder<T> event, long sequence, T recyclable) {
@@ -32,7 +32,7 @@ public class RingBufferObjectPool<T extends Recyclable> implements ObjectPool<T>
      *                                used when there are no objects in the ring buffer and to preallocate the ring buffer.
      */
     public RingBufferObjectPool(int maxPooledElements, boolean preAllocate, RecyclableObjectFactory<T> recyclableObjectFactory) {
-        this.ringBuffer = RingBuffer.createMultiProducer(new PooledObjectEventFactory<>(), maxPooledElements);
+        this.ringBuffer = RingBuffer.createMultiProducer(new PooledObjectEventFactory<T>(), maxPooledElements);
         this.sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
         this.ringBuffer.addGatingSequences(sequence);
         this.recyclableObjectFactory = recyclableObjectFactory;
@@ -55,7 +55,7 @@ public class RingBufferObjectPool<T extends Recyclable> implements ObjectPool<T>
             }
         } else {
             // buffer is empty, falling back to creating a new instance
-            garbageCreated.increment();
+            garbageCreated.incrementAndGet();
             return recyclableObjectFactory.createInstance();
         }
     }

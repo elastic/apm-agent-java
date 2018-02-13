@@ -9,11 +9,11 @@ public class ThreadLocalObjectPool<T extends Recyclable> implements ObjectPool<T
     private final ThreadLocal<FixedSizeStack<T>> objectPool;
     private final RecyclableObjectFactory<T> recyclableObjectFactory;
 
-    public ThreadLocalObjectPool(int maxNumPooledObjectsPerThread, boolean preAllocate, RecyclableObjectFactory<T> recyclableObjectFactory) {
+    public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final RecyclableObjectFactory<T> recyclableObjectFactory) {
         this.objectPool = new ThreadLocal<FixedSizeStack<T>>() {
             @Override
             protected FixedSizeStack<T> initialValue() {
-                FixedSizeStack<T> stack = new FixedSizeStack<>(maxNumPooledObjectsPerThread);
+                FixedSizeStack<T> stack = new FixedSizeStack<T>(maxNumPooledObjectsPerThread);
                 if (preAllocate) {
                     for (int i = 0; i < maxNumPooledObjectsPerThread; i++) {
                         stack.push(recyclableObjectFactory.createInstance());
