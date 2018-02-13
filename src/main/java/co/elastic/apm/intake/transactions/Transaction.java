@@ -41,7 +41,7 @@ import java.util.Map;
 })
 public class Transaction implements Recyclable {
 
-    private static final ObjectPool<Transaction> transactionPool = new RingBufferObjectPool<>(10, true,
+    private static final ObjectPool<Transaction> transactionPool = new RingBufferObjectPool<>(64, true,
         new RecyclableObjectFactory<co.elastic.apm.intake.transactions.Transaction>() {
         @Override
         public Transaction createInstance() {
