@@ -14,6 +14,7 @@ import okio.BufferedSink;
 import java.io.IOException;
 
 import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
 class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
     private static final int MAX_TRANSACTIONS_PER_REPORT = 250;
@@ -29,10 +30,15 @@ class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
 
     @Override
     public void onEvent(Reporter.ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (event.type == FLUSH || payload.getTransactions().size() >= MAX_TRANSACTIONS_PER_REPORT) {
+        if (event.type == FLUSH) {
             flush();
         }
-        payload.getTransactions().add(event.transaction);
+        if (event.type == TRANSACTION) {
+            payload.getTransactions().add(event.transaction);
+            if (payload.getTransactions().size() >= MAX_TRANSACTIONS_PER_REPORT) {
+                flush();
+            }
+        }
         event.resetState();
     }
 
@@ -52,7 +58,7 @@ class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
     private void sendPayload() {
         final ObjectMapper objectMapper = new ObjectMapper();
 
-        MediaType mediaTypeJson = MediaType.parse("application/json");
+        final MediaType mediaTypeJson = MediaType.parse("application/json");
         okhttp3.Request request = new okhttp3.Request.Builder()
             .url(apmServerUrl + "/v1/transactions")
             .post(new RequestBody() {

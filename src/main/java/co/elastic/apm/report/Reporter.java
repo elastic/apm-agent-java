@@ -17,18 +17,20 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
 public class Reporter implements Closeable {
 
     private static final int FLUSH_INTERVAL_SECONDS = 10;
     private static final int REPORTER_QUEUE_LENGTH = 1024;
-    private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<>() {
+    private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, Transaction t) {
             event.transaction = t;
+            event.type = TRANSACTION;
         }
     };
-    private static final EventTranslator<ReportingEvent> FLUSH_EVENT_TRANSLATOR = new EventTranslator<>() {
+    private static final EventTranslator<ReportingEvent> FLUSH_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
             event.type = FLUSH;
