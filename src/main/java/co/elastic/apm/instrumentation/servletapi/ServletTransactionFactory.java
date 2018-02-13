@@ -15,20 +15,11 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class ServletTransactionFactory {
-
-    private static final HashMap<Integer, String> STATUS_CODES_AS_STRING = new HashMap<>();
-
-    static {
-        for (int i = 100; i < 600; i++) {
-            STATUS_CODES_AS_STRING.put(i, Integer.toString(1));
-        }
-    }
+class ServletTransactionFactory {
 
     public static Transaction createTransaction(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, long durationNanos) {
         Transaction transaction = Transaction.create();
@@ -41,7 +32,7 @@ public class ServletTransactionFactory {
         transaction.withId(UUID.randomUUID().toString());
         // TODO can this be set by apm-server when there is no explicit name set?
         transaction.withName(httpServletRequest.getRequestURI());
-        transaction.withResult(getStatusCodeAsString(httpServletResponse.getStatus()));
+        transaction.withResult(getResult(httpServletResponse.getStatus()));
         transaction.withSampled(true);
         transaction.withTimestamp(java.lang.System.currentTimeMillis());
         transaction.withType("request");
@@ -68,14 +59,23 @@ public class ServletTransactionFactory {
         return requestUri;
     }
 
-    private static String getStatusCodeAsString(int status) {
-        final String statusCodeAsString = STATUS_CODES_AS_STRING.get(status);
-        if (statusCodeAsString == null) {
-            return Integer.toString(status);
-        } else {
-            return statusCodeAsString;
+    static String getResult(int status) {
+        if (status >= 200 && status < 300) {
+            return "HTTP 2xx";
         }
-
+        if (status >= 300 && status < 400) {
+            return "HTTP 3xx";
+        }
+        if (status >= 400 && status < 500) {
+            return "HTTP 4xx";
+        }
+        if (status >= 500 && status < 600) {
+            return "HTTP 5xx";
+        }
+        if (status >= 100 && status < 200) {
+            return "HTTP 1xx";
+        }
+        return null;
     }
 
     private static Span createSpan() {
