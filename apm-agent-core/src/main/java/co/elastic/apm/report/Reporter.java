@@ -10,19 +10,19 @@ import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.util.DaemonThreadFactory;
-import okhttp3.OkHttpClient;
 
 import java.io.Closeable;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
 public class Reporter implements Closeable {
 
+    public static final int REPORTER_QUEUE_LENGTH = 1024;
     private static final int FLUSH_INTERVAL_SECONDS = 10;
-    private static final int REPORTER_QUEUE_LENGTH = 1024;
     private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, Transaction t) {
@@ -39,10 +39,13 @@ public class Reporter implements Closeable {
 
     private final Disruptor<ReportingEvent> disruptor;
     private final ScheduledThreadPoolExecutor flushScheduler;
+    private final AtomicInteger dropped = new AtomicInteger();
+    private final boolean dropTransactionIfQueueFull;
 
-    public Reporter(Service server, Process process, System system, String apmServerUrl, OkHttpClient httpClient) {
+    public Reporter(Service server, Process process, System system, PayloadSender payloadSender, boolean dropTransactionIfQueueFull) {
+        this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         disruptor = new Disruptor<>(new TransactionEventFactory(), REPORTER_QUEUE_LENGTH, DaemonThreadFactory.INSTANCE);
-        disruptor.handleEventsWith(new ReportingEventHandler(server, process, system, apmServerUrl, httpClient));
+        disruptor.handleEventsWith(new ReportingEventHandler(server, process, system, payloadSender));
         disruptor.start();
         flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
         flushScheduler.scheduleAtFixedRate(new Runnable() {
@@ -54,7 +57,19 @@ public class Reporter implements Closeable {
     }
 
     public void report(Transaction transaction) {
-        disruptor.publishEvent(TRANSACTION_EVENT_TRANSLATOR, transaction);
+        if (dropTransactionIfQueueFull) {
+            boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(TRANSACTION_EVENT_TRANSLATOR, transaction);
+            if (queueFull) {
+                dropped.incrementAndGet();
+                transaction.recycle();
+            }
+        } else {
+            disruptor.getRingBuffer().publishEvent(TRANSACTION_EVENT_TRANSLATOR, transaction);
+        }
+    }
+
+    public int getDropped() {
+        return dropped.get();
     }
 
     public void scheduleFlush() {

@@ -6,6 +6,7 @@ import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
+import co.elastic.apm.report.Reporter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -41,7 +42,7 @@ import java.util.Map;
 })
 public class Transaction implements Recyclable {
 
-    private static final ObjectPool<Transaction> transactionPool = new RingBufferObjectPool<>(64, true,
+    public static final ObjectPool<Transaction> transactionPool = new RingBufferObjectPool<>(Reporter.REPORTER_QUEUE_LENGTH * 2, true,
         new RecyclableObjectFactory<co.elastic.apm.intake.transactions.Transaction>() {
         @Override
         public Transaction createInstance() {
@@ -57,6 +58,7 @@ public class Transaction implements Recyclable {
     }
 
     public static Transaction create() {
+//        return new Transaction();
         return transactionPool.createInstance();
     }
 

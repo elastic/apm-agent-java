@@ -4,7 +4,10 @@ import co.elastic.apm.intake.ProcessFactory;
 import co.elastic.apm.intake.ServiceFactory;
 import co.elastic.apm.intake.SystemFactory;
 import co.elastic.apm.intake.transactions.Transaction;
+import co.elastic.apm.report.ApmServerHttpPayloadSender;
 import co.elastic.apm.report.Reporter;
+import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 
 import javax.servlet.Filter;
@@ -25,13 +28,13 @@ public class ApmFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         ServletContext servletContext = filterConfig.getServletContext();
+        final ObjectMapper objectMapper = new ObjectMapper();
         reporter = new Reporter(new ServiceFactory().createService("Servlet API",
             String.format("%d.%d", servletContext.getMajorVersion(), servletContext.getMinorVersion())),
             new ProcessFactory().getProcessInformation(),
             new SystemFactory().getSystem(),
             // TODO configuration
-            "http://localhost:8200",
-            new OkHttpClient());
+            new ApmServerHttpPayloadSender(new OkHttpClient(), "http://localhost:8200", new JacksonPayloadSerializer(objectMapper)), true);
     }
 
     @Override

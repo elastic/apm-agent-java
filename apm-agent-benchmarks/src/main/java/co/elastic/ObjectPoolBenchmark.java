@@ -37,19 +37,25 @@ import co.elastic.apm.objectpool.impl.MixedObjectPool;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.profile.HotspotRuntimeProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.util.concurrent.TimeUnit;
+
 @State(Scope.Benchmark)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ObjectPoolBenchmark {
 
     private RingBufferObjectPool<Transaction> ringBufferObjectPool;
@@ -64,7 +70,6 @@ public class ObjectPoolBenchmark {
             .measurementIterations(2)
             .forks(1)
             .addProfiler(GCProfiler.class)
-            .addProfiler(HotspotRuntimeProfiler.class)
             .build();
 
         new Runner(opt).run();
