@@ -4,11 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!--
-    This project is responsible for creating the distribution i.e. the javaagent jar file which also contains all dependencies.
-    In order to avoid dependency conflicts, all dependencies are relocated into the namespace co.elastic.apm.shaded.
-    -->
-
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
@@ -78,7 +73,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-core</artifactId>
+            <artifactId>apm-servlet-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

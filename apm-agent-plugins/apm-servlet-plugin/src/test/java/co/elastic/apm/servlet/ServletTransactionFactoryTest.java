@@ -1,4 +1,4 @@
-package co.elastic.apm.instrumentation.servletapi;
+package co.elastic.apm.servlet;
 
 import org.junit.jupiter.api.Test;
 

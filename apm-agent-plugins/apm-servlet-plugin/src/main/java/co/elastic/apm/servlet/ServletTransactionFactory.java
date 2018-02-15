@@ -1,4 +1,4 @@
-package co.elastic.apm.instrumentation.servletapi;
+package co.elastic.apm.servlet;
 
 import co.elastic.apm.intake.Context;
 import co.elastic.apm.intake.Request;

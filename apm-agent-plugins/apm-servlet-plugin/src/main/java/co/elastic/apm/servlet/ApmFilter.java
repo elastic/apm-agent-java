@@ -1,4 +1,4 @@
-package co.elastic.apm.instrumentation.servletapi;
+package co.elastic.apm.servlet;
 
 import co.elastic.apm.intake.ProcessFactory;
 import co.elastic.apm.intake.ServiceFactory;
