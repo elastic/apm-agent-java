@@ -29,11 +29,6 @@
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>javax.servlet:*</exclude>
-                                </excludes>
-                            </artifactSet>
                             <relocations>
                                 <relocation>
                                     <pattern>com.fasterxml.jackson</pattern>

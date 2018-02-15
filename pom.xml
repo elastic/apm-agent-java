@@ -10,10 +10,9 @@
 
 
     <properties>
-        <maven.compiler.target>8</maven.compiler.target>
-        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
-        <maven.compiler.testSource>9</maven.compiler.testSource>
+        <animal.sniffer.skip>false</animal.sniffer.skip>
     </properties>
 
     <modules>
@@ -23,60 +22,54 @@
         <module>apm-agent-plugins</module>
     </modules>
 
+    <profiles>
+        <profile>
+            <id>java9</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <maven.compiler.target>9</maven.compiler.target>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>${maven.compiler.target}</source>
+                    <target>${maven.compiler.target}</target>
+                    <testSource>${maven.compiler.testTarget}</testSource>
+                    <testTarget>${maven.compiler.testTarget}</testTarget>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <version>1.16</version>
                 <executions>
                     <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <showDeprecation>true</showDeprecation>
-                            <showWarnings>true</showWarnings>
-                            <compilerArguments>
-                                <source>${maven.compiler.target}</source>
-                                <target>${maven.compiler.source}</target>
-                            </compilerArguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <configuration>
-                            <showDeprecation>true</showDeprecation>
-                            <showWarnings>true</showWarnings>
-                            <compilerArguments>
-                                <source>${maven.compiler.testTarget}</source>
-                                <target>${maven.compiler.testSource}</target>
-                            </compilerArguments>
-                        </configuration>
+                        <id>signature-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <skip>${animal.sniffer.skip}</skip>
+                    <signature>
+                        <groupId>org.codehaus.mojo.signature</groupId>
+                        <artifactId>java17</artifactId>
+                        <version>1.0</version>
+                    </signature>
+                </configuration>
             </plugin>
-            <!--
-                        <plugin>
-                            <groupId>org.codehaus.mojo</groupId>
-                            <artifactId>animal-sniffer-maven-plugin</artifactId>
-                            <version>1.16</version>
-                            <executions>
-                                <execution>
-                                    <id>signature-check</id>
-                                    <phase>verify</phase>
-                                    <goals>
-                                        <goal>check</goal>
-                                    </goals>
-                                </execution>
-                            </executions>
-                            <configuration>
-                                <signature>
-                                    <groupId>org.codehaus.mojo.signature</groupId>
-                                    <artifactId>java17</artifactId>
-                                    <version>1.0</version>
-                                </signature>
-                            </configuration>
-                        </plugin>
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>

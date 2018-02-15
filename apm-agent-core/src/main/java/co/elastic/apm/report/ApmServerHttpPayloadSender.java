@@ -21,7 +21,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     }
 
     @Override
-    public void sendPayload(Payload payload) {
+    public void sendPayload(final Payload payload) {
         final MediaType mediaTypeJson = MediaType.parse("application/json");
         okhttp3.Request request = new okhttp3.Request.Builder()
             .url(apmServerUrl + "/v1/transactions")
