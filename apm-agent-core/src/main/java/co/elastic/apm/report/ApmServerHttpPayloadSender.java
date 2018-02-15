@@ -33,7 +33,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
 
                 @Override
                 public void writeTo(BufferedSink sink) throws IOException {
-                    payloadSerializer.serializePayload(sink.outputStream(), payload);
+                    payloadSerializer.serializePayload(sink, payload);
                     sink.close();
                     payload.recycle();
                 }

@@ -12,6 +12,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -63,7 +64,7 @@ public class Span implements Recyclable {
      */
     @JsonProperty("stacktrace")
     @JsonPropertyDescription("List of stack frames with variable attributes (eg: lineno, filename, etc)")
-    private final ArrayList<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
+    private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
@@ -179,7 +180,7 @@ public class Span implements Recyclable {
      * List of stack frames with variable attributes (eg: lineno, filename, etc)
      */
     @JsonProperty("stacktrace")
-    public ArrayList<Stacktrace> getStacktrace() {
+    public List<Stacktrace> getStacktrace() {
         return stacktrace;
     }
 

@@ -1,10 +1,10 @@
 package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.intake.transactions.Payload;
+import okio.BufferedSink;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 public interface PayloadSerializer {
-    void serializePayload(OutputStream outputStream, Payload payload) throws IOException;
+    void serializePayload(BufferedSink outputStream, Payload payload) throws IOException;
 }

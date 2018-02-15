@@ -35,6 +35,17 @@
             <artifactId>undertow-core</artifactId>
             <version>1.4.22.Final</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.squareup.moshi</groupId>
+            <artifactId>moshi</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.moshi</groupId>
+            <artifactId>moshi-adapters</artifactId>
+            <version>1.5.0</version>
+        </dependency>
     </dependencies>
 
     <properties>

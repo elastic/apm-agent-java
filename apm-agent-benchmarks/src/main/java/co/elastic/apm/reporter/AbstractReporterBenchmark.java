@@ -2,6 +2,7 @@ package co.elastic.apm.reporter;
 
 import co.elastic.apm.intake.Process;
 import co.elastic.apm.intake.Service;
+import co.elastic.apm.intake.transactions.Payload;
 import co.elastic.apm.intake.transactions.Transaction;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
@@ -19,10 +20,11 @@ import org.openjdk.jmh.annotations.Warmup;
 @Warmup(iterations = 10)
 @Measurement(iterations = 10)
 @Fork(1)
-@Threads(Threads.MAX)
 public abstract class AbstractReporterBenchmark {
 
     private Reporter reporter;
+    private PayloadSender payloadSender;
+    private Payload payload;
 
     @Setup
     public void setUp() {
@@ -30,7 +32,12 @@ public abstract class AbstractReporterBenchmark {
         // instead blocking wait until a slot becomes available
         // this is important because otherwise we would not measure the speed at which events can be handled
         // but rather how fast events get discarded
-        reporter = new Reporter(new Service(), new Process(), new co.elastic.apm.intake.System(), getPayloadSender(), false);
+        payloadSender = getPayloadSender();
+        reporter = new Reporter(new Service(), new Process(), new co.elastic.apm.intake.System(), payloadSender, false);
+        payload = new Payload(new Service(), new Process(), new co.elastic.apm.intake.System());
+        for (int i = 0; i < 250; i++) {
+            payload.getTransactions().add(new Transaction());
+        }
     }
 
     protected abstract PayloadSender getPayloadSender();
@@ -41,8 +48,15 @@ public abstract class AbstractReporterBenchmark {
         System.out.println("created transaction garbage: " + Transaction.transactionPool.getGarbageCreated());
     }
 
+    @Threads(Threads.MAX)
     @Benchmark
     public void testReport() {
         reporter.report(Transaction.create());
+    }
+
+    @Benchmark
+    @Threads(1)
+    public void sendPayload(){
+        payloadSender.sendPayload(payload);
     }
 }

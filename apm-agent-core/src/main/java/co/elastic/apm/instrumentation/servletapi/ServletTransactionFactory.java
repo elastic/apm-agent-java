@@ -12,9 +12,9 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -94,8 +94,8 @@ class ServletTransactionFactory {
         return span;
     }
 
-    private static void createStackTrace(ArrayList<Stacktrace> stacktrace, StackTraceElement[] stackTrace) {
-        stacktrace.ensureCapacity(stackTrace.length);
+    private static void createStackTrace(List<Stacktrace> stacktrace, StackTraceElement[] stackTrace) {
+//        stacktrace.ensureCapacity(stackTrace.length);
         for (StackTraceElement stackTraceElement : stackTrace) {
             // TODO no allocation
             Stacktrace s = new Stacktrace();

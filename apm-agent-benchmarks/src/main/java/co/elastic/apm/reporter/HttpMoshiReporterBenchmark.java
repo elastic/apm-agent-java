@@ -1,12 +1,13 @@
 package co.elastic.apm.reporter;
 
 import co.elastic.apm.report.serialize.PayloadSerializer;
+import co.elastic.apm.reporter.serialize.MoshiPayloadSerializer;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark {
+public class HttpMoshiReporterBenchmark extends AbstractHttpReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -16,7 +17,7 @@ public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark
      */
     public static void main(String[] args) throws RunnerException {
         new Runner(new OptionsBuilder()
-            .include(HttpNoopJsonReporterBenchmark.class.getSimpleName())
+            .include(HttpMoshiReporterBenchmark.class.getSimpleName())
             .addProfiler(GCProfiler.class)
             .build())
             .run();
@@ -24,9 +25,6 @@ public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return (sink, payload) -> {
-            sink.writeByte('{');
-            sink.writeByte('}');
-        };
+        return new MoshiPayloadSerializer();
     }
 }

@@ -18,9 +18,7 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
     public void setUp() {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
-            .setHandler(exchange -> {
-                exchange.setStatusCode(200).endExchange();
-            }).build();
+            .setHandler(exchange -> exchange.setStatusCode(200).endExchange()).build();
         server.start();
         port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
         super.setUp();
