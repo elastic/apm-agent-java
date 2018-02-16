@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>apm-servlet-plugin</module>
+        <module>apm-web-plugin</module>
     </modules>
 
     <artifactId>apm-agent-plugins</artifactId>

@@ -56,11 +56,15 @@
                                 </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant it does work
+                                Although this is not a package but a string constant, it does work
                                 -->
                                 <relocation>
                                     <pattern>simplelogger.properties</pattern>
                                     <shadedPattern>elasticapmlogger.properties</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.stagemonitor</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

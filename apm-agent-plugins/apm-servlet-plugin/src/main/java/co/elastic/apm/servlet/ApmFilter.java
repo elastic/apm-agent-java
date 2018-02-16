@@ -20,6 +20,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class ApmFilter implements Filter {
 
@@ -34,7 +35,10 @@ public class ApmFilter implements Filter {
             new ProcessFactory().getProcessInformation(),
             new SystemFactory().getSystem(),
             // TODO configuration
-            new ApmServerHttpPayloadSender(new OkHttpClient(), "http://localhost:8200", new JacksonPayloadSerializer(objectMapper)), true);
+            new ApmServerHttpPayloadSender(new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS) // TODO make configurable
+                .build(), "http://localhost:8200", new JacksonPayloadSerializer(objectMapper)),
+            true);
     }
 
     @Override

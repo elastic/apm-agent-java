@@ -70,5 +70,11 @@
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.25</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.stagemonitor</groupId>
+            <artifactId>stagemonitor-configuration</artifactId>
+            <version>0.87.3</version>
+        </dependency>
     </dependencies>
 </project>
