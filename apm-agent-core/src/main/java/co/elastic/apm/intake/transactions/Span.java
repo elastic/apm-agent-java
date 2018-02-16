@@ -2,7 +2,11 @@
 package co.elastic.apm.intake.transactions;
 
 import co.elastic.apm.intake.errors.Stacktrace;
+import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
+import co.elastic.apm.report.Reporter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -26,6 +30,32 @@ import java.util.List;
     "type"
 })
 public class Span implements Recyclable {
+    public static final ObjectPool<Span> spanPool = new RingBufferObjectPool<>(Reporter.REPORTER_QUEUE_LENGTH * 2, true,
+        new RecyclableObjectFactory<Span>() {
+            @Override
+            public Span createInstance() {
+                return new Span();
+            }
+        });
+
+    /**
+     * @deprecated use {@link #create}
+     */
+    @Deprecated
+    public Span() {
+    }
+
+    public static Span create() {
+        return spanPool.createInstance();
+    }
+
+    public void recycle() {
+        /*TODO recycle stacktrace
+        for (Stacktrace st : stacktrace) {
+            st.recycle();
+        }*/
+        spanPool.recycle(this);
+    }
 
     /**
      * The locally unique ID of the span.

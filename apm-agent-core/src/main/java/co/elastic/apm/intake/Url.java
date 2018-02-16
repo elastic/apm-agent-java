@@ -69,12 +69,6 @@ public class Url implements Recyclable {
     @JsonProperty("search")
     @JsonPropertyDescription("The search describes the query string of the request. It is expected to have values delimited by ampersands.")
     private String search;
-    /**
-     * The hash of the request URL, e.g. 'top'
-     */
-    @JsonProperty("hash")
-    @JsonPropertyDescription("The hash of the request URL, e.g. 'top'")
-    private String hash;
 
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
@@ -223,35 +217,14 @@ public class Url implements Recyclable {
         return this;
     }
 
-    /**
-     * The hash of the request URL, e.g. 'top'
-     */
-    @JsonProperty("hash")
-    public String getHash() {
-        return hash;
-    }
-
-    /**
-     * The hash of the request URL, e.g. 'top'
-     */
-    @JsonProperty("hash")
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
-
-    public Url withHash(String hash) {
-        this.hash = hash;
-        return this;
-    }
-
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("raw", raw).append("protocol", protocol).append("full", full).append("hostname", hostname).append("port", port).append("pathname", pathname).append("search", search).append("hash", hash).toString();
+        return new ToStringBuilder(this).append("raw", raw).append("protocol", protocol).append("full", full).append("hostname", hostname).append("port", port).append("pathname", pathname).append("search", search).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(protocol).append(hostname).append(search).append(port).append(raw).append(hash).append(full).append(pathname).toHashCode();
+        return new HashCodeBuilder().append(protocol).append(hostname).append(search).append(port).append(raw).append(full).append(pathname).toHashCode();
     }
 
     @Override
@@ -263,7 +236,7 @@ public class Url implements Recyclable {
             return false;
         }
         Url rhs = ((Url) other);
-        return new EqualsBuilder().append(protocol, rhs.protocol).append(hostname, rhs.hostname).append(search, rhs.search).append(port, rhs.port).append(raw, rhs.raw).append(hash, rhs.hash).append(full, rhs.full).append(pathname, rhs.pathname).isEquals();
+        return new EqualsBuilder().append(protocol, rhs.protocol).append(hostname, rhs.hostname).append(search, rhs.search).append(port, rhs.port).append(raw, rhs.raw).append(full, rhs.full).append(pathname, rhs.pathname).isEquals();
     }
 
     @Override
@@ -275,6 +248,5 @@ public class Url implements Recyclable {
         port = null;
         pathname = null;
         search = null;
-        hash = null;
     }
 }

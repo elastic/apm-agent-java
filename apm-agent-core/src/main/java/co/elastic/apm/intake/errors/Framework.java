@@ -23,12 +23,17 @@ public class Framework {
      * (Required)
      */
     @JsonProperty("name")
-    private String name;
+    private final String name;
     /**
      * (Required)
      */
     @JsonProperty("version")
-    private String version;
+    private final String version;
+
+    public Framework(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
 
     /**
      * (Required)
@@ -41,35 +46,9 @@ public class Framework {
     /**
      * (Required)
      */
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Framework withName(String name) {
-        this.name = name;
-        return this;
-    }
-
-    /**
-     * (Required)
-     */
     @JsonProperty("version")
     public String getVersion() {
         return version;
-    }
-
-    /**
-     * (Required)
-     */
-    @JsonProperty("version")
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public Framework withVersion(String version) {
-        this.version = version;
-        return this;
     }
 
     @Override

@@ -26,14 +26,19 @@ public class Agent {
      */
     @JsonProperty("name")
     @JsonPropertyDescription("Name of the Elastic APM agent, e.g. \"Python\"")
-    private String name;
+    private final String name;
     /**
      * Version of the Elastic APM agent, e.g."1.0.0"
      * (Required)
      */
     @JsonProperty("version")
     @JsonPropertyDescription("Version of the Elastic APM agent, e.g.\"1.0.0\"")
-    private String version;
+    private final String version;
+
+    public Agent(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
 
     /**
      * Name of the Elastic APM agent, e.g. "Python"
@@ -45,40 +50,12 @@ public class Agent {
     }
 
     /**
-     * Name of the Elastic APM agent, e.g. "Python"
-     * (Required)
-     */
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Agent withName(String name) {
-        this.name = name;
-        return this;
-    }
-
-    /**
      * Version of the Elastic APM agent, e.g."1.0.0"
      * (Required)
      */
     @JsonProperty("version")
     public String getVersion() {
         return version;
-    }
-
-    /**
-     * Version of the Elastic APM agent, e.g."1.0.0"
-     * (Required)
-     */
-    @JsonProperty("version")
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public Agent withVersion(String version) {
-        this.version = version;
-        return this;
     }
 
     @Override

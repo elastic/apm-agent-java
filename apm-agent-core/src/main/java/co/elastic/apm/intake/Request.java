@@ -48,6 +48,8 @@ public class Request implements Recyclable {
     @JsonProperty("env")
     @JsonPropertyDescription("The env variable is a compounded of environment information passed from the webserver.")
     private final Env env = new Env();
+
+    // TODO MultiValueMap
     /**
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */

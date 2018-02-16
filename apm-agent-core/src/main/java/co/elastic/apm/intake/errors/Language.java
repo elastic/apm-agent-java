@@ -23,9 +23,14 @@ public class Language {
      * (Required)
      */
     @JsonProperty("name")
-    private String name;
+    private final String name;
     @JsonProperty("version")
-    private String version;
+    private final String version;
+
+    public Language(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
 
     /**
      * (Required)
@@ -35,32 +40,9 @@ public class Language {
         return name;
     }
 
-    /**
-     * (Required)
-     */
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Language withName(String name) {
-        this.name = name;
-        return this;
-    }
-
     @JsonProperty("version")
     public String getVersion() {
         return version;
-    }
-
-    @JsonProperty("version")
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public Language withVersion(String version) {
-        this.version = version;
-        return this;
     }
 
     @Override

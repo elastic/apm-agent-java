@@ -333,9 +333,6 @@ public class Transaction implements Recyclable {
         name = null;
         result = null;
         timestamp.setTime(0);
-        for (Span span : spans) {
-            span.resetState();
-        }
         spans.clear();
         type = null;
         marks.clear();
@@ -344,6 +341,9 @@ public class Transaction implements Recyclable {
     }
 
     public void recycle() {
+        for (Span span : spans) {
+            span.recycle();
+        }
         transactionPool.recycle(this);
     }
 }

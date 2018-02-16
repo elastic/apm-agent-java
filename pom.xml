@@ -13,6 +13,7 @@
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <animal.sniffer.skip>false</animal.sniffer.skip>
+        <jackson.version>2.9.4</jackson.version>
     </properties>
 
     <modules>

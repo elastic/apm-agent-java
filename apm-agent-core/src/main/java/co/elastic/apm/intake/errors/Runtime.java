@@ -23,12 +23,17 @@ public class Runtime {
      * (Required)
      */
     @JsonProperty("name")
-    private String name;
+    private final String name;
     /**
      * (Required)
      */
     @JsonProperty("version")
-    private String version;
+    private final String version;
+
+    public Runtime(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
 
     /**
      * (Required)
@@ -38,18 +43,6 @@ public class Runtime {
         return name;
     }
 
-    /**
-     * (Required)
-     */
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Runtime withName(String name) {
-        this.name = name;
-        return this;
-    }
 
     /**
      * (Required)
@@ -57,19 +50,6 @@ public class Runtime {
     @JsonProperty("version")
     public String getVersion() {
         return version;
-    }
-
-    /**
-     * (Required)
-     */
-    @JsonProperty("version")
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public Runtime withVersion(String version) {
-        this.version = version;
-        return this;
     }
 
     @Override

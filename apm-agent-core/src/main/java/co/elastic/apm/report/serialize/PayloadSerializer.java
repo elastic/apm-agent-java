@@ -6,5 +6,5 @@ import okio.BufferedSink;
 import java.io.IOException;
 
 public interface PayloadSerializer {
-    void serializePayload(BufferedSink outputStream, Payload payload) throws IOException;
+    void serializePayload(BufferedSink sink, Payload payload) throws IOException;
 }
