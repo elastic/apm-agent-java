@@ -1,6 +1,6 @@
 package co.elastic.apm.report.serialize;
 
-import co.elastic.apm.intake.transactions.Payload;
+import co.elastic.apm.impl.TransactionPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okio.BufferedSink;
 
@@ -13,7 +13,7 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
         this.objectMapper = objectMapper;
     }
 
-    public void serializePayload(BufferedSink sink, Payload payload) throws IOException {
+    public void serializePayload(BufferedSink sink, TransactionPayload payload) throws IOException {
         objectMapper.writeValue(sink.outputStream(), payload);
     }
 }

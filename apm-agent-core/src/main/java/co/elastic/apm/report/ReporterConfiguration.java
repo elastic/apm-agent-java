@@ -1,11 +1,12 @@
 package co.elastic.apm.report;
 
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import java.net.URL;
 
-public class ReporterConfiguration {
+public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> secretToken = ConfigurationOption.<String>stringOption()
         .key("elastic.apm.secret.token")
         .description("This string is used to ensure that only your agents can send data to your APM server.\n\n" +
@@ -60,4 +61,32 @@ public class ReporterConfiguration {
             "This setting is useful to limit memory consumption if you experience a sudden spike of traffic.")
         .dynamic(true)
         .buildWithDefault(500);
+
+    public String getSecretToken() {
+        return secretToken.get();
+    }
+
+    public String getServerUrl() {
+        return serverUrl.getValueAsString();
+    }
+
+    public int getServerTimeout() {
+        return serverTimeout.get();
+    }
+
+    public boolean getVerifyServerCert() {
+        return verifyServerCert.get();
+    }
+
+    public int getFlushInterval() {
+        return flushInterval.get();
+    }
+
+    public int getTransactionMaxSpans() {
+        return transactionMaxSpans.get();
+    }
+
+    public int getMaxQueueSize() {
+        return maxQueueSize.get();
+    }
 }

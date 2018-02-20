@@ -62,7 +62,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("elastic.apm.application_packages")
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.")
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<String>emptyList());
 
     private final ConfigurationOption<Integer> stackTraceLimit = ConfigurationOption.<Integer>integerOption()
         .key("elastic.apm.stack_trace_limit")
@@ -72,5 +72,35 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(50);
 
+    public boolean isActive() {
+        return active.get();
+    }
 
+    public boolean isInstrument() {
+        return instrument.get();
+    }
+
+    public String getServiceName() {
+        return serviceName.get();
+    }
+
+    public String getServiceVersion() {
+        return serviceVersion.get();
+    }
+
+    public String getEnvironment() {
+        return environment.get();
+    }
+
+    public double getSampleRate() {
+        return sampleRate.get();
+    }
+
+    public Collection<String> getApplicationPackages() {
+        return applicationPackages.get();
+    }
+
+    public int getStackTraceLimit() {
+        return stackTraceLimit.get();
+    }
 }

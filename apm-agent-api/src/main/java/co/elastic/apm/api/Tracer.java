@@ -15,14 +15,9 @@ public interface Tracer {
      * }
      * </code></pre>
      *
-     * @param name A name for your transaction. Transactions are grouped by name.
-     *             Can also be set later via {@link Transaction#setName(String)}
-     * @param type There’s a special type called {@link Transaction#TYPE_REQUEST request} which is used by the agent for the transactions
-     *             automatically created when an incoming HTTP request is detected.
-     *             Can also be set later via {@link Transaction#setType(String)}
      * @return the started transaction
      */
-    Transaction startTransaction(String name, String type);
+    Transaction startTransaction();
 
     /**
      * Returns the currently active transaction
@@ -31,4 +26,5 @@ public interface Tracer {
      */
     Transaction currentTransaction();
 
+    Span startSpan();
 }

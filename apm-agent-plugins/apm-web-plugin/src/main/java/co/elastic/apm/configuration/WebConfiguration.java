@@ -1,11 +1,12 @@
 package co.elastic.apm.configuration;
 
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Collection;
 import java.util.Collections;
 
-public class WebConfiguration {
+public class WebConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> captureBody = ConfigurationOption.booleanOption()
         .key("elastic.apm.capture_body")
@@ -34,8 +35,6 @@ public class WebConfiguration {
             "\n" +
             "Note that all errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.")
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
-
-
+        .buildWithDefault(Collections.<String>emptyList());
 
 }

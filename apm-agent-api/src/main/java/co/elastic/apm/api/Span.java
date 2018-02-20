@@ -1,33 +1,28 @@
 package co.elastic.apm.api;
 
 public interface Span extends AutoCloseable {
+
     /**
      * The name of the transaction.
-     * <p>
-     * Can be used to set or overwrite the name of the transaction (visible in the performance monitoring breakdown).
-     * If you don’t have access to the current transaction, you can also set the name using apm.setTransactionName().
-     * </p>
-     * <p>
-     * Transactions with the same name and type are grouped together.
-     * </p>
      *
-     * @param name
+     * @param name the name of the span
      */
     void setName(String name);
 
     /**
-     * The type of the transaction.
+     * The type of span.
      * <p>
-     * There’s a special type called request which is used by the agent for the transactions automatically created
-     * when an incoming HTTP request is detected.
+     * The type is a hierarchical string used to group similar spans together.
+     * For instance, all spans of MySQL queries are given the type db.mysql.query.
+     * </p>
+     * <p>
+     * In the above example db is considered the type prefix. Though there are no naming restrictions for this prefix,
+     * the following are standardized across all Elastic APM agents: app, db, cache, template, and ext.
      * </p>
      *
-     * @param type
+     * @param type the type of the span
      */
     void setType(String type);
-
-
-    void addTag(String key, String value);
 
     /**
      * Ends the transaction and truncates all un-ended child spans. If the transaction has already ended, nothing happens.

@@ -1,7 +1,7 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.intake.transactions.Payload;
+import co.elastic.apm.impl.TransactionPayload;
 
 public interface PayloadSender {
-    void sendPayload(Payload payload);
+    void sendPayload(TransactionPayload payload);
 }

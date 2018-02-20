@@ -1,9 +1,9 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.intake.Process;
-import co.elastic.apm.intake.Service;
-import co.elastic.apm.intake.System;
-import co.elastic.apm.intake.transactions.Transaction;
+import co.elastic.apm.impl.Process;
+import co.elastic.apm.impl.Service;
+import co.elastic.apm.impl.SystemInfo;
+import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
@@ -42,10 +42,10 @@ public class Reporter implements Closeable {
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
 
-    public Reporter(Service server, Process process, System system, PayloadSender payloadSender, boolean dropTransactionIfQueueFull) {
+    public Reporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender, boolean dropTransactionIfQueueFull) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         disruptor = new Disruptor<>(new TransactionEventFactory(), REPORTER_QUEUE_LENGTH, DaemonThreadFactory.INSTANCE);
-        disruptor.handleEventsWith(new ReportingEventHandler(server, process, system, payloadSender));
+        disruptor.handleEventsWith(new ReportingEventHandler(service, process, system, payloadSender));
         disruptor.start();
         flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
         flushScheduler.scheduleAtFixedRate(new Runnable() {

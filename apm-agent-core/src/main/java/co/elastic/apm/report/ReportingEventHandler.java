@@ -1,9 +1,9 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.intake.Process;
-import co.elastic.apm.intake.Service;
-import co.elastic.apm.intake.System;
-import co.elastic.apm.intake.transactions.Payload;
+import co.elastic.apm.impl.Process;
+import co.elastic.apm.impl.Service;
+import co.elastic.apm.impl.SystemInfo;
+import co.elastic.apm.impl.TransactionPayload;
 import com.lmax.disruptor.EventHandler;
 
 import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.FLUSH;
@@ -11,12 +11,12 @@ import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.T
 
 class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
     private static final int MAX_TRANSACTIONS_PER_REPORT = 250;
-    private final Payload payload;
+    private final TransactionPayload payload;
     private final PayloadSender payloadSender;
 
-    public ReportingEventHandler(Service service, Process process, System system, PayloadSender payloadSender) {
+    public ReportingEventHandler(Service service, Process process, SystemInfo system, PayloadSender payloadSender) {
         this.payloadSender = payloadSender;
-        payload = new Payload(service, process, system);
+        payload = new TransactionPayload(service, process, system);
     }
 
     @Override
