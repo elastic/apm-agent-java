@@ -26,5 +26,7 @@ public interface Tracer {
      */
     Transaction currentTransaction();
 
+    Span currentSpan();
+
     Span startSpan();
 }

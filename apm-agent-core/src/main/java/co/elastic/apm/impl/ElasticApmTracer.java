@@ -12,9 +12,12 @@ import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import okhttp3.OkHttpClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
@@ -25,6 +28,7 @@ import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracer implements Tracer {
+    private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
     static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static ElasticApmTracer instance;
@@ -32,6 +36,8 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final Reporter reporter;
+    private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter) {
         this.configurationRegistry = configurationRegistry;
@@ -84,19 +90,27 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Transaction startTransaction() {
-        return transactionPool.createInstance().start(this, System.nanoTime());
+        Transaction transaction = transactionPool.createInstance().start(this, System.nanoTime());
+        currentTransaction.set(transaction);
+        return transaction;
     }
 
     @Override
     public Transaction currentTransaction() {
-        return instance.currentTransaction();
+        return currentTransaction.get();
+    }
+
+    @Override
+    public Span currentSpan() {
+        return currentSpan.get();
     }
 
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
-        Span span = spanPool.createInstance().start(transaction, System.nanoTime());
+        Span span = spanPool.createInstance().start(this, transaction, System.nanoTime());
         transaction.getSpans().add(span);
+        currentSpan.set(span);
         return span;
     }
 
@@ -104,8 +118,23 @@ public class ElasticApmTracer implements Tracer {
         return configurationRegistry.getConfig(pluginClass);
     }
 
-    void reportTransaction(Transaction transaction) {
+    void endTransaction(Transaction transaction) {
+        if (currentTransaction.get() != transaction) {
+            logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
+            assert false;
+            return;
+        }
+        currentTransaction.clear();
         reporter.report(transaction);
+    }
+
+    void endSpan(Span span) {
+        if (currentSpan.get() != span) {
+            logger.warn("Trying to end a span which is not the current (thread local) span!");
+            assert false;
+            return;
+        }
+        currentSpan.clear();
     }
 
     void recycle(Transaction transaction) {

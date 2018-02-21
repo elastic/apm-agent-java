@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
+    private transient ElasticApmTracer tracer;
     /**
      * Context
      * <p>
@@ -49,7 +50,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     private final Map<String, Object> marks = new HashMap<>();
     @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
-    private ElasticApmTracer tracer;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
@@ -237,7 +237,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @Override
     public void end() {
         this.duration = (System.nanoTime() - duration) / ElasticApmTracer.MS_IN_NANOS;
-        this.tracer.reportTransaction(this);
+        this.tracer.endTransaction(this);
     }
 
     @Override

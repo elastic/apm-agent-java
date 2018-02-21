@@ -25,6 +25,11 @@ public class ElasticApm implements Tracer {
     }
 
     @Override
+    public Span currentSpan() {
+        return tracer.currentSpan();
+    }
+
+    @Override
     public Span startSpan() {
         return tracer.startSpan();
     }
@@ -41,6 +46,11 @@ public class ElasticApm implements Tracer {
         @Override
         public Transaction currentTransaction() {
             return NoopTransaction.INSTANCE;
+        }
+
+        @Override
+        public Span currentSpan() {
+            return NoopSpan.INSTANCE;
         }
 
         @Override
