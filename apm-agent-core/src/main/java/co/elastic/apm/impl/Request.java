@@ -124,7 +124,7 @@ public class Request implements Recyclable {
     }
 
     /**
-     * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
+     * Should include any headers sent by the requester. {@code Map<String, String>} will be taken by headers if supplied.
      */
     @JsonProperty("headers")
     public Map<String, String> getHeaders() {

@@ -50,6 +50,12 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
+            <!-- The shadowed source files of this module need to be included explicitly to create a javadoc artifact.-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.0.0</version>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
