@@ -31,11 +31,13 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         body.payload = payload;
         okhttp3.Request request = new okhttp3.Request.Builder()
             .url(reporterConfiguration.getServerUrl() + "/v1/transactions")
+            .header("Content-Encoding", "gzip")
+            .header("User-Agent", "apm-agent-java " + payload.getService().getAgent().getVersion())
             .post(body)
             .build();
 
         try {
-            httpClient.newCall(request).execute();
+            httpClient.newCall(request).execute().close();
         } catch (IOException e) {
             droppedTransactions += payload.getTransactions().size();
         }

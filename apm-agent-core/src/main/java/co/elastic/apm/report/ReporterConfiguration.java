@@ -12,7 +12,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("This string is used to ensure that only your agents can send data to your APM server.\n\n" +
             "Both the agents and the APM server have to be configured with the same secret token.")
         .sensitive()
-        .buildRequired();
+        .build();
 
     private final ConfigurationOption<URL> serverUrl = ConfigurationOption.<URL>urlOption()
         .key("server_url")

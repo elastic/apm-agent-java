@@ -42,30 +42,28 @@ public class ApmFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
-            long start = System.nanoTime();
             final Transaction transaction = tracer.startTransaction();
             try {
                 filterChain.doFilter(request, response);
             } finally {
-                fillTransaction(transaction, httpRequest, (HttpServletResponse) response, System.nanoTime() - start);
+                fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
                 transaction.end();
             }
         }
     }
 
     private Transaction fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,
-                                        HttpServletResponse httpServletResponse, long durationNanos) {
+                                        HttpServletResponse httpServletResponse) {
         Context context = transaction.getContext();
         fillRequest(transaction.getContext().getRequest(), httpServletRequest);
         fillResponse(context.getResponse(), httpServletResponse);
         fillUser(context.getUser(), httpServletRequest);
 
-        transaction.withDuration(durationNanos / 1_000_000d);
         // TODO can this be set by apm-server when there is no explicit name set?
         transaction.withName(httpServletRequest.getRequestURI());
         transaction.withResult(getResult(httpServletResponse.getStatus()));
         transaction.withSampled(true);
-        transaction.withTimestamp(java.lang.System.currentTimeMillis());
+        transaction.withTimestamp(System.currentTimeMillis());
         transaction.withType("request");
         transaction.getSpanCount().getDropped().withTotal(0);
 //        transaction.getSpans().add(createSpan());

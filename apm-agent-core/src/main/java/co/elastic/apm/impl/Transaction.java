@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -63,7 +64,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      */
     @JsonProperty("id")
     @JsonPropertyDescription("UUID for the transaction, referred by its spans")
-    private final byte[] id = new byte[16];
+    private UUID id;
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
@@ -96,7 +97,8 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos) {
         this.tracer = tracer;
         this.duration = startTimestampNanos;
-        ThreadLocalRandom.current().nextBytes(id);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        id = new UUID(random.nextLong(), random.nextLong());
         return this;
     }
 
@@ -128,17 +130,12 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         this.duration = duration;
     }
 
-    public Transaction withDuration(double duration) {
-        this.duration = duration;
-        return this;
-    }
-
     /**
      * UUID for the transaction, referred by its spans
      * (Required)
      */
     @JsonProperty("id")
-    public byte[] getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -344,9 +341,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     public void resetState() {
         context.resetState();
         duration = 0;
-        for (int i = 0; i < id.length; i++) {
-            id[i] = 0;
-        }
+        id = null;
         name = null;
         result = null;
         timestamp.setTime(0);
