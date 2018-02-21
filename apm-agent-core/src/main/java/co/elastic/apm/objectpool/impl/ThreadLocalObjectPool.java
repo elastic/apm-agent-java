@@ -2,20 +2,19 @@ package co.elastic.apm.objectpool.impl;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
-
-import java.util.Collection;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
 public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
-    private final ThreadLocal<FixedSizeStack<T>> objectPool;
+    private final DetachedThreadLocal<FixedSizeStack<T>> objectPool;
     private final int maxNumPooledObjectsPerThread;
 
     public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final RecyclableObjectFactory<T> recyclableObjectFactory) {
         super(recyclableObjectFactory);
         this.maxNumPooledObjectsPerThread = maxNumPooledObjectsPerThread;
-        this.objectPool = new ThreadLocal<FixedSizeStack<T>>() {
+        this.objectPool = new DetachedThreadLocal<FixedSizeStack<T>>(DetachedThreadLocal.Cleaner.INLINE) {
             @Override
-            protected FixedSizeStack<T> initialValue() {
+            protected FixedSizeStack<T> initialValue(Thread thread) {
                 FixedSizeStack<T> stack = new FixedSizeStack<>(maxNumPooledObjectsPerThread);
                 if (preAllocate) {
                     for (int i = 0; i < maxNumPooledObjectsPerThread; i++) {
@@ -45,7 +44,7 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
 
     @Override
     public void close() {
-        objectPool.remove();
+        objectPool.clearAll();
     }
 
     @Override
