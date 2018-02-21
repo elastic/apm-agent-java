@@ -19,9 +19,16 @@
 
     <dependencies>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-agent-core</artifactId>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

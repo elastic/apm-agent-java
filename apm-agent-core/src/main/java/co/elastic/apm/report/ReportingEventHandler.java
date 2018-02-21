@@ -6,10 +6,10 @@ import co.elastic.apm.impl.SystemInfo;
 import co.elastic.apm.impl.TransactionPayload;
 import com.lmax.disruptor.EventHandler;
 
-import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.FLUSH;
-import static co.elastic.apm.report.Reporter.ReportingEvent.ReportingEventType.TRANSACTION;
+import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
-class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
+class ReportingEventHandler implements EventHandler<ApmServerReporter.ReportingEvent> {
     private static final int MAX_TRANSACTIONS_PER_REPORT = 250;
     private final TransactionPayload payload;
     private final PayloadSender payloadSender;
@@ -20,7 +20,7 @@ class ReportingEventHandler implements EventHandler<Reporter.ReportingEvent> {
     }
 
     @Override
-    public void onEvent(Reporter.ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
+    public void onEvent(ApmServerReporter.ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
         if (event.type == FLUSH) {
             flush();
         }

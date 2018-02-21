@@ -1,5 +1,6 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -55,7 +56,7 @@ public abstract class AbstractReporterBenchmark {
             .withArchitecture("x86_64")
             .withHostname("Felixs-MBP")
             .withPlatform("Mac OS X");
-        reporter = new Reporter(service, process, system, payloadSender, false);
+        reporter = new ApmServerReporter(service, process, system, payloadSender, false);
         payload = new TransactionPayload(service, process, system);
         for (int i = 0; i < PAYLOAD_SIZE; i++) {
             Transaction t = new Transaction();

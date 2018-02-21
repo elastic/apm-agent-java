@@ -8,6 +8,7 @@ import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import co.elastic.apm.report.ApmServerHttpPayloadSender;
+import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
@@ -35,14 +36,14 @@ public class ElasticApmTracer implements Tracer {
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
-        transactionPool = new RingBufferObjectPool<>(Reporter.REPORTER_QUEUE_LENGTH * 2, true,
+        transactionPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction();
                 }
             });
-        spanPool = new RingBufferObjectPool<>(Reporter.REPORTER_QUEUE_LENGTH * 2, true,
+        spanPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
@@ -154,7 +155,7 @@ public class ElasticApmTracer implements Tracer {
                                         String frameworkName, String frameworkVersion) {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new AfterburnerModule());
-            return new Reporter(
+            return new ApmServerReporter(
                 new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion),
                 new ProcessFactory().getProcessInformation(),
                 new SystemFactory().getSystem(),
