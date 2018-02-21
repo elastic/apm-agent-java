@@ -34,8 +34,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name " +
             "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
-        .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name '%s' must only contain characters from" +
-            "the ASCII alphabet, numbers, dashes, underscores and spaces"))
+        .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
+            "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildRequired();
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.<String>stringOption()
