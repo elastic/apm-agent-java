@@ -9,7 +9,7 @@ import java.util.Collections;
 public class WebConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> captureBody = ConfigurationOption.booleanOption()
-        .key("elastic.apm.capture_body")
+        .key("capture_body")
         .description("For transactions that are HTTP requests, the Python agent can optionally capture the request body (e.g. POST " +
             "variables).\n" +
             "\n" +
@@ -26,7 +26,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(false);
 
     private final ConfigurationOption<Collection<String>> ignoreUrlsStartingWith = ConfigurationOption.<Collection<String>>stringsOption()
-        .key("elastic.apm.ignore_urls_starting_with")
+        .key("ignore_urls_starting_with")
         .description("Used to restrict requests to certain URL’s from being instrumented.\n" +
             "\n" +
             "This property should be set to an array containing one or more strings. " +
