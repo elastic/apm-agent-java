@@ -52,7 +52,7 @@ public class ApmFilter implements Filter {
         }
     }
 
-    private Transaction fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,
+    private void fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,
                                         HttpServletResponse httpServletResponse) {
         Context context = transaction.getContext();
         fillRequest(transaction.getContext().getRequest(), httpServletRequest);
@@ -66,8 +66,6 @@ public class ApmFilter implements Filter {
         transaction.withTimestamp(System.currentTimeMillis());
         transaction.withType("request");
         transaction.getSpanCount().getDropped().withTotal(0);
-//        transaction.getSpans().add(createSpan());
-        return transaction;
     }
 
     private String getRequestNameByRequest(HttpServletRequest request) {
@@ -96,7 +94,7 @@ public class ApmFilter implements Filter {
     /*
      * copy of org.springframework.web.util.UrlPathHelper#removeSemicolonContentInternal
      */
-    public String removeSemicolonContent(String requestUri) {
+    private String removeSemicolonContent(String requestUri) {
         int semicolonIndex = requestUri.indexOf(';');
         while (semicolonIndex != -1) {
             int slashIndex = requestUri.indexOf('/', semicolonIndex);
@@ -116,24 +114,22 @@ public class ApmFilter implements Filter {
         return userPrincipal != null ? userPrincipal.getName() : null;
     }
 
-    private Response fillResponse(Response response, HttpServletResponse httpServletResponse) {
+    private void fillResponse(Response response, HttpServletResponse httpServletResponse) {
         response.withFinished(true);
         fillResponseHeaders(httpServletResponse, response.getHeaders());
         response.withHeadersSent(httpServletResponse.isCommitted());
         response.withStatusCode(httpServletResponse.getStatus());
-        return response;
     }
 
 
-    private Map<String, String> fillResponseHeaders(HttpServletResponse response, Map<String, String> headers) {
+    private void fillResponseHeaders(HttpServletResponse response, Map<String, String> headers) {
         final Collection<String> headerNames = response.getHeaderNames();
         for (String headerName : headerNames) {
             headers.put(headerName, response.getHeader(headerName));
         }
-        return headers;
     }
 
-    private Request fillRequest(Request request, HttpServletRequest httpServletRequest) {
+    private void fillRequest(Request request, HttpServletRequest httpServletRequest) {
         if ("application/x-www-form-urlencoded".equals(httpServletRequest.getHeader(" content type"))) {
             for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
                 request.withFormUrlEncodedParameters(params.getKey(), params.getValue());
@@ -166,17 +162,14 @@ public class ApmFilter implements Filter {
         // TODO can this be filled by apm-server?
         //.withFull(getFullURL(httpServletRequest))
         //.withRaw(getRawURL(httpServletRequest));
-
-        return request;
     }
 
-    private Map<String, String> fillHeaders(HttpServletRequest request, Map<String, String> headers) {
+    private void fillHeaders(HttpServletRequest request, Map<String, String> headers) {
         final Enumeration headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
             final String headerName = (String) headerNames.nextElement();
             headers.put(headerName, request.getHeader(headerName));
         }
-        return headers;
     }
 
     private String getRawURL(final HttpServletRequest request) {
