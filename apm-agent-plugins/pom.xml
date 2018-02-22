@@ -12,6 +12,7 @@
     <modules>
         <module>apm-servlet-plugin</module>
         <module>apm-web-plugin</module>
+        <module>apm-jdbc-plugin</module>
     </modules>
 
     <artifactId>apm-agent-plugins</artifactId>

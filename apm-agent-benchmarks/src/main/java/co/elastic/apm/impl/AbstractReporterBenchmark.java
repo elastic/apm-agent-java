@@ -115,7 +115,6 @@ public abstract class AbstractReporterBenchmark {
         context.getCustom().put("and_objects", STRINGS);
 
         Span span = new Span()
-            .withId(0)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query")
             .withStart(2.83092)
@@ -127,21 +126,18 @@ public abstract class AbstractReporterBenchmark {
             .withUser("readonly_user");
         t.getSpans().add(span);
         t.getSpans().add(new Span()
-            .withId(1)
             .withParent(0)
             .withName("GET /api/types")
             .withType("request")
             .withStart(0)
             .withDuration(32.592981));
         t.getSpans().add(new Span()
-            .withId(2)
             .withParent(1)
             .withName("GET /api/types")
             .withType("request")
             .withStart(1.845)
             .withDuration(3.5642981));
         t.getSpans().add(new Span()
-            .withId(3)
             .withParent(2)
             .withName("GET /api/types")
             .withType("request")

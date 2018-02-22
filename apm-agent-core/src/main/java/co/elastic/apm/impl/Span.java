@@ -11,6 +11,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
@@ -85,25 +86,21 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     Span() {
     }
 
+    public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime) {
+        this.tracer = tracer;
+        this.id = ThreadLocalRandom.current().nextLong();
+        this.parent = span != null ? span.getId() : 0;
+        start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
+        duration = nanoTime;
+        return this;
+    }
+
     /**
      * The locally unique ID of the span.
      */
     @JsonProperty("id")
     public long getId() {
         return id;
-    }
-
-    /**
-     * The locally unique ID of the span.
-     */
-    @JsonProperty("id")
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Span withId(long id) {
-        this.id = id;
-        return this;
     }
 
     /**
@@ -234,8 +231,12 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     @Override
     public void end() {
-        duration = (System.nanoTime() - duration) / MS_IN_NANOS;
-        tracer.endSpan(this);
+        end(System.nanoTime());
+    }
+
+    public void end(long nanoTime) {
+        this.duration = (nanoTime - duration) / MS_IN_NANOS;
+        this.tracer.endSpan(this);
     }
 
     @Override
@@ -286,10 +287,4 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         tracer = null;
     }
 
-    public Span start(ElasticApmTracer tracer, Transaction transaction, long nanoTime) {
-        this.tracer = tracer;
-        start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
-        duration = nanoTime;
-        return this;
-    }
 }

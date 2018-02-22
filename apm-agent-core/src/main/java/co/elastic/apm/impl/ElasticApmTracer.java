@@ -108,7 +108,9 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
-        Span span = spanPool.createInstance().start(this, transaction, System.nanoTime());
+
+        Span span = spanPool.createInstance().start(this, transaction, currentSpan(), System.nanoTime());
+
         transaction.getSpans().add(span);
         currentSpan.set(span);
         return span;
