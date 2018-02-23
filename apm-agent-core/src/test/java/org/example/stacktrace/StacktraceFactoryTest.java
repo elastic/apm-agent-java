@@ -3,7 +3,8 @@ package org.example.stacktrace;
 import co.elastic.apm.impl.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +31,7 @@ class StacktraceFactoryTest {
             new StacktraceFactory.CurrentThreadStackTraceFactory(stacktraceConfiguration));
     }
 
-    @BeforeEach
+    @AfterEach
     void setUp() {
         Mockito.reset(stacktraceConfiguration);
     }
@@ -65,6 +67,37 @@ class StacktraceFactoryTest {
         Optional<Stacktrace> thisMethodsFrame = stacktrace.stream().filter(st -> st.getAbsPath().startsWith(getClass().getName())).findAny();
         assertThat(thisMethodsFrame).isPresent();
         assertThat(thisMethodsFrame.get().isLibraryFrame()).isTrue();
+    }
+
+    @ParameterizedTest
+    @MethodSource("stacktraceFactoryImpls")
+    void testFileNamePresent(StacktraceFactory stacktraceFactory) {
+        List<Stacktrace> stacktrace = new ArrayList<>();
+        stacktraceFactory.fillStackTrace(stacktrace);
+        assertThat(stacktrace.stream().filter(st -> st.getFilename() == null)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("stacktraceFactoryImpls")
+    void testNoInternalStackFrames(StacktraceFactory stacktraceFactory) {
+        List<Stacktrace> stacktrace = new ArrayList<>();
+        stacktraceFactory.fillStackTrace(stacktrace);
+        assertSoftly(softly -> {
+            softly.assertThat(stacktrace.stream().filter(st -> st.getAbsPath().contains("java.lang.reflect."))).isEmpty();
+            softly.assertThat(stacktrace.stream().filter(st -> st.getAbsPath().contains("sun."))).isEmpty();
+        });
+    }
+
+    @Test
+    void testFactoriesProduceSameResult() {
+        List<StacktraceFactory> factories = stacktraceFactoryImpls();
+        List<List<Stacktrace>> results = new ArrayList<>();
+        for (StacktraceFactory factory : factories) {
+            List<Stacktrace> result = new ArrayList<>();
+            factory.fillStackTrace(result);
+            results.add(result);
+        }
+        assertThat(results.get(0)).isEqualTo(results.get(1));
     }
 
 }

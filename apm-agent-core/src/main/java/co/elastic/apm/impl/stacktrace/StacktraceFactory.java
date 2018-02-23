@@ -3,6 +3,8 @@ package co.elastic.apm.impl.stacktrace;
 import co.elastic.apm.impl.Stacktrace;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -32,6 +34,7 @@ public interface StacktraceFactory {
     class CurrentThreadStackTraceFactory implements StacktraceFactory {
 
         private final StacktraceConfiguration stacktraceConfiguration;
+        private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
 
         public CurrentThreadStackTraceFactory(StacktraceConfiguration stacktraceConfiguration) {
             this.stacktraceConfiguration = stacktraceConfiguration;
@@ -42,26 +45,52 @@ public interface StacktraceFactory {
             boolean topMostElasticApmPackagesSkipped = false;
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
 
-            for (int i = 1; i < Math.min(stackTrace.length, stacktraceConfiguration.getStackTraceLimit()); i++) {
+            int collectedStackFrames = 0;
+            int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();
+            for (int i = 1; i <stackTrace.length && collectedStackFrames < stackTraceLimit; i++) {
                 StackTraceElement stackTraceElement = stackTrace[i];
                 if (!topMostElasticApmPackagesSkipped && stackTraceElement.getClassName().startsWith("co.elastic.apm")) {
                     continue;
                 }
                 topMostElasticApmPackagesSkipped = true;
-                // TODO no allocation
-                Stacktrace s = new Stacktrace()
-                    .withAbsPath(stackTraceElement.getClassName())
-                    .withFilename(stackTraceElement.getFileName())
-                    .withFunction(stackTraceElement.getMethodName())
-                    .withLineno(stackTraceElement.getLineNumber())
-                    .withLibraryFrame(true);
-                for (String applicationPackage : stacktraceConfiguration.getApplicationPackages()) {
-                    if (stackTraceElement.getClassName().startsWith(applicationPackage)) {
-                        s.setLibraryFrame(false);
-                    }
+
+                if (isExcluded(stackTraceElement)) {
+                    continue;
                 }
-                stacktrace.add(s);
+
+                stacktrace.add(getStacktrace(stackTraceElement));
+                collectedStackFrames++;
             }
+        }
+
+        private Stacktrace getStacktrace(StackTraceElement stackTraceElement) {
+            // TODO no allocation
+            Stacktrace s = new Stacktrace()
+                .withAbsPath(stackTraceElement.getClassName())
+                .withFilename(stackTraceElement.getFileName())
+                .withFunction(stackTraceElement.getMethodName())
+                .withLineno(stackTraceElement.getLineNumber())
+                .withLibraryFrame(true);
+            for (String applicationPackage : stacktraceConfiguration.getApplicationPackages()) {
+                if (stackTraceElement.getClassName().startsWith(applicationPackage)) {
+                    s.setLibraryFrame(false);
+                }
+            }
+            return s;
+        }
+
+        private boolean isExcluded(StackTraceElement stackTraceElement) {
+            // file name is a required field
+            if (stackTraceElement.getFileName() == null) {
+                return true;
+            }
+            String className = stackTraceElement.getClassName();
+            for (String excludedStackFrame : excludedStackFrames) {
+                if (className.startsWith(excludedStackFrame)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
