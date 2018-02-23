@@ -6,13 +6,18 @@ import co.elastic.apm.report.serialize.PayloadSerializer;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class ApmServerHttpPayloadSender implements PayloadSender {
+    private static final Logger logger = LoggerFactory.getLogger(ApmServerHttpPayloadSender.class);
+
     private final OkHttpClient httpClient;
     private final ReporterConfiguration reporterConfiguration;
     private final PayloadRequestBody body;
@@ -37,8 +42,20 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             .build();
 
         try {
-            httpClient.newCall(request).execute().close();
+            logger.debug("Sending payload with {} transactions to APM server {}",
+                payload.getTransactions().size(), reporterConfiguration.getServerUrl());
+            Response response = httpClient.newCall(request).execute();
+            int statusCode = response.code();
+            logger.debug("APM server responded with status code {}", statusCode);
+            if (statusCode >= 400) {
+                droppedTransactions += payload.getTransactions().size();
+                if (response.body() != null) {
+                    logger.debug(response.body().string());
+                }
+            }
+            response.close();
         } catch (IOException e) {
+            logger.debug("Sending transactions to APM server failed", e);
             droppedTransactions += payload.getTransactions().size();
         }
     }
