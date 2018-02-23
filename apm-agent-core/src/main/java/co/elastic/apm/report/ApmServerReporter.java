@@ -9,9 +9,9 @@ import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.util.DaemonThreadFactory;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,7 +49,15 @@ public class ApmServerReporter implements Reporter {
 
     public ApmServerReporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender, boolean dropTransactionIfQueueFull) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
-        disruptor = new Disruptor<>(new TransactionEventFactory(), REPORTER_QUEUE_LENGTH, DaemonThreadFactory.INSTANCE);
+        disruptor = new Disruptor<>(new TransactionEventFactory(), REPORTER_QUEUE_LENGTH, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r);
+                thread.setDaemon(true);
+                thread.setName("apm-reporter");
+                return thread;
+            }
+        });
         disruptor.handleEventsWith(new ReportingEventHandler(service, process, system, payloadSender));
         disruptor.start();
         flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
