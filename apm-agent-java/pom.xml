@@ -54,14 +54,6 @@
                                     <pattern>org.slf4j</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.slf4j</shadedPattern>
                                 </relocation>
-                                <!--
-                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant, it does work
-                                -->
-                                <relocation>
-                                    <pattern>simplelogger.properties</pattern>
-                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
-                                </relocation>
                                 <relocation>
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
@@ -90,6 +82,11 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-servlet-plugin</artifactId>
