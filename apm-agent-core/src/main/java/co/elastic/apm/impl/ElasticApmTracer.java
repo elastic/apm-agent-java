@@ -6,6 +6,7 @@ import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
@@ -41,11 +42,14 @@ public class ElasticApmTracer implements Tracer {
     private final StacktraceFactory stacktraceFactory;
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final ObjectPool<Stacktrace> stackTracePool;
+    private StacktraceConfiguration stacktraceConfiguration;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceFactory = stacktraceFactory;
+        this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         transactionPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
@@ -60,6 +64,12 @@ public class ElasticApmTracer implements Tracer {
                     return new Span();
                 }
             });
+        stackTracePool = new NoopObjectPool<Stacktrace>(new RecyclableObjectFactory<Stacktrace>() {
+            @Override
+            public Stacktrace createInstance() {
+                return new Stacktrace();
+            }
+        });
     }
 
     public static Builder builder() {
@@ -112,10 +122,7 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
-
         Span span = spanPool.createInstance().start(this, transaction, currentSpan(), System.nanoTime());
-        stacktraceFactory.fillStackTrace(span.getStacktrace());
-
         transaction.getSpans().add(span);
         currentSpan.set(span);
         return span;
@@ -141,16 +148,21 @@ public class ElasticApmTracer implements Tracer {
             assert false;
             return;
         }
+        int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+        if (spanFramesMinDurationMs != 0) {
+            if (span.getDuration() >= spanFramesMinDurationMs) {
+                stacktraceFactory.fillStackTrace(span.getStacktrace());
+            }
+        }
         currentSpan.clear();
     }
 
     void recycle(Transaction transaction) {
         for (Span span : transaction.getSpans()) {
+            for (Stacktrace st : span.getStacktrace()) {
+                stackTracePool.recycle(st);
+            }
             spanPool.recycle(span);
-                /*TODO recycle stacktrace
-                for (Stacktrace st : stacktrace) {
-                    st.recycle();
-                }*/
         }
         transactionPool.recycle(transaction);
     }

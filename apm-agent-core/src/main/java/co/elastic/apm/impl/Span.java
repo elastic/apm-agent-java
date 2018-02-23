@@ -278,9 +278,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         duration = 0;
         name = null;
         parent = 0;
-        for (Stacktrace stackTraceElement : stacktrace) {
-            stackTraceElement.resetState();
-        }
         stacktrace.clear();
         start = 0;
         type = null;

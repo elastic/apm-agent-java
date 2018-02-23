@@ -30,7 +30,9 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "With the default setting, `-1`, stack traces will be collected for all spans. " +
             "Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans " +
-            "with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.")
+            "with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.\n" +
+            "\n" +
+            "To disable stack trace collection for spans completely, set the value to 0.")
         .dynamic(true)
         .buildWithDefault(-1);
 

@@ -20,6 +20,9 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+/**
+ * This class intentionally is not inside the co.elastic.apm package. This is to test the {@link Stacktrace#isLibraryFrame()} feature.
+ */
 class StacktraceFactoryTest {
 
     private static StacktraceConfiguration stacktraceConfiguration;
