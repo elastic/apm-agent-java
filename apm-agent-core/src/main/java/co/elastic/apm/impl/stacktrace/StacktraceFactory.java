@@ -1,6 +1,9 @@
 package co.elastic.apm.impl.stacktrace;
 
 import co.elastic.apm.impl.Stacktrace;
+import co.elastic.apm.objectpool.NoopObjectPool;
+import co.elastic.apm.objectpool.ObjectPool;
+import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import java.util.Arrays;
@@ -35,9 +38,20 @@ public interface StacktraceFactory {
 
         private final StacktraceConfiguration stacktraceConfiguration;
         private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
+        private final ObjectPool<Stacktrace> stacktraceObjectPool;
 
         public CurrentThreadStackTraceFactory(StacktraceConfiguration stacktraceConfiguration) {
+            this(stacktraceConfiguration, new NoopObjectPool<>(new RecyclableObjectFactory<Stacktrace>() {
+                @Override
+                public Stacktrace createInstance() {
+                    return new Stacktrace();
+                }
+            }));
+        }
+
+        public CurrentThreadStackTraceFactory(StacktraceConfiguration stacktraceConfiguration, ObjectPool<Stacktrace> stacktraceObjectPool) {
             this.stacktraceConfiguration = stacktraceConfiguration;
+            this.stacktraceObjectPool = stacktraceObjectPool;
         }
 
         @Override
@@ -64,8 +78,7 @@ public interface StacktraceFactory {
         }
 
         private Stacktrace getStacktrace(StackTraceElement stackTraceElement) {
-            // TODO no allocation
-            Stacktrace s = new Stacktrace()
+            Stacktrace s = stacktraceObjectPool.createInstance()
                 .withAbsPath(stackTraceElement.getClassName())
                 .withFilename(stackTraceElement.getFileName())
                 .withFunction(stackTraceElement.getMethodName())

@@ -22,11 +22,27 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(50);
 
+    private final ConfigurationOption<Integer> spanFramesMinDurationMs = ConfigurationOption.<Integer>integerOption()
+        .key("span_frames_min_duration_ms")
+        .description("In its default settings, the APM agent will collect a stack trace with every recorded span.\n" +
+            "While this is very helpful to find the exact place in your code that causes the span, " +
+            "collecting this stack trace does have some overhead. " +
+            "\n" +
+            "With the default setting, `-1`, stack traces will be collected for all spans. " +
+            "Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans " +
+            "with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.")
+        .dynamic(true)
+        .buildWithDefault(-1);
+
     public Collection<String> getApplicationPackages() {
         return applicationPackages.get();
     }
 
     public int getStackTraceLimit() {
         return stackTraceLimit.get();
+    }
+
+    public int getSpanFramesMinDurationMs() {
+        return spanFramesMinDurationMs.getValue();
     }
 }
