@@ -1,5 +1,6 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
@@ -33,7 +34,7 @@ public abstract class AbstractReporterBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        tracer = new ElasticApmTracer(ConfigurationRegistry.builder().build(), reporter);
+        tracer = ElasticApmTracer.builder().reporter(reporter).stacktraceFactory(StacktraceFactory.Noop.INSTANCE).build();
         // in contrast to production configuration, do not drop transactions if the ring buffer is full
         // instead blocking wait until a slot becomes available
         // this is important because otherwise we would not measure the speed at which events can be handled

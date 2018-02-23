@@ -4,6 +4,8 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
@@ -36,12 +38,14 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final Reporter reporter;
+    private final StacktraceFactory stacktraceFactory;
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
+        this.stacktraceFactory = stacktraceFactory;
         transactionPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
@@ -110,6 +114,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = currentTransaction();
 
         Span span = spanPool.createInstance().start(this, transaction, currentSpan(), System.nanoTime());
+        stacktraceFactory.fillStackTrace(span.getStacktrace());
 
         transaction.getSpans().add(span);
         currentSpan.set(span);
@@ -154,6 +159,7 @@ public class ElasticApmTracer implements Tracer {
 
         private ConfigurationRegistry configurationRegistry;
         private Reporter reporter;
+        private StacktraceFactory stacktraceFactory;
 
         public Builder configurationRegistry(ConfigurationRegistry configurationRegistry) {
             this.configurationRegistry = configurationRegistry;
@@ -162,6 +168,11 @@ public class ElasticApmTracer implements Tracer {
 
         public Builder reporter(Reporter reporter) {
             this.reporter = reporter;
+            return this;
+        }
+
+        public Builder stacktraceFactory(StacktraceFactory stacktraceFactory) {
+            this.stacktraceFactory = stacktraceFactory;
             return this;
         }
 
@@ -179,7 +190,14 @@ public class ElasticApmTracer implements Tracer {
                     configurationRegistry.getConfig(ReporterConfiguration.class),
                     null, null);
             }
-            return new ElasticApmTracer(configurationRegistry, reporter);
+            if (stacktraceFactory == null) {
+                StacktraceConfiguration stackConfig = configurationRegistry.getConfig(StacktraceConfiguration.class);
+                stacktraceFactory = new StacktraceFactory.StackWalkerStackTraceFactory(stackConfig);
+                if (!stacktraceFactory.isAvailable()) {
+                    stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
+                }
+            }
+            return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory);
         }
 
         private Reporter createReporter(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration,

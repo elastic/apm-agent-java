@@ -39,18 +39,6 @@ public class Stacktrace implements Recyclable {
     @JsonPropertyDescription("The absolute path of the file involved in the stack frame")
     private String absPath;
     /**
-     * Column number
-     */
-    @JsonProperty("colno")
-    @JsonPropertyDescription("Column number")
-    private long colno;
-    /**
-     * The line of code part of the stack frame
-     */
-    @JsonProperty("context_line")
-    @JsonPropertyDescription("The line of code part of the stack frame")
-    private String contextLine;
-    /**
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
@@ -101,48 +89,6 @@ public class Stacktrace implements Recyclable {
 
     public Stacktrace withAbsPath(String absPath) {
         this.absPath = absPath;
-        return this;
-    }
-
-    /**
-     * Column number
-     */
-    @JsonProperty("colno")
-    public long getColno() {
-        return colno;
-    }
-
-    /**
-     * Column number
-     */
-    @JsonProperty("colno")
-    public void setColno(long colno) {
-        this.colno = colno;
-    }
-
-    public Stacktrace withColno(long colno) {
-        this.colno = colno;
-        return this;
-    }
-
-    /**
-     * The line of code part of the stack frame
-     */
-    @JsonProperty("context_line")
-    public String getContextLine() {
-        return contextLine;
-    }
-
-    /**
-     * The line of code part of the stack frame
-     */
-    @JsonProperty("context_line")
-    public void setContextLine(String contextLine) {
-        this.contextLine = contextLine;
-    }
-
-    public Stacktrace withContextLine(String contextLine) {
-        this.contextLine = contextLine;
         return this;
     }
 
@@ -257,12 +203,24 @@ public class Stacktrace implements Recyclable {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("absPath", absPath).append("colno", colno).append("contextLine", contextLine).append("filename", filename).append("function", function).append("libraryFrame", libraryFrame).append("lineno", lineno).append("module", module).toString();
+        return new ToStringBuilder(this)
+            .append("absPath", absPath)
+            .append("filename", filename)
+            .append("function", function)
+            .append("libraryFrame", libraryFrame)
+            .append("lineno", lineno)
+            .append("module", module).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(filename).append(lineno).append(absPath).append(colno).append(function).append(module).append(contextLine).append(libraryFrame).toHashCode();
+        return new HashCodeBuilder()
+            .append(filename)
+            .append(lineno)
+            .append(absPath)
+            .append(function)
+            .append(module)
+            .append(libraryFrame).toHashCode();
     }
 
     @Override
@@ -274,14 +232,18 @@ public class Stacktrace implements Recyclable {
             return false;
         }
         Stacktrace rhs = ((Stacktrace) other);
-        return new EqualsBuilder().append(filename, rhs.filename).append(lineno, rhs.lineno).append(absPath, rhs.absPath).append(colno, rhs.colno).append(function, rhs.function).append(module, rhs.module).append(contextLine, rhs.contextLine).append(libraryFrame, rhs.libraryFrame).isEquals();
+        return new EqualsBuilder()
+            .append(filename, rhs.filename)
+            .append(lineno, rhs.lineno)
+            .append(absPath, rhs.absPath)
+            .append(function, rhs.function)
+            .append(module, rhs.module)
+            .append(libraryFrame, rhs.libraryFrame).isEquals();
     }
 
     @Override
     public void resetState() {
         absPath = null;
-        colno = 0;
-        contextLine = null;
         filename = null;
         function = null;
         libraryFrame = false;
