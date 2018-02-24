@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 public class StackTraceFactoryBenchmark {
 
     private StacktraceFactory.CurrentThreadStackTraceFactory currentThreadStackTraceFactory;
-    private StacktraceFactory.StackWalkerStackTraceFactory stackWalkerStackTraceFactory;
     private List<Stacktrace> stacktraces;
     private ObjectPool<Stacktrace> objectPool;
     private StacktraceFactory.CurrentThreadStackTraceFactory currentThreadStackTraceFactoryRecycling;
@@ -62,10 +61,8 @@ public class StackTraceFactoryBenchmark {
         currentThreadStackTraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stacktraceConfiguration,
             new NoopObjectPool<>(Stacktrace::new));
         currentThreadStackTraceFactoryRecycling = new StacktraceFactory.CurrentThreadStackTraceFactory(stacktraceConfiguration, objectPool);
-        stackWalkerStackTraceFactory = new StacktraceFactory.StackWalkerStackTraceFactory(stacktraceConfiguration);
         stacktraces = new ArrayList<>(50);
     }
-
 
     @Benchmark
     public int testCurrentThreadStackTraceFactory() {
@@ -84,9 +81,4 @@ public class StackTraceFactoryBenchmark {
         return size;
     }
 
-//    @Benchmark
-    public List<Stacktrace> testStackWalkerStackTraceFactory() {
-        stackWalkerStackTraceFactory.fillStackTrace(stacktraces);
-        return stacktraces;
-    }
 }

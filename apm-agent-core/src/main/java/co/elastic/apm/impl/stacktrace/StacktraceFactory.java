@@ -4,15 +4,10 @@ import co.elastic.apm.impl.Stacktrace;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public interface StacktraceFactory {
     void fillStackTrace(List<Stacktrace> stacktrace);
@@ -34,6 +29,17 @@ public interface StacktraceFactory {
         }
     }
 
+    /*
+     * Thread.currentThread().getStackTrace()
+     * This serves as the base line
+     *
+     * sun.misc.JavaLangAccess#getStackTraceElement
+     * is ~10% faster and requires ~20% less allocated bytes per operation (when reusing Stacktrace objects)
+     * but it's an internal API and is not available in Java 9+ so when using it, the code can't be compiled with Java 9
+     *
+     * StackWalker
+     * Java 9's StackWalker has about the same execution time but allocates twice as much memory per operation.
+     */
     class CurrentThreadStackTraceFactory implements StacktraceFactory {
 
         private final StacktraceConfiguration stacktraceConfiguration;
@@ -61,7 +67,7 @@ public interface StacktraceFactory {
 
             int collectedStackFrames = 0;
             int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();
-            for (int i = 1; i <stackTrace.length && collectedStackFrames < stackTraceLimit; i++) {
+            for (int i = 1; i < stackTrace.length && collectedStackFrames < stackTraceLimit; i++) {
                 StackTraceElement stackTraceElement = stackTrace[i];
                 if (!topMostElasticApmPackagesSkipped && stackTraceElement.getClassName().startsWith("co.elastic.apm")) {
                     continue;
@@ -112,76 +118,4 @@ public interface StacktraceFactory {
         }
     }
 
-    // consider multi release jars for this
-    @IgnoreJRERequirement
-    class StackWalkerStackTraceFactory implements StacktraceFactory {
-
-        private final StacktraceConfiguration stacktraceConfiguration;
-
-        public StackWalkerStackTraceFactory(StacktraceConfiguration stacktraceConfiguration) {
-            this.stacktraceConfiguration = stacktraceConfiguration;
-        }
-
-        @Override
-        public void fillStackTrace(List<Stacktrace> stacktrace) {
-            stacktrace.addAll(StackWalker.getInstance()
-                .walk(new StreamListFunction()));
-        }
-
-        @Override
-        public boolean isAvailable() {
-            try {
-                Class.forName("java.lang.StackWalker");
-                return true;
-            } catch (ClassNotFoundException e) {
-                return false;
-            }
-        }
-
-        @IgnoreJRERequirement
-        private static class StackFramePredicate implements Predicate<StackWalker.StackFrame> {
-
-            private final static StackFramePredicate INSTANCE = new StackFramePredicate();
-
-            @Override
-            public boolean test(StackWalker.StackFrame f) {
-                return f.getClassName().startsWith("co.elastic.apm");
-            }
-        }
-
-        @IgnoreJRERequirement
-        private class StackFrameStacktraceFunction implements Function<StackWalker.StackFrame, Stacktrace> {
-            @Override
-            public Stacktrace apply(StackWalker.StackFrame stackFrame) {
-                return getStacktrace(stackFrame);
-            }
-
-            private Stacktrace getStacktrace(StackWalker.StackFrame stackFrame) {
-                Stacktrace st = new Stacktrace()
-                    .withAbsPath(stackFrame.getClassName())
-                    .withFilename(stackFrame.getFileName())
-                    .withFunction(stackFrame.getMethodName())
-                    .withLineno(stackFrame.getLineNumber())
-                    .withLibraryFrame(true);
-                for (String applicationPackage : stacktraceConfiguration.getApplicationPackages()) {
-                    if (stackFrame.getClassName().startsWith(applicationPackage)) {
-                        st.setLibraryFrame(false);
-                    }
-                }
-                return st;
-            }
-        }
-
-        @IgnoreJRERequirement
-        private class StreamListFunction implements Function<Stream<StackWalker.StackFrame>, List<Stacktrace>> {
-            @Override
-            public List<Stacktrace> apply(Stream<StackWalker.StackFrame> s) {
-                return s
-                    .dropWhile(StackFramePredicate.INSTANCE)
-                    .limit(stacktraceConfiguration.getStackTraceLimit())
-                    .map(new StackFrameStacktraceFunction())
-                    .collect(Collectors.<Stacktrace>toList());
-            }
-        }
-    }
 }

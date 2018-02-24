@@ -204,10 +204,7 @@ public class ElasticApmTracer implements Tracer {
             }
             if (stacktraceFactory == null) {
                 StacktraceConfiguration stackConfig = configurationRegistry.getConfig(StacktraceConfiguration.class);
-                stacktraceFactory = new StacktraceFactory.StackWalkerStackTraceFactory(stackConfig);
-                if (!stacktraceFactory.isAvailable()) {
-                    stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
-                }
+                stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
             }
             return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory);
         }
