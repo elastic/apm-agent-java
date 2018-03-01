@@ -3,8 +3,11 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.Url;
+import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -14,6 +17,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ServiceLoader;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -73,6 +77,19 @@ class ApmFilterTest {
             softly.assertThat(apmFilter.getResult(0)).isNull();
             softly.assertThat(apmFilter.getResult(-1)).isNull();
         });
+    }
 
+    @Test
+    void testTrackPostParams() throws IOException, ServletException {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
+        request.addParameter("foo", "bar");
+        request.addParameter("baz", "qux", "quux");
+        request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
+
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
+        PotentiallyMultiValuedMap<String, String> params = (PotentiallyMultiValuedMap<String, String>) reporter.getFirstTransaction().getContext().getRequest().getBody();
+        assertThat(params.get("foo")).isEqualTo("bar");
+        assertThat(params.get("baz")).isEqualTo(Arrays.asList("qux", "quux"));
     }
 }

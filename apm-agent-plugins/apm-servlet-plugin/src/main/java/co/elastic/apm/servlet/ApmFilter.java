@@ -130,12 +130,11 @@ public class ApmFilter implements Filter {
     }
 
     private void fillRequest(Request request, HttpServletRequest httpServletRequest) {
-        if ("application/x-www-form-urlencoded".equals(httpServletRequest.getHeader("content-type"))) {
+        String contentTypeHeader = httpServletRequest.getHeader("content-type");
+        if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
             for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
                 request.withFormUrlEncodedParameters(params.getKey(), params.getValue());
             }
-        } else {
-            // TODO rawBody -> wrapper for input stream on HttpServletRequest
         }
         Cookie[] cookies = httpServletRequest.getCookies();
         if (cookies != null) {
