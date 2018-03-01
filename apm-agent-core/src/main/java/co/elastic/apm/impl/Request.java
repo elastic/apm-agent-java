@@ -2,7 +2,7 @@
 package co.elastic.apm.impl;
 
 import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.util.MultiValueMap;
+import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -40,7 +40,7 @@ public class Request implements Recyclable {
     @JsonIgnore
     private String rawBody;
     @JsonIgnore
-    private final MultiValueMap<String, String> postParams = new MultiValueMap<>();
+    private final PotentiallyMultiValuedMap<String, String> postParams = new PotentiallyMultiValuedMap<>();
 
     /**
      * The env variable is a compounded of environment information passed from the webserver.
