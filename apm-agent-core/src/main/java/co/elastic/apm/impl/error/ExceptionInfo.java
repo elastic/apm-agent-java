@@ -1,33 +1,29 @@
+package co.elastic.apm.impl.error;
 
-package co.elastic.apm.impl;
-
+import co.elastic.apm.impl.Stacktrace;
+import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 /**
  * Information about the originally thrown error.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "code",
-    "message",
-    "module",
-    "attributes",
-    "stacktrace",
-    "type",
-    "handled"
-})
-public class ExceptionInfo {
+public class ExceptionInfo implements Recyclable {
 
+    @JsonProperty("attributes")
+    private final Map<String, Object> attributes = new HashMap<>();
+    @JsonProperty("stacktrace")
+    private final List<Stacktrace> stacktrace = new ArrayList<>();
     /**
      * The error code set when the error happened, e.g. database error code.
      */
@@ -47,10 +43,6 @@ public class ExceptionInfo {
     @JsonProperty("module")
     @JsonPropertyDescription("Describes the exception type's module namespace.")
     private String module;
-    @JsonProperty("attributes")
-    private Attributes attributes;
-    @JsonProperty("stacktrace")
-    private List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
     @JsonProperty("type")
     private String type;
     /**
@@ -126,33 +118,18 @@ public class ExceptionInfo {
     }
 
     @JsonProperty("attributes")
-    public Attributes getAttributes() {
+    public Map<String, Object> getAttributes() {
         return attributes;
     }
 
-    @JsonProperty("attributes")
-    public void setAttributes(Attributes attributes) {
-        this.attributes = attributes;
-    }
-
-    public ExceptionInfo withAttributes(Attributes attributes) {
-        this.attributes = attributes;
+    public ExceptionInfo addAttribute(String key, Object value) {
+        attributes.put(key, value);
         return this;
     }
 
     @JsonProperty("stacktrace")
     public List<Stacktrace> getStacktrace() {
         return stacktrace;
-    }
-
-    @JsonProperty("stacktrace")
-    public void setStacktrace(List<Stacktrace> stacktrace) {
-        this.stacktrace = stacktrace;
-    }
-
-    public ExceptionInfo withStacktrace(List<Stacktrace> stacktrace) {
-        this.stacktrace = stacktrace;
-        return this;
     }
 
     @JsonProperty("type")
@@ -193,12 +170,26 @@ public class ExceptionInfo {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("code", code).append("message", message).append("module", module).append("attributes", attributes).append("stacktrace", stacktrace).append("type", type).append("handled", handled).toString();
+        return new ToStringBuilder(this)
+            .append("code", code)
+            .append("message", message)
+            .append("module", module)
+            .append("attributes", attributes)
+            .append("stacktrace", stacktrace)
+            .append("type", type)
+            .append("handled", handled).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(code).append(stacktrace).append(module).append(handled).append(attributes).append(message).append(type).toHashCode();
+        return new HashCodeBuilder()
+            .append(code)
+            .append(stacktrace)
+            .append(module)
+            .append(handled)
+            .append(attributes)
+            .append(message)
+            .append(type).toHashCode();
     }
 
     @Override
@@ -210,7 +201,24 @@ public class ExceptionInfo {
             return false;
         }
         ExceptionInfo rhs = ((ExceptionInfo) other);
-        return new EqualsBuilder().append(code, rhs.code).append(stacktrace, rhs.stacktrace).append(module, rhs.module).append(handled, rhs.handled).append(attributes, rhs.attributes).append(message, rhs.message).append(type, rhs.type).isEquals();
+        return new EqualsBuilder()
+            .append(code, rhs.code)
+            .append(stacktrace, rhs.stacktrace)
+            .append(module, rhs.module)
+            .append(handled, rhs.handled)
+            .append(attributes, rhs.attributes)
+            .append(message, rhs.message)
+            .append(type, rhs.type).isEquals();
     }
 
+    @Override
+    public void resetState() {
+        code = null;
+        stacktrace.clear();
+        module = null;
+        handled = false;
+        attributes.clear();
+        message = null;
+        type = null;
+    }
 }

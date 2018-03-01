@@ -64,6 +64,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      */
     @JsonProperty("id")
     @JsonPropertyDescription("UUID for the transaction, referred by its spans")
+    // TODO create value type for id
     private UUID id;
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')

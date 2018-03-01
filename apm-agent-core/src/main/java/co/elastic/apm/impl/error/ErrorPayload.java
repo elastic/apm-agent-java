@@ -1,9 +1,11 @@
 
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.error;
 
+import co.elastic.apm.impl.Process;
+import co.elastic.apm.impl.Service;
+import co.elastic.apm.impl.SystemInfo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -18,13 +20,7 @@ import java.util.List;
  * List of errors wrapped in an object containing some other attributes normalized away from the errors themselves
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "service",
-    "process",
-    "errors",
-    "system"
-})
-public class Payload {
+public class ErrorPayload {
 
     /**
      * Service
@@ -44,7 +40,7 @@ public class Payload {
      * (Required)
      */
     @JsonProperty("errors")
-    private List<Error> errors = new ArrayList<Error>();
+    private final List<Error> errors = new ArrayList<Error>();
     /**
      * System
      * <p>
@@ -74,7 +70,7 @@ public class Payload {
         this.service = service;
     }
 
-    public Payload withService(Service service) {
+    public ErrorPayload withService(Service service) {
         this.service = service;
         return this;
     }
@@ -97,7 +93,7 @@ public class Payload {
         this.process = process;
     }
 
-    public Payload withProcess(Process process) {
+    public ErrorPayload withProcess(Process process) {
         this.process = process;
         return this;
     }
@@ -108,19 +104,6 @@ public class Payload {
     @JsonProperty("errors")
     public List<Error> getErrors() {
         return errors;
-    }
-
-    /**
-     * (Required)
-     */
-    @JsonProperty("errors")
-    public void setErrors(List<Error> errors) {
-        this.errors = errors;
-    }
-
-    public Payload withErrors(List<Error> errors) {
-        this.errors = errors;
-        return this;
     }
 
     /**
@@ -141,19 +124,27 @@ public class Payload {
         this.system = system;
     }
 
-    public Payload withSystem(SystemInfo system) {
+    public ErrorPayload withSystem(SystemInfo system) {
         this.system = system;
         return this;
     }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("service", service).append("process", process).append("errors", errors).append("system", system).toString();
+        return new ToStringBuilder(this)
+            .append("service", service)
+            .append("process", process)
+            .append("errors", errors)
+            .append("system", system).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(process).append(system).append(service).append(errors).toHashCode();
+        return new HashCodeBuilder()
+            .append(process)
+            .append(system)
+            .append(service)
+            .append(errors).toHashCode();
     }
 
     @Override
@@ -161,11 +152,15 @@ public class Payload {
         if (other == this) {
             return true;
         }
-        if ((other instanceof Payload) == false) {
+        if ((other instanceof ErrorPayload) == false) {
             return false;
         }
-        Payload rhs = ((Payload) other);
-        return new EqualsBuilder().append(process, rhs.process).append(system, rhs.system).append(service, rhs.service).append(errors, rhs.errors).isEquals();
+        ErrorPayload rhs = ((ErrorPayload) other);
+        return new EqualsBuilder()
+            .append(process, rhs.process)
+            .append(system, rhs.system)
+            .append(service, rhs.service)
+            .append(errors, rhs.errors).isEquals();
     }
 
 }
