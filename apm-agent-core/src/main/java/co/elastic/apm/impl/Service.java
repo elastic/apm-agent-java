@@ -4,26 +4,15 @@ package co.elastic.apm.impl;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 
 /**
- * Service
- * <p>
+ * Information about the instrumented Service
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "agent",
-    "framework",
-    "language",
-    "name",
-    "environment",
-    "runtime",
-    "version"
-})
 // TODO: make immutable
 public class Service {
 
@@ -85,11 +74,6 @@ public class Service {
      * Name and version of the Elastic APM agent
      * (Required)
      */
-    @JsonProperty("agent")
-    public void setAgent(Agent agent) {
-        this.agent = agent;
-    }
-
     public Service withAgent(Agent agent) {
         this.agent = agent;
         return this;
@@ -106,11 +90,6 @@ public class Service {
     /**
      * Name and version of the web framework used
      */
-    @JsonProperty("framework")
-    public void setFramework(Framework framework) {
-        this.framework = framework;
-    }
-
     public Service withFramework(Framework framework) {
         this.framework = framework;
         return this;
@@ -127,11 +106,6 @@ public class Service {
     /**
      * Name and version of the programming language used
      */
-    @JsonProperty("language")
-    public void setLanguage(Language language) {
-        this.language = language;
-    }
-
     public Service withLanguage(Language language) {
         this.language = language;
         return this;
@@ -150,11 +124,6 @@ public class Service {
      * Immutable name of the service emitting this event
      * (Required)
      */
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public Service withName(String name) {
         this.name = name;
         return this;
@@ -171,11 +140,6 @@ public class Service {
     /**
      * Environment name of the service, e.g. "production" or "staging"
      */
-    @JsonProperty("environment")
-    public void setEnvironment(String environment) {
-        this.environment = environment;
-    }
-
     public Service withEnvironment(String environment) {
         this.environment = environment;
         return this;
@@ -192,11 +156,6 @@ public class Service {
     /**
      * Name and version of the language runtime running this service
      */
-    @JsonProperty("runtime")
-    public void setRuntime(Runtime runtime) {
-        this.runtime = runtime;
-    }
-
     public Service withRuntime(Runtime runtime) {
         this.runtime = runtime;
         return this;
@@ -213,11 +172,6 @@ public class Service {
     /**
      * Version of the service emitting this event
      */
-    @JsonProperty("version")
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
     public Service withVersion(String version) {
         this.version = version;
         return this;
