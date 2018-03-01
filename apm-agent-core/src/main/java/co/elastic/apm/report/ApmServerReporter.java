@@ -1,9 +1,10 @@
 package co.elastic.apm.report;
 
+import co.elastic.apm.impl.Error;
+import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
@@ -15,6 +16,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
@@ -39,6 +41,13 @@ public class ApmServerReporter implements Reporter {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
             event.type = FLUSH;
+        }
+    };
+    private static final EventTranslatorOneArg<ReportingEvent, Error> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Error>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, Error error) {
+            event.error = error;
+            event.type = ERROR;
         }
     };
 
@@ -98,9 +107,15 @@ public class ApmServerReporter implements Reporter {
         flushScheduler.shutdown();
     }
 
+    @Override
+    public void report(Error error) {
+        disruptor.publishEvent(ERROR_EVENT_TRANSLATOR, error);
+    }
+
     static class ReportingEvent {
         Transaction transaction;
         ReportingEventType type;
+        Error error;
 
         public void setTransaction(Transaction transaction) {
             this.type = ReportingEventType.TRANSACTION;
@@ -110,10 +125,11 @@ public class ApmServerReporter implements Reporter {
         public void resetState() {
             this.transaction = null;
             this.type = null;
+            this.error = null;
         }
 
         enum ReportingEventType {
-            FLUSH, TRANSACTION
+            FLUSH, TRANSACTION, ERROR
         }
     }
 

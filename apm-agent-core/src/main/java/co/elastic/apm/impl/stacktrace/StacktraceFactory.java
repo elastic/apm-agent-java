@@ -14,6 +14,8 @@ public interface StacktraceFactory {
 
     boolean isAvailable();
 
+    void fillStackTrace(List<Stacktrace> stacktrace, StackTraceElement[] stackTrace);
+
     enum Noop implements StacktraceFactory {
 
         INSTANCE;
@@ -26,6 +28,11 @@ public interface StacktraceFactory {
         @Override
         public boolean isAvailable() {
             return true;
+        }
+
+        @Override
+        public void fillStackTrace(List<Stacktrace> stacktrace, StackTraceElement[] stackTrace) {
+            // noop
         }
     }
 
@@ -62,8 +69,12 @@ public interface StacktraceFactory {
 
         @Override
         public void fillStackTrace(List<Stacktrace> stacktrace) {
+            fillStackTrace(stacktrace, Thread.currentThread().getStackTrace());
+        }
+
+        @Override
+        public void fillStackTrace(List<Stacktrace> stacktrace, StackTraceElement[] stackTrace) {
             boolean topMostElasticApmPackagesSkipped = false;
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
 
             int collectedStackFrames = 0;
             int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();

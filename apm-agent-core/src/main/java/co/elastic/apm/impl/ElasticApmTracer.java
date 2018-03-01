@@ -131,6 +131,19 @@ public class ElasticApmTracer implements Tracer {
         return span;
     }
 
+    public void recordException(Exception e) {
+        Error error = new Error();
+        error.withTimestamp(System.currentTimeMillis());
+        error.getException().withMessage(e.getMessage());
+        error.getException().withType(e.getClass().getName());
+        stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
+        Transaction transaction = currentTransaction();
+        if (transaction != null) {
+            error.getTransaction().setId(transaction.getId().toString());
+        }
+        reporter.report(error);
+    }
+
     public <T extends ConfigurationOptionProvider> T getPlugin(Class<T> pluginClass) {
         return configurationRegistry.getConfig(pluginClass);
     }

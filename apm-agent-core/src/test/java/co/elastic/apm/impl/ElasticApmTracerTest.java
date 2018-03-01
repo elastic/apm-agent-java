@@ -1,24 +1,25 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.MockReporter;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.report.Reporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
 
     private ElasticApmTracer tracer;
+    private MockReporter reporter;
 
     @BeforeEach
     void setUp() {
+        reporter = new MockReporter();
         tracer = ElasticApmTracer.builder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(mock(Reporter.class))
+            .reporter(reporter)
             .build();
     }
 
@@ -75,5 +76,15 @@ class ElasticApmTracerTest {
             }
             assertThat(transaction.getSpans().get(0).getStacktrace()).isNotEmpty();
         }
+    }
+
+    @Test
+    void testRecordException() {
+        tracer.recordException(new Exception("test"));
+        assertThat(reporter.getErrors()).hasSize(1);
+        Error error = reporter.getFirstError();
+        assertThat(error.getException().getStacktrace()).isNotEmpty();
+        assertThat(error.getException().getMessage()).isEqualTo("test");
+        assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
     }
 }
