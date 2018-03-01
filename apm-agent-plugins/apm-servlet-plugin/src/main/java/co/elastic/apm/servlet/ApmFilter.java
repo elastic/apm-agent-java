@@ -116,21 +116,21 @@ public class ApmFilter implements Filter {
 
     private void fillResponse(Response response, HttpServletResponse httpServletResponse) {
         response.withFinished(true);
-        fillResponseHeaders(httpServletResponse, response.getHeaders());
+        fillResponseHeaders(httpServletResponse, response);
         response.withHeadersSent(httpServletResponse.isCommitted());
         response.withStatusCode(httpServletResponse.getStatus());
     }
 
 
-    private void fillResponseHeaders(HttpServletResponse response, Map<String, String> headers) {
-        final Collection<String> headerNames = response.getHeaderNames();
+    private void fillResponseHeaders(HttpServletResponse servletResponse, Response response) {
+        final Collection<String> headerNames = servletResponse.getHeaderNames();
         for (String headerName : headerNames) {
-            headers.put(headerName, response.getHeader(headerName));
+            response.addHeader(headerName, servletResponse.getHeader(headerName));
         }
     }
 
     private void fillRequest(Request request, HttpServletRequest httpServletRequest) {
-        if ("application/x-www-form-urlencoded".equals(httpServletRequest.getHeader(" content type"))) {
+        if ("application/x-www-form-urlencoded".equals(httpServletRequest.getHeader("content-type"))) {
             for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
                 request.withFormUrlEncodedParameters(params.getKey(), params.getValue());
             }
@@ -140,11 +140,10 @@ public class ApmFilter implements Filter {
         Cookie[] cookies = httpServletRequest.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                request.getCookies().put(cookie.getName(), cookie.getValue());
+                request.addCookie(cookie.getName(), cookie.getValue());
             }
         }
-        // TODO multi valued headers?
-        fillHeaders(httpServletRequest, request.getHeaders());
+        fillHeaders(httpServletRequest, request);
         request.withHttpVersion(getHttpVersion(httpServletRequest));
         request.withMethod(httpServletRequest.getMethod());
 
@@ -164,11 +163,11 @@ public class ApmFilter implements Filter {
         //.withRaw(getRawURL(httpServletRequest));
     }
 
-    private void fillHeaders(HttpServletRequest request, Map<String, String> headers) {
-        final Enumeration headerNames = request.getHeaderNames();
+    private void fillHeaders(HttpServletRequest servletRequest, Request request) {
+        final Enumeration headerNames = servletRequest.getHeaderNames();
         while (headerNames.hasMoreElements()) {
             final String headerName = (String) headerNames.nextElement();
-            headers.put(headerName, request.getHeader(headerName));
+            request.addHeader(headerName, servletRequest.getHeader(headerName));
         }
     }
 

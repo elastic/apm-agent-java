@@ -90,11 +90,11 @@ public abstract class AbstractReporterBenchmark {
         request.getSocket()
             .withEncrypted(true)
             .withRemoteAddress("12.53.12.1");
-        request.getHeaders().put("user-agent", "Mozilla Chrome Edge");
-        request.getHeaders().put("content-type", "text/html");
-        request.getHeaders().put("cookie", "c1=v1; c2=v2");
-        request.getHeaders().put("some-other-header", "foo");
-        request.getHeaders().put("array", "foo, bar, baz");
+        request.addHeader("user-agent", "Mozilla Chrome Edge");
+        request.addHeader("content-type", "text/html");
+        request.addHeader("cookie", "c1=v1; c2=v2");
+        request.addHeader("some-other-header", "foo");
+        request.addHeader("array", "foo, bar, baz");
         request.getCookies().put("c1", "v1");
         request.getCookies().put("c2", "v2");
 
@@ -102,7 +102,7 @@ public abstract class AbstractReporterBenchmark {
             .withStatusCode(200)
             .withFinished(true)
             .withHeadersSent(true)
-            .getHeaders().put("content-type", "application/json");
+            .addHeader("content-type", "application/json");
 
         context.getUser()
             .withId("99")

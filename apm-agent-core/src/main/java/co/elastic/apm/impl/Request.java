@@ -1,4 +1,3 @@
-
 package co.elastic.apm.impl;
 
 import co.elastic.apm.objectpool.Recyclable;
@@ -12,7 +11,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
-import java.util.HashMap;
 import java.util.Map;
 
 
@@ -34,41 +32,20 @@ import java.util.Map;
 })
 public class Request implements Recyclable {
 
-    /**
-     * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
-     */
-    @JsonIgnore
-    private String rawBody;
     @JsonIgnore
     private final PotentiallyMultiValuedMap<String, String> postParams = new PotentiallyMultiValuedMap<>();
-
     /**
      * The env variable is a compounded of environment information passed from the webserver.
      */
     @JsonProperty("env")
     @JsonPropertyDescription("The env variable is a compounded of environment information passed from the webserver.")
     private final Env env = new Env();
-
-    // TODO MultiValueMap
     /**
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */
     @JsonProperty("headers")
     @JsonPropertyDescription("Should include any headers sent by the requester. Map<String, String> will be taken by headers if supplied.")
-    private final Map<String, String> headers = new HashMap<>();
-    /**
-     * HTTP version.
-     */
-    @JsonProperty("http_version")
-    @JsonPropertyDescription("HTTP version.")
-    private String httpVersion;
-    /**
-     * HTTP method.
-     * (Required)
-     */
-    @JsonProperty("method")
-    @JsonPropertyDescription("HTTP method.")
-    private String method;
+    private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
     @JsonProperty("socket")
     private final Socket socket = new Socket();
     /**
@@ -83,7 +60,25 @@ public class Request implements Recyclable {
      */
     @JsonProperty("cookies")
     @JsonPropertyDescription("A parsed key-value object of cookies")
-    private final Map<String, String> cookies = new HashMap<>();
+    private final PotentiallyMultiValuedMap<String, String> cookies = new PotentiallyMultiValuedMap<>();
+    /**
+     * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
+     */
+    @JsonIgnore
+    private String rawBody;
+    /**
+     * HTTP version.
+     */
+    @JsonProperty("http_version")
+    @JsonPropertyDescription("HTTP version.")
+    private String httpVersion;
+    /**
+     * HTTP method.
+     * (Required)
+     */
+    @JsonProperty("method")
+    @JsonPropertyDescription("HTTP method.")
+    private String method;
 
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
@@ -124,10 +119,22 @@ public class Request implements Recyclable {
     }
 
     /**
-     * Should include any headers sent by the requester. {@code Map<String, String>} will be taken by headers if supplied.
+     * Adds a request header.
+     *
+     * @param headerName  The name of the header.
+     * @param headerValue The value of the header.
+     * @return <code>this</code>, for fluent method chaining
+     */
+    public Request addHeader(String headerName, String headerValue) {
+        headers.add(headerName, headerValue);
+        return this;
+    }
+
+    /**
+     * Should include any headers sent by the requester.
      */
     @JsonProperty("headers")
-    public Map<String, String> getHeaders() {
+    public PotentiallyMultiValuedMap getHeaders() {
         return headers;
     }
 
@@ -172,11 +179,17 @@ public class Request implements Recyclable {
         return url;
     }
 
+
+    public Request addCookie(String cookieName, String cookieValue) {
+        cookies.add(cookieName, cookieValue);
+        return this;
+    }
+
     /**
      * A parsed key-value object of cookies
      */
     @JsonProperty("cookies")
-    public Map<String, String> getCookies() {
+    public Map<String, Object> getCookies() {
         return cookies;
     }
 

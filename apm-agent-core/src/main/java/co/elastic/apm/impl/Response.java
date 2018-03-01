@@ -1,7 +1,7 @@
-
 package co.elastic.apm.impl;
 
 import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -10,7 +10,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -23,17 +22,17 @@ import java.util.Map;
 public class Response implements Recyclable {
 
     /**
+     * A mapping of HTTP headers of the response object
+     */
+    @JsonProperty("headers")
+    @JsonPropertyDescription("A mapping of HTTP headers of the response object")
+    private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
+    /**
      * A boolean indicating whether the response was finished or not
      */
     @JsonProperty("finished")
     @JsonPropertyDescription("A boolean indicating whether the response was finished or not")
     private boolean finished;
-    /**
-     * A mapping of HTTP headers of the response object
-     */
-    @JsonProperty("headers")
-    @JsonPropertyDescription("A mapping of HTTP headers of the response object")
-    private final Map<String, String> headers = new HashMap<>();
     @JsonProperty("headers_sent")
     private boolean headersSent;
     /**
@@ -65,10 +64,22 @@ public class Response implements Recyclable {
     }
 
     /**
+     * Adds a response header.
+     *
+     * @param headerName  The name of the header.
+     * @param headerValue The value of the header.
+     * @return <code>this</code>, for fluent method chaining
+     */
+    public Response addHeader(String headerName, String headerValue) {
+        headers.add(headerName, headerValue);
+        return this;
+    }
+
+    /**
      * A mapping of HTTP headers of the response object
      */
     @JsonProperty("headers")
-    public Map<String, String> getHeaders() {
+    public Map<String, Object> getHeaders() {
         return headers;
     }
 
