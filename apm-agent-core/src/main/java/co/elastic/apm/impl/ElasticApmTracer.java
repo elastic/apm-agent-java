@@ -216,7 +216,7 @@ public class ElasticApmTracer implements Tracer {
             return new ApmServerReporter(
                 new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion),
                 ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
-                new SystemFactory().getSystem(),
+                SystemInfo.create(),
                 new ApmServerHttpPayloadSender(new OkHttpClient.Builder()
                     .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS)
                     .build(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true);

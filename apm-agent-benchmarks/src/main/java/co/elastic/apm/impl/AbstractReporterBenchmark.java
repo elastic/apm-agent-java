@@ -27,9 +27,9 @@ public abstract class AbstractReporterBenchmark {
     public static final List<String> STRINGS = Arrays.asList("bar", "baz");
     private static final int PAYLOAD_SIZE = 250;
     protected TransactionPayload payload;
+    protected ElasticApmTracer tracer;
     private Reporter reporter;
     private PayloadSender payloadSender;
-    protected ElasticApmTracer tracer;
 
     @Setup
     public void setUp() throws Exception {
@@ -52,10 +52,7 @@ public abstract class AbstractReporterBenchmark {
             .withPpid(403L)
             .withTitle("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
-        SystemInfo system = new SystemInfo()
-            .withArchitecture("x86_64")
-            .withHostname("Felixs-MBP")
-            .withPlatform("Mac OS X");
+        SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
         reporter = new ApmServerReporter(service, process, system, payloadSender, false);
         payload = new TransactionPayload(service, process, system);
         for (int i = 0; i < PAYLOAD_SIZE; i++) {

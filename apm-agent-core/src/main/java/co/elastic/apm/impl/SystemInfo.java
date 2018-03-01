@@ -1,26 +1,18 @@
-
 package co.elastic.apm.impl;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import java.net.InetAddress;
 
 /**
- * System
- * <p>
+ * Information about the system the agent is running on.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "architecture",
-    "hostname",
-    "platform"
-})
-// TODO: make immutable
 public class SystemInfo {
 
     /**
@@ -28,19 +20,49 @@ public class SystemInfo {
      */
     @JsonProperty("architecture")
     @JsonPropertyDescription("Architecture of the system the agent is running on.")
-    private String architecture;
+    private final String architecture;
     /**
      * Hostname of the system the agent is running on.
      */
     @JsonProperty("hostname")
     @JsonPropertyDescription("Hostname of the system the agent is running on.")
-    private String hostname;
+    private final String hostname;
     /**
      * Name of the system platform the agent is running on.
      */
     @JsonProperty("platform")
     @JsonPropertyDescription("Name of the system platform the agent is running on.")
-    private String platform;
+    private final String platform;
+
+    public SystemInfo(String architecture, String hostname, String platform) {
+        this.architecture = architecture;
+        this.hostname = hostname;
+        this.platform = platform;
+    }
+
+    public static SystemInfo create() {
+        return new SystemInfo(System.getProperty("os.arch"), System.getProperty("os.name"), getNameOfLocalHost());
+    }
+
+    private static String getNameOfLocalHost() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            return getHostNameFromEnv();
+        }
+    }
+
+    private static String getHostNameFromEnv() {
+        // try environment properties.
+        String host = System.getenv("COMPUTERNAME");
+        if (host == null) {
+            host = System.getenv("HOSTNAME");
+        }
+        if (host == null) {
+            host = System.getenv("HOST");
+        }
+        return host;
+    }
 
     /**
      * Architecture of the system the agent is running on.
@@ -48,19 +70,6 @@ public class SystemInfo {
     @JsonProperty("architecture")
     public String getArchitecture() {
         return architecture;
-    }
-
-    /**
-     * Architecture of the system the agent is running on.
-     */
-    @JsonProperty("architecture")
-    public void setArchitecture(String architecture) {
-        this.architecture = architecture;
-    }
-
-    public SystemInfo withArchitecture(String architecture) {
-        this.architecture = architecture;
-        return this;
     }
 
     /**
@@ -72,37 +81,11 @@ public class SystemInfo {
     }
 
     /**
-     * Hostname of the system the agent is running on.
-     */
-    @JsonProperty("hostname")
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-    public SystemInfo withHostname(String hostname) {
-        this.hostname = hostname;
-        return this;
-    }
-
-    /**
      * Name of the system platform the agent is running on.
      */
     @JsonProperty("platform")
     public String getPlatform() {
         return platform;
-    }
-
-    /**
-     * Name of the system platform the agent is running on.
-     */
-    @JsonProperty("platform")
-    public void setPlatform(String platform) {
-        this.platform = platform;
-    }
-
-    public SystemInfo withPlatform(String platform) {
-        this.platform = platform;
-        return this;
     }
 
     @Override
