@@ -215,7 +215,7 @@ public class ElasticApmTracer implements Tracer {
             objectMapper.registerModule(new AfterburnerModule());
             return new ApmServerReporter(
                 new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion),
-                new ProcessFactory().getProcessInformation(),
+                ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
                 new SystemFactory().getSystem(),
                 new ApmServerHttpPayloadSender(new OkHttpClient.Builder()
                     .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS)

@@ -13,7 +13,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,7 +49,7 @@ public abstract class AbstractReporterBenchmark {
             .withLanguage(new Language("Java", "9.0.4"));
         Process process = new Process()
             .withPid(2103)
-            .withPpid(403)
+            .withPpid(403L)
             .withTitle("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo()

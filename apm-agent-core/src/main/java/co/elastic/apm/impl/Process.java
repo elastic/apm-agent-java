@@ -39,7 +39,7 @@ public class Process {
      */
     @JsonProperty("ppid")
     @JsonPropertyDescription("Parent process ID of the service")
-    private long ppid;
+    private Long ppid;
     @JsonProperty("title")
     private String title;
     /**
@@ -60,13 +60,7 @@ public class Process {
 
     /**
      * Process ID of the service
-     * (Required)
      */
-    @JsonProperty("pid")
-    public void setPid(long pid) {
-        this.pid = pid;
-    }
-
     public Process withPid(long pid) {
         this.pid = pid;
         return this;
@@ -76,19 +70,14 @@ public class Process {
      * Parent process ID of the service
      */
     @JsonProperty("ppid")
-    public long getPpid() {
+    public Long getPpid() {
         return ppid;
     }
 
     /**
      * Parent process ID of the service
      */
-    @JsonProperty("ppid")
-    public void setPpid(long ppid) {
-        this.ppid = ppid;
-    }
-
-    public Process withPpid(long ppid) {
+    public Process withPpid(Long ppid) {
         this.ppid = ppid;
         return this;
     }
@@ -98,7 +87,6 @@ public class Process {
         return title;
     }
 
-    @JsonProperty("title")
     public void setTitle(String title) {
         this.title = title;
     }
@@ -119,11 +107,6 @@ public class Process {
     /**
      * Command line arguments used to start this process
      */
-    @JsonProperty("argv")
-    public void setArgv(List<String> argv) {
-        this.argv = argv;
-    }
-
     public Process withArgv(List<String> argv) {
         this.argv = argv;
         return this;
