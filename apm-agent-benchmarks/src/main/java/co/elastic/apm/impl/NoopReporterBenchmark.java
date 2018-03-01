@@ -1,5 +1,6 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.report.PayloadSender;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;

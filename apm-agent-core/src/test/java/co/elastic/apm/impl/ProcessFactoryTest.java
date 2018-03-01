@@ -1,5 +1,7 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

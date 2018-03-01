@@ -46,7 +46,7 @@ public class Log implements Recyclable {
     @JsonPropertyDescription("A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together. The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange.")
     private String paramMessage;
 
-    Log() {
+    public Log() {
         resetState();
     }
 

@@ -1,5 +1,15 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.Request;
+import co.elastic.apm.impl.payload.Agent;
+import co.elastic.apm.impl.payload.Framework;
+import co.elastic.apm.impl.payload.Language;
+import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.Runtime;
+import co.elastic.apm.impl.payload.Service;
+import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;

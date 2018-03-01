@@ -1,9 +1,10 @@
 
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.Process;
-import co.elastic.apm.impl.Service;
-import co.elastic.apm.impl.SystemInfo;
+import co.elastic.apm.impl.Error;
+import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.Service;
+import co.elastic.apm.impl.payload.SystemInfo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.builder.EqualsBuilder;

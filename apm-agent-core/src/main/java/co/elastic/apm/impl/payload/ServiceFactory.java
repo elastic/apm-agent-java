@@ -1,4 +1,4 @@
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.util.VersionUtils;

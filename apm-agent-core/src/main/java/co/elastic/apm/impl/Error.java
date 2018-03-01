@@ -1,7 +1,10 @@
 
-package co.elastic.apm.impl.error;
+package co.elastic.apm.impl;
 
-import co.elastic.apm.impl.Context;
+import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.error.ExceptionInfo;
+import co.elastic.apm.impl.error.Log;
+import co.elastic.apm.impl.error.TransactionReference;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;

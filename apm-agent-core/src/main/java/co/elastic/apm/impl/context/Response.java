@@ -1,4 +1,4 @@
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;

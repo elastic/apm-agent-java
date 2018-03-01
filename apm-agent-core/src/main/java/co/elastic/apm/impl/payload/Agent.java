@@ -1,38 +1,42 @@
 
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 
 /**
- * Name and version of the programming language used
+ * Name and version of the Elastic APM agent
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "name",
-    "version"
-})
-public class Language {
+public class Agent {
 
     /**
+     * Name of the Elastic APM agent, e.g. "Python"
      * (Required)
      */
     @JsonProperty("name")
+    @JsonPropertyDescription("Name of the Elastic APM agent, e.g. \"Python\"")
     private final String name;
+    /**
+     * Version of the Elastic APM agent, e.g."1.0.0"
+     * (Required)
+     */
     @JsonProperty("version")
+    @JsonPropertyDescription("Version of the Elastic APM agent, e.g.\"1.0.0\"")
     private final String version;
 
-    public Language(String name, String version) {
+    public Agent(String name, String version) {
         this.name = name;
         this.version = version;
     }
 
     /**
+     * Name of the Elastic APM agent, e.g. "Python"
      * (Required)
      */
     @JsonProperty("name")
@@ -40,6 +44,10 @@ public class Language {
         return name;
     }
 
+    /**
+     * Version of the Elastic APM agent, e.g."1.0.0"
+     * (Required)
+     */
     @JsonProperty("version")
     public String getVersion() {
         return version;
@@ -60,10 +68,10 @@ public class Language {
         if (other == this) {
             return true;
         }
-        if ((other instanceof Language) == false) {
+        if ((other instanceof Agent) == false) {
             return false;
         }
-        Language rhs = ((Language) other);
+        Agent rhs = ((Agent) other);
         return new EqualsBuilder().append(name, rhs.name).append(version, rhs.version).isEquals();
     }
 

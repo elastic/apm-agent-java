@@ -1,5 +1,5 @@
 
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.span;
 
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -15,12 +15,6 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * An object containing contextual data for database spans
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "instance",
-    "statement",
-    "type",
-    "user"
-})
 public class Db implements Recyclable {
 
     /**

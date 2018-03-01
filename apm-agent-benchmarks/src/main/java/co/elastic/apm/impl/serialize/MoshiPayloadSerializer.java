@@ -1,6 +1,6 @@
 package co.elastic.apm.impl.serialize;
 
-import co.elastic.apm.impl.TransactionPayload;
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;

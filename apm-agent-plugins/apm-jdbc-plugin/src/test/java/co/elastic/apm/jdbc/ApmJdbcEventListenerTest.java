@@ -1,7 +1,7 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.impl.Db;
+import co.elastic.apm.impl.span.Db;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.Span;
 import co.elastic.apm.impl.Transaction;

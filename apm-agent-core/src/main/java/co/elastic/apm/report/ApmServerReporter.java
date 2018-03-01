@@ -1,8 +1,8 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.impl.Process;
-import co.elastic.apm.impl.Service;
-import co.elastic.apm.impl.SystemInfo;
+import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.Service;
+import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;

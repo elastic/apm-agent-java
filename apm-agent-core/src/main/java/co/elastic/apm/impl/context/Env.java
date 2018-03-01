@@ -1,5 +1,5 @@
 
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.context;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;

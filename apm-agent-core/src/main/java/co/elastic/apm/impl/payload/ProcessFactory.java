@@ -1,4 +1,4 @@
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.payload;
 
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 

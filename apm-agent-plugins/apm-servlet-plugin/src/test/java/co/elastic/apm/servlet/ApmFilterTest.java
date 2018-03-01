@@ -2,7 +2,7 @@ package co.elastic.apm.servlet;
 
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Url;
+import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

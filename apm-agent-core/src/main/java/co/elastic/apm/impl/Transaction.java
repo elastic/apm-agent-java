@@ -1,5 +1,6 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;

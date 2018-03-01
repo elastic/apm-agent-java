@@ -1,7 +1,7 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.Transaction;
-import co.elastic.apm.impl.TransactionPayload;
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;

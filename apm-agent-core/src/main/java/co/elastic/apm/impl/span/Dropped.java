@@ -1,5 +1,5 @@
 
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.span;
 
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
