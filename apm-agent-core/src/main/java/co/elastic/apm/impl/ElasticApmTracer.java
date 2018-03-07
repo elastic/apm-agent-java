@@ -34,9 +34,8 @@ import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracer implements Tracer {
-    private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
-
     static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
     private static ElasticApmTracer instance;
     private final ConfigurationRegistry configurationRegistry;
     private final ObjectPool<Transaction> transactionPool;
@@ -131,7 +130,7 @@ public class ElasticApmTracer implements Tracer {
         return span;
     }
 
-    public void recordException(Exception e) {
+    public void captureException(Exception e) {
         Error error = new Error();
         error.withTimestamp(System.currentTimeMillis());
         error.getException().withMessage(e.getMessage());
@@ -140,6 +139,7 @@ public class ElasticApmTracer implements Tracer {
         Transaction transaction = currentTransaction();
         if (transaction != null) {
             error.getTransaction().setId(transaction.getId().toString());
+            error.getContext().copyFrom(transaction.getContext());
         }
         reporter.report(error);
     }

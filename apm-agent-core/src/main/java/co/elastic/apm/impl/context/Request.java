@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,26 +19,10 @@ import java.util.Map;
  * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "body",
-    "env",
-    "headers",
-    "http_version",
-    "method",
-    "socket",
-    "url",
-    "cookies"
-})
 public class Request implements Recyclable {
 
     @JsonIgnore
     private final PotentiallyMultiValuedMap<String, String> postParams = new PotentiallyMultiValuedMap<>();
-    /**
-     * The env variable is a compounded of environment information passed from the webserver.
-     */
-    @JsonProperty("env")
-    @JsonPropertyDescription("The env variable is a compounded of environment information passed from the webserver.")
-    private final Env env = new Env();
     /**
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */
@@ -93,12 +76,12 @@ public class Request implements Recyclable {
         return "[REDACTED]";
     }
 
-    public Request withFormUrlEncodedParameter(String key, String value) {
+    public Request addFormUrlEncodedParameter(String key, String value) {
         this.postParams.add(key, value);
         return this;
     }
 
-    public Request withFormUrlEncodedParameters(String key, String[] values) {
+    public Request addFormUrlEncodedParameters(String key, String[] values) {
         for (String value : values) {
             this.postParams.add(key, value);
         }
@@ -108,14 +91,6 @@ public class Request implements Recyclable {
     public Request withRawBody(String rawBody) {
         this.rawBody = rawBody;
         return this;
-    }
-
-    /**
-     * The env variable is a compounded of environment information passed from the webserver.
-     */
-    @JsonProperty("env")
-    public Env getEnv() {
-        return env;
     }
 
     /**
@@ -134,7 +109,7 @@ public class Request implements Recyclable {
      * Should include any headers sent by the requester.
      */
     @JsonProperty("headers")
-    public PotentiallyMultiValuedMap getHeaders() {
+    public PotentiallyMultiValuedMap<String, String> getHeaders() {
         return headers;
     }
 
@@ -195,12 +170,26 @@ public class Request implements Recyclable {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("body", getBody()).append("env", env).append("headers", headers).append("httpVersion", httpVersion).append("method", method).append("socket", socket).append("url", url).append("cookies", cookies).toString();
+        return new ToStringBuilder(this)
+            .append("body", getBody())
+            .append("headers", headers)
+            .append("httpVersion", httpVersion)
+            .append("method", method)
+            .append("socket", socket)
+            .append("url", url)
+            .append("cookies", cookies).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(headers).append(httpVersion).append(method).append(socket).append(getBody()).append(env).append(url).append(cookies).toHashCode();
+        return new HashCodeBuilder()
+            .append(headers)
+            .append(httpVersion)
+            .append(method)
+            .append(socket)
+            .append(getBody())
+            .append(url)
+            .append(cookies).toHashCode();
     }
 
     @Override
@@ -212,19 +201,36 @@ public class Request implements Recyclable {
             return false;
         }
         Request rhs = ((Request) other);
-        return new EqualsBuilder().append(headers, rhs.headers).append(httpVersion, rhs.httpVersion).append(method, rhs.method).append(socket, rhs.socket).append(getBody(), rhs.getBody()).append(env, rhs.env).append(url, rhs.url).append(cookies, rhs.cookies).isEquals();
+        return new EqualsBuilder()
+            .append(headers, rhs.headers)
+            .append(httpVersion, rhs.httpVersion)
+            .append(method, rhs.method)
+            .append(socket, rhs.socket)
+            .append(getBody(), rhs.getBody())
+            .append(url, rhs.url)
+            .append(cookies, rhs.cookies).isEquals();
     }
 
     @Override
     public void resetState() {
         rawBody = null;
         postParams.clear();
-        // TODO env;
         headers.clear();
         httpVersion = null;
         method = null;
         socket.resetState();
         url.resetState();
         cookies.clear();
+    }
+
+    public void copyFrom(Request other) {
+        this.rawBody = other.rawBody;
+        this.postParams.putAll(other.postParams);
+        this.headers.putAll(other.headers);
+        this.httpVersion = other.httpVersion;
+        this.method = other.method;
+        this.socket.copyFrom(other.socket);
+        this.url.copyFrom(other.url);
+        this.cookies.putAll(other.cookies);
     }
 }

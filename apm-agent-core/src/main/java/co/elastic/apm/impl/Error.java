@@ -32,12 +32,6 @@ public class Error implements Recyclable {
     @JsonPropertyDescription("Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user")
     private final Context context = new Context();
     /**
-     * Function call which was the primary perpetrator of this event.
-     */
-    @JsonProperty("culprit")
-    @JsonPropertyDescription("Function call which was the primary perpetrator of this event.")
-    private String culprit;
-    /**
      * Information about the originally thrown error.
      */
     @JsonProperty("exception")
@@ -78,23 +72,6 @@ public class Error implements Recyclable {
     @JsonProperty("context")
     public Context getContext() {
         return context;
-    }
-
-
-    /**
-     * Function call which was the primary perpetrator of this event.
-     */
-    @JsonProperty("culprit")
-    public String getCulprit() {
-        return culprit;
-    }
-
-    /**
-     * Function call which was the primary perpetrator of this event.
-     */
-    public Error withCulprit(String culprit) {
-        this.culprit = culprit;
-        return this;
     }
 
     /**
@@ -151,7 +128,6 @@ public class Error implements Recyclable {
     public String toString() {
         return new ToStringBuilder(this)
             .append("context", context)
-            .append("culprit", culprit)
             .append("exception", exception)
             .append("id", id)
             .append("log", log)
@@ -163,7 +139,6 @@ public class Error implements Recyclable {
     public int hashCode() {
         return new HashCodeBuilder()
             .append(exception)
-            .append(culprit)
             .append(log)
             .append(context)
             .append(id)
@@ -182,7 +157,6 @@ public class Error implements Recyclable {
         Error rhs = ((Error) other);
         return new EqualsBuilder()
             .append(exception, rhs.exception)
-            .append(culprit, rhs.culprit)
             .append(log, rhs.log)
             .append(context, rhs.context)
             .append(id, rhs.id)
@@ -193,7 +167,6 @@ public class Error implements Recyclable {
     @Override
     public void resetState() {
         exception.resetState();
-        culprit = null;
         log.resetState();
         context.resetState();
         id = null;

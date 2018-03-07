@@ -249,4 +249,14 @@ public class Url implements Recyclable {
         pathname = null;
         search = null;
     }
+
+    public void copyFrom(Url other) {
+        this.raw = other.raw;
+        this.protocol = other.protocol;
+        this.full = other.full;
+        this.hostname = other.hostname;
+        this.port = other.port;
+        this.pathname = other.pathname;
+        this.search = other.search;
+    }
 }

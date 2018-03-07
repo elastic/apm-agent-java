@@ -1,4 +1,3 @@
-
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
@@ -51,6 +50,13 @@ public class Context implements Recyclable {
     @JsonProperty("user")
     @JsonPropertyDescription("Describes the authenticated User for a request.")
     private final User user = new User();
+
+
+    public void copyFrom(Context other) {
+        response.copyFrom(other.response);
+        request.copyFrom(other.request);
+        user.copyFrom(other.user);
+    }
 
     /**
      * An arbitrary mapping of additional metadata to store with the event.

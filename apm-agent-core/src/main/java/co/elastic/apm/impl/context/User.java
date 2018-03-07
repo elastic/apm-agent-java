@@ -54,11 +54,6 @@ public class User implements Recyclable {
     /**
      * Identifier of the logged in user, e.g. the primary key of the user
      */
-    @JsonProperty("id")
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public User withId(String id) {
         this.id = id;
         return this;
@@ -75,11 +70,6 @@ public class User implements Recyclable {
     /**
      * Email of the logged in user
      */
-    @JsonProperty("email")
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public User withEmail(String email) {
         this.email = email;
         return this;
@@ -96,11 +86,6 @@ public class User implements Recyclable {
     /**
      * The username of the logged in user
      */
-    @JsonProperty("username")
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
     public User withUsername(String username) {
         this.username = username;
         return this;
@@ -133,5 +118,11 @@ public class User implements Recyclable {
         id = null;
         email = null;
         username = null;
+    }
+
+    public void copyFrom(User other) {
+        this.email = other.email;
+        this.id = other.id;
+        this.username = other.username;
     }
 }

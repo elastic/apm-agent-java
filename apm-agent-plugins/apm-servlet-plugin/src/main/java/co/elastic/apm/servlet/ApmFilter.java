@@ -1,10 +1,10 @@
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
-import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.impl.context.User;
 
 import javax.servlet.Filter;
@@ -45,15 +45,17 @@ public class ApmFilter implements Filter {
             final Transaction transaction = tracer.startTransaction();
             try {
                 filterChain.doFilter(request, response);
-            } finally {
                 fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
+            } catch (Exception e) {
+                tracer.captureException(e);
+            } finally {
                 transaction.end();
             }
         }
     }
 
     private void fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,
-                                        HttpServletResponse httpServletResponse) {
+                                 HttpServletResponse httpServletResponse) {
         Context context = transaction.getContext();
         fillRequest(transaction.getContext().getRequest(), httpServletRequest);
         fillResponse(context.getResponse(), httpServletResponse);
@@ -133,7 +135,7 @@ public class ApmFilter implements Filter {
         String contentTypeHeader = httpServletRequest.getHeader("content-type");
         if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
             for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
-                request.withFormUrlEncodedParameters(params.getKey(), params.getValue());
+                request.addFormUrlEncodedParameters(params.getKey(), params.getValue());
             }
         }
         Cookie[] cookies = httpServletRequest.getCookies();

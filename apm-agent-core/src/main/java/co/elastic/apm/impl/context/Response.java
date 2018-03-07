@@ -149,4 +149,11 @@ public class Response implements Recyclable {
         headersSent = false;
         statusCode = 0;
     }
+
+    public void copyFrom(Response other) {
+        this.finished = other.finished;
+        this.headers.putAll(other.headers);
+        this.headersSent = other.headersSent;
+        this.statusCode = other.statusCode;
+    }
 }

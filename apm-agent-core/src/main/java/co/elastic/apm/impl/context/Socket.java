@@ -84,4 +84,9 @@ public class Socket implements Recyclable {
         encrypted = false;
         remoteAddress = null;
     }
+
+    public void copyFrom(Socket other) {
+        this.encrypted = other.encrypted;
+        this.remoteAddress = other.remoteAddress;
+    }
 }
