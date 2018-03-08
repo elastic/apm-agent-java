@@ -58,7 +58,7 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testDisableEnableStacktracesForFastSpans() {
+    void testDisableStacktracesForFastSpans() {
         when(tracer.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100);
         try (Transaction transaction = tracer.startTransaction()) {
             try (Span span = tracer.startSpan()) {
