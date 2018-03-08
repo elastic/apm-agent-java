@@ -21,7 +21,9 @@ import java.util.Date;
  * Data captured by an agent representing an event occurring in a monitored service
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Error implements Recyclable {
+public class ErrorCapture implements Recyclable {
+
+    private transient ElasticApmTracer tracer;
 
     /**
      * Context
@@ -110,7 +112,7 @@ public class Error implements Recyclable {
         return timestamp;
     }
 
-    public Error withTimestamp(long epochMs) {
+    public ErrorCapture withTimestamp(long epochMs) {
         this.timestamp.setTime(epochMs);
         return this;
     }
@@ -151,10 +153,10 @@ public class Error implements Recyclable {
         if (other == this) {
             return true;
         }
-        if ((other instanceof Error) == false) {
+        if ((other instanceof ErrorCapture) == false) {
             return false;
         }
-        Error rhs = ((Error) other);
+        ErrorCapture rhs = ((ErrorCapture) other);
         return new EqualsBuilder()
             .append(exception, rhs.exception)
             .append(log, rhs.log)
@@ -172,5 +174,12 @@ public class Error implements Recyclable {
         id = null;
         transaction.resetState();
         timestamp.setTime(0);
+        tracer = null;
+    }
+
+    public void recycle() {
+        if (tracer != null) {
+            tracer.recycle(this);
+        }
     }
 }

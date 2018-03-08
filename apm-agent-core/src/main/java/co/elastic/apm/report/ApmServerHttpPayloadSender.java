@@ -1,7 +1,8 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.impl.Transaction;
-import co.elastic.apm.impl.payload.TransactionPayload;
+import co.elastic.apm.impl.error.ErrorPayload;
+import co.elastic.apm.impl.payload.Agent;
+import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -34,58 +35,66 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     }
 
     @Override
-    public void sendPayload(final TransactionPayload payload) {
-        // this is ok as its only executed single threaded
-        okhttp3.Request request = new Request.Builder()
-            .url(reporterConfiguration.getServerUrl() + "/v1/transactions")
+    public void sendPayload(final Payload payload) {
+        final String path;
+        if (payload instanceof ErrorPayload) {
+            path = "/v1/errors";
+        } else {
+            path = "/v1/transactions";
+        }
+        Request request = new Request.Builder()
+            .url(reporterConfiguration.getServerUrl() + path)
             .header("Content-Encoding", "gzip")
-            .header("User-Agent", "apm-agent-java " + payload.getService().getAgent().getVersion())
+            .header("User-Agent", getUserAgent(payload))
             .post(new RequestBody() {
-
-
-            @Override
-            public MediaType contentType() {
-                return MEDIA_TYPE_JSON;
-            }
-
-            @Override
-            public void writeTo(BufferedSink sink) throws IOException {
-                if (useGzip(payload)) {
-                    GzipSink gzipSink = new GzipSink(sink);
-                    gzipSink.deflater().setLevel(GZIP_COMPRESSION_LEVEL);
-                    sink = Okio.buffer(gzipSink);
+                @Override
+                public MediaType contentType() {
+                    return MEDIA_TYPE_JSON;
                 }
-                payloadSerializer.serializePayload(sink, payload);
-                sink.close();
-                for (Transaction transaction : payload.getTransactions()) {
-                    transaction.recycle();
+
+                @Override
+                public void writeTo(BufferedSink sink) throws IOException {
+                    if (useGzip(payload)) {
+                        GzipSink gzipSink = new GzipSink(sink);
+                        gzipSink.deflater().setLevel(GZIP_COMPRESSION_LEVEL);
+                        sink = Okio.buffer(gzipSink);
+                    }
+                    payloadSerializer.serializePayload(sink, payload);
+                    sink.close();
+                    payload.recycle();
                 }
-            }
-        })
+            })
             .build();
 
         try {
-            logger.debug("Sending payload with {} transactions to APM server {}",
-                payload.getTransactions().size(), reporterConfiguration.getServerUrl());
+            logger.debug("Sending payload with {} elements to APM server {}",
+                payload.getPayloadObjects().size(), reporterConfiguration.getServerUrl());
             Response response = httpClient.newCall(request).execute();
             int statusCode = response.code();
             logger.debug("APM server responded with status code {}", statusCode);
             if (statusCode >= 400) {
-                droppedTransactions += payload.getTransactions().size();
+                droppedTransactions += payload.getPayloadObjects().size();
                 if (response.body() != null) {
                     logger.debug(response.body().string());
                 }
             }
             response.close();
         } catch (IOException e) {
-            logger.debug("Sending transactions to APM server failed", e);
-            droppedTransactions += payload.getTransactions().size();
+            logger.debug("Sending payload to APM server failed", e);
+            droppedTransactions += payload.getPayloadObjects().size();
         }
     }
 
-    private boolean useGzip(TransactionPayload payload) {
-        // TODO determine if turning on gzip is woth it based on the payload size
-        return true;
+    private String getUserAgent(Payload payload) {
+        Agent agent = payload.getService().getAgent();
+        if (agent != null) {
+            return "apm-agent-java " + agent.getVersion();
+        }
+        return "apm-agent-java";
+    }
+
+    private boolean useGzip(Payload payload) {
+        return payload.getPayloadObjects().size() > 1;
     }
 
     public long getDroppedTransactions() {

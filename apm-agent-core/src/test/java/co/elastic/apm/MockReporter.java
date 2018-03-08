@@ -1,16 +1,17 @@
 package co.elastic.apm;
 
-import co.elastic.apm.impl.Error;
+import co.elastic.apm.impl.ErrorCapture;
 import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.report.Reporter;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Future;
 
 public class MockReporter implements Reporter {
     private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Error> errors = new ArrayList<>();
+    private final List<ErrorCapture> errors = new ArrayList<>();
 
     @Override
     public void report(Transaction transaction) {
@@ -26,15 +27,15 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void report(Error error) {
+    public void report(ErrorCapture error) {
         errors.add(error);
     }
 
-    public List<Error> getErrors() {
+    public List<ErrorCapture> getErrors() {
         return Collections.unmodifiableList(errors);
     }
 
-    public Error getFirstError() {
+    public ErrorCapture getFirstError() {
         return errors.iterator().next();
     }
 
@@ -44,8 +45,8 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void scheduleFlush() {
-
+    public Future<Void> flush() {
+        return null;
     }
 
     @Override

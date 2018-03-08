@@ -1,19 +1,23 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.impl.Error;
+import co.elastic.apm.impl.ErrorCapture;
 import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.util.ExecutorUtils;
+import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.dsl.Disruptor;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.ERROR;
@@ -28,8 +32,6 @@ import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEv
  */
 public class ApmServerReporter implements Reporter {
 
-    public static final int REPORTER_QUEUE_LENGTH = 1024;
-    private static final int FLUSH_INTERVAL_SECONDS = 10;
     private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence, Transaction t) {
@@ -43,22 +45,24 @@ public class ApmServerReporter implements Reporter {
             event.type = FLUSH;
         }
     };
-    private static final EventTranslatorOneArg<ReportingEvent, Error> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Error>() {
+    private static final EventTranslatorOneArg<ReportingEvent, ErrorCapture> ERROR_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, ErrorCapture>() {
         @Override
-        public void translateTo(ReportingEvent event, long sequence, Error error) {
+        public void translateTo(ReportingEvent event, long sequence, ErrorCapture error) {
             event.error = error;
             event.type = ERROR;
         }
     };
 
     private final Disruptor<ReportingEvent> disruptor;
-    private final ScheduledThreadPoolExecutor flushScheduler;
+    private ScheduledThreadPoolExecutor flushScheduler;
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
+    private final ReportingEventHandler reportingEventHandler;
 
-    public ApmServerReporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender, boolean dropTransactionIfQueueFull) {
+    public ApmServerReporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender,
+                             boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
-        disruptor = new Disruptor<>(new TransactionEventFactory(), REPORTER_QUEUE_LENGTH, new ThreadFactory() {
+        disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
@@ -67,15 +71,18 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         });
-        disruptor.handleEventsWith(new ReportingEventHandler(service, process, system, payloadSender));
+        reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration);
+        disruptor.handleEventsWith(reportingEventHandler);
         disruptor.start();
-        flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
-        flushScheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                scheduleFlush();
-            }
-        }, FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        if (reporterConfiguration.getFlushInterval() > 0) {
+            flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
+            flushScheduler.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
+                }
+            }, reporterConfiguration.getFlushInterval(), reporterConfiguration.getFlushInterval(), TimeUnit.SECONDS);
+        }
     }
 
     @Override
@@ -97,25 +104,60 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public void scheduleFlush() {
+    public Future<Void> flush() {
         disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
+        final long cursor = disruptor.getCursor();
+        return new Future<Void>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return false;
+            }
+
+            @Override
+            public Void get() throws InterruptedException, ExecutionException {
+                while (disruptor.getSequenceValueFor(reportingEventHandler) < cursor) {
+                    Thread.sleep(1);
+                }
+                return null;
+            }
+
+            @Override
+            public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                for (; timeout > 0; timeout--) {
+                    Thread.sleep(1);
+                }
+                return null;
+            }
+        };
     }
 
     @Override
     public void close() {
         disruptor.shutdown();
-        flushScheduler.shutdown();
+        if (flushScheduler != null) {
+            flushScheduler.shutdown();
+        }
     }
 
     @Override
-    public void report(Error error) {
+    public void report(ErrorCapture error) {
         disruptor.publishEvent(ERROR_EVENT_TRANSLATOR, error);
     }
 
     static class ReportingEvent {
         Transaction transaction;
         ReportingEventType type;
-        Error error;
+        ErrorCapture error;
 
         public void setTransaction(Transaction transaction) {
             this.type = ReportingEventType.TRANSACTION;

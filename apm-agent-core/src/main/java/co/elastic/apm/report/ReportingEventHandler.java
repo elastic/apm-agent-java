@@ -1,40 +1,54 @@
 package co.elastic.apm.report;
 
+import co.elastic.apm.impl.error.ErrorPayload;
+import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import com.lmax.disruptor.EventHandler;
 
+import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.TRANSACTION;
 
 class ReportingEventHandler implements EventHandler<ApmServerReporter.ReportingEvent> {
-    private static final int MAX_TRANSACTIONS_PER_REPORT = 250;
-    private final TransactionPayload payload;
+    private final TransactionPayload transactionPayload;
+    private final ErrorPayload errorPayload;
     private final PayloadSender payloadSender;
+    private final ReporterConfiguration reporterConfiguration;
 
-    public ReportingEventHandler(Service service, Process process, SystemInfo system, PayloadSender payloadSender) {
+    public ReportingEventHandler(Service service, Process process, SystemInfo system, PayloadSender payloadSender, ReporterConfiguration reporterConfiguration) {
         this.payloadSender = payloadSender;
-        payload = new TransactionPayload(service, process, system);
+        this.reporterConfiguration = reporterConfiguration;
+        transactionPayload = new TransactionPayload(process, service, system);
+        errorPayload = new ErrorPayload(process, service, system);
     }
 
     @Override
-    public void onEvent(ApmServerReporter.ReportingEvent event, long sequence, boolean endOfBatch) throws Exception {
+    public void onEvent(ApmServerReporter.ReportingEvent event, long sequence, boolean endOfBatch) {
         if (event.type == FLUSH) {
-            flush();
+            flush(transactionPayload);
+            flush(errorPayload);
         }
         if (event.type == TRANSACTION) {
-            payload.getTransactions().add(event.transaction);
-            if (payload.getTransactions().size() >= MAX_TRANSACTIONS_PER_REPORT) {
-                flush();
+            transactionPayload.getTransactions().add(event.transaction);
+            if (transactionPayload.getTransactions().size() >= reporterConfiguration.getMaxQueueSize()) {
+                flush(transactionPayload);
+            }
+        }
+        if (event.type == ERROR) {
+            errorPayload.getErrors().add(event.error);
+            // report errors immediately, except if there are multiple in the queue
+            if (endOfBatch) {
+                flush(errorPayload);
             }
         }
         event.resetState();
     }
 
-    private void flush() {
-        if (payload.getTransactions().isEmpty()) {
+    private void flush(Payload payload) {
+        if (payload.getPayloadObjects().isEmpty()) {
             return;
         }
 

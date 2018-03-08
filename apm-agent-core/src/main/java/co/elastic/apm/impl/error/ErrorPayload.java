@@ -1,10 +1,12 @@
 
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.Error;
+import co.elastic.apm.impl.ErrorCapture;
+import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -21,113 +23,41 @@ import java.util.List;
  * List of errors wrapped in an object containing some other attributes normalized away from the errors themselves
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ErrorPayload {
+public class ErrorPayload extends Payload {
 
-    /**
-     * Service
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("service")
-    private Service service;
-    /**
-     * Process
-     * <p>
-     */
-    @JsonProperty("process")
-    private Process process;
     /**
      * (Required)
      */
     @JsonProperty("errors")
-    private final List<Error> errors = new ArrayList<Error>();
-    /**
-     * System
-     * <p>
-     */
-    @JsonProperty("system")
-    private SystemInfo system;
+    private final List<ErrorCapture> errors = new ArrayList<ErrorCapture>();
 
-    /**
-     * Service
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("service")
-    public Service getService() {
-        return service;
-    }
-
-    /**
-     * Service
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("service")
-    public void setService(Service service) {
-        this.service = service;
-    }
-
-    public ErrorPayload withService(Service service) {
-        this.service = service;
-        return this;
-    }
-
-    /**
-     * Process
-     * <p>
-     */
-    @JsonProperty("process")
-    public Process getProcess() {
-        return process;
-    }
-
-    /**
-     * Process
-     * <p>
-     */
-    @JsonProperty("process")
-    public void setProcess(Process process) {
-        this.process = process;
-    }
-
-    public ErrorPayload withProcess(Process process) {
-        this.process = process;
-        return this;
+    public ErrorPayload(Process process, Service service, SystemInfo system) {
+        super(process, service, system);
     }
 
     /**
      * (Required)
      */
     @JsonProperty("errors")
-    public List<Error> getErrors() {
+    public List<ErrorCapture> getErrors() {
         return errors;
     }
 
-    /**
-     * System
-     * <p>
-     */
-    @JsonProperty("system")
-    public SystemInfo getSystem() {
-        return system;
+    @Override
+    public List<? extends Recyclable> getPayloadObjects() {
+        return errors;
     }
 
-    /**
-     * System
-     * <p>
-     */
-    @JsonProperty("system")
-    public void setSystem(SystemInfo system) {
-        this.system = system;
+    @Override
+    public void recycle() {
+        for (ErrorCapture error : errors) {
+            error.recycle();
+        }
     }
 
-    public ErrorPayload withSystem(SystemInfo system) {
-        this.system = system;
-        return this;
+    @Override
+    public void resetState() {
+        errors.clear();
     }
 
     @Override
@@ -163,5 +93,4 @@ public class ErrorPayload {
             .append(service, rhs.service)
             .append(errors, rhs.errors).isEquals();
     }
-
 }

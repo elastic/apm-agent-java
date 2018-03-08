@@ -5,7 +5,6 @@ import co.elastic.apm.impl.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,73 +19,16 @@ import java.util.List;
  * List of transactions wrapped in an object containing some other attributes normalized away from the transactions themselves
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "service",
-    "process",
-    "system",
-    "transactions"
-})
-public class TransactionPayload implements Recyclable {
+public class TransactionPayload extends Payload {
 
-    /**
-     * Service
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("service")
-    private final Service service;
-    /**
-     * Process
-     * <p>
-     */
-    @JsonProperty("process")
-    private final Process process;
-    /**
-     * System
-     * <p>
-     */
-    @JsonProperty("system")
-    private final SystemInfo system;
     /**
      * (Required)
      */
     @JsonProperty("transactions")
     private final List<Transaction> transactions = new ArrayList<Transaction>();
 
-    public TransactionPayload(Service service, Process process, SystemInfo system) {
-        this.service = service;
-        this.process = process;
-        this.system = system;
-    }
-
-    /**
-     * Service
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("service")
-    public Service getService() {
-        return service;
-    }
-
-    /**
-     * Process
-     * <p>
-     */
-    @JsonProperty("process")
-    public Process getProcess() {
-        return process;
-    }
-
-    /**
-     * System
-     * <p>
-     */
-    @JsonProperty("system")
-    public SystemInfo getSystem() {
-        return system;
+    public TransactionPayload(Process process, Service service, SystemInfo system) {
+        super(process, service, system);
     }
 
     /**
@@ -124,4 +66,15 @@ public class TransactionPayload implements Recyclable {
         transactions.clear();
     }
 
+    @Override
+    public List<? extends Recyclable> getPayloadObjects() {
+        return transactions;
+    }
+
+    @Override
+    public void recycle() {
+        for (Transaction transaction : transactions) {
+            transaction.recycle();
+        }
+    }
 }

@@ -3,13 +3,12 @@ package co.elastic.apm.objectpool.impl;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.Sequencer;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
@@ -31,7 +30,7 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
      */
     public RingBufferObjectPool(int maxPooledElements, boolean preAllocate, RecyclableObjectFactory<T> recyclableObjectFactory) {
         super(recyclableObjectFactory);
-        this.ringBuffer = RingBuffer.createMultiProducer(new PooledObjectEventFactory<T>(), maxPooledElements);
+        this.ringBuffer = RingBuffer.createMultiProducer(new PooledObjectEventFactory<T>(), MathUtils.getNextPowerOf2(maxPooledElements));
         this.sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
         this.ringBuffer.addGatingSequences(sequence);
         if (preAllocate) {

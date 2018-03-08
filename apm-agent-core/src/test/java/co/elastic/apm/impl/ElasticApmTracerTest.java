@@ -82,7 +82,7 @@ class ElasticApmTracerTest {
     void testRecordException() {
         tracer.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);
-        Error error = reporter.getFirstError();
+        ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException().getStacktrace()).isNotEmpty();
         assertThat(error.getException().getMessage()).isEqualTo("test");
         assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
@@ -95,7 +95,7 @@ class ElasticApmTracerTest {
             transaction.getContext().getRequest().addHeader("foo", "bar");
             tracer.captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
-            Error error = reporter.getFirstError();
+            ErrorCapture error = reporter.getFirstError();
             assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId().toString());
             assertThat(error.getContext().getRequest().getHeaders()).containsEntry("foo", "bar");
         }

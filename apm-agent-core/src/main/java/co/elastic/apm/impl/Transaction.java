@@ -93,9 +93,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @JsonPropertyDescription("Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.")
     private boolean sampled;
 
-    Transaction() {
-    }
-
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos) {
         this.tracer = tracer;
         this.duration = startTimestampNanos;
@@ -352,10 +349,13 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         marks.clear();
         sampled = true;
         spanCount.resetState();
+        tracer = null;
     }
 
     public void recycle() {
-        tracer.recycle(this);
+        if (tracer != null) {
+            tracer.recycle(this);
+        }
     }
 
 }

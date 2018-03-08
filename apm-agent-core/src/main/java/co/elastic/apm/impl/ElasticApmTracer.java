@@ -37,33 +37,43 @@ public class ElasticApmTracer implements Tracer {
     static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
     private static ElasticApmTracer instance;
+
     private final ConfigurationRegistry configurationRegistry;
+    private final StacktraceConfiguration stacktraceConfiguration;
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
+    private final ObjectPool<Stacktrace> stackTracePool;
+    private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
     private final StacktraceFactory stacktraceFactory;
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
-    private final ObjectPool<Stacktrace> stackTracePool;
-    private StacktraceConfiguration stacktraceConfiguration;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceFactory = stacktraceFactory;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
-        transactionPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
+        int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
+        transactionPool = new RingBufferObjectPool<>(maxPooledElements, false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction();
                 }
             });
-        spanPool = new RingBufferObjectPool<>(ApmServerReporter.REPORTER_QUEUE_LENGTH * 2, true,
+        spanPool = new RingBufferObjectPool<>(maxPooledElements, false,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
                     return new Span();
+                }
+            });
+        errorPool = new RingBufferObjectPool<>(64, false,
+            new RecyclableObjectFactory<ErrorCapture>() {
+                @Override
+                public ErrorCapture createInstance() {
+                    return new ErrorCapture();
                 }
             });
         stackTracePool = new NoopObjectPool<Stacktrace>(new RecyclableObjectFactory<Stacktrace>() {
@@ -131,7 +141,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void captureException(Exception e) {
-        Error error = new Error();
+        ErrorCapture error = new ErrorCapture();
         error.withTimestamp(System.currentTimeMillis());
         error.getException().withMessage(e.getMessage());
         error.getException().withType(e.getClass().getName());
@@ -181,6 +191,10 @@ public class ElasticApmTracer implements Tracer {
             spanPool.recycle(span);
         }
         transactionPool.recycle(transaction);
+    }
+
+    void recycle(ErrorCapture error) {
+        errorPool.recycle(error);
     }
 
     public static class Builder {
@@ -235,7 +249,7 @@ public class ElasticApmTracer implements Tracer {
                 SystemInfo.create(),
                 new ApmServerHttpPayloadSender(new OkHttpClient.Builder()
                     .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS)
-                    .build(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true);
+                    .build(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true, reporterConfiguration);
         }
     }
 }

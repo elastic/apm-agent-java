@@ -99,5 +99,12 @@
             <artifactId>stagemonitor-configuration</artifactId>
             <version>0.87.3</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.undertow</groupId>
+            <artifactId>undertow-core</artifactId>
+            <version>1.4.22.Final</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

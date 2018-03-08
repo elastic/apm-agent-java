@@ -14,6 +14,7 @@ import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
+import co.elastic.apm.report.ReporterConfiguration;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
@@ -35,7 +36,6 @@ import java.util.List;
 public abstract class AbstractReporterBenchmark {
 
     public static final List<String> STRINGS = Arrays.asList("bar", "baz");
-    private static final int PAYLOAD_SIZE = 250;
     protected TransactionPayload payload;
     protected ElasticApmTracer tracer;
     private Reporter reporter;
@@ -63,9 +63,10 @@ public abstract class AbstractReporterBenchmark {
             .withTitle("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
-        reporter = new ApmServerReporter(service, process, system, payloadSender, false);
-        payload = new TransactionPayload(service, process, system);
-        for (int i = 0; i < PAYLOAD_SIZE; i++) {
+        ReporterConfiguration reporterConfiguration = new ReporterConfiguration();
+        reporter = new ApmServerReporter(service, process, system, payloadSender, false, reporterConfiguration);
+        payload = new TransactionPayload(process, service, system);
+        for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
             t.start(tracer, 0);
             fillTransaction(t);

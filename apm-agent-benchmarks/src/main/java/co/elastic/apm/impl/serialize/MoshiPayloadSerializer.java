@@ -1,6 +1,6 @@
 package co.elastic.apm.impl.serialize;
 
-import co.elastic.apm.impl.payload.TransactionPayload;
+import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
@@ -13,16 +13,16 @@ import java.util.Date;
 public class MoshiPayloadSerializer implements PayloadSerializer {
 
     private final Moshi moshi;
-    private final JsonAdapter<TransactionPayload> jsonAdapter;
+    private final JsonAdapter<Payload> jsonAdapter;
 
     public MoshiPayloadSerializer() {
         moshi = new Moshi.Builder()
             .add(Date.class, new Rfc3339DateJsonAdapter())
             .build();
-        jsonAdapter = moshi.adapter(TransactionPayload.class);
+        jsonAdapter = moshi.adapter(Payload.class);
     }
 
-    public void serializePayload(BufferedSink sink, TransactionPayload payload) throws IOException {
+    public void serializePayload(BufferedSink sink, Payload payload) throws IOException {
         jsonAdapter.toJson(sink, payload);
     }
 
