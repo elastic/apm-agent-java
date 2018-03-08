@@ -1,7 +1,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;

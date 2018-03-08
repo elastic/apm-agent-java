@@ -1,7 +1,6 @@
 
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.ErrorCapture;
 import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;

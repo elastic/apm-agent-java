@@ -1,10 +1,10 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.impl.span.Db;
+import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Span;
-import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.Transaction;
 import com.p6spy.engine.spy.P6SpyDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

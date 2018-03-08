@@ -1,7 +1,7 @@
 
 package co.elastic.apm.impl.payload;
 
-import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
