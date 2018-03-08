@@ -1,6 +1,5 @@
 package co.elastic.apm.impl.stacktrace;
 
-import co.elastic.apm.impl.Stacktrace;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;

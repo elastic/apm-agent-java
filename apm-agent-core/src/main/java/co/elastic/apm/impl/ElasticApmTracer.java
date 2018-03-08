@@ -4,11 +4,15 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
+import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
@@ -33,8 +37,14 @@ import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This is the implementation of the {@link Tracer} interface which provides access to lower level agent functionality.
+ * <p>
+ * Note that this is a internal API, so there are no guarantees in terms of backwards compatibility.
+ * </p>
+ */
 public class ElasticApmTracer implements Tracer {
-    static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
+    public static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
     private static ElasticApmTracer instance;
 
@@ -158,7 +168,7 @@ public class ElasticApmTracer implements Tracer {
         return configurationRegistry.getConfig(pluginClass);
     }
 
-    void endTransaction(Transaction transaction) {
+    public void endTransaction(Transaction transaction) {
         if (currentTransaction.get() != transaction) {
             logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
             assert false;
@@ -168,7 +178,7 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(transaction);
     }
 
-    void endSpan(Span span) {
+    public void endSpan(Span span) {
         if (currentSpan.get() != span) {
             logger.warn("Trying to end a span which is not the current (thread local) span!");
             assert false;
@@ -183,7 +193,7 @@ public class ElasticApmTracer implements Tracer {
         currentSpan.clear();
     }
 
-    void recycle(Transaction transaction) {
+    public void recycle(Transaction transaction) {
         for (Span span : transaction.getSpans()) {
             for (Stacktrace st : span.getStacktrace()) {
                 stackTracePool.recycle(st);
@@ -193,7 +203,7 @@ public class ElasticApmTracer implements Tracer {
         transactionPool.recycle(transaction);
     }
 
-    void recycle(ErrorCapture error) {
+    public void recycle(ErrorCapture error) {
         errorPool.recycle(error);
     }
 

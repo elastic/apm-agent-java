@@ -1,6 +1,6 @@
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.Stacktrace;
+import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

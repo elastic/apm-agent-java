@@ -1,7 +1,7 @@
 package co.elastic.apm;
 
-import co.elastic.apm.impl.ErrorCapture;
-import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.Reporter;
 
 import java.util.ArrayList;

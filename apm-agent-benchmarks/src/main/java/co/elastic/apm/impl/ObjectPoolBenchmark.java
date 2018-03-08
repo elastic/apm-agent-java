@@ -1,5 +1,6 @@
 package co.elastic.apm.impl;
 
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.impl.BlockingQueueObjectPool;
 import co.elastic.apm.objectpool.impl.MixedObjectPool;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;

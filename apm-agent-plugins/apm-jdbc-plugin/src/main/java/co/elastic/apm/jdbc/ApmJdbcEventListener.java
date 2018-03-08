@@ -1,8 +1,8 @@
 package co.elastic.apm.jdbc;
 
-import co.elastic.apm.impl.span.Db;
+import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Span;
+import co.elastic.apm.impl.transaction.Span;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.common.StatementInformation;
 import com.p6spy.engine.event.SimpleJdbcEventListener;

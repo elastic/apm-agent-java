@@ -1,7 +1,7 @@
 package co.elastic.apm.report;
 
-import co.elastic.apm.impl.ErrorCapture;
-import co.elastic.apm.impl.Transaction;
+import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
@@ -149,6 +149,7 @@ public class ApmServerReporter implements Reporter {
         }
     }
 
+    // TODO drop errors when queue is full
     @Override
     public void report(ErrorCapture error) {
         disruptor.publishEvent(ERROR_EVENT_TRANSLATOR, error);

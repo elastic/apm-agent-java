@@ -1,7 +1,6 @@
 package co.elastic.apm.impl.stacktrace;
 
 import co.elastic.apm.CpuProfiler;
-import co.elastic.apm.impl.Stacktrace;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;

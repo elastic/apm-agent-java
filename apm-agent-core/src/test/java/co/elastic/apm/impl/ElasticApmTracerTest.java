@@ -2,7 +2,10 @@ package co.elastic.apm.impl;
 
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

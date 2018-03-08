@@ -1,6 +1,6 @@
 package org.example.stacktrace;
 
-import co.elastic.apm.impl.Stacktrace;
+import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import org.junit.jupiter.api.BeforeEach;

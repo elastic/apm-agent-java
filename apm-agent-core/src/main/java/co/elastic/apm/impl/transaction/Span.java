@@ -1,6 +1,7 @@
-package co.elastic.apm.impl;
+package co.elastic.apm.impl.transaction;
 
-import co.elastic.apm.impl.span.SpanContext;
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -83,9 +84,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonProperty("type")
     @JsonPropertyDescription("Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)")
     private String type;
-
-    Span() {
-    }
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime) {
         this.tracer = tracer;
