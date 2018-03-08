@@ -1,5 +1,8 @@
 package co.elastic.apm.api;
 
+/**
+ * Data captured by an agent representing an event occurring in a monitored service
+ */
 public interface Transaction extends AutoCloseable {
 
     String TYPE_REQUEST = "request";
@@ -14,7 +17,7 @@ public interface Transaction extends AutoCloseable {
      * Transactions with the same name and type are grouped together.
      * </p>
      *
-     * @param name
+     * @param name The name of the transaction.
      */
     void setName(String name);
 
@@ -25,11 +28,23 @@ public interface Transaction extends AutoCloseable {
      * when an incoming HTTP request is detected.
      * </p>
      *
-     * @param type
+     * @param type The type of the transaction.
      */
     void setType(String type);
 
-
+    /**
+     * A flat mapping of user-defined tags with string values.
+     * <p>
+     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a tag key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The tag key.
+     * @param value The tag value.
+     */
     void addTag(String key, String value);
 
     /**
@@ -48,9 +63,9 @@ public interface Transaction extends AutoCloseable {
      * </p>
      * The provided user context is stored under context.user in Elasticsearch on both errors and transactions.
      *
-     * @param id       the user's id or <code>null</code>, if not applicable
-     * @param email    the user's email address or <code>null</code>, if not applicable
-     * @param username the user's name or <code>null</code>, if not applicable
+     * @param id       The user's id or <code>null</code>, if not applicable.
+     * @param email    The user's email address or <code>null</code>, if not applicable.
+     * @param username The user's name or <code>null</code>, if not applicable.
      */
     void setUser(String id, String email, String username);
 
@@ -60,7 +75,7 @@ public interface Transaction extends AutoCloseable {
     void end();
 
     /**
-     * An alias for {@link #end()}
+     * An alias for {@link #end()} to make a {@link Transaction} work in try-with-resources statements.
      */
     @Override
     void close();

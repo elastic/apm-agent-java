@@ -1,9 +1,18 @@
 package co.elastic.apm.api;
 
+/**
+ * A span contains information about a specific code path, executed as part of a {@link Transaction}.
+ * <p>
+ * If for example a database query happens within a recorded transaction,
+ * a span representing this database query may be created.
+ * In such a case the name of the span will contain information about the query itself,
+ * and the type will hold information about the database type.
+ * </p>
+ */
 public interface Span extends AutoCloseable {
 
     /**
-     * The name of the transaction.
+     * The name of the span.
      *
      * @param name the name of the span
      */
@@ -30,7 +39,7 @@ public interface Span extends AutoCloseable {
     void end();
 
     /**
-     * An alias for {@link #end()}
+     * An alias for {@link #end()} to make a {@link Span} work in try-with-resources statements.
      */
     @Override
     void close();
