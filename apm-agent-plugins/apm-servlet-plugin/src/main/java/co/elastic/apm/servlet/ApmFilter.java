@@ -1,11 +1,11 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.User;
+import co.elastic.apm.impl.transaction.Transaction;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -67,7 +67,6 @@ public class ApmFilter implements Filter {
         transaction.withSampled(true);
         transaction.withTimestamp(System.currentTimeMillis());
         transaction.withType("request");
-        transaction.getSpanCount().getDropped().withTotal(0);
     }
 
     private String getRequestNameByRequest(HttpServletRequest request) {

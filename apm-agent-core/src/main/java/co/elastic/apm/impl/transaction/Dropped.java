@@ -1,4 +1,3 @@
-
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
@@ -30,6 +29,14 @@ public class Dropped implements Recyclable {
      */
     public Dropped withTotal(long total) {
         this.total = total;
+        return this;
+    }
+
+    /**
+     * Increments the number of spans that have been dropped by the agent recording the transaction.
+     */
+    public Dropped increment() {
+        this.total++;
         return this;
     }
 
