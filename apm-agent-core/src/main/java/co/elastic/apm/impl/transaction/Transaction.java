@@ -112,15 +112,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     /**
-     * How long the transaction took to complete, in ms with 3 decimal points
-     * (Required)
-     */
-    @JsonProperty("duration")
-    public void setDuration(double duration) {
-        this.duration = duration;
-    }
-
-    /**
      * UUID for the transaction, referred by its spans
      * (Required)
      */
@@ -142,7 +133,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     @Override
-    @JsonProperty("name")
     public void setName(String name) {
         this.name = name;
     }
@@ -163,11 +153,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
-    @JsonProperty("result")
-    public void setResult(String result) {
-        this.result = result;
-    }
-
     public Transaction withResult(String result) {
         this.result = result;
         return this;
@@ -256,11 +241,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
-    @JsonProperty("sampled")
-    public void setSampled(boolean sampled) {
-        this.sampled = sampled;
-    }
-
     public Transaction withSampled(boolean sampled) {
         this.sampled = sampled;
         return this;

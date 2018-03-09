@@ -79,9 +79,8 @@ public abstract class AbstractReporterBenchmark {
     private void fillTransaction(Transaction t) {
         t.setName("GET /api/types");
         t.setType("request");
-        t.setDuration(32.592981);
-        t.setResult("success");
-        t.setSampled(true);
+        t.withResult("success");
+        t.withSampled(true);
         t.getSpanCount().getDropped().withTotal(2);
 
         Context context = t.getContext();

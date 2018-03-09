@@ -30,11 +30,6 @@ public class Socket implements Recyclable {
     /**
      * Indicates whether request was sent as SSL/HTTPS request.
      */
-    @JsonProperty("encrypted")
-    public void setEncrypted(boolean encrypted) {
-        this.encrypted = encrypted;
-    }
-
     public Socket withEncrypted(boolean encrypted) {
         this.encrypted = encrypted;
         return this;
@@ -43,11 +38,6 @@ public class Socket implements Recyclable {
     @JsonProperty("remote_address")
     public String getRemoteAddress() {
         return remoteAddress;
-    }
-
-    @JsonProperty("remote_address")
-    public void setRemoteAddress(String remoteAddress) {
-        this.remoteAddress = remoteAddress;
     }
 
     public Socket withRemoteAddress(String remoteAddress) {

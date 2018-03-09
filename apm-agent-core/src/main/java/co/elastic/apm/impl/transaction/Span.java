@@ -103,11 +103,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Duration of the span in milliseconds
      * (Required)
      */
-    @JsonProperty("duration")
-    public void setDuration(double duration) {
-        this.duration = duration;
-    }
-
     public Span withDuration(double duration) {
         this.duration = duration;
         return this;
@@ -127,7 +122,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Override
-    @JsonProperty("name")
     public void setName(String name) {
         this.name = name;
     }
@@ -148,11 +142,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * The locally unique ID of the parent of the span.
      */
-    @JsonProperty("parent")
-    public void setParent(long parent) {
-        this.parent = parent;
-    }
-
     public Span withParent(long parent) {
         this.parent = parent;
         return this;
@@ -179,11 +168,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
-    @JsonProperty("start")
-    public void setStart(double start) {
-        this.start = start;
-    }
-
     public Span withStart(double start) {
         this.start = start;
         return this;
@@ -203,7 +187,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Override
-    @JsonProperty("type")
     public void setType(String type) {
         this.type = type;
     }

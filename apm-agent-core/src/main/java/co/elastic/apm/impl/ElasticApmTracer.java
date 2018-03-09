@@ -158,7 +158,7 @@ public class ElasticApmTracer implements Tracer {
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
         Transaction transaction = currentTransaction();
         if (transaction != null) {
-            error.getTransaction().setId(transaction.getId().toString());
+            error.getTransaction().withId(transaction.getId().toString());
             error.getContext().copyFrom(transaction.getContext());
         }
         reporter.report(error);

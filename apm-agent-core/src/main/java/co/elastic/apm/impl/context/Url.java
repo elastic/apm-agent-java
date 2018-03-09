@@ -62,11 +62,6 @@ public class Url implements Recyclable {
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @JsonProperty("raw")
-    public void setRaw(String raw) {
-        this.raw = raw;
-    }
-
     public Url withRaw(String raw) {
         this.raw = raw;
         return this;
@@ -83,11 +78,6 @@ public class Url implements Recyclable {
     /**
      * The protocol of the request, e.g. 'https:'.
      */
-    @JsonProperty("protocol")
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
-    }
-
     public Url withProtocol(String protocol) {
         this.protocol = protocol;
         return this;
@@ -104,11 +94,6 @@ public class Url implements Recyclable {
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @JsonProperty("full")
-    public void setFull(String full) {
-        this.full = full;
-    }
-
     public Url withFull(String full) {
         this.full = full;
         return this;
@@ -125,11 +110,6 @@ public class Url implements Recyclable {
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
-    @JsonProperty("hostname")
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
     public Url withHostname(String hostname) {
         this.hostname = hostname;
         return this;
@@ -146,11 +126,6 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    @JsonProperty("port")
-    public void setPort(String port) {
-        this.port = port;
-    }
-
     public Url withPort(String port) {
         this.port = port;
         return this;
@@ -167,11 +142,6 @@ public class Url implements Recyclable {
     /**
      * The path of the request, e.g. '/search'
      */
-    @JsonProperty("pathname")
-    public void setPathname(String pathname) {
-        this.pathname = pathname;
-    }
-
     public Url withPathname(String pathname) {
         this.pathname = pathname;
         return this;
@@ -188,11 +158,6 @@ public class Url implements Recyclable {
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
-    @JsonProperty("search")
-    public void setSearch(String search) {
-        this.search = search;
-    }
-
     public Url withSearch(String search) {
         this.search = search;
         return this;

@@ -61,11 +61,6 @@ public class Stacktrace implements Recyclable {
     /**
      * The absolute path of the file involved in the stack frame
      */
-    @JsonProperty("abs_path")
-    public void setAbsPath(String absPath) {
-        this.absPath = absPath;
-    }
-
     public Stacktrace withAbsPath(String absPath) {
         this.absPath = absPath;
         return this;
@@ -84,11 +79,6 @@ public class Stacktrace implements Recyclable {
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
-    @JsonProperty("filename")
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
     public Stacktrace withFilename(String filename) {
         this.filename = filename;
         return this;
@@ -105,11 +95,6 @@ public class Stacktrace implements Recyclable {
     /**
      * The function involved in the stack frame
      */
-    @JsonProperty("function")
-    public void setFunction(String function) {
-        this.function = function;
-    }
-
     public Stacktrace withFunction(String function) {
         this.function = function;
         return this;
@@ -126,11 +111,6 @@ public class Stacktrace implements Recyclable {
     /**
      * A boolean, indicating if this frame is from a library or user code
      */
-    @JsonProperty("library_frame")
-    public void setLibraryFrame(boolean libraryFrame) {
-        this.libraryFrame = libraryFrame;
-    }
-
     public Stacktrace withLibraryFrame(boolean libraryFrame) {
         this.libraryFrame = libraryFrame;
         return this;
@@ -149,11 +129,6 @@ public class Stacktrace implements Recyclable {
      * The line number of code part of the stack frame, used e.g. to do error checksumming
      * (Required)
      */
-    @JsonProperty("lineno")
-    public void setLineno(long lineno) {
-        this.lineno = lineno;
-    }
-
     public Stacktrace withLineno(long lineno) {
         this.lineno = lineno;
         return this;
@@ -170,11 +145,6 @@ public class Stacktrace implements Recyclable {
     /**
      * The module to which frame belongs to
      */
-    @JsonProperty("module")
-    public void setModule(String module) {
-        this.module = module;
-    }
-
     public Stacktrace withModule(String module) {
         this.module = module;
         return this;

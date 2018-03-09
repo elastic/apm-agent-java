@@ -32,11 +32,6 @@ public class TransactionReference implements Recyclable {
     /**
      * UUID for the transaction
      */
-    @JsonProperty("id")
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public TransactionReference withId(String id) {
         this.id = id;
         return this;

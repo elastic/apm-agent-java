@@ -102,7 +102,7 @@ public interface StacktraceFactory {
                 .withLibraryFrame(true);
             for (String applicationPackage : stacktraceConfiguration.getApplicationPackages()) {
                 if (stackTraceElement.getClassName().startsWith(applicationPackage)) {
-                    s.setLibraryFrame(false);
+                    s.withLibraryFrame(false);
                 }
             }
             return s;

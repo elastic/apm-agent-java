@@ -47,11 +47,6 @@ public class ExceptionInfo implements Recyclable {
     /**
      * The error code set when the error happened, e.g. database error code.
      */
-    @JsonProperty("code")
-    public void setCode(String code) {
-        this.code = code;
-    }
-
     public ExceptionInfo withCode(String code) {
         this.code = code;
         return this;
@@ -70,11 +65,6 @@ public class ExceptionInfo implements Recyclable {
      * The original error message.
      * (Required)
      */
-    @JsonProperty("message")
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
     public ExceptionInfo withMessage(String message) {
         this.message = message;
         return this;
@@ -88,11 +78,6 @@ public class ExceptionInfo implements Recyclable {
     @JsonProperty("type")
     public String getType() {
         return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(String type) {
-        this.type = type;
     }
 
     public ExceptionInfo withType(String type) {

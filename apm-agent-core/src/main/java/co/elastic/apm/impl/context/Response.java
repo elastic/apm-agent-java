@@ -42,11 +42,6 @@ public class Response implements Recyclable {
     /**
      * A boolean indicating whether the response was finished or not
      */
-    @JsonProperty("finished")
-    public void setFinished(boolean finished) {
-        this.finished = finished;
-    }
-
     public Response withFinished(boolean finished) {
         this.finished = finished;
         return this;
@@ -78,11 +73,6 @@ public class Response implements Recyclable {
         return headersSent;
     }
 
-    @JsonProperty("headers_sent")
-    public void setHeadersSent(boolean headersSent) {
-        this.headersSent = headersSent;
-    }
-
     public Response withHeadersSent(boolean headersSent) {
         this.headersSent = headersSent;
         return this;
@@ -99,11 +89,6 @@ public class Response implements Recyclable {
     /**
      * The HTTP status code of the response.
      */
-    @JsonProperty("status_code")
-    public void setStatusCode(long statusCode) {
-        this.statusCode = statusCode;
-    }
-
     public Response withStatusCode(long statusCode) {
         this.statusCode = statusCode;
         return this;

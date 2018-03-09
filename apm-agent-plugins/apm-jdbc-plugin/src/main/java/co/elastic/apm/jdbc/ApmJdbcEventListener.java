@@ -1,6 +1,5 @@
 package co.elastic.apm.jdbc;
 
-import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
 import com.p6spy.engine.common.ConnectionInformation;
@@ -57,10 +56,10 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         try {
             String dbVendor = getDbVendor(statementInformation.getConnectionInformation().getConnection().getMetaData().getURL());
             span.setType("db." + dbVendor + ".sql");
-            Db db = span.getContext().getDb();
-            db.setUser(statementInformation.getConnectionInformation().getConnection().getMetaData().getUserName());
-            db.setStatement(statementInformation.getStatementQuery());
-            db.setType("sql");
+            span.getContext().getDb()
+                .withUser(statementInformation.getConnectionInformation().getConnection().getMetaData().getUserName())
+                .withStatement(statementInformation.getStatementQuery())
+                .withType("sql");
         } catch (SQLException e) {
             logger.warn("Ignored exception", e);
         }

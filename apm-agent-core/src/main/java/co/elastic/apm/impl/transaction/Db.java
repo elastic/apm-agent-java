@@ -47,11 +47,6 @@ public class Db implements Recyclable {
     /**
      * Database instance name
      */
-    @JsonProperty("instance")
-    public void setInstance(String instance) {
-        this.instance = instance;
-    }
-
     public Db withInstance(String instance) {
         this.instance = instance;
         return this;
@@ -68,11 +63,6 @@ public class Db implements Recyclable {
     /**
      * A database statement (e.g. query) for the given database type
      */
-    @JsonProperty("statement")
-    public void setStatement(String statement) {
-        this.statement = statement;
-    }
-
     public Db withStatement(String statement) {
         this.statement = statement;
         return this;
@@ -89,11 +79,6 @@ public class Db implements Recyclable {
     /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
-    @JsonProperty("type")
-    public void setType(String type) {
-        this.type = type;
-    }
-
     public Db withType(String type) {
         this.type = type;
         return this;
@@ -110,11 +95,6 @@ public class Db implements Recyclable {
     /**
      * Username for accessing database
      */
-    @JsonProperty("user")
-    public void setUser(String user) {
-        this.user = user;
-    }
-
     public Db withUser(String user) {
         this.user = user;
         return this;

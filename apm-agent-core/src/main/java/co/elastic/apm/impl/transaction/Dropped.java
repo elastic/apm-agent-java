@@ -28,11 +28,6 @@ public class Dropped implements Recyclable {
     /**
      * Number of spans that have been dropped by the agent recording the transaction.
      */
-    @JsonProperty("total")
-    public void setTotal(long total) {
-        this.total = total;
-    }
-
     public Dropped withTotal(long total) {
         this.total = total;
         return this;
