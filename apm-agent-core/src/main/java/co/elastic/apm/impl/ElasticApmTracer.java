@@ -2,16 +2,17 @@ package co.elastic.apm.impl;
 
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
+import co.elastic.apm.api.TracerRegisterer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
@@ -102,7 +103,15 @@ public class ElasticApmTracer implements Tracer {
         return instance;
     }
 
-    private static boolean isStarted() {
+    // @VisibleForTesting
+    static void unregister() {
+        synchronized (ElasticApmTracer.class) {
+            instance = null;
+            TracerRegisterer.unregister();
+        }
+    }
+
+    private static boolean isRegistered() {
         return instance != null;
     }
 
@@ -111,17 +120,17 @@ public class ElasticApmTracer implements Tracer {
      */
     public ElasticApmTracer register() {
         synchronized (ElasticApmTracer.class) {
-            if (isStarted()) {
-                throw new IllegalStateException("Elastic APM is already started");
+            if (isRegistered()) {
+                // throwing an exception would be too harsh as we don't want to crash applications running in production
+                // by using an assert, we can verify this invariant in tests
+                logger.error("ElasticApmTracer.register has already been called");
+                assert false;
+            } else {
+                instance = this;
+                TracerRegisterer.register(instance);
             }
-            instance = this;
-            ElasticApm.register(instance);
-            return instance;
+            return this;
         }
-    }
-
-    public void stop() {
-        instance = null;
     }
 
     @Override

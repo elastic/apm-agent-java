@@ -1,49 +1,87 @@
 package co.elastic.apm.impl;
 
 import co.elastic.apm.MockReporter;
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Tracer;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
 
-    private ElasticApmTracer tracer;
+    private ElasticApmTracer tracerImpl;
     private MockReporter reporter;
 
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
-        tracer = ElasticApmTracer.builder()
+        tracerImpl = ElasticApmTracer.builder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .build();
+        assertThat(ElasticApmTracer.get()).isNull();
+    }
+
+    @AfterEach
+    void tearDown() {
+        ElasticApmTracer.unregister();
+        assertThat(ElasticApmTracer.get()).isNull();
+    }
+
+    @Test
+    void testNotRegistered() {
+        Tracer tracer = ElasticApm.get();
+        try (co.elastic.apm.api.Transaction transaction = tracer.startTransaction()) {
+            assertThat(transaction).isNotInstanceOf(Transaction.class);
+        }
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
+    @Test
+    void testRegister() {
+        Tracer tracer = ElasticApm.get();
+        tracerImpl.register();
+        assertThat(ElasticApmTracer.get()).isSameAs(tracerImpl);
+        try (co.elastic.apm.api.Transaction transaction = tracer.startTransaction()) {
+            assertThat(transaction).isInstanceOf(Transaction.class);
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testRegisterTwiceTriggersAssertionError() {
+        tracerImpl.register();
+        assertThatThrownBy(() -> tracerImpl.register())
+            .isInstanceOf(AssertionError.class);
     }
 
     @Test
     void testThreadLocalStorage() {
-        try (Transaction transaction = tracer.startTransaction()) {
-            assertThat(tracer.currentTransaction()).isSameAs(transaction);
-            try (Span span = tracer.startSpan()) {
-                assertThat(tracer.currentSpan()).isSameAs(span);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            try (Span span = tracerImpl.startSpan()) {
+                assertThat(tracerImpl.currentSpan()).isSameAs(span);
                 assertThat(transaction.getSpans()).containsExactly(span);
             }
-            assertThat(tracer.currentSpan()).isNull();
+            assertThat(tracerImpl.currentSpan()).isNull();
         }
-        assertThat(tracer.currentTransaction()).isNull();
+        assertThat(tracerImpl.currentTransaction()).isNull();
     }
 
     @Test
     void testDisableStacktraces() {
-        when(tracer.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0);
-        try (Transaction transaction = tracer.startTransaction()) {
-            try (Span span = tracer.startSpan()) {
+        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            try (Span span = tracerImpl.startSpan()) {
             }
             assertThat(transaction.getSpans().get(0).getStacktrace()).isEmpty();
         }
@@ -51,9 +89,9 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktraces() throws InterruptedException {
-        when(tracer.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1);
-        try (Transaction transaction = tracer.startTransaction()) {
-            try (Span span = tracer.startSpan()) {
+        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
             }
             assertThat(transaction.getSpans().get(0).getStacktrace()).isNotEmpty();
@@ -62,9 +100,9 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktracesForFastSpans() {
-        when(tracer.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100);
-        try (Transaction transaction = tracer.startTransaction()) {
-            try (Span span = tracer.startSpan()) {
+        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            try (Span span = tracerImpl.startSpan()) {
             }
             assertThat(transaction.getSpans().get(0).getStacktrace()).isEmpty();
         }
@@ -72,9 +110,9 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
-        when(tracer.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1);
-        try (Transaction transaction = tracer.startTransaction()) {
-            try (Span span = tracer.startSpan()) {
+        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
             }
             assertThat(transaction.getSpans().get(0).getStacktrace()).isNotEmpty();
@@ -83,7 +121,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testRecordException() {
-        tracer.captureException(new Exception("test"));
+        tracerImpl.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException().getStacktrace()).isNotEmpty();
@@ -94,9 +132,9 @@ class ElasticApmTracerTest {
 
     @Test
     void testRecordExceptionWithTrace() {
-        try (Transaction transaction = tracer.startTransaction()) {
+        try (Transaction transaction = tracerImpl.startTransaction()) {
             transaction.getContext().getRequest().addHeader("foo", "bar");
-            tracer.captureException(new Exception("test"));
+            tracerImpl.captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
             assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId().toString());
