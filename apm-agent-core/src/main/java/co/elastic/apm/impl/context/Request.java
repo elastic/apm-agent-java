@@ -5,7 +5,6 @@ import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -27,7 +26,6 @@ public class Request implements Recyclable {
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */
     @JsonProperty("headers")
-    @JsonPropertyDescription("Should include any headers sent by the requester. Map<String, String> will be taken by headers if supplied.")
     private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
     @JsonProperty("socket")
     private final Socket socket = new Socket();
@@ -36,13 +34,11 @@ public class Request implements Recyclable {
      * (Required)
      */
     @JsonProperty("url")
-    @JsonPropertyDescription("A complete Url, with scheme, host and path.")
     private final Url url = new Url();
     /**
      * A parsed key-value object of cookies
      */
     @JsonProperty("cookies")
-    @JsonPropertyDescription("A parsed key-value object of cookies")
     private final PotentiallyMultiValuedMap<String, String> cookies = new PotentiallyMultiValuedMap<>();
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
@@ -53,14 +49,12 @@ public class Request implements Recyclable {
      * HTTP version.
      */
     @JsonProperty("http_version")
-    @JsonPropertyDescription("HTTP version.")
     private String httpVersion;
     /**
      * HTTP method.
      * (Required)
      */
     @JsonProperty("method")
-    @JsonPropertyDescription("HTTP method.")
     private String method;
 
     /**

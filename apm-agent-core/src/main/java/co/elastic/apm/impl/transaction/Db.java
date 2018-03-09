@@ -4,7 +4,6 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,25 +19,21 @@ public class Db implements Recyclable {
      * Database instance name
      */
     @JsonProperty("instance")
-    @JsonPropertyDescription("Database instance name")
     private String instance;
     /**
      * A database statement (e.g. query) for the given database type
      */
     @JsonProperty("statement")
-    @JsonPropertyDescription("A database statement (e.g. query) for the given database type")
     private String statement;
     /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
     @JsonProperty("type")
-    @JsonPropertyDescription("Database type. For any SQL database, \"sql\". For others, the lower-case database category, e.g. \"cassandra\", \"hbase\", or \"redis\"")
     private String type;
     /**
      * Username for accessing database
      */
     @JsonProperty("user")
-    @JsonPropertyDescription("Username for accessing database")
     private String user;
 
     /**

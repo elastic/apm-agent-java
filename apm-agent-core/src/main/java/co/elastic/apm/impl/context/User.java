@@ -4,8 +4,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -17,30 +15,22 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * Describes the authenticated User for a request.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "id",
-    "email",
-    "username"
-})
 public class User implements Recyclable {
 
     /**
      * Identifier of the logged in user, e.g. the primary key of the user
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("Identifier of the logged in user, e.g. the primary key of the user")
     private String id;
     /**
      * Email of the logged in user
      */
     @JsonProperty("email")
-    @JsonPropertyDescription("Email of the logged in user")
     private String email;
     /**
      * The username of the logged in user
      */
     @JsonProperty("username")
-    @JsonPropertyDescription("The username of the logged in user")
     private String username;
 
     /**

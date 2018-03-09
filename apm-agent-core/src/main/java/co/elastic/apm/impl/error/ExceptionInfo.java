@@ -4,7 +4,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -24,14 +23,12 @@ public class ExceptionInfo implements Recyclable {
      * The error code set when the error happened, e.g. database error code.
      */
     @JsonProperty("code")
-    @JsonPropertyDescription("The error code set when the error happened, e.g. database error code.")
     private String code;
     /**
      * The original error message.
      * (Required)
      */
     @JsonProperty("message")
-    @JsonPropertyDescription("The original error message.")
     private String message;
     /**
      * Describes the exception type's module namespace.

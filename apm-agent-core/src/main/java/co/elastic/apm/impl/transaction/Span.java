@@ -5,8 +5,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -18,29 +16,17 @@ import java.util.concurrent.ThreadLocalRandom;
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "id",
-    "context",
-    "duration",
-    "name",
-    "parent",
-    "stacktrace",
-    "start",
-    "type"
-})
 public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     @JsonProperty("context")
-    @JsonPropertyDescription("Any other arbitrary data captured by the agent, optionally provided by the user")
     private final SpanContext context = new SpanContext();
     /**
      * List of stack frames with variable attributes (eg: lineno, filename, etc)
      */
     @JsonProperty("stacktrace")
-    @JsonPropertyDescription("List of stack frames with variable attributes (eg: lineno, filename, etc)")
     private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
 
     private transient ElasticApmTracer tracer;
@@ -48,41 +34,35 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the span.
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("The locally unique ID of the span.")
     private long id;
     /**
      * Duration of the span in milliseconds
      * (Required)
      */
     @JsonProperty("duration")
-    @JsonPropertyDescription("Duration of the span in milliseconds")
     private double duration;
     /**
      * Generic designation of a span in the scope of a transaction
      * (Required)
      */
     @JsonProperty("name")
-    @JsonPropertyDescription("Generic designation of a span in the scope of a transaction")
     private String name;
     /**
      * The locally unique ID of the parent of the span.
      */
     @JsonProperty("parent")
-    @JsonPropertyDescription("The locally unique ID of the parent of the span.")
     private long parent;
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
     @JsonProperty("start")
-    @JsonPropertyDescription("Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds")
     private double start;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
     @JsonProperty("type")
-    @JsonPropertyDescription("Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)")
     private String type;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime) {

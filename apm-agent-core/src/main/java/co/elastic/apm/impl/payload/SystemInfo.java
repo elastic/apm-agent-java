@@ -2,7 +2,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -19,19 +18,16 @@ public class SystemInfo {
      * Architecture of the system the agent is running on.
      */
     @JsonProperty("architecture")
-    @JsonPropertyDescription("Architecture of the system the agent is running on.")
     private final String architecture;
     /**
      * Hostname of the system the agent is running on.
      */
     @JsonProperty("hostname")
-    @JsonPropertyDescription("Hostname of the system the agent is running on.")
     private final String hostname;
     /**
      * Name of the system platform the agent is running on.
      */
     @JsonProperty("platform")
-    @JsonPropertyDescription("Name of the system platform the agent is running on.")
     private final String platform;
 
     public SystemInfo(String architecture, String hostname, String platform) {

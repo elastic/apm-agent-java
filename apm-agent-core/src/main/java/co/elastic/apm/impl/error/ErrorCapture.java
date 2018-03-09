@@ -7,7 +7,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -29,25 +28,21 @@ public class ErrorCapture implements Recyclable {
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     @JsonProperty("context")
-    @JsonPropertyDescription("Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user")
     private final Context context = new Context();
     /**
      * Information about the originally thrown error.
      */
     @JsonProperty("exception")
-    @JsonPropertyDescription("Information about the originally thrown error.")
     private final ExceptionInfo exception = new ExceptionInfo();
     /**
      * UUID for the error
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("UUID for the error")
     private String id;
     /**
      * Additional information added when logging the error.
      */
     @JsonProperty("log")
-    @JsonPropertyDescription("Additional information added when logging the error.")
     private final Log log = new Log();
     /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
@@ -55,13 +50,11 @@ public class ErrorCapture implements Recyclable {
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
     @JsonProperty("timestamp")
-    @JsonPropertyDescription("Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ")
     private final Date timestamp = new Date();
     /**
      * Data for correlating errors with transactions
      */
     @JsonProperty("transaction")
-    @JsonPropertyDescription("Data for correlating errors with transactions")
     private final TransactionReference transaction = new TransactionReference();
 
     /**

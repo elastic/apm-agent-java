@@ -2,7 +2,6 @@
 package co.elastic.apm.impl.context;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -12,9 +11,6 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * The env variable is a compounded of environment information passed from the webserver.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-
-})
 public class Env {
 
 

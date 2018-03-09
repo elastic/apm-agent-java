@@ -3,7 +3,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -21,44 +20,37 @@ public class Service {
      * (Required)
      */
     @JsonProperty("agent")
-    @JsonPropertyDescription("Name and version of the Elastic APM agent")
     private Agent agent;
     /**
      * Name and version of the web framework used
      */
     @JsonProperty("framework")
-    @JsonPropertyDescription("Name and version of the web framework used")
     private Framework framework;
     /**
      * Name and version of the programming language used
      */
     @JsonProperty("language")
-    @JsonPropertyDescription("Name and version of the programming language used")
     private Language language;
     /**
      * Immutable name of the service emitting this event
      * (Required)
      */
     @JsonProperty("name")
-    @JsonPropertyDescription("Immutable name of the service emitting this event")
     private String name;
     /**
      * Environment name of the service, e.g. "production" or "staging"
      */
     @JsonProperty("environment")
-    @JsonPropertyDescription("Environment name of the service, e.g. \"production\" or \"staging\"")
     private String environment;
     /**
      * Name and version of the language runtime running this service
      */
     @JsonProperty("runtime")
-    @JsonPropertyDescription("Name and version of the language runtime running this service")
     private Runtime runtime;
     /**
      * Version of the service emitting this event
      */
     @JsonProperty("version")
-    @JsonPropertyDescription("Version of the service emitting this event")
     private String version;
 
     /**

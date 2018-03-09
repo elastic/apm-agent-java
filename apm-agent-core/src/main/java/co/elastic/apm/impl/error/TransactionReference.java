@@ -4,7 +4,6 @@ package co.elastic.apm.impl.error;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,7 +19,6 @@ public class TransactionReference implements Recyclable {
      * UUID for the transaction
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("UUID for the transaction")
     private String id;
 
     /**

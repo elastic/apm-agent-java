@@ -4,7 +4,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -16,7 +15,6 @@ public class Socket implements Recyclable {
      * Indicates whether request was sent as SSL/HTTPS request.
      */
     @JsonProperty("encrypted")
-    @JsonPropertyDescription("Indicates whether request was sent as SSL/HTTPS request.")
     private boolean encrypted;
     @JsonProperty("remote_address")
     private String remoteAddress;

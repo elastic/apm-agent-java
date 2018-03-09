@@ -4,7 +4,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -24,26 +23,22 @@ public class Log implements Recyclable {
      * The severity of the record.
      */
     @JsonProperty("level")
-    @JsonPropertyDescription("The severity of the record.")
     private String level;
     /**
      * The name of the logger instance used.
      */
     @JsonProperty("logger_name")
-    @JsonPropertyDescription("The name of the logger instance used.")
     private String loggerName;
     /**
      * The additionally logged error message.
      * (Required)
      */
     @JsonProperty("message")
-    @JsonPropertyDescription("The additionally logged error message.")
     private String message;
     /**
      * A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together. The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange.
      */
     @JsonProperty("param_message")
-    @JsonPropertyDescription("A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together. The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange.")
     private String paramMessage;
 
     public Log() {

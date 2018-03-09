@@ -4,8 +4,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -15,59 +13,42 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * A complete Url, with scheme, host and path.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "raw",
-    "protocol",
-    "full",
-    "hostname",
-    "port",
-    "pathname",
-    "search",
-    "hash"
-})
 public class Url implements Recyclable {
 
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
     @JsonProperty("raw")
-    @JsonPropertyDescription("The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.")
     private String raw;
     /**
      * The protocol of the request, e.g. 'https:'.
      */
     @JsonProperty("protocol")
-    @JsonPropertyDescription("The protocol of the request, e.g. 'https:'.")
     private String protocol;
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
     @JsonProperty("full")
-    @JsonPropertyDescription("The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.")
     private String full;
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
     @JsonProperty("hostname")
-    @JsonPropertyDescription("The hostname of the request, e.g. 'example.com'.")
     private String hostname;
     /**
      * The port of the request, e.g. '443'
      */
     @JsonProperty("port")
-    @JsonPropertyDescription("The port of the request, e.g. '443'")
     private String port;
     /**
      * The path of the request, e.g. '/search'
      */
     @JsonProperty("pathname")
-    @JsonPropertyDescription("The path of the request, e.g. '/search'")
     private String pathname;
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
     @JsonProperty("search")
-    @JsonPropertyDescription("The search describes the query string of the request. It is expected to have values delimited by ampersands.")
     private String search;
 
     /**

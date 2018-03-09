@@ -4,23 +4,17 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "total"
-})
 public class Dropped implements Recyclable {
 
     /**
      * Number of spans that have been dropped by the agent recording the transaction.
      */
     @JsonProperty("total")
-    @JsonPropertyDescription("Number of spans that have been dropped by the agent recording the transaction.")
     private long total;
 
     /**

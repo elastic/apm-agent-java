@@ -3,7 +3,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -24,7 +23,6 @@ public class Context implements Recyclable {
      * An arbitrary mapping of additional metadata to store with the event.
      */
     @JsonProperty("custom")
-    @JsonPropertyDescription("An arbitrary mapping of additional metadata to store with the event.")
     private final Map<String, Object> custom = new HashMap<>();
     @JsonProperty("response")
     private final Response response = new Response();
@@ -34,13 +32,11 @@ public class Context implements Recyclable {
      * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
      */
     @JsonProperty("request")
-    @JsonPropertyDescription("If a log record was generated as a result of a http request, the http interface can be used to collect this information.")
     private final Request request = new Request();
     /**
      * A flat mapping of user-defined tags with string values.
      */
     @JsonProperty("tags")
-    @JsonPropertyDescription("A flat mapping of user-defined tags with string values.")
     private final Map<String, String> tags = new HashMap<>();
     /**
      * User
@@ -48,7 +44,6 @@ public class Context implements Recyclable {
      * Describes the authenticated User for a request.
      */
     @JsonProperty("user")
-    @JsonPropertyDescription("Describes the authenticated User for a request.")
     private final User user = new User();
 
 

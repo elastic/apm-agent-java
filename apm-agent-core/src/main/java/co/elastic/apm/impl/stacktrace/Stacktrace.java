@@ -4,8 +4,6 @@ package co.elastic.apm.impl.stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -17,58 +15,39 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * A stacktrace frame, contains various bits (most optional) describing the context of the frame
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "abs_path",
-    "colno",
-    "context_line",
-    "filename",
-    "function",
-    "library_frame",
-    "lineno",
-    "module",
-    "post_context",
-    "pre_context",
-    "vars"
-})
 public class Stacktrace implements Recyclable {
 
     /**
      * The absolute path of the file involved in the stack frame
      */
     @JsonProperty("abs_path")
-    @JsonPropertyDescription("The absolute path of the file involved in the stack frame")
     private String absPath;
     /**
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
     @JsonProperty("filename")
-    @JsonPropertyDescription("The relative filename of the code involved in the stack frame, used e.g. to do error checksumming")
     private String filename;
     /**
      * The function involved in the stack frame
      */
     @JsonProperty("function")
-    @JsonPropertyDescription("The function involved in the stack frame")
     private String function;
     /**
      * A boolean, indicating if this frame is from a library or user code
      */
     @JsonProperty("library_frame")
-    @JsonPropertyDescription("A boolean, indicating if this frame is from a library or user code")
     private boolean libraryFrame;
     /**
      * The line number of code part of the stack frame, used e.g. to do error checksumming
      * (Required)
      */
     @JsonProperty("lineno")
-    @JsonPropertyDescription("The line number of code part of the stack frame, used e.g. to do error checksumming")
     private long lineno;
     /**
      * The module to which frame belongs to
      */
     @JsonProperty("module")
-    @JsonPropertyDescription("The module to which frame belongs to")
     private String module;
 
     /**

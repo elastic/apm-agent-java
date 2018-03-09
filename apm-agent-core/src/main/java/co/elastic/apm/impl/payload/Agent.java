@@ -3,7 +3,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -20,14 +19,12 @@ public class Agent {
      * (Required)
      */
     @JsonProperty("name")
-    @JsonPropertyDescription("Name of the Elastic APM agent, e.g. \"Python\"")
     private final String name;
     /**
      * Version of the Elastic APM agent, e.g."1.0.0"
      * (Required)
      */
     @JsonProperty("version")
-    @JsonPropertyDescription("Version of the Elastic APM agent, e.g.\"1.0.0\"")
     private final String version;
 
     public Agent(String name, String version) {

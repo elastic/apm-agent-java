@@ -4,8 +4,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -13,25 +11,17 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "finished",
-    "headers",
-    "headers_sent",
-    "status_code"
-})
 public class Response implements Recyclable {
 
     /**
      * A mapping of HTTP headers of the response object
      */
     @JsonProperty("headers")
-    @JsonPropertyDescription("A mapping of HTTP headers of the response object")
     private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
     /**
      * A boolean indicating whether the response was finished or not
      */
     @JsonProperty("finished")
-    @JsonPropertyDescription("A boolean indicating whether the response was finished or not")
     private boolean finished;
     @JsonProperty("headers_sent")
     private boolean headersSent;
@@ -39,7 +29,6 @@ public class Response implements Recyclable {
      * The HTTP status code of the response.
      */
     @JsonProperty("status_code")
-    @JsonPropertyDescription("The HTTP status code of the response.")
     private long statusCode;
 
     /**

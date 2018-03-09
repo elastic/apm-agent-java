@@ -3,8 +3,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -18,12 +16,6 @@ import java.util.List;
  * <p>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "pid",
-    "ppid",
-    "title",
-    "argv"
-})
 // TODO: make immutable
 public class Process {
 
@@ -32,13 +24,11 @@ public class Process {
      * (Required)
      */
     @JsonProperty("pid")
-    @JsonPropertyDescription("Process ID of the service")
     private long pid;
     /**
      * Parent process ID of the service
      */
     @JsonProperty("ppid")
-    @JsonPropertyDescription("Parent process ID of the service")
     private Long ppid;
     @JsonProperty("title")
     private String title;
@@ -46,7 +36,6 @@ public class Process {
      * Command line arguments used to start this process
      */
     @JsonProperty("argv")
-    @JsonPropertyDescription("Command line arguments used to start this process")
     private List<String> argv = new ArrayList<String>();
 
     /**

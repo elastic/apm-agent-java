@@ -6,7 +6,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -33,7 +32,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     @JsonProperty("context")
-    @JsonPropertyDescription("Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user")
     private final Context context = new Context();
     /**
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
@@ -41,7 +39,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
     @JsonProperty("timestamp")
-    @JsonPropertyDescription("Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ")
     private final Date timestamp = new Date(0);
     @JsonProperty("spans")
     private final List<Span> spans = new ArrayList<Span>();
@@ -49,7 +46,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
      */
     @JsonProperty("marks")
-    @JsonPropertyDescription("A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.")
     private final Map<String, Object> marks = new HashMap<>();
     @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
@@ -58,40 +54,34 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * (Required)
      */
     @JsonProperty("duration")
-    @JsonPropertyDescription("How long the transaction took to complete, in ms with 3 decimal points")
     private double duration;
     /**
      * UUID for the transaction, referred by its spans
      * (Required)
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("UUID for the transaction, referred by its spans")
     // TODO create value type for id
     private UUID id;
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     @JsonProperty("name")
-    @JsonPropertyDescription("Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')")
     private String name;
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @JsonProperty("result")
-    @JsonPropertyDescription("The result of the transaction. HTTP status code for HTTP-related transactions.")
     private String result;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
     @JsonProperty("type")
-    @JsonPropertyDescription("Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)")
     private String type;
     /**
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
     @JsonProperty("sampled")
-    @JsonPropertyDescription("Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.")
     private boolean sampled;
 
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos) {
