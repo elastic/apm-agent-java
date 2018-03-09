@@ -1,10 +1,11 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.payload.Process;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.ExecutorUtils;
 import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
@@ -54,10 +55,10 @@ public class ApmServerReporter implements Reporter {
     };
 
     private final Disruptor<ReportingEvent> disruptor;
-    private ScheduledThreadPoolExecutor flushScheduler;
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
+    private ScheduledThreadPoolExecutor flushScheduler;
 
     public ApmServerReporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender,
                              boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration) {
@@ -87,14 +88,8 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void report(Transaction transaction) {
-        if (dropTransactionIfQueueFull) {
-            boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(TRANSACTION_EVENT_TRANSLATOR, transaction);
-            if (queueFull) {
-                dropped.incrementAndGet();
-                transaction.recycle();
-            }
-        } else {
-            disruptor.getRingBuffer().publishEvent(TRANSACTION_EVENT_TRANSLATOR, transaction);
+        if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR)) {
+            transaction.recycle();
         }
     }
 
@@ -103,6 +98,14 @@ public class ApmServerReporter implements Reporter {
         return dropped.get();
     }
 
+    /**
+     * Flushes pending {@link ErrorCapture}s and {@link Transaction}s to the APM server.
+     * <p>
+     * This method may block for a while until a slot in the ring buffer becomes available.
+     * </p>
+     *
+     * @return A {@link Future} which resolves when the flush has been executed.
+     */
     @Override
     public Future<Void> flush() {
         disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
@@ -125,20 +128,30 @@ public class ApmServerReporter implements Reporter {
 
             @Override
             public Void get() throws InterruptedException, ExecutionException {
-                while (disruptor.getSequenceValueFor(reportingEventHandler) < cursor) {
+                while (!isEventProcessed(cursor)) {
                     Thread.sleep(1);
                 }
                 return null;
             }
 
+            /*
+             * This might not a very elegant or efficient implementation but it is only intended to be used in tests anyway
+             */
             @Override
             public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                for (; timeout > 0; timeout--) {
+                for (; timeout > 0 && !isEventProcessed(cursor); timeout--) {
                     Thread.sleep(1);
+                }
+                if (!isEventProcessed(cursor)) {
+                    throw new TimeoutException();
                 }
                 return null;
             }
         };
+    }
+
+    private boolean isEventProcessed(long sequence) {
+        return disruptor.getSequenceValueFor(reportingEventHandler) >= sequence;
     }
 
     @Override
@@ -149,10 +162,24 @@ public class ApmServerReporter implements Reporter {
         }
     }
 
-    // TODO drop errors when queue is full
     @Override
     public void report(ErrorCapture error) {
-        disruptor.publishEvent(ERROR_EVENT_TRANSLATOR, error);
+        if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR)) {
+            error.recycle();
+        }
+    }
+
+    private <E extends Recyclable> boolean tryAddEventToRingBuffer(E event, EventTranslatorOneArg<ReportingEvent, E> eventTranslator) {
+        if (dropTransactionIfQueueFull) {
+            boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
+            if (queueFull) {
+                dropped.incrementAndGet();
+                return false;
+            }
+        } else {
+            disruptor.getRingBuffer().publishEvent(eventTranslator, event);
+        }
+        return true;
     }
 
     static class ReportingEvent {
