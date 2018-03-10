@@ -21,9 +21,9 @@ public class ElasticApm implements Tracer {
     /**
      * The singleton instance of the Tracer.
      */
-    private static final ElasticApm INSTANCE = new ElasticApm();
+    static final ElasticApm INSTANCE = new ElasticApm();
 
-    private static Tracer tracer = NoopTracer.INSTANCE;
+    private Tracer tracer = NoopTracer.INSTANCE;
 
     /**
      * {@link ElasticApm} may only be accessed via {@link #get()}
@@ -57,23 +57,26 @@ public class ElasticApm implements Tracer {
      * <p>
      * So the solution is to provide a package-private method which the implementation can call.
      * What's not so nice about this solution is that the implementation has to have a class in
-     * the same package as the api in order to be able to call this package private method.
+     * the same package as the API in order to be able to call this package private method.
      * But as this is not a public method,
      * the concrete registration mechanism can always be changed later without breaking compatibility.
      * </p>
      *
      * @param tracer The tracer implementation to register.
      */
-    static void register(Tracer tracer) {
+    void register(Tracer tracer) {
         synchronized (ElasticApm.class) {
-            ElasticApm.tracer = tracer;
+            if (tracer == null) {
+                INSTANCE.tracer = NoopTracer.INSTANCE;
+            }
+            INSTANCE.tracer = tracer;
         }
     }
 
     // @VisibleForTesting
-    static void unregister() {
+    void unregister() {
         synchronized (ElasticApm.class) {
-            ElasticApm.tracer = NoopTracer.INSTANCE;
+            INSTANCE.tracer = NoopTracer.INSTANCE;
         }
     }
 
