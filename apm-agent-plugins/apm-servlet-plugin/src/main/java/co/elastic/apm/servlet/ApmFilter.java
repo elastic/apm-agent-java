@@ -64,8 +64,6 @@ public class ApmFilter implements Filter {
         // TODO can this be set by apm-server when there is no explicit name set?
         transaction.withName(httpServletRequest.getRequestURI());
         transaction.withResult(getResult(httpServletResponse.getStatus()));
-        transaction.withSampled(true);
-        transaction.withTimestamp(System.currentTimeMillis());
         transaction.withType("request");
     }
 

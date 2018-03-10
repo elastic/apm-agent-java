@@ -25,7 +25,6 @@ import java.util.concurrent.ThreadLocalRandom;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
-    private transient ElasticApmTracer tracer;
     /**
      * Context
      * <p>
@@ -49,6 +48,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     private final Map<String, Object> marks = new HashMap<>();
     @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
+    private transient ElasticApmTracer tracer;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
@@ -84,9 +84,11 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @JsonProperty("sampled")
     private boolean sampled;
 
-    public Transaction start(ElasticApmTracer tracer, long startTimestampNanos) {
+    public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, boolean sampled) {
         this.tracer = tracer;
         this.duration = startTimestampNanos;
+        this.sampled = sampled;
+        this.timestamp.setTime(System.currentTimeMillis());
         ThreadLocalRandom random = ThreadLocalRandom.current();
         id = new UUID(random.nextLong(), random.nextLong());
         return this;
@@ -138,6 +140,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     public Transaction withName(String name) {
+        if (!sampled) {
+            return this;
+        }
         this.name = name;
         return this;
     }
@@ -154,6 +159,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     public Transaction withResult(String result) {
+        if (!sampled) {
+            return this;
+        }
         this.result = result;
         return this;
     }
@@ -168,6 +176,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     public Transaction withTimestamp(long timestampEpoch) {
+        if (!sampled) {
+            return this;
+        }
         this.timestamp.setTime(timestampEpoch);
         return this;
     }
@@ -175,6 +186,15 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @JsonProperty("spans")
     public List<Span> getSpans() {
         return spans;
+    }
+
+    public Transaction addSpan(Span span) {
+        if (!sampled) {
+            spanCount.getDropped().increment();
+        } else {
+            spans.add(span);
+        }
+        return this;
     }
 
     /**
@@ -198,17 +218,26 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
     @Override
     public void addTag(String key, String value) {
+        if (!sampled) {
+            return;
+        }
         getContext().getTags().put(key, value);
     }
 
     @Override
     public void setUser(String id, String email, String username) {
+        if (!sampled) {
+            return;
+        }
         getContext().getUser().withId(id).withEmail(email).withUsername(username);
     }
 
     @Override
     public void end() {
         this.duration = (System.nanoTime() - duration) / ElasticApmTracer.MS_IN_NANOS;
+        if (!sampled) {
+            context.resetState();
+        }
         this.tracer.endTransaction(this);
     }
 
@@ -231,19 +260,13 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     /**
-     * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
+     * Transactions that are 'sampled' will include all available information.
+     * Transactions that are not sampled will not have 'spans' or 'context'.
+     * Defaults to true.
      */
     @JsonProperty("sampled")
     public boolean isSampled() {
         return sampled;
-    }
-
-    /**
-     * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
-     */
-    public Transaction withSampled(boolean sampled) {
-        this.sampled = sampled;
-        return this;
     }
 
     @JsonProperty("span_count")

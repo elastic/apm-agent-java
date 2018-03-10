@@ -8,10 +8,10 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
@@ -126,7 +126,7 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Transaction startTransaction() {
-        Transaction transaction = transactionPool.createInstance().start(this, System.nanoTime());
+        Transaction transaction = transactionPool.createInstance().start(this, System.nanoTime(), true);
         currentTransaction.set(transaction);
         return transaction;
     }
@@ -145,7 +145,7 @@ public class ElasticApmTracer implements Tracer {
     public Span startSpan() {
         Transaction transaction = currentTransaction();
         Span span = spanPool.createInstance().start(this, transaction, currentSpan(), System.nanoTime());
-        transaction.getSpans().add(span);
+        transaction.addSpan(span);
         currentSpan.set(span);
         return span;
     }

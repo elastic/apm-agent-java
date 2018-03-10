@@ -10,8 +10,8 @@ import co.elastic.apm.impl.payload.Runtime;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
@@ -70,7 +70,7 @@ public abstract class AbstractReporterBenchmark {
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
-            t.start(tracer, 0);
+            t.start(tracer, 0, true);
             fillTransaction(t);
             payload.getTransactions().add(t);
         }
@@ -80,8 +80,6 @@ public abstract class AbstractReporterBenchmark {
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
-        t.withSampled(true);
-        t.getSpanCount().getDropped().withTotal(2);
 
         Context context = t.getContext();
         Request request = context.getRequest();
