@@ -123,9 +123,7 @@ public abstract class AbstractReporterBenchmark {
 
         Span span = new Span()
             .withName("SELECT FROM product_types")
-            .withType("db.postgresql.query")
-            .withStart(2.83092)
-            .withDuration(3.781912);
+            .withType("db.postgresql.query");
         span.getContext().getDb()
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
@@ -133,23 +131,14 @@ public abstract class AbstractReporterBenchmark {
             .withUser("readonly_user");
         t.getSpans().add(span);
         t.getSpans().add(new Span()
-            .withParent(0)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(0)
-            .withDuration(32.592981));
+            .withType("request"));
         t.getSpans().add(new Span()
-            .withParent(1)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(1.845)
-            .withDuration(3.5642981));
+            .withType("request"));
         t.getSpans().add(new Span()
-            .withParent(2)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(0)
-            .withDuration(13.9802981));
+            .withType("request"));
     }
 
     protected abstract PayloadSender getPayloadSender();

@@ -178,7 +178,9 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     public void end(long nanoTime) {
-        this.duration = (nanoTime - duration) / MS_IN_NANOS;
+        if (isSampled()) {
+            this.duration = (nanoTime - duration) / MS_IN_NANOS;
+        }
         this.tracer.endSpan(this);
     }
 
