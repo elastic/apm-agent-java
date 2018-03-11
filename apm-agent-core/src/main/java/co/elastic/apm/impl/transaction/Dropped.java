@@ -7,6 +7,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Dropped implements Recyclable {
 
@@ -14,29 +16,21 @@ public class Dropped implements Recyclable {
      * Number of spans that have been dropped by the agent recording the transaction.
      */
     @JsonProperty("total")
-    private long total;
+    private final AtomicInteger total = new AtomicInteger();
 
     /**
      * Number of spans that have been dropped by the agent recording the transaction.
      */
     @JsonProperty("total")
-    public long getTotal() {
-        return total;
-    }
-
-    /**
-     * Number of spans that have been dropped by the agent recording the transaction.
-     */
-    public Dropped withTotal(long total) {
-        this.total = total;
-        return this;
+    public int getTotal() {
+        return total.get();
     }
 
     /**
      * Increments the number of spans that have been dropped by the agent recording the transaction.
      */
-    public Dropped increment() {
-        this.total++;
+    Dropped increment() {
+        this.total.incrementAndGet();
         return this;
     }
 
@@ -64,6 +58,6 @@ public class Dropped implements Recyclable {
 
     @Override
     public void resetState() {
-        total = 0;
+        total.set(0);
     }
 }

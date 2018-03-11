@@ -190,8 +190,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
     public Transaction addSpan(Span span) {
         if (!sampled) {
-            spanCount.getDropped().increment();
-        } else {
+            return this;
+        }
+        synchronized (this) {
             spans.add(span);
         }
         return this;
