@@ -44,14 +44,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
         .buildWithDefault(10);
 
-    private final ConfigurationOption<Integer> transactionMaxSpans = ConfigurationOption.integerOption()
-        .key("transaction_max_spans")
-        .description("Limits the amount of spans that are recorded per transaction.\n\n" +
-            "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
-            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
-        .dynamic(true)
-        .buildWithDefault(500);
-
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
         .description("Maximum queue length of transactions before sending transactions to the APM server.\n\n" +
@@ -80,10 +72,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public int getFlushInterval() {
         return flushInterval.get();
-    }
-
-    public int getTransactionMaxSpans() {
-        return transactionMaxSpans.get();
     }
 
     public int getMaxQueueSize() {

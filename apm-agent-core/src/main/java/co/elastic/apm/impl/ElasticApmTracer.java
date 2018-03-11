@@ -58,6 +58,7 @@ public class ElasticApmTracer implements Tracer {
     private final StacktraceFactory stacktraceFactory;
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final CoreConfiguration coreConfiguration;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
@@ -92,6 +93,7 @@ public class ElasticApmTracer implements Tracer {
                 return new Stacktrace();
             }
         });
+        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
     }
 
     public static Builder builder() {
@@ -144,8 +146,16 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
-        Span span = spanPool.createInstance().start(this, transaction, currentSpan(), System.nanoTime());
-        transaction.addSpan(span);
+        Span span = spanPool.createInstance();
+        final boolean dropped;
+        if (coreConfiguration.getTransactionMaxSpans() > transaction.getSpans().size()) {
+            dropped = false;
+            transaction.addSpan(span);
+        } else {
+            dropped = true;
+            transaction.getSpanCount().getDropped().increment();
+        }
+        span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
         currentSpan.set(span);
         return span;
     }

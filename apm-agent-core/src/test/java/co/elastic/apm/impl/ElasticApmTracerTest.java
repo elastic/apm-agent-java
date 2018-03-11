@@ -1,10 +1,11 @@
 package co.elastic.apm.impl;
 
 import co.elastic.apm.MockReporter;
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,6 +102,22 @@ class ElasticApmTracerTest {
             ErrorCapture error = reporter.getFirstError();
             assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId().toString());
             assertThat(error.getContext().getRequest().getHeaders()).containsEntry("foo", "bar");
+        }
+    }
+
+    @Test
+    void testEnableDropSpans() {
+        when(tracer.getPlugin(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
+        try (Transaction transaction = tracer.startTransaction()) {
+            try (Span span = tracer.startSpan()) {
+                assertThat(span.isSampled()).isTrue();
+            }
+            try (Span span = tracer.startSpan()) {
+                assertThat(span.isSampled()).isFalse();
+            }
+            assertThat(transaction.isSampled()).isTrue();
+            assertThat(transaction.getSpans()).hasSize(1);
+            assertThat(transaction.getSpanCount().getDropped().getTotal()).isEqualTo(1);
         }
     }
 }

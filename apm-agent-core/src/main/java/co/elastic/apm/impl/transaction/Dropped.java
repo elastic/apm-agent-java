@@ -29,7 +29,7 @@ public class Dropped implements Recyclable {
     /**
      * Increments the number of spans that have been dropped by the agent recording the transaction.
      */
-    Dropped increment() {
+    public Dropped increment() {
         this.total.incrementAndGet();
         return this;
     }
