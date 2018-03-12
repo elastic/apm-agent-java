@@ -1,17 +1,83 @@
 package co.elastic.apm.api;
 
+/**
+ * This class can be used to statically access the {@link Tracer}.
+ * <p>
+ * You can store the Tracer as an instance like so:
+ * </p>
+ * <pre>{@code
+ * private static final Tracer tracer = ElasticApm.get();
+ * }</pre>
+ * <p>
+ * Then you access the tracer to set a custom transaction name,
+ * for example:
+ * <pre>{@code
+ * tracer.currentTransaction().setName("SuchController#muchMethod");
+ * }</pre>
+ * <p/>
+ */
 public class ElasticApm implements Tracer {
 
-    private static final ElasticApm INSTANCE = new ElasticApm();
+    /**
+     * The singleton instance of the Tracer.
+     */
+    static final ElasticApm INSTANCE = new ElasticApm();
 
-    private static Tracer tracer = NoopTracer.INSTANCE;
+    private Tracer tracer = NoopTracer.INSTANCE;
 
+    /**
+     * {@link ElasticApm} may only be accessed via {@link #get()}
+     */
+    private ElasticApm() {
+    }
+
+    /**
+     * Returns the tracer implementation.
+     *
+     * @return the tracer implementation (never <code>null</code>)
+     */
     public static Tracer get() {
         return INSTANCE;
     }
 
-    public static void register(Tracer tracer) {
-        ElasticApm.tracer = tracer;
+    /**
+     * Statically registers the tracer implementation,
+     * so that it can be accessed via {@link ElasticApm#get()}
+     * <p>
+     * This method is called by the actual {@link Tracer} implementation.
+     * </p>
+     * <p>
+     * Users are not supposed to set a custom instrumentation so this method must not be <code>public</code>.
+     * Otherwise it would be part of the public API.
+     * </p>
+     * <p>
+     * Loading the concrete implementation from here is also not a good option,
+     * as it could not be easily set to a different (possibly mocked) implementation in tests.
+     * </p>
+     * <p>
+     * So the solution is to provide a package-private method which the implementation can call.
+     * What's not so nice about this solution is that the implementation has to have a class in
+     * the same package as the API in order to be able to call this package private method.
+     * But as this is not a public method,
+     * the concrete registration mechanism can always be changed later without breaking compatibility.
+     * </p>
+     *
+     * @param tracer The tracer implementation to register.
+     */
+    void register(Tracer tracer) {
+        synchronized (ElasticApm.class) {
+            if (tracer == null) {
+                INSTANCE.tracer = NoopTracer.INSTANCE;
+            }
+            INSTANCE.tracer = tracer;
+        }
+    }
+
+    // @VisibleForTesting
+    void unregister() {
+        synchronized (ElasticApm.class) {
+            INSTANCE.tracer = NoopTracer.INSTANCE;
+        }
     }
 
     @Override
@@ -19,14 +85,32 @@ public class ElasticApm implements Tracer {
         return tracer.startTransaction();
     }
 
+    /**
+     * Returns the currently running transaction.
+     * <p>
+     * If there is no current transaction, this method will return a noop transaction.
+     * </p>
+     *
+     * @return The currently running transaction, or a noop transaction (never <code>null</code>).
+     */
     @Override
     public Transaction currentTransaction() {
-        return tracer.currentTransaction();
+        Transaction transaction = tracer.currentTransaction();
+        return transaction != null ? transaction : NoopTracer.NoopTransaction.INSTANCE;
     }
 
+    /**
+     * Returns the currently running span.
+     * <p>
+     * If there is no current span, this method will return a noop span.
+     * </p>
+     *
+     * @return The currently running span, or a noop span (never <code>null</code>).
+     */
     @Override
     public Span currentSpan() {
-        return tracer.currentSpan();
+        Span span = tracer.currentSpan();
+        return span != null ? span : NoopTracer.NoopSpan.INSTANCE;
     }
 
     @Override
@@ -34,7 +118,7 @@ public class ElasticApm implements Tracer {
         return tracer.startSpan();
     }
 
-    private enum NoopTracer implements Tracer {
+    enum NoopTracer implements Tracer {
 
         INSTANCE;
 
@@ -58,7 +142,7 @@ public class ElasticApm implements Tracer {
             return NoopSpan.INSTANCE;
         }
 
-        private enum NoopTransaction implements Transaction {
+        enum NoopTransaction implements Transaction {
 
             INSTANCE;
 
@@ -93,7 +177,7 @@ public class ElasticApm implements Tracer {
             }
         }
 
-        private enum NoopSpan implements co.elastic.apm.api.Span {
+        enum NoopSpan implements co.elastic.apm.api.Span {
             INSTANCE;
 
             @Override
