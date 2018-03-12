@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$id": "docs/spec/transactions/span.json",
+    "id": "resource:/schema/transactions/span.json",
     "type": "object",
     "properties": {
         "id": {

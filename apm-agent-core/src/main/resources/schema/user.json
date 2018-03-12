@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$id": "docs/spec/user.json",
+    "id": "resource:/schema/user.json",
     "title": "User",
     "description": "Describes the authenticated User for a request.",
     "type": ["object", "null"],
