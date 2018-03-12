@@ -2,7 +2,6 @@ package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -46,7 +45,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     @Test
-    void testJsonSchema() throws JsonProcessingException {
+    void testJsonSchema() {
         Set<ValidationMessage> errors = schema.validate(new ObjectMapper().valueToTree(payload));
         assertThat(errors).isEmpty();
     }

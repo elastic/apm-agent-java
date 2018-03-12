@@ -12,7 +12,6 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
@@ -37,7 +36,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the span.
      */
     @JsonProperty("id")
-    private long id;
+    private final SpanId id = new SpanId();
     /**
      * Duration of the span in milliseconds
      * (Required)
@@ -54,7 +53,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the parent of the span.
      */
     @JsonProperty("parent")
-    private long parent;
+    private final SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
@@ -70,8 +69,10 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime, boolean dropped) {
         this.tracer = tracer;
-        this.id = ThreadLocalRandom.current().nextLong();
-        this.parent = span != null ? span.getId() : 0;
+        this.id.setToRandomValue();
+        if (span != null) {
+            this.parent.copyFrom(span.getId());
+        }
         this.sampled = transaction.isSampled() && !dropped;
         start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
         duration = nanoTime;
@@ -82,7 +83,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the span.
      */
     @JsonProperty("id")
-    public long getId() {
+    public SpanId getId() {
         return id;
     }
 
@@ -133,7 +134,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the parent of the span.
      */
     @JsonProperty("parent")
-    public long getParent() {
+    public SpanId getParent() {
         return parent;
     }
 
@@ -250,11 +251,11 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     @Override
     public void resetState() {
-        id = 0;
+        id.resetState();
         context.resetState();
         duration = 0;
         name = null;
-        parent = 0;
+        parent.resetState();
         stacktrace.clear();
         start = 0;
         type = null;
