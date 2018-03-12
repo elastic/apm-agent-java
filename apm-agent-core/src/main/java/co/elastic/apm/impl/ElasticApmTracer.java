@@ -187,6 +187,7 @@ public class ElasticApmTracer implements Tracer {
         return configurationRegistry.getConfig(pluginClass);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction) {
         if (currentTransaction.get() != transaction) {
             logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
@@ -197,6 +198,7 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(transaction);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
         if (currentSpan.get() != span) {
             logger.warn("Trying to end a span which is not the current (thread local) span!");

@@ -5,8 +5,8 @@ import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Framework;
 import co.elastic.apm.impl.payload.Language;
-import co.elastic.apm.impl.payload.Process;
-import co.elastic.apm.impl.payload.Runtime;
+import co.elastic.apm.impl.payload.ProcessInfo;
+import co.elastic.apm.impl.payload.RuntimeInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
@@ -56,10 +56,10 @@ public abstract class AbstractReporterBenchmark {
             .withVersion("1.0")
             .withEnvironment("test")
             .withAgent(new Agent("elastic-apm-java", "1.0.0"))
-            .withRuntime(new Runtime("Java", "9.0.4"))
+            .withRuntime(new RuntimeInfo("Java", "9.0.4"))
             .withFramework(new Framework("Servlet API", "3.1"))
             .withLanguage(new Language("Java", "9.0.4"));
-        Process process = new Process()
+        ProcessInfo process = new ProcessInfo()
             .withPid(2103)
             .withPpid(403L)
             .withTitle("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")

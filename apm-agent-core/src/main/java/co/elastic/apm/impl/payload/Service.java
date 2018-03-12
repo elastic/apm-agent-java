@@ -46,7 +46,7 @@ public class Service {
      * Name and version of the language runtime running this service
      */
     @JsonProperty("runtime")
-    private Runtime runtime;
+    private RuntimeInfo runtime;
     /**
      * Version of the service emitting this event
      */
@@ -141,14 +141,14 @@ public class Service {
      * Name and version of the language runtime running this service
      */
     @JsonProperty("runtime")
-    public Runtime getRuntime() {
+    public RuntimeInfo getRuntime() {
         return runtime;
     }
 
     /**
      * Name and version of the language runtime running this service
      */
-    public Service withRuntime(Runtime runtime) {
+    public Service withRuntime(RuntimeInfo runtime) {
         this.runtime = runtime;
         return this;
     }

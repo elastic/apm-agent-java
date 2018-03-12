@@ -25,7 +25,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Collection<String>> ignoreUrlsStartingWith = ConfigurationOption.<Collection<String>>stringsOption()
+    private final ConfigurationOption<Collection<String>> ignoreUrlsStartingWith = ConfigurationOption.stringsOption()
         .key("ignore_urls_starting_with")
         .description("Used to restrict requests to certain URL’s from being instrumented.\n" +
             "\n" +

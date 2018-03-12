@@ -13,6 +13,7 @@ public interface Reporter extends Closeable {
 
     Future<Void> flush();
 
+    @Override
     void close();
 
     void report(ErrorCapture error);

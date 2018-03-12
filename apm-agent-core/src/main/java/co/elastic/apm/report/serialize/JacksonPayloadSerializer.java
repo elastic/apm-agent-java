@@ -13,6 +13,7 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public void serializePayload(BufferedSink sink, Payload payload) throws IOException {
         objectMapper.writeValue(sink.outputStream(), payload);
     }

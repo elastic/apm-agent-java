@@ -10,6 +10,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +54,8 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * The locally unique ID of the parent of the span.
      */
     @JsonProperty("parent")
-    private final SpanId parent = new SpanId();
+    @Nonnull
+    private SpanId parent;
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)

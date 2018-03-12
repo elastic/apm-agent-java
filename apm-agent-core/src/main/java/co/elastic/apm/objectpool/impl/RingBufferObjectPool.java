@@ -16,6 +16,7 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
     private final Sequence sequence;
     private final EventTranslatorOneArg<PooledObjectHolder<T>, T> translator =
         new EventTranslatorOneArg<PooledObjectHolder<T>, T>() {
+            @Override
             public void translateTo(PooledObjectHolder<T> event, long sequence, T recyclable) {
                 event.set(recyclable);
             }
@@ -114,6 +115,7 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
     }
 
     private static class PooledObjectEventFactory<T> implements EventFactory<PooledObjectHolder<T>> {
+        @Override
         public PooledObjectHolder<T> newInstance() {
             return new PooledObjectHolder<>();
         }

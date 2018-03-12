@@ -1,5 +1,6 @@
 package co.elastic.apm.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,9 +86,7 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
     }
 
     private void convertValueToMultiValue(K key, V previousValue, V value) {
-        // using linked list as most of the time there will only be a very small amount of values
-        // use cases are HTTP headers and URL parameters
-        Collection<V> valueList = new LinkedList<>();
+        Collection<V> valueList = new ArrayList<>(4);
         valueList.add(previousValue);
         valueList.add(value);
         put(key, valueList);

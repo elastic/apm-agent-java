@@ -1,7 +1,7 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -60,7 +60,7 @@ public class ApmServerReporter implements Reporter {
     private final ReportingEventHandler reportingEventHandler;
     private ScheduledThreadPoolExecutor flushScheduler;
 
-    public ApmServerReporter(Service service, Process process, SystemInfo system, PayloadSender payloadSender,
+    public ApmServerReporter(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
                              boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -77,7 +77,7 @@ public class ApmServerReporter implements Reporter {
         disruptor.start();
         if (reporterConfiguration.getFlushInterval() > 0) {
             flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
-            flushScheduler.scheduleAtFixedRate(new Runnable() {
+                flushScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);

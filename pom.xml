@@ -16,6 +16,8 @@
         <jackson.version>2.9.4</jackson.version>
         <junit.version>5.0.3</junit.version>
         <slf4j.version>1.7.25</slf4j.version>
+        <error_prone.version>2.2.0</error_prone.version>
+        <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
     </properties>
 
     <modules>
@@ -45,12 +47,29 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.7.0</version>
                 <configuration>
+                    <compilerId>javac-with-errorprone</compilerId>
+                    <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                    <showWarnings>${maven.compiler.showWarnings}</showWarnings>
                     <source>${maven.compiler.target}</source>
                     <target>${maven.compiler.target}</target>
                     <testSource>${maven.compiler.testTarget}</testSource>
                     <testTarget>${maven.compiler.testTarget}</testTarget>
                     <encoding>UTF-8</encoding>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.plexus</groupId>
+                        <artifactId>plexus-compiler-javac-errorprone</artifactId>
+                        <version>2.8</version>
+                    </dependency>
+                    <!-- override plexus-compiler-javac-errorprone's dependency on
+                         Error Prone with the latest version -->
+                    <dependency>
+                        <groupId>com.google.errorprone</groupId>
+                        <artifactId>error_prone_core</artifactId>
+                        <version>${error_prone.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <!-- The shadowed source files of this module need to be included explicitly to create a javadoc artifact.-->
             <plugin>
@@ -136,6 +155,12 @@
             <version>1.16</version>
             <optional>true</optional>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
+            <version>3.0.1</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

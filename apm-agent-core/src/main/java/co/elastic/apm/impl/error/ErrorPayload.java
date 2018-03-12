@@ -2,7 +2,7 @@
 package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.payload.Payload;
-import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.objectpool.Recyclable;
@@ -30,7 +30,7 @@ public class ErrorPayload extends Payload {
     @JsonProperty("errors")
     private final List<ErrorCapture> errors = new ArrayList<ErrorCapture>();
 
-    public ErrorPayload(Process process, Service service, SystemInfo system) {
+    public ErrorPayload(ProcessInfo process, Service service, SystemInfo system) {
         super(process, service, system);
     }
 
