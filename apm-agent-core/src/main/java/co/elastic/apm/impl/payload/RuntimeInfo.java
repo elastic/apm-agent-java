@@ -12,7 +12,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * Name and version of the language runtime running this service
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Runtime {
+public class RuntimeInfo {
 
     /**
      * (Required)
@@ -25,7 +25,7 @@ public class Runtime {
     @JsonProperty("version")
     private final String version;
 
-    public Runtime(String name, String version) {
+    public RuntimeInfo(String name, String version) {
         this.name = name;
         this.version = version;
     }
@@ -62,10 +62,10 @@ public class Runtime {
         if (other == this) {
             return true;
         }
-        if ((other instanceof Runtime) == false) {
+        if ((other instanceof RuntimeInfo) == false) {
             return false;
         }
-        Runtime rhs = ((Runtime) other);
+        RuntimeInfo rhs = ((RuntimeInfo) other);
         return new EqualsBuilder().append(name, rhs.name).append(version, rhs.version).isEquals();
     }
 

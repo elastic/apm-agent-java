@@ -1,7 +1,7 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -28,7 +28,7 @@ class ApmServerReporterTest {
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(2);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         payloadSender = mock(PayloadSender.class);
-        reporter = new ApmServerReporter(new Service(), new Process(), system, payloadSender, true, reporterConfiguration);
+        reporter = new ApmServerReporter(new Service(), new ProcessInfo(), system, payloadSender, true, reporterConfiguration);
     }
 
     @Test

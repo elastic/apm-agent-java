@@ -11,7 +11,7 @@ public class ServiceFactory {
             .withVersion(coreConfiguration.getServiceVersion())
             .withEnvironment(coreConfiguration.getEnvironment())
             .withAgent(new Agent("elastic-apm-java", getAgentVersion()))
-            .withRuntime(new Runtime("Java", System.getProperty("java.version")))
+            .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
             .withLanguage(new Language("Java", System.getProperty("java.version")));
         if (frameworkName != null && frameworkVersion != null) {
             service.withFramework(new Framework(frameworkName, frameworkVersion));

@@ -27,7 +27,7 @@ public class TransactionPayload extends Payload {
     @JsonProperty("transactions")
     private final List<Transaction> transactions = new ArrayList<Transaction>();
 
-    public TransactionPayload(Process process, Service service, SystemInfo system) {
+    public TransactionPayload(ProcessInfo process, Service service, SystemInfo system) {
         super(process, service, system);
     }
 

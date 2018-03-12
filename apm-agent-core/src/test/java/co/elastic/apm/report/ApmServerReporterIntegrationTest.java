@@ -2,7 +2,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
@@ -59,7 +59,7 @@ class ApmServerReporterIntegrationTest {
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(new Service(), new Process(), system, payloadSender, false, reporterConfiguration);
+        reporter = new ApmServerReporter(new Service(), new ProcessInfo(), system, payloadSender, false, reporterConfiguration);
     }
 
     @Test

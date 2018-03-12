@@ -7,14 +7,14 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 import java.net.URL;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
-    private final ConfigurationOption<String> secretToken = ConfigurationOption.<String>stringOption()
+    private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")
         .description("This string is used to ensure that only your agents can send data to your APM server.\n\n" +
             "Both the agents and the APM server have to be configured with the same secret token.")
         .sensitive()
         .build();
 
-    private final ConfigurationOption<URL> serverUrl = ConfigurationOption.<URL>urlOption()
+    private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
         .key("server_url")
         .label("The URL for your APM Server")
         .description("The URL must be fully qualified, including protocol (http or https) and port.")
@@ -30,7 +30,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "out.")
         .buildWithDefault(5);
 
-    private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.<Boolean>booleanOption()
+    private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
         .key("verify_server_cert")
         .description("By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.\n\n" +
             "Verification can be disabled by changing this setting to false.")

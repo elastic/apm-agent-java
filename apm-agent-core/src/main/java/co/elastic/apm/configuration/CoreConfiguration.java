@@ -23,7 +23,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Note that both active and instrument needs to be true for instrumentation to be running.")
         .buildWithDefault(true);
 
-    private final ConfigurationOption<String> serviceName = ConfigurationOption.<String>stringOption()
+    private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
         .key("service_name")
         .label("The name of your service")
         .description("This is used to keep all the errors and transactions of your service together and is the primary filter in the" +
@@ -35,19 +35,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildRequired();
 
-    private final ConfigurationOption<String> serviceVersion = ConfigurationOption.<String>stringOption()
+    private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
         .description("A version string for the currently deployed version of the service. If you don’t version your deployments, " +
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
 
-    private final ConfigurationOption<String> environment = ConfigurationOption.<String>stringOption()
+    private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
         .key("environment")
         .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".")
         .build();
 
-    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.<Double>doubleOption()
+    private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
         .key("sample_rate")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +

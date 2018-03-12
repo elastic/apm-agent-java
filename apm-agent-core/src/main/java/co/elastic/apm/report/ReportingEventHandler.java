@@ -2,7 +2,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorPayload;
 import co.elastic.apm.impl.payload.Payload;
-import co.elastic.apm.impl.payload.Process;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
@@ -18,7 +18,7 @@ class ReportingEventHandler implements EventHandler<ApmServerReporter.ReportingE
     private final PayloadSender payloadSender;
     private final ReporterConfiguration reporterConfiguration;
 
-    public ReportingEventHandler(Service service, Process process, SystemInfo system, PayloadSender payloadSender, ReporterConfiguration reporterConfiguration) {
+    public ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender, ReporterConfiguration reporterConfiguration) {
         this.payloadSender = payloadSender;
         this.reporterConfiguration = reporterConfiguration;
         transactionPayload = new TransactionPayload(process, service, system);

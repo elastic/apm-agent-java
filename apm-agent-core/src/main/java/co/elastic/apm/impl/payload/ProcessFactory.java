@@ -14,14 +14,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A {@link ProcessFactory} is responsible for creating the {@link Process} object, containing information about the current process.
+ * A {@link ProcessFactory} is responsible for creating the {@link ProcessInfo} object, containing information about the current process.
  */
 public interface ProcessFactory {
 
     /**
-     * @return the {@link Process} information about the current process
+     * @return the {@link ProcessInfo} information about the current process
      */
-    Process getProcessInformation();
+    ProcessInfo getProcessInformation();
 
     /**
      * Redirects to the the best {@link ProcessFactory} strategy for the current VM
@@ -43,7 +43,7 @@ public interface ProcessFactory {
         }
 
         @Override
-        public Process getProcessInformation() {
+        public ProcessInfo getProcessInformation() {
             return dispatcher.getProcessInformation();
         }
     }
@@ -60,8 +60,9 @@ public interface ProcessFactory {
 
         private final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
 
-        public Process getProcessInformation() {
-            Process process = new Process();
+        @Override
+        public ProcessInfo getProcessInformation() {
+            ProcessInfo process = new ProcessInfo();
             process.withPid(getPid());
             process.withArgv(runtimeMXBean.getInputArguments());
             process.withTitle(getTitle());
@@ -140,8 +141,9 @@ public interface ProcessFactory {
          * As we are directly referring to APIs introduced in Java 9,
          * this project can only be compiled with a JDK 9+.
          */
-        public Process getProcessInformation() {
-            final Process process = new Process();
+        @Override
+        public ProcessInfo getProcessInformation() {
+            final ProcessInfo process = new ProcessInfo();
             ProcessHandle processHandle = (ProcessHandle) this.processHandle;
             process.withPid(processHandle.pid());
             process.withPpid(processHandle.parent()

@@ -130,6 +130,7 @@ public class BlockingQueueObjectPool<T extends Recyclable> extends AbstractObjec
     }
 
     private static class PooledObjectEventFactory<T> implements EventFactory<PooledObjectHolder<T>> {
+        @Override
         public PooledObjectHolder<T> newInstance() {
             return new PooledObjectHolder<>();
         }

@@ -17,7 +17,7 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 // TODO: make immutable
-public class Process {
+public class ProcessInfo {
 
     /**
      * Process ID of the service
@@ -50,7 +50,7 @@ public class Process {
     /**
      * Process ID of the service
      */
-    public Process withPid(long pid) {
+    public ProcessInfo withPid(long pid) {
         this.pid = pid;
         return this;
     }
@@ -66,7 +66,7 @@ public class Process {
     /**
      * Parent process ID of the service
      */
-    public Process withPpid(Long ppid) {
+    public ProcessInfo withPpid(Long ppid) {
         this.ppid = ppid;
         return this;
     }
@@ -80,7 +80,7 @@ public class Process {
         this.title = title;
     }
 
-    public Process withTitle(String title) {
+    public ProcessInfo withTitle(String title) {
         this.title = title;
         return this;
     }
@@ -96,7 +96,7 @@ public class Process {
     /**
      * Command line arguments used to start this process
      */
-    public Process withArgv(List<String> argv) {
+    public ProcessInfo withArgv(List<String> argv) {
         this.argv = argv;
         return this;
     }
@@ -116,10 +116,10 @@ public class Process {
         if (other == this) {
             return true;
         }
-        if ((other instanceof Process) == false) {
+        if ((other instanceof ProcessInfo) == false) {
             return false;
         }
-        Process rhs = ((Process) other);
+        ProcessInfo rhs = ((ProcessInfo) other);
         return new EqualsBuilder().append(pid, rhs.pid).append(title, rhs.title).append(argv, rhs.argv).append(ppid, rhs.ppid).isEquals();
     }
 

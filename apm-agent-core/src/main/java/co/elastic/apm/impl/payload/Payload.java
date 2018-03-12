@@ -19,7 +19,7 @@ public abstract class Payload implements Recyclable {
      * <p>
      */
     @JsonProperty("process")
-    protected final Process process;
+    protected final ProcessInfo process;
     /**
      * System
      * <p>
@@ -27,7 +27,7 @@ public abstract class Payload implements Recyclable {
     @JsonProperty("system")
     protected final SystemInfo system;
 
-    public Payload(Process process, Service service, SystemInfo system) {
+    public Payload(ProcessInfo process, Service service, SystemInfo system) {
         this.process = process;
         this.service = service;
         this.system = system;
@@ -49,7 +49,7 @@ public abstract class Payload implements Recyclable {
      * <p>
      */
     @JsonProperty("process")
-    public Process getProcess() {
+    public ProcessInfo getProcess() {
         return process;
     }
 
