@@ -145,12 +145,12 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableDropSpans() {
-        when(tracer.getPlugin(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
-        try (Transaction transaction = tracer.startTransaction()) {
-            try (Span span = tracer.startSpan()) {
+        when(tracerImpl.getPlugin(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            try (Span span = tracerImpl.startSpan()) {
                 assertThat(span.isSampled()).isTrue();
             }
-            try (Span span = tracer.startSpan()) {
+            try (Span span = tracerImpl.startSpan()) {
                 assertThat(span.isSampled()).isFalse();
             }
             assertThat(transaction.isSampled()).isTrue();
