@@ -10,8 +10,8 @@ import co.elastic.apm.impl.payload.Runtime;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
-import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
@@ -70,7 +70,7 @@ public abstract class AbstractReporterBenchmark {
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
-            t.start(tracer, 0);
+            t.start(tracer, 0, true);
             fillTransaction(t);
             payload.getTransactions().add(t);
         }
@@ -80,8 +80,6 @@ public abstract class AbstractReporterBenchmark {
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
-        t.withSampled(true);
-        t.getSpanCount().getDropped().withTotal(2);
 
         Context context = t.getContext();
         Request request = context.getRequest();
@@ -125,9 +123,7 @@ public abstract class AbstractReporterBenchmark {
 
         Span span = new Span()
             .withName("SELECT FROM product_types")
-            .withType("db.postgresql.query")
-            .withStart(2.83092)
-            .withDuration(3.781912);
+            .withType("db.postgresql.query");
         span.getContext().getDb()
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
@@ -135,23 +131,14 @@ public abstract class AbstractReporterBenchmark {
             .withUser("readonly_user");
         t.getSpans().add(span);
         t.getSpans().add(new Span()
-            .withParent(0)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(0)
-            .withDuration(32.592981));
+            .withType("request"));
         t.getSpans().add(new Span()
-            .withParent(1)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(1.845)
-            .withDuration(3.5642981));
+            .withType("request"));
         t.getSpans().add(new Span()
-            .withParent(2)
             .withName("GET /api/types")
-            .withType("request")
-            .withStart(0)
-            .withDuration(13.9802981));
+            .withType("request"));
     }
 
     protected abstract PayloadSender getPayloadSender();

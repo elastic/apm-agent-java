@@ -3,6 +3,7 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -30,6 +31,8 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
 
     private transient ElasticApmTracer tracer;
+    private transient boolean sampled;
+
     /**
      * The locally unique ID of the span.
      */
@@ -65,10 +68,11 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonProperty("type")
     private String type;
 
-    public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime) {
+    public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime, boolean dropped) {
         this.tracer = tracer;
         this.id = ThreadLocalRandom.current().nextLong();
         this.parent = span != null ? span.getId() : 0;
+        this.sampled = transaction.isSampled() && !dropped;
         start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
         duration = nanoTime;
         return this;
@@ -100,15 +104,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     /**
-     * Duration of the span in milliseconds
-     * (Required)
-     */
-    public Span withDuration(double duration) {
-        this.duration = duration;
-        return this;
-    }
-
-    /**
      * Generic designation of a span in the scope of a transaction
      * (Required)
      */
@@ -123,10 +118,13 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      */
     @Override
     public void setName(String name) {
-        this.name = name;
+        withName(name);
     }
 
     public Span withName(String name) {
+        if (!sampled) {
+            return this;
+        }
         this.name = name;
         return this;
     }
@@ -137,14 +135,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonProperty("parent")
     public long getParent() {
         return parent;
-    }
-
-    /**
-     * The locally unique ID of the parent of the span.
-     */
-    public Span withParent(long parent) {
-        this.parent = parent;
-        return this;
     }
 
     /**
@@ -165,15 +155,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     /**
-     * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
-     * (Required)
-     */
-    public Span withStart(double start) {
-        this.start = start;
-        return this;
-    }
-
-    /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
@@ -188,7 +169,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      */
     @Override
     public void setType(String type) {
-        this.type = type;
+        withType(type);
     }
 
     @Override
@@ -197,7 +178,9 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     public void end(long nanoTime) {
-        this.duration = (nanoTime - duration) / MS_IN_NANOS;
+        if (isSampled()) {
+            this.duration = (nanoTime - duration) / MS_IN_NANOS;
+        }
         this.tracer.endSpan(this);
     }
 
@@ -207,18 +190,42 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     public Span withType(String type) {
+        if (!sampled) {
+            return this;
+        }
         this.type = type;
         return this;
     }
 
+    @JsonIgnore
+    public boolean isSampled() {
+        return sampled;
+    }
+
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("id", id).append("context", context).append("duration", duration).append("name", name).append("parent", parent).append("stacktrace", stacktrace).append("start", start).append("type", type).toString();
+        return new ToStringBuilder(this)
+            .append("id", id)
+            .append("context", context)
+            .append("duration", duration)
+            .append("name", name)
+            .append("parent", parent)
+            .append("stacktrace", stacktrace)
+            .append("start", start)
+            .append("type", type).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(duration).append(parent).append(stacktrace).append(context).append(name).append(start).append(id).append(type).toHashCode();
+        return new HashCodeBuilder()
+            .append(duration)
+            .append(parent)
+            .append(stacktrace)
+            .append(context)
+            .append(name)
+            .append(start)
+            .append(id)
+            .append(type).toHashCode();
     }
 
     @Override
@@ -230,7 +237,15 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
             return false;
         }
         Span rhs = ((Span) other);
-        return new EqualsBuilder().append(duration, rhs.duration).append(parent, rhs.parent).append(stacktrace, rhs.stacktrace).append(context, rhs.context).append(name, rhs.name).append(start, rhs.start).append(id, rhs.id).append(type, rhs.type).isEquals();
+        return new EqualsBuilder()
+            .append(duration, rhs.duration)
+            .append(parent, rhs.parent)
+            .append(stacktrace, rhs.stacktrace)
+            .append(context, rhs.context)
+            .append(name, rhs.name)
+            .append(start, rhs.start)
+            .append(id, rhs.id)
+            .append(type, rhs.type).isEquals();
     }
 
     @Override
@@ -244,6 +259,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         start = 0;
         type = null;
         tracer = null;
+        sampled = false;
     }
 
 }

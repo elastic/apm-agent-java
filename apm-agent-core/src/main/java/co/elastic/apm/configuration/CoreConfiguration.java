@@ -55,6 +55,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(1.0);
 
+    private final ConfigurationOption<Integer> transactionMaxSpans = ConfigurationOption.integerOption()
+        .key("transaction_max_spans")
+        .description("Limits the amount of spans that are recorded per transaction.\n\n" +
+            "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
+            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
+        .dynamic(true)
+        .buildWithDefault(500);
+
     public boolean isActive() {
         return active.get();
     }
@@ -79,4 +87,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sampleRate.get();
     }
 
+    public int getTransactionMaxSpans() {
+        return transactionMaxSpans.get();
+    }
 }

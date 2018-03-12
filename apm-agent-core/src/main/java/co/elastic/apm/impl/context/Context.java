@@ -7,8 +7,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -23,7 +23,7 @@ public class Context implements Recyclable {
      * An arbitrary mapping of additional metadata to store with the event.
      */
     @JsonProperty("custom")
-    private final Map<String, Object> custom = new HashMap<>();
+    private final Map<String, Object> custom = new ConcurrentHashMap<>();
     @JsonProperty("response")
     private final Response response = new Response();
     /**
@@ -37,7 +37,7 @@ public class Context implements Recyclable {
      * A flat mapping of user-defined tags with string values.
      */
     @JsonProperty("tags")
-    private final Map<String, String> tags = new HashMap<>();
+    private final Map<String, String> tags = new ConcurrentHashMap<>();
     /**
      * User
      * <p>
