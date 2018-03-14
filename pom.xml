@@ -55,6 +55,17 @@
                     <testSource>${maven.compiler.testTarget}</testSource>
                     <testTarget>${maven.compiler.testTarget}</testTarget>
                     <encoding>UTF-8</encoding>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.uber.nullaway</groupId>
+                            <artifactId>nullaway</artifactId>
+                            <version>0.3.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Xep:NullAway:ERROR</arg>
+                        <arg>-XepOpt:NullAway:AnnotatedPackages=co.elastic.apm</arg>
+                    </compilerArgs>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -158,8 +169,8 @@
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
-            <artifactId>annotations</artifactId>
-            <version>3.0.1</version>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

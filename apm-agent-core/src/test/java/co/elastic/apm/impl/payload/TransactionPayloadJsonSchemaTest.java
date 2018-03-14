@@ -28,7 +28,7 @@ class TransactionPayloadJsonSchemaTest {
     private TransactionPayload createPayloadWithRequiredValues() {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
         SystemInfo system = new SystemInfo("", "", "");
-        return new TransactionPayload(new ProcessInfo(), service, system);
+        return new TransactionPayload(new ProcessInfo("title"), service, system);
     }
 
     private Transaction createTransactionWithRequiredValues() {

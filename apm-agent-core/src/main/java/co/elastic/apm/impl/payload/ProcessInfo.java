@@ -7,6 +7,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,15 +29,20 @@ public class ProcessInfo {
     /**
      * Parent process ID of the service
      */
+    @Nullable
     @JsonProperty("ppid")
     private Long ppid;
     @JsonProperty("title")
-    private String title;
+    private final String title;
     /**
      * Command line arguments used to start this process
      */
     @JsonProperty("argv")
     private List<String> argv = new ArrayList<String>();
+
+    public ProcessInfo(String title) {
+        this.title = title;
+    }
 
     /**
      * Process ID of the service
@@ -58,6 +64,7 @@ public class ProcessInfo {
     /**
      * Parent process ID of the service
      */
+    @Nullable
     @JsonProperty("ppid")
     public Long getPpid() {
         return ppid;
@@ -74,15 +81,6 @@ public class ProcessInfo {
     @JsonProperty("title")
     public String getTitle() {
         return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public ProcessInfo withTitle(String title) {
-        this.title = title;
-        return this;
     }
 
     /**
@@ -103,12 +101,20 @@ public class ProcessInfo {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("pid", pid).append("ppid", ppid).append("title", title).append("argv", argv).toString();
+        return new ToStringBuilder(this)
+            .append("pid", pid)
+            .append("ppid", ppid)
+            .append("title", title)
+            .append("argv", argv).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(pid).append(title).append(argv).append(ppid).toHashCode();
+        return new HashCodeBuilder()
+            .append(pid)
+            .append(title)
+            .append(argv)
+            .append(ppid).toHashCode();
     }
 
     @Override
@@ -120,7 +126,11 @@ public class ProcessInfo {
             return false;
         }
         ProcessInfo rhs = ((ProcessInfo) other);
-        return new EqualsBuilder().append(pid, rhs.pid).append(title, rhs.title).append(argv, rhs.argv).append(ppid, rhs.ppid).isEquals();
+        return new EqualsBuilder()
+            .append(pid, rhs.pid)
+            .append(title, rhs.title)
+            .append(argv, rhs.argv)
+            .append(ppid, rhs.ppid).isEquals();
     }
 
 }

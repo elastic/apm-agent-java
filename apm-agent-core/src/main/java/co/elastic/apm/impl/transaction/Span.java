@@ -11,6 +11,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +70,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonProperty("type")
     private String type;
 
-    public Span start(ElasticApmTracer tracer, Transaction transaction, Span span, long nanoTime, boolean dropped) {
+    public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span span, long nanoTime, boolean dropped) {
         this.tracer = tracer;
         this.id.setToRandomValue();
         if (span != null) {

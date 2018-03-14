@@ -28,7 +28,7 @@ class ApmServerReporterTest {
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(2);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         payloadSender = mock(PayloadSender.class);
-        reporter = new ApmServerReporter(new Service(), new ProcessInfo(), system, payloadSender, true, reporterConfiguration);
+        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system, payloadSender, true, reporterConfiguration);
     }
 
     @Test

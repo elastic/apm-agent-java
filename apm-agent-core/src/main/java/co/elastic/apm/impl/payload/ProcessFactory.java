@@ -62,10 +62,9 @@ public interface ProcessFactory {
 
         @Override
         public ProcessInfo getProcessInformation() {
-            ProcessInfo process = new ProcessInfo();
+            ProcessInfo process = new ProcessInfo(getTitle());
             process.withPid(getPid());
             process.withArgv(runtimeMXBean.getInputArguments());
-            process.withTitle(getTitle());
             return process;
         }
 
@@ -143,8 +142,8 @@ public interface ProcessFactory {
          */
         @Override
         public ProcessInfo getProcessInformation() {
-            final ProcessInfo process = new ProcessInfo();
             ProcessHandle processHandle = (ProcessHandle) this.processHandle;
+            final ProcessInfo process = new ProcessInfo(processHandle.info().command().orElse(null));
             process.withPid(processHandle.pid());
             process.withPpid(processHandle.parent()
                 .map(new Function<ProcessHandle, Long>() {
@@ -163,7 +162,6 @@ public interface ProcessFactory {
                     }
                 })
                 .orElse(null));
-            process.withTitle(processHandle.info().command().orElse(null));
 
             return process;
 
