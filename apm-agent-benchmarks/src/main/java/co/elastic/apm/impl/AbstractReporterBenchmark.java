@@ -59,10 +59,9 @@ public abstract class AbstractReporterBenchmark {
             .withRuntime(new RuntimeInfo("Java", "9.0.4"))
             .withFramework(new Framework("Servlet API", "3.1"))
             .withLanguage(new Language("Java", "9.0.4"));
-        ProcessInfo process = new ProcessInfo()
+        ProcessInfo process = new ProcessInfo("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")
             .withPid(2103)
             .withPpid(403L)
-            .withTitle("/Library/Java/JavaVirtualMachines/jdk-9.0.4.jdk/Contents/Home/bin/java")
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
         ReporterConfiguration reporterConfiguration = new ReporterConfiguration();
