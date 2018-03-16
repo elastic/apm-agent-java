@@ -1,10 +1,10 @@
 package co.elastic.apm.util;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 
 /**
  * This map is a mixture of a map with a single value and a map with multiple values.
@@ -31,7 +31,7 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
      * @param key   The key.
      * @param value The value.
      */
-    public void add(K key, V value) {
+    public void add(K key, @Nullable V value) {
         if (containsKey(key)) {
             Object previousValue = get(key);
             if (previousValue instanceof Collection) {
@@ -50,6 +50,7 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
      * @param key The key you want to get the associated value for.
      * @return The first value which is associated with a given key.
      */
+    @Nullable
     public V getFirst(K key) {
         Object valueOrValueList = get(key);
         if (valueOrValueList instanceof Collection) {
@@ -81,11 +82,11 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
         }
     }
 
-    private void addValueToValueList(V value, Collection<V> valueList) {
+    private void addValueToValueList(@Nullable V value, Collection<V> valueList) {
         valueList.add(value);
     }
 
-    private void convertValueToMultiValue(K key, V previousValue, V value) {
+    private void convertValueToMultiValue(K key, @Nullable V previousValue, @Nullable V value) {
         Collection<V> valueList = new ArrayList<>(4);
         valueList.add(previousValue);
         valueList.add(value);

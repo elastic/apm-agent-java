@@ -35,6 +35,7 @@ import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSou
 import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
 import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
+import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 public class ElasticApmTracer implements Tracer {
     public static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
+    @Nullable
     private static ElasticApmTracer instance;
 
     private final ConfigurationRegistry configurationRegistry;
@@ -102,6 +104,10 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public static ElasticApmTracer get() {
+        if (instance == null) {
+            // TODO init with noop tracer, instance should never be null
+            throw new IllegalStateException("Tracer instance was null");
+        }
         return instance;
     }
 
@@ -177,7 +183,7 @@ public class ElasticApmTracer implements Tracer {
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
         Transaction transaction = currentTransaction();
         if (transaction != null) {
-            error.getTransaction().withId(transaction.getId().toString());
+            error.getTransaction().withId(transaction.getId());
             error.getContext().copyFrom(transaction.getContext());
         }
         reporter.report(error);
@@ -230,8 +236,11 @@ public class ElasticApmTracer implements Tracer {
 
     public static class Builder {
 
+        @Nullable
         private ConfigurationRegistry configurationRegistry;
+        @Nullable
         private Reporter reporter;
+        @Nullable
         private StacktraceFactory stacktraceFactory;
 
         public Builder configurationRegistry(ConfigurationRegistry configurationRegistry) {
@@ -271,7 +280,7 @@ public class ElasticApmTracer implements Tracer {
         }
 
         private Reporter createReporter(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration,
-                                        String frameworkName, String frameworkVersion) {
+                                        @Nullable String frameworkName, @Nullable String frameworkVersion) {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new AfterburnerModule());
             return new ApmServerReporter(

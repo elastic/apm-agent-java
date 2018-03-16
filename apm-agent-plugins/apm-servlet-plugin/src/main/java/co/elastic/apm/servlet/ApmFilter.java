@@ -7,6 +7,7 @@ import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.transaction.Transaction;
 
+import javax.annotation.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -71,6 +72,7 @@ public class ApmFilter implements Filter {
         return request.getMethod() + " " + removeSemicolonContent(request.getRequestURI().substring(request.getContextPath().length()));
     }
 
+    @Nullable
     String getResult(int status) {
         if (status >= 200 && status < 300) {
             return "HTTP 2xx";
@@ -108,6 +110,7 @@ public class ApmFilter implements Filter {
         user.withUsername(getUserName(httpServletRequest));
     }
 
+    @Nullable
     private String getUserName(HttpServletRequest httpServletRequest) {
         final Principal userPrincipal = httpServletRequest.getUserPrincipal();
         return userPrincipal != null ? userPrincipal.getName() : null;

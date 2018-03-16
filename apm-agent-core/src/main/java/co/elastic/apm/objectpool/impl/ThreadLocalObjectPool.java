@@ -4,6 +4,8 @@ import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 
+import javax.annotation.Nullable;
+
 public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
     private final DetachedThreadLocal<FixedSizeStack<T>> objectPool;
@@ -27,6 +29,7 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     }
 
     @Override
+    @Nullable
     public T tryCreateInstance() {
         return objectPool.get().pop();
     }
@@ -72,6 +75,7 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
             return true;
         }
 
+        @Nullable
         T pop() {
             if (top < 0) return null;
             T obj = stack[top--];

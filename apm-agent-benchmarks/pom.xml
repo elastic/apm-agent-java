@@ -66,6 +66,7 @@
         <maven.compiler.target>9</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <maven.compiler.showWarnings>false</maven.compiler.showWarnings>
+        <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
     </properties>
 

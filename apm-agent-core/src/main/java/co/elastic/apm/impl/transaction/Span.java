@@ -10,7 +10,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +30,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonProperty("stacktrace")
     private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
 
+    @Nullable
     private transient ElasticApmTracer tracer;
     private transient boolean sampled;
 
@@ -49,14 +49,14 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Generic designation of a span in the scope of a transaction
      * (Required)
      */
+    @Nullable
     @JsonProperty("name")
     private String name;
     /**
      * The locally unique ID of the parent of the span.
      */
     @JsonProperty("parent")
-    @Nonnull
-    private SpanId parent;
+    private SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
@@ -67,6 +67,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
+    @Nullable
     @JsonProperty("type")
     private String type;
 
@@ -111,6 +112,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Generic designation of a span in the scope of a transaction
      * (Required)
      */
+    @Nullable
     @JsonProperty("name")
     public String getName() {
         return name;
@@ -121,11 +123,11 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Override
-    public void setName(String name) {
+    public void setName(@Nullable String name) {
         withName(name);
     }
 
-    public Span withName(String name) {
+    public Span withName(@Nullable String name) {
         if (!sampled) {
             return this;
         }
@@ -162,6 +164,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
+    @Nullable
     @JsonProperty("type")
     public String getType() {
         return type;
@@ -172,7 +175,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Override
-    public void setType(String type) {
+    public void setType(@Nullable String type) {
         withType(type);
     }
 
@@ -185,7 +188,9 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
-        this.tracer.endSpan(this);
+        if (this.tracer != null) {
+            this.tracer.endSpan(this);
+        }
     }
 
     @Override
@@ -193,7 +198,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         end();
     }
 
-    public Span withType(String type) {
+    public Span withType(@Nullable String type) {
         if (!sampled) {
             return this;
         }

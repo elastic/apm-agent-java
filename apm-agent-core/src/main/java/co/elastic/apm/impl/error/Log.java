@@ -8,6 +8,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,33 +18,34 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Log implements Recyclable {
 
+    private static final String DEFAULT_LOGGER_NAME = "default";
+    private static final String DEFAULT_LEVEL = "error";
+
     @JsonProperty("stacktrace")
     private final List<Stacktrace> stacktrace = new ArrayList<>();
     /**
      * The severity of the record.
      */
     @JsonProperty("level")
-    private String level;
+    private String level = DEFAULT_LEVEL;
     /**
      * The name of the logger instance used.
      */
     @JsonProperty("logger_name")
-    private String loggerName;
+    private String loggerName = DEFAULT_LOGGER_NAME;
     /**
      * The additionally logged error message.
      * (Required)
      */
+    @Nullable
     @JsonProperty("message")
     private String message;
     /**
      * A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together. The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange.
      */
+    @Nullable
     @JsonProperty("param_message")
     private String paramMessage;
-
-    public Log() {
-        resetState();
-    }
 
     /**
      * The severity of the record.
@@ -81,6 +83,7 @@ public class Log implements Recyclable {
      * The additionally logged error message.
      * (Required)
      */
+    @Nullable
     @JsonProperty("message")
     public String getMessage() {
         return message;
@@ -98,6 +101,7 @@ public class Log implements Recyclable {
     /**
      * A parametrized message. E.g. 'Could not connect to %s'. The property message is still required, and should be equal to the param_message, but with placeholders replaced. In some situations the param_message is used to group errors together. The string is not interpreted, so feel free to use whichever placeholders makes sense in the client languange.
      */
+    @Nullable
     @JsonProperty("param_message")
     public String getParamMessage() {
         return paramMessage;
@@ -156,10 +160,10 @@ public class Log implements Recyclable {
 
     @Override
     public void resetState() {
-        loggerName = "default";
+        loggerName = DEFAULT_LOGGER_NAME;
+        level = DEFAULT_LEVEL;
         message = null;
         paramMessage = null;
         stacktrace.clear();
-        level = "error";
     }
 }

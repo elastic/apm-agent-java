@@ -8,6 +8,7 @@ import com.p6spy.engine.event.SimpleJdbcEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.sql.SQLException;
 
 public class ApmJdbcEventListener extends SimpleJdbcEventListener {
@@ -24,6 +25,7 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         this.elasticApmTracer = elasticApmTracer;
     }
 
+    @Nullable
     static String getMethod(String sql) {
         if (sql == null) {
             return null;

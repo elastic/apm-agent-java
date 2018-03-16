@@ -1,5 +1,6 @@
 package co.elastic.apm.impl.payload;
 
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class TransactionPayloadJsonSchemaTest {
 
@@ -33,11 +35,11 @@ class TransactionPayloadJsonSchemaTest {
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction();
-        t.start(null, 0, true);
+        t.start(mock(ElasticApmTracer.class), 0, true);
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
         Span s = new Span();
-        s.start(null, t, null, 0, false)
+        s.start(mock(ElasticApmTracer.class), t, null, 0, false)
             .withType("type")
             .withName("name");
         t.addSpan(s);

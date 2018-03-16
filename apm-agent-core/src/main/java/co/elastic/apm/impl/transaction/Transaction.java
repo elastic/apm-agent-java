@@ -10,6 +10,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     private final Map<String, Object> marks = new HashMap<>();
     @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
+    @Nullable
     private transient ElasticApmTracer tracer;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
@@ -62,17 +64,20 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
+    @Nullable
     @JsonProperty("name")
     private String name;
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
+    @Nullable
     @JsonProperty("result")
     private String result;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
+    @Nullable
     @JsonProperty("type")
     private String type;
     /**
@@ -121,6 +126,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
+    @Nullable
     @JsonProperty("name")
     public String getName() {
         return name;
@@ -130,11 +136,11 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     @Override
-    public void setName(String name) {
+    public void setName(@Nullable String name) {
         this.name = name;
     }
 
-    public Transaction withName(String name) {
+    public Transaction withName(@Nullable String name) {
         if (!sampled) {
             return this;
         }
@@ -145,6 +151,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
+    @Nullable
     @JsonProperty("result")
     public String getResult() {
         return result;
@@ -153,7 +160,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
-    public Transaction withResult(String result) {
+    public Transaction withResult(@Nullable String result) {
         if (!sampled) {
             return this;
         }
@@ -197,6 +204,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
+    @Nullable
     @JsonProperty("type")
     public String getType() {
         return type;
@@ -206,9 +214,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
-    @JsonProperty("type")
     @Override
-    public void setType(String type) {
+    @JsonProperty("type")
+    public void setType(@Nullable String type) {
         this.type = type;
     }
 
@@ -234,7 +242,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         if (!sampled) {
             context.resetState();
         }
-        this.tracer.endTransaction(this);
+        if (this.tracer != null) {
+            this.tracer.endTransaction(this);
+        }
     }
 
     @Override
@@ -242,7 +252,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         end();
     }
 
-    public Transaction withType(String type) {
+    public Transaction withType(@Nullable String type) {
         this.type = type;
         return this;
     }

@@ -2,6 +2,7 @@ package co.elastic.apm.configuration.validation;
 
 import org.stagemonitor.configuration.ConfigurationOption;
 
+import javax.annotation.Nullable;
 import java.text.MessageFormat;
 import java.util.regex.Pattern;
 
@@ -38,7 +39,7 @@ public class RegexValidator implements ConfigurationOption.Validator<String> {
     }
 
     @Override
-    public void assertValid(String value) {
+    public void assertValid(@Nullable String value) {
         if (value != null && !pattern.matcher(value).matches()) {
             throw new IllegalArgumentException(MessageFormat.format(errorMessagePattern, value, pattern));
         }

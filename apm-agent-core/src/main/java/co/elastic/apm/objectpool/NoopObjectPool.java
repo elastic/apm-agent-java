@@ -1,5 +1,6 @@
 package co.elastic.apm.objectpool;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class NoopObjectPool<T extends Recyclable> implements ObjectPool<T> {
@@ -10,6 +11,7 @@ public class NoopObjectPool<T extends Recyclable> implements ObjectPool<T> {
         this.recyclableObjectFactory = recyclableObjectFactory;
     }
 
+    @Nullable
     @Override
     public T tryCreateInstance() {
         return recyclableObjectFactory.createInstance();
