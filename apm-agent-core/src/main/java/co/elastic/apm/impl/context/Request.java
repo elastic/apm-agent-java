@@ -9,6 +9,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 
@@ -43,17 +44,20 @@ public class Request implements Recyclable {
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
      */
+    @Nullable
     @JsonIgnore
     private String rawBody;
     /**
      * HTTP version.
      */
+    @Nullable
     @JsonProperty("http_version")
     private String httpVersion;
     /**
      * HTTP method.
      * (Required)
      */
+    @Nullable
     @JsonProperty("method")
     private String method;
 
@@ -110,12 +114,13 @@ public class Request implements Recyclable {
     /**
      * HTTP version.
      */
+    @Nullable
     @JsonProperty("http_version")
     public String getHttpVersion() {
         return httpVersion;
     }
 
-    public Request withHttpVersion(String httpVersion) {
+    public Request withHttpVersion(@Nullable String httpVersion) {
         this.httpVersion = httpVersion;
         return this;
     }
@@ -124,12 +129,13 @@ public class Request implements Recyclable {
      * HTTP method.
      * (Required)
      */
+    @Nullable
     @JsonProperty("method")
     public String getMethod() {
         return method;
     }
 
-    public Request withMethod(String method) {
+    public Request withMethod(@Nullable String method) {
         this.method = method;
         return this;
     }

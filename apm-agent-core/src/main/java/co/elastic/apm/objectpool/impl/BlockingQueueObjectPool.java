@@ -4,6 +4,7 @@ import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import com.lmax.disruptor.EventFactory;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -30,6 +31,7 @@ public class BlockingQueueObjectPool<T extends Recyclable> extends AbstractObjec
         }
     }
 
+    @Nullable
     @Override
     public T tryCreateInstance() {
         return queue.poll();
@@ -122,6 +124,7 @@ public class BlockingQueueObjectPool<T extends Recyclable> extends AbstractObjec
     }
 
     private static class PooledObjectHolder<T> {
+        @Nullable
         T value;
 
         public void set(T value) {

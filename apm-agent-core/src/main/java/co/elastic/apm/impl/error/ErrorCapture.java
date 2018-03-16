@@ -1,8 +1,8 @@
-
 package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.transaction.TransactionId;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -11,6 +11,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 
 
@@ -19,8 +20,6 @@ import java.util.Date;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorCapture implements Recyclable {
-
-    private transient ElasticApmTracer tracer;
 
     /**
      * Context
@@ -34,11 +33,6 @@ public class ErrorCapture implements Recyclable {
      */
     @JsonProperty("exception")
     private final ExceptionInfo exception = new ExceptionInfo();
-    /**
-     * UUID for the error
-     */
-    @JsonProperty("id")
-    private String id;
     /**
      * Additional information added when logging the error.
      */
@@ -56,6 +50,13 @@ public class ErrorCapture implements Recyclable {
      */
     @JsonProperty("transaction")
     private final TransactionReference transaction = new TransactionReference();
+    @Nullable
+    private transient ElasticApmTracer tracer;
+    /**
+     * UUID for the error
+     */
+    @JsonProperty("id")
+    private final TransactionId id = new TransactionId();
 
     /**
      * Context
@@ -80,7 +81,7 @@ public class ErrorCapture implements Recyclable {
      * UUID for the error
      */
     @JsonProperty("id")
-    public String getId() {
+    public TransactionId getId() {
         return id;
     }
 
@@ -162,7 +163,7 @@ public class ErrorCapture implements Recyclable {
         exception.resetState();
         log.resetState();
         context.resetState();
-        id = null;
+        id.resetState();
         transaction.resetState();
         timestamp.setTime(0);
         tracer = null;

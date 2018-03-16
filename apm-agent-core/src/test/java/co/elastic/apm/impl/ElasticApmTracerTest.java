@@ -29,13 +29,11 @@ class ElasticApmTracerTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .build();
-        assertThat(ElasticApmTracer.get()).isNull();
     }
 
     @AfterEach
     void tearDown() {
         ElasticApmTracer.unregister();
-        assertThat(ElasticApmTracer.get()).isNull();
     }
 
     @Test
@@ -128,7 +126,7 @@ class ElasticApmTracerTest {
         assertThat(error.getException().getStacktrace()).isNotEmpty();
         assertThat(error.getException().getMessage()).isEqualTo("test");
         assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
-        assertThat(error.getTransaction().getId()).isNull();
+        assertThat(error.getTransaction().getId().isEmpty()).isTrue();
     }
 
     @Test
@@ -138,7 +136,7 @@ class ElasticApmTracerTest {
             tracerImpl.captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
-            assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId().toString());
+            assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId());
             assertThat(error.getContext().getRequest().getHeaders()).containsEntry("foo", "bar");
         }
     }

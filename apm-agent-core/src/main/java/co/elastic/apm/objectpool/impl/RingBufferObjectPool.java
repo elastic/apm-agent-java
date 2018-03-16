@@ -10,6 +10,8 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.Sequencer;
 
+import javax.annotation.Nullable;
+
 public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
     private final RingBuffer<PooledObjectHolder<T>> ringBuffer;
@@ -41,6 +43,7 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
         }
     }
 
+    @Nullable
     @Override
     public T tryCreateInstance() {
         long sequence = claimTailSequences(1);
@@ -50,6 +53,7 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
         return null;
     }
 
+    @Nullable
     private T getFromBuffer(long sequence) {
         PooledObjectHolder<T> pooledObjectHolder = ringBuffer.get(sequence);
         T value = pooledObjectHolder.value;
@@ -107,9 +111,10 @@ public class RingBufferObjectPool<T extends Recyclable> extends AbstractObjectPo
     }
 
     private static class PooledObjectHolder<T> {
+        @Nullable
         T value;
 
-        public void set(T value) {
+        public void set(@Nullable T value) {
             this.value = value;
         }
     }

@@ -8,6 +8,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Socket implements Recyclable {
 
@@ -17,6 +19,7 @@ public class Socket implements Recyclable {
     @JsonProperty("encrypted")
     private boolean encrypted;
     @JsonProperty("remote_address")
+    @Nullable
     private String remoteAddress;
 
     /**
@@ -35,24 +38,29 @@ public class Socket implements Recyclable {
         return this;
     }
 
+    @Nullable
     @JsonProperty("remote_address")
     public String getRemoteAddress() {
         return remoteAddress;
     }
 
-    public Socket withRemoteAddress(String remoteAddress) {
+    public Socket withRemoteAddress(@Nullable String remoteAddress) {
         this.remoteAddress = remoteAddress;
         return this;
     }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("encrypted", encrypted).append("remoteAddress", remoteAddress).toString();
+        return new ToStringBuilder(this)
+            .append("encrypted", encrypted)
+            .append("remoteAddress", remoteAddress).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(encrypted).append(remoteAddress).toHashCode();
+        return new HashCodeBuilder()
+            .append(encrypted)
+            .append(remoteAddress).toHashCode();
     }
 
     @Override
@@ -64,7 +72,9 @@ public class Socket implements Recyclable {
             return false;
         }
         Socket rhs = ((Socket) other);
-        return new EqualsBuilder().append(encrypted, rhs.encrypted).append(remoteAddress, rhs.remoteAddress).isEquals();
+        return new EqualsBuilder()
+            .append(encrypted, rhs.encrypted)
+            .append(remoteAddress, rhs.remoteAddress).isEquals();
     }
 
     @Override

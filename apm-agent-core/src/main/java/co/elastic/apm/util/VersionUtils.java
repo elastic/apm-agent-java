@@ -1,5 +1,6 @@
 package co.elastic.apm.util;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -9,6 +10,7 @@ public final class VersionUtils {
     private VersionUtils() {
     }
 
+    @Nullable
     public static String getVersionFromPomProperties(Class clazz, String groupId, String artifactId) {
         final String classpathLocation = "META-INF/maven/" + groupId + "/" + artifactId + "/pom.properties";
         final Properties pomProperties = getFromClasspath(classpathLocation, clazz.getClassLoader());
@@ -18,6 +20,7 @@ public final class VersionUtils {
         return null;
     }
 
+    @Nullable
     private static Properties getFromClasspath(String classpathLocation, ClassLoader classLoader) {
         final Properties props = new Properties();
         InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation);

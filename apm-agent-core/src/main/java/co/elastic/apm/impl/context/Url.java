@@ -1,4 +1,3 @@
-
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
@@ -7,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
+
+import javax.annotation.Nullable;
 
 
 /**
@@ -18,42 +19,50 @@ public class Url implements Recyclable {
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
+    @Nullable
     @JsonProperty("raw")
     private String raw;
     /**
      * The protocol of the request, e.g. 'https:'.
      */
+    @Nullable
     @JsonProperty("protocol")
     private String protocol;
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
+    @Nullable
     @JsonProperty("full")
     private String full;
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
+    @Nullable
     @JsonProperty("hostname")
     private String hostname;
     /**
      * The port of the request, e.g. '443'
      */
+    @Nullable
     @JsonProperty("port")
     private String port;
     /**
      * The path of the request, e.g. '/search'
      */
+    @Nullable
     @JsonProperty("pathname")
     private String pathname;
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
+    @Nullable
     @JsonProperty("search")
     private String search;
 
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
+    @Nullable
     @JsonProperty("raw")
     public String getRaw() {
         return raw;
@@ -62,7 +71,7 @@ public class Url implements Recyclable {
     /**
      * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    public Url withRaw(String raw) {
+    public Url withRaw(@Nullable String raw) {
         this.raw = raw;
         return this;
     }
@@ -70,6 +79,7 @@ public class Url implements Recyclable {
     /**
      * The protocol of the request, e.g. 'https:'.
      */
+    @Nullable
     @JsonProperty("protocol")
     public String getProtocol() {
         return protocol;
@@ -78,7 +88,7 @@ public class Url implements Recyclable {
     /**
      * The protocol of the request, e.g. 'https:'.
      */
-    public Url withProtocol(String protocol) {
+    public Url withProtocol(@Nullable String protocol) {
         this.protocol = protocol;
         return this;
     }
@@ -86,6 +96,7 @@ public class Url implements Recyclable {
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
+    @Nullable
     @JsonProperty("full")
     public String getFull() {
         return full;
@@ -94,7 +105,7 @@ public class Url implements Recyclable {
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    public Url withFull(String full) {
+    public Url withFull(@Nullable String full) {
         this.full = full;
         return this;
     }
@@ -102,6 +113,7 @@ public class Url implements Recyclable {
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
+    @Nullable
     @JsonProperty("hostname")
     public String getHostname() {
         return hostname;
@@ -110,7 +122,7 @@ public class Url implements Recyclable {
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
-    public Url withHostname(String hostname) {
+    public Url withHostname(@Nullable String hostname) {
         this.hostname = hostname;
         return this;
     }
@@ -118,6 +130,7 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
+    @Nullable
     @JsonProperty("port")
     public String getPort() {
         return port;
@@ -126,7 +139,7 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    public Url withPort(String port) {
+    public Url withPort(@Nullable String port) {
         this.port = port;
         return this;
     }
@@ -134,6 +147,7 @@ public class Url implements Recyclable {
     /**
      * The path of the request, e.g. '/search'
      */
+    @Nullable
     @JsonProperty("pathname")
     public String getPathname() {
         return pathname;
@@ -142,7 +156,7 @@ public class Url implements Recyclable {
     /**
      * The path of the request, e.g. '/search'
      */
-    public Url withPathname(String pathname) {
+    public Url withPathname(@Nullable String pathname) {
         this.pathname = pathname;
         return this;
     }
@@ -150,6 +164,7 @@ public class Url implements Recyclable {
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
+    @Nullable
     @JsonProperty("search")
     public String getSearch() {
         return search;
@@ -158,19 +173,33 @@ public class Url implements Recyclable {
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
-    public Url withSearch(String search) {
+    public Url withSearch(@Nullable String search) {
         this.search = search;
         return this;
     }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("raw", raw).append("protocol", protocol).append("full", full).append("hostname", hostname).append("port", port).append("pathname", pathname).append("search", search).toString();
+        return new ToStringBuilder(this)
+            .append("raw", raw)
+            .append("protocol", protocol)
+            .append("full", full)
+            .append("hostname", hostname)
+            .append("port", port)
+            .append("pathname", pathname)
+            .append("search", search).toString();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder().append(protocol).append(hostname).append(search).append(port).append(raw).append(full).append(pathname).toHashCode();
+        return new HashCodeBuilder()
+            .append(protocol)
+            .append(hostname)
+            .append(search)
+            .append(port)
+            .append(raw)
+            .append(full)
+            .append(pathname).toHashCode();
     }
 
     @Override
@@ -182,7 +211,14 @@ public class Url implements Recyclable {
             return false;
         }
         Url rhs = ((Url) other);
-        return new EqualsBuilder().append(protocol, rhs.protocol).append(hostname, rhs.hostname).append(search, rhs.search).append(port, rhs.port).append(raw, rhs.raw).append(full, rhs.full).append(pathname, rhs.pathname).isEquals();
+        return new EqualsBuilder()
+            .append(protocol, rhs.protocol)
+            .append(hostname, rhs.hostname)
+            .append(search, rhs.search)
+            .append(port, rhs.port)
+            .append(raw, rhs.raw)
+            .append(full, rhs.full)
+            .append(pathname, rhs.pathname).isEquals();
     }
 
     @Override

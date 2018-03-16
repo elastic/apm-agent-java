@@ -8,6 +8,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,23 +23,27 @@ public class ExceptionInfo implements Recyclable {
     /**
      * The error code set when the error happened, e.g. database error code.
      */
+    @Nullable
     @JsonProperty("code")
     private String code;
     /**
      * The original error message.
      * (Required)
      */
+    @Nullable
     @JsonProperty("message")
     private String message;
     /**
      * Describes the exception type's module namespace.
      */
+    @Nullable
     @JsonProperty("type")
     private String type;
 
     /**
      * The error code set when the error happened, e.g. database error code.
      */
+    @Nullable
     @JsonProperty("code")
     public String getCode() {
         return code;
@@ -56,6 +61,7 @@ public class ExceptionInfo implements Recyclable {
      * The original error message.
      * (Required)
      */
+    @Nullable
     @JsonProperty("message")
     public String getMessage() {
         return message;
@@ -65,7 +71,7 @@ public class ExceptionInfo implements Recyclable {
      * The original error message.
      * (Required)
      */
-    public ExceptionInfo withMessage(String message) {
+    public ExceptionInfo withMessage(@Nullable String message) {
         this.message = message;
         return this;
     }
@@ -75,12 +81,13 @@ public class ExceptionInfo implements Recyclable {
         return stacktrace;
     }
 
+    @Nullable
     @JsonProperty("type")
     public String getType() {
         return type;
     }
 
-    public ExceptionInfo withType(String type) {
+    public ExceptionInfo withType(@Nullable String type) {
         this.type = type;
         return this;
     }

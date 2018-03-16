@@ -13,6 +13,7 @@ import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.dsl.Disruptor;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -58,6 +59,7 @@ public class ApmServerReporter implements Reporter {
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
+    @Nullable
     private ScheduledThreadPoolExecutor flushScheduler;
 
     public ApmServerReporter(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
@@ -183,8 +185,11 @@ public class ApmServerReporter implements Reporter {
     }
 
     static class ReportingEvent {
+        @Nullable
         Transaction transaction;
+        @Nullable
         ReportingEventType type;
+        @Nullable
         ErrorCapture error;
 
         public void setTransaction(Transaction transaction) {

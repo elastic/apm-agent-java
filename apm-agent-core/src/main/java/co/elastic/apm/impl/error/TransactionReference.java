@@ -1,6 +1,7 @@
 
 package co.elastic.apm.impl.error;
 
+import co.elastic.apm.impl.transaction.TransactionId;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,24 +17,24 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 public class TransactionReference implements Recyclable {
 
     /**
-     * UUID for the transaction
+     * ID for the transaction
      */
     @JsonProperty("id")
-    private String id;
+    private final TransactionId id = new TransactionId();
 
     /**
      * UUID for the transaction
      */
     @JsonProperty("id")
-    public String getId() {
+    public TransactionId getId() {
         return id;
     }
 
     /**
      * UUID for the transaction
      */
-    public TransactionReference withId(String id) {
-        this.id = id;
+    public TransactionReference withId(TransactionId id) {
+        this.id.copyFrom(id);
         return this;
     }
 
@@ -61,6 +62,6 @@ public class TransactionReference implements Recyclable {
 
     @Override
     public void resetState() {
-        id = null;
+        id.resetState();
     }
 }

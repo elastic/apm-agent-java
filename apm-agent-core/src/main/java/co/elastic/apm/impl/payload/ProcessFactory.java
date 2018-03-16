@@ -105,13 +105,12 @@ public interface ProcessFactory {
          * inspecting the instance variables of this class, does not lead to {@link ClassNotFoundException}s on non Java 9 capable VMs
          * </p>
          */
-        private Object processHandle;
+        private final Object processHandle;
 
         /**
          * @param current the {@link ProcessHandle#current} method
          */
         ForJava9CompatibleVM(Method current) {
-            processHandle = null;
             try {
                 processHandle = current.invoke(null);
             } catch (IllegalAccessException e) {

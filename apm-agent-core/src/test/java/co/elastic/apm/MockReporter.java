@@ -7,7 +7,10 @@ import co.elastic.apm.report.Reporter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class MockReporter implements Reporter {
     private final List<Transaction> transactions = new ArrayList<>();
@@ -46,7 +49,32 @@ public class MockReporter implements Reporter {
 
     @Override
     public Future<Void> flush() {
-        return null;
+        return new Future<>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return false;
+            }
+
+            @Override
+            public Void get() throws InterruptedException, ExecutionException {
+                return null;
+            }
+
+            @Override
+            public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                return null;
+            }
+        };
     }
 
     @Override

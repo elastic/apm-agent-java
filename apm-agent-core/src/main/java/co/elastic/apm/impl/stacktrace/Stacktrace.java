@@ -8,6 +8,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Stacktrace
@@ -20,17 +22,20 @@ public class Stacktrace implements Recyclable {
     /**
      * The absolute path of the file involved in the stack frame
      */
+    @Nullable
     @JsonProperty("abs_path")
     private String absPath;
     /**
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
+    @Nullable
     @JsonProperty("filename")
     private String filename;
     /**
      * The function involved in the stack frame
      */
+    @Nullable
     @JsonProperty("function")
     private String function;
     /**
@@ -47,12 +52,14 @@ public class Stacktrace implements Recyclable {
     /**
      * The module to which frame belongs to
      */
+    @Nullable
     @JsonProperty("module")
     private String module;
 
     /**
      * The absolute path of the file involved in the stack frame
      */
+    @Nullable
     @JsonProperty("abs_path")
     public String getAbsPath() {
         return absPath;
@@ -61,7 +68,7 @@ public class Stacktrace implements Recyclable {
     /**
      * The absolute path of the file involved in the stack frame
      */
-    public Stacktrace withAbsPath(String absPath) {
+    public Stacktrace withAbsPath(@Nullable String absPath) {
         this.absPath = absPath;
         return this;
     }
@@ -70,6 +77,7 @@ public class Stacktrace implements Recyclable {
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
+    @Nullable
     @JsonProperty("filename")
     public String getFilename() {
         return filename;
@@ -79,7 +87,7 @@ public class Stacktrace implements Recyclable {
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
-    public Stacktrace withFilename(String filename) {
+    public Stacktrace withFilename(@Nullable String filename) {
         this.filename = filename;
         return this;
     }
@@ -87,6 +95,7 @@ public class Stacktrace implements Recyclable {
     /**
      * The function involved in the stack frame
      */
+    @Nullable
     @JsonProperty("function")
     public String getFunction() {
         return function;
@@ -95,7 +104,7 @@ public class Stacktrace implements Recyclable {
     /**
      * The function involved in the stack frame
      */
-    public Stacktrace withFunction(String function) {
+    public Stacktrace withFunction(@Nullable String function) {
         this.function = function;
         return this;
     }
@@ -137,6 +146,7 @@ public class Stacktrace implements Recyclable {
     /**
      * The module to which frame belongs to
      */
+    @Nullable
     @JsonProperty("module")
     public String getModule() {
         return module;
@@ -145,7 +155,7 @@ public class Stacktrace implements Recyclable {
     /**
      * The module to which frame belongs to
      */
-    public Stacktrace withModule(String module) {
+    public Stacktrace withModule(@Nullable String module) {
         this.module = module;
         return this;
     }

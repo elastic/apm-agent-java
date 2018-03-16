@@ -4,6 +4,7 @@ import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class MixedObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
@@ -19,6 +20,7 @@ public class MixedObjectPool<T extends Recyclable> extends AbstractObjectPool<T>
     }
 
 
+    @Nullable
     @Override
     public T tryCreateInstance() {
         final T recyclable = primaryPool.tryCreateInstance();
