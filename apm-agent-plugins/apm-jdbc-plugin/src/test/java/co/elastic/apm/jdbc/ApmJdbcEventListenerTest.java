@@ -1,8 +1,9 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.impl.transaction.Db;
+import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.p6spy.engine.spy.P6SpyDriver;
@@ -25,7 +26,9 @@ class ApmJdbcEventListenerTest {
 
     @BeforeEach
     void setUp() throws SQLException {
-        ElasticApmTracer tracer = ElasticApmTracer.builder().reporter(new MockReporter()).build();
+        ElasticApmTracer tracer = ElasticApmTracer.builder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .reporter(new MockReporter()).build();
         P6SpyDriver.setJdbcEventListenerFactory(() -> new ApmJdbcEventListener(tracer));
         connection = DriverManager.getConnection("jdbc:p6spy:h2:mem:test", "user", "");
         connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");

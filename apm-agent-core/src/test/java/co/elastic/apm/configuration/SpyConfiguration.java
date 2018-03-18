@@ -2,6 +2,7 @@ package co.elastic.apm.configuration;
 
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.util.ServiceLoader;
 
@@ -22,6 +23,8 @@ public class SpyConfiguration {
         for (ConfigurationOptionProvider options : ServiceLoader.load(ConfigurationOptionProvider.class)) {
             builder.addOptionProvider(spy(options));
         }
-        return builder.build();
+        return builder
+            .addConfigSource(SimpleSource.forTest("service_name", "elastic-apm-test"))
+            .build();
     }
 }

@@ -6,8 +6,12 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
+    public static final String ACTIVE = "active";
+    public static final String INSTRUMENT = "instrument";
+    public static final String SERVICE_NAME = "service_name";
+    public static final String SAMPLE_RATE = "sample_rate";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
-        .key("active")
+        .key(ACTIVE)
         .description("A boolean specifying if the agent should be active or not. " +
             "If active, the agent will instrument incoming HTTP requests and track errors.\n" +
             "\n" +
@@ -16,7 +20,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> instrument = ConfigurationOption.booleanOption()
-        .key("instrument")
+        .key(INSTRUMENT)
         .description("A boolean specifying if the agent should instrument the application to collect performance metrics for the app. " +
             "When set to false, Elastic APM will not affect your application at all.\n" +
             "\n" +
@@ -24,7 +28,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
-        .key("service_name")
+        .key(SERVICE_NAME)
         .label("The name of your service")
         .description("This is used to keep all the errors and transactions of your service together and is the primary filter in the" +
             "Elastic APM user interface.\n" +
@@ -48,7 +52,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .build();
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
-        .key("sample_rate")
+        .key(SAMPLE_RATE)
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
             "We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.")

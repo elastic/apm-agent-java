@@ -33,6 +33,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
 import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
+import org.stagemonitor.configuration.source.SimpleSource;
 import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
 import javax.annotation.Nullable;
@@ -281,12 +282,7 @@ public class ElasticApmTracer implements Tracer {
 
         public ElasticApmTracer build() {
             if (configurationRegistry == null) {
-                configurationRegistry = ConfigurationRegistry.builder()
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm"))
-                    .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM"))
-                    .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
-                    .build();
+                configurationRegistry = getDefaultConfigurationRegistry();
             }
             if (reporter == null) {
                 reporter = createReporter(configurationRegistry.getConfig(CoreConfiguration.class),
@@ -298,6 +294,28 @@ public class ElasticApmTracer implements Tracer {
                 stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
             }
             return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory);
+        }
+
+        private ConfigurationRegistry getDefaultConfigurationRegistry() {
+            try {
+                return ConfigurationRegistry.builder()
+                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm"))
+                    .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
+                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM"))
+                    .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
+                    .failOnMissingRequiredValues(true)
+                    .build();
+            } catch (IllegalStateException e) {
+                logger.warn(e.getMessage());
+                return ConfigurationRegistry.builder()
+                    .addConfigSource(new SimpleSource("Noop Configuration")
+                        .add(CoreConfiguration.ACTIVE, "false")
+                        .add(CoreConfiguration.INSTRUMENT, "false")
+                        .add(CoreConfiguration.SERVICE_NAME, "none")
+                        .add(CoreConfiguration.SAMPLE_RATE, "0"))
+                    .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
+                    .build();
+            }
         }
 
         private Reporter createReporter(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration,
