@@ -1,5 +1,7 @@
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * This class can be used to statically access the {@link Tracer}.
  * <p>
@@ -36,6 +38,7 @@ public class ElasticApm implements Tracer {
      *
      * @return the tracer implementation (never <code>null</code>)
      */
+    @Nonnull
     public static Tracer get() {
         return INSTANCE;
     }
@@ -77,6 +80,7 @@ public class ElasticApm implements Tracer {
     }
 
     @Override
+    @Nonnull
     public Transaction startTransaction() {
         return tracer.startTransaction();
     }
@@ -90,6 +94,7 @@ public class ElasticApm implements Tracer {
      * @return The currently running transaction, or a noop transaction (never <code>null</code>).
      */
     @Override
+    @Nonnull
     public Transaction currentTransaction() {
         Transaction transaction = tracer.currentTransaction();
         return transaction != null ? transaction : NoopTracer.NoopTransaction.INSTANCE;
@@ -104,12 +109,14 @@ public class ElasticApm implements Tracer {
      * @return The currently running span, or a noop span (never <code>null</code>).
      */
     @Override
+    @Nonnull
     public Span currentSpan() {
         Span span = tracer.currentSpan();
         return span != null ? span : NoopTracer.NoopSpan.INSTANCE;
     }
 
     @Override
+    @Nonnull
     public Span startSpan() {
         return tracer.startSpan();
     }

@@ -1,5 +1,8 @@
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 public interface Tracer {
 
     /**
@@ -17,6 +20,7 @@ public interface Tracer {
      *
      * @return the started transaction
      */
+    @Nonnull
     Transaction startTransaction();
 
     /**
@@ -24,9 +28,12 @@ public interface Tracer {
      *
      * @return the currently active transaction
      */
+    @Nullable
     Transaction currentTransaction();
 
+    @Nullable
     Span currentSpan();
 
+    @Nonnull
     Span startSpan();
 }
