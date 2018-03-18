@@ -17,7 +17,6 @@ import java.util.List;
  * <p>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-// TODO: make immutable
 public class ProcessInfo {
 
     /**

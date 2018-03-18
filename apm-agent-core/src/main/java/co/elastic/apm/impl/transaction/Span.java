@@ -29,16 +29,14 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      */
     @JsonProperty("stacktrace")
     private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
-
-    @Nullable
-    private transient ElasticApmTracer tracer;
-    private transient boolean sampled;
-
     /**
      * The locally unique ID of the span.
      */
     @JsonProperty("id")
     private final SpanId id = new SpanId();
+    @Nullable
+    private transient ElasticApmTracer tracer;
+    private transient boolean sampled;
     /**
      * Duration of the span in milliseconds
      * (Required)
@@ -78,8 +76,10 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
             this.parent.copyFrom(span.getId());
         }
         this.sampled = transaction.isSampled() && !dropped;
-        start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
-        duration = nanoTime;
+        if (sampled) {
+            start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
+            duration = nanoTime;
+        }
         return this;
     }
 

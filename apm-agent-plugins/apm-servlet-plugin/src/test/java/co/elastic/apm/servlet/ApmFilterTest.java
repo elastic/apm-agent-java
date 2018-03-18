@@ -1,6 +1,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.MockReporter;
+import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -11,14 +12,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
-import org.stagemonitor.configuration.ConfigurationRegistry;
-import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.ServiceLoader;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
@@ -32,10 +29,7 @@ class ApmFilterTest {
     void setUp() {
         reporter = new MockReporter();
         ElasticApmTracer tracer = ElasticApmTracer.builder()
-            .configurationRegistry(ConfigurationRegistry.builder()
-                .addConfigSource(new SimpleSource())
-                .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
-                .build())
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .build();
         apmFilter = new ApmFilter(tracer);

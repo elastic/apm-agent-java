@@ -12,21 +12,23 @@ import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
 
     private ElasticApmTracer tracerImpl;
     private MockReporter reporter;
+    private ConfigurationRegistry config;
 
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
         tracerImpl = ElasticApmTracer.builder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
             .build();
     }
@@ -54,13 +56,6 @@ class ElasticApmTracerTest {
             assertThat(transaction).isInstanceOf(Transaction.class);
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-    }
-
-    @Test
-    void testRegisterTwiceTriggersAssertionError() {
-        tracerImpl.register();
-        assertThatThrownBy(() -> tracerImpl.register())
-            .isInstanceOf(AssertionError.class);
     }
 
     @Test
@@ -155,5 +150,49 @@ class ElasticApmTracerTest {
             assertThat(transaction.getSpans()).hasSize(1);
             assertThat(transaction.getSpanCount().getDropped().getTotal()).isEqualTo(1);
         }
+    }
+
+    @Test
+    void testDisable() {
+        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            assertThat(transaction.isSampled()).isFalse();
+            try (Span span = tracerImpl.startSpan()) {
+                assertThat(tracerImpl.currentSpan()).isSameAs(span);
+                assertThat(transaction.getSpans()).isEmpty();
+                assertThat(span.isSampled()).isFalse();
+            }
+            assertThat(tracerImpl.currentSpan()).isNull();
+        }
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
+    @Test
+    void testDisableMidTransaction() {
+        Transaction transaction = tracerImpl.startTransaction();
+        try (transaction) {
+            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            try (Span span = tracerImpl.startSpan()) {
+                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+                span.withName("test");
+                assertThat(span.getName()).isEqualTo("test");
+                assertThat(tracerImpl.currentSpan()).isSameAs(span);
+                assertThat(transaction.getSpans()).containsExactly(span);
+            }
+            try (Span span = tracerImpl.startSpan()) {
+                when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+                span.withName("test2");
+                assertThat(span.getName()).isEqualTo("test2");
+                assertThat(tracerImpl.currentSpan()).isSameAs(span);
+                assertThat(transaction.getSpans()).contains(span);
+            }
+            assertThat(tracerImpl.currentSpan()).isNull();
+        }
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        assertThat(transaction.getSpans()).hasSize(2);
+        assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
+
     }
 }

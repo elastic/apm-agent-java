@@ -48,8 +48,7 @@ import java.util.concurrent.TimeUnit;
 public class ElasticApmTracer implements Tracer {
     public static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
-    @Nullable
-    private static ElasticApmTracer instance;
+    private static ElasticApmTracer instance = ElasticApmTracer.builder().build().register();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -62,6 +61,8 @@ public class ElasticApmTracer implements Tracer {
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final CoreConfiguration coreConfiguration;
+    private final Transaction noopTransaction;
+    private final Span noopSpan;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
@@ -97,6 +98,9 @@ public class ElasticApmTracer implements Tracer {
             }
         });
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        noopTransaction = new Transaction().withName("noop").withType("noop").start(this, 0, false);
+        noopSpan = new Span().withName("noop").withType("noop").start(this, noopTransaction, null, 0, true);
+
     }
 
     public static Builder builder() {
@@ -104,10 +108,6 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public static ElasticApmTracer get() {
-        if (instance == null) {
-            // TODO init with noop tracer, instance should never be null
-            throw new IllegalStateException("Tracer instance was null");
-        }
         return instance;
     }
 
@@ -119,31 +119,23 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
-    private static boolean isRegistered() {
-        return instance != null;
-    }
-
     /**
      * Statically registers this instance so that it can be obtained via {@link ElasticApmTracer#get()} and {@link ElasticApm#get()}
      */
-    public ElasticApmTracer register() {
-        synchronized (ElasticApmTracer.class) {
-            if (isRegistered()) {
-                // throwing an exception would be too harsh as we don't want to crash applications running in production
-                // by using an assert, we can verify this invariant in tests
-                logger.error("ElasticApmTracer.register has already been called");
-                assert false;
-            } else {
-                instance = this;
-                TracerRegisterer.register(instance);
-            }
-            return this;
-        }
+    ElasticApmTracer register() {
+        instance = this;
+        TracerRegisterer.register(instance);
+        return this;
     }
 
     @Override
     public Transaction startTransaction() {
-        Transaction transaction = transactionPool.createInstance().start(this, System.nanoTime(), true);
+        Transaction transaction;
+        if (!coreConfiguration.isActive()) {
+            transaction = noopTransaction;
+        } else {
+            transaction = transactionPool.createInstance().start(this, System.nanoTime(), true);
+        }
         currentTransaction.set(transaction);
         return transaction;
     }
@@ -161,18 +153,35 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
-        Span span = spanPool.createInstance();
-        final boolean dropped;
-        if (coreConfiguration.getTransactionMaxSpans() > transaction.getSpans().size()) {
-            dropped = false;
-            transaction.addSpan(span);
+        final Span span;
+        // makes sure that the active setting is consistent during a transaction
+        // even when setting active=false mid-transaction
+        if (isNoop(transaction)) {
+            span = noopSpan;
         } else {
-            dropped = true;
-            transaction.getSpanCount().getDropped().increment();
+            span = createRealSpan(transaction);
         }
-        span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
         currentSpan.set(span);
         return span;
+    }
+
+    private Span createRealSpan(Transaction transaction) {
+        Span span;
+        span = spanPool.createInstance();
+        final boolean dropped;
+        if (isTransactionSpanLimitReached(transaction)) {
+            dropped = true;
+            transaction.getSpanCount().getDropped().increment();
+        } else {
+            dropped = false;
+            transaction.addSpan(span);
+        }
+        span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
+        return span;
+    }
+
+    private boolean isTransactionSpanLimitReached(Transaction transaction) {
+        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpans().size();
     }
 
     public void captureException(Exception e) {
@@ -198,10 +207,14 @@ public class ElasticApmTracer implements Tracer {
         if (currentTransaction.get() != transaction) {
             logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
             assert false;
-            return;
+        } else if (!isNoop(transaction)) {
+            reporter.report(transaction);
         }
         currentTransaction.clear();
-        reporter.report(transaction);
+    }
+
+    private boolean isNoop(Transaction transaction) {
+        return transaction == noopTransaction;
     }
 
     @SuppressWarnings("ReferenceEquality")
@@ -212,7 +225,7 @@ public class ElasticApmTracer implements Tracer {
             return;
         }
         int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
-        if (spanFramesMinDurationMs != 0) {
+        if (spanFramesMinDurationMs != 0 && !isNoop(span)) {
             if (span.getDuration() >= spanFramesMinDurationMs) {
                 stacktraceFactory.fillStackTrace(span.getStacktrace());
             }
@@ -220,14 +233,22 @@ public class ElasticApmTracer implements Tracer {
         currentSpan.clear();
     }
 
+    private boolean isNoop(Span span) {
+        return span == noopSpan;
+    }
+
     public void recycle(Transaction transaction) {
         for (Span span : transaction.getSpans()) {
-            for (Stacktrace st : span.getStacktrace()) {
-                stackTracePool.recycle(st);
-            }
-            spanPool.recycle(span);
+            recycle(span);
         }
         transactionPool.recycle(transaction);
+    }
+
+    private void recycle(Span span) {
+        for (Stacktrace st : span.getStacktrace()) {
+            stackTracePool.recycle(st);
+        }
+        spanPool.recycle(span);
     }
 
     public void recycle(ErrorCapture error) {

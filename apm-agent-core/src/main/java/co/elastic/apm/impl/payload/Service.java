@@ -13,7 +13,6 @@ import javax.annotation.Nullable;
  * Information about the instrumented Service
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-// TODO reduce usage of @Nullable
 public class Service {
 
     /**

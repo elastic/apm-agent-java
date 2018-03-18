@@ -47,6 +47,12 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     private final Map<String, Object> marks = new HashMap<>();
     @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
+    /**
+     * UUID for the transaction, referred by its spans
+     * (Required)
+     */
+    @JsonProperty("id")
+    private final TransactionId id = new TransactionId();
     @Nullable
     private transient ElasticApmTracer tracer;
     /**
@@ -55,12 +61,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      */
     @JsonProperty("duration")
     private double duration;
-    /**
-     * UUID for the transaction, referred by its spans
-     * (Required)
-     */
-    @JsonProperty("id")
-    private final TransactionId id = new TransactionId();
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
@@ -279,7 +279,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     public SpanCount getSpanCount() {
         return spanCount;
     }
-
 
     @Override
     public String toString() {
