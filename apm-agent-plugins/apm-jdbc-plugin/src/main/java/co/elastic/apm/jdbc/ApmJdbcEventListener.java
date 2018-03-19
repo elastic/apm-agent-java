@@ -2,6 +2,7 @@ package co.elastic.apm.jdbc;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.Transaction;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.common.StatementInformation;
 import com.p6spy.engine.event.SimpleJdbcEventListener;
@@ -50,7 +51,7 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
 
     @Override
     public void onBeforeAnyExecute(StatementInformation statementInformation) {
-        if (elasticApmTracer.currentTransaction() == null) {
+        if (isNoop(elasticApmTracer.currentTransaction())) {
             return;
         }
         Span span = elasticApmTracer.startSpan();
@@ -65,6 +66,10 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         } catch (SQLException e) {
             logger.warn("Ignored exception", e);
         }
+    }
+
+    private boolean isNoop(Transaction transaction) {
+        return transaction == null || !transaction.isSampled();
     }
 
     String getDbVendor(String url) {
@@ -85,6 +90,9 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
 
     @Override
     public void onAfterAnyExecute(StatementInformation statementInformation, long timeElapsedNanos, SQLException e) {
+        if (isNoop(elasticApmTracer.currentTransaction())) {
+            return;
+        }
         Span span = elasticApmTracer.currentSpan();
         if (span != null) {
             span.end();
