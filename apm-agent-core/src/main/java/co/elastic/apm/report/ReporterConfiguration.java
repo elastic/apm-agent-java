@@ -66,7 +66,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return serverTimeout.get();
     }
 
-    public boolean getVerifyServerCert() {
+    public boolean isVerifyServerCert() {
         return verifyServerCert.get();
     }
 

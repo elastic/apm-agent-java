@@ -6,9 +6,6 @@ import co.elastic.apm.api.TracerRegisterer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.ProcessFactory;
-import co.elastic.apm.impl.payload.ServiceFactory;
-import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
@@ -18,15 +15,10 @@ import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
-import co.elastic.apm.report.ApmServerHttpPayloadSender;
-import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
+import co.elastic.apm.report.ReporterFactory;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
-import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -285,7 +277,7 @@ public class ElasticApmTracer implements Tracer {
                 configurationRegistry = getDefaultConfigurationRegistry();
             }
             if (reporter == null) {
-                reporter = createReporter(configurationRegistry.getConfig(CoreConfiguration.class),
+                reporter = new ReporterFactory().createReporter(configurationRegistry.getConfig(CoreConfiguration.class),
                     configurationRegistry.getConfig(ReporterConfiguration.class),
                     null, null);
             }
@@ -318,17 +310,6 @@ public class ElasticApmTracer implements Tracer {
             }
         }
 
-        private Reporter createReporter(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration,
-                                        @Nullable String frameworkName, @Nullable String frameworkVersion) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.registerModule(new AfterburnerModule());
-            return new ApmServerReporter(
-                new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion),
-                ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
-                SystemInfo.create(),
-                new ApmServerHttpPayloadSender(new OkHttpClient.Builder()
-                    .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS)
-                    .build(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true, reporterConfiguration);
-        }
     }
+
 }
