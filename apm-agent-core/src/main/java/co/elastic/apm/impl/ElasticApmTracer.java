@@ -199,7 +199,7 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(error);
     }
 
-    public <T extends ConfigurationOptionProvider> T getPlugin(Class<T> pluginClass) {
+    public <T extends ConfigurationOptionProvider> T getConfig(Class<T> pluginClass) {
         return configurationRegistry.getConfig(pluginClass);
     }
 

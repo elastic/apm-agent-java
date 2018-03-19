@@ -1,5 +1,6 @@
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
@@ -11,11 +12,13 @@ import javax.annotation.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -24,6 +27,7 @@ import java.util.Map;
 public class ApmFilter implements Filter {
 
     private final ElasticApmTracer tracer;
+    private final CoreConfiguration config;
 
     public ApmFilter() {
         this(ElasticApmTracer.get());
@@ -31,6 +35,7 @@ public class ApmFilter implements Filter {
 
     public ApmFilter(ElasticApmTracer tracer) {
         this.tracer = tracer;
+        this.config = tracer.getConfig(CoreConfiguration.class);
     }
 
     @Override
@@ -38,15 +43,24 @@ public class ApmFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+        if (config.isActive()) {
+            captureTransaction(request, response, filterChain);
+        } else {
+            filterChain.doFilter(request, response);
+        }
+    }
+
+    void captureTransaction(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
             final Transaction transaction = tracer.startTransaction();
             try {
                 filterChain.doFilter(request, response);
                 fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
-            } catch (Exception e) {
+            } catch (IOException | RuntimeException | ServletException e) {
                 tracer.captureException(e);
+                throw e;
             } finally {
                 transaction.end();
             }

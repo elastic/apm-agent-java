@@ -1,6 +1,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.MockReporter;
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
@@ -12,24 +13,36 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ApmFilterTest {
 
     private ApmFilter apmFilter;
     private MockReporter reporter;
+    private ConfigurationRegistry config;
 
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
         ElasticApmTracer tracer = ElasticApmTracer.builder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
             .build();
         apmFilter = new ApmFilter(tracer);
@@ -39,6 +52,15 @@ class ApmFilterTest {
     void testEndsTransaction() throws IOException, ServletException {
         apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain());
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testDisabled() throws IOException, ServletException {
+        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        apmFilter = spy(apmFilter);
+        apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(0);
+        verify(apmFilter, never()).captureTransaction(any(), any(), any());
     }
 
     @Test
@@ -82,8 +104,20 @@ class ApmFilterTest {
 
         apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
-        PotentiallyMultiValuedMap<String, String> params = (PotentiallyMultiValuedMap<String, String>) reporter.getFirstTransaction().getContext().getRequest().getBody();
+        PotentiallyMultiValuedMap<String, String> params = (PotentiallyMultiValuedMap<String, String>) reporter.getFirstTransaction()
+            .getContext().getRequest().getBody();
         assertThat(params.get("foo")).isEqualTo("bar");
         assertThat(params.get("baz")).isEqualTo(Arrays.asList("qux", "quux"));
+    }
+
+    @Test
+    void captureException() throws IOException, ServletException {
+        final Servlet servlet = mock(Servlet.class);
+        doThrow(new ServletException("Bazinga")).when(servlet).service(any(), any());
+        assertThatThrownBy(() -> apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain(servlet)))
+            .isInstanceOf(ServletException.class);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Bazinga");
     }
 }

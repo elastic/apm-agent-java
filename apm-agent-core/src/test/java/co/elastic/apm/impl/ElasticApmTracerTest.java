@@ -73,7 +73,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktraces() {
-        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0);
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
             }
@@ -83,7 +83,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktraces() throws InterruptedException {
-        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1);
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
@@ -94,7 +94,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testDisableStacktracesForFastSpans() {
-        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(100);
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
             }
@@ -104,7 +104,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableStacktracesForSlowSpans() throws InterruptedException {
-        when(tracerImpl.getPlugin(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1);
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(1);
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
@@ -138,7 +138,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testEnableDropSpans() {
-        when(tracerImpl.getPlugin(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
+        when(tracerImpl.getConfig(CoreConfiguration.class).getTransactionMaxSpans()).thenReturn(1);
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(span.isSampled()).isTrue();
