@@ -9,6 +9,7 @@ import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +29,7 @@ class ApmServerReporterIntegrationTest {
     private static Undertow server;
     private static int port;
     private static AtomicInteger receivedHttpRequests = new AtomicInteger();
+    private static HttpHandler handler;
     private ApmServerHttpPayloadSender payloadSender;
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
@@ -37,8 +39,9 @@ class ApmServerReporterIntegrationTest {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
             .setHandler(exchange -> {
-                receivedHttpRequests.incrementAndGet();
-                exchange.setStatusCode(200).endExchange();
+                if (handler != null) {
+                    handler.handleRequest(exchange);
+                }
             }).build();
         server.start();
         port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
@@ -51,6 +54,10 @@ class ApmServerReporterIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        handler = exchange -> {
+            receivedHttpRequests.incrementAndGet();
+            exchange.setStatusCode(200).endExchange();
+        };
         receivedHttpRequests.set(0);
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new AfterburnerModule());
@@ -64,6 +71,20 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
+        reporter.report(new Transaction());
+        reporter.flush().get();
+        assertThat(reporter.getDropped()).isEqualTo(0);
+        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+    }
+
+    @Test
+    void testSecretToken() throws ExecutionException, InterruptedException {
+        when(reporterConfiguration.getSecretToken()).thenReturn("token");
+        handler = exchange -> {
+            assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
+            receivedHttpRequests.incrementAndGet();
+            exchange.setStatusCode(200).endExchange();
+        };
         reporter.report(new Transaction());
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);

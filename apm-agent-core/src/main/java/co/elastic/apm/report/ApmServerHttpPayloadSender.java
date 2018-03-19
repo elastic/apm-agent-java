@@ -42,10 +42,16 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         } else {
             path = "/v1/transactions";
         }
-        Request request = new Request.Builder()
+        final Request.Builder builder = new Request.Builder()
             .url(reporterConfiguration.getServerUrl() + path)
-            .header("Content-Encoding", "gzip")
-            .header("User-Agent", getUserAgent(payload))
+            .header("User-Agent", getUserAgent(payload));
+        if (reporterConfiguration.getSecretToken() != null) {
+            builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+        }
+        if (useGzip(payload)) {
+            builder.header("User-Agent", getUserAgent(payload));
+        }
+        Request request = builder
             .post(new RequestBody() {
                 @Override
                 public MediaType contentType() {
