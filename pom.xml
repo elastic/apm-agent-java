@@ -175,6 +175,7 @@
                 <version>2.19.1</version>
                 <configuration>
                     <enableAssertions>true</enableAssertions>
+                    <trimStackTrace>false</trimStackTrace>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -194,6 +195,20 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
