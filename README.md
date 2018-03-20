@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/elastic/apm-agent-java.svg?branch=master)](https://travis-ci.org/elastic/apm-agent-java)
+[![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
+
 # apm-agent-java
 
 This agent is in pre-alpha state and under heavy development. Do not deploy into production! 
