@@ -6,6 +6,9 @@ import co.elastic.apm.api.TracerRegisterer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.sampling.ConstantSampler;
+import co.elastic.apm.impl.sampling.ProbabilitySampler;
+import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
@@ -21,6 +24,7 @@ import co.elastic.apm.report.ReporterFactory;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
@@ -28,6 +32,7 @@ import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
 import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +61,7 @@ public class ElasticApmTracer implements Tracer {
     private final CoreConfiguration coreConfiguration;
     private final Transaction noopTransaction;
     private final Span noopSpan;
+    private Sampler sampler;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
         this.configurationRegistry = configurationRegistry;
@@ -91,9 +97,15 @@ public class ElasticApmTracer implements Tracer {
             }
         });
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        noopTransaction = new Transaction().withName("noop").withType("noop").start(this, 0, false);
+        noopTransaction = new Transaction().withName("noop").withType("noop").start(this, 0, ConstantSampler.of(false));
         noopSpan = new Span().withName("noop").withType("noop").start(this, noopTransaction, null, 0, true);
-
+        sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
+        coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, Double oldValue, Double newValue) {
+                sampler = ProbabilitySampler.of(newValue);
+            }
+        });
     }
 
     public static Builder builder() {
@@ -121,13 +133,14 @@ public class ElasticApmTracer implements Tracer {
         return this;
     }
 
+    @Nonnull
     @Override
     public Transaction startTransaction() {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction;
         } else {
-            transaction = transactionPool.createInstance().start(this, System.nanoTime(), true);
+            transaction = transactionPool.createInstance().start(this, System.nanoTime(), sampler);
         }
         currentTransaction.set(transaction);
         return transaction;
@@ -143,6 +156,7 @@ public class ElasticApmTracer implements Tracer {
         return currentSpan.get();
     }
 
+    @Nonnull
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
@@ -167,7 +181,6 @@ public class ElasticApmTracer implements Tracer {
             transaction.getSpanCount().getDropped().increment();
         } else {
             dropped = false;
-            transaction.addSpan(span);
         }
         span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
         return span;

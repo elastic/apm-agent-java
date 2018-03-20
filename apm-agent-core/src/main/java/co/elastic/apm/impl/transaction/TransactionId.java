@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
@@ -27,6 +28,10 @@ public class TransactionId implements Recyclable {
 
     public void setToRandomValue(Random random) {
         random.nextBytes(data);
+    }
+
+    public void setValue(long mostSignificantBits, long leastSignificantBits) {
+        ByteBuffer.wrap(data).putLong(mostSignificantBits).putLong(leastSignificantBits);
     }
 
     @Override
