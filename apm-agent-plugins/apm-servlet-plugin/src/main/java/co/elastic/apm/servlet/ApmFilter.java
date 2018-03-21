@@ -74,14 +74,9 @@ public class ApmFilter implements Filter {
         fillResponse(context.getResponse(), httpServletResponse);
         fillUser(context.getUser(), httpServletRequest);
 
-        // TODO can this be set by apm-server when there is no explicit name set?
-        transaction.withName(httpServletRequest.getRequestURI());
+        transaction.withName(httpServletRequest.getMethod());
         transaction.withResult(getResult(httpServletResponse.getStatus()));
         transaction.withType("request");
-    }
-
-    private String getRequestNameByRequest(HttpServletRequest request) {
-        return request.getMethod() + " " + removeSemicolonContent(request.getRequestURI().substring(request.getContextPath().length()));
     }
 
     @Nullable
@@ -102,20 +97,6 @@ public class ApmFilter implements Filter {
             return "HTTP 1xx";
         }
         return null;
-    }
-
-    /*
-     * copy of org.springframework.web.util.UrlPathHelper#removeSemicolonContentInternal
-     */
-    private String removeSemicolonContent(String requestUri) {
-        int semicolonIndex = requestUri.indexOf(';');
-        while (semicolonIndex != -1) {
-            int slashIndex = requestUri.indexOf('/', semicolonIndex);
-            String start = requestUri.substring(0, semicolonIndex);
-            requestUri = (slashIndex != -1) ? start + requestUri.substring(slashIndex) : start;
-            semicolonIndex = requestUri.indexOf(';', semicolonIndex);
-        }
-        return requestUri;
     }
 
     private void fillUser(User user, HttpServletRequest httpServletRequest) {
