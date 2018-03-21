@@ -5,6 +5,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
+import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.transaction.Transaction;
 
@@ -152,9 +153,8 @@ public class ApmFilter implements Filter {
             .withPort(getPortAsString(httpServletRequest))
             .withPathname(httpServletRequest.getRequestURI())
             .withSearch(httpServletRequest.getQueryString());
-        // TODO can this be filled by apm-server?
-        //.withFull(getFullURL(httpServletRequest))
-        //.withRaw(getRawURL(httpServletRequest));
+
+        fillFullUrl(httpServletRequest, request.getUrl());
     }
 
     private void fillHeaders(HttpServletRequest servletRequest, Request request) {
@@ -165,25 +165,15 @@ public class ApmFilter implements Filter {
         }
     }
 
-    private String getRawURL(final HttpServletRequest request) {
-        final String requestURI = request.getRequestURI();
-        final String queryString = request.getQueryString();
-
-        if (queryString == null) {
-            return requestURI;
+    private void fillFullUrl(final HttpServletRequest request, Url url) {
+        // using a StringBuilder to avoid allocations when constructing the full URL
+        final StringBuilder fullUrl = url.getFull();
+        if (request.getQueryString() != null) {
+            fullUrl.ensureCapacity(request.getRequestURL().length() + 1 + request.getQueryString().length());
+            fullUrl.append(request.getRequestURL()).append('?').append(request.getQueryString());
         } else {
-            return requestURI + '?' + queryString;
-        }
-    }
-
-    public String getFullURL(final HttpServletRequest request) {
-        final StringBuffer requestURL = request.getRequestURL();
-        final String queryString = request.getQueryString();
-
-        if (queryString == null) {
-            return requestURL.toString();
-        } else {
-            return requestURL.append('?').append(queryString).toString();
+            fullUrl.ensureCapacity(request.getRequestURL().length());
+            fullUrl.append(request.getRequestURL());
         }
     }
 
