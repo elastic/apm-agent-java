@@ -10,7 +10,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")
         .description("This string is used to ensure that only your agents can send data to your APM server.\n\n" +
-            "Both the agents and the APM server have to be configured with the same secret token.")
+            "Both the agents and the APM server have to be configured with the same secret token." +
+            "Use if APM Server requires a token.")
         .sensitive()
         .build();
 
