@@ -73,6 +73,8 @@ class ApmFilterTest {
         assertThat(url.getSearch()).isEqualTo("foo=bar");
         assertThat(url.getPort()).isEqualTo("80");
         assertThat(url.getHostname()).isEqualTo("localhost");
+        assertThat(url.getPathname()).isEqualTo("/foo/bar");
+        assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");
     }
 
     @Test

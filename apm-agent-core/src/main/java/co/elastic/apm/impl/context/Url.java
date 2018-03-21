@@ -17,23 +17,16 @@ import javax.annotation.Nullable;
 public class Url implements Recyclable {
 
     /**
-     * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
+     * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @Nullable
-    @JsonProperty("raw")
-    private String raw;
+    @JsonProperty("full")
+    private final StringBuilder full = new StringBuilder();
     /**
      * The protocol of the request, e.g. 'https:'.
      */
     @Nullable
     @JsonProperty("protocol")
     private String protocol;
-    /**
-     * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
-     */
-    @Nullable
-    @JsonProperty("full")
-    private String full;
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
@@ -60,23 +53,6 @@ public class Url implements Recyclable {
     private String search;
 
     /**
-     * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
-     */
-    @Nullable
-    @JsonProperty("raw")
-    public String getRaw() {
-        return raw;
-    }
-
-    /**
-     * The raw, unparsed URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
-     */
-    public Url withRaw(@Nullable String raw) {
-        this.raw = raw;
-        return this;
-    }
-
-    /**
      * The protocol of the request, e.g. 'https:'.
      */
     @Nullable
@@ -96,17 +72,13 @@ public class Url implements Recyclable {
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @Nullable
     @JsonProperty("full")
-    public String getFull() {
+    public StringBuilder getFull() {
         return full;
     }
 
-    /**
-     * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
-     */
-    public Url withFull(@Nullable String full) {
-        this.full = full;
+    public Url appendToFull(CharSequence charSequence) {
+        full.append(charSequence);
         return this;
     }
 
@@ -181,7 +153,6 @@ public class Url implements Recyclable {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-            .append("raw", raw)
             .append("protocol", protocol)
             .append("full", full)
             .append("hostname", hostname)
@@ -197,7 +168,6 @@ public class Url implements Recyclable {
             .append(hostname)
             .append(search)
             .append(port)
-            .append(raw)
             .append(full)
             .append(pathname).toHashCode();
     }
@@ -216,16 +186,14 @@ public class Url implements Recyclable {
             .append(hostname, rhs.hostname)
             .append(search, rhs.search)
             .append(port, rhs.port)
-            .append(raw, rhs.raw)
-            .append(full, rhs.full)
+            .append(full.toString(), rhs.full.toString())
             .append(pathname, rhs.pathname).isEquals();
     }
 
     @Override
     public void resetState() {
-        raw = null;
         protocol = null;
-        full = null;
+        full.setLength(0);
         hostname = null;
         port = null;
         pathname = null;
@@ -233,9 +201,8 @@ public class Url implements Recyclable {
     }
 
     public void copyFrom(Url other) {
-        this.raw = other.raw;
         this.protocol = other.protocol;
-        this.full = other.full;
+        this.full.append(other.full);
         this.hostname = other.hostname;
         this.port = other.port;
         this.pathname = other.pathname;

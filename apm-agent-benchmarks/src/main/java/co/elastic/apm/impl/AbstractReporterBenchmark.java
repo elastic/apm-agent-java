@@ -88,12 +88,11 @@ public abstract class AbstractReporterBenchmark {
         request.withRawBody("Hello World");
         request.getUrl()
             .withProtocol("https")
-            .withFull("https://www.example.com/p/a/t/h?query=string#hash")
+            .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")
             .withHostname("www.example.com")
             .withPort("8080")
             .withPathname("/p/a/t/h")
-            .withSearch("?query=string")
-            .withRaw("/p/a/t/h?query=string)");
+            .withSearch("?query=string");
         request.getSocket()
             .withEncrypted(true)
             .withRemoteAddress("12.53.12.1");
