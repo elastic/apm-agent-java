@@ -2,6 +2,30 @@ package co.elastic.apm.impl.sampling;
 
 import co.elastic.apm.impl.transaction.TransactionId;
 
+/**
+ * This implementation of {@link Sampler} samples based on a sampling probability (or sampling rate) between 0.0 and 1.0.
+ * <p>
+ * A sampling rate of 0.5 means that 50% of all transactions should be {@linkplain Sampler sampled}.
+ * </p>
+ * <p>
+ * Implementation notes:
+ * </p>
+ * <p>
+ * We are taking advantage of the fact, that the {@link TransactionId} is randomly generated.
+ * So instead of generating another random number,
+ * we just see if the long value returned by {@link TransactionId#getMostSignificantBits()}
+ * falls into the range between the <code>lowerBound</code> and the <code>higherBound</code>.
+ * This is a visual representation of the mechanism with a sampling rate of 0.5 (=50%):
+ * <pre>
+ * Long.MIN_VALUE        0                     Long.MAX_VALUE
+ * v                     v                     v
+ * [----------[----------|----------]----------]
+ *            ^                     ^
+ *            lowerBound            higherBound = Long.MAX_VALUE * samplingRate
+ *            = Long.MAX_VALUE * samplingRate * -1
+ * </pre>
+ * </p>
+ */
 public class ProbabilitySampler implements Sampler {
 
     private final long lowerBound;

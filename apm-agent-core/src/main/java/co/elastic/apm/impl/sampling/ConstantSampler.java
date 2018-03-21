@@ -2,6 +2,9 @@ package co.elastic.apm.impl.sampling;
 
 import co.elastic.apm.impl.transaction.TransactionId;
 
+/**
+ * This is a implementation of {@link Sampler} which always returns the same sampling decision.
+ */
 public class ConstantSampler implements Sampler {
 
     private static final Sampler TRUE = new ConstantSampler(true);
@@ -22,7 +25,6 @@ public class ConstantSampler implements Sampler {
     }
 
     @Override
-
     public boolean isSampled(TransactionId transactionId) {
         return decision;
     }
