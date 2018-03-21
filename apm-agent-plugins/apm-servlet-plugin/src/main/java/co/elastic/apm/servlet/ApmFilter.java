@@ -143,8 +143,7 @@ public class ApmFilter implements Filter {
 
         request.getSocket()
             .withEncrypted(httpServletRequest.isSecure())
-            // TODO reverse proxies? x-request-for
-            .withRemoteAddress(httpServletRequest.getRemoteAddr());
+            .withRemoteAddress(ClientIpUtils.getRealIp(httpServletRequest));
 
         request.getUrl()
             .withProtocol(httpServletRequest.getScheme())
