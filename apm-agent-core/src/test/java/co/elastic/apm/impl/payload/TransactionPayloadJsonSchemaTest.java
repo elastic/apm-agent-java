@@ -1,6 +1,7 @@
 package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +36,7 @@ class TransactionPayloadJsonSchemaTest {
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction();
-        t.start(mock(ElasticApmTracer.class), 0, true);
+        t.start(mock(ElasticApmTracer.class), 0, ConstantSampler.of(true));
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
         Span s = new Span();

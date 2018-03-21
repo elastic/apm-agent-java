@@ -57,6 +57,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
             "We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.")
         .dynamic(true)
+        .addValidator(new ConfigurationOption.Validator<Double>() {
+            @Override
+            public void assertValid(Double value) {
+                if (value != null) {
+                    if (value < 0 || value > 1) {
+                        throw new IllegalArgumentException("The sample rate must be between 0 and 1");
+                    }
+                }
+            }
+        })
         .buildWithDefault(1.0);
 
     private final ConfigurationOption<Integer> transactionMaxSpans = ConfigurationOption.integerOption()
@@ -87,8 +97,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return environment.get();
     }
 
-    public double getSampleRate() {
-        return sampleRate.get();
+    public ConfigurationOption<Double> getSampleRate() {
+        return sampleRate;
     }
 
     public int getTransactionMaxSpans() {

@@ -10,6 +10,8 @@ import static org.mockito.Mockito.spy;
 
 public class SpyConfiguration {
 
+    public static final String CONFIG_SOURCE_NAME = "test config source";
+
     /**
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
      * {@link org.mockito.Mockito#spy(Object)}
@@ -24,7 +26,7 @@ public class SpyConfiguration {
             builder.addOptionProvider(spy(options));
         }
         return builder
-            .addConfigSource(SimpleSource.forTest("service_name", "elastic-apm-test"))
+            .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME).add("service_name", "elastic-apm-test"))
             .build();
     }
 }

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.io.IOException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -194,5 +196,18 @@ class ElasticApmTracerTest {
         assertThat(transaction.getSpans()).hasSize(2);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
 
+    }
+
+    @Test
+    void testSamplingNone() throws IOException {
+        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            transaction.setUser("1", "jon.doe@example.com", "jondoe");
+            try (Span span = tracerImpl.startSpan()) {
+            }
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(0);
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
     }
 }

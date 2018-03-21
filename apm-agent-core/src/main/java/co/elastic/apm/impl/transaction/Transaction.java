@@ -2,6 +2,7 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -86,12 +87,12 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @JsonProperty("sampled")
     private boolean sampled;
 
-    public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, boolean sampled) {
+    public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, Sampler sampler) {
         this.tracer = tracer;
         this.duration = startTimestampNanos;
-        this.sampled = sampled;
         this.timestamp.setTime(System.currentTimeMillis());
         this.id.setToRandomValue();
+        this.sampled = sampler.isSampled(id);
         return this;
     }
 

@@ -79,6 +79,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         if (sampled) {
             start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
             duration = nanoTime;
+            transaction.addSpan(this);
         }
         return this;
     }
