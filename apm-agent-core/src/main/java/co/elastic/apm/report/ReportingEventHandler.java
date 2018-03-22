@@ -8,11 +8,11 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import com.lmax.disruptor.EventHandler;
 
-import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.ERROR;
-import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.FLUSH;
-import static co.elastic.apm.report.ApmServerReporter.ReportingEvent.ReportingEventType.TRANSACTION;
+import static co.elastic.apm.report.ReportingEvent.ReportingEventType.ERROR;
+import static co.elastic.apm.report.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.ReportingEvent.ReportingEventType.TRANSACTION;
 
-class ReportingEventHandler implements EventHandler<ApmServerReporter.ReportingEvent> {
+class ReportingEventHandler implements EventHandler<ReportingEvent> {
     private final TransactionPayload transactionPayload;
     private final ErrorPayload errorPayload;
     private final PayloadSender payloadSender;
@@ -26,19 +26,19 @@ class ReportingEventHandler implements EventHandler<ApmServerReporter.ReportingE
     }
 
     @Override
-    public void onEvent(ApmServerReporter.ReportingEvent event, long sequence, boolean endOfBatch) {
-        if (event.type == FLUSH) {
+    public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+        if (event.getType() == FLUSH) {
             flush(transactionPayload);
             flush(errorPayload);
         }
-        if (event.type == TRANSACTION) {
-            transactionPayload.getTransactions().add(event.transaction);
+        if (event.getType() == TRANSACTION) {
+            transactionPayload.getTransactions().add(event.getTransaction());
             if (transactionPayload.getTransactions().size() >= reporterConfiguration.getMaxQueueSize()) {
                 flush(transactionPayload);
             }
         }
-        if (event.type == ERROR) {
-            errorPayload.getErrors().add(event.error);
+        if (event.getType() == ERROR) {
+            errorPayload.getErrors().add(event.getError());
             // report errors immediately, except if there are multiple in the queue
             if (endOfBatch) {
                 flush(errorPayload);

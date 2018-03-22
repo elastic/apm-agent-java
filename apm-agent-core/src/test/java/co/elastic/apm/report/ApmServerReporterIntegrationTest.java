@@ -1,5 +1,6 @@
 package co.elastic.apm.report;
 
+import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
@@ -15,13 +16,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 class ApmServerReporterIntegrationTest {
@@ -61,12 +62,14 @@ class ApmServerReporterIntegrationTest {
         receivedHttpRequests.set(0);
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new AfterburnerModule());
-        reporterConfiguration = spy(new ReporterConfiguration());
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system, payloadSender, false, reporterConfiguration);
+        reporter = new ApmServerReporter(config, new Service(), new ProcessInfo("title"), system, payloadSender, false,
+            reporterConfiguration);
     }
 
     @Test

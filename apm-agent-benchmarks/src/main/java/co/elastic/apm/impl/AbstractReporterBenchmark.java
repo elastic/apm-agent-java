@@ -66,7 +66,7 @@ public abstract class AbstractReporterBenchmark {
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
         ReporterConfiguration reporterConfiguration = new ReporterConfiguration();
-        reporter = new ApmServerReporter(service, process, system, payloadSender, false, reporterConfiguration);
+        reporter = new ApmServerReporter(tracer.getConfigurationRegistry(), service, process, system, payloadSender, false, reporterConfiguration);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();

@@ -3,6 +3,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.configuration.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -99,6 +100,7 @@ class ApmFilterTest {
 
     @Test
     void testTrackPostParams() throws IOException, ServletException {
+        when(config.getConfig(WebConfiguration.class).getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");

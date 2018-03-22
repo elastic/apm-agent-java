@@ -10,6 +10,7 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -28,12 +29,13 @@ public class ReporterFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(ReporterFactory.class);
 
-    public Reporter createReporter(CoreConfiguration coreConfiguration, ReporterConfiguration reporterConfiguration,
-                                   @Nullable String frameworkName, @Nullable String frameworkVersion) {
+    public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
+                                   @Nullable String frameworkVersion) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new AfterburnerModule());
-        return new ApmServerReporter(
-            new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion),
+        final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
+        return new ApmServerReporter(configurationRegistry,
+            new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
             ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
             SystemInfo.create(),
             new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true, reporterConfiguration);
