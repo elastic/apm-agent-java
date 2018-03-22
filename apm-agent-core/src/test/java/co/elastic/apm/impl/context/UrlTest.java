@@ -15,7 +15,9 @@ class UrlTest {
 
     @Test
     void testEquals() {
+        assertThat(newUrl().hashCode()).isEqualTo(newUrl().hashCode());
         assertThat(newUrl()).isEqualTo(newUrl());
+        assertThat(newUrl().toString()).isEqualTo(newUrl().toString());
     }
 
     @Test
@@ -25,6 +27,10 @@ class UrlTest {
         copy.copyFrom(url);
         assertThat(url).isEqualTo(copy);
         assertThat(url).isNotEqualTo(new Url());
+        assertThat(url.hashCode()).isEqualTo(copy.hashCode());
+        assertThat(url.hashCode()).isNotEqualTo(new Url().hashCode());
+        assertThat(url.toString()).isEqualTo(copy.toString());
+        assertThat(url.toString()).isNotEqualTo(new Url().toString());
     }
 
     private Url newUrl() {

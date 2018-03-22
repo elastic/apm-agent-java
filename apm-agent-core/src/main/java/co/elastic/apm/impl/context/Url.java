@@ -9,6 +9,8 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 
+import static org.apache.commons.lang.builder.ToStringStyle.SIMPLE_STYLE;
+
 
 /**
  * A complete Url, with scheme, host and path.
@@ -152,7 +154,7 @@ public class Url implements Recyclable {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this)
+        return new ToStringBuilder(this, SIMPLE_STYLE)
             .append("protocol", protocol)
             .append("full", full)
             .append("hostname", hostname)
@@ -168,7 +170,7 @@ public class Url implements Recyclable {
             .append(hostname)
             .append(search)
             .append(port)
-            .append(full)
+            .append(full.toString())
             .append(pathname).toHashCode();
     }
 
