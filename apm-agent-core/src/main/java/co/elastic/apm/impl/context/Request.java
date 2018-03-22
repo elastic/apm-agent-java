@@ -68,10 +68,14 @@ public class Request implements Recyclable {
     public Object getBody() {
         if (!postParams.isEmpty()) {
             return postParams;
-        } else if (rawBody != null) {
+        } else {
             return rawBody;
         }
-        return "[REDACTED]";
+    }
+
+    public void redactBody() {
+        postParams.clear();
+        rawBody = "[REDACTED]";
     }
 
     public Request addFormUrlEncodedParameter(String key, String value) {

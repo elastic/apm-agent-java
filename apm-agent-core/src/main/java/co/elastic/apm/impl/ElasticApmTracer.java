@@ -204,6 +204,10 @@ public class ElasticApmTracer implements Tracer {
         reporter.report(error);
     }
 
+    public ConfigurationRegistry getConfigurationRegistry() {
+        return configurationRegistry;
+    }
+
     public <T extends ConfigurationOptionProvider> T getConfig(Class<T> pluginClass) {
         return configurationRegistry.getConfig(pluginClass);
     }
@@ -290,9 +294,7 @@ public class ElasticApmTracer implements Tracer {
                 configurationRegistry = getDefaultConfigurationRegistry();
             }
             if (reporter == null) {
-                reporter = new ReporterFactory().createReporter(configurationRegistry.getConfig(CoreConfiguration.class),
-                    configurationRegistry.getConfig(ReporterConfiguration.class),
-                    null, null);
+                reporter = new ReporterFactory().createReporter(configurationRegistry, null, null);
             }
             if (stacktraceFactory == null) {
                 StacktraceConfiguration stackConfig = configurationRegistry.getConfig(StacktraceConfiguration.class);

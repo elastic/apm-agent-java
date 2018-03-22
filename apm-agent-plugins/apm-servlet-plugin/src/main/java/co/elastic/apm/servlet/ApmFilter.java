@@ -1,6 +1,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.configuration.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
@@ -21,14 +22,21 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import static co.elastic.apm.configuration.WebConfiguration.EventType.OFF;
 
 public class ApmFilter implements Filter {
 
+    private final static Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final ElasticApmTracer tracer;
-    private final CoreConfiguration config;
+    private final CoreConfiguration coreConfiguration;
+    private final WebConfiguration webConfiguration;
 
     public ApmFilter() {
         this(ElasticApmTracer.get());
@@ -36,7 +44,8 @@ public class ApmFilter implements Filter {
 
     public ApmFilter(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        this.config = tracer.getConfig(CoreConfiguration.class);
+        this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
     @Override
@@ -45,7 +54,7 @@ public class ApmFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        if (config.isActive()) {
+        if (coreConfiguration.isActive()) {
             captureTransaction(request, response, filterChain);
         } else {
             filterChain.doFilter(request, response);
@@ -126,10 +135,12 @@ public class ApmFilter implements Filter {
     }
 
     private void fillRequest(Request request, HttpServletRequest httpServletRequest) {
-        String contentTypeHeader = httpServletRequest.getHeader("content-type");
-        if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
-            for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
-                request.addFormUrlEncodedParameters(params.getKey(), params.getValue());
+        final WebConfiguration.EventType eventType = webConfiguration.getCaptureBody();
+        if (hasBody(httpServletRequest)) {
+            if (eventType != OFF) {
+                captureBody(request, httpServletRequest);
+            } else {
+                request.redactBody();
             }
         }
         Cookie[] cookies = httpServletRequest.getCookies();
@@ -154,6 +165,22 @@ public class ApmFilter implements Filter {
             .withSearch(httpServletRequest.getQueryString());
 
         fillFullUrl(httpServletRequest, request.getUrl());
+    }
+
+    private boolean hasBody(HttpServletRequest httpServletRequest) {
+        return METHODS_WITH_BODY.contains(httpServletRequest.getMethod()) && httpServletRequest.getHeader("content-type") != null;
+    }
+
+    private void captureBody(Request request, HttpServletRequest httpServletRequest) {
+        String contentTypeHeader = httpServletRequest.getHeader("content-type");
+        if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
+            for (Map.Entry<String, String[]> params : httpServletRequest.getParameterMap().entrySet()) {
+                request.addFormUrlEncodedParameters(params.getKey(), params.getValue());
+            }
+        } else {
+            // this content-type is not supported (yet)
+            request.redactBody();
+        }
     }
 
     private void fillHeaders(HttpServletRequest servletRequest, Request request) {
