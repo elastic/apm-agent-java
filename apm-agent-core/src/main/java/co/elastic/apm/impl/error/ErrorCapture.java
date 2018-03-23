@@ -53,7 +53,7 @@ public class ErrorCapture implements Recyclable {
     @Nullable
     private transient ElasticApmTracer tracer;
     /**
-     * UUID for the error
+     * ID for the error
      */
     @JsonProperty("id")
     private final TransactionId id = new TransactionId();

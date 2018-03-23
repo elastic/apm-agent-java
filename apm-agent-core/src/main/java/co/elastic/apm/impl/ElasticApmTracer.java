@@ -192,6 +192,7 @@ public class ElasticApmTracer implements Tracer {
 
     public void captureException(Exception e) {
         ErrorCapture error = new ErrorCapture();
+        error.getId().setToRandomValue();
         error.withTimestamp(System.currentTimeMillis());
         error.getException().withMessage(e.getMessage());
         error.getException().withType(e.getClass().getName());

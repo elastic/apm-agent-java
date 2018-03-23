@@ -120,6 +120,7 @@ class ElasticApmTracerTest {
         tracerImpl.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getId().isEmpty()).isFalse();
         assertThat(error.getException().getStacktrace()).isNotEmpty();
         assertThat(error.getException().getMessage()).isEqualTo("test");
         assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
