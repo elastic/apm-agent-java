@@ -74,6 +74,7 @@
         <maven.compiler.showWarnings>false</maven.compiler.showWarnings>
         <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
     </properties>
 
     <build>

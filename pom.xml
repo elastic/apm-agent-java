@@ -45,6 +45,11 @@
         <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
         <maven.compiler.errorprone>true</maven.compiler.errorprone>
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
+        <!--
+        By default, artifacts are part of the deployment (mvn deploy:deploy).
+        But the artifacts of some projects should not be deployed (to maven central for example).
+        -->
+        <maven-deploy-plugin.skip>false</maven-deploy-plugin.skip>
     </properties>
 
     <modules>
@@ -54,6 +59,17 @@
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
     </modules>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <profiles>
         <profile>
@@ -179,6 +195,14 @@
                     <releaseProfiles>gpg</releaseProfiles>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+                <configuration>
+                    <skip>${maven-deploy-plugin.skip}</skip>
                 </configuration>
             </plugin>
             <!-- The shadowed source files of this module need to be included explicitly to create a javadoc artifact.-->
