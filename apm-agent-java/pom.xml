@@ -35,10 +35,6 @@
                                     <shadedPattern>co.elastic.apm.shaded.jackson</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.commons.lang</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.apache.commons.lang</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>com.lmax</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.lmax</shadedPattern>
                                 </relocation>
