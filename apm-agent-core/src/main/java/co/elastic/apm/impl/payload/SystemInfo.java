@@ -2,9 +2,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.net.InetAddress;
 
@@ -82,28 +79,6 @@ public class SystemInfo {
     @JsonProperty("platform")
     public String getPlatform() {
         return platform;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this).append("architecture", architecture).append("hostname", hostname).append("platform", platform).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(hostname).append(platform).append(architecture).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof SystemInfo) == false) {
-            return false;
-        }
-        SystemInfo rhs = ((SystemInfo) other);
-        return new EqualsBuilder().append(hostname, rhs.hostname).append(platform, rhs.platform).append(architecture, rhs.architecture).isEquals();
     }
 
 }

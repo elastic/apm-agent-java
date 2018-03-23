@@ -3,9 +3,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,29 +89,6 @@ public class Context implements Recyclable {
     @JsonProperty("user")
     public User getUser() {
         return user;
-    }
-
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this).append("custom", custom).append("response", response).append("request", request).append("tags", tags).append("user", user).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(request).append(user).append(response).append(custom).append(tags).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Context) == false) {
-            return false;
-        }
-        Context rhs = ((Context) other);
-        return new EqualsBuilder().append(request, rhs.request).append(user, rhs.user).append(response, rhs.response).append(custom, rhs.custom).append(tags, rhs.tags).isEquals();
     }
 
     @Override

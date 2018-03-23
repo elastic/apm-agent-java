@@ -4,9 +4,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -90,41 +87,6 @@ public class ExceptionInfo implements Recyclable {
     public ExceptionInfo withType(@Nullable String type) {
         this.type = type;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("code", code)
-            .append("message", message)
-            .append("stacktrace", stacktrace)
-            .append("type", type)
-            .toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(code)
-            .append(stacktrace)
-            .append(message)
-            .append(type).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof ExceptionInfo) == false) {
-            return false;
-        }
-        ExceptionInfo rhs = ((ExceptionInfo) other);
-        return new EqualsBuilder()
-            .append(code, rhs.code)
-            .append(stacktrace, rhs.stacktrace)
-            .append(message, rhs.message)
-            .append(type, rhs.type).isEquals();
     }
 
     @Override

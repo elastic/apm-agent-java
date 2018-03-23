@@ -2,6 +2,7 @@ package co.elastic.apm.impl.context;
 
 import org.junit.jupiter.api.Test;
 
+import static co.elastic.apm.JsonUtils.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UrlTest {
@@ -10,14 +11,7 @@ class UrlTest {
     void testResetState() {
         final Url url = newUrl();
         url.resetState();
-        assertThat(url).isEqualTo(new Url());
-    }
-
-    @Test
-    void testEquals() {
-        assertThat(newUrl().hashCode()).isEqualTo(newUrl().hashCode());
-        assertThat(newUrl()).isEqualTo(newUrl());
-        assertThat(newUrl().toString()).isEqualTo(newUrl().toString());
+        assertThat(toJson(url)).isEqualTo(toJson(new Url()));
     }
 
     @Test
@@ -25,12 +19,8 @@ class UrlTest {
         final Url url = newUrl();
         final Url copy = new Url();
         copy.copyFrom(url);
-        assertThat(url).isEqualTo(copy);
-        assertThat(url).isNotEqualTo(new Url());
-        assertThat(url.hashCode()).isEqualTo(copy.hashCode());
-        assertThat(url.hashCode()).isNotEqualTo(new Url().hashCode());
-        assertThat(url.toString()).isEqualTo(copy.toString());
-        assertThat(url.toString()).isNotEqualTo(new Url().toString());
+        assertThat(toJson(url)).isEqualTo(toJson(copy));
+        assertThat(toJson(url)).isNotEqualTo(toJson(new Url()));
     }
 
     private Url newUrl() {

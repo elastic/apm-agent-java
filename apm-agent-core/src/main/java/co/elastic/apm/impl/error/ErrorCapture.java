@@ -7,9 +7,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Date;
@@ -115,47 +112,6 @@ public class ErrorCapture implements Recyclable {
     @JsonProperty("transaction")
     public TransactionReference getTransaction() {
         return transaction;
-    }
-
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("context", context)
-            .append("exception", exception)
-            .append("id", id)
-            .append("log", log)
-            .append("timestamp", timestamp)
-            .append("transaction", transaction).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(exception)
-            .append(log)
-            .append(context)
-            .append(id)
-            .append(transaction)
-            .append(timestamp).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof ErrorCapture) == false) {
-            return false;
-        }
-        ErrorCapture rhs = ((ErrorCapture) other);
-        return new EqualsBuilder()
-            .append(exception, rhs.exception)
-            .append(log, rhs.log)
-            .append(context, rhs.context)
-            .append(id, rhs.id)
-            .append(transaction, rhs.transaction)
-            .append(timestamp, rhs.timestamp).isEquals();
     }
 
     @Override

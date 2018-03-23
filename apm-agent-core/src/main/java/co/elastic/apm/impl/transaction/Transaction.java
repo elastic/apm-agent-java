@@ -7,9 +7,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -282,61 +279,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("context", context)
-            .append("duration", duration)
-            .append("id", id)
-            .append("name", name)
-            .append("result", result)
-            .append("timestamp", timestamp)
-            .append("spans", spans)
-            .append("type", type)
-            .append("marks", marks)
-            .append("sampled", sampled)
-            .append("spanCount", spanCount).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(duration)
-            .append(result)
-            .append(spans)
-            .append(spanCount)
-            .append(context)
-            .append(name)
-            .append(id)
-            .append(marks)
-            .append(type)
-            .append(sampled)
-            .append(timestamp).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Transaction) == false) {
-            return false;
-        }
-        Transaction rhs = ((Transaction) other);
-        return new EqualsBuilder()
-            .append(duration, rhs.duration)
-            .append(result, rhs.result)
-            .append(spans, rhs.spans)
-            .append(spanCount, rhs.spanCount)
-            .append(context, rhs.context)
-            .append(name, rhs.name)
-            .append(id, rhs.id)
-            .append(marks, rhs.marks)
-            .append(type, rhs.type)
-            .append(sampled, rhs.sampled)
-            .append(timestamp, rhs.timestamp).isEquals();
-    }
-
-    @Override
     public void resetState() {
         context.resetState();
         duration = 0;
@@ -347,7 +289,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         spans.clear();
         type = null;
         marks.clear();
-        sampled = true;
+        sampled = false;
         spanCount.resetState();
         tracer = null;
     }

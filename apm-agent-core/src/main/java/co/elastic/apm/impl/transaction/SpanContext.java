@@ -4,9 +4,6 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 
 /**
@@ -27,28 +24,6 @@ public class SpanContext implements Recyclable {
     @JsonProperty("db")
     public Db getDb() {
         return db;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this).append("db", db).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(db).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof SpanContext) == false) {
-            return false;
-        }
-        SpanContext rhs = ((SpanContext) other);
-        return new EqualsBuilder().append(db, rhs.db).isEquals();
     }
 
     @Override

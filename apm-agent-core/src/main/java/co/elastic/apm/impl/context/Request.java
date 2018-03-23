@@ -5,9 +5,6 @@ import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -170,49 +167,6 @@ public class Request implements Recyclable {
     @JsonProperty("cookies")
     public Map<String, Object> getCookies() {
         return cookies;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("body", getBody())
-            .append("headers", headers)
-            .append("httpVersion", httpVersion)
-            .append("method", method)
-            .append("socket", socket)
-            .append("url", url)
-            .append("cookies", cookies).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(headers)
-            .append(httpVersion)
-            .append(method)
-            .append(socket)
-            .append(getBody())
-            .append(url)
-            .append(cookies).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Request) == false) {
-            return false;
-        }
-        Request rhs = ((Request) other);
-        return new EqualsBuilder()
-            .append(headers, rhs.headers)
-            .append(httpVersion, rhs.httpVersion)
-            .append(method, rhs.method)
-            .append(socket, rhs.socket)
-            .append(getBody(), rhs.getBody())
-            .append(url, rhs.url)
-            .append(cookies, rhs.cookies).isEquals();
     }
 
     @Override

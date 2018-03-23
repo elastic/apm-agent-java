@@ -4,9 +4,6 @@ package co.elastic.apm.impl.stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 
@@ -158,46 +155,6 @@ public class Stacktrace implements Recyclable {
     public Stacktrace withModule(@Nullable String module) {
         this.module = module;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("absPath", absPath)
-            .append("filename", filename)
-            .append("function", function)
-            .append("libraryFrame", libraryFrame)
-            .append("lineno", lineno)
-            .append("module", module).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(filename)
-            .append(lineno)
-            .append(absPath)
-            .append(function)
-            .append(module)
-            .append(libraryFrame).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Stacktrace) == false) {
-            return false;
-        }
-        Stacktrace rhs = ((Stacktrace) other);
-        return new EqualsBuilder()
-            .append(filename, rhs.filename)
-            .append(lineno, rhs.lineno)
-            .append(absPath, rhs.absPath)
-            .append(function, rhs.function)
-            .append(module, rhs.module)
-            .append(libraryFrame, rhs.libraryFrame).isEquals();
     }
 
     @Override
