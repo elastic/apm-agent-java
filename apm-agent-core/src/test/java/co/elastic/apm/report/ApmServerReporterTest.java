@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 class ApmServerReporterTest {
 
     private ApmServerReporter reporter;
-    private Lock lock = new ReentrantLock();
 
     @BeforeEach
     void setUp() {
@@ -33,40 +32,8 @@ class ApmServerReporterTest {
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        PayloadSender payloadSender = new PayloadSender() {
-            @Override
-            public void sendPayload(Payload payload) {
-                // blocks to simulate a non-responding APM server
-                lock.lock();
-            }
-        };
-        reporter = new ApmServerReporter(configurationRegistry, new Service(), new ProcessInfo("title"), system, payloadSender, true, reporterConfiguration);
-    }
-
-    @Test
-    void testReport_discardTransactions_ifQueueIsFull() {
-        Transaction transaction = mock(Transaction.class);
-        // the first two events are added to the queue and the last one is supposed to be dropped
-        reporter.report(transaction); // processed by blocking payload sender
-        reporter.report(transaction); // queued in slot 1/2
-        reporter.report(transaction); // queued in slot 2/2
-        reporter.report(transaction); // queue full -> discarded
-        // although we expect only 1 event to be discarded,
-        // there could be two if the processor did pick up the first event from the queue
-        assertThat(reporter.getDropped()).isGreaterThanOrEqualTo(1);
-        verify(transaction, atLeastOnce()).recycle();
-    }
-
-    @Test
-    void testReport_discardErrors_ifQueueIsFull() {
-        ErrorCapture error = mock(ErrorCapture.class);
-        // the first two events are added to the queue and the last one is supposed to be dropped
-        reporter.report(error); // processed by blocking payload sender
-        reporter.report(error); // queued in slot 1/2
-        reporter.report(error); // queued in slot 2/2
-        reporter.report(error); // queue full -> discarded
-        assertThat(reporter.getDropped()).isGreaterThanOrEqualTo(1);
-        verify(error, atLeastOnce()).recycle();
+        reporter = new ApmServerReporter(configurationRegistry, new Service(), new ProcessInfo("title"), system,
+            mock(PayloadSender.class), true, reporterConfiguration);
     }
 
     @Test
