@@ -4,9 +4,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Map;
 
@@ -92,28 +89,6 @@ public class Response implements Recyclable {
     public Response withStatusCode(long statusCode) {
         this.statusCode = statusCode;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this).append("finished", finished).append("headers", headers).append("headersSent", headersSent).append("statusCode", statusCode).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(headers).append(headersSent).append(finished).append(statusCode).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Response) == false) {
-            return false;
-        }
-        Response rhs = ((Response) other);
-        return new EqualsBuilder().append(headers, rhs.headers).append(headersSent, rhs.headersSent).append(finished, rhs.finished).append(statusCode, rhs.statusCode).isEquals();
     }
 
     @Override

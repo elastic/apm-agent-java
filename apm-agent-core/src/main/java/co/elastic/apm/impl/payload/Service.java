@@ -2,9 +2,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 
@@ -181,28 +178,6 @@ public class Service {
     public Service withVersion(String version) {
         this.version = version;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this).append("agent", agent).append("framework", framework).append("language", language).append("name", name).append("environment", environment).append("runtime", runtime).append("version", version).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(agent).append(environment).append(framework).append(name).append(runtime).append(language).append(version).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Service) == false) {
-            return false;
-        }
-        Service rhs = ((Service) other);
-        return new EqualsBuilder().append(agent, rhs.agent).append(environment, rhs.environment).append(framework, rhs.framework).append(name, rhs.name).append(runtime, rhs.runtime).append(language, rhs.language).append(version, rhs.version).isEquals();
     }
 
 }

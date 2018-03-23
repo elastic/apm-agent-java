@@ -8,9 +8,6 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,37 +56,4 @@ public class ErrorPayload extends Payload {
         errors.clear();
     }
 
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("service", service)
-            .append("process", process)
-            .append("errors", errors)
-            .append("system", system).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(process)
-            .append(system)
-            .append(service)
-            .append(errors).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof ErrorPayload) == false) {
-            return false;
-        }
-        ErrorPayload rhs = ((ErrorPayload) other);
-        return new EqualsBuilder()
-            .append(process, rhs.process)
-            .append(system, rhs.system)
-            .append(service, rhs.service)
-            .append(errors, rhs.errors).isEquals();
-    }
 }

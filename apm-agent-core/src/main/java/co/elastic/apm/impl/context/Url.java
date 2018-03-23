@@ -3,13 +3,8 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
-
-import static org.apache.commons.lang.builder.ToStringStyle.SIMPLE_STYLE;
 
 
 /**
@@ -150,46 +145,6 @@ public class Url implements Recyclable {
     public Url withSearch(@Nullable String search) {
         this.search = search;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this, SIMPLE_STYLE)
-            .append("protocol", protocol)
-            .append("full", full)
-            .append("hostname", hostname)
-            .append("port", port)
-            .append("pathname", pathname)
-            .append("search", search).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(protocol)
-            .append(hostname)
-            .append(search)
-            .append(port)
-            .append(full.toString())
-            .append(pathname).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Url) == false) {
-            return false;
-        }
-        Url rhs = ((Url) other);
-        return new EqualsBuilder()
-            .append(protocol, rhs.protocol)
-            .append(hostname, rhs.hostname)
-            .append(search, rhs.search)
-            .append(port, rhs.port)
-            .append(full.toString(), rhs.full.toString())
-            .append(pathname, rhs.pathname).isEquals();
     }
 
     @Override

@@ -6,9 +6,6 @@ import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -210,52 +207,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @JsonIgnore
     public boolean isSampled() {
         return sampled;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("id", id)
-            .append("context", context)
-            .append("duration", duration)
-            .append("name", name)
-            .append("parent", parent)
-            .append("stacktrace", stacktrace)
-            .append("start", start)
-            .append("type", type).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(duration)
-            .append(parent)
-            .append(stacktrace)
-            .append(context)
-            .append(name)
-            .append(start)
-            .append(id)
-            .append(type).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Span) == false) {
-            return false;
-        }
-        Span rhs = ((Span) other);
-        return new EqualsBuilder()
-            .append(duration, rhs.duration)
-            .append(parent, rhs.parent)
-            .append(stacktrace, rhs.stacktrace)
-            .append(context, rhs.context)
-            .append(name, rhs.name)
-            .append(start, rhs.start)
-            .append(id, rhs.id)
-            .append(type, rhs.type).isEquals();
     }
 
     @Override

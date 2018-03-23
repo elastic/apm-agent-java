@@ -3,9 +3,6 @@ package co.elastic.apm.impl.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -96,40 +93,6 @@ public class ProcessInfo {
     public ProcessInfo withArgv(List<String> argv) {
         this.argv = argv;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("pid", pid)
-            .append("ppid", ppid)
-            .append("title", title)
-            .append("argv", argv).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(pid)
-            .append(title)
-            .append(argv)
-            .append(ppid).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof ProcessInfo) == false) {
-            return false;
-        }
-        ProcessInfo rhs = ((ProcessInfo) other);
-        return new EqualsBuilder()
-            .append(pid, rhs.pid)
-            .append(title, rhs.title)
-            .append(argv, rhs.argv)
-            .append(ppid, rhs.ppid).isEquals();
     }
 
 }

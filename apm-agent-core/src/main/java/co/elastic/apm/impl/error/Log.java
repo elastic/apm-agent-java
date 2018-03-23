@@ -4,9 +4,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -118,44 +115,6 @@ public class Log implements Recyclable {
     @JsonProperty("stacktrace")
     public List<Stacktrace> getStacktrace() {
         return stacktrace;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("level", level)
-            .append("loggerName", loggerName)
-            .append("message", message)
-            .append("paramMessage", paramMessage)
-            .append("stacktrace", stacktrace).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(loggerName)
-            .append(message)
-            .append(paramMessage)
-            .append(stacktrace)
-            .append(level)
-            .toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof Log) == false) {
-            return false;
-        }
-        Log rhs = ((Log) other);
-        return new EqualsBuilder()
-            .append(loggerName, rhs.loggerName)
-            .append(message, rhs.message)
-            .append(paramMessage, rhs.paramMessage)
-            .append(stacktrace, rhs.stacktrace)
-            .append(level, rhs.level).isEquals();
     }
 
     @Override

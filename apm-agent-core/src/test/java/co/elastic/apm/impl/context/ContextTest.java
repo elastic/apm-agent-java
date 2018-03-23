@@ -2,6 +2,7 @@ package co.elastic.apm.impl.context;
 
 import org.junit.jupiter.api.Test;
 
+import static co.elastic.apm.JsonUtils.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ContextTest {
@@ -11,7 +12,7 @@ class ContextTest {
         Context context = createContext();
         Context copyOfContext = new Context();
         copyOfContext.copyFrom(context);
-        assertThat(context).isEqualTo(copyOfContext);
+        assertThat(toJson(context)).isEqualTo(toJson(copyOfContext));
     }
 
     @Test
@@ -20,7 +21,7 @@ class ContextTest {
         context.getTags().put("foo", "bar");
         Context copyOfContext = new Context();
         copyOfContext.copyFrom(context);
-        assertThat(context).isNotEqualTo(copyOfContext);
+        assertThat(toJson(context)).isNotEqualTo(toJson(copyOfContext));
     }
 
     @Test
@@ -29,7 +30,7 @@ class ContextTest {
         context.getCustom().put("foo", "bar");
         Context copyOfContext = new Context();
         copyOfContext.copyFrom(context);
-        assertThat(context).isNotEqualTo(copyOfContext);
+        assertThat(toJson(context)).isNotEqualTo(toJson(copyOfContext));
     }
 
     private Context createContext() {

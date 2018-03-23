@@ -4,9 +4,6 @@ package co.elastic.apm.impl.context;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 import javax.annotation.Nullable;
 
@@ -87,37 +84,6 @@ public class User implements Recyclable {
     public User withUsername(@Nullable String username) {
         this.username = username;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-            .append("id", id)
-            .append("email", email)
-            .append("username", username).toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder()
-            .append(id)
-            .append(email)
-            .append(username).toHashCode();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if ((other instanceof User) == false) {
-            return false;
-        }
-        User rhs = ((User) other);
-        return new EqualsBuilder()
-            .append(id, rhs.id)
-            .append(email, rhs.email)
-            .append(username, rhs.username).isEquals();
     }
 
     @Override
