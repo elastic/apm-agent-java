@@ -20,8 +20,8 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com:elastic/apm-agent-jav.git</connection>
-        <developerConnection>scm:git:git@github.com:elastic/apm-agent-jav.git</developerConnection>
+        <connection>scm:git:git@github.com:elastic/apm-agent-java.git</connection>
+        <developerConnection>scm:git:git@github.com:elastic/apm-agent-java.git</developerConnection>
         <url>https://github.com/elastic/apm-agent-java</url>
     </scm>
 
