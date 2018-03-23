@@ -8,6 +8,31 @@
     <version>0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>APM for Java applications with the Elastic stack</description>
+    <url>https://github.com/elastic/apm-agent-java</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git@github.com:elastic/apm-agent-jav.git</connection>
+        <developerConnection>scm:git:git@github.com:elastic/apm-agent-jav.git</developerConnection>
+        <url>https://github.com/elastic/apm-agent-java</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>Elastic</name>
+            <email>felix.barnsteiner@elastic.co</email>
+            <organization>Elastic Inc.</organization>
+            <organizationUrl>https://www.elastic.co</organizationUrl>
+        </developer>
+    </developers>
 
     <properties>
         <maven.compiler.target>7</maven.compiler.target>
