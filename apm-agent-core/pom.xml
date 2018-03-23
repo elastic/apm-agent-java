@@ -5,6 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <jetty-server.version>9.4.8.v20171121</jetty-server.version>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
     </properties>
 
     <parent>

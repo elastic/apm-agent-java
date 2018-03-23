@@ -15,8 +15,11 @@
         <module>apm-jdbc-plugin</module>
     </modules>
 
-    <artifactId>apm-agent-plugins</artifactId>
+    <properties>
+        <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+    </properties>
 
+    <artifactId>apm-agent-plugins</artifactId>
 
     <dependencies>
         <dependency>
