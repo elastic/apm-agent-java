@@ -1,6 +1,7 @@
 package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.objectpool.Recyclable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -62,6 +63,7 @@ public abstract class Payload implements Recyclable {
         return system;
     }
 
+    @JsonIgnore
     public abstract List<? extends Recyclable> getPayloadObjects();
 
     public abstract void recycle();
