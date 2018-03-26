@@ -12,7 +12,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .key("application_packages")
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.")
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<String>emptyList());
 
     private final ConfigurationOption<Integer> stackTraceLimit = ConfigurationOption.integerOption()
         .key("stack_trace_limit")
