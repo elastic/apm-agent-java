@@ -126,7 +126,7 @@ public interface ProcessFactory {
          */
         public static ProcessFactory make() {
             try {
-                return new ForJava9CompatibleVM(ProcessHandle.class.getMethod("current"));
+                return new ForJava9CompatibleVM(Class.forName("java.lang.ProcessHandle").getMethod("current"));
             } catch (Exception ignore) {
                 return ForLegacyVM.INSTANCE;
             }

@@ -9,16 +9,19 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ProcessFactoryTest {
 
-    private ProcessFactory.ForCurrentVM procFactory;
-
-    @BeforeEach
-    void setUp() {
-        procFactory = ProcessFactory.ForCurrentVM.INSTANCE;
+    @Test
+    void testProcessInformationForLegacyVm() {
+        ProcessInfo proc = ProcessFactory.ForLegacyVM.INSTANCE.getProcessInformation();
+        assertSoftly(softly -> {
+            softly.assertThat(proc.getArgv()).isNotEmpty();
+            softly.assertThat(proc.getPid()).isNotEqualTo(0);
+            softly.assertThat(proc.getTitle()).contains("java");
+        });
     }
 
     @Test
-    void testProcessInformation() {
-        ProcessInfo proc = procFactory.getProcessInformation();
+    void testProcessInformationForCurrentVm() {
+        ProcessInfo proc = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         assertSoftly(softly -> {
             softly.assertThat(proc.getArgv()).isNotEmpty();
             softly.assertThat(proc.getPid()).isNotEqualTo(0);
