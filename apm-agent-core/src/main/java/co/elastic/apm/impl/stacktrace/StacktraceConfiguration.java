@@ -12,7 +12,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .key("application_packages")
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.")
         .dynamic(true)
-        .buildWithDefault(Collections.<String>emptyList());
+        .buildWithDefault(Collections.emptyList());
 
     private final ConfigurationOption<Integer> stackTraceLimit = ConfigurationOption.integerOption()
         .key("stack_trace_limit")
@@ -34,7 +34,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "To disable stack trace collection for spans completely, set the value to 0.")
         .dynamic(true)
-        .buildWithDefault(-1);
+        .buildWithDefault(5);
 
     public Collection<String> getApplicationPackages() {
         return applicationPackages.get();
