@@ -8,6 +8,7 @@ import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -47,6 +48,11 @@ public class ReporterFactory {
             .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS);
         if (!reporterConfiguration.isVerifyServerCert()) {
             disableCertificateValidation(builder);
+        }
+        if (logger.isTraceEnabled()) {
+            final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+            builder.addInterceptor(loggingInterceptor);
         }
         return builder.build();
     }

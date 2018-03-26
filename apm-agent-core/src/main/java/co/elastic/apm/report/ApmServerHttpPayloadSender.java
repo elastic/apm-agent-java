@@ -36,6 +36,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
 
     @Override
     public void sendPayload(final Payload payload) {
+        logger.debug("Sending payload with {} elements to APM server {}",
+            payload.getPayloadObjects().size(), reporterConfiguration.getServerUrl());
         final String path;
         if (payload instanceof ErrorPayload) {
             path = "/v1/errors";
@@ -49,7 +51,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }
         if (useGzip(payload)) {
-            builder.header("User-Agent", getUserAgent(payload));
+            builder.header("Content-Encoding", "gzip");
         }
         Request request = builder
             .post(new RequestBody() {
@@ -73,8 +75,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             .build();
 
         try {
-            logger.debug("Sending payload with {} elements to APM server {}",
-                payload.getPayloadObjects().size(), reporterConfiguration.getServerUrl());
             Response response = httpClient.newCall(request).execute();
             int statusCode = response.code();
             logger.debug("APM server responded with status code {}", statusCode);

@@ -6,6 +6,7 @@
     <properties>
         <jetty-server.version>9.4.8.v20171121</jetty-server.version>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <okhttp.version>3.9.1</okhttp.version>
     </properties>
 
     <parent>
@@ -74,7 +75,12 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.9.1</version>
+            <version>${okhttp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>logging-interceptor</artifactId>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
