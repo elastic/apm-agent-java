@@ -68,7 +68,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span span, long nanoTime, boolean dropped) {
         this.tracer = tracer;
-        this.id.setToRandomValue();
+        this.id.setLong(transaction.getNextSpanId());
         if (span != null) {
             this.parent.copyFrom(span.getId());
         }

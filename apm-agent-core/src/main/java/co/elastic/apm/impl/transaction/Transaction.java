@@ -5,6 +5,7 @@ import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -21,6 +23,11 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
+
+    /**
+     * This counter helps to assign the spans with sequential IDs
+     */
+    private final AtomicInteger spanIdCounter = new AtomicInteger();
 
     /**
      * Context
@@ -278,6 +285,12 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         return spanCount;
     }
 
+
+    @JsonIgnore
+    public int getNextSpanId() {
+        return spanIdCounter.incrementAndGet();
+    }
+
     @Override
     public void resetState() {
         context.resetState();
@@ -292,6 +305,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         sampled = false;
         spanCount.resetState();
         tracer = null;
+        spanIdCounter.set(0);
     }
 
     public void recycle() {

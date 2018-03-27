@@ -26,6 +26,13 @@ public class SpanId implements Recyclable {
         random.nextBytes(data);
     }
 
+    public void setLong(long l) {
+        for (int i = 7; i >= 0; i--) {
+            data[i] = (byte) (l & 0xFF);
+            l >>= 8;
+        }
+    }
+
     @Override
     public void resetState() {
         for (int i = 0; i < data.length; i++) {
