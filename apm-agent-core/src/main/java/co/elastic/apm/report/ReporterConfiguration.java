@@ -43,7 +43,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "A lower value will increase the load on your APM server, " +
             "while a higher value can increase the memory pressure on your app.\n\n" +
             "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
-        .buildWithDefault(10);
+        .buildWithDefault(1);
 
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
