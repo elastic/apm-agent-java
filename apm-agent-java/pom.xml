@@ -93,5 +93,12 @@
             <artifactId>apm-jdbc-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- For auto-generating configuration docs -->
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>2.3.27-incubating</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

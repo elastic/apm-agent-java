@@ -7,8 +7,10 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 import java.net.URL;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
+    public static final String REPORTER_CATEGORY = "Reporter";
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
         .key("secret_token")
+        .configurationCategory(REPORTER_CATEGORY)
         .description("This string is used to ensure that only your agents can send data to your APM server.\n\n" +
             "Both the agents and the APM server have to be configured with the same secret token." +
             "Use if APM Server requires a token.")
@@ -17,12 +19,14 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
         .key("server_url")
+        .configurationCategory(REPORTER_CATEGORY)
         .label("The URL for your APM Server")
         .description("The URL must be fully qualified, including protocol (http or https) and port.")
         .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
 
     private final ConfigurationOption<Integer> serverTimeout = ConfigurationOption.integerOption()
         .key("server_timeout")
+        .configurationCategory(REPORTER_CATEGORY)
         .label("A timeout in seconds.")
         .description("If a request to the APM server takes longer than the configured timeout, " +
             "the request is cancelled and the event (exception or transaction) is discarded. Set to None to disable timeouts.\n" +
@@ -33,12 +37,14 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
         .key("verify_server_cert")
+        .configurationCategory(REPORTER_CATEGORY)
         .description("By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.\n\n" +
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
 
     private final ConfigurationOption<Integer> flushInterval = ConfigurationOption.integerOption()
         .key("flush_interval")
+        .configurationCategory(REPORTER_CATEGORY)
         .description("Interval with which transactions should be sent to the APM server, in seconds.\n\n" +
             "A lower value will increase the load on your APM server, " +
             "while a higher value can increase the memory pressure on your app.\n\n" +
@@ -47,6 +53,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
+        .configurationCategory(REPORTER_CATEGORY)
         .description("Maximum queue length of transactions before sending transactions to the APM server.\n\n" +
             "A lower value will increase the load on your APM server," +
             "while a higher value can increase the memory pressure of your app.\n\n" +
