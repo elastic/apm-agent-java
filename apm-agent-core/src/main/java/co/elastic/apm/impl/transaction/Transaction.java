@@ -69,9 +69,8 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
-    @Nullable
     @JsonProperty("name")
-    private String name;
+    private final StringBuilder name = new StringBuilder();
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
@@ -131,9 +130,8 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
-    @Nullable
     @JsonProperty("name")
-    public String getName() {
+    public StringBuilder getName() {
         return name;
     }
 
@@ -142,14 +140,18 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      */
     @Override
     public void setName(@Nullable String name) {
-        this.name = name;
+        if (!sampled) {
+            return;
+        }
+        this.name.setLength(0);
+        this.name.append(name);
     }
 
     public Transaction withName(@Nullable String name) {
         if (!sampled) {
             return this;
         }
-        this.name = name;
+        setName(name);
         return this;
     }
 
@@ -222,6 +224,9 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     @Override
     @JsonProperty("type")
     public void setType(@Nullable String type) {
+        if (!sampled) {
+            return;
+        }
         this.type = type;
     }
 
@@ -287,7 +292,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
 
     @JsonIgnore
-    public int getNextSpanId() {
+    int getNextSpanId() {
         return spanIdCounter.incrementAndGet();
     }
 
@@ -296,7 +301,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         context.resetState();
         duration = 0;
         id.resetState();
-        name = null;
+        name.setLength(0);
         result = null;
         timestamp.setTime(0);
         spans.clear();
