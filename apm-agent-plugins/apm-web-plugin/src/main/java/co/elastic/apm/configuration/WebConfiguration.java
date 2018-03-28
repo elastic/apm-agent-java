@@ -8,8 +8,10 @@ import java.util.Collections;
 
 public class WebConfiguration extends ConfigurationOptionProvider {
 
+    private static final String HTTP_CATEGORY = "HTTP";
     private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
         .key("capture_body")
+        .configurationCategory(HTTP_CATEGORY)
         .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST " +
             "variables).\n" +
             "\n" +
@@ -27,13 +29,15 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Collection<String>> ignoreUrlsStartingWith = ConfigurationOption.stringsOption()
         .key("ignore_urls_starting_with")
+        .configurationCategory(HTTP_CATEGORY)
         .description("Used to restrict requests to certain URL’s from being instrumented.\n" +
             "\n" +
             "This property should be set to an array containing one or more strings. " +
             "When an incoming HTTP request is detected, its URL will be tested against each element in this list. " +
-            "If the URL starts with an element in the array. " +
+            "If the URL starts with an element in the array.\n" +
             "\n" +
-            "Note that all errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.")
+            "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
+            "this setting.")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
 

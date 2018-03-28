@@ -306,13 +306,15 @@ public class ElasticApmTracer implements Tracer {
 
         private ConfigurationRegistry getDefaultConfigurationRegistry() {
             try {
-                return ConfigurationRegistry.builder()
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm"))
+                final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
+                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."))
+                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"))
                     .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM"))
                     .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
                     .failOnMissingRequiredValues(true)
                     .build();
+                configurationRegistry.scheduleReloadAtRate(30, TimeUnit.SECONDS);
+                return configurationRegistry;
             } catch (IllegalStateException e) {
                 logger.warn(e.getMessage());
                 return ConfigurationRegistry.builder()
