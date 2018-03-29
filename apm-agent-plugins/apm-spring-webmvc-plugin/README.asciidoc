@@ -1,0 +1,35 @@
+= Spring Web MVC Plugin
+
+If you are using Spring Web MVC,
+this plugin helps you to add Elastic APM to your application.
+
+There are two steps involved to integrate the Elastic APM Java agent into your Spring Web MVC application
+
+ * Add the servlet filter `co.elastic.apm.servlet.ApmFilter`
+ * Add the handler interceptor `co.elastic.apm.spring.webmvc.ApmHandlerInterceptor`
+
+When you are using Spring Boot, the easiest way is to add this class to your project.
+Make sure the configuration class is picked up by placing it in a package covered by the component scan.
+
+[source,java]
+----
+@Configuration
+public class ApmConfig implements WebMvcConfigurer {
+    @Bean
+    public FilterRegistrationBean<ApmFilter> someFilterRegistration() {
+        FilterRegistrationBean<ApmFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new ApmFilter());
+        registration.addUrlPatterns("/*");
+        registration.setName("apmFilter");
+        registration.setOrder(1);
+        return registration;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new ApmHandlerInterceptor());
+    }
+}
+----
+
+NOTE: Currently this plugin is only tested for Spring Web MVC 5
