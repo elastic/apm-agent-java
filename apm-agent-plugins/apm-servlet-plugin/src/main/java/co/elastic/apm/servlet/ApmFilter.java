@@ -84,7 +84,10 @@ public class ApmFilter implements Filter {
         fillResponse(context.getResponse(), httpServletResponse);
         fillUser(context.getUser(), httpServletRequest);
 
-        transaction.withName(httpServletRequest.getMethod());
+        // the HTTP method is not a good transaction name, but better than none...
+        if (transaction.getName().length() == 0) {
+            transaction.withName(httpServletRequest.getMethod());
+        }
         transaction.withResult(getResult(httpServletResponse.getStatus()));
         transaction.withType("request");
     }
