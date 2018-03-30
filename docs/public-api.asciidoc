@@ -1,0 +1,245 @@
+[[api]]
+== Public API
+The public API of the Elastic APM Java agent lets you
+customize and manually create spans and transactions,
+as well as track errors.
+
+// describe adding maven dependency when instrumentation is implemented
+
+[float]
+[[api-tracer-api]]
+=== Tracer API
+The tracer gives you access to the currently active transaction and span.
+It can also be used to track an exception.
+
+This is how to get an instance of the tracer:
+[source,java]
+----
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Tracer;
+
+Tracer tracer = ElasticApm.get();
+----
+
+[float]
+[[api-current-transaction]]
+==== `Transaction currentTransaction()`
+Returns the currently active transaction.
+See the <<transaction-api,Transaction API>> on how to customize the current transaction.
+
+If there is no current transaction,
+this method will return a noop transaction,
+which means that you never have to check for `null` values.
+
+[source,java]
+----
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Transaction;
+
+Transaction transaction = ElasticApm.get().currentTransaction();
+----
+
+[float]
+[[api-current-span]]
+==== `Span currentSpan()`
+Returns the currently active span.
+If there is no current span,
+this method will return a noop span,
+which means that you never have to check for `null` values.
+
+[source,java]
+----
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Span;
+
+Span span = ElasticApm.get().currentSpan();
+----
+
+[float]
+[[api-start-transaction]]
+==== `Transaction startTransaction()`
+Use this method to create a custom transaction.
+
+
+Note that the agent will do this for you automatically when ever your application receives an incoming HTTP request.
+You only need to use this method to create custom transactions.
+
+You can use the transaction in a try-with-resources block. Example:
+
+[source,java]
+----
+try (Transaction transaction = tracer.startTransaction()) {
+    transaction.setName("MyController#myAction");
+    // do your thing...
+}
+----
+
+[float]
+[[api-start-span]]
+==== `Span startSpan()`
+Start and return a new custom span associated with the current active transaction.
+
+You can use the span in a try-with-resources block. Example:
+
+[source,java]
+----
+try (Span span = tracer.start#span()) {
+    span.setName("SELECT FROM customer");
+    span.setType("db.mysql.query");
+    // do your thing...
+}
+----
+
+[float]
+[[api-capture-exception]]
+==== `void captureException(Exception e)`
+
+
+//----------------------------
+[float]
+[[api-transaction]]
+=== Transaction API
+//----------------------------
+A transaction is the data captured by an agent representing an event occurring in a monitored service
+and groups multiple spans in a logical group.
+
+See <<api-current-transaction>> on how to get a reference of the current transaction.
+
+[float]
+[[api-set-name]]
+==== `void setName(String name)`
+Override the name of the current transaction.
+For supported frameworks,
+the transaction name is determined automatically,
+and can be overridden using this method.
+
+Example:
+
+[source,java]
+----
+transaction.setName("My Transaction");
+----
+
+
+* `name`: (required) A string describing name of the transaction
+
+[float]
+[[api-transaction-set-type]]
+==== `void setType(String type)`
+Sets the type of the transaction.
+There’s a special type called `request`,
+which is used by the agent for the transactions automatically created when an incoming HTTP request is detected.
+
+Example:
+
+[source,java]
+----
+transaction.setType(Transaction.TYPE_REQUEST);
+----
+
+* `type`: The type of the transaction
+
+[float]
+[[api-transaction-add-tag]]
+==== `void addTag(String key, String value)`
+A flat mapping of user-defined tags with string values.
+Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+By all means,
+you should avoid that user specified data,
+like URL parameters,
+is used as a tag key as it can lead to mapping explosions.
+
+[source,java]
+----
+transaction.setTag("foo", "bar");
+----
+
+* `key`:   The tag key
+* `value`: The tag value
+
+[float]
+[[api-transaction-set-user]]
+==== `void setUser(String id, String email, String username)`
+Call this to enrich collected performance data and errors with information about the user/client.
+This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
+The given context will be added to the active transaction.
+
+If an error is captured, the context from the active transaction is used as context for the captured error,
+and any custom context given as the 2nd argument to apm.captureError takes precedence and is shallow merged on top.
+
+The provided user context is stored under context.user in Elasticsearch on both errors and transactions.
+
+[source,java]
+----
+transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
+----
+
+
+* `id`:       The user's id or <code>null</code>, if not applicable.
+* `email`:    The user's email address or <code>null</code>, if not applicable.
+* `username`: The user's name or <code>null</code>, if not applicable.
+
+[float]
+[[api-transaction-end]]
+==== `void end()`
+End tracking the transaction.
+Should be called e.g. at the end of a request or when ending a background task.
+Example:
+
+[source,java]
+----
+transaction.end();
+----
+
+
+As Transaction also implements the `java.lang.AutoCloseable` interface,
+you can use it in try-with-resource blocks. See <<api-start-transaction>>.
+
+//----------------------------
+[float]
+[[api-span]]
+=== Span API
+//----------------------------
+A span contains information about a specific code path, executed as part of a transaction.
+
+If for example a database query happens within a recorded transaction,
+a span representing this database query may be created.
+In such a case the name of the span will contain information about the query itself,
+and the type will hold information about the database type.
+
+See <<api-current-span>> on how to get a reference of the current transaction.
+
+[float]
+[[api-span-set-name]]
+==== `void setName(String name)`
+Override the name of the current span.
+
+Example:
+
+[source,java]
+----
+span.setName("SELECT FROM customer");
+----
+
+[float]
+[[api-span-set-type]]
+==== `void setType(String type)`
+The type of span.
+The type is a hierarchical string used to group similar spans together.
+For instance, all spans of MySQL queries are given the type `db.mysql.query`.
+
+
+In the above example `db` is considered the type prefix. Though there are no naming restrictions for this prefix,
+the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
+
+* `type`: the type of the span
+
+[float]
+[[api-span--end]]
+==== `void end()`
+Ends the span.
+If the span has already ended, nothing happens.
+
+As Span also implements the `java.lang.AutoCloseable` interface,
+you can use it in try-with-resource blocks. See <<api-start-span>>.
+

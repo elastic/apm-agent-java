@@ -121,6 +121,11 @@ public class ElasticApm implements Tracer {
         return tracer.startSpan();
     }
 
+    @Override
+    public void captureException(@Nonnull Exception e) {
+        tracer.captureException(e);
+    }
+
     enum NoopTracer implements Tracer {
 
         INSTANCE;
@@ -143,6 +148,11 @@ public class ElasticApm implements Tracer {
         @Override
         public co.elastic.apm.api.Span startSpan() {
             return NoopSpan.INSTANCE;
+        }
+
+        @Override
+        public void captureException(@Nonnull Exception e) {
+            // noop
         }
 
         enum NoopTransaction implements Transaction {

@@ -31,9 +31,16 @@ public interface Tracer {
     @Nullable
     Transaction currentTransaction();
 
+    /**
+     * Returns the currently active span
+     *
+     * @return The currently active span.
+     */
     @Nullable
     Span currentSpan();
 
     @Nonnull
     Span startSpan();
+
+    void captureException(@Nonnull Exception e);
 }

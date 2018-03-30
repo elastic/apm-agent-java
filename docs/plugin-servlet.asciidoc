@@ -1,0 +1,21 @@
+[plugin-servlet]
+== Servlet plugin
+NOTE: If you are using Spring Web MVC see the
+link:plugin-spring-webmvc.asciidoc[Spring Web MVC documentation]
+
+Add the ApmFilter to your `web.xml` file:
+
+[source,xml]
+.web.xml
+----
+<filter>
+   <filter-name>ApmFilter</filter-name>
+   <filter-class>co.elastic.apm.servlet.ApmFilter</filter-class>
+</filter>
+<filter-mapping>
+   <filter-name>ApmFilter</filter-name>
+   <url-pattern>/*</url-pattern>
+</filter-mapping>
+----
+
+

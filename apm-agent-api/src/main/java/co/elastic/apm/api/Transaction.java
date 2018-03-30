@@ -8,23 +8,21 @@ public interface Transaction extends AutoCloseable {
     String TYPE_REQUEST = "request";
 
     /**
-     * The name of the transaction.
+     * Override the name of the current transaction.
      * <p>
-     * Can be used to set or overwrite the name of the transaction (visible in the performance monitoring breakdown).
-     * If you don’t have access to the current transaction, you can also set the name using apm.setTransactionName().
-     * </p>
-     * <p>
-     * Transactions with the same name and type are grouped together.
+     * For supported frameworks,
+     * the transaction name is determined automatically,
+     * and can be overridden using this function.
      * </p>
      *
-     * @param name The name of the transaction.
+     * @param name A string describing name of the transaction.
      */
     void setName(String name);
 
     /**
      * The type of the transaction.
      * <p>
-     * There’s a special type called request which is used by the agent for the transactions automatically created
+     * There’s a special type called {@link #TYPE_REQUEST request} which is used by the agent for the transactions automatically created
      * when an incoming HTTP request is detected.
      * </p>
      *
@@ -52,10 +50,6 @@ public interface Transaction extends AutoCloseable {
      * This function can be called at any point during the request/response life cycle (i.e. while a transaction is active).
      * <p>
      * The given context will be added to the active transaction.
-     * </p>
-     * <p>
-     * It’s possible to call this function multiple times within the scope of the same active transaction.
-     * For each call, the properties of the context argument are shallow merged with the context previously given.
      * </p>
      * <p>
      * If an error is captured, the context from the active transaction is used as context for the captured error,

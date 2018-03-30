@@ -34,7 +34,7 @@ public interface Span extends AutoCloseable {
     void setType(String type);
 
     /**
-     * Ends the transaction and truncates all un-ended child spans. If the transaction has already ended, nothing happens.
+     * Ends the span. If the span has already ended, nothing happens.
      */
     void end();
 

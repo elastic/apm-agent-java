@@ -1,0 +1,76 @@
+[[intro]]
+
+== Introduction
+
+Welcome to the APM Java Agent documentation.
+
+Elastic APM automatically measures the performance of your application and tracks errors.
+It records spans for database queries,
+incoming HTTP requests,
+and other slow operations that happen during requests to your app.
+
+Spans are grouped in transactions - by default one for each incoming HTTP request.
+But it's possible to create custom transactions not associated with an HTTP request.
+
+By default the agent comes with support for common frameworks out-of-the-box.
+To instrument other events,
+you can use custom spans.
+For information about custom spans,
+see the link:public-api.asciidoc[public api documentation].
+
+NOTE: The agent does not yet support automatic instrumentation via `-javaagent`,
+however this is something which is definitely on our roadmap.
+So for the time being,
+you will have to manually integrate the agent into your application.
+
+The agent is only one of multiple components you need to get started with APM.
+Please also have a look at the documentation for
+
+* https://www.elastic.co/guide/en/apm/server/current/index.html[APM Server]
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html[Elasticsearch]
+
+[float]
+[[get-started]]
+=== Get started
+
+The first step in getting started with the Elastic APM Java agent ist to declare a dependency on the agent:
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>co.elastic.apm</groupId>
+    <artifactId>apm-agent-java</artifactId>
+    <version>${elastic-apm.version}</version>
+</dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "co.elastic.apm:apm-agent-java:$elasticApmVersion"
+----
+
+NOTE: Currently the agent is not yet published to maven central.
+So you have to check out the agent and build it from source.
+To do that,
+simply execute
+`git clone https://github.com/elastic/apm-agent-java.git && cd apm-agent-java && ./mvnw install`.
+
+
+To get you off the ground, we've prepared guides for the most popular frameworks:
+
+* link:plugin-jdbc.asciidoc[Get started with JDBC]
+* link:plugin-spring-webmvc.asciidoc[Get started with Spring Web MVC]
+* link:plugin-servlet.asciidoc[Get started with Servlet API]
+
+
+=== Configuration
+Once you are set with instrumenting your favourite framework,
+see the link:configuration.asciidoc[configuration guide] on how to configure Elastic APM.
+
+=== Requirements
+The Elastic APM Java agent supports the Oracle and OpenJDK versions 7, 8 and 9.
+
+To see the requirements for a specific framework,
+see the corresponding getting started guide of that framework.
