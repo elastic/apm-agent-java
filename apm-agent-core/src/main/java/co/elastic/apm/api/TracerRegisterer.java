@@ -7,10 +7,10 @@ import co.elastic.apm.impl.ElasticApmTracer;
  */
 public class TracerRegisterer {
     public static void register(ElasticApmTracer tracer) {
-        ElasticApm.INSTANCE.register(tracer);
+        ElasticApm.get().register(tracer);
     }
 
     public static void unregister() {
-        ElasticApm.INSTANCE.unregister();
+        ElasticApm.get().unregister();
     }
 }
