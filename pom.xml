@@ -7,8 +7,13 @@
     <artifactId>apm-agent-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <inceptionYear>2018</inceptionYear>
+    <organization>
+        <name>Elastic Inc.</name>
+        <url>https://www.elastic.co</url>
+    </organization>
 
-    <name>${project.groupId}:${project.artifactId}</name>
+    <name>Elastic APM Java agent</name>
     <description>APM for Java applications with the Elastic stack</description>
     <url>https://github.com/elastic/apm-agent-java</url>
 
@@ -294,6 +299,49 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- License headers -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>1.15</version>
+                <configuration>
+                    <verbose>false</verbose>
+                    <licenseName>apache_v2</licenseName>
+                    <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+                    <failOnMissingHeader>true</failOnMissingHeader>
+                    <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
+                    <projectName>Elastic APM Java agent</projectName>
+                    <!--
+                    Elastic does actually not have the copyright of community contributions.
+                    See https://www.elastic.co/contributor-agreement
+                    "The CLA is a license agreement, which enables Elastic to distribute your code without restriction.
+                    It doesn't require you to assign to us any copyright you have, the ownership of which remains in full with you.
+                    You cannot withdraw permission for its use at a later date."
+                    -->
+                    <organizationName>the original author or authors</organizationName>
+                    <roots>
+                        <root>src/main/java</root>
+                        <root>src/test/java</root>
+                    </roots>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>first</id>
+                        <goals>
+                            <goal>update-file-header</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                    </execution>
+                    <execution>
+                        <id>license-header-check</id>
+                        <goals>
+                            <goal>check-file-header</goal>
+                        </goals>
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
