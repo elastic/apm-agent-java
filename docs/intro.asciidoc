@@ -66,7 +66,7 @@ To get you off the ground, we've prepared guides for the most popular frameworks
 
 
 === Configuration
-Once you are set with instrumenting your favourite framework,
+Once you are set with instrumenting your favorite framework,
 see the link:configuration.asciidoc[configuration guide] on how to configure Elastic APM.
 
 === Requirements
