@@ -4,7 +4,7 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
 import co.elastic.apm.api.TracerRegisterer;
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
+import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.sampling.ProbabilitySampler;
@@ -20,21 +20,14 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.report.ReporterFactory;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
-import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
-import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
-import org.stagemonitor.configuration.source.SimpleSource;
-import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,6 +43,7 @@ public class ElasticApmTracer implements Tracer {
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
+    private final Iterable<LifecycleListener> lifecycleListeners;
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<Stacktrace> stackTracePool;
@@ -63,11 +57,12 @@ public class ElasticApmTracer implements Tracer {
     private final Span noopSpan;
     private Sampler sampler;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory, Iterable<LifecycleListener> lifecycleListeners) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceFactory = stacktraceFactory;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
+        this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         transactionPool = new RingBufferObjectPool<>(maxPooledElements, false,
             new RecyclableObjectFactory<Transaction>() {
@@ -106,10 +101,13 @@ public class ElasticApmTracer implements Tracer {
                 sampler = ProbabilitySampler.of(newValue);
             }
         });
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            lifecycleListener.start(this);
+        }
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static ElasticApmTracerBuilder builder() {
+        return new ElasticApmTracerBuilder();
     }
 
     public static ElasticApmTracer get() {
@@ -117,7 +115,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     // @VisibleForTesting
-    static void unregister() {
+    public static void unregister() {
         synchronized (ElasticApmTracer.class) {
             instance = null;
             TracerRegisterer.unregister();
@@ -127,7 +125,7 @@ public class ElasticApmTracer implements Tracer {
     /**
      * Statically registers this instance so that it can be obtained via {@link ElasticApmTracer#get()} and {@link ElasticApm#get()}
      */
-    ElasticApmTracer register() {
+    public ElasticApmTracer register() {
         instance = this;
         TracerRegisterer.register(instance);
         return this;
@@ -266,68 +264,23 @@ public class ElasticApmTracer implements Tracer {
         errorPool.recycle(error);
     }
 
-    public static class Builder {
-
-        @Nullable
-        private ConfigurationRegistry configurationRegistry;
-        @Nullable
-        private Reporter reporter;
-        @Nullable
-        private StacktraceFactory stacktraceFactory;
-
-        public Builder configurationRegistry(ConfigurationRegistry configurationRegistry) {
-            this.configurationRegistry = configurationRegistry;
-            return this;
-        }
-
-        public Builder reporter(Reporter reporter) {
-            this.reporter = reporter;
-            return this;
-        }
-
-        public Builder stacktraceFactory(StacktraceFactory stacktraceFactory) {
-            this.stacktraceFactory = stacktraceFactory;
-            return this;
-        }
-
-        public ElasticApmTracer build() {
-            if (configurationRegistry == null) {
-                configurationRegistry = getDefaultConfigurationRegistry();
+    /**
+     * Called when the container shuts down.
+     * Cleans up thread pools and other resources.
+     */
+    public void stop() {
+        try {
+            reporter.close();
+            transactionPool.close();
+            spanPool.close();
+            stackTracePool.close();
+            errorPool.close();
+            for (LifecycleListener lifecycleListener : lifecycleListeners) {
+                lifecycleListener.stop();
             }
-            if (reporter == null) {
-                reporter = new ReporterFactory().createReporter(configurationRegistry, null, null);
-            }
-            if (stacktraceFactory == null) {
-                StacktraceConfiguration stackConfig = configurationRegistry.getConfig(StacktraceConfiguration.class);
-                stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
-            }
-            return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory);
+        } catch (Exception e) {
+            logger.warn("Suppressed exception while calling stop()", e);
         }
-
-        private ConfigurationRegistry getDefaultConfigurationRegistry() {
-            try {
-                final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."))
-                    .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"))
-                    .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
-                    .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
-                    .failOnMissingRequiredValues(true)
-                    .build();
-                configurationRegistry.scheduleReloadAtRate(30, TimeUnit.SECONDS);
-                return configurationRegistry;
-            } catch (IllegalStateException e) {
-                logger.warn(e.getMessage());
-                return ConfigurationRegistry.builder()
-                    .addConfigSource(new SimpleSource("Noop Configuration")
-                        .add(CoreConfiguration.ACTIVE, "false")
-                        .add(CoreConfiguration.INSTRUMENT, "false")
-                        .add(CoreConfiguration.SERVICE_NAME, "none")
-                        .add(CoreConfiguration.SAMPLE_RATE, "0"))
-                    .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
-                    .build();
-            }
-        }
-
     }
 
 }

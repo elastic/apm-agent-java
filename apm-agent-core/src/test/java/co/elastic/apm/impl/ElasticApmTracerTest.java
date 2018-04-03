@@ -5,6 +5,7 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -210,5 +213,31 @@ class ElasticApmTracerTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
+    }
+
+    @Test
+    void testLifecycleListener() {
+        final AtomicBoolean startCalled = new AtomicBoolean();
+        final AtomicBoolean stopCalled = new AtomicBoolean();
+        final ElasticApmTracer tracer = ElasticApmTracer.builder()
+            .configurationRegistry(config)
+            .reporter(reporter)
+            .lifecycleListeners(Collections.singletonList(new LifecycleListener() {
+                @Override
+                public void start(ElasticApmTracer tracer) {
+                    startCalled.set(true);
+                }
+
+                @Override
+                public void stop() {
+                    stopCalled.set(true);
+                }
+            }))
+            .build();
+        assertThat(startCalled).isTrue();
+        assertThat(stopCalled).isFalse();
+
+        tracer.stop();
+        assertThat(stopCalled).isTrue();
     }
 }

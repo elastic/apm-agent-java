@@ -236,5 +236,6 @@ public class ApmFilter implements Filter {
 
     @Override
     public void destroy() {
+        tracer.stop();
     }
 }
