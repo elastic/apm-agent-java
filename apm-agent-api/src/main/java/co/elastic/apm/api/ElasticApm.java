@@ -3,18 +3,18 @@ package co.elastic.apm.api;
 import javax.annotation.Nonnull;
 
 /**
- * This class can be used to statically access the {@link Tracer}.
+ * This class can be used to statically access the {@link ElasticApm}.
  * <p>
- * You can store the Tracer as an instance like so:
+ * You can store the reference as an instance variable like so:
  * </p>
  * <pre>{@code
- * private static final Tracer tracer = ElasticApm.get();
+ * private static final ElasticApm elasticApm = ElasticApm.get();
  * }</pre>
  * <p>
- * Then you access the tracer to set a custom transaction name,
+ * Then you can access the tracer to set a custom transaction name,
  * for example:
  * <pre>{@code
- * tracer.currentTransaction().setName("SuchController#muchMethod");
+ * elasticApm.currentTransaction().setName("SuchController#muchMethod");
  * }</pre>
  * <p/>
  */
@@ -23,7 +23,7 @@ public class ElasticApm implements Tracer {
     /**
      * The singleton instance of the Tracer.
      */
-    static final ElasticApm INSTANCE = new ElasticApm();
+    private static final ElasticApm INSTANCE = new ElasticApm();
 
     private Tracer tracer = NoopTracer.INSTANCE;
 
@@ -39,7 +39,7 @@ public class ElasticApm implements Tracer {
      * @return the tracer implementation (never <code>null</code>)
      */
     @Nonnull
-    public static Tracer get() {
+    public static ElasticApm get() {
         return INSTANCE;
     }
 
@@ -88,7 +88,8 @@ public class ElasticApm implements Tracer {
     /**
      * Returns the currently running transaction.
      * <p>
-     * If there is no current transaction, this method will return a noop transaction.
+     * If there is no current transaction, this method will return a noop transaction,
+     * which means that you never have to check for <code>null</code> values.
      * </p>
      *
      * @return The currently running transaction, or a noop transaction (never <code>null</code>).
@@ -103,7 +104,8 @@ public class ElasticApm implements Tracer {
     /**
      * Returns the currently running span.
      * <p>
-     * If there is no current span, this method will return a noop span.
+     * If there is no current span, this method will return a noop span,
+     * which means that you never have to check for <code>null</code> values.
      * </p>
      *
      * @return The currently running span, or a noop span (never <code>null</code>).
@@ -121,10 +123,16 @@ public class ElasticApm implements Tracer {
         return tracer.startSpan();
     }
 
+    @Override
+    public void captureException(@Nonnull Exception e) {
+        tracer.captureException(e);
+    }
+
     enum NoopTracer implements Tracer {
 
         INSTANCE;
 
+        @Nonnull
         @Override
         public Transaction startTransaction() {
             return NoopTransaction.INSTANCE;
@@ -140,9 +148,15 @@ public class ElasticApm implements Tracer {
             return NoopSpan.INSTANCE;
         }
 
+        @Nonnull
         @Override
-        public co.elastic.apm.api.Span startSpan() {
+        public Span startSpan() {
             return NoopSpan.INSTANCE;
+        }
+
+        @Override
+        public void captureException(@Nonnull Exception e) {
+            // noop
         }
 
         enum NoopTransaction implements Transaction {
@@ -180,7 +194,7 @@ public class ElasticApm implements Tracer {
             }
         }
 
-        enum NoopSpan implements co.elastic.apm.api.Span {
+        enum NoopSpan implements Span {
             INSTANCE;
 
             @Override

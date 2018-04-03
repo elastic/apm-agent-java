@@ -9,7 +9,7 @@ class ElasticApmTest {
 
     @BeforeEach
     void setUp() {
-        ElasticApm.INSTANCE.unregister();
+        ElasticApm.get().unregister();
     }
 
     @Test
