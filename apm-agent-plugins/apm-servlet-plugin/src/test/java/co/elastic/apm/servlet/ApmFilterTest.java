@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,7 @@ import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.configuration.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
+import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
@@ -56,6 +58,7 @@ class ApmFilterTest {
     private ApmFilter apmFilter;
     private MockReporter reporter;
     private ConfigurationRegistry config;
+    private WebConfiguration webConfiguration;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +69,7 @@ class ApmFilterTest {
             .reporter(reporter)
             .build();
         apmFilter = new ApmFilter(tracer);
+        webConfiguration = config.getConfig(WebConfiguration.class);
     }
 
     @Test
@@ -119,7 +123,7 @@ class ApmFilterTest {
 
     @Test
     void testTrackPostParams() throws IOException, ServletException {
-        when(config.getConfig(WebConfiguration.class).getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");
@@ -142,5 +146,24 @@ class ApmFilterTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Bazinga");
+    }
+
+    @Test
+    void testIgnoreUrlStartWith() throws IOException, ServletException {
+        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/resources/test.js");
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(0);
+    }
+
+    @Test
+    void testIgnoreUrlEndWith() throws IOException, ServletException {
+        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*.js")));
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/resources");
+        request.setPathInfo("test.js");
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(0);
     }
 }

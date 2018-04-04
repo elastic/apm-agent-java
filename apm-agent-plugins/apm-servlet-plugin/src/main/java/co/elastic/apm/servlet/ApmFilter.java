@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,6 +28,9 @@ import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.matcher.WildcardMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.servlet.Filter;
@@ -52,6 +55,8 @@ import static co.elastic.apm.configuration.WebConfiguration.EventType.OFF;
 
 public class ApmFilter implements Filter {
 
+    private static final Logger logger = LoggerFactory.getLogger(ApmFilter.class);
+
     private final static Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
@@ -73,10 +78,34 @@ public class ApmFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        if (coreConfiguration.isActive()) {
+        if (coreConfiguration.isActive() && !isUrlExcluded(request)) {
             captureTransaction(request, response, filterChain);
         } else {
             filterChain.doFilter(request, response);
+        }
+    }
+
+    private boolean isUrlExcluded(ServletRequest request) {
+        if (!(request instanceof HttpServletRequest)) {
+            return true;
+        }
+        for (WildcardMatcher matcher : webConfiguration.getIgnoreUrls()) {
+            if (matches((HttpServletRequest) request, matcher)) {
+                logger.debug("Not tracing this request as the url {} is ignored by the pattern {}",
+                    ((HttpServletRequest) request).getRequestURI(), matcher);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matches(HttpServletRequest request, WildcardMatcher matcher) {
+        // request.getRequestURI() might contain the session id
+        // see also https://stackoverflow.com/a/21046620/1125055 on why servletPath = pathInfo is a good idea
+        if (request.getPathInfo() == null) {
+            return matcher.matches(request.getServletPath());
+        } else {
+            return matcher.matches(request.getServletPath(), request.getPathInfo());
         }
     }
 

@@ -207,12 +207,15 @@ WARNING: request bodies often contain sensitive values like passwords, credit ca
 |============
 
 [float]
-[[config-ignore-urls-starting-with]]
-==== `ignore_urls_starting_with`
+[[config-ignore-urls]]
+==== `ignore_urls`
 
-Used to restrict requests to certain URL’s from being instrumented.
+Used to restrict requests to certain URLs from being instrumented.
 
-This property should be set to an array containing one or more strings. When an incoming HTTP request is detected, its URL will be tested against each element in this list. If the URL starts with an element in the array.
+This property should be set to an array containing one or more strings.
+When an incoming HTTP request is detected, its URL will be tested against each element in this list.
+Entries can have a wildcard at the beginning or at the end.
+Example: `/resources/*, *.js`
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
@@ -220,14 +223,14 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Default                 | Type                | Dynamic
-| `<none>` | Collection | true
+| `<none>` | List | true
 |============
 
 
 [options="header"]
 |============
 | Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.ignore_urls_starting_with` | `ELASTIC_APM_IGNORE_URLS_STARTING_WITH` | `ignore_urls_starting_with`
+| `elastic.apm.ignore_urls` | `ELASTIC_APM_IGNORE_URLS` | `ignore_urls`
 |============
 
 [[reporter]]
