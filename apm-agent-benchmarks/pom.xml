@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-java</artifactId>
+            <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
