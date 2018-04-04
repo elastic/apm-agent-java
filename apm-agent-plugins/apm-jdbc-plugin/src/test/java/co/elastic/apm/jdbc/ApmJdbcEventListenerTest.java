@@ -47,8 +47,9 @@ class ApmJdbcEventListenerTest {
     void setUp() throws SQLException {
         ElasticApmTracer tracer = ElasticApmTracer.builder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(new MockReporter()).build();
-        P6SpyDriver.setJdbcEventListenerFactory(() -> new ApmJdbcEventListener(tracer));
+            .reporter(new MockReporter())
+            .build()
+            .register();
         connection = DriverManager.getConnection("jdbc:p6spy:h2:mem:test", "user", "");
         connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
@@ -59,6 +60,7 @@ class ApmJdbcEventListenerTest {
     void tearDown() throws SQLException {
         connection.close();
         transaction.end();
+        ElasticApmTracer.unregister();
     }
 
     @Test
