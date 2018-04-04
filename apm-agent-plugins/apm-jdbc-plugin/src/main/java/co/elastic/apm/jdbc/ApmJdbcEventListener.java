@@ -25,6 +25,7 @@ import co.elastic.apm.impl.transaction.Transaction;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.common.StatementInformation;
 import com.p6spy.engine.event.SimpleJdbcEventListener;
+import com.p6spy.engine.spy.P6SpyOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
     private final ElasticApmTracer elasticApmTracer;
 
     public ApmJdbcEventListener() {
-        elasticApmTracer = ElasticApmTracer.get();
+        this(ElasticApmTracer.get());
     }
 
     public ApmJdbcEventListener(ElasticApmTracer elasticApmTracer) {
