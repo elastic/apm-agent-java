@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,8 @@
  */
 package co.elastic.apm.impl;
 
-import co.elastic.apm.TransactionUtils;
+import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Framework;
 import co.elastic.apm.impl.payload.Language;
@@ -30,6 +31,7 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
@@ -45,13 +47,17 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10)
 @Measurement(iterations = 10)
 @Fork(1)
 public abstract class AbstractReporterBenchmark {
+
+    private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     protected TransactionPayload payload;
     protected ElasticApmTracer tracer;
@@ -85,11 +91,74 @@ public abstract class AbstractReporterBenchmark {
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
             t.start(tracer, 0, ConstantSampler.of(true));
-            TransactionUtils.fillTransaction(t);
+            fillTransaction(t);
             payload.getTransactions().add(t);
         }
     }
 
+    private void fillTransaction(Transaction t) {
+        t.setName("GET /api/types");
+        t.setType("request");
+        t.withResult("success");
+
+        Context context = t.getContext();
+        Request request = context.getRequest();
+        request.withHttpVersion("1.1");
+        request.withMethod("POST");
+        request.withRawBody("Hello World");
+        request.getUrl()
+            .withProtocol("https")
+            .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")
+            .withHostname("www.example.com")
+            .withPort("8080")
+            .withPathname("/p/a/t/h")
+            .withSearch("?query=string");
+        request.getSocket()
+            .withEncrypted(true)
+            .withRemoteAddress("12.53.12.1");
+        request.addHeader("user-agent", "Mozilla Chrome Edge");
+        request.addHeader("content-type", "text/html");
+        request.addHeader("cookie", "c1=v1; c2=v2");
+        request.addHeader("some-other-header", "foo");
+        request.addHeader("array", "foo, bar, baz");
+        request.getCookies().put("c1", "v1");
+        request.getCookies().put("c2", "v2");
+
+        context.getResponse()
+            .withStatusCode(200)
+            .withFinished(true)
+            .withHeadersSent(true)
+            .addHeader("content-type", "application/json");
+
+        context.getUser()
+            .withId("99")
+            .withUsername("foo")
+            .withEmail("foo@example.com");
+
+        context.getTags().put("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
+        context.getCustom().put("my_key", 1);
+        context.getCustom().put("some_other_value", "foo bar");
+        context.getCustom().put("and_objects", STRINGS);
+
+        Span span = new Span()
+            .withName("SELECT FROM product_types")
+            .withType("db.postgresql.query");
+        span.getContext().getDb()
+            .withInstance("customers")
+            .withStatement("SELECT * FROM product_types WHERE user_id=?")
+            .withType("sql")
+            .withUser("readonly_user");
+        t.getSpans().add(span);
+        t.getSpans().add(new Span()
+            .withName("GET /api/types")
+            .withType("request"));
+        t.getSpans().add(new Span()
+            .withName("GET /api/types")
+            .withType("request"));
+        t.getSpans().add(new Span()
+            .withName("GET /api/types")
+            .withType("request"));
+    }
 
     protected abstract PayloadSender getPayloadSender();
 
@@ -102,7 +171,7 @@ public abstract class AbstractReporterBenchmark {
     @Benchmark
     public void testReport() {
         try (Transaction t = tracer.startTransaction()) {
-            TransactionUtils.fillTransaction(t);
+            fillTransaction(t);
         }
     }
 
