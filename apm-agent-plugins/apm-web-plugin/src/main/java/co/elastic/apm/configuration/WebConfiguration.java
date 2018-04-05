@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,11 +19,15 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.matcher.WildcardMatcher;
+import co.elastic.apm.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 public class WebConfiguration extends ConfigurationOptionProvider {
 
@@ -46,26 +50,47 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(EventType.OFF);
 
-    private final ConfigurationOption<Collection<String>> ignoreUrlsStartingWith = ConfigurationOption.stringsOption()
-        .key("ignore_urls_starting_with")
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_urls")
         .configurationCategory(HTTP_CATEGORY)
-        .description("Used to restrict requests to certain URL’s from being instrumented.\n" +
+        .description("Used to restrict requests to certain URLs from being instrumented.\n" +
             "\n" +
-            "This property should be set to an array containing one or more strings. " +
-            "When an incoming HTTP request is detected, its URL will be tested against each element in this list. " +
-            "If the URL starts with an element in the array.\n" +
+            "This property should be set to an array containing one or more strings.\n" +
+            "When an incoming HTTP request is detected, its URL will be tested against each element in this list.\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Example: `/resources/*, *.js, *static*`\n" +
             "\n" +
             "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
             "this setting.")
         .dynamic(true)
-        .buildWithDefault(Collections.<String>emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreUserAgents = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_user_agents")
+        .configurationCategory(HTTP_CATEGORY)
+        .description("Used to restrict requests from certain User-Agents from being instrumented.\n" +
+            "\n" +
+            "When an incoming HTTP request is detected,\n" +
+            "the User-Agent from the request headers will be tested against each element in this list.\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Example: `curl/*, *pingdom*`\n" +
+            "\n" +
+            "NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server " +
+            "regardless of this setting.")
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public EventType getCaptureBody() {
         return captureBody.get();
     }
 
-    public Collection<String> getIgnoreUrlsStartingWith() {
-        return ignoreUrlsStartingWith.get();
+    public Collection<WildcardMatcher> getIgnoreUrls() {
+        return ignoreUrls.get();
+    }
+
+    public Collection<WildcardMatcher> getIgnoreUserAgents() {
+        return ignoreUserAgents.get();
     }
 
     public enum EventType {
