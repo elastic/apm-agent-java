@@ -78,21 +78,26 @@ public class ApmFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        if (coreConfiguration.isActive() && !isUrlExcluded(request)) {
+        if (coreConfiguration.isActive() && !isExcluded(request)) {
             captureTransaction(request, response, filterChain);
         } else {
             filterChain.doFilter(request, response);
         }
     }
 
-    private boolean isUrlExcluded(ServletRequest request) {
+    private boolean isExcluded(ServletRequest request) {
         if (!(request instanceof HttpServletRequest)) {
             return true;
         }
+        final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+        return isUrlExcluded(httpServletRequest) || isUserAgentExcluded(httpServletRequest);
+    }
+
+    private boolean isUrlExcluded(HttpServletRequest request) {
         for (WildcardMatcher matcher : webConfiguration.getIgnoreUrls()) {
-            if (matches((HttpServletRequest) request, matcher)) {
+            if (matches(request, matcher)) {
                 logger.debug("Not tracing this request as the url {} is ignored by the pattern {}",
-                    ((HttpServletRequest) request).getRequestURI(), matcher);
+                    request.getRequestURI(), matcher);
                 return true;
             }
         }
@@ -107,6 +112,18 @@ public class ApmFilter implements Filter {
         } else {
             return matcher.matches(request.getServletPath(), request.getPathInfo());
         }
+    }
+
+    private boolean isUserAgentExcluded(HttpServletRequest httpServletRequest) {
+        final String userAgent = httpServletRequest.getHeader("User-Agent");
+        if (userAgent != null) {
+            for (WildcardMatcher matcher : webConfiguration.getIgnoreUserAgents()) {
+                if (matcher.matches(userAgent)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     void captureTransaction(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {

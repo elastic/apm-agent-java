@@ -58,11 +58,26 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This property should be set to an array containing one or more strings.\n" +
             "When an incoming HTTP request is detected, its URL will be tested against each element in this list.\n" +
-            "Entries can have a wildcard at the beginning or at the end.\n" +
-            "Example: `/resources/*, *.js`\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Example: `/resources/*, *.js, *static*`\n" +
             "\n" +
             "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
             "this setting.")
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreUserAgents = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_user_agents")
+        .configurationCategory(HTTP_CATEGORY)
+        .description("Used to restrict requests from certain User-Agents from being instrumented.\n" +
+            "\n" +
+            "When an incoming HTTP request is detected,\n" +
+            "the User-Agent from the request headers will be tested against each element in this list.\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Example: `curl/*, *pingdom*`\n" +
+            "\n" +
+            "NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server " +
+            "regardless of this setting.")
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
@@ -72,6 +87,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public Collection<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
+    }
+
+    public Collection<WildcardMatcher> getIgnoreUserAgents() {
+        return ignoreUserAgents.get();
     }
 
     public enum EventType {

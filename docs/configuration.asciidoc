@@ -214,8 +214,8 @@ Used to restrict requests to certain URLs from being instrumented.
 
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-Entries can have a wildcard at the beginning or at the end.
-Example: `/resources/*, *.js`
+Entries can have a wildcard at the beginning and at the end.
+Example: `/resources/*, *.js, *static*`
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
@@ -231,6 +231,33 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 |============
 | Java System Properties      | Environment                            | `elasticapm.properties`
 | `elastic.apm.ignore_urls` | `ELASTIC_APM_IGNORE_URLS` | `ignore_urls`
+|============
+
+[float]
+[[config-ignore-user-agents]]
+==== `ignore_user_agents`
+
+Used to restrict requests from certain User-Agents from being instrumented.
+
+When an incoming HTTP request is detected,
+the User-Agent from the request headers will be tested against each element in this list.
+Entries can have a wildcard at the beginning and at the end.
+Example: `curl/*, *pingdom*`
+
+NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
+
+
+[options="header"]
+|============
+| Default                 | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment                            | `elasticapm.properties`
+| `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS` | `ignore_user_agents`
 |============
 
 [[reporter]]

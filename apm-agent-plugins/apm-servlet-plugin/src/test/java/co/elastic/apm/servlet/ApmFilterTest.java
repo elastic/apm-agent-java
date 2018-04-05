@@ -166,4 +166,22 @@ class ApmFilterTest {
         apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
+
+    @Test
+    void testIgnoreUserAgentStartWith() throws IOException, ServletException {
+        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("curl/*")));
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("user-agent", "curl/7.54.0");
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(0);
+    }
+
+    @Test
+    void testIgnoreUserAgentInfix() throws IOException, ServletException {
+        when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*pingdom*")));
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("user-agent", "Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(0);
+    }
 }
