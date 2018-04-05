@@ -23,8 +23,6 @@ import org.stagemonitor.configuration.converter.ValueConverter;
 
 /**
  * This class is used to be able to use {@link WildcardMatcher} in a {@link org.stagemonitor.configuration.ConfigurationOption}.
- *
- * @see co.elastic.apm.configuration.WebConfiguration#ignoreUrls
  */
 public class WildcardMatcherValueConverter implements ValueConverter<WildcardMatcher> {
 
