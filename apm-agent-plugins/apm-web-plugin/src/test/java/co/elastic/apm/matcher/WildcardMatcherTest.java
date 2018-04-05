@@ -89,4 +89,57 @@ class WildcardMatcherTest {
             softly.assertThat(matcher.matches("barfoo")).isFalse();
         });
     }
+
+    @Test
+    void testMatchesInfix() {
+        final WildcardMatcher matcher = WildcardMatcher.valueOf("*foo*");
+        assertSoftly(softly -> {
+            softly.assertThat(matcher.toString()).isEqualTo("*foo*");
+            softly.assertThat(matcher.matches("foo")).isTrue();
+            softly.assertThat(matcher.matches("foobar")).isTrue();
+            softly.assertThat(matcher.matches("bar")).isFalse();
+            softly.assertThat(matcher.matches("barfoo")).isTrue();
+            softly.assertThat(matcher.matches("barfoobaz")).isTrue();
+        });
+    }
+
+    @Test
+    void testMatchesInfixPartitionedString_allocationFree() {
+        final WildcardMatcher matcher = WildcardMatcher.valueOf("*foo*");
+        assertSoftly(softly -> {
+            softly.assertThat(matcher.toString()).isEqualTo("*foo*");
+            // no allocations necessary
+            softly.assertThat(matcher.matches("foo", "bar")).isTrue();
+            softly.assertThat(matcher.matches("bar", "foo")).isTrue();
+            softly.assertThat(matcher.matches("barfoo", "baz")).isTrue();
+            softly.assertThat(matcher.matches("ba", "rfoo")).isTrue();
+        });
+    }
+
+    @Test
+    void testMatchesInfixPartitionedString_notAllocationFree() {
+        final WildcardMatcher matcher = WildcardMatcher.valueOf("*foo*");
+        assertSoftly(softly -> {
+            softly.assertThat(matcher.toString()).isEqualTo("*foo*");
+            // requires concatenating the string
+            softly.assertThat(matcher.matches("fo", "o")).isTrue();
+            softly.assertThat(matcher.matches("barfo", "obaz")).isTrue();
+            softly.assertThat(matcher.matches("bar", "baz")).isFalse();
+        });
+    }
+
+    @Test
+    void testMatchesNoWildcard() {
+        final WildcardMatcher matcher = WildcardMatcher.valueOf("foo");
+        assertSoftly(softly -> {
+            softly.assertThat(matcher.toString()).isEqualTo("foo");
+            // requires concatenating the string
+            softly.assertThat(matcher.matches("fo", "o")).isTrue();
+            softly.assertThat(matcher.matches("foo")).isTrue();
+            softly.assertThat(matcher.matches("foo", "bar")).isFalse();
+            softly.assertThat(matcher.matches("foobar")).isFalse();
+
+        });
+    }
+
 }

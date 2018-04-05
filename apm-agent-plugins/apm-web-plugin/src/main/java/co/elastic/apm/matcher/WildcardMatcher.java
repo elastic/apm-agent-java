@@ -33,7 +33,8 @@ package co.elastic.apm.matcher;
  * depending on the input string,
  * allows for prefix, postfix and infix matching.
  * This implementation is also very fast,
- * as it just resorts to {@link String#startsWith(String)} and {@link String#endsWith(String)}.
+ * as it just resorts to {@link String#startsWith(String)},
+ * {@link String#endsWith(String)} and {@link String#contains(CharSequence)}.
  * </p>
  */
 /*
@@ -116,17 +117,15 @@ public class WildcardMatcher {
      * @return whether the String matches the given pattern
      */
     public boolean matches(String s) {
-        boolean matches = true;
-        if (startsWith) {
-            matches = s.startsWith(matcher);
-        }
-        if (endsWith) {
-            matches = matches && s.endsWith(matcher);
-        }
-        if (!startsWith && !endsWith) {
+        if (startsWith && endsWith) {
+            return s.contains(matcher);
+        } else if (startsWith) {
+            return s.startsWith(matcher);
+        } else if (endsWith) {
+            return s.endsWith(matcher);
+        } else {
             return matcher.equals(s);
         }
-        return matches;
     }
 
     /**
@@ -143,24 +142,24 @@ public class WildcardMatcher {
      * <code>false</code> otherwise.
      */
     public boolean matches(String firstPart, String secondPart) {
-        boolean matches = true;
-        if (startsWith) {
+        if (startsWith && endsWith) {
+            return firstPart.contains(matcher) ||
+                secondPart.contains(matcher) ||
+                matches(firstPart.concat(secondPart));
+        } else if (startsWith) {
             if (firstPart.length() >= matcher.length()) {
-                matches = firstPart.startsWith(matcher);
+                return firstPart.startsWith(matcher);
             } else {
                 return matches(firstPart.concat(secondPart));
             }
-        }
-        if (endsWith) {
+        } else if (endsWith) {
             if (secondPart.length() >= matcher.length()) {
-                matches = matches && secondPart.endsWith(matcher);
+                return secondPart.endsWith(matcher);
             } else {
                 return matches(firstPart.concat(secondPart));
             }
-        }
-        if (!startsWith && !endsWith) {
+        } else {
             return matcher.equals(firstPart.concat(secondPart));
         }
-        return matches;
     }
 }
