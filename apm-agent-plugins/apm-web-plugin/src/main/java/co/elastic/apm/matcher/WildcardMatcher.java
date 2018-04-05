@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.matcher;
 
+import java.util.Collection;
+
 /**
  * This matcher is used in {@link co.elastic.apm.configuration.WebConfiguration#ignoreUrls}
  * to disable tracing for certain URLs.
@@ -96,6 +98,40 @@ public class WildcardMatcher {
             matcher = matcher.substring(0, matcher.length() - 1);
         }
         return new WildcardMatcher(matcher, wildcardString, startsWith, endsWith);
+    }
+
+    /**
+     * Returns <code>true</code>, if any of the matchers match the provided string.
+     *
+     * @param matchers the matchers which should be used to match the provided string
+     * @param s the string to match against
+     * @return <code>true</code>, if any of the matchers match the provided string
+     */
+    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String s) {
+        for (WildcardMatcher matcher : matchers) {
+            if (matcher.matches(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns <code>true</code>, if any of the matchers match the provided partitioned string.
+     *
+     * @param matchers the matchers which should be used to match the provided string
+     * @param firstPart  The first part of the string to match against.
+     * @param secondPart The second part of the string to match against.
+     * @return <code>true</code>, if any of the matchers match the provided partitioned string
+     * @see #matches(String, String)
+     */
+    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String firstPart, String secondPart) {
+        for (WildcardMatcher matcher : matchers) {
+            if (matcher.matches(firstPart, secondPart)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

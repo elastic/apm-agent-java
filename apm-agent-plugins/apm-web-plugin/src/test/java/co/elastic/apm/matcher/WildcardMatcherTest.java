@@ -21,6 +21,8 @@ package co.elastic.apm.matcher;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class WildcardMatcherTest {
@@ -139,6 +141,20 @@ class WildcardMatcherTest {
             softly.assertThat(matcher.matches("foo", "bar")).isFalse();
             softly.assertThat(matcher.matches("foobar")).isFalse();
 
+        });
+    }
+
+    @Test
+    void testMatchAnyStartsWith() {
+        final WildcardMatcher matcher1 = WildcardMatcher.valueOf("foo*");
+        final WildcardMatcher matcher2 = WildcardMatcher.valueOf("bar*");
+        assertSoftly(softly -> {
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "foo")).isTrue();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "bar")).isTrue();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "baz")).isFalse();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "fo", "o")).isTrue();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "r")).isTrue();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "z")).isFalse();
         });
     }
 

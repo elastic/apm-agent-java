@@ -89,41 +89,18 @@ public class ApmFilter implements Filter {
         if (!(request instanceof HttpServletRequest)) {
             return true;
         }
-        final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-        return isUrlExcluded(httpServletRequest) || isUserAgentExcluded(httpServletRequest);
-    }
-
-    private boolean isUrlExcluded(HttpServletRequest request) {
-        for (WildcardMatcher matcher : webConfiguration.getIgnoreUrls()) {
-            if (matches(request, matcher)) {
-                logger.debug("Not tracing this request as the url {} is ignored by the pattern {}",
-                    request.getRequestURI(), matcher);
-                return true;
-            }
+        final HttpServletRequest req = (HttpServletRequest) request;
+        boolean excludeUrl = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), req.getServletPath(), req.getPathInfo());
+        boolean excludeAgent = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), req.getHeader("User-Agent"));
+        if (excludeUrl) {
+            logger.debug("Not tracing this request as the URL {} is ignored by one of the matchers",
+                req.getRequestURI(), webConfiguration.getIgnoreUrls());
         }
-        return false;
-    }
-
-    private boolean matches(HttpServletRequest request, WildcardMatcher matcher) {
-        // request.getRequestURI() might contain the session id
-        // see also https://stackoverflow.com/a/21046620/1125055 on why servletPath = pathInfo is a good idea
-        if (request.getPathInfo() == null) {
-            return matcher.matches(request.getServletPath());
-        } else {
-            return matcher.matches(request.getServletPath(), request.getPathInfo());
+        if (excludeAgent) {
+            logger.debug("Not tracing this request as the User-Agent {} is ignored by one of the matchers",
+                req.getHeader("User-Agent"), webConfiguration.getIgnoreUserAgents());
         }
-    }
-
-    private boolean isUserAgentExcluded(HttpServletRequest httpServletRequest) {
-        final String userAgent = httpServletRequest.getHeader("User-Agent");
-        if (userAgent != null) {
-            for (WildcardMatcher matcher : webConfiguration.getIgnoreUserAgents()) {
-                if (matcher.matches(userAgent)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return excludeUrl || excludeAgent;
     }
 
     void captureTransaction(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
