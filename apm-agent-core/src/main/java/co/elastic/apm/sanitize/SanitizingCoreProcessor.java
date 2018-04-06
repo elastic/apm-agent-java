@@ -17,40 +17,32 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.sanitize;
 
+import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.processor.Processor;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class TestProcessor implements Processor {
-
-    private static AtomicInteger transactionCounter = new AtomicInteger();
-    private static AtomicInteger errorCounter = new AtomicInteger();
-
-    @Override
-    public void init(ConfigurationRegistry configurationRegistry) {
-
-    }
+/**
+ * Sanitizes common fields,
+ * which are not specific to a certain plugin,
+ * according to the {@link CoreConfiguration#sanitizeFieldNames} setting
+ */
+public class SanitizingCoreProcessor extends AbstractSanitizingProcessor {
 
     @Override
     public void processBeforeReport(Transaction transaction) {
-        transactionCounter.incrementAndGet();
+        sanitizeContext(transaction.getContext());
     }
 
     @Override
     public void processBeforeReport(ErrorCapture error) {
-        errorCounter.incrementAndGet();
+        sanitizeContext(error.getContext());
     }
 
-    public static int getTransactionCount() {
-        return transactionCounter.get();
-    }
-
-    public static int getErrorCount() {
-        return errorCounter.get();
+    private void sanitizeContext(Context context) {
+        sanitizeMap(context.getTags());
+        sanitizeMap(context.getCustom());
     }
 }
