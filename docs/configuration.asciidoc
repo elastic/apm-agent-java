@@ -215,7 +215,7 @@ Used to restrict requests to certain URLs from being instrumented.
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
 Entries can have a wildcard at the beginning and at the end.
-Example: `/resources/*, *.js, *static*`
+Prepending the wildcard with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
@@ -223,7 +223,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Default                 | Type                | Dynamic
-| `<none>` | List | true
+| /VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2 | List | true
 |============
 
 
