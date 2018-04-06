@@ -33,8 +33,8 @@ ${option.description}
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| <@defaultValue option/> | ${option.valueType} | ${option.dynamic?c}
+| Default                          | Type                | Dynamic
+| `<@defaultValue option/>` | ${option.valueType} | ${option.dynamic?c}
 |============
 
 
@@ -47,5 +47,5 @@ ${option.description}
     </#list>
 </#list>
 
-<#macro defaultValue option>${option.defaultValueAsString?has_content?then(option.defaultValueAsString,'`<none>`')}</#macro>
+<#macro defaultValue option>${option.defaultValueAsString?has_content?then("pass:[${option.defaultValueAsString}]",'<none>')}</#macro>
 

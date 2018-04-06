@@ -37,8 +37,8 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| true | Boolean | true
+| Default                          | Type                | Dynamic
+| `pass:[true]` | Boolean | true
 |============
 
 
@@ -59,8 +59,8 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| true | Boolean | false
+| Default                          | Type                | Dynamic
+| `pass:[true]` | Boolean | false
 |============
 
 
@@ -81,7 +81,7 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | String | false
 |============
 
@@ -101,7 +101,7 @@ A version string for the currently deployed version of the service. If you donâ€
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | String | false
 |============
 
@@ -121,7 +121,7 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | String | false
 |============
 
@@ -141,8 +141,8 @@ By default, the agent will sample every transaction (e.g. request to your servic
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 1.0 | Double | true
+| Default                          | Type                | Dynamic
+| `pass:[1.0]` | Double | true
 |============
 
 
@@ -165,8 +165,8 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 500 | Integer | true
+| Default                          | Type                | Dynamic
+| `pass:[500]` | Integer | true
 |============
 
 
@@ -200,8 +200,8 @@ you should add an additional entry to this list (make sure to also include the d
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie | List | true
+| Default                          | Type                | Dynamic
+| `pass:[(?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie]` | List | true
 |============
 
 
@@ -230,8 +230,8 @@ WARNING: request bodies often contain sensitive values like passwords, credit ca
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| OFF | EventType | true
+| Default                          | Type                | Dynamic
+| `pass:[OFF]` | EventType | true
 |============
 
 
@@ -257,8 +257,8 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| /VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2 | List | true
+| Default                          | Type                | Dynamic
+| `pass:[/VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2]` | List | true
 |============
 
 
@@ -285,7 +285,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | List | true
 |============
 
@@ -309,7 +309,7 @@ Both the agents and the APM server have to be configured with the same secret to
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | String | false
 |============
 
@@ -329,8 +329,8 @@ The URL must be fully qualified, including protocol (http or https) and port.
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| http://localhost:8200 | URL | false
+| Default                          | Type                | Dynamic
+| `pass:[http://localhost:8200]` | URL | false
 |============
 
 
@@ -351,8 +351,8 @@ WARNING:  If timeouts are disabled or set to a high value, your app could experi
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 5 | Integer | false
+| Default                          | Type                | Dynamic
+| `pass:[5]` | Integer | false
 |============
 
 
@@ -373,8 +373,8 @@ Verification can be disabled by changing this setting to false.
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| true | Boolean | false
+| Default                          | Type                | Dynamic
+| `pass:[true]` | Boolean | false
 |============
 
 
@@ -397,8 +397,8 @@ A higher value also impacts the time until transactions are indexed and searchab
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 1 | Integer | false
+| Default                          | Type                | Dynamic
+| `pass:[1]` | Integer | false
 |============
 
 
@@ -423,8 +423,8 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 500 | Integer | true
+| Default                          | Type                | Dynamic
+| `pass:[500]` | Integer | true
 |============
 
 
@@ -445,7 +445,7 @@ Used to determine whether a stack trace frame is an 'in-app frame' or a 'library
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
+| Default                          | Type                | Dynamic
 | `<none>` | Collection | true
 |============
 
@@ -465,8 +465,8 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 50 | Integer | true
+| Default                          | Type                | Dynamic
+| `pass:[50]` | Integer | true
 |============
 
 
@@ -489,8 +489,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 [options="header"]
 |============
-| Default                 | Type                | Dynamic
-| 5 | Integer | true
+| Default                          | Type                | Dynamic
+| `pass:[5]` | Integer | true
 |============
 
 
