@@ -135,6 +135,7 @@ class WildcardMatcherTest {
             softly.assertThat(matcher.toString()).isEqualTo("*foo*");
             // requires concatenating the string
             softly.assertThat(matcher.matches("fo", "o")).isTrue();
+            softly.assertThat(matcher.matches("fo", null)).isFalse();
             softly.assertThat(matcher.matches("barfo", "obaz")).isTrue();
             softly.assertThat(matcher.matches("bar", "baz")).isFalse();
         });

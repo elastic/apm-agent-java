@@ -158,6 +158,15 @@ class ApmFilterTest {
     }
 
     @Test
+    void testIgnoreUrlStartWithNoMatch() throws IOException, ServletException {
+        when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/");
+        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
     void testIgnoreUrlEndWith() throws IOException, ServletException {
         when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*.js")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
