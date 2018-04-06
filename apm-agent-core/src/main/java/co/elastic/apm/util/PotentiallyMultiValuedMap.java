@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This map is a mixture of a map with a single value and a map with multiple values.
@@ -37,7 +37,7 @@ import java.util.HashMap;
  * @param <V> The type of the value(s).
  *            Don't you dare to set it to a collection type.
  */
-public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collection<V> | V*/> {
+public class PotentiallyMultiValuedMap<K, V> extends ConcurrentHashMap<K, Object /* Collection<V> | V*/> {
 
     /**
      * Adds a value to this map.
@@ -50,7 +50,7 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
      * @param key   The key.
      * @param value The value.
      */
-    public void add(K key, @Nullable V value) {
+    public void add(K key, V value) {
         if (containsKey(key)) {
             Object previousValue = get(key);
             if (previousValue instanceof Collection) {
@@ -101,11 +101,11 @@ public class PotentiallyMultiValuedMap<K, V> extends HashMap<K, Object /* Collec
         }
     }
 
-    private void addValueToValueList(@Nullable V value, Collection<V> valueList) {
+    private void addValueToValueList(V value, Collection<V> valueList) {
         valueList.add(value);
     }
 
-    private void convertValueToMultiValue(K key, @Nullable V previousValue, @Nullable V value) {
+    private void convertValueToMultiValue(K key, V previousValue, V value) {
         Collection<V> valueList = new ArrayList<>(4);
         valueList.add(previousValue);
         valueList.add(value);

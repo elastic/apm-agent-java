@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,14 @@
 package co.elastic.apm.configuration;
 
 import co.elastic.apm.configuration.validation.RegexValidator;
+import co.elastic.apm.matcher.WildcardMatcher;
+import co.elastic.apm.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
@@ -104,6 +110,53 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(500);
 
+    private final ConfigurationOption<List<WildcardMatcher>> sanitizeFieldNames = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("sanitize_field_names")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Sometimes it is necessary to sanitize the data sent to Elastic APM,\n" +
+            "e.g. remove sensitive data.\n" +
+            "\n" +
+            "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
+            "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
+            "\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
+            "\n" +
+            "NOTE: Data in the query string is considered non-sensitive,\n" +
+            "as sensitive information should not be sent in the query string.\n" +
+            "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
+            "\n" +
+            "NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.\n" +
+            "If you do find sensitive data in the Elasticsearch index,\n" +
+            "you should add an additional entry to this list (make sure to also include the default entries)."
+            /* A disadvantage of this approach is when a user adds a custom value,
+             * they don't automatically pick up new default values.
+             * But the possibility to remove default values which are leading to false positive for the user
+             * outweights this disadvantage imho.
+             * Another advantage of having a configuration option vs offering a Filter or Processor in the public API is
+             * that we don't have to expose the internal data format to the public API.
+             */
+        )
+        .dynamic(true)
+        .tags("security")
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("(?i)password"),
+            WildcardMatcher.valueOf("(?i)passwd"),
+            WildcardMatcher.valueOf("(?i)pwd"),
+            WildcardMatcher.valueOf("(?i)secret"),
+            WildcardMatcher.valueOf("(?i)token"),
+            WildcardMatcher.valueOf("(?i)*key"),
+            WildcardMatcher.valueOf("(?i)*token"),
+            WildcardMatcher.valueOf("(?i)*session*"),
+            WildcardMatcher.valueOf("(?i)*credit*"),
+            WildcardMatcher.valueOf("(?i)*card*"),
+            // HTTP request header for basic auth, contains passwords
+            WildcardMatcher.valueOf("(?i)authorization"),
+            // HTTP response header which can contain session ids
+            WildcardMatcher.valueOf("(?i)set-cookie")
+        ));
+
     public boolean isActive() {
         return active.get();
     }
@@ -130,5 +183,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public int getTransactionMaxSpans() {
         return transactionMaxSpans.get();
+    }
+
+    public List<WildcardMatcher> getSanitizeFieldNames() {
+        return sanitizeFieldNames.get();
     }
 }

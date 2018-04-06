@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,23 +58,6 @@ class PotentiallyMultiValuedMapTest {
         assertThat(map.get("foo")).isEqualTo(Arrays.asList("bar", "baz"));
         assertThat(map.getFirst("foo")).isEqualTo("bar");
         assertThat(map.getAll("foo")).isEqualTo(Arrays.asList("bar", "baz"));
-    }
-
-    @Test
-    void testMap_oneEntry_null() {
-        map.add("foo", null);
-        assertThat(map.get("foo")).isEqualTo(null);
-        assertThat(map.getFirst("foo")).isEqualTo(null);
-        assertThat(map.getAll("foo")).isEqualTo(Collections.singletonList(null));
-    }
-
-    @Test
-    void testMap_twoEntries_null() {
-        map.add("foo", null);
-        map.add("foo", "baz");
-        assertThat(map.get("foo")).isEqualTo(Arrays.asList(null, "baz"));
-        assertThat(map.getFirst("foo")).isEqualTo(null);
-        assertThat(map.getAll("foo")).isEqualTo(Arrays.asList(null, "baz"));
     }
 
 }

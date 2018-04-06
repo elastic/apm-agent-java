@@ -176,6 +176,41 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 | `elastic.apm.transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS` | `transaction_max_spans`
 |============
 
+[float]
+[[config-sanitize-field-names]]
+==== `sanitize_field_names`
+
+Sometimes it is necessary to sanitize the data sent to Elastic APM,
+e.g. remove sensitive data.
+
+Configure a list of wildcard patterns of field names which should be sanitized.
+These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
+
+Entries can have a wildcard at the beginning and at the end.
+Prepending an element with `(?i)` makes the matching case-insensitive.
+
+NOTE: Data in the query string is considered non-sensitive,
+as sensitive information should not be sent in the query string.
+See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information
+
+NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.
+If you do find sensitive data in the Elasticsearch index,
+you should add an additional entry to this list (make sure to also include the default entries).
+
+
+[options="header"]
+|============
+| Default                 | Type                | Dynamic
+| (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment                            | `elasticapm.properties`
+| `elastic.apm.sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES` | `sanitize_field_names`
+|============
+
 [[http]]
 === HTTP configuration options
 [float]
@@ -215,7 +250,7 @@ Used to restrict requests to certain URLs from being instrumented.
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
 Entries can have a wildcard at the beginning and at the end.
-Prepending the wildcard with `(?i)` makes the matching case-insensitive.
+Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
@@ -242,7 +277,8 @@ Used to restrict requests from certain User-Agents from being instrumented.
 When an incoming HTTP request is detected,
 the User-Agent from the request headers will be tested against each element in this list.
 Entries can have a wildcard at the beginning and at the end.
-Example: `curl/*, *pingdom*`
+Prepending an element with `(?i)` makes the matching case-insensitive.
+Example: `curl/*, (?i)*pingdom*`
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 

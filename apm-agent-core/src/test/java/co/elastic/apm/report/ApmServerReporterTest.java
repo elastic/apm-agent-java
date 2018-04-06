@@ -53,7 +53,7 @@ class ApmServerReporterTest {
     @Test
     void testTransactionProcessor() throws ExecutionException, InterruptedException {
         final int transactionCount = TestProcessor.getTransactionCount();
-        reporter.report(mock(Transaction.class));
+        reporter.report(new Transaction());
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
@@ -63,7 +63,7 @@ class ApmServerReporterTest {
     @Test
     void testErrorProcessor() throws ExecutionException, InterruptedException {
         final int errorCount = TestProcessor.getErrorCount();
-        reporter.report(mock(ErrorCapture.class));
+        reporter.report(new ErrorCapture());
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
