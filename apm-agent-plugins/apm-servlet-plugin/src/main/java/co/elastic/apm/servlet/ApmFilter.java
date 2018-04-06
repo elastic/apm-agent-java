@@ -107,13 +107,22 @@ public class ApmFilter implements Filter {
         if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
             final Transaction transaction = tracer.startTransaction();
+            Exception exception = null;
             try {
                 filterChain.doFilter(request, response);
-                fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
             } catch (IOException | RuntimeException | ServletException e) {
-                tracer.captureException(e);
+                exception = e;
                 throw e;
             } finally {
+                // filling the transaction after the request has been processed is safer
+                // as reading the parameters could potentially decode them in the wrong encoding
+                // or trigger exceptions,
+                // for example when the amount of query parameters is longer than the application server allows
+                // in that case, we rather want that the agent looks like the cause for this
+                fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
+                if (exception != null) {
+                    tracer.captureException(exception);
+                }
                 transaction.end();
             }
         }
@@ -121,17 +130,22 @@ public class ApmFilter implements Filter {
 
     private void fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,
                                  HttpServletResponse httpServletResponse) {
-        Context context = transaction.getContext();
-        fillRequest(transaction.getContext().getRequest(), httpServletRequest);
-        fillResponse(context.getResponse(), httpServletResponse);
-        fillUser(context.getUser(), httpServletRequest);
+        try {
+            Context context = transaction.getContext();
+            fillRequest(transaction.getContext().getRequest(), httpServletRequest);
+            fillResponse(context.getResponse(), httpServletResponse);
+            fillUser(context.getUser(), httpServletRequest);
 
-        // the HTTP method is not a good transaction name, but better than none...
-        if (transaction.getName().length() == 0) {
-            transaction.withName(httpServletRequest.getMethod());
+            // the HTTP method is not a good transaction name, but better than none...
+            if (transaction.getName().length() == 0) {
+                transaction.withName(httpServletRequest.getMethod());
+            }
+            transaction.withResult(getResult(httpServletResponse.getStatus()));
+            transaction.withType("request");
+        } catch (RuntimeException e) {
+            // in case we screwed up, don't bring down the monitored application with us
+            logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        transaction.withResult(getResult(httpServletResponse.getStatus()));
-        transaction.withType("request");
     }
 
     @Nullable

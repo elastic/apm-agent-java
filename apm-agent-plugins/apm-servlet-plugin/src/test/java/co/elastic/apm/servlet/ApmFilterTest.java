@@ -141,10 +141,14 @@ class ApmFilterTest {
     void captureException() throws IOException, ServletException {
         final Servlet servlet = mock(Servlet.class);
         doThrow(new ServletException("Bazinga")).when(servlet).service(any(), any());
-        assertThatThrownBy(() -> apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain(servlet)))
+        assertThatThrownBy(() -> apmFilter.doFilter(
+            new MockHttpServletRequest("GET", "/test"),
+            new MockHttpServletResponse(), new MockFilterChain(servlet)))
             .isInstanceOf(ServletException.class);
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getContext().getRequest().getMethod()).isEqualTo("GET");
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Bazinga");
     }
 

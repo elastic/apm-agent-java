@@ -27,9 +27,12 @@ import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.report.processor.Processor;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
+import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Sanitizes web-related fields according to the {@link CoreConfiguration#sanitizeFieldNames} setting
@@ -78,6 +81,9 @@ public class SanitizingWebProcessor implements Processor {
         }
     }
 
+    // animal sniffer complains about ConcurrentHashMap.KeySetView not being available in JDK7
+    // this is a false-positive, as we are actually only referring to it's supertype Iterable
+    @IgnoreJRERequirement
     private void removeCookieHeader(PotentiallyMultiValuedMap<String, String> headers) {
         for (String headerName : headers.keySet()) {
             if ("Cookie".equalsIgnoreCase(headerName)) {
