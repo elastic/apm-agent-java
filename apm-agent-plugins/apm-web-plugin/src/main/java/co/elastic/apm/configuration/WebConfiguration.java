@@ -25,6 +25,7 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -60,12 +61,24 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "When an incoming HTTP request is detected, its URL will be tested against each element in this list.\n" +
             "Entries can have a wildcard at the beginning and at the end.\n" +
             "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
-            "Example: `/resources/*, *.js, *static*`\n" +
             "\n" +
             "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
             "this setting.")
         .dynamic(true)
-        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("/VAADIN/*"),
+            WildcardMatcher.valueOf("(?i)/heartbeat/*"),
+            WildcardMatcher.valueOf("/favicon.ico"),
+            WildcardMatcher.valueOf("*.js"),
+            WildcardMatcher.valueOf("*.css"),
+            WildcardMatcher.valueOf("*.jpg"),
+            WildcardMatcher.valueOf("*.jpeg"),
+            WildcardMatcher.valueOf("*.png"),
+            WildcardMatcher.valueOf("*.webp"),
+            WildcardMatcher.valueOf("*.svg"),
+            WildcardMatcher.valueOf("*.woff"),
+            WildcardMatcher.valueOf("*.woff2")
+        ));
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUserAgents = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("ignore_user_agents")

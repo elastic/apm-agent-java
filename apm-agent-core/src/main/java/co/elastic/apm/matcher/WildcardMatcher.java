@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.matcher;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 
 /**
@@ -136,12 +137,7 @@ public class WildcardMatcher {
      * @return <code>true</code>, if any of the matchers match the provided string
      */
     public static boolean anyMatch(Collection<WildcardMatcher> matchers, String s) {
-        for (WildcardMatcher matcher : matchers) {
-            if (matcher.matches(s)) {
-                return true;
-            }
-        }
-        return false;
+        return anyMatch(matchers, s, null);
     }
 
     /**
@@ -153,7 +149,7 @@ public class WildcardMatcher {
      * @return <code>true</code>, if any of the matchers match the provided partitioned string
      * @see #matches(String, String)
      */
-    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String firstPart, String secondPart) {
+    public static boolean anyMatch(Collection<WildcardMatcher> matchers, @Nullable String firstPart, String secondPart) {
         for (WildcardMatcher matcher : matchers) {
             if (matcher.matches(firstPart, secondPart)) {
                 return true;
@@ -211,7 +207,10 @@ public class WildcardMatcher {
      * when the wildcard pattern matches the partitioned string,
      * <code>false</code> otherwise.
      */
-    public boolean matches(String firstPart, String secondPart) {
+    public boolean matches(String firstPart, @Nullable String secondPart) {
+        if (secondPart == null) {
+            return matches(firstPart);
+        }
         if (startsWith && endsWith) {
             return contains(firstPart) ||
                 contains(secondPart) ||
