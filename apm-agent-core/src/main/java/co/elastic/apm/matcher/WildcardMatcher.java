@@ -22,8 +22,7 @@ package co.elastic.apm.matcher;
 import java.util.Collection;
 
 /**
- * This matcher is used in {@link co.elastic.apm.configuration.WebConfiguration#ignoreUrls}
- * to disable tracing for certain URLs.
+ * This matcher is used in for example to disable tracing for certain URLs.
  * <p>
  * The advantage of this class is that it does not instantiate objects when calling {@link #matches(String)}.
  * The syntax should be very familiar to any developer.
@@ -60,16 +59,19 @@ import java.util.Collection;
  */
 public class WildcardMatcher {
 
+    private static final String CASE_INSENSITIVE_PREFIX = "(?i)";
     private final String matcher;
     private final String stringRepresentation;
     private final boolean startsWith;
     private final boolean endsWith;
+    private final boolean ignoreCase;
 
-    private WildcardMatcher(String matcher, String stringRepresentation, boolean startsWith, boolean endsWith) {
+    private WildcardMatcher(String matcher, String stringRepresentation, boolean startsWith, boolean endsWith, boolean ignoreCase) {
         this.matcher = matcher;
         this.stringRepresentation = stringRepresentation;
         this.startsWith = startsWith;
         this.endsWith = endsWith;
+        this.ignoreCase = ignoreCase;
     }
 
     /**
@@ -85,10 +87,15 @@ public class WildcardMatcher {
      * @param wildcardString The wildcard string.
      * @return The {@link WildcardMatcher}
      */
-    public static WildcardMatcher valueOf(String wildcardString) {
+    public static WildcardMatcher valueOf(final String wildcardString) {
         String matcher = wildcardString;
         boolean startsWith = false;
         boolean endsWith = false;
+        boolean ignoreCase = false;
+        if (matcher.startsWith(CASE_INSENSITIVE_PREFIX)) {
+            ignoreCase = true;
+            matcher = matcher.substring(CASE_INSENSITIVE_PREFIX.length(), matcher.length());
+        }
         if (matcher.startsWith("*")) {
             endsWith = true;
             matcher = matcher.substring(1, matcher.length());
@@ -97,7 +104,28 @@ public class WildcardMatcher {
             startsWith = true;
             matcher = matcher.substring(0, matcher.length() - 1);
         }
-        return new WildcardMatcher(matcher, wildcardString, startsWith, endsWith);
+        return new WildcardMatcher(matcher, wildcardString, startsWith, endsWith, ignoreCase);
+    }
+
+    private static boolean containsIgnoreCase(String src, String what) {
+        final int length = what.length();
+        if (length == 0)
+            return true; // Empty string is contained
+
+        final char firstLo = Character.toLowerCase(what.charAt(0));
+        final char firstUp = Character.toUpperCase(what.charAt(0));
+
+        for (int i = src.length() - length; i >= 0; i--) {
+            // Quick check before calling the more expensive regionMatches() method:
+            final char ch = src.charAt(i);
+            if (ch != firstLo && ch != firstUp)
+                continue;
+
+            if (src.regionMatches(true, i, what, 0, length))
+                return true;
+        }
+
+        return false;
     }
 
     /**
@@ -146,7 +174,13 @@ public class WildcardMatcher {
      * <code>foo*, *foo, *foo*</code>
      * </p>
      * <p>
+     * To perform a case-insensitive match,
+     * prepend <code>(?i)</code> to your pattern.
+     * Example: <code>(?i)foo*</code> matches the string <code>FOOBAR</code>
+     * </p>
+     * <p>
      * It does NOT support wildcards in between like <code>f*o</code>
+     * or single character wildcards like <code>f?o</code>
      * </p>
      *
      * @param s the String to match
@@ -154,13 +188,13 @@ public class WildcardMatcher {
      */
     public boolean matches(String s) {
         if (startsWith && endsWith) {
-            return s.contains(matcher);
+            return contains(s);
         } else if (startsWith) {
-            return s.startsWith(matcher);
+            return startsWith(s);
         } else if (endsWith) {
-            return s.endsWith(matcher);
+            return endsWith(s);
         } else {
-            return matcher.equals(s);
+            return equals(s);
         }
     }
 
@@ -179,23 +213,39 @@ public class WildcardMatcher {
      */
     public boolean matches(String firstPart, String secondPart) {
         if (startsWith && endsWith) {
-            return firstPart.contains(matcher) ||
-                secondPart.contains(matcher) ||
+            return contains(firstPart) ||
+                contains(secondPart) ||
                 matches(firstPart.concat(secondPart));
         } else if (startsWith) {
             if (firstPart.length() >= matcher.length()) {
-                return firstPart.startsWith(matcher);
+                return startsWith(firstPart);
             } else {
                 return matches(firstPart.concat(secondPart));
             }
         } else if (endsWith) {
             if (secondPart.length() >= matcher.length()) {
-                return secondPart.endsWith(matcher);
+                return endsWith(secondPart);
             } else {
                 return matches(firstPart.concat(secondPart));
             }
         } else {
-            return matcher.equals(firstPart.concat(secondPart));
+            return equals(firstPart.concat(secondPart));
         }
+    }
+
+    private boolean startsWith(String s) {
+        return s.regionMatches(ignoreCase, 0, matcher, 0, matcher.length());
+    }
+
+    private boolean endsWith(String s) {
+        return s.regionMatches(ignoreCase, s.length() - matcher.length(), matcher, 0, matcher.length());
+    }
+
+    private boolean equals(String concat) {
+        return ignoreCase ? matcher.equalsIgnoreCase(concat) : matcher.equals(concat);
+    }
+
+    private boolean contains(String s) {
+        return ignoreCase ? containsIgnoreCase(s, matcher) : s.contains(matcher);
     }
 }
