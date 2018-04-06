@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,11 +50,6 @@ public class ErrorCapture implements Recyclable {
     @JsonProperty("exception")
     private final ExceptionInfo exception = new ExceptionInfo();
     /**
-     * Additional information added when logging the error.
-     */
-    @JsonProperty("log")
-    private final Log log = new Log();
-    /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
@@ -92,7 +87,6 @@ public class ErrorCapture implements Recyclable {
         return exception;
     }
 
-
     /**
      * UUID for the error
      */
@@ -100,16 +94,6 @@ public class ErrorCapture implements Recyclable {
     public TransactionId getId() {
         return id;
     }
-
-
-    /**
-     * Additional information added when logging the error.
-     */
-    @JsonProperty("log")
-    public Log getLog() {
-        return log;
-    }
-
 
     /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
@@ -136,7 +120,6 @@ public class ErrorCapture implements Recyclable {
     @Override
     public void resetState() {
         exception.resetState();
-        log.resetState();
         context.resetState();
         id.resetState();
         transaction.resetState();
