@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,18 +73,18 @@ class SanitizingWebProcessorTest {
 
     private void assertContainsNoSensitiveInformation(Context context) {
         assertThat(context.getRequest().getCookies())
-            .containsEntry("JESESSIONID", AbstractSanitizingProcessor.REDACTED)
+            .containsEntry("JESESSIONID", SanitizingWebProcessor.REDACTED)
             .containsEntry("non-sensitive", "foo");
         assertThat(context.getRequest().getFormUrlEncodedParameters())
-            .containsEntry("cretidCard", AbstractSanitizingProcessor.REDACTED)
+            .containsEntry("cretidCard", SanitizingWebProcessor.REDACTED)
             .containsEntry("non-sensitive", "foo");
         assertThat(context.getRequest().getHeaders())
-            .containsEntry("Authorization", AbstractSanitizingProcessor.REDACTED)
-            .containsEntry("Cookie", AbstractSanitizingProcessor.REDACTED)
+            .containsEntry("Authorization", SanitizingWebProcessor.REDACTED)
+            .doesNotContainKey("Cookie")
             .containsEntry("Referer", "elastic.co");
         assertThat(context.getResponse().getHeaders())
-            .containsEntry("secret-token", AbstractSanitizingProcessor.REDACTED)
-            .containsEntry("Set-Cookie", AbstractSanitizingProcessor.REDACTED)
+            .containsEntry("secret-token", SanitizingWebProcessor.REDACTED)
+            .containsEntry("Set-Cookie", SanitizingWebProcessor.REDACTED)
             .containsEntry("Content-Length", "-1");
     }
 

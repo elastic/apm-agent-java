@@ -186,6 +186,9 @@ e.g. remove sensitive data.
 Configure a list of wildcard patterns of field names which should be sanitized.
 These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 
+Entries can have a wildcard at the beginning and at the end.
+Prepending an element with `(?i)` makes the matching case-insensitive.
+
 NOTE: Data in the query string is considered non-sensitive,
 as sensitive information should not be sent in the query string.
 See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information
@@ -198,7 +201,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                 | Type                | Dynamic
-| (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)cookie,(?i)set-cookie | List | true
+| (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie | List | true
 |============
 
 
@@ -247,6 +250,7 @@ Used to restrict requests to certain URLs from being instrumented.
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
 Entries can have a wildcard at the beginning and at the end.
+Prepending an element with `(?i)` makes the matching case-insensitive.
 Example: `/resources/*, *.js, *static*`
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
@@ -274,7 +278,8 @@ Used to restrict requests from certain User-Agents from being instrumented.
 When an incoming HTTP request is detected,
 the User-Agent from the request headers will be tested against each element in this list.
 Entries can have a wildcard at the beginning and at the end.
-Example: `curl/*, *pingdom*`
+Prepending an element with `(?i)` makes the matching case-insensitive.
+Example: `curl/*, (?i)*pingdom*`
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 

@@ -120,6 +120,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
             "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
             "\n" +
+            "Entries can have a wildcard at the beginning and at the end.\n" +
+            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
+            "\n" +
             "NOTE: Data in the query string is considered non-sensitive,\n" +
             "as sensitive information should not be sent in the query string.\n" +
             "See https://www.owasp.org/index.php/Information_exposure_through_query_strings_in_url for more information\n" +
@@ -150,8 +153,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("(?i)*card*"),
             // HTTP request header for basic auth, contains passwords
             WildcardMatcher.valueOf("(?i)authorization"),
-            // HTTP request header cookies are already captured in Request.cookies
-            WildcardMatcher.valueOf("(?i)cookie"),
             // HTTP response header which can contain session ids
             WildcardMatcher.valueOf("(?i)set-cookie")
         ));
