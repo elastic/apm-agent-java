@@ -49,7 +49,7 @@ public abstract class AbstractObjectPool<T extends Recyclable> implements Object
     @Override
     public void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements) {
         for (int i = 0; i < maxElements; i++) {
-            T obj = createInstance();
+            T obj = tryCreateInstance();
             if (obj == null) {
                 return;
             }

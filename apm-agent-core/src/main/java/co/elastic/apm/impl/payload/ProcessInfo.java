@@ -87,7 +87,7 @@ public class ProcessInfo {
     /**
      * Parent process ID of the service
      */
-    public ProcessInfo withPpid(Long ppid) {
+    public ProcessInfo withPpid(@Nullable Long ppid) {
         this.ppid = ppid;
         return this;
     }
@@ -108,8 +108,10 @@ public class ProcessInfo {
     /**
      * Command line arguments used to start this process
      */
-    public ProcessInfo withArgv(List<String> argv) {
-        this.argv = argv;
+    public ProcessInfo withArgv(@Nullable List<String> argv) {
+        if (argv != null) {
+            this.argv.addAll(argv);
+        }
         return this;
     }
 

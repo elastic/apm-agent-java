@@ -86,9 +86,6 @@ public class ElasticApm implements Tracer {
      * @param tracer The tracer implementation to register.
      */
     void register(Tracer tracer) {
-        if (tracer == null) {
-            INSTANCE.tracer = NoopTracer.INSTANCE;
-        }
         INSTANCE.tracer = tracer;
     }
 
