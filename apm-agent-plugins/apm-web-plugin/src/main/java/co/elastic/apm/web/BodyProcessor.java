@@ -17,9 +17,8 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.body;
+package co.elastic.apm.web;
 
-import co.elastic.apm.configuration.WebConfiguration;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -27,15 +26,18 @@ import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.Processor;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import static co.elastic.apm.configuration.WebConfiguration.EventType.ALL;
-import static co.elastic.apm.configuration.WebConfiguration.EventType.ERRORS;
-import static co.elastic.apm.configuration.WebConfiguration.EventType.TRANSACTIONS;
+import javax.annotation.Nullable;
+
+import static co.elastic.apm.web.WebConfiguration.EventType.ALL;
+import static co.elastic.apm.web.WebConfiguration.EventType.ERRORS;
+import static co.elastic.apm.web.WebConfiguration.EventType.TRANSACTIONS;
 
 /**
  * This processor redacts the body according to the {@link WebConfiguration#captureBody} configuration option
  */
 public class BodyProcessor implements Processor {
 
+    @Nullable
     private WebConfiguration webConfiguration;
 
     @Override
@@ -54,6 +56,7 @@ public class BodyProcessor implements Processor {
     }
 
     private void redactBodyIfNecessary(Context context, WebConfiguration.EventType eventType) {
+        assert webConfiguration != null;
         final WebConfiguration.EventType eventTypeConfig = webConfiguration.getCaptureBody();
         if (hasBody(context.getRequest()) && eventTypeConfig != eventType && eventTypeConfig != ALL) {
             context.getRequest().redactBody();

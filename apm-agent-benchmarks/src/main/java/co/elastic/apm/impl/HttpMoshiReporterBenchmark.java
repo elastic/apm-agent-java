@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.impl;
 
-import co.elastic.apm.impl.serialize.MoshiPayloadSerializer;
+import co.elastic.apm.report.serialize.MoshiPayloadSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;

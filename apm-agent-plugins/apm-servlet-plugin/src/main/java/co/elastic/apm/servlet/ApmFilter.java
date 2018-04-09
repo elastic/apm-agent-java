@@ -20,7 +20,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.WebConfiguration;
+import co.elastic.apm.web.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
@@ -51,7 +51,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.configuration.WebConfiguration.EventType.OFF;
+import static co.elastic.apm.web.WebConfiguration.EventType.OFF;
 
 public class ApmFilter implements Filter {
 
