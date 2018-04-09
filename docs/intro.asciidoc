@@ -51,11 +51,9 @@ The first step in getting started with the Elastic APM Java agent ist to declare
 compile "co.elastic.apm:apm-agent-java:$elasticApmVersion"
 ----
 
-NOTE: Currently the agent is not yet published to maven central.
-So you have to check out the agent and build it from source.
-To do that,
-simply execute
-`git clone https://github.com/elastic/apm-agent-java.git && cd apm-agent-java && ./mvnw install`.
+Replace the version placeholders with the latest version:
+image:https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg[
+link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java]
 
 
 To get you off the ground, we've prepared guides for the most popular frameworks:
