@@ -33,7 +33,7 @@
     <developers>
         <developer>
             <name>Elastic</name>
-            <email>felix.barnsteiner@elastic.co</email>
+            <url>https://discuss.elastic.co/c/apm</url>
             <organization>Elastic Inc.</organization>
             <organizationUrl>https://www.elastic.co</organizationUrl>
         </developer>
