@@ -149,7 +149,7 @@ public class WildcardMatcher {
      * @return {@code true}, if any of the matchers match the provided partitioned string
      * @see #matches(String, String)
      */
-    public static boolean anyMatch(Collection<WildcardMatcher> matchers, @Nullable String firstPart, String secondPart) {
+    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String firstPart, @Nullable String secondPart) {
         for (WildcardMatcher matcher : matchers) {
             if (matcher.matches(firstPart, secondPart)) {
                 return true;

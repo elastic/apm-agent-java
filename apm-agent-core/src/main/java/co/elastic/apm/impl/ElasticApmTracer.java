@@ -139,7 +139,7 @@ public class ElasticApmTracer implements Tracer {
      */
     public static void unregister() {
         synchronized (ElasticApmTracer.class) {
-            instance = null;
+            instance = ElasticApmTracer.builder().build().register();
             TracerRegisterer.unregister();
         }
     }
@@ -153,7 +153,6 @@ public class ElasticApmTracer implements Tracer {
         return this;
     }
 
-    @Nonnull
     @Override
     public Transaction startTransaction() {
         Transaction transaction;
@@ -176,14 +175,13 @@ public class ElasticApmTracer implements Tracer {
         return currentSpan.get();
     }
 
-    @Nonnull
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
         final Span span;
         // makes sure that the active setting is consistent during a transaction
         // even when setting active=false mid-transaction
-        if (isNoop(transaction)) {
+        if (isNoop(transaction) || transaction == null) {
             span = noopSpan;
         } else {
             span = createRealSpan(transaction);

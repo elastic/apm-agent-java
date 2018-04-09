@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,10 +35,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ApmServerHttpPayloadSender implements PayloadSender {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHttpPayloadSender.class);
-    private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
+    private static final MediaType MEDIA_TYPE_JSON = Objects.requireNonNull(MediaType.parse("application/json"));
     private static final int GZIP_COMPRESSION_LEVEL = 3;
 
     private final OkHttpClient httpClient;
