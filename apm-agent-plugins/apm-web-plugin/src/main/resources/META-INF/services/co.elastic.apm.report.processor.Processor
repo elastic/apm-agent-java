@@ -1,2 +1,2 @@
-co.elastic.apm.body.BodyProcessor
-co.elastic.apm.sanitize.SanitizingWebProcessor
+co.elastic.apm.web.BodyProcessor
+co.elastic.apm.web.SanitizingWebProcessor

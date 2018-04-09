@@ -81,6 +81,7 @@ public class Request implements Recyclable {
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
      */
     @JsonProperty("body")
+    @Nullable
     public Object getBody() {
         if (!postParams.isEmpty()) {
             return postParams;

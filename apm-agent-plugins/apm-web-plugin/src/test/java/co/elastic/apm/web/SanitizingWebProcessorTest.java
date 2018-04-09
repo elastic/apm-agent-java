@@ -17,12 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.sanitize;
+package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.web.SanitizingWebProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

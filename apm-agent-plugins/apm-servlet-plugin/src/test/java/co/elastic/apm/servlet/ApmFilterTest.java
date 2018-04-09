@@ -22,7 +22,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.configuration.WebConfiguration;
+import co.elastic.apm.web.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.matcher.WildcardMatcher;

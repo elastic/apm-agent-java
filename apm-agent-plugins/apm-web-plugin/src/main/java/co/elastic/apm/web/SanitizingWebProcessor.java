@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.sanitize;
+package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.context.Context;
@@ -30,6 +30,7 @@ import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SanitizingWebProcessor implements Processor {
 
     static final String REDACTED = "[REDACTED]";
+    @Nullable
     private CoreConfiguration config;
 
     @Override
@@ -93,6 +95,7 @@ public class SanitizingWebProcessor implements Processor {
     }
 
     private boolean isSensitive(String key) {
+        assert config != null;
         return WildcardMatcher.anyMatch(config.getSanitizeFieldNames(), key);
     }
 }

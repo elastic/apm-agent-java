@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.web;
 
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.matcher.WildcardMatcherValueConverter;

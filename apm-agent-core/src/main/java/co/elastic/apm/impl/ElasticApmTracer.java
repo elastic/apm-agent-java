@@ -47,6 +47,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -243,7 +244,7 @@ public class ElasticApmTracer implements Tracer {
         currentTransaction.clear();
     }
 
-    private boolean isNoop(Transaction transaction) {
+    private boolean isNoop(@Nullable Transaction transaction) {
         return transaction == noopTransaction;
     }
 
