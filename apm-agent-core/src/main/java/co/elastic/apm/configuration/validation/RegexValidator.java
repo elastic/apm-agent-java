@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,8 +49,8 @@ public class RegexValidator implements ConfigurationOption.Validator<String> {
      * Constructs a {@link RegexValidator} which validates a string based on a {@link Pattern}
      *
      * @param regex               the regular expression which should be used to validate an input string
-     * @param errorMessagePattern a error message format pattern. The placeholder <code>{0}</code> contains the actual value,
-     *                            while the placeholder <code>{1}</code> represents the regex.
+     * @param errorMessagePattern a error message format pattern. The placeholder {@code {0}} contains the actual value,
+     *                            while the placeholder {@code {1}} represents the regex.
      * @return a {@link RegexValidator} which validates a string based on a {@link Pattern}
      */
     public static RegexValidator of(String regex, String errorMessagePattern) {

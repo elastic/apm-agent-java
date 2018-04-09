@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -63,7 +63,7 @@ public interface Tracer {
     /**
      * Returns the currently active span
      *
-     * @return The currently active span.
+     * @return the currently active span
      */
     @Nullable
     Span currentSpan();
@@ -82,12 +82,16 @@ public interface Tracer {
      *     // do your thing...
      * }
      * </pre>
+     *
+     * @return the started span
      */
     @Nonnull
     Span startSpan();
 
     /**
      * Captures an exception and reports it to the APM server.
+     *
+     * @param e the exception to record
      */
     void captureException(@Nonnull Exception e);
 }

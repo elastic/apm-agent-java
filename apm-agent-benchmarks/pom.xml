@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
-    <name>${groupId}:${artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>jar</packaging>
 
 

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,11 +29,10 @@ import co.elastic.apm.impl.transaction.TransactionId;
  * <p>
  * Implementation notes:
  * </p>
- * <p>
  * We are taking advantage of the fact, that the {@link TransactionId} is randomly generated.
  * So instead of generating another random number,
  * we just see if the long value returned by {@link TransactionId#getMostSignificantBits()}
- * falls into the range between the <code>lowerBound</code> and the <code>higherBound</code>.
+ * falls into the range between the {@code lowerBound} and the <code>higherBound</code>.
  * This is a visual representation of the mechanism with a sampling rate of 0.5 (=50%):
  * <pre>
  * Long.MIN_VALUE        0                     Long.MAX_VALUE
@@ -43,7 +42,6 @@ import co.elastic.apm.impl.transaction.TransactionId;
  *            lowerBound            higherBound = Long.MAX_VALUE * samplingRate
  *            = Long.MAX_VALUE * samplingRate * -1
  * </pre>
- * </p>
  */
 public class ProbabilitySampler implements Sampler {
 

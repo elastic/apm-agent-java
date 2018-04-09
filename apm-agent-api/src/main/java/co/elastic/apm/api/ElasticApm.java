@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,13 +29,12 @@ import javax.annotation.Nonnull;
  * <pre>{@code
  * private static final ElasticApm elasticApm = ElasticApm.get();
  * }</pre>
- * <p>
+ *
  * Then you can access the tracer to set a custom transaction name,
  * for example:
  * <pre>{@code
  * elasticApm.currentTransaction().setName("SuchController#muchMethod");
  * }</pre>
- * <p/>
  */
 public class ElasticApm implements Tracer {
 
@@ -55,7 +54,7 @@ public class ElasticApm implements Tracer {
     /**
      * Returns the tracer implementation.
      *
-     * @return the tracer implementation (never <code>null</code>)
+     * @return the tracer implementation (never {@code null})
      */
     @Nonnull
     public static ElasticApm get() {
@@ -69,7 +68,7 @@ public class ElasticApm implements Tracer {
      * This method is called by the actual {@link Tracer} implementation.
      * </p>
      * <p>
-     * Users are not supposed to set a custom instrumentation so this method must not be <code>public</code>.
+     * Users are not supposed to set a custom instrumentation so this method must not be {@code public}.
      * Otherwise it would be part of the public API.
      * </p>
      * <p>
@@ -108,10 +107,10 @@ public class ElasticApm implements Tracer {
      * Returns the currently running transaction.
      * <p>
      * If there is no current transaction, this method will return a noop transaction,
-     * which means that you never have to check for <code>null</code> values.
+     * which means that you never have to check for {@code null} values.
      * </p>
      *
-     * @return The currently running transaction, or a noop transaction (never <code>null</code>).
+     * @return The currently running transaction, or a noop transaction (never {@code null}).
      */
     @Override
     @Nonnull
@@ -124,10 +123,10 @@ public class ElasticApm implements Tracer {
      * Returns the currently running span.
      * <p>
      * If there is no current span, this method will return a noop span,
-     * which means that you never have to check for <code>null</code> values.
+     * which means that you never have to check for {@code null} values.
      * </p>
      *
-     * @return The currently running span, or a noop span (never <code>null</code>).
+     * @return The currently running span, or a noop span (never {@code null}).
      */
     @Override
     @Nonnull

@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <artifactId>apm-agent-java</artifactId>
-    <name>${groupId}:${artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <build>
         <plugins>

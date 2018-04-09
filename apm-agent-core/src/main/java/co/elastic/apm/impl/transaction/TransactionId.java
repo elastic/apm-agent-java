@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,9 +61,9 @@ public class TransactionId implements Recyclable {
     }
 
     /**
-     * Returns the first 8 bytes of this transaction id as a <code>long</code>
+     * Returns the first 8 bytes of this transaction id as a {@code long}
      *
-     * @return the first 8 bytes of this transaction id as a <code>long</code>
+     * @return the first 8 bytes of this transaction id as a {@code long}
      */
     public long getMostSignificantBits() {
         long msb = 0;

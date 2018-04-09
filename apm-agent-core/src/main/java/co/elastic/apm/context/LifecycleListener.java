@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
  * Implement this interface and register it as a {@linkplain java.util.ServiceLoader service} under
- * <code>src/main/resources/META-INF/services/co.elastic.apm.context.LifecycleListener</code>.
+ * {@code src/main/resources/META-INF/services/co.elastic.apm.context.LifecycleListener}.
  * </p>
  */
 public interface LifecycleListener {

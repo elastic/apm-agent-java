@@ -4,7 +4,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <name>${groupId}:${artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
     <version>0.1.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
@@ -221,9 +221,6 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <doclint>none</doclint>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

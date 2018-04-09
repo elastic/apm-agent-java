@@ -27,10 +27,10 @@ import java.util.Collection;
  * <p>
  * The advantage of this class is that it does not instantiate objects when calling {@link #matches(String)}.
  * The syntax should be very familiar to any developer.
- * The only thing that might be surprising is that it does not support wildcards in between like <code>foo*bar</code>.
+ * The only thing that might be surprising is that it does not support wildcards in between like {@code foo*bar}.
  * However, this provides support for the most common use cases -
- * ignoring URLs paths starting with a specific string like <code>/resources/*</code> or <code>/heartbeat/*</code>
- * and ignoring URLs by file ending like <code>*.js</code>.
+ * ignoring URLs paths starting with a specific string like {@code /resources/*} or <code>/heartbeat/*</code>
+ * and ignoring URLs by file ending like {@code *.js}.
  * It also allows to have a single configuration option which,
  * depending on the input string,
  * allows for prefix, postfix and infix matching.
@@ -130,23 +130,23 @@ public class WildcardMatcher {
     }
 
     /**
-     * Returns <code>true</code>, if any of the matchers match the provided string.
+     * Returns {@code true}, if any of the matchers match the provided string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param s the string to match against
-     * @return <code>true</code>, if any of the matchers match the provided string
+     * @return {@code true}, if any of the matchers match the provided string
      */
     public static boolean anyMatch(Collection<WildcardMatcher> matchers, String s) {
         return anyMatch(matchers, s, null);
     }
 
     /**
-     * Returns <code>true</code>, if any of the matchers match the provided partitioned string.
+     * Returns {@code true}, if any of the matchers match the provided partitioned string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param firstPart  The first part of the string to match against.
      * @param secondPart The second part of the string to match against.
-     * @return <code>true</code>, if any of the matchers match the provided partitioned string
+     * @return {@code true}, if any of the matchers match the provided partitioned string
      * @see #matches(String, String)
      */
     public static boolean anyMatch(Collection<WildcardMatcher> matchers, @Nullable String firstPart, String secondPart) {
@@ -167,16 +167,16 @@ public class WildcardMatcher {
      * Checks if the given string matches the wildcard pattern.
      * <p>
      * It supports these pattern styles:
-     * <code>foo*, *foo, *foo*</code>
+     * {@code foo*, *foo, *foo*}
      * </p>
      * <p>
      * To perform a case-insensitive match,
-     * prepend <code>(?i)</code> to your pattern.
-     * Example: <code>(?i)foo*</code> matches the string <code>FOOBAR</code>
+     * prepend {@code (?i)} to your pattern.
+     * Example: {@code (?i)foo*} matches the string <code>FOOBAR</code>
      * </p>
      * <p>
-     * It does NOT support wildcards in between like <code>f*o</code>
-     * or single character wildcards like <code>f?o</code>
+     * It does NOT support wildcards in between like {@code f*o}
+     * or single character wildcards like {@code f?o}
      * </p>
      *
      * @param s the String to match
@@ -196,16 +196,16 @@ public class WildcardMatcher {
 
     /**
      * This is a different version of {@link #matches(String)} which has the same semantics as calling
-     * <code>matcher.matches(firstPart + secondPart);</code>.
+     * {@code matcher.matches(firstPart + secondPart);}.
      * <p>
      * The difference is that this method does not allocate a new string unless necessary.
      * </p>
      *
      * @param firstPart  The first part of the string to match against.
      * @param secondPart The second part of the string to match against.
-     * @return <code>true</code>,
+     * @return {@code true},
      * when the wildcard pattern matches the partitioned string,
-     * <code>false</code> otherwise.
+     * {@code false} otherwise.
      */
     public boolean matches(String firstPart, @Nullable String secondPart) {
         if (secondPart == null) {

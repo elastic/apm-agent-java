@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,21 +28,17 @@ import java.util.List;
 public abstract class Payload implements Recyclable {
     /**
      * Service
-     * <p>
-     * <p>
      * (Required)
      */
     @JsonProperty("service")
     protected final Service service;
     /**
      * Process
-     * <p>
      */
     @JsonProperty("process")
     protected final ProcessInfo process;
     /**
      * System
-     * <p>
      */
     @JsonProperty("system")
     protected final SystemInfo system;
@@ -55,9 +51,9 @@ public abstract class Payload implements Recyclable {
 
     /**
      * Service
-     * <p>
-     * <p>
      * (Required)
+     *
+     * @return the service name
      */
     @JsonProperty("service")
     public Service getService() {
@@ -66,7 +62,8 @@ public abstract class Payload implements Recyclable {
 
     /**
      * Process
-     * <p>
+     *
+     * @return the process name
      */
     @JsonProperty("process")
     public ProcessInfo getProcess() {
@@ -75,7 +72,8 @@ public abstract class Payload implements Recyclable {
 
     /**
      * System
-     * <p>
+     *
+     * @return the system name
      */
     @JsonProperty("system")
     public SystemInfo getSystem() {

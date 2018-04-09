@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,7 +32,7 @@ import javax.servlet.http.HttpServletResponse;
  * This {@link HandlerInterceptor} sets the {@link Transaction#name} to the handler responsible for this request.
  * <p>
  * If the handler is a {@link org.springframework.stereotype.Controller}, the {@link Transaction#name} is set to
- * <code>ControllerName#methodName</code>.
+ * {@code ControllerName#methodName}.
  * If it is a different kind of handler,
  * like a {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
  * the request name is set to the simple class name of the handler.

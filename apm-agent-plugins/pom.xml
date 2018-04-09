@@ -19,7 +19,7 @@
     </properties>
 
     <artifactId>apm-agent-plugins</artifactId>
-    <name>${groupId}:${artifactId}</name>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
         <dependency>

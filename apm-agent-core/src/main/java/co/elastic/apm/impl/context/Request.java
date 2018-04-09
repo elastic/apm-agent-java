@@ -121,7 +121,7 @@ public class Request implements Recyclable {
      *
      * @param headerName  The name of the header.
      * @param headerValue The value of the header.
-     * @return <code>this</code>, for fluent method chaining
+     * @return {@code this}, for fluent method chaining
      */
     public Request addHeader(String headerName, String headerValue) {
         headers.add(headerName, headerValue);
