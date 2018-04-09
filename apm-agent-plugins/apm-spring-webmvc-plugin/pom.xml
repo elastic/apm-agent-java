@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>apm-spring-webmvc-plugin</artifactId>
+    <name>${groupId}:${artifactId}</name>
 
     <properties>
         <spring.version>5.0.4.RELEASE</spring.version>

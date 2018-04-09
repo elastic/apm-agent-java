@@ -16,6 +16,7 @@
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
+    <name>${groupId}:${artifactId}</name>
 
     <build>
         <plugins>

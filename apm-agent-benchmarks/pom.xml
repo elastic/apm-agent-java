@@ -9,9 +9,9 @@
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
+    <name>${groupId}:${artifactId}</name>
     <packaging>jar</packaging>
 
-    <name>JMH benchmark sample: Java</name>
 
     <dependencies>
         <dependency>

@@ -21,6 +21,7 @@
     </properties>
 
     <artifactId>apm-agent-plugins</artifactId>
+    <name>${groupId}:${artifactId}</name>
 
     <dependencies>
         <dependency>

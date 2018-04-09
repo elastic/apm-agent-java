@@ -5,6 +5,7 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
+    <name>${groupId}:${artifactId}</name>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
@@ -13,7 +14,6 @@
         <url>https://www.elastic.co</url>
     </organization>
 
-    <name>Elastic APM Java agent</name>
     <description>APM for Java applications with the Elastic stack</description>
     <url>https://github.com/elastic/apm-agent-java</url>
 
