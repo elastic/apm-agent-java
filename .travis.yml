@@ -1,3 +1,6 @@
+sudo: true
+services:
+  - docker
 language: java
 jdk:
   - oraclejdk9

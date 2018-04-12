@@ -10,19 +10,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>simple-webapp-integration-test</artifactId>
-    <packaging>war</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-
-    <build>
-        <finalName>ROOT</finalName>
-    </build>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
+            <artifactId>simple-webapp</artifactId>
             <version>${project.version}</version>
+            <type>war</type>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>

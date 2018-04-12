@@ -48,6 +48,21 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 
+/**
+ * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
+ * This creates the {@code ROOT.war} file,
+ * which is bound into the docker container.
+ * <p>
+ * Whenever you make changes to the application,
+ * you have to rerun {@code mvn clean package}.
+ * </p>
+ * <p>
+ * To debug simple-webapp which is deployed to tomcat,
+ * add a break point in {@link #setUp()} and evaluate tomcatContainer.getMappedPort(8000).
+ * Then create a remote debug configuration in IntelliJ using this port and start debugging.
+ * TODO use {@link org.testcontainers.containers.SocatContainer} to always have the same debugging port
+ * </p>
+ */
 public abstract class AbstractTomcatIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
@@ -55,22 +70,18 @@ public abstract class AbstractTomcatIntegrationTest {
     protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
-                .from("tomcat:9")
+                .from("tomcat:8")
+                .env("JPDA_ADDRESS", "8000")
+                .env("JPDA_TRANSPORT", "dt_socket")
                 .run("rm -rf /usr/local/tomcat/webapps/*")
                 .expose(8080, 8000)
                 .entryPoint("catalina.sh", "jpda", "run")))
         .withNetwork(Network.SHARED)
-        // TODO debugging does not work
-        // to get the randomized debugger port, evaluate tomcatContainer.getMappedPort(8000)
-        // then create a remote debug configuration in IntelliJ using this port
-        // Error running 'Debug': Unable to open debugger port (localhost:33049): java.io.IOException "handshake failed - connection prematurally closed".withEnv("JPDA_ADDRESS", "8000")
-        .withEnv("JPDA_TRANSPORT", "dt_socket")
         .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
         .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
         .withEnv("ELASTIC_APM_IGNORE_URLS", "/apm/*")
         .withLogConsumer(new Slf4jLogConsumer(logger))
-        // TODO chicken egg problem here: tests require the war to be present, which is built via mvn package, but mvn package executes the tests
-        .withFileSystemBind("target/ROOT.war", "/usr/local/tomcat/webapps/ROOT.war")
+        .withFileSystemBind("../simple-webapp/target/ROOT.war", "/usr/local/tomcat/webapps/ROOT.war")
         .withExposedPorts(8080, 8000);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
