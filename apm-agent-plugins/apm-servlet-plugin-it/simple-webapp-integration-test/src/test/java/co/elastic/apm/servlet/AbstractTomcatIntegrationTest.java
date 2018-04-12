@@ -30,7 +30,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
@@ -41,53 +40,54 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 
-public class AbstractTomcatIntegrationTest {
+public abstract class AbstractTomcatIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
 
-    @ClassRule
-    public static GenericContainer c = new GenericContainer<>(
+    protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
                 .from("tomcat:9")
                 .run("rm -rf /usr/local/tomcat/webapps/*")
-                .copy("ROOT.war", "/usr/local/tomcat/webapps/ROOT.war")
-                // TODO debugging does not work
-                // to get the randomized debugger port, evaluate c.getMappedPort(8000)
-                // then create a remote debug configuration in IntelliJ using this port
-                // Error running 'Debug': Unable to open debugger port (localhost:33049): java.io.IOException "handshake failed - connection prematurally closed"
-                .env("JPDA_ADDRESS", "8000")
-                .env("JPDA_TRANSPORT", "dt_socket")
-                .env("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-                .env("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
-                .env("ELASTIC_APM_IGNORE_URLS", "/apm/*")
                 .expose(8080, 8000)
-                .entryPoint("catalina.sh", "jpda", "run")
-            )
-            // TODO chicken egg problem here: tests require the war to be present, which is built via mvn package, but mvn package executes the tests
-            .withFileFromPath("ROOT.war", Paths.get("target/ROOT.war")))
+                .entryPoint("catalina.sh", "jpda", "run")))
         .withNetwork(Network.SHARED)
+        // TODO debugging does not work
+        // to get the randomized debugger port, evaluate tomcatContainer.getMappedPort(8000)
+        // then create a remote debug configuration in IntelliJ using this port
+        // Error running 'Debug': Unable to open debugger port (localhost:33049): java.io.IOException "handshake failed - connection prematurally closed".withEnv("JPDA_ADDRESS", "8000")
+        .withEnv("JPDA_TRANSPORT", "dt_socket")
+        .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+        .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
+        .withEnv("ELASTIC_APM_IGNORE_URLS", "/apm/*")
+        .withLogConsumer(new Slf4jLogConsumer(logger))
+        // TODO chicken egg problem here: tests require the war to be present, which is built via mvn package, but mvn package executes the tests
+        .withFileSystemBind("target/ROOT.war", "/usr/local/tomcat/webapps/ROOT.war")
         .withExposedPorts(8080, 8000);
-    @ClassRule
-    public static MockServerContainer mockServerContainer = new MockServerContainer()
+    protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
+
+    static {
+        Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
+    }
+
     protected OkHttpClient httpClient = new OkHttpClient.Builder().build();
     private JsonSchema schema;
+
 
     @BeforeClass
     public static void beforeClass() {
         mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
-        c.followOutput(new Slf4jLogConsumer(logger));
     }
 
     @Before
@@ -122,8 +122,8 @@ public class AbstractTomcatIntegrationTest {
             .post(RequestBody.create(null, new byte[0]))
             .url(new HttpUrl.Builder()
                 .scheme("http")
-                .host(c.getContainerIpAddress())
-                .port(c.getFirstMappedPort())
+                .host(tomcatContainer.getContainerIpAddress())
+                .port(tomcatContainer.getFirstMappedPort())
                 .encodedPath("/apm/flush")
                 .build())
             .build())

@@ -34,7 +34,7 @@ public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
     public void testTransactionReporting() throws Exception {
         final ResponseBody responseBody = httpClient.newCall(new Request.Builder()
             .get()
-            .url("http://" + c.getContainerIpAddress() + ":" + c.getMappedPort(8080) + "/index.jsp")
+            .url("http://" + tomcatContainer.getContainerIpAddress() + ":" + tomcatContainer.getMappedPort(8080) + "/index.jsp")
             .build())
             .execute()
             .body();
