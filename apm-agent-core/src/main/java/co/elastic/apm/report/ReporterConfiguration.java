@@ -45,6 +45,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(REPORTER_CATEGORY)
         .label("The URL for your APM Server")
         .description("The URL must be fully qualified, including protocol (http or https) and port.")
+        .dynamic(true)
         .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
 
     private final ConfigurationOption<Integer> serverTimeout = ConfigurationOption.integerOption()

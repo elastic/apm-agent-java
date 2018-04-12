@@ -9,6 +9,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>apm-servlet-plugin</module>
+        <module>apm-servlet-plugin-it</module>
         <module>apm-web-plugin</module>
         <module>apm-jdbc-plugin</module>
         <module>apm-spring-webmvc-plugin</module>

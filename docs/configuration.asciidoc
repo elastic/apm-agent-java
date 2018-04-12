@@ -343,7 +343,7 @@ The URL must be fully qualified, including protocol (http or https) and port.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `pass:[http://localhost:8200]` | URL | false
+| `pass:[http://localhost:8200]` | URL | true
 |============
 
 

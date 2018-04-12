@@ -44,8 +44,13 @@
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <animal.sniffer.skip>false</animal.sniffer.skip>
-        <jackson.version>2.9.4</jackson.version>
-        <junit.version>5.1.0</junit.version>
+        <!--
+        mockserver-client does not work with the latest jackson version
+        see https://github.com/jamesdbloom/mockserver/issues/440
+        -->
+        <jackson.version>2.9.2</jackson.version>
+        <version.junit-jupiter>5.1.1</version.junit-jupiter>
+        <version.junit.vintage>4.12</version.junit.vintage>
         <slf4j.version>1.7.25</slf4j.version>
         <error_prone.version>2.2.0</error_prone.version>
         <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
@@ -60,6 +65,10 @@
         <version.spring>5.0.4.RELEASE</version.spring>
         <version.h2>1.4.196</version.h2>
         <version.jetty-server>9.4.8.v20171121</version.jetty-server>
+        <version.plugin.surefire>2.19.1</version.plugin.surefire>
+        <version.junit-vintage-engine>5.1.1</version.junit-vintage-engine>
+        <version.logback>1.2.3</version.logback>
+        <version.json-schema-validator>0.1.19</version.json-schema-validator>
     </properties>
 
     <modules>
@@ -301,7 +310,7 @@
 
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>${version.plugin.surefire}</version>
                 <configuration>
                     <enableAssertions>true</enableAssertions>
                     <trimStackTrace>false</trimStackTrace>
@@ -310,12 +319,17 @@
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-surefire-provider</artifactId>
-                        <version>1.0.3</version>
+                        <version>1.1.1</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.junit.vintage</groupId>
+                        <artifactId>junit-vintage-engine</artifactId>
+                        <version>${version.junit-vintage-engine}</version>
                     </dependency>
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-engine</artifactId>
-                        <version>${junit.version}</version>
+                        <version>${version.junit-jupiter}</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -403,13 +417,20 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
+            <version>${version.junit-jupiter}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.version}</version>
+            <version>${version.junit-jupiter}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- JUnit 4 to make legacy JUnit 4 tests compile -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${version.junit.vintage}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -425,15 +446,15 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${version.logback}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>0.1.16</version>
+            <version>${version.json-schema-validator}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
