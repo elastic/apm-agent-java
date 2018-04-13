@@ -39,7 +39,7 @@ public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
             .build())
             .execute();
 
-        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.code()).withFailMessage(response.toString()).isEqualTo(200);
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
         assertThat(responseBody.string()).contains("Hello World");

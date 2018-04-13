@@ -28,6 +28,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.mockserver.model.HttpRequest;
@@ -91,7 +92,7 @@ public abstract class AbstractTomcatIntegrationTest {
         Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
     }
 
-    protected OkHttpClient httpClient = new OkHttpClient.Builder().build();
+    protected OkHttpClient httpClient;
     private JsonSchema schema;
 
 
@@ -104,6 +105,9 @@ public abstract class AbstractTomcatIntegrationTest {
     @Before
     public void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
     }
 
     protected List<JsonNode> getReportedTransactions() throws IOException {
