@@ -23,7 +23,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-java</artifactId>
             <version>${project.version}</version>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
