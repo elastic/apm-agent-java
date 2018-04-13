@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.Test;
 
@@ -32,13 +33,14 @@ public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
 
     @Test
     public void testTransactionReporting() throws Exception {
-        final ResponseBody responseBody = httpClient.newCall(new Request.Builder()
+        final Response response = httpClient.newCall(new Request.Builder()
             .get()
             .url("http://" + tomcatContainer.getContainerIpAddress() + ":" + tomcatContainer.getMappedPort(8080) + "/index.jsp")
             .build())
-            .execute()
-            .body();
+            .execute();
 
+        assertThat(response.code()).isEqualTo(200);
+        final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
         assertThat(responseBody.string()).contains("Hello World");
 
