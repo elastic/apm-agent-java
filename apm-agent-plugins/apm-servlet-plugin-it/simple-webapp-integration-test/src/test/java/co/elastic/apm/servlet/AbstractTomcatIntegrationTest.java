@@ -68,7 +68,7 @@ public abstract class AbstractTomcatIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
 
-    private static final String pathToWar = "../simple-webapp/taget/ROOT.war";
+    private static final String pathToWar = "../simple-webapp/target/ROOT.war";
     protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
