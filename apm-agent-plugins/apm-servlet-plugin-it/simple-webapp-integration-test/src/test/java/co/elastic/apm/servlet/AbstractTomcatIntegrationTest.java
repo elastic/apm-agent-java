@@ -68,7 +68,7 @@ public abstract class AbstractTomcatIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
 
-    private static final String pathToWar = "../simple-webapp/target/ROOT.war";
+    private static final String pathToWar = "../simple-webapp/taget/ROOT.war";
     protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
@@ -91,7 +91,10 @@ public abstract class AbstractTomcatIntegrationTest {
 
     static {
         final File warFile = new File(pathToWar);
-        assertThat(warFile).withFailMessage(warFile.getAbsolutePath()).exists();
+        logger.info("Check file {}", warFile);
+        assertThat(warFile).exists();
+        assertThat(warFile).isFile();
+        assertThat(warFile.length()).isGreaterThan(0);
         Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
     }
 
