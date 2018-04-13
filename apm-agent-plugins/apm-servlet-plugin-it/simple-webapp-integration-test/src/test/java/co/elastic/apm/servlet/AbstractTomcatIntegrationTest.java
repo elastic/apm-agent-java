@@ -37,9 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +68,7 @@ public abstract class AbstractTomcatIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
 
+    private static final String pathToWar = "../simple-webapp/target/ROOT.war";
     protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
@@ -81,14 +82,16 @@ public abstract class AbstractTomcatIntegrationTest {
         .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
         .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
         .withEnv("ELASTIC_APM_IGNORE_URLS", "/apm/*")
-        .withLogConsumer(new Slf4jLogConsumer(logger))
-        .withFileSystemBind("../simple-webapp/target/ROOT.war", "/usr/local/tomcat/webapps/ROOT.war")
+        .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
+        .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
         .withExposedPorts(8080, 8000);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
 
     static {
+        final File warFile = new File(pathToWar);
+        assertThat(warFile).withFailMessage(warFile.getAbsolutePath()).exists();
         Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
     }
 
