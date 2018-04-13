@@ -15,6 +15,7 @@
     <servlet>
         <servlet-name>ApmTestHelperServlet</servlet-name>
         <servlet-class>co.elastic.apm.servlet.ApmTestHelperServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
         <servlet-name>ApmTestHelperServlet</servlet-name>

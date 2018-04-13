@@ -91,7 +91,7 @@ public abstract class AbstractTomcatIntegrationTest {
 
     static {
         final File warFile = new File(pathToWar);
-        logger.info("Check file {}", warFile);
+        logger.info("Check file {}", warFile.getAbsolutePath());
         assertThat(warFile).exists();
         assertThat(warFile).isFile();
         assertThat(warFile.length()).isGreaterThan(0);

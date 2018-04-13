@@ -23,6 +23,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -32,6 +33,12 @@ public class ApmTestHelperServlet extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmTestHelperServlet.class);
     private final ElasticApmTracer tracer = ElasticApmTracer.get();
+
+    @Override
+    public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+        logger.info("APM test application {} started", config.getServletContext().getServletContextName());
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
