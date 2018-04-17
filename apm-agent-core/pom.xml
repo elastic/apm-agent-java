@@ -2,7 +2,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <properties>
-        <jetty-server.version>9.4.8.v20171121</jetty-server.version>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
         <okhttp.version>3.9.1</okhttp.version>
     </properties>
@@ -112,13 +111,13 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${jetty-server.version}</version>
+            <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-util</artifactId>
-            <version>${jetty-server.version}</version>
+            <version>${version.jetty-server}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -10,10 +10,6 @@
     <artifactId>apm-spring-webmvc-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
-    <properties>
-        <spring.version>5.0.4.RELEASE</spring.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -24,13 +20,13 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>${spring.version}</version>
+            <version>${version.spring}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>${spring.version}</version>
+            <version>${version.spring}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
