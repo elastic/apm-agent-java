@@ -59,8 +59,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key(SERVICE_NAME)
         .configurationCategory(CORE_CATEGORY)
         .label("The name of your service")
-        .description("This is used to keep all the errors and transactions of your service together and is the primary filter in the" +
-            "Elastic APM user interface.\n" +
+        .description("This is used to keep all the errors and transactions of your service together\n" +
+            "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
             "NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name " +
             "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")

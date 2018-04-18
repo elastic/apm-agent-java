@@ -19,6 +19,18 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 The `elasticapm.properties` file will be regularly polled for updates.
 
+In order to get started with Elastic APM,
+the most important configuration options are <<config-service-name>> (required),
+<<config-server-url>> and <<config-application-packages>>.
+So a minimal version of a configuration file might look like this:
+
+[source]
+.src/main/resources/elasticapm.properties
+----
+service_name=my-cool-service
+application_packages=org.example
+# server_url=http://localhost:8300
+----
 
 <#list config as category, options>
 [[${category?lower_case?replace(" ", "-")}]]
