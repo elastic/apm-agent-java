@@ -38,24 +38,15 @@ import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@State(Scope.Benchmark)
-@Warmup(iterations = 10)
-@Measurement(iterations = 10)
-@Fork(1)
-public abstract class AbstractReporterBenchmark {
+public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
 
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
@@ -110,7 +101,7 @@ public abstract class AbstractReporterBenchmark {
             .withProtocol("https")
             .appendToFull("https://www.example.com/p/a/t/h?query=string#hash")
             .withHostname("www.example.com")
-            .withPort("8080")
+            .withPort(8080)
             .withPathname("/p/a/t/h")
             .withSearch("?query=string");
         request.getSocket()

@@ -290,6 +290,7 @@ public class ElasticApmTracer implements Tracer {
      */
     public void stop() {
         try {
+            configurationRegistry.close();
             reporter.close();
             transactionPool.close();
             spanPool.close();
@@ -303,4 +304,7 @@ public class ElasticApmTracer implements Tracer {
         }
     }
 
+    public Reporter getReporter() {
+        return reporter;
+    }
 }

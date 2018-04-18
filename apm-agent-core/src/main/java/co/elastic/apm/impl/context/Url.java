@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,9 +52,8 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    @Nullable
     @JsonProperty("port")
-    private String port;
+    private final StringBuilder port = new StringBuilder();
     /**
      * The path of the request, e.g. '/search'
      */
@@ -118,17 +117,16 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    @Nullable
     @JsonProperty("port")
-    public String getPort() {
+    public StringBuilder getPort() {
         return port;
     }
 
     /**
      * The port of the request, e.g. '443'
      */
-    public Url withPort(@Nullable String port) {
-        this.port = port;
+    public Url withPort(int port) {
+        this.port.append(port);
         return this;
     }
 
@@ -171,7 +169,7 @@ public class Url implements Recyclable {
         protocol = null;
         full.setLength(0);
         hostname = null;
-        port = null;
+        port.setLength(0);
         pathname = null;
         search = null;
     }
@@ -180,7 +178,7 @@ public class Url implements Recyclable {
         this.protocol = other.protocol;
         this.full.append(other.full);
         this.hostname = other.hostname;
-        this.port = other.port;
+        this.port.append(other.port);
         this.pathname = other.pathname;
         this.search = other.search;
     }

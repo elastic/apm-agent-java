@@ -26,7 +26,6 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -100,11 +99,11 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         return captureBody.get();
     }
 
-    public Collection<WildcardMatcher> getIgnoreUrls() {
+    public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
     }
 
-    public Collection<WildcardMatcher> getIgnoreUserAgents() {
+    public List<WildcardMatcher> getIgnoreUserAgents() {
         return ignoreUserAgents.get();
     }
 

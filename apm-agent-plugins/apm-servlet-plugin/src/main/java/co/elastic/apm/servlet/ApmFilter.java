@@ -20,7 +20,6 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.web.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
@@ -29,6 +28,7 @@ import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
+import co.elastic.apm.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,7 +219,7 @@ public class ApmFilter implements Filter {
         request.getUrl()
             .withProtocol(httpServletRequest.getScheme())
             .withHostname(httpServletRequest.getServerName())
-            .withPort(getPortAsString(httpServletRequest))
+            .withPort(httpServletRequest.getServerPort())
             .withPathname(httpServletRequest.getRequestURI())
             .withSearch(httpServletRequest.getQueryString());
 
@@ -259,20 +259,6 @@ public class ApmFilter implements Filter {
         } else {
             fullUrl.ensureCapacity(request.getRequestURL().length());
             fullUrl.append(request.getRequestURL());
-        }
-    }
-
-    private String getPortAsString(HttpServletRequest httpServletRequest) {
-        // don't instantiate objects for common ports
-        switch (httpServletRequest.getServerPort()) {
-            case 80:
-                return "80";
-            case 443:
-                return "443";
-            case 8080:
-                return "8080";
-            default:
-                return Integer.toString(httpServletRequest.getServerPort());
         }
     }
 

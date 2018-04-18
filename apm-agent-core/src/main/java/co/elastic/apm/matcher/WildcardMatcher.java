@@ -20,7 +20,7 @@
 package co.elastic.apm.matcher;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
+import java.util.List;
 
 /**
  * This matcher is used in for example to disable tracing for certain URLs.
@@ -136,7 +136,7 @@ public class WildcardMatcher {
      * @param s the string to match against
      * @return {@code true}, if any of the matchers match the provided string
      */
-    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String s) {
+    public static boolean anyMatch(List<WildcardMatcher> matchers, String s) {
         return anyMatch(matchers, s, null);
     }
 
@@ -149,9 +149,11 @@ public class WildcardMatcher {
      * @return {@code true}, if any of the matchers match the provided partitioned string
      * @see #matches(String, String)
      */
-    public static boolean anyMatch(Collection<WildcardMatcher> matchers, String firstPart, String secondPart) {
-        for (WildcardMatcher matcher : matchers) {
-            if (matcher.matches(firstPart, secondPart)) {
+    // don't use for-each as it allocates memory by instantiating an iterator
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    public static boolean anyMatch(List<WildcardMatcher> matchers, String firstPart, @Nullable String secondPart) {
+        for (int i = 0; i < matchers.size(); i++) {
+            if (matchers.get(i).matches(firstPart, secondPart)) {
                 return true;
             }
         }
@@ -184,13 +186,13 @@ public class WildcardMatcher {
      */
     public boolean matches(String s) {
         if (startsWith && endsWith) {
-            return contains(s);
+            return contains(s, matcher);
         } else if (startsWith) {
-            return startsWith(s);
+            return startsWith(s, matcher);
         } else if (endsWith) {
-            return endsWith(s);
+            return endsWith(s, matcher);
         } else {
-            return equals(s);
+            return equals(s, matcher);
         }
     }
 
@@ -212,39 +214,39 @@ public class WildcardMatcher {
             return matches(firstPart);
         }
         if (startsWith && endsWith) {
-            return contains(firstPart) ||
-                contains(secondPart) ||
+            return contains(firstPart, matcher) ||
+                contains(secondPart, matcher) ||
                 matches(firstPart.concat(secondPart));
         } else if (startsWith) {
             if (firstPart.length() >= matcher.length()) {
-                return startsWith(firstPart);
+                return startsWith(firstPart, matcher);
             } else {
-                return matches(firstPart.concat(secondPart));
+                return startsWith(matcher, firstPart) && matches(firstPart.concat(secondPart));
             }
         } else if (endsWith) {
             if (secondPart.length() >= matcher.length()) {
-                return endsWith(secondPart);
+                return endsWith(secondPart, matcher);
             } else {
-                return matches(firstPart.concat(secondPart));
+                return endsWith(matcher, secondPart) && matches(firstPart.concat(secondPart));
             }
         } else {
-            return equals(firstPart.concat(secondPart));
+            return startsWith(matcher, firstPart) && endsWith(matcher, secondPart) && equals(firstPart.concat(secondPart), matcher);
         }
     }
 
-    private boolean startsWith(String s) {
+    private boolean startsWith(String s, String matcher) {
         return s.regionMatches(ignoreCase, 0, matcher, 0, matcher.length());
     }
 
-    private boolean endsWith(String s) {
+    private boolean endsWith(String s, String matcher) {
         return s.regionMatches(ignoreCase, s.length() - matcher.length(), matcher, 0, matcher.length());
     }
 
-    private boolean equals(String concat) {
+    private boolean equals(String concat, String matcher) {
         return ignoreCase ? matcher.equalsIgnoreCase(concat) : matcher.equals(concat);
     }
 
-    private boolean contains(String s) {
+    private boolean contains(String s, String matcher) {
         return ignoreCase ? containsIgnoreCase(s, matcher) : s.contains(matcher);
     }
 }
