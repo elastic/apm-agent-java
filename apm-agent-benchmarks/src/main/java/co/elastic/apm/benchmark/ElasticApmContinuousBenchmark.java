@@ -43,6 +43,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -75,6 +76,13 @@ import java.util.concurrent.TimeUnit;
  * This aims to reduce the measurement uncertainty or clutter in terms of latency and allocations
  * otherwise introduced by the application server
  * and by sending an actual HTTP request inside the benchmark vs. just invoking a method.
+ * </p>
+ * <p>
+ * Also note that this approach assumes that calling methods on {@link javax.servlet.http.HttpServletRequest},
+ * like {@link HttpServletRequest#getHeaderNames()} or {@link HttpServletRequest#getCookies()}
+ * does not allocate memory or would be called anyway by the application or framework
+ * and the server implementationdoes not allocate memory when calling these methods twice.
+ * But that assuption might not always be true and depends on the actual application server/servlet container in use.
  * </p>
  * <p>
  * Reporting is done using the normal mechanism,
