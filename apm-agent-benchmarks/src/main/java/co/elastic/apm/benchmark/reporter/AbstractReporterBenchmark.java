@@ -17,8 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
+import co.elastic.apm.benchmark.AbstractBenchmark;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.payload.Agent;

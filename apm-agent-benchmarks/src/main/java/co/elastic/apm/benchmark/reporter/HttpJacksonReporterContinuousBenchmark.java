@@ -17,15 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
-import co.elastic.apm.report.serialize.PayloadSerializer;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark {
+/**
+ * Measures the performance of the actually used reporter implementation
+ * including JSON serialization and reporting payloads over HTTP
+ */
+public class HttpJacksonReporterContinuousBenchmark extends AbstractHttpJacksonReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -34,18 +35,10 @@ public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        new Runner(new OptionsBuilder()
-            .include(HttpNoopJsonReporterBenchmark.class.getSimpleName())
-            .addProfiler(GCProfiler.class)
-            .build())
-            .run();
+        run(HttpJacksonReporterContinuousBenchmark.class);
     }
 
-    @Override
-    protected PayloadSerializer getPayloadSerializer() {
-        return (sink, payload) -> {
-            sink.writeByte('{');
-            sink.writeByte('}');
-        };
+    protected ObjectMapper getObjectMapper() {
+        return new ObjectMapper();
     }
 }

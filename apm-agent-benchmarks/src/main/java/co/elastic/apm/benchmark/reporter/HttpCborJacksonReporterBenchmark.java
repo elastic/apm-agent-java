@@ -17,16 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
-import co.elastic.apm.impl.payload.Payload;
-import co.elastic.apm.report.PayloadSender;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-public class NoopReporterBenchmark extends AbstractReporterBenchmark {
+public class HttpCborJacksonReporterBenchmark extends AbstractHttpJacksonReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -35,14 +32,10 @@ public class NoopReporterBenchmark extends AbstractReporterBenchmark {
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        new Runner(new OptionsBuilder()
-            .include(NoopReporterBenchmark.class.getSimpleName())
-            .addProfiler(GCProfiler.class)
-            .build())
-            .run();
+        run(HttpCborJacksonReporterBenchmark.class);
     }
 
-    protected PayloadSender getPayloadSender() {
-        return Payload::recycle;
+    protected ObjectMapper getObjectMapper() {
+        return new ObjectMapper(new CBORFactory());
     }
 }

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report.serialize;
+package co.elastic.apm.benchmark.serializer;
 
 import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;

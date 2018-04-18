@@ -17,16 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
-import co.elastic.apm.report.serialize.MoshiPayloadSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-public class HttpMoshiReporterBenchmark extends AbstractHttpReporterBenchmark {
+public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -35,15 +31,14 @@ public class HttpMoshiReporterBenchmark extends AbstractHttpReporterBenchmark {
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        new Runner(new OptionsBuilder()
-            .include(HttpMoshiReporterBenchmark.class.getSimpleName())
-            .addProfiler(GCProfiler.class)
-            .build())
-            .run();
+        run(HttpNoopJsonReporterBenchmark.class);
     }
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return new MoshiPayloadSerializer();
+        return (sink, payload) -> {
+            sink.writeByte('{');
+            sink.writeByte('}');
+        };
     }
 }
