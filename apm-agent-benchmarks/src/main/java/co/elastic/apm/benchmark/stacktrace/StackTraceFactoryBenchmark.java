@@ -17,40 +17,32 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.stacktrace;
+package co.elastic.apm.benchmark.stacktrace;
 
-import co.elastic.apm.CpuProfiler;
+import co.elastic.apm.benchmark.AbstractBenchmark;
+import co.elastic.apm.impl.stacktrace.Stacktrace;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
-@Warmup(iterations = 5)
-@Measurement(iterations = 5)
-@Fork(1)
-@Threads(1)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-public class StackTraceFactoryBenchmark {
+public class StackTraceFactoryBenchmark extends AbstractBenchmark {
 
     private StacktraceFactory.CurrentThreadStackTraceFactory currentThreadStackTraceFactory;
     private List<Stacktrace> stacktraces;
@@ -64,12 +56,7 @@ public class StackTraceFactoryBenchmark {
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        new Runner(new OptionsBuilder()
-            .include(StackTraceFactoryBenchmark.class.getSimpleName())
-            .addProfiler(GCProfiler.class)
-            .addProfiler(CpuProfiler.class)
-            .build())
-            .run();
+        run(StackTraceFactoryBenchmark.class);
     }
 
     @Setup

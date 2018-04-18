@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,8 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.objectpool;
 
+import co.elastic.apm.benchmark.AbstractBenchmark;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.impl.BlockingQueueObjectPool;
 import co.elastic.apm.objectpool.impl.MixedObjectPool;
@@ -28,23 +29,16 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.concurrent.TimeUnit;
 
-@State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-public class ObjectPoolBenchmark {
+public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     private RingBufferObjectPool<Transaction> ringBufferObjectPool;
     private BlockingQueueObjectPool<Transaction> blockingQueueObjectPool;
@@ -52,15 +46,7 @@ public class ObjectPoolBenchmark {
     private ThreadLocalObjectPool<Transaction> threadLocalObjectPool;
 
     public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-            .include(ObjectPoolBenchmark.class.getSimpleName())
-            .warmupIterations(2)
-            .measurementIterations(2)
-            .forks(1)
-            .addProfiler(GCProfiler.class)
-            .build();
-
-        new Runner(opt).run();
+        run(ObjectPoolBenchmark.class);
     }
 
     @Setup

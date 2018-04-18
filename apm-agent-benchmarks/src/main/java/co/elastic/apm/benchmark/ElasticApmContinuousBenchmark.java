@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,10 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm;
+package co.elastic.apm.benchmark;
 
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.AbstractBenchmark;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.servlet.ApmFilter;
@@ -88,7 +87,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
-public class ElasticApmBenchmark extends AbstractBenchmark {
+public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     private ApmFilter apmFilter;
     private MockHttpServletRequest request;
@@ -101,7 +100,7 @@ public class ElasticApmBenchmark extends AbstractBenchmark {
     private FilterChain filterChainWithoutApm;
 
     public static void main(String[] args) throws RunnerException {
-        run(ElasticApmBenchmark.class);
+        run(ElasticApmContinuousBenchmark.class);
     }
 
     @Setup

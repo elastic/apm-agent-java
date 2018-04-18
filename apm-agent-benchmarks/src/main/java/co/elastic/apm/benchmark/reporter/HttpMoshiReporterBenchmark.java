@@ -17,17 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
-import co.elastic.apm.CpuProfiler;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
+import co.elastic.apm.benchmark.serializer.MoshiPayloadSerializer;
+import co.elastic.apm.report.serialize.PayloadSerializer;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-public class HttpCborJacksonReporterBenchmark extends AbstractHttpJacksonReporterBenchmark {
+public class HttpMoshiReporterBenchmark extends AbstractHttpReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -36,15 +32,11 @@ public class HttpCborJacksonReporterBenchmark extends AbstractHttpJacksonReporte
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        new Runner(new OptionsBuilder()
-            .include(HttpCborJacksonReporterBenchmark.class.getSimpleName())
-            .addProfiler(GCProfiler.class)
-            .addProfiler(CpuProfiler.class)
-            .build())
-            .run();
+        run(HttpMoshiReporterBenchmark.class);
     }
 
-    protected ObjectMapper getObjectMapper() {
-        return new ObjectMapper(new CBORFactory());
+    @Override
+    protected PayloadSerializer getPayloadSerializer() {
+        return new MoshiPayloadSerializer();
     }
 }

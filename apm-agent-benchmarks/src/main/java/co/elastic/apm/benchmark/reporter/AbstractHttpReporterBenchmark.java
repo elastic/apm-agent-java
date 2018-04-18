@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.benchmark.reporter;
 
 import co.elastic.apm.report.ApmServerHttpPayloadSender;
 import co.elastic.apm.report.PayloadSender;
