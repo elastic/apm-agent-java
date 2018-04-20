@@ -96,6 +96,24 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testNestedSpan() {
+        try (Transaction transaction = tracerImpl.startTransaction()) {
+            assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
+            try (Span span = tracerImpl.startSpan()) {
+                assertThat(tracerImpl.currentSpan()).isSameAs(span);
+                assertThat(transaction.getSpans()).containsExactly(span);
+                try (Span nestedSpan = tracerImpl.startSpan()) {
+                    assertThat(tracerImpl.currentSpan()).isSameAs(nestedSpan);
+                    assertThat(transaction.getSpans()).containsExactly(span, nestedSpan);
+                    assertThat(nestedSpan.getParent()).isEqualTo(span.getId());
+                }
+            }
+            assertThat(tracerImpl.currentSpan()).isNull();
+        }
+        assertThat(tracerImpl.currentTransaction()).isNull();
+    }
+
+    @Test
     void testDisableStacktraces() {
         when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(0);
         try (Transaction transaction = tracerImpl.startTransaction()) {

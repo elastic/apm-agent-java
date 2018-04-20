@@ -155,13 +155,18 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Transaction startTransaction() {
+        Transaction transaction = startManualTransaction(sampler, System.nanoTime());
+        activate(transaction);
+        return transaction;
+    }
+
+    public Transaction startManualTransaction(Sampler sampler, long nanoTime) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction;
         } else {
-            transaction = transactionPool.createInstance().start(this, System.nanoTime(), sampler);
+            transaction = transactionPool.createInstance().start(this, nanoTime, sampler);
         }
-        activate(transaction);
         return transaction;
     }
 
@@ -182,15 +187,20 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
+        final Span span = startManualSpan(transaction, currentSpan(), System.nanoTime());
+        activate(span);
+        return span;
+    }
+
+    public Span startManualSpan(@Nullable Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
         final Span span;
         // makes sure that the active setting is consistent during a transaction
         // even when setting active=false mid-transaction
         if (isNoop(transaction) || transaction == null) {
             span = noopSpan;
         } else {
-            span = createRealSpan(transaction);
+            span = createRealSpan(transaction, parentSpan, nanoTime);
         }
-        activate(span);
         return span;
     }
 
@@ -198,7 +208,7 @@ public class ElasticApmTracer implements Tracer {
         currentSpan.set(span);
     }
 
-    private Span createRealSpan(Transaction transaction) {
+    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
         Span span;
         span = spanPool.createInstance();
         final boolean dropped;
@@ -208,7 +218,7 @@ public class ElasticApmTracer implements Tracer {
         } else {
             dropped = false;
         }
-        span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
+        span.start(this, transaction, parentSpan, nanoTime, dropped);
         return span;
     }
 
