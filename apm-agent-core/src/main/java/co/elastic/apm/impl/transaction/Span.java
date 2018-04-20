@@ -73,11 +73,15 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     @Nullable
     private String type;
 
-    public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span span, long nanoTime, boolean dropped) {
+    @Nullable
+    private Transaction transaction;
+
+    public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.tracer = tracer;
+        this.transaction = transaction;
         this.id.setLong(transaction.getNextSpanId());
-        if (span != null) {
-            this.parent.copyFrom(span.getId());
+        if (parentSpan != null) {
+            this.parent.copyFrom(parentSpan.getId());
         }
         this.sampled = transaction.isSampled() && !dropped;
         if (sampled) {
@@ -219,6 +223,12 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         type = null;
         tracer = null;
         sampled = false;
+        transaction = null;
+    }
+
+    @Nullable
+    public Transaction getTransaction() {
+        return transaction;
     }
 
 }

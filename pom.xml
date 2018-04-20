@@ -68,6 +68,7 @@
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
+        <module>apm-opentracing</module>
     </modules>
 
     <distributionManagement>

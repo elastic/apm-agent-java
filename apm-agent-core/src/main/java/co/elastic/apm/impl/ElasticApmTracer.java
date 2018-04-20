@@ -161,8 +161,12 @@ public class ElasticApmTracer implements Tracer {
         } else {
             transaction = transactionPool.createInstance().start(this, System.nanoTime(), sampler);
         }
-        currentTransaction.set(transaction);
+        activate(transaction);
         return transaction;
+    }
+
+    public void activate(Transaction transaction) {
+        currentTransaction.set(transaction);
     }
 
     @Override
@@ -186,8 +190,12 @@ public class ElasticApmTracer implements Tracer {
         } else {
             span = createRealSpan(transaction);
         }
-        currentSpan.set(span);
+        activate(span);
         return span;
+    }
+
+    public void activate(Span span) {
+        currentSpan.set(span);
     }
 
     private Span createRealSpan(Transaction transaction) {
@@ -233,7 +241,7 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction) {
-        if (currentTransaction.get() != transaction) {
+        if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
             logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
             assert false;
         } else if (!isNoop(transaction)) {
@@ -248,7 +256,7 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
-        if (currentSpan.get() != span) {
+        if (currentSpan.get() != null && currentSpan.get() != span) {
             logger.warn("Trying to end a span which is not the current (thread local) span!");
             assert false;
             return;
@@ -306,5 +314,17 @@ public class ElasticApmTracer implements Tracer {
 
     public Reporter getReporter() {
         return reporter;
+    }
+
+    public Sampler getSampler() {
+        return sampler;
+    }
+
+    public void releaseActiveTransaction() {
+        currentTransaction.clear();
+    }
+
+    public void releaseActiveSpan() {
+        currentSpan.clear();
     }
 }
