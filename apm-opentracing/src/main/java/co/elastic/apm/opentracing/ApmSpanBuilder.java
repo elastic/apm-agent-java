@@ -112,15 +112,12 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
         if (parent == null) {
             final Transaction transaction = new Transaction();
             transaction.start(tracer, nanoTime, sampler);
-            transaction.setType("unknown");
-            transaction.withResult("success");
-            apmSpan = new ApmSpan(transaction, null).setOperationName(operationName);
+            apmSpan = new ApmSpan(transaction, null, tracer).setOperationName(operationName);
         } else {
             Transaction transaction = getTransaction(parent);
             final co.elastic.apm.impl.transaction.Span span = new co.elastic.apm.impl.transaction.Span();
-            span.setType("unknown");
             span.start(tracer, transaction, parent.getSpan(), nanoTime, false);
-            apmSpan = new ApmSpan(null, span).setOperationName(operationName);
+            apmSpan = new ApmSpan(null, span, tracer).setOperationName(operationName);
         }
         addTags(apmSpan);
         return apmSpan;

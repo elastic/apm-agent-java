@@ -34,9 +34,9 @@ class ApmScopeManager implements ScopeManager {
         if (span == null && transaction == null) {
             return null;
         } else if (span != null) {
-            return new ApmScope(false, new ApmSpan(null, span), tracer);
+            return new ApmScope(false, new ApmSpan(null, span, tracer), tracer);
         } else {
-            return new ApmScope(false, new ApmSpan(transaction, null), tracer);
+            return new ApmScope(false, new ApmSpan(transaction, null, tracer), tracer);
         }
     }
 }

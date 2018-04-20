@@ -1,13 +1,17 @@
 package co.elastic.apm.opentracing;
 
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
+
+import static io.opentracing.log.Fields.ERROR_OBJECT;
 
 class ApmSpan implements Span, SpanContext {
 
@@ -15,8 +19,10 @@ class ApmSpan implements Span, SpanContext {
     private final Transaction transaction;
     @Nullable
     private final co.elastic.apm.impl.transaction.Span span;
+    private final ElasticApmTracer tracer;
 
-    ApmSpan(@Nullable Transaction transaction, @Nullable co.elastic.apm.impl.transaction.Span span) {
+    ApmSpan(@Nullable Transaction transaction, @Nullable co.elastic.apm.impl.transaction.Span span, ElasticApmTracer tracer) {
+        this.tracer = tracer;
         if (transaction == null && span == null) {
             throw new IllegalArgumentException();
         } else if (transaction != null && span != null) {
@@ -103,21 +109,36 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan log(Map<String, ?> fields) {
+        if ("error".equals(fields.get(Fields.EVENT))) {
+            createError(System.currentTimeMillis(), fields);
+        }
         return this;
     }
 
     @Override
     public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
+        if ("error".equals(fields.get(Fields.EVENT))) {
+            createError(timestampMicroseconds / 1000, fields);
+        }
         return this;
+    }
+
+    private void createError(long epchTimestampMillis, Map<String, ?> fields) {
+        final Object errorObject = fields.get(ERROR_OBJECT);
+        if (errorObject instanceof Exception) {
+            tracer.captureException(epchTimestampMillis, (Exception) errorObject);
+        }
     }
 
     @Override
     public ApmSpan log(String event) {
+        log(Collections.singletonMap(Fields.EVENT, event));
         return this;
     }
 
     @Override
     public ApmSpan log(long timestampMicroseconds, String event) {
+        log(timestampMicroseconds, Collections.singletonMap(Fields.EVENT, event));
         return this;
     }
 

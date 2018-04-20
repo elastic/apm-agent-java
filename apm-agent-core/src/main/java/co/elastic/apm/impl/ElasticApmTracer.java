@@ -216,10 +216,15 @@ public class ElasticApmTracer implements Tracer {
         return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpans().size();
     }
 
+
     public void captureException(Exception e) {
+        captureException(System.currentTimeMillis(), e);
+    }
+
+    public void captureException(long epchTimestampMillis, Exception e) {
         ErrorCapture error = new ErrorCapture();
         error.getId().setToRandomValue();
-        error.withTimestamp(System.currentTimeMillis());
+        error.withTimestamp(epchTimestampMillis);
         error.getException().withMessage(e.getMessage());
         error.getException().withType(e.getClass().getName());
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
