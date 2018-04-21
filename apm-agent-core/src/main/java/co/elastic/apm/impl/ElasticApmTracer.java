@@ -255,14 +255,16 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @SuppressWarnings("ReferenceEquality")
-    public void endTransaction(Transaction transaction) {
+    public void endTransaction(Transaction transaction, boolean releaseActiveTransaction) {
         if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
             logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
             assert false;
         } else if (!isNoop(transaction)) {
             reporter.report(transaction);
         }
-        currentTransaction.clear();
+        if (releaseActiveTransaction) {
+            releaseActiveTransaction();
+        }
     }
 
     private boolean isNoop(@Nullable Transaction transaction) {
@@ -270,7 +272,7 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @SuppressWarnings("ReferenceEquality")
-    public void endSpan(Span span) {
+    public void endSpan(Span span, boolean releaseActiveSpan) {
         if (currentSpan.get() != null && currentSpan.get() != span) {
             logger.warn("Trying to end a span which is not the current (thread local) span!");
             assert false;
@@ -282,7 +284,9 @@ public class ElasticApmTracer implements Tracer {
                 stacktraceFactory.fillStackTrace(span.getStacktrace());
             }
         }
-        currentSpan.clear();
+        if (releaseActiveSpan) {
+            releaseActiveSpan();
+        }
     }
 
     private boolean isNoop(Span span) {

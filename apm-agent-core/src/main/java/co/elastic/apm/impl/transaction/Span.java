@@ -74,6 +74,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     private String type;
 
     @Nullable
+    @JsonIgnore
     private Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
@@ -182,15 +183,15 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     @Override
     public void end() {
-        end(System.nanoTime());
+        end(System.nanoTime(), true);
     }
 
-    public void end(long nanoTime) {
+    public void end(long nanoTime, boolean releaseActiveSpan) {
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
         if (this.tracer != null) {
-            this.tracer.endSpan(this);
+            this.tracer.endSpan(this, releaseActiveSpan);
         }
     }
 

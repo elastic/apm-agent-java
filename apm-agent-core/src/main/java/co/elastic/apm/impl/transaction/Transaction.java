@@ -241,16 +241,16 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
     @Override
     public void end() {
-        end(System.nanoTime());
+        end(System.nanoTime(), true);
     }
 
-    public void end(long nanoTime) {
+    public void end(long nanoTime, boolean releaseActiveTransaction) {
         this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
         if (!sampled) {
             context.resetState();
         }
         if (this.tracer != null) {
-            this.tracer.endTransaction(this);
+            this.tracer.endTransaction(this, releaseActiveTransaction);
         }
     }
 
