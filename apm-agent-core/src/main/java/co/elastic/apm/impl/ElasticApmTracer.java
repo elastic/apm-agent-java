@@ -73,6 +73,7 @@ public class ElasticApmTracer implements Tracer {
     private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private final CoreConfiguration coreConfiguration;
+    // TODO make really noop, otherwise content grows -> OOME
     private final Transaction noopTransaction;
     private final Span noopSpan;
     private Sampler sampler;

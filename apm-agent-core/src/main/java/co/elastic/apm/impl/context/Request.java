@@ -90,6 +90,12 @@ public class Request implements Recyclable {
         }
     }
 
+    @Nullable
+    @JsonIgnore
+    public String getRawBody() {
+        return rawBody;
+    }
+
     public void redactBody() {
         postParams.clear();
         rawBody = "[REDACTED]";
@@ -190,7 +196,7 @@ public class Request implements Recyclable {
      * A parsed key-value object of cookies
      */
     @JsonProperty("cookies")
-    public Map<String, Object> getCookies() {
+    public PotentiallyMultiValuedMap<String, String> getCookies() {
         return cookies;
     }
 
@@ -215,5 +221,16 @@ public class Request implements Recyclable {
         this.socket.copyFrom(other.socket);
         this.url.copyFrom(other.url);
         this.cookies.putAll(other.cookies);
+    }
+
+    public boolean hasContent() {
+        return method != null ||
+            headers.size() > 0 ||
+            httpVersion != null ||
+            cookies.size() > 0 ||
+            rawBody != null ||
+            postParams.size() > 0 ||
+            socket.hasContent() ||
+            url.hasContent();
     }
 }

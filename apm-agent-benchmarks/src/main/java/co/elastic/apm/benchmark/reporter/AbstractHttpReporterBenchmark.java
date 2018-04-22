@@ -80,7 +80,7 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
     @Benchmark
     @Threads(1)
     public void testSerialization() throws IOException {
-       payloadSerializer.serializePayload(noopBufferedSink, payload);
+        payloadSerializer.serializePayload(noopBufferedSink, payload);
     }
 
     @SuppressWarnings("ConstantConditions")

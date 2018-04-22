@@ -21,6 +21,7 @@ package co.elastic.apm;
 
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
+import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 
@@ -32,6 +33,7 @@ public class TransactionUtils {
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
+        t.start(null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
@@ -76,6 +78,7 @@ public class TransactionUtils {
         context.getCustom().put("and_objects", STRINGS);
 
         Span span = new Span()
+            .start(null, t, null, 0, false)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -85,12 +88,15 @@ public class TransactionUtils {
             .withUser("readonly_user");
         t.getSpans().add(span);
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
     }

@@ -121,10 +121,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.networknt</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>0.1.16</version>
-            <scope>test</scope>
+            <groupId>com.dslplatform</groupId>
+            <artifactId>dsl-json</artifactId>
+            <version>1.7.4</version>
         </dependency>
     </dependencies>
 </project>
