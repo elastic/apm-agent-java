@@ -79,7 +79,7 @@ public class Response implements Recyclable {
      * A mapping of HTTP headers of the response object
      */
     @JsonProperty("headers")
-    public Map<String, Object> getHeaders() {
+    public PotentiallyMultiValuedMap<String, String> getHeaders() {
         return headers;
     }
 
@@ -123,5 +123,9 @@ public class Response implements Recyclable {
         this.headers.putAll(other.headers);
         this.headersSent = other.headersSent;
         this.statusCode = other.statusCode;
+    }
+
+    public boolean hasContent() {
+        return statusCode > 0 || headers.size() > 0;
     }
 }

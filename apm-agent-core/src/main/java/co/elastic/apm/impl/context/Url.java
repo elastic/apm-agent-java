@@ -182,4 +182,13 @@ public class Url implements Recyclable {
         this.pathname = other.pathname;
         this.search = other.search;
     }
+
+    public boolean hasContent() {
+        return protocol != null ||
+            full.length() > 0 ||
+            hostname != null ||
+            port.length() > 0 ||
+            pathname != null ||
+            search != null;
+    }
 }

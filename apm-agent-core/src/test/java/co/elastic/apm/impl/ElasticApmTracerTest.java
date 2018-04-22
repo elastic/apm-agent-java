@@ -49,7 +49,7 @@ class ElasticApmTracerTest {
 
     @BeforeEach
     void setUp() {
-        reporter = new MockReporter();
+        reporter = new MockReporter(false);
         config = SpyConfiguration.createSpyConfig();
         tracerImpl = ElasticApmTracer.builder()
             .configurationRegistry(config)

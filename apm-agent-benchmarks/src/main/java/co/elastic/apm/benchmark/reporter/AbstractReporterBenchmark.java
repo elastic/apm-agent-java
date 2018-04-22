@@ -20,6 +20,7 @@
 package co.elastic.apm.benchmark.reporter;
 
 import co.elastic.apm.benchmark.AbstractBenchmark;
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
@@ -43,10 +44,14 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.ServiceLoader;
 
 public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
 
@@ -59,7 +64,15 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        tracer = ElasticApmTracer.builder().reporter(reporter).stacktraceFactory(StacktraceFactory.Noop.INSTANCE).build();
+        tracer = ElasticApmTracer.builder()
+            .reporter(reporter)
+            .configurationRegistry(ConfigurationRegistry.builder()
+                .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
+                .addConfigSource(new SimpleSource()
+                    .add(CoreConfiguration.SERVICE_NAME, "benchmark"))
+                .build())
+            .stacktraceFactory(StacktraceFactory.Noop.INSTANCE)
+            .build();
         // in contrast to production configuration, do not drop transactions if the ring buffer is full
         // instead blocking wait until a slot becomes available
         // this is important because otherwise we would not measure the speed at which events can be handled
@@ -83,13 +96,13 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
-            t.start(tracer, 0, ConstantSampler.of(true));
             fillTransaction(t);
             payload.getTransactions().add(t);
         }
     }
 
     private void fillTransaction(Transaction t) {
+        t.start(null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
@@ -134,6 +147,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
         context.getCustom().put("and_objects", STRINGS);
 
         Span span = new Span()
+            .start(null, t, null, 0, false)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -143,12 +157,15 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             .withUser("readonly_user");
         t.getSpans().add(span);
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
         t.getSpans().add(new Span()
+            .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
     }
