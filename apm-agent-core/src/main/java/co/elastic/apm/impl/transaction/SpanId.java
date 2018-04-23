@@ -21,7 +21,6 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,7 +63,6 @@ public class SpanId implements Recyclable {
      *
      * @return the span id as a {@code long}
      */
-    @JsonValue
     public long asLong() {
         long l = 0;
         for (int i = 0; i < 8; i++) {

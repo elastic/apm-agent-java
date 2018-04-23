@@ -26,7 +26,7 @@ import org.openjdk.jmh.runner.RunnerException;
  * Measures the performance of the actually used reporter implementation
  * including JSON serialization and reporting payloads over HTTP
  */
-public class HttpJacksonReporterContinuousBenchmark extends AbstractHttpJacksonReporterBenchmark {
+public class HttpJacksonReporterBenchmark extends AbstractHttpJacksonReporterBenchmark {
 
     /**
      * Convenience benchmark run method
@@ -35,7 +35,7 @@ public class HttpJacksonReporterContinuousBenchmark extends AbstractHttpJacksonR
      * {@code java -jar apm-agent-benchmarks/target/benchmarks.jar -prof gc}
      */
     public static void main(String[] args) throws RunnerException {
-        run(HttpJacksonReporterContinuousBenchmark.class);
+        run(HttpJacksonReporterBenchmark.class);
     }
 
     protected ObjectMapper getObjectMapper() {

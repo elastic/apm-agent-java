@@ -21,8 +21,6 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
@@ -30,39 +28,33 @@ import javax.annotation.Nullable;
 /**
  * An object containing contextual data for database spans
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Db implements Recyclable {
 
     /**
      * Database instance name
      */
     @Nullable
-    @JsonProperty("instance")
     private String instance;
     /**
      * A database statement (e.g. query) for the given database type
      */
     @Nullable
-    @JsonProperty("statement")
     private String statement;
     /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
     @Nullable
-    @JsonProperty("type")
     private String type;
     /**
      * Username for accessing database
      */
     @Nullable
-    @JsonProperty("user")
     private String user;
 
     /**
      * Database instance name
      */
     @Nullable
-    @JsonProperty("instance")
     public String getInstance() {
         return instance;
     }
@@ -79,7 +71,6 @@ public class Db implements Recyclable {
      * A database statement (e.g. query) for the given database type
      */
     @Nullable
-    @JsonProperty("statement")
     public String getStatement() {
         return statement;
     }
@@ -96,7 +87,6 @@ public class Db implements Recyclable {
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
     @Nullable
-    @JsonProperty("type")
     public String getType() {
         return type;
     }
@@ -113,7 +103,6 @@ public class Db implements Recyclable {
      * Username for accessing database
      */
     @Nullable
-    @JsonProperty("user")
     public String getUser() {
         return user;
     }

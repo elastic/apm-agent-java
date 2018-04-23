@@ -20,8 +20,6 @@
 package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
@@ -30,17 +28,14 @@ public abstract class Payload implements Recyclable {
      * Service
      * (Required)
      */
-    @JsonProperty("service")
     protected final Service service;
     /**
      * Process
      */
-    @JsonProperty("process")
     protected final ProcessInfo process;
     /**
      * System
      */
-    @JsonProperty("system")
     protected final SystemInfo system;
 
     public Payload(ProcessInfo process, Service service, SystemInfo system) {
@@ -55,7 +50,6 @@ public abstract class Payload implements Recyclable {
      *
      * @return the service name
      */
-    @JsonProperty("service")
     public Service getService() {
         return service;
     }
@@ -65,7 +59,6 @@ public abstract class Payload implements Recyclable {
      *
      * @return the process name
      */
-    @JsonProperty("process")
     public ProcessInfo getProcess() {
         return process;
     }
@@ -75,12 +68,10 @@ public abstract class Payload implements Recyclable {
      *
      * @return the system name
      */
-    @JsonProperty("system")
     public SystemInfo getSystem() {
         return system;
     }
 
-    @JsonIgnore
     public abstract List<? extends Recyclable> getPayloadObjects();
 
     public abstract void recycle();

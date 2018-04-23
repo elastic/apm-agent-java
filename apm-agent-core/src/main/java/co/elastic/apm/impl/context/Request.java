@@ -21,12 +21,8 @@ package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 
 
 /**
@@ -34,53 +30,43 @@ import java.util.Map;
  * <p>
  * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Request implements Recyclable {
 
-    @JsonIgnore
     private final PotentiallyMultiValuedMap<String, String> postParams = new PotentiallyMultiValuedMap<>();
     /**
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */
-    @JsonProperty("headers")
     private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
-    @JsonProperty("socket")
     private final Socket socket = new Socket();
     /**
      * A complete Url, with scheme, host and path.
      * (Required)
      */
-    @JsonProperty("url")
     private final Url url = new Url();
     /**
      * A parsed key-value object of cookies
      */
-    @JsonProperty("cookies")
     private final PotentiallyMultiValuedMap<String, String> cookies = new PotentiallyMultiValuedMap<>();
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
      */
     @Nullable
-    @JsonIgnore
     private String rawBody;
     /**
      * HTTP version.
      */
     @Nullable
-    @JsonProperty("http_version")
     private String httpVersion;
     /**
      * HTTP method.
      * (Required)
      */
     @Nullable
-    @JsonProperty("method")
     private String method;
 
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
      */
-    @JsonProperty("body")
     @Nullable
     public Object getBody() {
         if (!postParams.isEmpty()) {
@@ -91,7 +77,6 @@ public class Request implements Recyclable {
     }
 
     @Nullable
-    @JsonIgnore
     public String getRawBody() {
         return rawBody;
     }
@@ -118,7 +103,6 @@ public class Request implements Recyclable {
         return this;
     }
 
-    @JsonIgnore
     public PotentiallyMultiValuedMap<String, String> getFormUrlEncodedParameters() {
         return postParams;
     }
@@ -138,7 +122,6 @@ public class Request implements Recyclable {
     /**
      * Should include any headers sent by the requester.
      */
-    @JsonProperty("headers")
     public PotentiallyMultiValuedMap<String, String> getHeaders() {
         return headers;
     }
@@ -147,7 +130,6 @@ public class Request implements Recyclable {
      * HTTP version.
      */
     @Nullable
-    @JsonProperty("http_version")
     public String getHttpVersion() {
         return httpVersion;
     }
@@ -162,7 +144,6 @@ public class Request implements Recyclable {
      * (Required)
      */
     @Nullable
-    @JsonProperty("method")
     public String getMethod() {
         return method;
     }
@@ -172,7 +153,6 @@ public class Request implements Recyclable {
         return this;
     }
 
-    @JsonProperty("socket")
     public Socket getSocket() {
         return socket;
     }
@@ -181,7 +161,6 @@ public class Request implements Recyclable {
      * A complete Url, with scheme, host and path.
      * (Required)
      */
-    @JsonProperty("url")
     public Url getUrl() {
         return url;
     }
@@ -195,7 +174,6 @@ public class Request implements Recyclable {
     /**
      * A parsed key-value object of cookies
      */
-    @JsonProperty("cookies")
     public PotentiallyMultiValuedMap<String, String> getCookies() {
         return cookies;
     }

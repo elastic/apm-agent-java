@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,9 +25,7 @@ import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import co.elastic.apm.report.serialize.DslJsonSerializer;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import okhttp3.OkHttpClient;
@@ -79,13 +77,11 @@ class ApmServerReporterIntegrationTest {
             exchange.setStatusCode(200).endExchange();
         };
         receivedHttpRequests.set(0);
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new AfterburnerModule());
         final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
-        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new JacksonPayloadSerializer(objectMapper), reporterConfiguration);
+        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reporter = new ApmServerReporter(config, new Service(), new ProcessInfo("title"), system, payloadSender, false,
             reporterConfiguration);

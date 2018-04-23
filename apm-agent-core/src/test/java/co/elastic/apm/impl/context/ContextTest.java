@@ -40,7 +40,7 @@ class ContextTest {
         context.getTags().put("foo", "bar");
         Context copyOfContext = new Context();
         copyOfContext.copyFrom(context);
-        assertThat(toJson(context)).isNotEqualTo(toJson(copyOfContext));
+        assertThat(copyOfContext.getTags()).isEmpty();
     }
 
     @Test
@@ -49,7 +49,7 @@ class ContextTest {
         context.getCustom().put("foo", "bar");
         Context copyOfContext = new Context();
         copyOfContext.copyFrom(context);
-        assertThat(toJson(context)).isNotEqualTo(toJson(copyOfContext));
+        assertThat(copyOfContext.getCustom()).isEmpty();
     }
 
     private Context createContext() {

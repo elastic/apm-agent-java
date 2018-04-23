@@ -20,7 +20,7 @@
 package co.elastic.apm.benchmark.reporter;
 
 import co.elastic.apm.benchmark.profiler.CpuProfiler;
-import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
+import co.elastic.apm.benchmark.serializer.JacksonPayloadSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;

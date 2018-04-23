@@ -302,7 +302,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeTransaction(final Transaction transaction) {
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         // TODO date formatting allocates objects
         // writeField("timestamp", transaction.getTimestamp().getTime());
         writeField("timestamp", dateFormat.format(transaction.getTimestamp()));
@@ -336,7 +336,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeSpan(final Span span) {
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeField("name", span.getName());
         writeField("id", span.getId().asLong());
         final long parent = span.getParent().asLong();
@@ -383,9 +383,9 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeSpanContext(SpanContext context) {
         writeFieldName("context");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeFieldName("db");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         final Db db = context.getDb();
         writeField("instance", db.getInstance());
         writeField("statement", db.getStatement());
@@ -398,9 +398,9 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeSpanCount(final SpanCount spanCount) {
         writeFieldName("span_count");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeFieldName("dropped");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeFieldName("total");
         NumberConverter.serialize(spanCount.getDropped().getTotal(), jw);
         jw.writeByte(OBJECT_END);
@@ -428,7 +428,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeResponse(final Response response) {
         if (response.hasContent()) {
             writeFieldName("response");
-            writeObjectStart();
+            jw.writeByte(OBJECT_START);
             writeField("headers", response.getHeaders());
             writeField("finished", response.isFinished());
             writeField("headers_sent", response.isHeadersSent());
@@ -442,7 +442,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeRequest(final Request request) {
         if (request.hasContent()) {
             writeFieldName("request");
-            writeObjectStart();
+            jw.writeByte(OBJECT_START);
             writeField("method", request.getMethod());
             writeField("headers", request.getHeaders());
             writeField("cookies", request.getCookies());
@@ -463,7 +463,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeUrl(final Url url) {
         writeFieldName("url");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
         writeField("protocol", url.getProtocol());
         writeField("hostname", url.getHostname());
@@ -477,7 +477,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeSocket(final Socket socket) {
         writeFieldName("socket");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeField("encrypted", socket.isEncrypted());
         writeLastField("remote_address", socket.getRemoteAddress());
         jw.writeByte(OBJECT_END);
@@ -487,7 +487,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void writeField(final String fieldName, final PotentiallyMultiValuedMap<String, String> map) {
         if (map.size() > 0) {
             writeFieldName(fieldName);
-            writeObjectStart();
+            jw.writeByte(OBJECT_START);
             final int size = map.size();
             if (size > 0) {
                 final Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
@@ -524,15 +524,11 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeUser(final User user) {
         writeFieldName("user");
-        writeObjectStart();
+        jw.writeByte(OBJECT_START);
         writeField("id", user.getId());
         writeField("email", user.getEmail());
         writeLastField("username", user.getUsername());
         jw.writeByte(OBJECT_END);
-    }
-
-    private void writeObjectStart() {
-        jw.writeByte(OBJECT_START);
     }
 
     private void writeField(final String fieldName, final StringBuilder value) {

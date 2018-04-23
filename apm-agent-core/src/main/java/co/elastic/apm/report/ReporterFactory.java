@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,9 +23,7 @@ import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.report.serialize.JacksonPayloadSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import co.elastic.apm.report.serialize.DslJsonSerializer;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
@@ -51,14 +49,13 @@ public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new AfterburnerModule());
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         return new ApmServerReporter(configurationRegistry,
             new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
             ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
             SystemInfo.create(),
-            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), new JacksonPayloadSerializer(objectMapper), reporterConfiguration), true, reporterConfiguration);
+            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), new DslJsonSerializer(), reporterConfiguration),
+            true, reporterConfiguration);
     }
 
     @Nonnull
