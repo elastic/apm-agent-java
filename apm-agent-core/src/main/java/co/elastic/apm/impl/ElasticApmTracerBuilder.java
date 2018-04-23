@@ -30,13 +30,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.AbstractConfigurationSource;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
 import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
 import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +57,7 @@ public class ElasticApmTracerBuilder {
     private StacktraceFactory stacktraceFactory;
     @Nullable
     private Iterable<LifecycleListener> lifecycleListeners;
+    private Map<String, String> inlineConfig = new HashMap<>();
 
     public ElasticApmTracerBuilder configurationRegistry(ConfigurationRegistry configurationRegistry) {
         this.configurationRegistry = configurationRegistry;
@@ -70,6 +76,11 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder lifecycleListeners(List<LifecycleListener> lifecycleListeners) {
         this.lifecycleListeners = lifecycleListeners;
+        return this;
+    }
+
+    public ElasticApmTracerBuilder withConfig(String key, String value) {
+        inlineConfig.put(key, value);
         return this;
     }
 
@@ -93,9 +104,7 @@ public class ElasticApmTracerBuilder {
     private ConfigurationRegistry getDefaultConfigurationRegistry() {
         try {
             final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
-                .addConfigSource(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."))
-                .addConfigSource(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"))
-                .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
+                .configSources(getConfigSources())
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
                 .failOnMissingRequiredValues(true)
                 .build();
@@ -112,6 +121,24 @@ public class ElasticApmTracerBuilder {
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
                 .build();
         }
+    }
+
+    private List<? extends ConfigurationSource> getConfigSources() {
+        return Arrays.asList(
+            new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."),
+            new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"),
+            new AbstractConfigurationSource() {
+                @Override
+                public String getValue(String key) {
+                    return inlineConfig.get(key);
+                }
+
+                @Override
+                public String getName() {
+                    return "Inline configuration";
+                }
+            },
+            new PropertyFileConfigurationSource("elasticapm.properties"));
     }
 
 }

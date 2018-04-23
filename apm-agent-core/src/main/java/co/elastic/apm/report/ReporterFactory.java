@@ -23,6 +23,7 @@ import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -50,12 +51,12 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        return new ApmServerReporter(configurationRegistry,
+        return new ApmServerReporter(
             new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
             ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
             SystemInfo.create(),
             new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), new DslJsonSerializer(), reporterConfiguration),
-            true, reporterConfiguration);
+            true, reporterConfiguration, ProcessorEventHandler.loadProcessors(configurationRegistry));
     }
 
     @Nonnull

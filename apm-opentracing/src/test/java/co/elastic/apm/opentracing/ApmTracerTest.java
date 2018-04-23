@@ -20,7 +20,6 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Span;
@@ -40,7 +39,7 @@ class ApmTracerTest {
     void setUp() {
         reporter = new MockReporter();
         final ElasticApmTracer elasticApmTracer = ElasticApmTracer.builder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .withConfig("service_name", "elastic-apm-test")
             .reporter(reporter)
             .build();
         apmTracer = new ApmTracer(elasticApmTracer);

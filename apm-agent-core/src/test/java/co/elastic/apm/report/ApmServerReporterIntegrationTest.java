@@ -25,6 +25,7 @@ import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
@@ -83,8 +84,8 @@ class ApmServerReporterIntegrationTest {
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(config, new Service(), new ProcessInfo("title"), system, payloadSender, false,
-            reporterConfiguration);
+        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system, payloadSender, false,
+            reporterConfiguration, ProcessorEventHandler.loadProcessors(config));
     }
 
     @Test

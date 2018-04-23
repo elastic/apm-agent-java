@@ -256,15 +256,17 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction, boolean releaseActiveTransaction) {
-        if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
-            logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
-            assert false;
-        } else if (!isNoop(transaction)) {
-            reporter.report(transaction);
-        }
         if (releaseActiveTransaction) {
+            if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
+                logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
+                assert false;
+            }
             releaseActiveTransaction();
         }
+        if (!isNoop(transaction)) {
+            reporter.report(transaction);
+        }
+
     }
 
     private boolean isNoop(@Nullable Transaction transaction) {
@@ -273,10 +275,12 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span, boolean releaseActiveSpan) {
-        if (currentSpan.get() != null && currentSpan.get() != span) {
-            logger.warn("Trying to end a span which is not the current (thread local) span!");
-            assert false;
-            return;
+        if (releaseActiveSpan) {
+            if (currentSpan.get() != null && currentSpan.get() != span) {
+                logger.warn("Trying to end a span which is not the current (thread local) span!");
+                assert false;
+            }
+            releaseActiveSpan();
         }
         int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
         if (spanFramesMinDurationMs != 0 && !isNoop(span)) {
@@ -284,9 +288,7 @@ public class ElasticApmTracer implements Tracer {
                 stacktraceFactory.fillStackTrace(span.getStacktrace());
             }
         }
-        if (releaseActiveSpan) {
-            releaseActiveSpan();
-        }
+
     }
 
     private boolean isNoop(Span span) {

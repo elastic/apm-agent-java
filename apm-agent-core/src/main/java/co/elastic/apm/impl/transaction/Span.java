@@ -74,7 +74,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     private String type;
 
     @Nullable
-    @JsonIgnore
     private Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
