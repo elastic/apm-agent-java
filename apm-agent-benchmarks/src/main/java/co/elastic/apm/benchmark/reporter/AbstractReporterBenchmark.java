@@ -69,7 +69,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             .withName("java-test")
             .withVersion("1.0")
             .withEnvironment("test")
-            .withAgent(new Agent("elastic-apm-java", "1.0.0"))
+            .withAgent(new Agent("java", "1.0.0"))
             .withRuntime(new RuntimeInfo("Java", "9.0.4"))
             .withFramework(new Framework("Servlet API", "3.1"))
             .withLanguage(new Language("Java", "9.0.4"));
