@@ -21,7 +21,7 @@ package co.elastic.apm.impl;
 
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Tracer;
-import co.elastic.apm.api.TracerRegisterer;
+import co.elastic.apm.api.TracerRegistrar;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -46,7 +46,6 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
@@ -140,7 +139,7 @@ public class ElasticApmTracer implements Tracer {
     public static void unregister() {
         synchronized (ElasticApmTracer.class) {
             instance = ElasticApmTracer.builder().build().register();
-            TracerRegisterer.unregister();
+            TracerRegistrar.unregister();
         }
     }
 
@@ -149,7 +148,7 @@ public class ElasticApmTracer implements Tracer {
      */
     public ElasticApmTracer register() {
         instance = this;
-        TracerRegisterer.register(instance);
+        TracerRegistrar.register(instance);
         return this;
     }
 
