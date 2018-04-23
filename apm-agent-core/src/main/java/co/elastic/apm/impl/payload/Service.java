@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,8 +19,6 @@
  */
 package co.elastic.apm.impl.payload;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
@@ -28,7 +26,6 @@ import javax.annotation.Nullable;
 /**
  * Information about the instrumented Service
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Service {
 
     /**
@@ -36,44 +33,37 @@ public class Service {
      * (Required)
      */
     @Nullable
-    @JsonProperty("agent")
     private Agent agent;
     /**
      * Name and version of the web framework used
      */
     @Nullable
-    @JsonProperty("framework")
     private Framework framework;
     /**
      * Name and version of the programming language used
      */
     @Nullable
-    @JsonProperty("language")
     private Language language;
     /**
      * Immutable name of the service emitting this event
      * (Required)
      */
     @Nullable
-    @JsonProperty("name")
     private String name;
     /**
      * Environment name of the service, e.g. "production" or "staging"
      */
     @Nullable
-    @JsonProperty("environment")
     private String environment;
     /**
      * Name and version of the language runtime running this service
      */
     @Nullable
-    @JsonProperty("runtime")
     private RuntimeInfo runtime;
     /**
      * Version of the service emitting this event
      */
     @Nullable
-    @JsonProperty("version")
     private String version;
 
     /**
@@ -81,7 +71,6 @@ public class Service {
      * (Required)
      */
     @Nullable
-    @JsonProperty("agent")
     public Agent getAgent() {
         return agent;
     }
@@ -99,7 +88,6 @@ public class Service {
      * Name and version of the web framework used
      */
     @Nullable
-    @JsonProperty("framework")
     public Framework getFramework() {
         return framework;
     }
@@ -116,7 +104,6 @@ public class Service {
      * Name and version of the programming language used
      */
     @Nullable
-    @JsonProperty("language")
     public Language getLanguage() {
         return language;
     }
@@ -134,7 +121,6 @@ public class Service {
      * (Required)
      */
     @Nullable
-    @JsonProperty("name")
     public String getName() {
         return name;
     }
@@ -152,7 +138,6 @@ public class Service {
      * Environment name of the service, e.g. "production" or "staging"
      */
     @Nullable
-    @JsonProperty("environment")
     public String getEnvironment() {
         return environment;
     }
@@ -169,7 +154,6 @@ public class Service {
      * Name and version of the language runtime running this service
      */
     @Nullable
-    @JsonProperty("runtime")
     public RuntimeInfo getRuntime() {
         return runtime;
     }
@@ -186,7 +170,6 @@ public class Service {
      * Version of the service emitting this event
      */
     @Nullable
-    @JsonProperty("version")
     public String getVersion() {
         return version;
     }

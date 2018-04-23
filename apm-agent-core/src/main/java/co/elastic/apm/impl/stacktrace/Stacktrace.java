@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,6 @@
 package co.elastic.apm.impl.stacktrace;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
@@ -32,51 +30,43 @@ import javax.annotation.Nullable;
  * <p>
  * A stacktrace frame, contains various bits (most optional) describing the context of the frame
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Stacktrace implements Recyclable {
 
     /**
      * The absolute path of the file involved in the stack frame
      */
     @Nullable
-    @JsonProperty("abs_path")
     private String absPath;
     /**
      * The relative filename of the code involved in the stack frame, used e.g. to do error checksumming
      * (Required)
      */
     @Nullable
-    @JsonProperty("filename")
     private String filename;
     /**
      * The function involved in the stack frame
      */
     @Nullable
-    @JsonProperty("function")
     private String function;
     /**
      * A boolean, indicating if this frame is from a library or user code
      */
-    @JsonProperty("library_frame")
     private boolean libraryFrame;
     /**
      * The line number of code part of the stack frame, used e.g. to do error checksumming
      * (Required)
      */
-    @JsonProperty("lineno")
     private long lineno;
     /**
      * The module to which frame belongs to
      */
     @Nullable
-    @JsonProperty("module")
     private String module;
 
     /**
      * The absolute path of the file involved in the stack frame
      */
     @Nullable
-    @JsonProperty("abs_path")
     public String getAbsPath() {
         return absPath;
     }
@@ -94,7 +84,6 @@ public class Stacktrace implements Recyclable {
      * (Required)
      */
     @Nullable
-    @JsonProperty("filename")
     public String getFilename() {
         return filename;
     }
@@ -112,7 +101,6 @@ public class Stacktrace implements Recyclable {
      * The function involved in the stack frame
      */
     @Nullable
-    @JsonProperty("function")
     public String getFunction() {
         return function;
     }
@@ -128,7 +116,6 @@ public class Stacktrace implements Recyclable {
     /**
      * A boolean, indicating if this frame is from a library or user code
      */
-    @JsonProperty("library_frame")
     public boolean isLibraryFrame() {
         return libraryFrame;
     }
@@ -145,7 +132,6 @@ public class Stacktrace implements Recyclable {
      * The line number of code part of the stack frame, used e.g. to do error checksumming
      * (Required)
      */
-    @JsonProperty("lineno")
     public long getLineno() {
         return lineno;
     }
@@ -163,7 +149,6 @@ public class Stacktrace implements Recyclable {
      * The module to which frame belongs to
      */
     @Nullable
-    @JsonProperty("module")
     public String getModule() {
         return module;
     }

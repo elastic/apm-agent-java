@@ -30,8 +30,8 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <relocations>
                                 <relocation>
-                                    <pattern>com.fasterxml.jackson</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.jackson</shadedPattern>
+                                    <pattern>com.dslplatform</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.dslplatform</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.lmax</pattern>

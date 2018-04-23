@@ -21,8 +21,6 @@
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
@@ -32,33 +30,28 @@ import javax.annotation.Nullable;
  * <p>
  * Describes the authenticated User for a request.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class User implements Recyclable {
 
     /**
      * Identifier of the logged in user, e.g. the primary key of the user
      */
     @Nullable
-    @JsonProperty("id")
     private String id;
     /**
      * Email of the logged in user
      */
     @Nullable
-    @JsonProperty("email")
     private String email;
     /**
      * The username of the logged in user
      */
     @Nullable
-    @JsonProperty("username")
     private String username;
 
     /**
      * Identifier of the logged in user, e.g. the primary key of the user
      */
     @Nullable
-    @JsonProperty("id")
     public String getId() {
         return id;
     }
@@ -75,7 +68,6 @@ public class User implements Recyclable {
      * Email of the logged in user
      */
     @Nullable
-    @JsonProperty("email")
     public String getEmail() {
         return email;
     }
@@ -92,7 +84,6 @@ public class User implements Recyclable {
      * The username of the logged in user
      */
     @Nullable
-    @JsonProperty("username")
     public String getUsername() {
         return username;
     }

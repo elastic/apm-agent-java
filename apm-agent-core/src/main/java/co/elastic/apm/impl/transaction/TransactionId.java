@@ -21,7 +21,6 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -81,7 +80,6 @@ public class TransactionId implements Recyclable {
         return lsb;
     }
 
-    @JsonValue
     public UUID toUuid() {
         return new UUID(getMostSignificantBits(), getLeastSignificantBits());
     }

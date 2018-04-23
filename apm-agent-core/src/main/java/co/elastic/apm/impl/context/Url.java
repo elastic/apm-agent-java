@@ -20,8 +20,6 @@
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
@@ -29,49 +27,41 @@ import javax.annotation.Nullable;
 /**
  * A complete Url, with scheme, host and path.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Url implements Recyclable {
 
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @JsonProperty("full")
     private final StringBuilder full = new StringBuilder();
     /**
      * The protocol of the request, e.g. 'https:'.
      */
     @Nullable
-    @JsonProperty("protocol")
     private String protocol;
     /**
      * The hostname of the request, e.g. 'example.com'.
      */
     @Nullable
-    @JsonProperty("hostname")
     private String hostname;
     /**
      * The port of the request, e.g. '443'
      */
-    @JsonProperty("port")
     private final StringBuilder port = new StringBuilder();
     /**
      * The path of the request, e.g. '/search'
      */
     @Nullable
-    @JsonProperty("pathname")
     private String pathname;
     /**
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
     @Nullable
-    @JsonProperty("search")
     private String search;
 
     /**
      * The protocol of the request, e.g. 'https:'.
      */
     @Nullable
-    @JsonProperty("protocol")
     public String getProtocol() {
         return protocol;
     }
@@ -87,7 +77,6 @@ public class Url implements Recyclable {
     /**
      * The full, possibly agent-assembled URL of the request, e.g https://example.com:443/search?q=elasticsearch#top.
      */
-    @JsonProperty("full")
     public StringBuilder getFull() {
         return full;
     }
@@ -101,7 +90,6 @@ public class Url implements Recyclable {
      * The hostname of the request, e.g. 'example.com'.
      */
     @Nullable
-    @JsonProperty("hostname")
     public String getHostname() {
         return hostname;
     }
@@ -117,7 +105,6 @@ public class Url implements Recyclable {
     /**
      * The port of the request, e.g. '443'
      */
-    @JsonProperty("port")
     public StringBuilder getPort() {
         return port;
     }
@@ -134,7 +121,6 @@ public class Url implements Recyclable {
      * The path of the request, e.g. '/search'
      */
     @Nullable
-    @JsonProperty("pathname")
     public String getPathname() {
         return pathname;
     }
@@ -151,7 +137,6 @@ public class Url implements Recyclable {
      * The search describes the query string of the request. It is expected to have values delimited by ampersands.
      */
     @Nullable
-    @JsonProperty("search")
     public String getSearch() {
         return search;
     }

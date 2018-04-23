@@ -23,10 +23,6 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -40,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
     /**
@@ -53,29 +48,22 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    @JsonProperty("context")
     private final Context context = new Context();
     /**
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
-    @JsonProperty("timestamp")
     private final Date timestamp = new Date(0);
-    @JsonProperty("spans")
     private final List<Span> spans = new ArrayList<Span>();
     /**
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
      */
-    @JsonProperty("marks")
     private final Map<String, Object> marks = new HashMap<>();
-    @JsonProperty("span_count")
     private final SpanCount spanCount = new SpanCount();
     /**
      * UUID for the transaction, referred by its spans
      * (Required)
      */
-    @JsonProperty("id")
     private final TransactionId id = new TransactionId();
     @Nullable
     private transient ElasticApmTracer tracer;
@@ -83,30 +71,25 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
      */
-    @JsonProperty("duration")
     private double duration;
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
-    @JsonProperty("name")
     private final StringBuilder name = new StringBuilder();
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
-    @JsonProperty("result")
     private String result;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
     @Nullable
-    @JsonProperty("type")
     private String type;
     /**
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
-    @JsonProperty("sampled")
     private boolean sampled;
 
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, Sampler sampler) {
@@ -123,7 +106,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    @JsonProperty("context")
     public Context getContext() {
         return context;
     }
@@ -132,7 +114,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
      */
-    @JsonProperty("duration")
     public double getDuration() {
         return duration;
     }
@@ -141,7 +122,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * UUID for the transaction, referred by its spans
      * (Required)
      */
-    @JsonProperty("id")
     public TransactionId getId() {
         return id;
     }
@@ -149,7 +129,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
-    @JsonProperty("name")
     public StringBuilder getName() {
         return name;
     }
@@ -178,7 +157,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
-    @JsonProperty("result")
     public String getResult() {
         return result;
     }
@@ -198,7 +176,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    @JsonProperty("timestamp")
     public Date getTimestamp() {
         return timestamp;
     }
@@ -211,7 +188,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         return this;
     }
 
-    @JsonProperty("spans")
     public List<Span> getSpans() {
         return spans;
     }
@@ -231,7 +207,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * (Required)
      */
     @Nullable
-    @JsonProperty("type")
     public String getType() {
         return type;
     }
@@ -241,7 +216,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * (Required)
      */
     @Override
-    @JsonProperty("type")
     public void setType(@Nullable String type) {
         if (!sampled) {
             return;
@@ -289,7 +263,6 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     /**
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
      */
-    @JsonProperty("marks")
     public Map<String, Object> getMarks() {
         return marks;
     }
@@ -299,18 +272,15 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Transactions that are not sampled will not have 'spans' or 'context'.
      * Defaults to true.
      */
-    @JsonProperty("sampled")
     public boolean isSampled() {
         return sampled;
     }
 
-    @JsonProperty("span_count")
     public SpanCount getSpanCount() {
         return spanCount;
     }
 
 
-    @JsonIgnore
     int getNextSpanId() {
         return spanIdCounter.incrementAndGet();
     }

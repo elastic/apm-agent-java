@@ -5,7 +5,7 @@
     "description": "Data captured by an agent representing an event occurring in a monitored service",
     "properties": {
         "context": {
-            "$ref": "./../context.json"
+            "$ref": "../context.json"
         },
         "culprit": {
             "description": "Function call which was the primary perpetrator of this event.",
@@ -35,7 +35,7 @@
                 "stacktrace": {
                     "type": ["array", "null"],
                     "items": {
-                        "$ref": "./../stacktrace_frame.json"
+                        "$ref": "../stacktrace_frame.json"
                     },
                     "minItems": 0
                 },
@@ -85,7 +85,7 @@
                 "stacktrace": {
                     "type": ["array", "null"],
                     "items": {
-                        "$ref": "./../stacktrace_frame.json"
+                        "$ref": "../stacktrace_frame.json"
                     },
                     "minItems": 0
                 }

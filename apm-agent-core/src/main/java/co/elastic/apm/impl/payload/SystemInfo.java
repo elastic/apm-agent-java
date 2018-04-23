@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,31 +19,25 @@
  */
 package co.elastic.apm.impl.payload;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.InetAddress;
 
 /**
  * Information about the system the agent is running on.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SystemInfo {
 
     /**
      * Architecture of the system the agent is running on.
      */
-    @JsonProperty("architecture")
     private final String architecture;
     /**
      * Hostname of the system the agent is running on.
      */
-    @JsonProperty("hostname")
     private final String hostname;
     /**
      * Name of the system platform the agent is running on.
      */
-    @JsonProperty("platform")
     private final String platform;
 
     public SystemInfo(String architecture, String hostname, String platform) {
@@ -79,7 +73,6 @@ public class SystemInfo {
     /**
      * Architecture of the system the agent is running on.
      */
-    @JsonProperty("architecture")
     public String getArchitecture() {
         return architecture;
     }
@@ -87,7 +80,6 @@ public class SystemInfo {
     /**
      * Hostname of the system the agent is running on.
      */
-    @JsonProperty("hostname")
     public String getHostname() {
         return hostname;
     }
@@ -95,7 +87,6 @@ public class SystemInfo {
     /**
      * Name of the system platform the agent is running on.
      */
-    @JsonProperty("platform")
     public String getPlatform() {
         return platform;
     }

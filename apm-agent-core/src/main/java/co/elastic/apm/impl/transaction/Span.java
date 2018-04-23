@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,9 +22,6 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -32,23 +29,19 @@ import java.util.List;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Span implements Recyclable, co.elastic.apm.api.Span {
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
-    @JsonProperty("context")
     private final SpanContext context = new SpanContext();
     /**
      * List of stack frames with variable attributes (eg: lineno, filename, etc)
      */
-    @JsonProperty("stacktrace")
     private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
     /**
      * The locally unique ID of the span.
      */
-    @JsonProperty("id")
     private final SpanId id = new SpanId();
     @Nullable
     private transient ElasticApmTracer tracer;
@@ -57,32 +50,27 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Duration of the span in milliseconds
      * (Required)
      */
-    @JsonProperty("duration")
     private double duration;
     /**
      * Generic designation of a span in the scope of a transaction
      * (Required)
      */
     @Nullable
-    @JsonProperty("name")
     private String name;
     /**
      * The locally unique ID of the parent of the span.
      */
-    @JsonProperty("parent")
     private SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
-    @JsonProperty("start")
     private double start;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
     @Nullable
-    @JsonProperty("type")
     private String type;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span span, long nanoTime, boolean dropped) {
@@ -103,7 +91,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * The locally unique ID of the span.
      */
-    @JsonProperty("id")
     public SpanId getId() {
         return id;
     }
@@ -111,7 +98,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
-    @JsonProperty("context")
     public SpanContext getContext() {
         return context;
     }
@@ -120,7 +106,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Duration of the span in milliseconds
      * (Required)
      */
-    @JsonProperty("duration")
     public double getDuration() {
         return duration;
     }
@@ -130,7 +115,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Nullable
-    @JsonProperty("name")
     public String getName() {
         return name;
     }
@@ -155,7 +139,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * The locally unique ID of the parent of the span.
      */
-    @JsonProperty("parent")
     public SpanId getParent() {
         return parent;
     }
@@ -163,7 +146,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * List of stack frames with variable attributes (eg: lineno, filename, etc)
      */
-    @JsonProperty("stacktrace")
     public List<Stacktrace> getStacktrace() {
         return stacktrace;
     }
@@ -172,7 +154,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
-    @JsonProperty("start")
     public double getStart() {
         return start;
     }
@@ -182,7 +163,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
      * (Required)
      */
     @Nullable
-    @JsonProperty("type")
     public String getType() {
         return type;
     }
@@ -223,7 +203,6 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         return this;
     }
 
-    @JsonIgnore
     public boolean isSampled() {
         return sampled;
     }

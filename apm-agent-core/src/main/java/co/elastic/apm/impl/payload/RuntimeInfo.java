@@ -20,19 +20,13 @@
 
 package co.elastic.apm.impl.payload;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 
 /**
  * Name and version of the language runtime running this service
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RuntimeInfo {
 
-    @JsonProperty("name")
     private final String name;
-    @JsonProperty("version")
     private final String version;
 
     public RuntimeInfo(String name, String version) {
@@ -40,12 +34,10 @@ public class RuntimeInfo {
         this.version = version;
     }
 
-    @JsonProperty("name")
     public String getName() {
         return name;
     }
 
-    @JsonProperty("version")
     public String getVersion() {
         return version;
     }

@@ -21,27 +21,21 @@
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.objectpool.Recyclable;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Socket implements Recyclable {
 
     /**
      * Indicates whether request was sent as SSL/HTTPS request.
      */
-    @JsonProperty("encrypted")
     private boolean encrypted;
-    @JsonProperty("remote_address")
     @Nullable
     private String remoteAddress;
 
     /**
      * Indicates whether request was sent as SSL/HTTPS request.
      */
-    @JsonProperty("encrypted")
     public boolean isEncrypted() {
         return encrypted;
     }
@@ -55,7 +49,6 @@ public class Socket implements Recyclable {
     }
 
     @Nullable
-    @JsonProperty("remote_address")
     public String getRemoteAddress() {
         return remoteAddress;
     }
