@@ -53,6 +53,8 @@ import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
 import com.dslplatform.json.UUIDConverter;
 import okio.BufferedSink;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.text.DateFormat;
@@ -70,9 +72,10 @@ import static com.dslplatform.json.JsonWriter.OBJECT_START;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
+    private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
+
     private final JsonWriter jw;
     private final DateFormat dateFormat;
-
 
     public DslJsonSerializer() {
         jw = new DslJson<>().newWriter();
@@ -82,6 +85,9 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializePayload(final BufferedSink sink, final Payload payload) {
+        if (logger.isTraceEnabled()) {
+            logger.trace(toJsonString(payload));
+        }
         jw.reset(sink.outputStream());
         if (payload instanceof TransactionPayload) {
             serializeTransactionPayload((TransactionPayload) payload);
@@ -160,6 +166,8 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.reset();
         if (payload instanceof TransactionPayload) {
             serializeTransactionPayload((TransactionPayload) payload);
+        } else if (payload instanceof ErrorPayload) {
+            serializeErrorPayload((ErrorPayload) payload);
         }
         final String s = jw.toString();
         jw.reset();
@@ -598,6 +606,7 @@ public class DslJsonSerializer implements PayloadSerializer {
                 jw.writeString(values.get(i));
             }
             jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
         }
     }
 
