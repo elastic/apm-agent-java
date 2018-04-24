@@ -22,13 +22,16 @@ package co.elastic.apm.opentracing;
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ApmTracerTest {
 
@@ -99,5 +102,50 @@ class ApmTracerTest {
         assertThat(span.getParent().asLong()).isEqualTo(0);
         assertThat(nestedSpan.getName()).isEqualTo("nestedSpan");
         assertThat(nestedSpan.getParent()).isEqualTo(span.getId());
+    }
+
+    @Test
+    void testResolveClientType() {
+        assertSoftly(softly -> {
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client")).getType()).isEqualTo("ext");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "producer")).getType()).isEqualTo("ext");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "mysql")).getType()).isEqualTo("db");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "foo")).getType()).isEqualTo("db");
+            softly.assertThat(createSpanFromOtTags(Map.of("span.kind", "client", "db.type", "redis")).getType()).isEqualTo("cache");
+        });
+    }
+
+    @Test
+    void testResolveServerType() {
+        assertSoftly(softly -> {
+            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("unknown");
+            softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server",
+                "http.url", "http://localhost:8080",
+                "http.method", "GET")).getType()).isEqualTo("request");
+        });
+    }
+
+    Transaction createTransactionFromOtTags(Map<String, String> tags) {
+        final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
+        tags.forEach(spanBuilder::withTag);
+        spanBuilder.start().finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        reporter.reset();
+        return transaction;
+    }
+
+    co.elastic.apm.impl.transaction.Span createSpanFromOtTags(Map<String, String> tags) {
+        final ApmSpanBuilder transactionSpanBuilder = apmTracer.buildSpan("transaction");
+        try (Scope transaction = transactionSpanBuilder.startActive(true)) {
+            final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
+            tags.forEach(spanBuilder::withTag);
+            spanBuilder.start().finish();
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(1);
+        final co.elastic.apm.impl.transaction.Span span = reporter.getFirstTransaction().getSpans().get(0);
+        reporter.reset();
+        return span;
     }
 }

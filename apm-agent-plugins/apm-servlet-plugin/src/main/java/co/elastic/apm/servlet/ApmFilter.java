@@ -28,6 +28,7 @@ import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
+import co.elastic.apm.web.ResultUtil;
 import co.elastic.apm.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,32 +141,12 @@ public class ApmFilter implements Filter {
             if (transaction.getName().length() == 0) {
                 transaction.withName(httpServletRequest.getMethod());
             }
-            transaction.withResult(getResult(httpServletResponse.getStatus()));
+            transaction.withResult(ResultUtil.getResultByHttpStatus(httpServletResponse.getStatus()));
             transaction.withType("request");
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-    }
-
-    @Nullable
-    String getResult(int status) {
-        if (status >= 200 && status < 300) {
-            return "HTTP 2xx";
-        }
-        if (status >= 300 && status < 400) {
-            return "HTTP 3xx";
-        }
-        if (status >= 400 && status < 500) {
-            return "HTTP 4xx";
-        }
-        if (status >= 500 && status < 600) {
-            return "HTTP 5xx";
-        }
-        if (status >= 100 && status < 200) {
-            return "HTTP 1xx";
-        }
-        return null;
     }
 
     private void fillUser(User user, HttpServletRequest httpServletRequest) {

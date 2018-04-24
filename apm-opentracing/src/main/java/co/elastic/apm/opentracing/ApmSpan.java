@@ -21,6 +21,7 @@ package co.elastic.apm.opentracing;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.web.ResultUtil;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static io.opentracing.tag.Tags.DB_TYPE;
 
 class ApmSpan implements Span, SpanContext {
 
@@ -103,14 +105,14 @@ class ApmSpan implements Span, SpanContext {
     private void finishInternal(long nanoTime) {
         if (transaction != null) {
             if (transaction.getType() == null) {
-                transaction.withType("unknown");
-            }
-            if (transaction.getResult() == null) {
-                transaction.withResult("success");
+                if (transaction.getContext().getRequest().hasContent()) {
+                    transaction.withType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
+                } else {
+                    transaction.withType("unknown");
+                }
             }
             transaction.end(nanoTime, false);
-        } else {
-            assert span != null;
+        } else if (span != null) {
             if (span.getType() == null) {
                 span.withType("unknown");
             }
@@ -196,11 +198,7 @@ class ApmSpan implements Span, SpanContext {
     private void handleTransactionTag(String key, Object value) {
         if (!handleSpecialTransactionTag(key, value)) {
             assert transaction != null;
-            transaction.addTag(key
-                .replace('.', '_')
-                .replace('*', '_')
-                .replace('"', '_'), value.toString()
-            );
+            transaction.addTag(key, value.toString());
         }
     }
 
@@ -211,13 +209,7 @@ class ApmSpan implements Span, SpanContext {
 
     private boolean handleSpecialTransactionTag(String key, Object value) {
         assert transaction != null;
-        if (Tags.COMPONENT.getKey().equals(key)) {
-            if (transaction.getType() == null) {
-                transaction.setType(value.toString());
-            }
-            // return false so that component also lands in the custom tags
-            return false;
-        } else if (ElasticApmTags.TYPE.getKey().equals(key)) {
+        if (ElasticApmTags.TYPE.getKey().equals(key)) {
             transaction.setType(value.toString());
             return true;
         } else if (ElasticApmTags.RESULT.getKey().equals(key)) {
@@ -231,14 +223,17 @@ class ApmSpan implements Span, SpanContext {
         } else if (Tags.HTTP_STATUS.getKey().equals(key) && value instanceof Number) {
             transaction.getContext().getResponse().withStatusCode(((Number) value).intValue());
             if (transaction.getResult() == null) {
-                transaction.withResult(getResult(((Number) value).intValue()));
+                transaction.withResult(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
             }
+            transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
             return true;
         } else if (Tags.HTTP_METHOD.getKey().equals(key)) {
             transaction.getContext().getRequest().withMethod(value.toString());
+            transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
             return true;
         } else if (Tags.HTTP_URL.getKey().equals(key)) {
             transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
+            transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
             return true;
         } else if (Tags.SAMPLING_PRIORITY.getKey().equals(key)) {
             // mid-trace sampling is not allowed
@@ -258,18 +253,19 @@ class ApmSpan implements Span, SpanContext {
 
     private boolean handleSpecialSpanTag(String key, Object value) {
         assert span != null;
-        if (Tags.COMPONENT.getKey().equals(key)) {
-            span.setType(value.toString());
-            // return false so that component also lands in the custom tags
-            return false;
-        } else if (ElasticApmTags.TYPE.getKey().equals(key)) {
+        if (ElasticApmTags.TYPE.getKey().equals(key)) {
             span.setType(value.toString());
             return true;
         } else if (Tags.SAMPLING_PRIORITY.getKey().equals(key)) {
             // mid-trace sampling is not allowed
             return true;
-        } else if (Tags.DB_TYPE.getKey().equals(key)) {
+        } else if (DB_TYPE.getKey().equals(key)) {
             span.getContext().getDb().withType(value.toString());
+            if (isCache(value)) {
+                span.setType("cache");
+            } else {
+                span.setType("db");
+            }
             return true;
         } else if (Tags.DB_INSTANCE.getKey().equals(key)) {
             span.getContext().getDb().withInstance(value.toString());
@@ -277,27 +273,17 @@ class ApmSpan implements Span, SpanContext {
         } else if (Tags.DB_STATEMENT.getKey().equals(key)) {
             span.getContext().getDb().withStatement(value.toString());
             return true;
+        } else if (Tags.SPAN_KIND.getKey().equals(key)) {
+            if (span.getType() == null && (Tags.SPAN_KIND_PRODUCER.equals(value) || Tags.SPAN_KIND_CLIENT.equals(value))) {
+                span.setType("ext");
+            }
+            return true;
         }
         return false;
     }
 
-    @Nullable
-    String getResult(int status) {
-        if (status >= 200 && status < 300) {
-            return "HTTP 2xx";
-        }
-        if (status >= 300 && status < 400) {
-            return "HTTP 3xx";
-        }
-        if (status >= 400 && status < 500) {
-            return "HTTP 4xx";
-        }
-        if (status >= 500 && status < 600) {
-            return "HTTP 5xx";
-        }
-        if (status >= 100 && status < 200) {
-            return "HTTP 1xx";
-        }
-        return null;
+    private boolean isCache(Object dbType) {
+        return "redis".equals(dbType);
     }
+
 }
