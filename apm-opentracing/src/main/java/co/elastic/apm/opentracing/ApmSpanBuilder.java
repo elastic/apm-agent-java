@@ -89,17 +89,17 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder withTag(String key, boolean value) {
-        if (Tags.SAMPLING_PRIORITY.getKey().equals(key)) {
-            sampler = ConstantSampler.of(value);
-        } else {
-            tags.put(key, value);
-        }
+        tags.put(key, value);
         return this;
     }
 
     @Override
     public ApmSpanBuilder withTag(String key, Number value) {
-        tags.put(key, value);
+        if (Tags.SAMPLING_PRIORITY.getKey().equals(key) && value != null) {
+            sampler = ConstantSampler.of(value.intValue() > 0);
+        } else {
+            tags.put(key, value);
+        }
         return this;
     }
 

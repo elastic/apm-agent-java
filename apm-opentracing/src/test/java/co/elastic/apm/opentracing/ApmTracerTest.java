@@ -24,6 +24,8 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.log.Fields;
+import io.opentracing.tag.Tags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +62,24 @@ class ApmTracerTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("test");
+    }
+
+    @Test
+    void testCreateNonActiveTransactionNestedTransaction() {
+        final Span transaction = apmTracer.buildSpan("transaction").start();
+        final Span nested = apmTracer.buildSpan("nestedTransaction").start();
+        nested.finish();
+        transaction.finish();
+        assertThat(reporter.getTransactions()).hasSize(2);
+    }
+
+    @Test
+    void testCreateNonActiveTransactionAsChildOf() {
+        final Span transaction = apmTracer.buildSpan("transaction").start();
+        apmTracer.buildSpan("nestedSpan").asChildOf(transaction).startActive(true).close();
+        transaction.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(1);
     }
 
     @Test
@@ -134,7 +154,52 @@ class ApmTracerTest {
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    Transaction createTransactionFromOtTags(Map<String, String> tags) {
+    @Test
+    void testErrorLogging() {
+        Span span = apmTracer.buildSpan("someWork").start();
+        try (Scope scope = apmTracer.scopeManager().activate(span, false)) {
+            throw new RuntimeException("Catch me if you can");
+        } catch(Exception ex) {
+            Tags.ERROR.set(span, true);
+            span.log(Map.of(Fields.EVENT, "error", Fields.ERROR_OBJECT, ex, Fields.MESSAGE, ex.getMessage()));
+        } finally {
+            span.finish();
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
+        assertThat(reporter.getFirstError().getException().getStacktrace()).isNotEmpty();
+    }
+
+    @Test
+    void testNonStringTags() {
+        try (Scope transaction = apmTracer.buildSpan("transaction")
+            .withTag("number", 1)
+            .withTag("boolean", true)
+            .startActive(true)) {
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getTags())
+            .containsEntry("number", "1")
+            .containsEntry("boolean", "true");
+    }
+
+
+    @Test
+    void testManualSampling() {
+        try (Scope transaction = apmTracer.buildSpan("transaction")
+            .withTag("sampling.priority", 0)
+            .withTag("foo", "bar")
+            .startActive(true)) {
+            try (Scope span = apmTracer.buildSpan("span").startActive(true)) {
+            }
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getTags()).isEmpty();
+        assertThat(reporter.getFirstTransaction().getSpans()).isEmpty();
+    }
+
+    private Transaction createTransactionFromOtTags(Map<String, String> tags) {
         final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
         tags.forEach(spanBuilder::withTag);
         spanBuilder.start().finish();
@@ -144,7 +209,7 @@ class ApmTracerTest {
         return transaction;
     }
 
-    co.elastic.apm.impl.transaction.Span createSpanFromOtTags(Map<String, String> tags) {
+    private co.elastic.apm.impl.transaction.Span createSpanFromOtTags(Map<String, String> tags) {
         final ApmSpanBuilder transactionSpanBuilder = apmTracer.buildSpan("transaction");
         try (Scope transaction = transactionSpanBuilder.startActive(true)) {
             final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
