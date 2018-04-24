@@ -71,13 +71,14 @@ import static com.dslplatform.json.JsonWriter.OBJECT_START;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
+    static final int MAX_VALUE_LENGTH = 1024;
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
 
     // visible for testing
     final JsonWriter jw;
     private final DateFormat dateFormat;
-    private final StringBuilder replaceBuilder = new StringBuilder();
+    private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
 
     public DslJsonSerializer() {
         jw = new DslJson<>().newWriter();
@@ -588,21 +589,37 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private void writeField(final String fieldName, final StringBuilder value) {
-        // TODO limit size of value to 1024
+    void writeField(final String fieldName, final StringBuilder value) {
         if (value.length() > 0) {
             writeFieldName(fieldName);
-            jw.writeString(value);
+            writeStringBuilderValue(value);
             jw.writeByte(COMMA);
         }
     }
 
-    private void writeField(final String fieldName, @Nullable final String value) {
-        // TODO limit size of value to 1024
+    void writeField(final String fieldName, @Nullable final String value) {
         if (value != null) {
             writeFieldName(fieldName);
-            jw.writeString(value);
+            writeStringValue(value);
             jw.writeByte(COMMA);
+        }
+    }
+
+    private void writeStringBuilderValue(StringBuilder value) {
+        if (value.length() > MAX_VALUE_LENGTH) {
+            value.setLength(MAX_VALUE_LENGTH - 1);
+            value.append('…');
+        }
+        jw.writeString(value);
+    }
+
+    private void writeStringValue(String value) {
+        if (value.length() > MAX_VALUE_LENGTH) {
+            replaceBuilder.setLength(0);
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH));
+            writeStringBuilderValue(replaceBuilder);
+        } else {
+            jw.writeString(value);
         }
     }
 
@@ -629,10 +646,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeLastField(final String fieldName, @Nullable final String value) {
+    void writeLastField(final String fieldName, @Nullable final String value) {
         writeFieldName(fieldName);
         if (value != null) {
-            jw.writeString(value);
+            writeStringValue(value);
         } else {
             jw.writeNull();
         }
