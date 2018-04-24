@@ -170,6 +170,10 @@ public class ElasticApmTracer implements Tracer {
         return transaction;
     }
 
+    public Transaction noopTransaction() {
+        return noopTransaction;
+    }
+
     public void activate(Transaction transaction) {
         currentTransaction.set(transaction);
     }

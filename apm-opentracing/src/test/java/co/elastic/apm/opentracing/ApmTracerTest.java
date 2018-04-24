@@ -125,6 +125,15 @@ class ApmTracerTest {
         });
     }
 
+    @Test
+    void testCreatingClientTransactionCreatesNoopSpan() {
+        try (Scope transaction = apmTracer.buildSpan("transaction").withTag("span.kind", "client").startActive(true)) {
+            try (Scope span = apmTracer.buildSpan("span").startActive(true)) {
+            }
+        }
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
     Transaction createTransactionFromOtTags(Map<String, String> tags) {
         final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
         tags.forEach(spanBuilder::withTag);
