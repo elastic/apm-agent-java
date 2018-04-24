@@ -48,7 +48,6 @@ import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
-import com.dslplatform.json.MapConverter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
 import com.dslplatform.json.UUIDConverter;
@@ -73,9 +72,12 @@ import static com.dslplatform.json.JsonWriter.OBJECT_START;
 public class DslJsonSerializer implements PayloadSerializer {
 
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
+    private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
 
-    private final JsonWriter jw;
+    // visible for testing
+    final JsonWriter jw;
     private final DateFormat dateFormat;
+    private final StringBuilder replaceBuilder = new StringBuilder();
 
     public DslJsonSerializer() {
         jw = new DslJson<>().newWriter();
@@ -428,9 +430,56 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeResponse(context.getResponse());
         // TODO custom context
         writeFieldName("tags");
-        MapConverter.serialize(context.getTags(), jw);
+        final Map<String, String> value = context.getTags();
+        serializeTags(value);
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
+    }
+
+    // visible for testing
+    void serializeTags(Map<String, String> value) {
+        jw.writeByte(OBJECT_START);
+        final int size = value.size();
+        if (size > 0) {
+            final Iterator<Map.Entry<String, String>> iterator = value.entrySet().iterator();
+            Map.Entry<String, String> kv = iterator.next();
+            jw.writeString(sanitizeTagKey(kv.getKey()));
+            jw.writeByte(JsonWriter.SEMI);
+            StringConverter.serializeNullable(kv.getValue(), jw);
+            for (int i = 1; i < size; i++) {
+                jw.writeByte(COMMA);
+                kv = iterator.next();
+                jw.writeString(sanitizeTagKey(kv.getKey()));
+                jw.writeByte(JsonWriter.SEMI);
+                StringConverter.serializeNullable(kv.getValue(), jw);
+            }
+        }
+        jw.writeByte(OBJECT_END);
+    }
+
+    private CharSequence sanitizeTagKey(String key) {
+        for (int i = 0; i < DISALLOWED_IN_TAG_KEY.length; i++) {
+            if (key.contains(DISALLOWED_IN_TAG_KEY[i])) {
+                return replaceAll(key, DISALLOWED_IN_TAG_KEY, "_");
+            }
+        }
+        return key;
+    }
+
+    private CharSequence replaceAll(String s, String[] stringsToReplace, String replacement) {
+        // uses a instance variable StringBuilder to avoid allocations
+        replaceBuilder.setLength(0);
+        replaceBuilder.append(s);
+        for (String toReplace : stringsToReplace) {
+            replace(replaceBuilder, toReplace, replacement);
+        }
+        return replaceBuilder;
+    }
+
+    private void replace(StringBuilder replaceBuilder, String toReplace, String replacement) {
+        for (int i = replaceBuilder.indexOf(toReplace); i != -1; i = replaceBuilder.indexOf(toReplace)) {
+            replaceBuilder.replace(i, i + replacement.length(), replacement);
+        }
     }
 
     private void serializeResponse(final Response response) {
