@@ -17,5 +17,5 @@
     <logger name="co.elastic.apm.shaded" level="INFO"/>
     <logger name="org.testcontainers" level="INFO"/>
     <logger name="org.apache.http" level="WARN"/>
-    <logger name="com.github.dockerjava" level="DEBUG"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
 </configuration>
