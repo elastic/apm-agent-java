@@ -13,11 +13,12 @@ Docs are located [here](docs/intro.asciidoc).
 
 ## Getting Help
 If you find a bug,
-please report an issue.
+please [report an issue](https://github.com/elastic/apm-agent-java/issues/new).
 For any other assistance,
-please open or add to a topic on the APM discuss forum.
+please open or add to a topic on the [APM discuss forum](https://discuss.elastic.co/c/apm).
 
-If you need help or hit an issue, please start by opening a topic on our discuss forums.
+If you need help or hit an issue,
+please start by opening a topic on our discuss forums.
 Please note that we reserve GitHub tickets for confirmed bugs and enhancement requests.
 
 ## Build
