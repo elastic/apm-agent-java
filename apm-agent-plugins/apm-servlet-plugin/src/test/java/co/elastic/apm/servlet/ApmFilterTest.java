@@ -22,11 +22,11 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.web.WebConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.web.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -44,7 +44,6 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -99,26 +98,6 @@ class ApmFilterTest {
         assertThat(url.getHostname()).isEqualTo("localhost");
         assertThat(url.getPathname()).isEqualTo("/foo/bar");
         assertThat(url.getFull().toString()).isEqualTo("http://localhost/foo/bar?foo=bar");
-    }
-
-    @Test
-    void getResult() {
-        assertSoftly(softly -> {
-            softly.assertThat(apmFilter.getResult(100)).isEqualTo("HTTP 1xx");
-            softly.assertThat(apmFilter.getResult(199)).isEqualTo("HTTP 1xx");
-            softly.assertThat(apmFilter.getResult(200)).isEqualTo("HTTP 2xx");
-            softly.assertThat(apmFilter.getResult(299)).isEqualTo("HTTP 2xx");
-            softly.assertThat(apmFilter.getResult(300)).isEqualTo("HTTP 3xx");
-            softly.assertThat(apmFilter.getResult(399)).isEqualTo("HTTP 3xx");
-            softly.assertThat(apmFilter.getResult(400)).isEqualTo("HTTP 4xx");
-            softly.assertThat(apmFilter.getResult(499)).isEqualTo("HTTP 4xx");
-            softly.assertThat(apmFilter.getResult(500)).isEqualTo("HTTP 5xx");
-            softly.assertThat(apmFilter.getResult(599)).isEqualTo("HTTP 5xx");
-            softly.assertThat(apmFilter.getResult(600)).isNull();
-            softly.assertThat(apmFilter.getResult(20)).isNull();
-            softly.assertThat(apmFilter.getResult(0)).isNull();
-            softly.assertThat(apmFilter.getResult(-1)).isNull();
-        });
     }
 
     @Test

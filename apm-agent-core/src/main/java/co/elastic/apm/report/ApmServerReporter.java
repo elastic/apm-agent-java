@@ -32,7 +32,6 @@ import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
 import com.lmax.disruptor.dsl.Disruptor;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Future;
@@ -76,8 +75,9 @@ public class ApmServerReporter implements Reporter {
     @Nullable
     private ScheduledThreadPoolExecutor flushScheduler;
 
-    public ApmServerReporter(ConfigurationRegistry configurationRegistry, Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
-                             boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration) {
+    public ApmServerReporter(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
+                             boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
+                             ProcessorEventHandler processorEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
@@ -90,7 +90,7 @@ public class ApmServerReporter implements Reporter {
         });
         reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration);
         disruptor
-            .handleEventsWith(ProcessorEventHandler.loadProcessors(configurationRegistry))
+            .handleEventsWith(processorEventHandler)
             .then(reportingEventHandler);
         disruptor.start();
         if (reporterConfiguration.getFlushInterval() > 0) {

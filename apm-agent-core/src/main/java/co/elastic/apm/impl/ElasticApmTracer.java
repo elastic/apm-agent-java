@@ -155,14 +155,27 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Transaction startTransaction() {
+        Transaction transaction = startManualTransaction(sampler, System.nanoTime());
+        activate(transaction);
+        return transaction;
+    }
+
+    public Transaction startManualTransaction(Sampler sampler, long nanoTime) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction;
         } else {
-            transaction = transactionPool.createInstance().start(this, System.nanoTime(), sampler);
+            transaction = transactionPool.createInstance().start(this, nanoTime, sampler);
         }
-        currentTransaction.set(transaction);
         return transaction;
+    }
+
+    public Transaction noopTransaction() {
+        return noopTransaction;
+    }
+
+    public void activate(Transaction transaction) {
+        currentTransaction.set(transaction);
     }
 
     @Override
@@ -178,19 +191,28 @@ public class ElasticApmTracer implements Tracer {
     @Override
     public Span startSpan() {
         Transaction transaction = currentTransaction();
+        final Span span = startManualSpan(transaction, currentSpan(), System.nanoTime());
+        activate(span);
+        return span;
+    }
+
+    public Span startManualSpan(@Nullable Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
         final Span span;
         // makes sure that the active setting is consistent during a transaction
         // even when setting active=false mid-transaction
         if (isNoop(transaction) || transaction == null) {
             span = noopSpan;
         } else {
-            span = createRealSpan(transaction);
+            span = createRealSpan(transaction, parentSpan, nanoTime);
         }
-        currentSpan.set(span);
         return span;
     }
 
-    private Span createRealSpan(Transaction transaction) {
+    public void activate(Span span) {
+        currentSpan.set(span);
+    }
+
+    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
         Span span;
         span = spanPool.createInstance();
         final boolean dropped;
@@ -200,7 +222,7 @@ public class ElasticApmTracer implements Tracer {
         } else {
             dropped = false;
         }
-        span.start(this, transaction, currentSpan(), System.nanoTime(), dropped);
+        span.start(this, transaction, parentSpan, nanoTime, dropped);
         return span;
     }
 
@@ -208,10 +230,15 @@ public class ElasticApmTracer implements Tracer {
         return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpans().size();
     }
 
+
     public void captureException(Exception e) {
+        captureException(System.currentTimeMillis(), e);
+    }
+
+    public void captureException(long epchTimestampMillis, Exception e) {
         ErrorCapture error = new ErrorCapture();
         error.getId().setToRandomValue();
-        error.withTimestamp(System.currentTimeMillis());
+        error.withTimestamp(epchTimestampMillis);
         error.getException().withMessage(e.getMessage());
         error.getException().withType(e.getClass().getName());
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
@@ -232,14 +259,18 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @SuppressWarnings("ReferenceEquality")
-    public void endTransaction(Transaction transaction) {
-        if (currentTransaction.get() != transaction) {
-            logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
-            assert false;
-        } else if (!isNoop(transaction)) {
+    public void endTransaction(Transaction transaction, boolean releaseActiveTransaction) {
+        if (releaseActiveTransaction) {
+            if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
+                logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
+                assert false;
+            }
+            releaseActiveTransaction();
+        }
+        if (!isNoop(transaction)) {
             reporter.report(transaction);
         }
-        currentTransaction.clear();
+
     }
 
     private boolean isNoop(@Nullable Transaction transaction) {
@@ -247,11 +278,13 @@ public class ElasticApmTracer implements Tracer {
     }
 
     @SuppressWarnings("ReferenceEquality")
-    public void endSpan(Span span) {
-        if (currentSpan.get() != span) {
-            logger.warn("Trying to end a span which is not the current (thread local) span!");
-            assert false;
-            return;
+    public void endSpan(Span span, boolean releaseActiveSpan) {
+        if (releaseActiveSpan) {
+            if (currentSpan.get() != null && currentSpan.get() != span) {
+                logger.warn("Trying to end a span which is not the current (thread local) span!");
+                assert false;
+            }
+            releaseActiveSpan();
         }
         int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
         if (spanFramesMinDurationMs != 0 && !isNoop(span)) {
@@ -259,7 +292,7 @@ public class ElasticApmTracer implements Tracer {
                 stacktraceFactory.fillStackTrace(span.getStacktrace());
             }
         }
-        currentSpan.clear();
+
     }
 
     private boolean isNoop(Span span) {
@@ -306,5 +339,17 @@ public class ElasticApmTracer implements Tracer {
 
     public Reporter getReporter() {
         return reporter;
+    }
+
+    public Sampler getSampler() {
+        return sampler;
+    }
+
+    public void releaseActiveTransaction() {
+        currentTransaction.clear();
+    }
+
+    public void releaseActiveSpan() {
+        currentSpan.clear();
     }
 }

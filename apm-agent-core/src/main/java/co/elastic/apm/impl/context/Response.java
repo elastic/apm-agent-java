@@ -36,7 +36,7 @@ public class Response implements Recyclable {
     /**
      * The HTTP status code of the response.
      */
-    private long statusCode;
+    private int statusCode;
 
     /**
      * A boolean indicating whether the response was finished or not
@@ -85,14 +85,14 @@ public class Response implements Recyclable {
     /**
      * The HTTP status code of the response.
      */
-    public long getStatusCode() {
+    public int getStatusCode() {
         return statusCode;
     }
 
     /**
      * The HTTP status code of the response.
      */
-    public Response withStatusCode(long statusCode) {
+    public Response withStatusCode(int statusCode) {
         this.statusCode = statusCode;
         return this;
     }

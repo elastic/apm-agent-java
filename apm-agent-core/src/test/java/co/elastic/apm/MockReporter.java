@@ -156,4 +156,9 @@ public class MockReporter implements Reporter {
     public void close() {
 
     }
+
+    public void reset() {
+        transactions.clear();
+        errors.clear();
+    }
 }

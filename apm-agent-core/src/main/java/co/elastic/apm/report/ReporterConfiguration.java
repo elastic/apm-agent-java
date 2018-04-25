@@ -25,6 +25,9 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
 import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
     public static final String REPORTER_CATEGORY = "Reporter";

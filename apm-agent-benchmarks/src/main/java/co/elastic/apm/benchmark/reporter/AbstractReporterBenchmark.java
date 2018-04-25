@@ -40,6 +40,7 @@ import co.elastic.apm.report.ApmServerReporter;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+import co.elastic.apm.report.processor.ProcessorEventHandler;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
@@ -92,7 +93,8 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
         ReporterConfiguration reporterConfiguration = new ReporterConfiguration();
-        reporter = new ApmServerReporter(tracer.getConfigurationRegistry(), service, process, system, payloadSender, false, reporterConfiguration);
+        reporter = new ApmServerReporter(service, process, system, payloadSender, false, reporterConfiguration,
+            ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()));
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();

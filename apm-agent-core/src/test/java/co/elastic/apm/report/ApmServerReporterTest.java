@@ -25,10 +25,12 @@ import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.report.processor.ProcessorEventHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,8 +48,9 @@ class ApmServerReporterTest {
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(configurationRegistry, new Service(), new ProcessInfo("title"), system,
-            mock(PayloadSender.class), true, reporterConfiguration);
+        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system,
+            mock(PayloadSender.class), true, reporterConfiguration,
+            new ProcessorEventHandler(Collections.singletonList(new TestProcessor())));
     }
 
     @Test
