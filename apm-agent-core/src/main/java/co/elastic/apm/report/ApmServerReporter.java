@@ -72,6 +72,7 @@ public class ApmServerReporter implements Reporter {
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
+    private final boolean syncReport;
     @Nullable
     private ScheduledThreadPoolExecutor flushScheduler;
 
@@ -79,6 +80,7 @@ public class ApmServerReporter implements Reporter {
                              boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
                              ProcessorEventHandler processorEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
+        this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -108,6 +110,17 @@ public class ApmServerReporter implements Reporter {
     public void report(Transaction transaction) {
         if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR)) {
             transaction.recycle();
+        }
+        if (syncReport) {
+            waitForFlush();
+        }
+    }
+
+    private void waitForFlush() {
+        try {
+            flush().get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -184,6 +197,9 @@ public class ApmServerReporter implements Reporter {
     public void report(ErrorCapture error) {
         if (!tryAddEventToRingBuffer(error, ERROR_EVENT_TRANSLATOR)) {
             error.recycle();
+        }
+        if (syncReport) {
+            waitForFlush();
         }
     }
 
