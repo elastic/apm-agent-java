@@ -36,6 +36,7 @@ application_packages=org.example
 [[${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
     <#list options as option>
+        <#if !option.tags?seq_contains("internal")>
 [float]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`
@@ -56,6 +57,7 @@ ${option.description}
 | `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case}` | `${option.key}`
 |============
 
+        </#if>
     </#list>
 </#list>
 

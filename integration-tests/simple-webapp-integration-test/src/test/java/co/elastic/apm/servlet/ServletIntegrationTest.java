@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -30,6 +31,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
+
+    @Before
+    public void setUp() {
+        deployWarFile("../simple-webapp/target/ROOT.war", "/status.jsp");
+    }
 
     @Test
     public void testTransactionReporting() throws Exception {

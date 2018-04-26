@@ -69,6 +69,7 @@
         <version.junit-vintage-engine>5.1.1</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
+        <version.okhttp>3.9.1</version.okhttp>
     </properties>
 
     <modules>
@@ -78,6 +79,7 @@
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
         <module>apm-opentracing</module>
+        <module>integration-tests</module>
     </modules>
 
     <distributionManagement>
