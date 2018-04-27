@@ -1,0 +1,45 @@
+{
+  "settings": {
+    "index": {
+      "refresh_interval": "10s"
+    }
+  },
+  "mappings": {
+    "_doc": {
+      "dynamic_templates": [
+        {
+          "unindexed_longs": {
+            "match_mapping_type": "long",
+            "mapping": {
+              "type": "long",
+              "index": false
+            }
+          }
+        },
+        {
+          "unindexed_doubles": {
+            "match_mapping_type": "double",
+            "mapping": {
+              "type": "float",
+              "index": false
+            }
+          }
+        },
+        {
+          "unindexed_doubles": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "@timestamp": {
+          "type": "date",
+          "format": "epoch_second"
+        }
+      }
+    }
+  }
+}
