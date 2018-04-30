@@ -204,7 +204,7 @@ class ElasticApmTracerTest {
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
                 assertThat(transaction.getSpans()).isEmpty();
-                assertThat(span.isSampled()).isFalse();
+                assertThat(span).isNull();
             }
             assertThat(tracerImpl.currentSpan()).isNull();
         }
@@ -281,7 +281,7 @@ class ElasticApmTracerTest {
     @Test
     void testSpanWithoutTransaction() {
         try (Span span = tracerImpl.startSpan()) {
-            assertThat(span.isSampled()).isFalse();
+            assertThat(span).isNull();
         }
 
     }

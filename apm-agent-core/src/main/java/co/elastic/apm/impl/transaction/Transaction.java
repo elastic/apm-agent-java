@@ -91,6 +91,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
     private boolean sampled;
+    private boolean noop;
 
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, Sampler sampler) {
         this.tracer = tracer;
@@ -98,6 +99,14 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         this.timestamp.setTime(System.currentTimeMillis());
         this.id.setToRandomValue();
         this.sampled = sampler.isSampled(id);
+        this.noop = false;
+        return this;
+    }
+
+    public Transaction startNoop(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+        this.sampled = false;
+        this.noop = true;
         return this;
     }
 
@@ -304,6 +313,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         spanCount.resetState();
         tracer = null;
         spanIdCounter.set(0);
+        noop = false;
     }
 
     public void recycle() {
@@ -312,4 +322,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         }
     }
 
+    public boolean isNoop() {
+        return noop;
+    }
 }

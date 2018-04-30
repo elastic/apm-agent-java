@@ -135,7 +135,8 @@ public class ElasticApm implements Tracer {
     @Override
     @Nonnull
     public Span startSpan() {
-        return tracer.startSpan();
+        final Span span = tracer.startSpan();
+        return span != null ? span : NoopTracer.NoopSpan.INSTANCE;
     }
 
     @Override

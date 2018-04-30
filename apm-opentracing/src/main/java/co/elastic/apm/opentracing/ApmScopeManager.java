@@ -37,9 +37,9 @@ class ApmScopeManager implements ScopeManager {
     @Override
     public ApmScope activate(Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
-        if (apmSpan.isTransaction()) {
+        if (apmSpan.getTransaction() != null) {
             tracer.activate(apmSpan.getTransaction());
-        } else {
+        } else if (apmSpan.getSpan() != null) {
             tracer.activate(apmSpan.getSpan());
         }
         return new ApmScope(finishSpanOnClose, apmSpan, tracer);

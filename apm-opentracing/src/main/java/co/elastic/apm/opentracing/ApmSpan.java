@@ -44,18 +44,8 @@ class ApmSpan implements Span, SpanContext {
 
     ApmSpan(@Nullable Transaction transaction, @Nullable co.elastic.apm.impl.transaction.Span span, ElasticApmTracer tracer) {
         this.tracer = tracer;
-        if (transaction == null && span == null) {
-            throw new IllegalArgumentException();
-        } else if (transaction != null && span != null) {
-            throw new IllegalArgumentException();
-        }
-
         this.transaction = transaction;
         this.span = span;
-    }
-
-    boolean isTransaction() {
-        return transaction != null;
     }
 
     @Override
@@ -85,8 +75,7 @@ class ApmSpan implements Span, SpanContext {
     public ApmSpan setOperationName(String operationName) {
         if (transaction != null) {
             transaction.setName(operationName);
-        } else {
-            assert span != null;
+        } else if (span != null) {
             span.setName(operationName);
         }
         return this;
@@ -190,7 +179,7 @@ class ApmSpan implements Span, SpanContext {
         }
         if (transaction != null) {
             handleTransactionTag(key, value);
-        } else {
+        } else if (span != null) {
             handleSpanTag(key, value);
         }
     }
