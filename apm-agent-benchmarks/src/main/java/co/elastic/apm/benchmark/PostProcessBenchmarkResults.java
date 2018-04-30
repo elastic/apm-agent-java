@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class PostProcessBenchmarkResults {
 
@@ -56,6 +57,15 @@ public class PostProcessBenchmarkResults {
         new PostProcessBenchmarkResults(args[0], args[1], timestamp).process();
     }
 
+    private static String execCmd(String cmd) {
+        try {
+            java.util.Scanner s = new java.util.Scanner(Runtime.getRuntime().exec(cmd).getInputStream()).useDelimiter("\n");
+            return s.hasNext() ? s.next() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void process() throws IOException {
         final JsonNode meta = jmhResultJson.objectNode()
             .put("cpu_model", execCmd("lscpu | grep \"Model name\" | awk '{for(i=3;i<=NF;i++){printf \"%s \", $i}; printf \"\\n\"}'"))
@@ -72,24 +82,17 @@ public class PostProcessBenchmarkResults {
             ((ObjectNode) benchmark).set("meta", meta);
 
             final ObjectNode primaryMetric = (ObjectNode) benchmark.get("primaryMetric");
-            removeRawData(primaryMetric);
+            removeFields(primaryMetric, fieldName -> fieldName.startsWith("raw"));
             removePercentileSecondaryMetrics((ObjectNode) benchmark.get("secondaryMetrics"));
+            removeFields((ObjectNode) benchmark.get("secondaryMetrics"), fieldName -> fieldName.startsWith("gc.churn"));
             for (JsonNode secondaryMetric : benchmark.get("secondaryMetrics")) {
-                removeRawData((ObjectNode) secondaryMetric);
+                removeFields((ObjectNode) secondaryMetric, fieldName -> fieldName.startsWith("raw"));
             }
         }
         jmhResultJson.add(subtractBenchmarkResults(getBenchmarkByName("benchmarkWithApm"), getBenchmarkByName("benchmarkWithoutApm")));
         writeBulkFile(this.resultFilePath);
     }
 
-    private static String execCmd(String cmd) {
-        try {
-            java.util.Scanner s = new java.util.Scanner(Runtime.getRuntime().exec(cmd).getInputStream()).useDelimiter("\n");
-            return s.hasNext() ? s.next() : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
     private void writeBulkFile(String resultFilePath) throws IOException {
         final File file = new File(resultFilePath);
@@ -102,24 +105,19 @@ public class PostProcessBenchmarkResults {
         fileWriter.close();
     }
 
-    private void removeRawData(ObjectNode node) {
+    private void removeFields(ObjectNode node, Predicate<String> fieldNamePredicate) {
+        List<String> fieldNamesToRemove = new ArrayList<>();
         for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
             final String fieldName = it.next();
-            if (fieldName.startsWith("raw")) {
-                node.remove(fieldName);
-            }
-        }
-    }
-
-    private void removePercentileSecondaryMetrics(ObjectNode secondaryMetrics) {
-        List<String> fieldNamesToRemove = new ArrayList<>();
-        for (Iterator<String> it = secondaryMetrics.fieldNames(); it.hasNext(); ) {
-            final String fieldName = it.next();
-            if (fieldName.contains("p1.") || fieldName.contains("p0.")) {
+            if (fieldNamePredicate.test(fieldName)) {
                 fieldNamesToRemove.add(fieldName);
             }
         }
-        secondaryMetrics.remove(fieldNamesToRemove);
+        node.remove(fieldNamesToRemove);
+    }
+
+    private void removePercentileSecondaryMetrics(ObjectNode secondaryMetrics) {
+        removeFields(secondaryMetrics, fieldName -> fieldName.contains("p1.") || fieldName.contains("p0."));
     }
 
     private ObjectNode subtractBenchmarkResults(ObjectNode benchmark, ObjectNode benchmarkBaseline) {
