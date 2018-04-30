@@ -74,11 +74,13 @@ function benchmark() {
     java -jar ${WORKSPACE}/apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" -prof gc -rf json -rff ~/${RESULT_FILE}
 
     cd ~
+
     # remove strange non unicode chars inserted by JMH; see org.openjdk.jmh.results.Defaults.PREFIX
     tr -cd '\11\12\40-\176' < ${RESULT_FILE} > "${RESULT_FILE}.clean"
     rm -f ${RESULT_FILE}
     mv "${RESULT_FILE}.clean" ${RESULT_FILE}
-    ${MICRO_BENCHMARK_HOME}/postprocess.py --input=${RESULT_FILE} --output=${BULK_UPLOAD_FILE} --timestamp=${COMMIT_UNIX}
+
+    java -cp ${WORKSPACE}/apm-agent-benchmarks/target/benchmarks.jar co.elastic.apm.benchmark.PostProcessBenchmarkResults ${RESULT_FILE} ${BULK_UPLOAD_FILE} ${COMMIT_UNIX}
     setCloudCredentials
     curl --user ${CLOUD_USERNAME}:${CLOUD_PASSWORD} -XPOST 'https://1ec92c339f616ca43771bff669cc419c.europe-west3.gcp.cloud.es.io:9243/_bulk' -H 'Content-Type: application/json'  --data-binary @${BULK_UPLOAD_FILE}
     unset CLOUD_USERNAME
