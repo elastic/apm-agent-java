@@ -33,9 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
-import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,6 +80,7 @@ public abstract class AbstractTomcatIntegrationTest {
         .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
         .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
         .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
+        .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
         .withExposedPorts(8080, 8000);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
@@ -90,6 +89,11 @@ public abstract class AbstractTomcatIntegrationTest {
     private static JsonSchema schema;
 
     static {
+        final File warFile = new File(pathToWar);
+        logger.info("Check file {}", warFile.getAbsolutePath());
+        assertThat(warFile).exists();
+        assertThat(warFile).isFile();
+        assertThat(warFile.length()).isGreaterThan(0);
         Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
     }
 
@@ -102,16 +106,6 @@ public abstract class AbstractTomcatIntegrationTest {
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
-    }
-
-    protected void deployWarFile(String pathToWar, String status) {
-        final File warFile = new File(pathToWar);
-        assertThat(warFile).exists();
-        assertThat(warFile).isFile();
-        assertThat(warFile.length()).isGreaterThan(0);
-        // TODO remove with withFileSystemBind when a new docker-java version is released
-        tomcatContainer.copyFileToContainer(MountableFile.forHostPath(pathToWar), "/usr/local/tomcat/webapps/");
-        Wait.forHttp(status).waitUntilReady(tomcatContainer);
     }
 
     protected List<JsonNode> getReportedTransactions() throws IOException {
