@@ -17,16 +17,36 @@
           }
         },
         {
-          "unindexed_doubles": {
-            "match_mapping_type": "double",
+          "primary_metric_long": {
+            "match_mapping_type": "long",
+            "path_match": "primaryMetric.*",
             "mapping": {
-              "type": "float",
+              "type": "double",
+              "index": false
+            }
+          }
+        },
+        {
+          "secondary_metric_long": {
+            "match_mapping_type": "long",
+            "path_match": "secondaryMetrics.*",
+            "mapping": {
+              "type": "double",
               "index": false
             }
           }
         },
         {
           "unindexed_doubles": {
+            "match_mapping_type": "double",
+            "mapping": {
+              "type": "double",
+              "index": false
+            }
+          }
+        },
+        {
+          "strings": {
             "match_mapping_type": "string",
             "mapping": {
               "type": "keyword"
