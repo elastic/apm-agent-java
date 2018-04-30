@@ -149,6 +149,8 @@ class ApmTracerTest {
     void testCreatingClientTransactionCreatesNoopSpan() {
         try (Scope transaction = apmTracer.buildSpan("transaction").withTag("span.kind", "client").startActive(true)) {
             try (Scope span = apmTracer.buildSpan("span").startActive(true)) {
+                try (Scope nestedSpan = apmTracer.buildSpan("nestedSpan").startActive(true)) {
+                }
             }
         }
         assertThat(reporter.getTransactions()).isEmpty();
@@ -159,7 +161,7 @@ class ApmTracerTest {
         Span span = apmTracer.buildSpan("someWork").start();
         try (Scope scope = apmTracer.scopeManager().activate(span, false)) {
             throw new RuntimeException("Catch me if you can");
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             Tags.ERROR.set(span, true);
             span.log(Map.of(Fields.EVENT, "error", Fields.ERROR_OBJECT, ex, Fields.MESSAGE, ex.getMessage()));
         } finally {

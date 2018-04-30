@@ -39,9 +39,9 @@ class ApmScope implements Scope {
         if (finishSpanOnClose) {
             apmSpan.finish();
         }
-        if (apmSpan.isTransaction()) {
+        if (apmSpan.getTransaction() != null) {
             tracer.releaseActiveTransaction();
-        } else {
+        } else if (apmSpan.getSpan() != null) {
             tracer.releaseActiveSpan();
         }
     }

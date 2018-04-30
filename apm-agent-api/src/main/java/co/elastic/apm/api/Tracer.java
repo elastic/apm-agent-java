@@ -83,9 +83,9 @@ public interface Tracer {
      * }
      * </pre>
      *
-     * @return the started span
+     * @return the started span, or {@code null} if there is no current transaction
      */
-    @Nonnull
+    @Nullable
     Span startSpan();
 
     /**

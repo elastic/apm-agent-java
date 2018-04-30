@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,11 +21,9 @@ package co.elastic.apm.jdbc;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.common.StatementInformation;
 import com.p6spy.engine.event.SimpleJdbcEventListener;
-import com.p6spy.engine.spy.P6SpyOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,10 +69,10 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
 
     @Override
     public void onBeforeAnyExecute(StatementInformation statementInformation) {
-        if (isNoop(elasticApmTracer.currentTransaction())) {
+        Span span = elasticApmTracer.startSpan();
+        if (span == null) {
             return;
         }
-        Span span = elasticApmTracer.startSpan();
         span.setName(getMethod(statementInformation.getStatementQuery()));
         try {
             String dbVendor = getDbVendor(statementInformation.getConnectionInformation().getConnection().getMetaData().getURL());
@@ -86,10 +84,6 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         } catch (SQLException e) {
             logger.warn("Ignored exception", e);
         }
-    }
-
-    private boolean isNoop(Transaction transaction) {
-        return transaction == null || !transaction.isSampled();
     }
 
     String getDbVendor(String url) {
@@ -110,9 +104,6 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
 
     @Override
     public void onAfterAnyExecute(StatementInformation statementInformation, long timeElapsedNanos, SQLException e) {
-        if (isNoop(elasticApmTracer.currentTransaction())) {
-            return;
-        }
         Span span = elasticApmTracer.currentSpan();
         if (span != null) {
             span.end();
