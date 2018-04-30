@@ -25,9 +25,6 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
     public static final String REPORTER_CATEGORY = "Reporter";
@@ -45,6 +42,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(REPORTER_CATEGORY)
         .label("The URL for your APM Server")
         .description("The URL must be fully qualified, including protocol (http or https) and port.")
+        .dynamic(true)
         .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
 
     private final ConfigurationOption<Integer> serverTimeout = ConfigurationOption.integerOption()
@@ -85,6 +83,14 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(500);
 
+    private final ConfigurationOption<Boolean> reportSynchronously = ConfigurationOption.booleanOption()
+        .key("report_sync")
+        .tags("internal")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("Only to be used for testing purposes. " +
+            "Blocks the requests until the transaction has been reported to the APM server.")
+        .buildWithDefault(false);
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -108,5 +114,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public int getMaxQueueSize() {
         return maxQueueSize.get();
+    }
+
+    public boolean isReportSynchronously() {
+        return reportSynchronously.get();
     }
 }

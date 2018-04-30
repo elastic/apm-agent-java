@@ -3,7 +3,6 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
-        <okhttp.version>3.9.1</okhttp.version>
     </properties>
 
     <parent>
@@ -63,12 +62,12 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp.version}</version>
+            <version>${version.okhttp}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>${okhttp.version}</version>
+            <version>${version.okhttp}</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
