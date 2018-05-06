@@ -53,7 +53,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    private final Date timestamp = new Date(0);
+    private long timestamp;
     private final List<Span> spans = new ArrayList<Span>();
     /**
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
@@ -96,7 +96,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     public Transaction start(ElasticApmTracer tracer, long startTimestampNanos, Sampler sampler) {
         this.tracer = tracer;
         this.duration = startTimestampNanos;
-        this.timestamp.setTime(System.currentTimeMillis());
+        this.timestamp = System.currentTimeMillis();
         this.id.setToRandomValue();
         this.sampled = sampler.isSampled(id);
         this.noop = false;
@@ -185,16 +185,8 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    public Date getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
-    }
-
-    public Transaction withTimestamp(long timestampEpoch) {
-        if (!sampled) {
-            return this;
-        }
-        this.timestamp.setTime(timestampEpoch);
-        return this;
     }
 
     public List<Span> getSpans() {
@@ -305,7 +297,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
         id.resetState();
         name.setLength(0);
         result = null;
-        timestamp.setTime(0);
+        timestamp = 0;
         spans.clear();
         type = null;
         marks.clear();

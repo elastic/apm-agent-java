@@ -47,7 +47,7 @@ public class ErrorCapture implements Recyclable {
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    private final Date timestamp = new Date();
+    private long timestamp;
     /**
      * Data for correlating errors with transactions
      */
@@ -86,12 +86,12 @@ public class ErrorCapture implements Recyclable {
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
-    public Date getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
     public ErrorCapture withTimestamp(long epochMs) {
-        this.timestamp.setTime(epochMs);
+        this.timestamp = epochMs;
         return this;
     }
 
@@ -108,7 +108,7 @@ public class ErrorCapture implements Recyclable {
         context.resetState();
         id.resetState();
         transaction.resetState();
-        timestamp.setTime(0);
+        timestamp = 0;
         tracer = null;
     }
 
