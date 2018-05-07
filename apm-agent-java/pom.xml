@@ -54,10 +54,6 @@
                                     <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.blogspot.mydailyjava</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.concurrent</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>com.p6spy</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.p6spy</shadedPattern>
                                 </relocation>

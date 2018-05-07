@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractObjectPool<T extends Recyclable> implements ObjectPool<T> {
 
-    private final RecyclableObjectFactory<T> recyclableObjectFactory;
+    protected final RecyclableObjectFactory<T> recyclableObjectFactory;
     private final AtomicInteger garbageCreated = new AtomicInteger();
 
     protected AbstractObjectPool(RecyclableObjectFactory<T> recyclableObjectFactory) {
