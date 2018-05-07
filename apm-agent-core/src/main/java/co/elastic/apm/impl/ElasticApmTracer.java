@@ -38,7 +38,6 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -68,8 +67,8 @@ public class ElasticApmTracer implements Tracer {
     private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
     private final StacktraceFactory stacktraceFactory;
-    private final DetachedThreadLocal<Transaction> currentTransaction = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
-    private final DetachedThreadLocal<Span> currentSpan = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final ThreadLocal<Transaction> currentTransaction = new ThreadLocal<>();
+    private final ThreadLocal<Span> currentSpan = new ThreadLocal<>();
     private final CoreConfiguration coreConfiguration;
     private Sampler sampler;
 
@@ -334,10 +333,10 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void releaseActiveTransaction() {
-        currentTransaction.clear();
+        currentTransaction.set(null);
     }
 
     public void releaseActiveSpan() {
-        currentSpan.clear();
+        currentSpan.set(null);
     }
 }
