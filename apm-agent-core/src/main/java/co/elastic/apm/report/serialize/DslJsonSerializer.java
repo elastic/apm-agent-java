@@ -56,18 +56,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static com.dslplatform.json.JsonWriter.ARRAY_END;
 import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
+import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
@@ -77,13 +75,12 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     // visible for testing
     final JsonWriter jw;
-    private final DateFormat dateFormat;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
+    private final DateSerializer dateSerializer;
 
     public DslJsonSerializer() {
         jw = new DslJson<>().newWriter();
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        dateSerializer = new DateSerializer();
     }
 
     @Override
@@ -129,16 +126,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
 
         final TransactionId id = errorCapture.getId();
-        final String fieldName = "id";
-        writeField(fieldName, id);
+        writeField("id", id);
+        writeDateField("timestamp", errorCapture.getTimestamp());
 
         serializeTransactionReference(errorCapture);
         serializeContext(errorCapture.getContext());
         serializeException(errorCapture.getException());
 
-        // TODO date formatting allocates objects
-        // writeLastField("timestamp", errorCapture.getTimestamp().getTime());
-        writeLastField("timestamp", dateFormat.format(errorCapture.getTimestamp()));
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
@@ -162,7 +156,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeStacktrace(exception.getStacktrace());
         writeLastField("type", exception.getType());
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     public String toJsonString(final Payload payload) {
@@ -314,9 +307,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
-        // TODO date formatting allocates objects
-        // writeField("timestamp", transaction.getTimestamp().getTime());
-        writeField("timestamp", dateFormat.format(transaction.getTimestamp()));
+        writeDateField("timestamp", transaction.getTimestamp());
         writeField("name", transaction.getName());
         writeField("id", transaction.getId());
         writeField("type", transaction.getType());
@@ -679,6 +670,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void writeField(String fieldName, TransactionId id) {
         writeFieldName(fieldName);
         UUIDConverter.serialize(id.getMostSignificantBits(), id.getLeastSignificantBits(), jw);
+        jw.writeByte(COMMA);
+    }
+
+    private void writeDateField(final String fieldName, final long timestamp) {
+        writeFieldName(fieldName);
+        jw.writeByte(QUOTE);
+        dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, timestamp);
+        jw.writeByte(QUOTE);
         jw.writeByte(COMMA);
     }
 }
