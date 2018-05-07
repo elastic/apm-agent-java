@@ -65,6 +65,7 @@ import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
+import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
@@ -674,7 +675,9 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void writeDateField(final String fieldName, final long timestamp) {
         writeFieldName(fieldName);
+        jw.writeByte(QUOTE);
         dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, timestamp);
+        jw.writeByte(QUOTE);
         jw.writeByte(COMMA);
     }
 }
