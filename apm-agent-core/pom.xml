@@ -85,6 +85,11 @@
             <artifactId>stagemonitor-configuration</artifactId>
             <version>0.87.3</version>
         </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.8.11</version>
+        </dependency>
 
         <dependency>
             <groupId>io.undertow</groupId>

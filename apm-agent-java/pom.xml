@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <properties>
+        <elastic.apm.agent>co.elastic.apm.bci.ElasticApmAgent</elastic.apm.agent>
+    </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
@@ -96,6 +99,11 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
+                            <Premain-Class>${elastic.apm.agent}</Premain-Class>
+                            <Agent-Class>${elastic.apm.agent}</Agent-Class>
+                            <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                            <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                             <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
