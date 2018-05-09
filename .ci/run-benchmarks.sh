@@ -14,7 +14,7 @@ done
 MICRO_BENCHMARK_HOME="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 function setUp() {
-    echo "Setting CPU performance governor at CPU base frequency"
+    echo "Setting CPU frequency to base frequency"
 
     CPU_MODEL=$(lscpu | grep "Model name" | awk '{for(i=3;i<=NF;i++){printf "%s ", $i}; printf "\n"}')
     if [ "${CPU_MODEL}" == "Intel(R) Xeon(R) CPU E3-1246 v3 @ 3.50GHz " ]
@@ -26,6 +26,10 @@ function setUp() {
     then
         CORE_INDEX=7
         BASE_FREQ="3.4GHz"
+    elif [ "${CPU_MODEL}" == "Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz " ]
+    then
+        CORE_INDEX=7
+        BASE_FREQ="3.6GHz"
     else
         >&2 echo "Cannot determine base frequency for CPU model [${CPU_MODEL}]. Please adjust the build script."
         exit 1
@@ -34,20 +38,21 @@ function setUp() {
     # This is the frequency including Turbo Boost. See also http://ark.intel.com/products/80916/Intel-Xeon-Processor-E3-1246-v3-8M-Cache-3_50-GHz
     MAX_FREQ=`cpufreq-info -l -c 0 | awk '{print $2}'`
 
-    # switch all CPUs to the performance CPU governor
+    # set all CPUs to the base frequency
     for (( cpu=0; cpu<=${CORE_INDEX}; cpu++ ))
     do
-        sudo cpufreq-set -c ${cpu} --min ${BASE_FREQ} --max ${BASE_FREQ} --governor=performance
+        sudo cpufreq-set -c ${cpu} --min ${BASE_FREQ} --max ${BASE_FREQ}
     done
 
     # Build cgroups to isolate microbenchmarks and JVM threads
     echo "Creating groups for OS and microbenchmarks"
-    # Isolate the OS to all cores but the first 4 ones
-    sudo cset set --set=/os --cpu=4-${CORE_INDEX}
+    # Isolate the OS to the first core
+    sudo cset set --set=/os --cpu=0-1
     sudo cset proc --move --fromset=/ --toset=/os
 
-    # Isolate the microbenchmarks to the first 4 cores (2 physical cores)
-    sudo cset set --set=/benchmark --cpu=0-3
+    # Isolate the microbenchmarks to all cores except the first two (first physical core)
+    # On a 4 core CPU with hyper threading, this would be 6 cores (3 physical cores)
+    sudo cset set --set=/benchmark --cpu=2-${CORE_INDEX}
 }
 
 function setCloudCredentials() {
@@ -93,14 +98,14 @@ function tearDown() {
     sudo cset set --destroy /os
     sudo cset set --destroy /benchmark
 
-    echo "Setting CPU powersave governor"
+    echo "Setting normal frequency range"
     for (( cpu=0; cpu<=${CORE_INDEX}; cpu++ ))
     do
-        sudo cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ} --governor=powersave
+        sudo cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ}
     done
 }
 
-#trap "tearDown" EXIT
+trap "tearDown" EXIT
 
-#setUp
+setUp
 benchmark
