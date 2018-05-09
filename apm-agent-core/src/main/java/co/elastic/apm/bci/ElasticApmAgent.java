@@ -20,8 +20,10 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
@@ -31,6 +33,7 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.ServiceLoader;
@@ -43,6 +46,10 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 public class ElasticApmAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    @Nullable
+    private static Instrumentation instrumentation;
+    @Nullable
+    private static ResettableClassFileTransformer resettableClassFileTransformer;
 
     /**
      * Allows the installation of this agent via the {@code javaagent} command line argument.
@@ -51,7 +58,7 @@ public class ElasticApmAgent {
      * @param instrumentation The instrumentation instance.
      */
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(instrumentation);
+        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
     }
 
     /**
@@ -62,16 +69,18 @@ public class ElasticApmAgent {
      */
     @SuppressWarnings("unused")
     public static void agentmain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(instrumentation);
+        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
     }
 
-    static void initInstrumentation(Instrumentation instrumentation) {
+    public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
+        ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(true)) // TODO make false default to improve performance
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
         for (final ElasticApmAdvice advice : ServiceLoader.load(ElasticApmAdvice.class, ElasticApmAdvice.class.getClassLoader())) {
-            logger.debug("Applying advice {}", advice);
+            logger.debug("Applying advice {}", advice.getClass().getName());
+            advice.init(tracer);
             agentBuilder = agentBuilder
                 .type(new AgentBuilder.RawMatcher() {
                     @Override
@@ -101,7 +110,20 @@ public class ElasticApmAgent {
                 .asDecorator();
         }
 
-        agentBuilder.installOn(instrumentation);
+        resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
+    }
+
+    /**
+     * Reverts instrumentation of classes and re-transforms them to their state without the agent.
+     * <p>
+     * This is only to be used for unit tests
+     * </p>
+     */
+    public static synchronized void reset() {
+        if (resettableClassFileTransformer == null || instrumentation == null) {
+            throw new IllegalStateException("Reset was called before init");
+        }
+        resettableClassFileTransformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
     }
 
     private static AgentBuilder getAgentBuilder(ByteBuddy byteBuddy) {

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,15 @@
  */
 package co.elastic.apm.bci;
 
+import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +37,14 @@ class InstrumentationTest {
 
     @BeforeEach
     void setUp() {
-        ElasticApmAgent.initInstrumentation(ByteBuddyAgent.install());
+        ElasticApmAgent.initInstrumentation(ElasticApmTracer.builder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .build(), ByteBuddyAgent.install());
+    }
+
+    @AfterAll
+    static void afterAll() {
+        ElasticApmAgent.reset();
     }
 
     @Test

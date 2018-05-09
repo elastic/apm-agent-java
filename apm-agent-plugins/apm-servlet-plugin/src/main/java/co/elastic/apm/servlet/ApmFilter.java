@@ -107,7 +107,7 @@ public class ApmFilter implements Filter {
     void captureTransaction(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
-            final Transaction transaction = tracer.startTransaction();
+            final Transaction transaction = onBefore();
             Exception exception = null;
             try {
                 filterChain.doFilter(request, response);
@@ -115,18 +115,26 @@ public class ApmFilter implements Filter {
                 exception = e;
                 throw e;
             } finally {
-                // filling the transaction after the request has been processed is safer
-                // as reading the parameters could potentially decode them in the wrong encoding
-                // or trigger exceptions,
-                // for example when the amount of query parameters is longer than the application server allows
-                // in that case, we rather want that the agent looks like the cause for this
-                fillTransaction(transaction, httpRequest, (HttpServletResponse) response);
-                if (exception != null) {
-                    tracer.captureException(exception);
-                }
-                transaction.end();
+                onAfter(transaction, httpRequest, (HttpServletResponse) response, exception);
             }
         }
+    }
+
+    Transaction onBefore() {
+        return tracer.startTransaction();
+    }
+
+    void onAfter(Transaction transaction, HttpServletRequest request, HttpServletResponse response, @Nullable Exception exception) {
+        // filling the transaction after the request has been processed is safer
+        // as reading the parameters could potentially decode them in the wrong encoding
+        // or trigger exceptions,
+        // for example when the amount of query parameters is longer than the application server allows
+        // in that case, we rather want that the agent looks like the cause for this
+        fillTransaction(transaction, request, response);
+        if (exception != null) {
+            tracer.captureException(exception);
+        }
+        transaction.end();
     }
 
     private void fillTransaction(Transaction transaction, HttpServletRequest httpServletRequest,

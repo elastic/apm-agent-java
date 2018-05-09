@@ -32,6 +32,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
@@ -77,6 +78,11 @@ class ReporterFactoryTest {
             }
         });
         server.start();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        server.stop();
     }
 
     private int getPort() {
