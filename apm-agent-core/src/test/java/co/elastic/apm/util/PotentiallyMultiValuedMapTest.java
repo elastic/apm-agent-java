@@ -29,11 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PotentiallyMultiValuedMapTest {
 
-    private PotentiallyMultiValuedMap<String, String> map;
+    private PotentiallyMultiValuedMap map;
 
     @BeforeEach
     void setUp() {
-        map = new PotentiallyMultiValuedMap<>();
+        map = new PotentiallyMultiValuedMap();
     }
 
     @Test
@@ -58,6 +58,39 @@ class PotentiallyMultiValuedMapTest {
         assertThat(map.get("foo")).isEqualTo(Arrays.asList("bar", "baz"));
         assertThat(map.getFirst("foo")).isEqualTo("bar");
         assertThat(map.getAll("foo")).isEqualTo(Arrays.asList("bar", "baz"));
+    }
+
+    @Test
+    void testRemove() {
+        map.add("foo", "bar");
+        map.removeIgnoreCase("Foo");
+        assertThat(map.size()).isZero();
+    }
+
+    @Test
+    void testContains() {
+        map.add("foo", "bar");
+        assertThat(map.containsIgnoreCase("Foo")).isTrue();
+        assertThat(map.containsIgnoreCase("bar")).isFalse();
+    }
+
+    @Test
+    void testSet() {
+        map.add("foo", "bar");
+        map.set(0, "foo");
+        assertThat(map.get("foo")).isEqualTo("foo");
+    }
+
+    @Test
+    void testSetArray() {
+        map.set("foo", new String[]{"bar"});
+        assertThat(map.get("foo")).isEqualTo("bar");
+    }
+
+    @Test
+    void testSetArrayTwoElements() {
+        map.set("foo", new String[]{"bar", "baz"});
+        assertThat(map.get("foo")).isEqualTo(Arrays.asList("bar", "baz"));
     }
 
 }

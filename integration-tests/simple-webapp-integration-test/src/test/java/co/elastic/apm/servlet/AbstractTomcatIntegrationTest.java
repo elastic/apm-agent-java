@@ -26,6 +26,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.junit.BeforeClass;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
@@ -36,6 +37,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,12 +67,31 @@ public abstract class AbstractTomcatIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
 
     private static final String pathToWar = "../simple-webapp/target/ROOT.war";
+    private static final String pathToJavaagent;
+    static {
+        pathToJavaagent = getPathToJavaagent();
+        checkFilePresent(pathToWar);
+        checkFilePresent(pathToJavaagent);
+    }
+
+    private static String getPathToJavaagent() {
+        File agentBuildDir = new File("../../apm-agent-java/target/");
+        FileFilter fileFilter = new WildcardFileFilter("apm-agent-java-*.jar");
+        for (File file : agentBuildDir.listFiles(fileFilter)) {
+            if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
+    }
+
     protected static GenericContainer tomcatContainer = new GenericContainer<>(
         new ImageFromDockerfile()
             .withDockerfileFromBuilder(builder -> builder
                 .from("tomcat:8")
                 .env("JPDA_ADDRESS", "8000")
                 .env("JPDA_TRANSPORT", "dt_socket")
+                .env("CATALINA_OPTS", "-javaagent:/apm-agent-java.jar")
                 .run("rm -rf /usr/local/tomcat/webapps/*")
                 .expose(8080, 8000)
                 .entryPoint("catalina.sh", "jpda", "run")))
@@ -81,6 +102,7 @@ public abstract class AbstractTomcatIntegrationTest {
         .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
         .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
         .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
+        .withFileSystemBind(pathToJavaagent, "/apm-agent-java.jar")
         .withExposedPorts(8080, 8000);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
@@ -89,12 +111,15 @@ public abstract class AbstractTomcatIntegrationTest {
     private static JsonSchema schema;
 
     static {
+        Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
+    }
+
+    private static void checkFilePresent(String pathToWar) {
         final File warFile = new File(pathToWar);
         logger.info("Check file {}", warFile.getAbsolutePath());
         assertThat(warFile).exists();
         assertThat(warFile).isFile();
         assertThat(warFile.length()).isGreaterThan(0);
-        Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
     }
 
     @BeforeClass

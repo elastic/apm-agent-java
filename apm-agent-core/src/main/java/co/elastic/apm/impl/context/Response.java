@@ -27,7 +27,7 @@ public class Response implements Recyclable {
     /**
      * A mapping of HTTP headers of the response object
      */
-    private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
+    private final PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap();
     /**
      * A boolean indicating whether the response was finished or not
      */
@@ -68,7 +68,7 @@ public class Response implements Recyclable {
     /**
      * A mapping of HTTP headers of the response object
      */
-    public PotentiallyMultiValuedMap<String, String> getHeaders() {
+    public PotentiallyMultiValuedMap getHeaders() {
         return headers;
     }
 
@@ -100,14 +100,14 @@ public class Response implements Recyclable {
     @Override
     public void resetState() {
         finished = false;
-        headers.clear();
+        headers.resetState();
         headersSent = false;
         statusCode = 0;
     }
 
     public void copyFrom(Response other) {
         this.finished = other.finished;
-        this.headers.putAll(other.headers);
+        this.headers.copyFrom(other.headers);
         this.headersSent = other.headersSent;
         this.statusCode = other.statusCode;
     }

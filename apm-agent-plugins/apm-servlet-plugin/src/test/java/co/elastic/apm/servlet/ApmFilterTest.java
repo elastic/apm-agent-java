@@ -47,9 +47,7 @@ import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ApmFilterTest {
@@ -83,7 +81,6 @@ class ApmFilterTest {
         apmFilter = spy(apmFilter);
         apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain());
         assertThat(reporter.getTransactions()).hasSize(0);
-        verify(apmFilter, never()).captureTransaction(any(), any(), any());
     }
 
     @Test
@@ -110,8 +107,7 @@ class ApmFilterTest {
 
         apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
-        PotentiallyMultiValuedMap<String, String> params = (PotentiallyMultiValuedMap<String, String>) reporter.getFirstTransaction()
-            .getContext().getRequest().getBody();
+        PotentiallyMultiValuedMap params = (PotentiallyMultiValuedMap) reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(params.get("foo")).isEqualTo("bar");
         assertThat(params.get("baz")).isEqualTo(Arrays.asList("qux", "quux"));
     }

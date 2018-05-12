@@ -19,14 +19,16 @@
  */
 package co.elastic.apm.bci;
 
-import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public abstract class ElasticApmAdvice {
-
-    public abstract ElementMatcher<? super TypeDescription> getTypeMatcher();
-
-    public abstract ElementMatcher<? super MethodDescription> getMethodMatcher();
-
+/**
+ * A marker annotation which indicates that the annotated field or method has to be public because it is called by advice methods,
+ * which are inlined into other classes.
+ */
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
+public @interface VisibleForAdvice {
 }

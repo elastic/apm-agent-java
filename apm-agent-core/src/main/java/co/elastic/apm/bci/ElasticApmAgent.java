@@ -20,8 +20,11 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
@@ -31,6 +34,7 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.ServiceLoader;
@@ -39,10 +43,16 @@ import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWit
 import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public class ElasticApmAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    @Nullable
+    private static Instrumentation instrumentation;
+    @Nullable
+    private static ResettableClassFileTransformer resettableClassFileTransformer;
 
     /**
      * Allows the installation of this agent via the {@code javaagent} command line argument.
@@ -51,7 +61,7 @@ public class ElasticApmAgent {
      * @param instrumentation The instrumentation instance.
      */
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(instrumentation);
+        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
     }
 
     /**
@@ -62,46 +72,84 @@ public class ElasticApmAgent {
      */
     @SuppressWarnings("unused")
     public static void agentmain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(instrumentation);
+        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
     }
 
-    static void initInstrumentation(Instrumentation instrumentation) {
+    public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
+        initInstrumentation(tracer, instrumentation, ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader()));
+    }
+
+    public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation,
+                                           Iterable<ElasticApmInstrumentation> instrumentations) {
+        if (!tracer.getConfig(CoreConfiguration.class).isInstrument()) {
+            logger.info("Instrumentation is disabled");
+            return;
+        }
+        if (ElasticApmAgent.instrumentation != null) {
+            logger.warn("Instrumentation has already been initialized");
+            return;
+        }
+        ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
-            .with(TypeValidation.of(true)) // TODO make false default to improve performance
+            .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
-        for (final ElasticApmAdvice advice : ServiceLoader.load(ElasticApmAdvice.class, ElasticApmAdvice.class.getClassLoader())) {
-            logger.debug("Applying advice {}", advice);
-            agentBuilder = agentBuilder
-                .type(new AgentBuilder.RawMatcher() {
-                    @Override
-                    public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
-                        final boolean typeMatches = advice.getTypeMatcher().matches(typeDescription);
-                        if (typeMatches) {
-                            logger.debug("Type match for advice {}: {} matches {}",
-                                advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
-                        }
-                        return typeMatches;
-                    }
-                })
-                .transform(new AgentBuilder.Transformer.ForAdvice()
-                    .advice(new ElementMatcher<MethodDescription>() {
-                        @Override
-                        public boolean matches(MethodDescription target) {
-                            final boolean matches = advice.getMethodMatcher().matches(target);
-                            if (matches) {
-                                logger.debug("Method match for advice {}: {} matches {}",
-                                    advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);
-                            }
-                            return matches;
-                        }
-                    }, advice.getClass().getName())
-                    .include(advice.getClass().getClassLoader())
-                    .withExceptionHandler(PRINTING))
-                .asDecorator();
+        int numberOfAdvices = 0;
+        for (final ElasticApmInstrumentation advice : instrumentations) {
+            numberOfAdvices++;
+            agentBuilder = applyAdvice(tracer, agentBuilder, advice);
         }
+        logger.debug("Applied {} advices", numberOfAdvices);
 
-        agentBuilder.installOn(instrumentation);
+        resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
+    }
+
+    private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
+                                            final ElasticApmInstrumentation advice) {
+        logger.debug("Applying advice {}", advice.getClass().getName());
+        advice.init(tracer);
+        return agentBuilder
+            .type(new AgentBuilder.RawMatcher() {
+                @Override
+                public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
+                    final boolean typeMatches = advice.getTypeMatcher().matches(typeDescription);
+                    if (typeMatches) {
+                        logger.debug("Type match for advice {}: {} matches {}",
+                            advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
+                    }
+                    return typeMatches;
+                }
+            })
+            .transform(new AgentBuilder.Transformer.ForAdvice()
+                .advice(new ElementMatcher<MethodDescription>() {
+                    @Override
+                    public boolean matches(MethodDescription target) {
+                        final boolean matches = advice.getMethodMatcher().matches(target);
+                        if (matches) {
+                            logger.debug("Method match for advice {}: {} matches {}",
+                                advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);
+                        }
+                        return matches;
+                    }
+                }, advice.getAdviceClass().getName())
+                .include(advice.getAdviceClass().getClassLoader())
+                .withExceptionHandler(PRINTING))
+            .asDecorator();
+    }
+
+    /**
+     * Reverts instrumentation of classes and re-transforms them to their state without the agent.
+     * <p>
+     * This is only to be used for unit tests
+     * </p>
+     */
+    public static synchronized void reset() {
+        if (resettableClassFileTransformer == null || instrumentation == null) {
+            throw new IllegalStateException("Reset was called before init");
+        }
+        resettableClassFileTransformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
+        instrumentation = null;
+        resettableClassFileTransformer = null;
     }
 
     private static AgentBuilder getAgentBuilder(ByteBuddy byteBuddy) {
@@ -110,6 +158,15 @@ public class ElasticApmAgent {
             .with(new ErrorLoggingListener())
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
+            .or(nameStartsWith("java."))
+            .or(nameStartsWith("com.sun."))
+            .or(nameStartsWith("sun"))
+            .or(nameStartsWith("org.aspectj."))
+            .or(nameStartsWith("org.groovy."))
+            .or(nameStartsWith("com.p6spy."))
+            .or(nameStartsWith("net.bytebuddy."))
+            .or(nameContains("javassist"))
+            .or(nameContains(".asm."))
             .disableClassFormatChanges();
     }
 

@@ -34,6 +34,12 @@
             <version>5.0.3.RELEASE</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>${version.jetty-server}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
