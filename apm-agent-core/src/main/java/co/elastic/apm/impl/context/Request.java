@@ -32,11 +32,11 @@ import javax.annotation.Nullable;
  */
 public class Request implements Recyclable {
 
-    private final PotentiallyMultiValuedMap<String, String> postParams = new PotentiallyMultiValuedMap<>();
+    private final PotentiallyMultiValuedMap postParams = new PotentiallyMultiValuedMap();
     /**
      * Should include any headers sent by the requester. Map<String, String> </String,>will be taken by headers if supplied.
      */
-    private final PotentiallyMultiValuedMap<String, String> headers = new PotentiallyMultiValuedMap<>();
+    private final PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap();
     private final Socket socket = new Socket();
     /**
      * A complete Url, with scheme, host and path.
@@ -46,7 +46,7 @@ public class Request implements Recyclable {
     /**
      * A parsed key-value object of cookies
      */
-    private final PotentiallyMultiValuedMap<String, String> cookies = new PotentiallyMultiValuedMap<>();
+    private final PotentiallyMultiValuedMap cookies = new PotentiallyMultiValuedMap();
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
      */
@@ -82,7 +82,7 @@ public class Request implements Recyclable {
     }
 
     public void redactBody() {
-        postParams.clear();
+        postParams.resetState();
         rawBody = "[REDACTED]";
     }
 
@@ -92,9 +92,7 @@ public class Request implements Recyclable {
     }
 
     public Request addFormUrlEncodedParameters(String key, String[] values) {
-        for (String value : values) {
-            this.postParams.add(key, value);
-        }
+        this.postParams.set(key, values);
         return this;
     }
 
@@ -103,7 +101,7 @@ public class Request implements Recyclable {
         return this;
     }
 
-    public PotentiallyMultiValuedMap<String, String> getFormUrlEncodedParameters() {
+    public PotentiallyMultiValuedMap getFormUrlEncodedParameters() {
         return postParams;
     }
 
@@ -122,7 +120,7 @@ public class Request implements Recyclable {
     /**
      * Should include any headers sent by the requester.
      */
-    public PotentiallyMultiValuedMap<String, String> getHeaders() {
+    public PotentiallyMultiValuedMap getHeaders() {
         return headers;
     }
 
@@ -174,31 +172,31 @@ public class Request implements Recyclable {
     /**
      * A parsed key-value object of cookies
      */
-    public PotentiallyMultiValuedMap<String, String> getCookies() {
+    public PotentiallyMultiValuedMap getCookies() {
         return cookies;
     }
 
     @Override
     public void resetState() {
         rawBody = null;
-        postParams.clear();
-        headers.clear();
+        postParams.resetState();
+        headers.resetState();
         httpVersion = null;
         method = null;
         socket.resetState();
         url.resetState();
-        cookies.clear();
+        cookies.resetState();
     }
 
     public void copyFrom(Request other) {
         this.rawBody = other.rawBody;
-        this.postParams.putAll(other.postParams);
-        this.headers.putAll(other.headers);
+        this.postParams.copyFrom(other.postParams);
+        this.headers.copyFrom(other.headers);
         this.httpVersion = other.httpVersion;
         this.method = other.method;
         this.socket.copyFrom(other.socket);
         this.url.copyFrom(other.url);
-        this.cookies.putAll(other.cookies);
+        this.cookies.copyFrom(other.cookies);
     }
 
     public boolean hasContent() {

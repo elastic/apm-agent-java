@@ -73,8 +73,8 @@ class ContextTest {
         request.addHeader("cookie", "c1=v1; c2=v2");
         request.addHeader("some-other-header", "foo");
         request.addHeader("array", "foo, bar, baz");
-        request.getCookies().put("c1", "v1");
-        request.getCookies().put("c2", "v2");
+        request.getCookies().add("c1", "v1");
+        request.getCookies().add("c2", "v2");
 
         context.getResponse()
             .withStatusCode(200)

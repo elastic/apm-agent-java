@@ -533,19 +533,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeField(final String fieldName, final PotentiallyMultiValuedMap<String, String> map) {
+    private void writeField(final String fieldName, final PotentiallyMultiValuedMap map) {
         if (map.size() > 0) {
             writeFieldName(fieldName);
             jw.writeByte(OBJECT_START);
             final int size = map.size();
             if (size > 0) {
-                final Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
-                Map.Entry<String, Object> kv = iterator.next();
-                serializePotentiallyMultiValuedEntry(kv);
+                serializePotentiallyMultiValuedEntry(map.getKey(0), map.getValue(0));
                 for (int i = 1; i < size; i++) {
                     jw.writeByte(COMMA);
-                    kv = iterator.next();
-                    serializePotentiallyMultiValuedEntry(kv);
+                    serializePotentiallyMultiValuedEntry(map.getKey(i), map.getValue(i));
                 }
             }
             jw.writeByte(OBJECT_END);
@@ -553,10 +550,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializePotentiallyMultiValuedEntry(final Map.Entry<String, Object> entry) {
-        jw.writeString(entry.getKey());
+    private void serializePotentiallyMultiValuedEntry(String key, Object value) {
+        jw.writeString(key);
         jw.writeByte(JsonWriter.SEMI);
-        final Object value = entry.getValue();
         if (value instanceof String) {
             StringConverter.serializeNullable((String) value, jw);
         } else if (value instanceof List) {

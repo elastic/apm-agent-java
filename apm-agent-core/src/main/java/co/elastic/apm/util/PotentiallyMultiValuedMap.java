@@ -19,25 +19,27 @@
  */
 package co.elastic.apm.util;
 
+import co.elastic.apm.objectpool.Recyclable;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Enumeration;
+import java.util.List;
 
 /**
  * This map is a mixture of a map with a single value and a map with multiple values.
  * <p>
- * When there is only one value associated with a key, this map just the key as-is when calling {@link #get(Object)}.
- * But when {@link #add(Object, Object)} has been called multiple times for a given key,
- * {@link #get(Object)} will return a collection of values.
+ * When there is only one value associated with a key, this map just the key as-is when calling {@link #get(String)}.
+ * But when {@link #add(String, String)} has been called multiple times for a given key,
+ * {@link #get(String)} will return a collection of values.
  * </p>
- *
- * @param <K> The type of the key.
- * @param <V> The type of the value(s).
- *            Don't you dare to set it to a collection type.
  */
-public class PotentiallyMultiValuedMap<K, V> extends ConcurrentHashMap<K, Object /* Collection<V> | V*/> {
+public class PotentiallyMultiValuedMap implements Recyclable {
+
+    private final List<String> keys = new ArrayList<>();
+    private final List<Object> values = new ArrayList<>();
 
     /**
      * Adds a value to this map.
@@ -50,17 +52,61 @@ public class PotentiallyMultiValuedMap<K, V> extends ConcurrentHashMap<K, Object
      * @param key   The key.
      * @param value The value.
      */
-    public void add(K key, V value) {
-        if (containsKey(key)) {
-            Object previousValue = get(key);
-            if (previousValue instanceof Collection) {
-                addValueToValueList(value, (Collection<V>) previousValue);
+    public void add(String key, String value) {
+        final int index = indexOfIgnoreCase(key);
+        if (index >= 0) {
+            Object previousValue = values.get(index);
+            if (previousValue instanceof List) {
+                addValueToValueList(value, (List<String>) previousValue);
             } else {
-                convertValueToMultiValue(key, (V) previousValue, value);
+                convertValueToMultiValue(index, (String) previousValue, value);
             }
         } else {
-            put(key, value);
+            keys.add(key);
+            values.add(value);
         }
+    }
+
+
+    public void set(String key, String[] values) {
+        if (values.length > 0) {
+            if (values.length == 1) {
+                keys.add(key);
+                this.values.add(values[0]);
+            } else {
+                keys.add(key);
+                this.values.add(Arrays.asList(values));
+            }
+        }
+    }
+
+    public void set(String key, Enumeration<String> value) {
+        keys.add(key);
+        if (value.hasMoreElements()) {
+            final String firstValue = value.nextElement();
+            if (value.hasMoreElements()) {
+                List<String> valueList = new ArrayList<>(4);
+
+                keys.add(key);
+                values.add(valueList);
+                valueList.add(firstValue);
+                while (value.hasMoreElements()) {
+                    valueList.add(value.nextElement());
+                }
+            } else {
+                keys.add(key);
+                values.add(firstValue);
+            }
+        }
+    }
+
+    private int indexOfIgnoreCase(String key) {
+        for (int i = 0; i < keys.size(); i++) {
+            if (keys.get(i).equalsIgnoreCase(key)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -70,13 +116,22 @@ public class PotentiallyMultiValuedMap<K, V> extends ConcurrentHashMap<K, Object
      * @return The first value which is associated with a given key.
      */
     @Nullable
-    public V getFirst(K key) {
+    public String getFirst(String key) {
         Object valueOrValueList = get(key);
-        if (valueOrValueList instanceof Collection) {
-            return (V) ((Collection) valueOrValueList).iterator().next();
+        if (valueOrValueList instanceof List) {
+            return (String) ((List) valueOrValueList).get(0);
         } else {
-            return (V) valueOrValueList;
+            return (String) valueOrValueList;
         }
+    }
+
+    @Nullable
+    public Object get(String key) {
+        final int index = indexOfIgnoreCase(key);
+        if (index == -1) {
+            return null;
+        }
+        return values.get(index);
     }
 
     /**
@@ -89,26 +144,70 @@ public class PotentiallyMultiValuedMap<K, V> extends ConcurrentHashMap<K, Object
      * @param key The key you want to get the associated value for.
      * @return All the values which age associated with a given key.
      */
-    public Collection<V> getAll(K key) {
-        if (!containsKey(key)) {
+    public List<String> getAll(String key) {
+        final int index = indexOfIgnoreCase(key);
+        if (index == -1) {
             return Collections.emptyList();
         }
-        Object valueOrValueList = get(key);
-        if (valueOrValueList instanceof Collection) {
-            return (Collection<V>) valueOrValueList;
+        Object valueOrValueList = values.get(index);
+        if (valueOrValueList instanceof List) {
+            return (List<String>) valueOrValueList;
         } else {
-            return Collections.singletonList((V) valueOrValueList);
+            return Collections.singletonList((String) valueOrValueList);
         }
     }
 
-    private void addValueToValueList(V value, Collection<V> valueList) {
+    private void addValueToValueList(String value, List<String> valueList) {
         valueList.add(value);
     }
 
-    private void convertValueToMultiValue(K key, V previousValue, V value) {
-        Collection<V> valueList = new ArrayList<>(4);
+    private void convertValueToMultiValue(int index, String previousValue, String value) {
+        List<String> valueList = new ArrayList<>(4);
         valueList.add(previousValue);
         valueList.add(value);
-        put(key, valueList);
+        values.set(index, valueList);
+    }
+
+    public boolean isEmpty() {
+        return keys.isEmpty();
+    }
+
+    @Override
+    public void resetState() {
+        keys.clear();
+        values.clear();
+    }
+
+    public String getKey(int i) {
+        return keys.get(i);
+    }
+
+    public Object getValue(int i) {
+        return values.get(i);
+    }
+
+    public int size() {
+        return keys.size();
+    }
+
+    public void copyFrom(PotentiallyMultiValuedMap other) {
+        this.keys.addAll(other.keys);
+        this.values.addAll(other.values);
+    }
+
+    public void removeIgnoreCase(String key) {
+        final int index = indexOfIgnoreCase(key);
+        if (index != -1) {
+            keys.remove(index);
+            values.remove(index);
+        }
+    }
+
+    public void set(int index, String value) {
+        values.set(index, value);
+    }
+
+    public boolean containsIgnoreCase(String key) {
+        return indexOfIgnoreCase(key) != -1;
     }
 }

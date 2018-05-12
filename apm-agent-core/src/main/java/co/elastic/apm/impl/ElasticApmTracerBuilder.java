@@ -38,7 +38,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,11 +123,11 @@ public class ElasticApmTracerBuilder {
         }
     }
 
-    private List<? extends ConfigurationSource> getConfigSources() {
-        return Arrays.asList(
-            new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."),
-            new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"),
-            new AbstractConfigurationSource() {
+    private List<ConfigurationSource> getConfigSources() {
+        List<ConfigurationSource> result = new ArrayList<>();
+        result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
+        result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
+        result.add(new AbstractConfigurationSource() {
                 @Override
                 public String getValue(String key) {
                     return inlineConfig.get(key);
@@ -137,8 +137,11 @@ public class ElasticApmTracerBuilder {
                 public String getName() {
                     return "Inline configuration";
                 }
-            },
-            new PropertyFileConfigurationSource("elasticapm.properties"));
+            });
+        if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
+            result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
+        }
+        return result;
     }
 
 }

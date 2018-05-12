@@ -49,7 +49,7 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
-        logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
+        logger.trace("Receiving {} event (sequence {})", event.getType(), sequence);
         if (event.getType() == FLUSH) {
             flush(transactionPayload);
             flush(errorPayload);
@@ -67,7 +67,7 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
                 flush(errorPayload);
             }
         }
-        logger.debug("Finished processing {} event (sequence {})", event.getType(), sequence);
+        logger.trace("Finished processing {} event (sequence {})", event.getType(), sequence);
         event.resetState();
     }
 

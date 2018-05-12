@@ -29,11 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PotentiallyMultiValuedMapTest {
 
-    private PotentiallyMultiValuedMap<String, String> map;
+    private PotentiallyMultiValuedMap map;
 
     @BeforeEach
     void setUp() {
-        map = new PotentiallyMultiValuedMap<>();
+        map = new PotentiallyMultiValuedMap();
     }
 
     @Test
