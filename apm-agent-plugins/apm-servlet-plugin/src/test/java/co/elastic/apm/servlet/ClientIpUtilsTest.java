@@ -19,8 +19,8 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,24 +33,23 @@ class ClientIpUtilsTest {
     @Test
     void getRealIp() {
         assertSoftly(softly -> {
-            softly.assertThat(ClientIpUtils.getRealIp(getRequest("foo", Collections.emptyMap()))).isEqualTo("foo");
+            softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.emptyMap()), "foo")).isEqualTo("foo");
             List.of("x-forwarded-for","x-real-ip","proxy-client-ip","wl-proxy-client-ip","http_client_ip","http_x_forwarded_for").forEach(header -> {
-                    softly.assertThat(ClientIpUtils.getRealIp(getRequest("foo", Collections.singletonMap(header, "unknown"))))
+                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "unknown")), "foo"))
                         .isEqualTo("foo");
-                    softly.assertThat(ClientIpUtils.getRealIp(getRequest("foo", Collections.singletonMap(header, "bar"))))
+                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar")), "foo"))
                         .isEqualTo("bar");
-                    softly.assertThat(ClientIpUtils.getRealIp(getRequest("foo", Collections.singletonMap(header, "bar, baz"))))
+                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar, baz")), "foo"))
                         .isEqualTo("bar");
                 });
         });
     }
 
-    private MockHttpServletRequest getRequest(String remoteAddr, Map<String, String> headers) {
-        final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRemoteAddr(remoteAddr);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+    private PotentiallyMultiValuedMap getHeaders(Map<String, String> headerMap) {
+        final PotentiallyMultiValuedMap headers = new PotentiallyMultiValuedMap();
+        for (Map.Entry<String, String> entry : headerMap.entrySet()) {
+            headers.add(entry.getKey(), entry.getValue());
         }
-        return request;
+        return headers;
     }
 }

@@ -23,7 +23,6 @@ import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.web.SanitizingWebProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -73,20 +72,20 @@ class SanitizingWebProcessorTest {
     }
 
     private void assertContainsNoSensitiveInformation(Context context) {
-        assertThat(context.getRequest().getCookies())
-            .containsEntry("JESESSIONID", SanitizingWebProcessor.REDACTED)
-            .containsEntry("non-sensitive", "foo");
-        assertThat(context.getRequest().getFormUrlEncodedParameters())
-            .containsEntry("cretidCard", SanitizingWebProcessor.REDACTED)
-            .containsEntry("non-sensitive", "foo");
-        assertThat(context.getRequest().getHeaders())
-            .containsEntry("Authorization", SanitizingWebProcessor.REDACTED)
-            .doesNotContainKey("Cookie")
-            .containsEntry("Referer", "elastic.co");
-        assertThat(context.getResponse().getHeaders())
-            .containsEntry("secret-token", SanitizingWebProcessor.REDACTED)
-            .containsEntry("Set-Cookie", SanitizingWebProcessor.REDACTED)
-            .containsEntry("Content-Length", "-1");
+        assertThat(context.getRequest().getCookies().get("JESESSIONID")).isEqualTo(SanitizingWebProcessor.REDACTED);
+        assertThat(context.getRequest().getCookies().get("non-sensitive")).isEqualTo("foo");
+
+        assertThat(context.getRequest().getFormUrlEncodedParameters().get("cretidCard")).isEqualTo(SanitizingWebProcessor.REDACTED);
+        assertThat(context.getRequest().getFormUrlEncodedParameters().get("non-sensitive")).isEqualTo("foo");
+
+        assertThat(context.getRequest().getHeaders().get("Authorization")).isEqualTo(SanitizingWebProcessor.REDACTED);
+        assertThat(context.getRequest().getHeaders().get("Cookie")).isNull();
+        assertThat(context.getRequest().getHeaders().get("Referer")).isEqualTo("elastic.co");
+
+        assertThat(context.getResponse().getHeaders().get("secret-token")).isEqualTo(SanitizingWebProcessor.REDACTED);
+        assertThat(context.getResponse().getHeaders().get("Set-Cookie")).isEqualTo(SanitizingWebProcessor.REDACTED);
+        assertThat(context.getResponse().getHeaders().get("Content-Length")).isEqualTo("-1");
+
     }
 
 }

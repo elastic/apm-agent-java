@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,8 @@
  * #L%
  */
 package co.elastic.apm.servlet;
+
+import co.elastic.apm.util.PotentiallyMultiValuedMap;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -34,18 +36,18 @@ public class ClientIpUtils {
      * This method returns the first IP from common HTTP header names used by reverse proxies.
      * If there is no such header, it returns {@link HttpServletRequest#getRemoteAddr()}
      *
-     * @param request The HTTP request.
+     * @param headers The HTTP request.
      * @return the
      */
-    public static String getRealIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        ip = getIpFromHeaderIfNotAlreadySet("X-Real-IP", request, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("Proxy-Client-IP", request, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("WL-Proxy-Client-IP", request, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("HTTP_CLIENT_IP", request, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("HTTP_X_FORWARDED_FOR", request, ip);
+    public static String getRealIp(PotentiallyMultiValuedMap headers, String remoteAddr) {
+        String ip = headers.getFirst("X-Forwarded-For");
+        ip = getIpFromHeaderIfNotAlreadySet("X-Real-IP", headers, ip);
+        ip = getIpFromHeaderIfNotAlreadySet("Proxy-Client-IP", headers, ip);
+        ip = getIpFromHeaderIfNotAlreadySet("WL-Proxy-Client-IP", headers, ip);
+        ip = getIpFromHeaderIfNotAlreadySet("HTTP_CLIENT_IP", headers, ip);
+        ip = getIpFromHeaderIfNotAlreadySet("HTTP_X_FORWARDED_FOR", headers, ip);
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
+            ip = remoteAddr;
         }
         return getFirstIp(ip);
     }
@@ -63,9 +65,9 @@ public class ClientIpUtils {
         return ip;
     }
 
-    private static String getIpFromHeaderIfNotAlreadySet(String header, HttpServletRequest request, String ip) {
+    private static String getIpFromHeaderIfNotAlreadySet(String header, PotentiallyMultiValuedMap headers, String ip) {
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader(header);
+            ip = headers.getFirst(header);
         }
         return ip;
     }

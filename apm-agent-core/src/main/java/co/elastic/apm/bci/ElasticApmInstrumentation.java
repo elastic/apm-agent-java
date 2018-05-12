@@ -33,10 +33,10 @@ import net.bytebuddy.matcher.ElementMatcher;
  * </p>
  * <p>
  * Note: usage of {@link ElasticApmTracer#get()} is discouraged in advices,
- * use the instance provided by {@link ElasticApmAdvice#init(ElasticApmTracer)} instead.
+ * use the instance provided by {@link ElasticApmInstrumentation#init(ElasticApmTracer)} instead.
  * </p>
  */
-public abstract class ElasticApmAdvice {
+public abstract class ElasticApmInstrumentation {
 
     /**
      * Initializes the advice with the {@link ElasticApmTracer}
@@ -66,5 +66,9 @@ public abstract class ElasticApmAdvice {
      * @return the method matcher
      */
     public abstract ElementMatcher<? super MethodDescription> getMethodMatcher();
+
+    public Class<?> getAdviceClass() {
+        return getClass();
+    }
 
 }

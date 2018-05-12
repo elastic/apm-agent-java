@@ -73,12 +73,18 @@ public class ElasticApmAgent {
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
+        initInstrumentation(tracer, instrumentation, ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader()));
+    }
+
+    public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation,
+                                           Iterable<ElasticApmInstrumentation> instrumentations) {
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(true)) // TODO make false default to improve performance
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
-        for (final ElasticApmAdvice advice : ServiceLoader.load(ElasticApmAdvice.class, ElasticApmAdvice.class.getClassLoader())) {
+        int numberOfAdvices = 0;
+        for (final ElasticApmInstrumentation advice : instrumentations) {
             logger.debug("Applying advice {}", advice.getClass().getName());
             advice.init(tracer);
             agentBuilder = agentBuilder
@@ -104,11 +110,12 @@ public class ElasticApmAgent {
                             }
                             return matches;
                         }
-                    }, advice.getClass().getName())
-                    .include(advice.getClass().getClassLoader())
+                    }, advice.getAdviceClass().getName())
+                    .include(advice.getAdviceClass().getClassLoader())
                     .withExceptionHandler(PRINTING))
                 .asDecorator();
         }
+        logger.debug("Applied {} advices", numberOfAdvices);
 
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
     }

@@ -56,7 +56,7 @@ class InstrumentationTest {
         return "";
     }
 
-    public static class TestAdvice extends ElasticApmAdvice {
+    public static class TestInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         public static void onMethodExit(@Advice.Return(readOnly = false) String returnValue) {
             returnValue = "intercepted";
