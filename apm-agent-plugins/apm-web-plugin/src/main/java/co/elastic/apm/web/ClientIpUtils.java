@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.web;
 
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 
-import javax.servlet.http.HttpServletRequest;
+import javax.annotation.Nullable;
 
 /**
- * Utility class which helps to determine the real IP of a {@link HttpServletRequest}
+ * Utility class which helps to determine the real IP of a HTTP request
  * <p>
  * This implementation is based on
  * <a href="https://github.com/stagemonitor/stagemonitor/blob/0.88.2/stagemonitor-web-servlet/src/main/java/org/stagemonitor/web/servlet/MonitoredHttpRequest.java">stagemonitor</a>
@@ -34,41 +34,36 @@ public class ClientIpUtils {
 
     /**
      * This method returns the first IP from common HTTP header names used by reverse proxies.
-     * If there is no such header, it returns {@link HttpServletRequest#getRemoteAddr()}
+     * If there is no such header, it returns the provided remoteAddr
      *
-     * @param headers The HTTP request.
+     * @param headers    the headers of an http request
+     * @param remoteAddr the remote address, which could be the IP of a proxy server
      * @return the
      */
     public static String getRealIp(PotentiallyMultiValuedMap headers, String remoteAddr) {
         String ip = headers.getFirst("X-Forwarded-For");
-        ip = getIpFromHeaderIfNotAlreadySet("X-Real-IP", headers, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("Proxy-Client-IP", headers, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("WL-Proxy-Client-IP", headers, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("HTTP_CLIENT_IP", headers, ip);
-        ip = getIpFromHeaderIfNotAlreadySet("HTTP_X_FORWARDED_FOR", headers, ip);
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (isEmpty(ip)) {
+            ip = headers.getFirst("X-Real-IP");
+        }
+        if (isEmpty(ip)) {
             ip = remoteAddr;
         }
         return getFirstIp(ip);
+    }
+
+    private static boolean isEmpty(@Nullable String ip) {
+        return ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip);
     }
 
     /*
      * Can be a comma separated list if there are multiple devices in the forwarding chain
      */
     private static String getFirstIp(String ip) {
-        if (ip != null) {
-            final int indexOfFirstComma = ip.indexOf(',');
-            if (indexOfFirstComma != -1) {
-                ip = ip.substring(0, indexOfFirstComma);
-            }
+        final int indexOfFirstComma = ip.indexOf(',');
+        if (indexOfFirstComma != -1) {
+            ip = ip.substring(0, indexOfFirstComma);
         }
         return ip;
     }
 
-    private static String getIpFromHeaderIfNotAlreadySet(String header, PotentiallyMultiValuedMap headers, String ip) {
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = headers.getFirst(header);
-        }
-        return ip;
-    }
 }

@@ -29,6 +29,7 @@ import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.web.ClientIpUtils;
 import co.elastic.apm.web.ResultUtil;
 import co.elastic.apm.web.WebConfiguration;
 import org.slf4j.Logger;

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.web;
 
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import org.junit.jupiter.api.Test;
