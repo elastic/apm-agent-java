@@ -37,6 +37,10 @@ import java.io.IOException;
 import java.security.Principal;
 import java.util.Enumeration;
 
+/**
+ * @deprecated using the ApmFilter is deprecated as there is support for instrumentation
+ */
+@Deprecated
 public class ApmFilter implements Filter {
 
     private final ServletTransactionHelper servletTransactionHelper;

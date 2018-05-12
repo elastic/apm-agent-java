@@ -63,6 +63,9 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
+            // the hasSuperType matcher is quite costly,
+            // as the inheritance hierarchy of each class would have to be examined
+            // this pre-selects candidates and hopefully does not cause lots of false negatives
             .and(nameContains("Servlet"))
             .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
     }
@@ -79,6 +82,12 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
         return ServletAdvice.class;
     }
 
+    /**
+     * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
+     * {@code javax.servlet}, as these are inlined into the matching methods.
+     * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
+     * See https://github.com/raphw/byte-buddy/issues/465 for more information.
+     */
     public static class ServletAdvice {
 
         @Nullable

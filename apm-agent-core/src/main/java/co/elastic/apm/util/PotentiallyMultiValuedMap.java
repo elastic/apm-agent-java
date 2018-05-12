@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 
 /**
@@ -76,26 +75,6 @@ public class PotentiallyMultiValuedMap implements Recyclable {
             } else {
                 keys.add(key);
                 this.values.add(Arrays.asList(values));
-            }
-        }
-    }
-
-    public void set(String key, Enumeration<String> value) {
-        keys.add(key);
-        if (value.hasMoreElements()) {
-            final String firstValue = value.nextElement();
-            if (value.hasMoreElements()) {
-                List<String> valueList = new ArrayList<>(4);
-
-                keys.add(key);
-                values.add(valueList);
-                valueList.add(firstValue);
-                while (value.hasMoreElements()) {
-                    valueList.add(value.nextElement());
-                }
-            } else {
-                keys.add(key);
-                values.add(firstValue);
             }
         }
     }

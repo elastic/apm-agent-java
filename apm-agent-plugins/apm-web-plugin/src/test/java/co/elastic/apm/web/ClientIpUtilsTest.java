@@ -34,14 +34,14 @@ class ClientIpUtilsTest {
     void getRealIp() {
         assertSoftly(softly -> {
             softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.emptyMap()), "foo")).isEqualTo("foo");
-            List.of("x-forwarded-for","x-real-ip","proxy-client-ip","wl-proxy-client-ip","http_client_ip","http_x_forwarded_for").forEach(header -> {
-                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "unknown")), "foo"))
-                        .isEqualTo("foo");
-                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar")), "foo"))
-                        .isEqualTo("bar");
-                    softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar, baz")), "foo"))
-                        .isEqualTo("bar");
-                });
+            List.of("x-forwarded-for", "x-real-ip").forEach(header -> {
+                softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "unknown")), "foo"))
+                    .isEqualTo("foo");
+                softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar")), "foo"))
+                    .isEqualTo("bar");
+                softly.assertThat(ClientIpUtils.getRealIp(getHeaders(Collections.singletonMap(header, "bar, baz")), "foo"))
+                    .isEqualTo("bar");
+            });
         });
     }
 
