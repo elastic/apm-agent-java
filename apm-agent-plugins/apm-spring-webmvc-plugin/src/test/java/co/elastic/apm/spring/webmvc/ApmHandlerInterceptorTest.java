@@ -34,7 +34,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -50,7 +50,8 @@ class ApmHandlerInterceptorTest {
         tracer = ElasticApmTracer.builder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Collections.singleton(new ServletInstrumentation()));
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
+            Arrays.asList(new ServletInstrumentation(), new SpringTransactionNameInstrumentation()));
     }
 
     @AfterAll
@@ -60,9 +61,7 @@ class ApmHandlerInterceptorTest {
 
     @BeforeEach
     void setup() {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new TestController())
-            .addInterceptors(new ApmHandlerInterceptor(tracer))
-            .build();
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).build();
     }
 
     @Test

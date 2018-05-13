@@ -23,6 +23,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
@@ -54,6 +55,12 @@ public abstract class ElasticApmInstrumentation {
 
     /**
      * The type matcher selects types which should be instrumented by this advice
+     * <p>
+     * To make type matching more efficient,
+     * first apply the cheaper matchers like {@link ElementMatchers#nameStartsWith(String)} and {@link ElementMatchers#isInterface()}
+     * which pre-select the types as narrow as possible.
+     * Only then use more expensive matchers like {@link ElementMatchers#hasSuperType(ElementMatcher)}
+     * </p>
      *
      * @return the type matcher
      */

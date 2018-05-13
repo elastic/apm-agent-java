@@ -38,7 +38,9 @@ import javax.servlet.http.HttpServletResponse;
  * like a {@link org.springframework.web.servlet.resource.ResourceHttpRequestHandler},
  * the request name is set to the simple class name of the handler.
  * </p>
+ * @deprecated the agent automatically instruments Spring
  */
+@Deprecated
 public class ApmHandlerInterceptor implements HandlerInterceptor {
 
     private final ElasticApmTracer tracer;
@@ -55,19 +57,19 @@ public class ApmHandlerInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         final Transaction transaction = tracer.currentTransaction();
         if (transaction != null) {
-            setTransactionName(handler, transaction);
+            final String className;
+            final String methodName;
+            if (handler instanceof HandlerMethod) {
+                HandlerMethod handlerMethod = ((HandlerMethod) handler);
+                className = handlerMethod.getBeanType().getSimpleName();
+                methodName = handlerMethod.getMethod().getName();
+            } else {
+                className = handler.getClass().getSimpleName();
+                methodName = null;
+            }
+            SpringTransactionNameInstrumentation.HandlerAdapterAdvice.setName(transaction, className, methodName);
         }
         return true;
-    }
-
-    private void setTransactionName(Object handler, Transaction transaction) {
-        if (handler instanceof HandlerMethod) {
-            HandlerMethod handlerMethod = ((HandlerMethod) handler);
-            transaction.getName().setLength(0);
-            transaction.getName().append(handlerMethod.getBeanType().getSimpleName()).append('#').append(handlerMethod.getMethod().getName());
-        } else {
-            transaction.setName(handler.getClass().getSimpleName());
-        }
     }
 
     @Override
