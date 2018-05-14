@@ -103,6 +103,17 @@ public class MockReporter implements Reporter {
         return transactions.iterator().next();
     }
 
+    public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
+        final long end = System.currentTimeMillis() + timeoutMs;
+        do {
+            if (!transactions.isEmpty()) {
+                return getFirstTransaction();
+            }
+            Thread.sleep(1);
+        } while (System.currentTimeMillis() < end);
+        return getFirstTransaction();
+    }
+
     @Override
     public void report(ErrorCapture error) {
         verifyJsonSchema(error);
