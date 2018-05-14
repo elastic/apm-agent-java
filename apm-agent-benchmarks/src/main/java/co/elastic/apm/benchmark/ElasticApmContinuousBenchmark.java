@@ -55,6 +55,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
@@ -168,6 +170,9 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
             "Accept-Language",
             "Cache-Control",
             "Connection"));
+
+        final HashMap<String, String[]> parameterMap = new HashMap<>();
+        parameterMap.put("p 1", new String[]{"c d"});
         final MockHttpServletRequest req = new MockHttpServletRequest() {
             @Override
             public StringBuffer getRequestURL() {
@@ -199,6 +204,11 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                         return null;
                 }
             }
+
+            @Override
+            public Map<String, String[]> getParameterMap() {
+                return parameterMap;
+            }
         };
         req.setContextPath("/app");
         req.setLocalAddr("127.0.0.1");
@@ -214,7 +224,6 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         req.setServerName("30thh.loc");
         req.setServerPort(8480);
         req.setServletPath("/test?");
-        req.addParameter("p 1", "c d");
         return req;
     }
 

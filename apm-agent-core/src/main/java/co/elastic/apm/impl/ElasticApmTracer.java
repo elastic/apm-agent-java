@@ -45,6 +45,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -287,15 +288,17 @@ public class ElasticApmTracer implements Tracer {
     }
 
     public void recycle(Transaction transaction) {
-        for (Span span : transaction.getSpans()) {
-            recycle(span);
+        List<Span> spans = transaction.getSpans();
+        for (int i = 0; i < spans.size(); i++) {
+            recycle(spans.get(i));
         }
         transactionPool.recycle(transaction);
     }
 
     private void recycle(Span span) {
-        for (Stacktrace st : span.getStacktrace()) {
-            stackTracePool.recycle(st);
+        List<Stacktrace> stacktrace = span.getStacktrace();
+        for (int i = 0; i < stacktrace.size(); i++) {
+            stackTracePool.recycle(stacktrace.get(i));
         }
         spanPool.recycle(span);
     }

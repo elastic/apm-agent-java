@@ -23,6 +23,8 @@ import co.elastic.apm.report.ReportingEvent;
 import com.lmax.disruptor.EventHandler;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ServiceLoader;
 
 /**
@@ -31,10 +33,13 @@ import java.util.ServiceLoader;
  */
 public class ProcessorEventHandler implements EventHandler<ReportingEvent> {
 
-    private final Iterable<Processor> processors;
+    private final List<Processor> processors;
 
     public ProcessorEventHandler(Iterable<Processor> processors) {
-        this.processors = processors;
+        this.processors = new ArrayList<>();
+        for (Processor processor : processors) {
+            this.processors.add(processor);
+        }
     }
 
     public static ProcessorEventHandler loadProcessors(ConfigurationRegistry configurationRegistry) {
@@ -48,12 +53,12 @@ public class ProcessorEventHandler implements EventHandler<ReportingEvent> {
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         if (event.getTransaction() != null) {
-            for (Processor processor : processors) {
-                processor.processBeforeReport(event.getTransaction());
+            for (int i = 0; i < processors.size(); i++) {
+                processors.get(i).processBeforeReport(event.getTransaction());
             }
         } else if (event.getError() != null) {
-            for (Processor processor : processors) {
-                processor.processBeforeReport(event.getError());
+            for (int i = 0; i < processors.size(); i++) {
+                processors.get(i).processBeforeReport(event.getError());
             }
         }
     }
