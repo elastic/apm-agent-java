@@ -96,6 +96,11 @@
             <artifactId>jackson-dataformat-protobuf</artifactId>
             <version>${version.jackson}</version>
         </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${version.byte-buddy}</version>
+        </dependency>
     </dependencies>
 
     <properties>

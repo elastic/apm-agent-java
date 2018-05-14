@@ -19,17 +19,15 @@
  */
 package co.elastic.apm.jdbc;
 
-import co.elastic.apm.MockReporter;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
-import com.p6spy.engine.spy.P6SpyDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -38,19 +36,14 @@ import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ApmJdbcEventListenerTest {
+class ApmJdbcEventListenerTest extends AbstractInstrumentationTest {
 
     private Connection connection;
     private Transaction transaction;
 
     @BeforeEach
     void setUp() throws SQLException {
-        ElasticApmTracer tracer = ElasticApmTracer.builder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(new MockReporter())
-            .build()
-            .register();
-        connection = DriverManager.getConnection("jdbc:p6spy:h2:mem:test", "user", "");
+        connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
         connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction();
@@ -63,14 +56,34 @@ class ApmJdbcEventListenerTest {
     void tearDown() throws SQLException {
         connection.close();
         transaction.end();
-        ElasticApmTracer.unregister();
     }
 
     @Test
-    void testJdbcSpan() throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ELASTIC_APM WHERE FOO=$1");
+    void testStatement() throws SQLException {
+        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
+        ResultSet resultSet = connection.createStatement().executeQuery(sql);
+        assertSpanRecorded(resultSet, sql);
+    }
+
+    @Test
+    void testPreparedStatement() throws SQLException {
+        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=$1";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setInt(1, 1);
         ResultSet resultSet = preparedStatement.executeQuery();
+        assertSpanRecorded(resultSet, sql);
+    }
+
+    @Test
+    void testCallableStatement() throws SQLException {
+        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=$1";
+        CallableStatement preparedStatement = connection.prepareCall(sql);
+        preparedStatement.setInt(1, 1);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        assertSpanRecorded(resultSet, sql);
+    }
+
+    private void assertSpanRecorded(ResultSet resultSet, String sql) throws SQLException {
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
@@ -79,7 +92,7 @@ class ApmJdbcEventListenerTest {
         assertThat(jdbcSpan.getName()).isEqualTo("SELECT");
         assertThat(jdbcSpan.getType()).isEqualToIgnoringCase("db.h2.sql");
         Db db = jdbcSpan.getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo("SELECT * FROM ELASTIC_APM WHERE FOO=$1");
+        assertThat(db.getStatement()).isEqualTo(sql);
         assertThat(db.getUser()).isEqualToIgnoringCase("user");
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
     }

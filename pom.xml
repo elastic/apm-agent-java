@@ -73,6 +73,7 @@
         <version.plugin.jar>3.1.0</version.plugin.jar>
         <version.plugin.javadoc>3.0.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
+        <version.byte-buddy>1.8.11</version.byte-buddy>
     </properties>
 
     <modules>
