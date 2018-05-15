@@ -19,12 +19,13 @@
  */
 package co.elastic.apm.benchmark;
 
+import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.servlet.ApmFilter;
 import io.undertow.Undertow;
-import org.openjdk.jmh.annotations.Benchmark;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -32,20 +33,16 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.runner.RunnerException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
 
-import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -97,20 +94,17 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
-public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
+public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
-    private ApmFilter apmFilter;
-    private MockHttpServletRequest request;
-    private MockHttpServletResponse response;
-    private FilterChain filterChainWithApm;
+    private final boolean apmEnabled;
+    protected MockHttpServletRequest request;
+    protected MockHttpServletResponse response;
+    protected HttpServlet httpServlet;
     private Undertow server;
     private ElasticApmTracer tracer;
-    private Connection connectionWithApm;
-    private Connection connectionWithoutApm;
-    private FilterChain filterChainWithoutApm;
 
-    public static void main(String[] args) throws RunnerException {
-        run(ElasticApmContinuousBenchmark.class);
+    public ElasticApmContinuousBenchmark(boolean apmEnabled) {
+        this.apmEnabled = apmEnabled;
     }
 
     @Setup
@@ -124,42 +118,28 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
             .configurationRegistry(ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
+                    .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
+                    .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
                     .add("server_url", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
             .build()
             .register();
-        apmFilter = new ApmFilter(tracer);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         request = createRequest();
         response = createResponse();
 
-        connectionWithApm = DriverManager.getConnection("jdbc:p6spy:h2:mem:test", "user", "");
-        connectionWithApm.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
-        connectionWithApm.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        filterChainWithApm = new BenchmarkingFilterChain(connectionWithApm, tracer);
-
-        connectionWithoutApm = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
-        connectionWithoutApm.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
-        connectionWithoutApm.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        filterChainWithoutApm = new BenchmarkingFilterChain(connectionWithoutApm, tracer);
+        Connection connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
+        connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
+        connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
+        httpServlet = new BenchmarkingServlet(connection, tracer);
     }
 
     @TearDown
     public void tearDown() {
         server.stop();
         tracer.stop();
-    }
-
-    @Benchmark
-    public int benchmarkWithApm() throws IOException, ServletException {
-        apmFilter.doFilter(request, response, filterChainWithApm);
-        return response.getStatus();
-    }
-
-    @Benchmark
-    public int benchmarkWithoutApm() throws IOException, ServletException {
-        filterChainWithoutApm.doFilter(request, response);
-        return response.getStatus();
+        ElasticApmAgent.reset();
     }
 
     private MockHttpServletRequest createRequest() {
@@ -231,18 +211,18 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         return new MockHttpServletResponse();
     }
 
-    private static class BenchmarkingFilterChain implements FilterChain {
+    private static class BenchmarkingServlet extends HttpServlet {
 
         private final Connection connection;
         private final Reporter reporter;
 
-        private BenchmarkingFilterChain(Connection connection, ElasticApmTracer tracer) {
+        private BenchmarkingServlet(Connection connection, ElasticApmTracer tracer) {
             this.connection = connection;
             reporter = tracer.getReporter();
         }
 
         @Override
-        public void doFilter(ServletRequest request, ServletResponse response) throws ServletException {
+        public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException {
             try {
                 final PreparedStatement preparedStatement = connection
                     .prepareStatement("SELECT * FROM ELASTIC_APM WHERE foo=?");
@@ -254,7 +234,7 @@ public class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                 }
                 // makes sure the jdbc query and the reporting can't be eliminated by JIT
                 // setting it as the http status code so that there are no allocations necessary
-                ((HttpServletResponse) response).setStatus(count + reporter.getDropped());
+                response.setStatus(count + reporter.getDropped());
             } catch (Exception e) {
                 throw new ServletException(e);
             }

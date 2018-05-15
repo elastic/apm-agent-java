@@ -28,12 +28,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 
+/**
+ * @deprecated use javaagent
+ */
+@Deprecated
 public class ApmJdbcEventListener extends SimpleJdbcEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmJdbcEventListener.class);
-
+    private static final Map<Connection, ConnectionMetaData> metaDataMap =
+        Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
     private final ElasticApmTracer elasticApmTracer;
 
     public ApmJdbcEventListener() {
@@ -45,7 +55,7 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
     }
 
     @Nullable
-    static String getMethod(String sql) {
+    static String getMethod(@Nullable String sql) {
         if (sql == null) {
             return null;
         }
@@ -63,27 +73,64 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         }
     }
 
+    /*
+     * This makes sure that even when there are wrappers for the statement,
+     * we only record each JDBC call once.
+     */
+    private static boolean isAlreadyMonitored(@Nullable Span parent) {
+        // a db span can't be the child of another db span
+        // this means the span has already been created for this db call
+        return parent != null && parent.getType() != null && parent.getType().startsWith("db.");
+    }
+
     @Override
     public void onAfterGetConnection(ConnectionInformation connectionInformation, SQLException e) {
     }
 
     @Override
     public void onBeforeAnyExecute(StatementInformation statementInformation) {
+        createJdbcSpan(statementInformation.getStatementQuery(), statementInformation.getConnectionInformation().getConnection(),
+            elasticApmTracer.currentSpan());
+    }
+
+    @Nullable
+    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable Span parentSpan) {
+        if (sql == null || isAlreadyMonitored(parentSpan)) {
+            return null;
+        }
         Span span = elasticApmTracer.startSpan();
         if (span == null) {
-            return;
+            return null;
         }
-        span.setName(getMethod(statementInformation.getStatementQuery()));
+        span.setName(getMethod(sql));
+        // temporarily setting the type here is important
+        // getting the meta data can result in another jdbc call
+        // if that is traced as well -> StackOverflowError
+        // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
+        span.setType("db.unknown.sql");
         try {
-            String dbVendor = getDbVendor(statementInformation.getConnectionInformation().getConnection().getMetaData().getURL());
-            span.setType("db." + dbVendor + ".sql");
+            final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
+            span.setType(connectionMetaData.type);
             span.getContext().getDb()
-                .withUser(statementInformation.getConnectionInformation().getConnection().getMetaData().getUserName())
-                .withStatement(statementInformation.getStatementQuery())
+                .withUser(connectionMetaData.user)
+                .withStatement(sql)
                 .withType("sql");
         } catch (SQLException e) {
             logger.warn("Ignored exception", e);
         }
+        return span;
+    }
+
+    private ConnectionMetaData getConnectionMetaData(Connection connection) throws SQLException {
+        ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
+        if (connectionMetaData == null) {
+            final DatabaseMetaData metaData = connection.getMetaData();
+            String dbVendor = getDbVendor(metaData.getURL());
+            connectionMetaData = new ConnectionMetaData("db." + dbVendor + ".sql", metaData.getUserName());
+            metaDataMap.put(connection, connectionMetaData);
+        }
+        return connectionMetaData;
+
     }
 
     String getDbVendor(String url) {
@@ -118,5 +165,15 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
     @Override
     public void onAfterAnyAddBatch(StatementInformation statementInformation, long timeElapsedNanos, SQLException e) {
         super.onAfterAnyAddBatch(statementInformation, timeElapsedNanos, e);
+    }
+
+    private static class ConnectionMetaData {
+        final String type;
+        final String user;
+
+        private ConnectionMetaData(String type, String user) {
+            this.type = type;
+            this.user = user;
+        }
     }
 }
