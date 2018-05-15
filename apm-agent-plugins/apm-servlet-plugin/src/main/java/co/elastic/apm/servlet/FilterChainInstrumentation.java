@@ -51,6 +51,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class FilterChainInstrumentation extends ElasticApmInstrumentation {
 
+    public static final String EXCLUDE_REQUEST = "elastic.apm.servlet.request.exclude";
+
     @Override
     public void init(ElasticApmTracer tracer) {
         FilterChainAdvice.init(tracer);
@@ -97,10 +99,17 @@ public class FilterChainInstrumentation extends ElasticApmInstrumentation {
         @Nullable
         @Advice.OnMethodEnter
         public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest request) {
-            if (servletTransactionHelper != null && request instanceof HttpServletRequest) {
+            if (servletTransactionHelper != null &&
+                request instanceof HttpServletRequest &&
+                !Boolean.TRUE.equals(request.getAttribute(EXCLUDE_REQUEST))) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-                return servletTransactionHelper.onBefore(httpServletRequest.getServletPath(), httpServletRequest.getPathInfo(),
+                final Transaction transaction = servletTransactionHelper.onBefore(httpServletRequest.getServletPath(), httpServletRequest.getPathInfo(),
                     httpServletRequest.getRequestURI(), httpServletRequest.getHeader("User-Agent"));
+                if (transaction == null) {
+                    // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
+                    httpServletRequest.setAttribute(EXCLUDE_REQUEST, Boolean.TRUE);
+                }
+                return transaction;
             }
             return null;
         }

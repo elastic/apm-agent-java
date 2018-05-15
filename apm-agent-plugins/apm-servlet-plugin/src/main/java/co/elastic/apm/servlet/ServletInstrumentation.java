@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Enumeration;
 
+import static co.elastic.apm.servlet.FilterChainInstrumentation.EXCLUDE_REQUEST;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -102,7 +103,10 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
         @Nullable
         @Advice.OnMethodEnter
         public static Transaction onEnterServletService(@Advice.Argument(0) HttpServletRequest request) {
-            if (servletTransactionHelper != null) {
+            if (servletTransactionHelper != null &&
+                // if the request has already been excluded while processing the filter chain,
+                // avoid to match all exclude patterns again
+                !Boolean.TRUE.equals(request.getAttribute(EXCLUDE_REQUEST))) {
                 return servletTransactionHelper.onBefore(request.getServletPath(), request.getPathInfo(),
                     request.getRequestURI(), request.getHeader("User-Agent"));
             }
