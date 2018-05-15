@@ -103,6 +103,11 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
             return null;
         }
         span.setName(getMethod(sql));
+        // temporarily setting the type here is important
+        // getting the meta data can result in another jdbc call
+        // if that is traced as well -> StackOverflowError
+        // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
+        span.setType("db.unknown.sql");
         try {
             final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
             span.setType(connectionMetaData.type);

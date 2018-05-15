@@ -81,6 +81,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
+            // pre-select candidates for the more expensive isSubTypeOf matcher
             .and(nameContains("Statement"))
             .and(isSubTypeOf(Statement.class));
     }
