@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.util;
 
+import com.dslplatform.json.JsonWriter;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -34,7 +35,7 @@ class HexUtilsTest {
         byte[] bytes = new byte[16];
         new Random().nextBytes(bytes);
         ByteArrayOutputStream os = new ByteArrayOutputStream(bytes.length * 2);
-        HexUtils.writeBytesAsHex(bytes, os);
+        HexUtils.writeBytesAsHex(bytes, new JsonWriter());
         String hexAsString = new String(os.toByteArray());
         assertThat(hexAsString).isEqualTo(HexUtils.bytesToHex(bytes));
     }
