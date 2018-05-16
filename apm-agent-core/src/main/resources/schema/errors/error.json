@@ -52,8 +52,7 @@
         },
         "id": {
             "type": ["string", "null"],
-            "description": "UUID for the error",
-            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            "description": "UUID for the error"
         },
         "log": {
             "type": ["object", "null"],
@@ -102,11 +101,23 @@
             "type": ["object", "null"],
             "description": "Data for correlating errors with transactions",
             "properties": {
+                "trace_id": {
+                    "type": ["string", "null"]
+                },
                 "id": {
-                    "type": "string",
-                    "description": "UUID for the transaction",
-                    "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
-                    "maxLength": 1024
+                    "type": "string"
+                }
+            }
+        },
+        "span": {
+            "type": ["object", "null"],
+            "description": "Data for correlating errors with spans",
+            "properties": {
+                "trace_id": {
+                    "type": ["string", "null"]
+                },
+                "id": {
+                    "type": "string"
                 }
             }
         }

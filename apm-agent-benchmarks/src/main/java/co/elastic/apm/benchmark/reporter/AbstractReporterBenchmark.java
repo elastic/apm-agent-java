@@ -92,9 +92,10 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             .withPpid(403L)
             .withArgv(Collections.singletonList("-javaagent:/path/to/elastic-apm-java.jar"));
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
-        ReporterConfiguration reporterConfiguration = new ReporterConfiguration();
+        ReporterConfiguration reporterConfiguration = tracer.getConfig(ReporterConfiguration.class);
+        CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         reporter = new ApmServerReporter(service, process, system, payloadSender, false, reporterConfiguration,
-            ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()));
+            ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()), coreConfiguration);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction();
@@ -104,7 +105,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
     }
 
     private void fillTransaction(Transaction t) {
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(null, null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");

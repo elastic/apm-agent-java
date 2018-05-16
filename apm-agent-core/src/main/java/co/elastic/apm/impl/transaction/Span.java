@@ -29,7 +29,7 @@ import java.util.List;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
-public class Span implements Recyclable, co.elastic.apm.api.Span {
+public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api.Span {
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
@@ -42,24 +42,14 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * The locally unique ID of the span.
      */
+    @Deprecated
     private final SpanId id = new SpanId();
     @Nullable
     private transient ElasticApmTracer tracer;
-    private transient boolean sampled;
-    /**
-     * Duration of the span in milliseconds
-     * (Required)
-     */
-    private double duration;
-    /**
-     * Generic designation of a span in the scope of a transaction
-     * (Required)
-     */
-    @Nullable
-    private String name;
     /**
      * The locally unique ID of the parent of the span.
      */
+    @Deprecated
     private SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
@@ -82,9 +72,14 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
+            this.traceContext.asChildOf(parentSpan.getTraceContext());
+        } else {
+            this.traceContext.asChildOf(transaction.getTraceContext());
         }
-        this.sampled = transaction.isSampled() && !dropped;
-        if (sampled) {
+        if (dropped) {
+            traceContext.setSampled(false);
+        }
+        if (traceContext.isSampled()) {
             start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
             duration = nanoTime;
             transaction.addSpan(this);
@@ -95,6 +90,7 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     /**
      * The locally unique ID of the span.
      */
+    @Deprecated
     public SpanId getId() {
         return id;
     }
@@ -106,43 +102,15 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         return context;
     }
 
-    /**
-     * Duration of the span in milliseconds
-     * (Required)
-     */
-    public double getDuration() {
-        return duration;
-    }
-
-    /**
-     * Generic designation of a span in the scope of a transaction
-     * (Required)
-     */
-    @Nullable
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Generic designation of a span in the scope of a transaction
-     * (Required)
-     */
-    @Override
-    public void setName(@Nullable String name) {
-        withName(name);
-    }
-
     public Span withName(@Nullable String name) {
-        if (!sampled) {
-            return this;
-        }
-        this.name = name;
+        setName(name);
         return this;
     }
 
     /**
      * The locally unique ID of the parent of the span.
      */
+    @Deprecated
     public SpanId getParent() {
         return parent;
     }
@@ -200,35 +168,36 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
     }
 
     public Span withType(@Nullable String type) {
-        if (!sampled) {
+        if (!isSampled()) {
             return this;
         }
         this.type = type;
         return this;
     }
 
-    public boolean isSampled() {
-        return sampled;
-    }
-
     @Override
     public void resetState() {
+        super.resetState();
         id.resetState();
         context.resetState();
-        duration = 0;
-        name = null;
         parent.resetState();
         stacktrace.clear();
         start = 0;
         type = null;
         tracer = null;
-        sampled = false;
         transaction = null;
+        traceContext.resetState();
     }
 
     @Nullable
     public Transaction getTransaction() {
         return transaction;
+    }
+
+    public void recycle() {
+        if (tracer != null) {
+            tracer.recycle(this);
+        }
     }
 
 }

@@ -13,8 +13,13 @@
         },
         "id": {
             "type": "string",
-            "description": "UUID for the transaction, referred by its spans",
-            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            "description": "UUID for the transaction, referred by its spans"
+        },
+        "parent_id": {
+            "type": ["string", "null"]
+        },
+        "trace_id": {
+            "type": ["string", "null"]
         },
         "name": {
             "type": ["string","null"],

@@ -149,17 +149,21 @@ public class ElasticApmTracer implements Tracer {
 
     @Override
     public Transaction startTransaction() {
-        Transaction transaction = startManualTransaction(sampler, System.nanoTime());
+        return startTransaction(null);
+    }
+
+    public Transaction startTransaction(@Nullable String traceContextHeader) {
+        Transaction transaction = startManualTransaction(traceContextHeader, sampler, System.nanoTime());
         activate(transaction);
         return transaction;
     }
 
-    public Transaction startManualTransaction(Sampler sampler, long nanoTime) {
+    public Transaction startManualTransaction(@Nullable String traceContextHeader, Sampler sampler, long nanoTime) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(this, nanoTime, sampler);
+            transaction = transactionPool.createInstance().start(this, traceContextHeader, nanoTime, sampler);
         }
         return transaction;
     }
@@ -214,6 +218,7 @@ public class ElasticApmTracer implements Tracer {
         span = spanPool.createInstance();
         final boolean dropped;
         if (isTransactionSpanLimitReached(transaction)) {
+            // TODO only drop leaf spans
             dropped = true;
             transaction.getSpanCount().getDropped().increment();
         } else {
@@ -231,16 +236,15 @@ public class ElasticApmTracer implements Tracer {
         captureException(System.currentTimeMillis(), e);
     }
 
-    public void captureException(long epchTimestampMillis, Exception e) {
+    public void captureException(long epochTimestampMillis, Exception e) {
         ErrorCapture error = new ErrorCapture();
-        error.getId().setToRandomValue();
-        error.withTimestamp(epchTimestampMillis);
+        error.withTimestamp(epochTimestampMillis);
         error.getException().withMessage(e.getMessage());
         error.getException().withType(e.getClass().getName());
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
         Transaction transaction = currentTransaction();
         if (transaction != null) {
-            error.getTransaction().withId(transaction.getId());
+            error.withReference(transaction);
             error.getContext().copyFrom(transaction.getContext());
         }
         reporter.report(error);
@@ -295,7 +299,7 @@ public class ElasticApmTracer implements Tracer {
         transactionPool.recycle(transaction);
     }
 
-    private void recycle(Span span) {
+    public void recycle(Span span) {
         List<Stacktrace> stacktrace = span.getStacktrace();
         for (int i = 0; i < stacktrace.size(); i++) {
             stackTracePool.recycle(stacktrace.get(i));

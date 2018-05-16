@@ -47,6 +47,8 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     private long nanoTime = System.nanoTime();
     private boolean ignoreActiveSpan = false;
     private Sampler sampler;
+    @Nullable
+    private String traceParentHeader;
 
     ApmSpanBuilder(@Nullable String operationName, ElasticApmTracer tracer, ApmScopeManager scopeManager) {
         this.operationName = operationName;
@@ -57,7 +59,12 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder asChildOf(SpanContext parent) {
-        // distributed tracing and span context relationships are not supported yet
+        final ApmSpanContext parenApmContext = (ApmSpanContext) parent;
+        if (parenApmContext instanceof ApmSpan) {
+            asChildOf((Span) parenApmContext);
+        } else {
+            this.traceParentHeader = parenApmContext.getTraceParentHeader();
+        }
         return this;
     }
 
@@ -70,7 +77,6 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     @Override
     public ApmSpanBuilder addReference(String referenceType, SpanContext referencedContext) {
         // TODO add reference types
-        asChildOf(referencedContext);
         return this;
     }
 
@@ -137,7 +143,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
                     "Consider creating a span for the whole request.", operationName);
                 transaction = tracer.noopTransaction();
             } else {
-                transaction = tracer.startManualTransaction(sampler, nanoTime);
+                transaction = tracer.startManualTransaction(traceParentHeader, sampler, nanoTime);
             }
             apmSpan = new ApmSpan(transaction, null, tracer).setOperationName(operationName);
         } else {

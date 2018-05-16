@@ -20,10 +20,13 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.TraceContext;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMap;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public class ApmTracer implements io.opentracing.Tracer {
     private final ElasticApmTracer tracer;
@@ -56,13 +59,26 @@ public class ApmTracer implements io.opentracing.Tracer {
 
     @Override
     public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
-        // distributed tracing is not supported yet
+        if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
+            TextMap textMap = (TextMap) carrier;
+            final String traceParentHeader = ((ApmSpanContext) spanContext).getTraceParentHeader();
+            if (traceParentHeader != null) {
+                textMap.put(TraceContext.TRACE_PARENT_HEADER, traceParentHeader);
+            }
+        }
     }
 
     @Override
     @Nullable
     public <C> SpanContext extract(Format<C> format, C carrier) {
-        // distributed tracing is not supported yet
+        if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
+            TextMap textMap = (TextMap) carrier;
+            for (Map.Entry<String, String> entry : textMap) {
+                if (TraceContext.TRACE_PARENT_HEADER.equalsIgnoreCase(entry.getKey())) {
+                    return ApmSpanContext.ForHeader.of(entry.getValue());
+                }
+            }
+        }
         return null;
     }
 }

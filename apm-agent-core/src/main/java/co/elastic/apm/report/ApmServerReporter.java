@@ -19,10 +19,12 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
@@ -55,6 +57,12 @@ public class ApmServerReporter implements Reporter {
             event.setTransaction(t);
         }
     };
+    private static final EventTranslatorOneArg<ReportingEvent, Span> SPAN_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Span>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence, Span s) {
+            event.setSpan(s);
+        }
+    };
     private static final EventTranslator<ReportingEvent> FLUSH_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
         @Override
         public void translateTo(ReportingEvent event, long sequence) {
@@ -69,6 +77,7 @@ public class ApmServerReporter implements Reporter {
     };
 
     private final Disruptor<ReportingEvent> disruptor;
+    private final CoreConfiguration coreConfiguration;
     private final AtomicInteger dropped = new AtomicInteger();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
@@ -78,7 +87,7 @@ public class ApmServerReporter implements Reporter {
 
     public ApmServerReporter(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
                              boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             ProcessorEventHandler processorEventHandler) {
+                             ProcessorEventHandler processorEventHandler, CoreConfiguration coreConfiguration) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -90,6 +99,7 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         });
+        this.coreConfiguration = coreConfiguration;
         reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration);
         disruptor
             .handleEventsWith(processorEventHandler)
@@ -113,6 +123,20 @@ public class ApmServerReporter implements Reporter {
         }
         if (syncReport) {
             waitForFlush();
+        }
+    }
+
+    @Override
+    public void report(Span span) {
+        if (coreConfiguration.isDistributedTracingEnabled()) {
+            if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR)) {
+                span.recycle();
+            }
+            if (syncReport) {
+                waitForFlush();
+            }
+        } else if (span.getTransaction() != null) {
+            span.getTransaction().addSpan(span);
         }
     }
 

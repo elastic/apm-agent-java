@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report.serialize;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
@@ -42,8 +43,12 @@ import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanContext;
 import co.elastic.apm.impl.transaction.SpanCount;
+import co.elastic.apm.impl.transaction.SpanId;
+import co.elastic.apm.impl.transaction.TraceContext;
+import co.elastic.apm.impl.transaction.TraceId;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.util.HexUtils;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -77,10 +82,12 @@ public class DslJsonSerializer implements PayloadSerializer {
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
     private final DateSerializer dateSerializer;
+    private final boolean distributedTracing;
 
-    public DslJsonSerializer() {
+    public DslJsonSerializer(CoreConfiguration config) {
         jw = new DslJson<>().newWriter();
         dateSerializer = new DateSerializer();
+        distributedTracing = config.isDistributedTracingEnabled();
     }
 
     @Override
@@ -125,8 +132,6 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeError(ErrorCapture errorCapture) {
         jw.writeByte(JsonWriter.OBJECT_START);
 
-        final TransactionId id = errorCapture.getId();
-        writeField("id", id);
         writeDateField("timestamp", errorCapture.getTimestamp());
 
         serializeTransactionReference(errorCapture);
@@ -137,12 +142,26 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeTransactionReference(ErrorCapture errorCapture) {
-        final TransactionId transactionId = errorCapture.getTransaction().getId();
-        if (!transactionId.isEmpty()) {
+        if (!errorCapture.getTransaction().hasContent()) {
             writeFieldName("transaction");
             jw.writeByte(JsonWriter.OBJECT_START);
-            writeFieldName("id");
-            UUIDConverter.serialize(transactionId.getMostSignificantBits(), transactionId.getLeastSignificantBits(), jw);
+            if (distributedTracing) {
+                final SpanId spanId = errorCapture.getTransaction().getId();
+                writeFieldName("id");
+                jw.writeByte(JsonWriter.QUOTE);
+                HexUtils.writeBytesAsHex(spanId.getBytes(), jw);
+                jw.writeByte(JsonWriter.QUOTE);
+                jw.writeByte(COMMA);
+                final TraceId traceId = errorCapture.getTransaction().getTraceId();
+                writeFieldName("trace_id");
+                jw.writeByte(JsonWriter.QUOTE);
+                HexUtils.writeBytesAsHex(traceId.getBytes(), jw);
+                jw.writeByte(JsonWriter.QUOTE);
+            } else {
+                TransactionId transactionId = errorCapture.getTransaction().getTransactionId();
+                writeFieldName("id");
+                UUIDConverter.serialize(transactionId.getMostSignificantBits(), transactionId.getLeastSignificantBits(), jw);
+            }
             jw.writeByte(JsonWriter.OBJECT_END);
             jw.writeByte(COMMA);
         }
@@ -178,6 +197,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         return s;
     }
 
+    public String toJsonString(Span span) {
+        jw.reset();
+        serializeSpan(span);
+        final String s = jw.toString();
+        jw.reset();
+        return s;
+    }
+
     public String toJsonString(final ErrorCapture error) {
         jw.reset();
         serializeError(error);
@@ -191,6 +218,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeService(payload.getService());
         serializeProcess(payload.getProcess());
         serializeSystem(payload.getSystem());
+        serializeSpans(payload.getSpans());
         serializeTransactions(payload);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
@@ -309,7 +337,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         writeDateField("timestamp", transaction.getTimestamp());
         writeField("name", transaction.getName());
-        writeField("id", transaction.getId());
+        if (distributedTracing) {
+            serializeTraceContext(transaction.getTraceContext());
+        } else {
+            writeField("id", transaction.getId());
+        }
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
@@ -317,33 +349,46 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (transaction.getSpanCount().getDropped().getTotal() > 0) {
             serializeSpanCount(transaction.getSpanCount());
         }
-        if (transaction.getSpans().size() > 0) {
-            serializeSpans(transaction.getSpans());
-        }
+        serializeSpans(transaction.getSpans());
         // TODO marks
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeSpans(final List<Span> spans) {
-        writeFieldName("spans");
-        jw.writeByte(ARRAY_START);
-        serializeSpan(spans.get(0));
-        for (int i = 1; i < spans.size(); i++) {
-            jw.writeByte(COMMA);
-            serializeSpan(spans.get(i));
+    private void serializeTraceContext(TraceContext traceContext) {
+        writeHexField("trace_id", traceContext.getTraceId().getBytes());
+        writeHexField("id", traceContext.getId().getBytes());
+        if (traceContext.getParentId().asLong() != 0) {
+            writeHexField("parent_id", traceContext.getParentId().getBytes());
         }
-        jw.writeByte(ARRAY_END);
-        jw.writeByte(COMMA);
+    }
+
+    private void serializeSpans(final List<Span> spans) {
+        if (spans.size() > 0) {
+            writeFieldName("spans");
+            jw.writeByte(ARRAY_START);
+            serializeSpan(spans.get(0));
+            for (int i = 1; i < spans.size(); i++) {
+                jw.writeByte(COMMA);
+                serializeSpan(spans.get(i));
+            }
+            jw.writeByte(ARRAY_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     private void serializeSpan(final Span span) {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getName());
-        writeField("id", span.getId().asLong());
-        final long parent = span.getParent().asLong();
-        if (parent != 0) {
-            writeField("parent", parent);
+        writeDateField("timestamp", span.getTimestamp());
+        if (distributedTracing) {
+            serializeTraceContext(span.getTraceContext());
+        } else {
+            writeField("id", span.getId().asLong());
+            final long parent = span.getParent().asLong();
+            if (parent != 0) {
+                writeField("parent", parent);
+            }
         }
         writeField("duration", span.getDuration());
         writeField("start", span.getStart());
@@ -514,7 +559,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("url");
         jw.writeByte(OBJECT_START);
         writeField("full", url.getFull());
-        writeField("protocol", url.getProtocol());
         writeField("hostname", url.getHostname());
         writeField("port", url.getPort());
         writeField("pathname", url.getPathname());
@@ -666,6 +710,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void writeField(String fieldName, TransactionId id) {
         writeFieldName(fieldName);
         UUIDConverter.serialize(id.getMostSignificantBits(), id.getLeastSignificantBits(), jw);
+        jw.writeByte(COMMA);
+    }
+
+    private void writeHexField(String fieldName, byte[] value) {
+        writeFieldName(fieldName);
+        jw.writeByte(JsonWriter.QUOTE);
+        HexUtils.writeBytesAsHex(value, jw);
+        jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(COMMA);
     }
 

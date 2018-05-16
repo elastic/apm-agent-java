@@ -19,9 +19,9 @@
  */
 package co.elastic.apm.benchmark.reporter;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openjdk.jmh.runner.RunnerException;
 
 /**
@@ -42,6 +42,6 @@ public class HttpDslJsonReporterContinuousBenchmark extends AbstractHttpReporter
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return new DslJsonSerializer();
+        return new DslJsonSerializer(tracer.getConfig(CoreConfiguration.class));
     }
 }

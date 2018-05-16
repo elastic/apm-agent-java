@@ -1,5 +1,25 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 the original author or authors
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 
@@ -16,6 +36,7 @@ import co.elastic.apm.util.HexUtils;
  */
 public class TraceContext implements Recyclable {
 
+    public static final String TRACE_PARENT_HEADER = "traceparent";
     private static final int TRACE_PARENT_LENGTH = 55;
     private static final byte FLAG_SAMPLED = 1;
     private final TraceId traceId = new TraceId();
@@ -24,26 +45,33 @@ public class TraceContext implements Recyclable {
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
 
-    public void parseFromTraceParentHeader(String traceParent) {
-        if (traceParent.length() != 55) {
+    public void asChildOf(String traceParentHeader) {
+        if (traceParentHeader.length() != 55) {
             throw new IllegalArgumentException("The traceparent header has to be exactly 55 chars long");
         }
-        if (!traceParent.startsWith("00-")) {
+        if (!traceParentHeader.startsWith("00-")) {
             throw new IllegalArgumentException("Only version 00 of the traceparent header is supported");
         }
-        parseTraceId(traceParent);
-        parseParentId(traceParent);
+        parseTraceId(traceParentHeader);
+        parseParentId(traceParentHeader);
         id.setToRandomValue();
-        flags = getTraceOptions(traceParent);
+        flags = getTraceOptions(traceParentHeader);
         fillTraceParentHeader(outgoingHeader, id);
     }
 
-    public void randomRootContext(boolean sampled) {
+    public void asRootSpan(Sampler sampler) {
         traceId.setToRandomValue();
         id.setToRandomValue();
-        if (sampled) {
+        if (sampler.isSampled(traceId)) {
             this.flags = FLAG_SAMPLED;
         }
+    }
+
+    public void asChildOf(TraceContext traceContext) {
+        traceId.copyFrom(traceContext.traceId);
+        parentId.copyFrom(traceContext.id);
+        flags = traceContext.flags;
+        id.setToRandomValue();
     }
 
     private void parseTraceId(String traceParent) {
@@ -93,6 +121,14 @@ public class TraceContext implements Recyclable {
         return (flags & FLAG_SAMPLED) == FLAG_SAMPLED;
     }
 
+    public void setSampled(boolean sampled) {
+        if (sampled) {
+            flags |= FLAG_SAMPLED;
+        } else {
+            flags &= ~FLAG_SAMPLED;
+        }
+    }
+
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
      *
@@ -110,6 +146,7 @@ public class TraceContext implements Recyclable {
      * <p>
      * The difference
      * </p>
+     *
      * @return
      */
     public StringBuilder getOutgoingTraceParentHeader() {
@@ -124,5 +161,4 @@ public class TraceContext implements Recyclable {
         sb.append('-');
         HexUtils.writeByteAsHex(flags, sb);
     }
-
 }

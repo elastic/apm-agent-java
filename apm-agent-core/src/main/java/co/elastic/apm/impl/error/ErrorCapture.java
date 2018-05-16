@@ -21,11 +21,10 @@ package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
-import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.Date;
 
 
 /**
@@ -54,10 +53,6 @@ public class ErrorCapture implements Recyclable {
     private final TransactionReference transaction = new TransactionReference();
     @Nullable
     private transient ElasticApmTracer tracer;
-    /**
-     * ID for the error
-     */
-    private final TransactionId id = new TransactionId();
 
     /**
      * Context
@@ -73,13 +68,6 @@ public class ErrorCapture implements Recyclable {
      */
     public ExceptionInfo getException() {
         return exception;
-    }
-
-    /**
-     * UUID for the error
-     */
-    public TransactionId getId() {
-        return id;
     }
 
     /**
@@ -106,7 +94,6 @@ public class ErrorCapture implements Recyclable {
     public void resetState() {
         exception.resetState();
         context.resetState();
-        id.resetState();
         transaction.resetState();
         timestamp = 0;
         tracer = null;
@@ -116,5 +103,10 @@ public class ErrorCapture implements Recyclable {
         if (tracer != null) {
             tracer.recycle(this);
         }
+    }
+
+    public ErrorCapture withReference(Transaction transaction) {
+        getTransaction().set(transaction);
+        return this;
     }
 }

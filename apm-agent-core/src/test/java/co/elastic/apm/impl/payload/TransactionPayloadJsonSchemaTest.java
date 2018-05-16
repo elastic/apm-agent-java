@@ -20,6 +20,7 @@
 package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.TransactionUtils;
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
@@ -43,11 +44,13 @@ class TransactionPayloadJsonSchemaTest {
     private JsonSchema schema;
     private DslJsonSerializer dslJsonSerializer;
     private ObjectMapper objectMapper;
+    private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
-        dslJsonSerializer = new DslJsonSerializer();
+        coreConfiguration = new CoreConfiguration();
+        dslJsonSerializer = new DslJsonSerializer(coreConfiguration);
 
         objectMapper = new ObjectMapper();
     }
@@ -55,12 +58,22 @@ class TransactionPayloadJsonSchemaTest {
     private TransactionPayload createPayloadWithRequiredValues() {
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(createTransactionWithRequiredValues());
+        transformForDistributedTracing(payload);
         return payload;
+    }
+
+    private void transformForDistributedTracing(TransactionPayload payload) {
+        if (coreConfiguration.isDistributedTracingEnabled()) {
+            for (Transaction transaction : payload.getTransactions()) {
+                payload.getSpans().addAll(transaction.getSpans());
+                transaction.getSpans().clear();
+            }
+        }
     }
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction();
-        t.start(mock(ElasticApmTracer.class), 0, ConstantSampler.of(true));
+        t.start(mock(ElasticApmTracer.class), null, 0, ConstantSampler.of(true));
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
@@ -77,6 +90,7 @@ class TransactionPayloadJsonSchemaTest {
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
+        transformForDistributedTracing(payload);
         return payload;
     }
 

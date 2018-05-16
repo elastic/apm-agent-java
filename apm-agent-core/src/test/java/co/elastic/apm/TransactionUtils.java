@@ -33,7 +33,7 @@ public class TransactionUtils {
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(null, null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");

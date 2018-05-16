@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.impl.sampling;
 
+import co.elastic.apm.impl.transaction.TraceId;
 import co.elastic.apm.impl.transaction.TransactionId;
 
 /**
@@ -64,8 +65,8 @@ public class ProbabilitySampler implements Sampler {
     }
 
     @Override
-    public boolean isSampled(TransactionId transactionId) {
-        final long mostSignificantBits = transactionId.getMostSignificantBits();
+    public boolean isSampled(TraceId traceId) {
+        final long mostSignificantBits = traceId.getMostSignificantBits();
         return mostSignificantBits > lowerBound && mostSignificantBits < higherBound;
     }
 }

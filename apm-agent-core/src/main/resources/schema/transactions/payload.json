@@ -20,6 +20,13 @@
                 "$ref": "transaction.json"
             },
             "minItems": 1
+        },
+        "spans": {
+            "type": ["array", "null"],
+            "items": {
+                "$ref": "span.json"
+            },
+            "minItems": 1
         }
     },
     "required": ["service", "transactions"]

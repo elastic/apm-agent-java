@@ -22,6 +22,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 
 import javax.servlet.Filter;
@@ -72,7 +73,7 @@ public class ApmFilter implements Filter {
 
     void captureTransaction(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         final Transaction transaction = servletTransactionHelper.onBefore(request.getServletPath(), request.getPathInfo(),
-            request.getRequestURI(), request.getHeader("User-Agent"));
+            request.getRequestURI(), request.getHeader("User-Agent"), request.getHeader(TraceContext.TRACE_PARENT_HEADER));
         Exception exception = null;
         try {
             filterChain.doFilter(request, response);

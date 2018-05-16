@@ -34,7 +34,7 @@ import java.util.Map;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 import static io.opentracing.tag.Tags.DB_TYPE;
 
-class ApmSpan implements Span, SpanContext {
+class ApmSpan implements Span, ApmSpanContext {
 
     @Nullable
     private final Transaction transaction;
@@ -118,8 +118,6 @@ class ApmSpan implements Span, SpanContext {
     Transaction getTransaction() {
         return transaction;
     }
-
-    // unsupported
 
     @Override
     public ApmSpan log(Map<String, ?> fields) {
@@ -275,4 +273,14 @@ class ApmSpan implements Span, SpanContext {
         return "redis".equals(dbType);
     }
 
+    @Override
+    public String getTraceParentHeader() {
+        if (transaction != null) {
+            return transaction.getTraceContext().getOutgoingTraceParentHeader().toString();
+        }
+        if (span != null) {
+            return span.getTraceContext().getOutgoingTraceParentHeader().toString();
+        }
+        return null;
+    }
 }

@@ -24,6 +24,7 @@ import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -104,7 +105,8 @@ public class FilterChainInstrumentation extends ElasticApmInstrumentation {
                 !Boolean.TRUE.equals(request.getAttribute(EXCLUDE_REQUEST))) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
                 final Transaction transaction = servletTransactionHelper.onBefore(httpServletRequest.getServletPath(), httpServletRequest.getPathInfo(),
-                    httpServletRequest.getRequestURI(), httpServletRequest.getHeader("User-Agent"));
+                    httpServletRequest.getRequestURI(), httpServletRequest.getHeader("User-Agent"),
+                    httpServletRequest.getHeader(TraceContext.TRACE_PARENT_HEADER));
                 if (transaction == null) {
                     // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                     httpServletRequest.setAttribute(EXCLUDE_REQUEST, Boolean.TRUE);

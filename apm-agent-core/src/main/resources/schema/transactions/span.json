@@ -4,8 +4,20 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": ["integer", "null"],
+            "type": ["integer", "string", "null"],
             "description": "The locally unique ID of the span."
+        },
+        "timestamp": {
+          "type": "string",
+          "pattern": "Z$",
+          "format": "date-time",
+          "description": "Recorded time of the span, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ"
+        },
+        "parent_id": {
+          "type": ["string", "null"]
+        },
+        "trace_id": {
+          "type": ["string", "null"]
         },
         "context": {
             "type": ["object", "null"],
@@ -71,5 +83,5 @@
             "required": ["id"]
         }
     },
-    "required": ["duration", "name", "start", "type"]
+    "required": ["duration", "name", "start", "type", "timestamp"]
 }
