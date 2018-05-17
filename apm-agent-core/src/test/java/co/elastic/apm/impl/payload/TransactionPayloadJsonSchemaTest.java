@@ -38,19 +38,19 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 class TransactionPayloadJsonSchemaTest {
 
     private JsonSchema schema;
-    private DslJsonSerializer dslJsonSerializer;
     private ObjectMapper objectMapper;
     private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
-        coreConfiguration = new CoreConfiguration();
-        dslJsonSerializer = new DslJsonSerializer(coreConfiguration);
+        coreConfiguration = spy(new CoreConfiguration());
 
         objectMapper = new ObjectMapper();
     }
@@ -60,15 +60,6 @@ class TransactionPayloadJsonSchemaTest {
         payload.getTransactions().add(createTransactionWithRequiredValues());
         transformForDistributedTracing(payload);
         return payload;
-    }
-
-    private void transformForDistributedTracing(TransactionPayload payload) {
-        if (coreConfiguration.isDistributedTracingEnabled()) {
-            for (Transaction transaction : payload.getTransactions()) {
-                payload.getSpans().addAll(transaction.getSpans());
-                transaction.getSpans().clear();
-            }
-        }
     }
 
     private Transaction createTransactionWithRequiredValues() {
@@ -106,24 +97,43 @@ class TransactionPayloadJsonSchemaTest {
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(new Transaction());
-        final String content = dslJsonSerializer.toJsonString(payload);
+        final String content = new DslJsonSerializer(coreConfiguration).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
     }
 
     @Test
     void testJsonSchemaDslJsonMinimalValues() throws IOException {
-        final String content = dslJsonSerializer.toJsonString(createPayloadWithRequiredValues());
-        System.out.println(content);
-        Set<ValidationMessage> errors = schema.validate(objectMapper.readTree(content));
-        assertThat(errors).isEmpty();
+        validate(createPayloadWithRequiredValues());
     }
 
     @Test
     void testJsonSchemaDslJsonAllValues() throws IOException {
-        final String content = dslJsonSerializer.toJsonString(createPayloadWithAllValues());
-        System.out.println(content);
+        validate(createPayloadWithAllValues());
+    }
+
+    private void validate(TransactionPayload payload) throws IOException {
+        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
+        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration);
+
+        final String content = serializer.toJsonString(payload);
         Set<ValidationMessage> errors = schema.validate(objectMapper.readTree(content));
         assertThat(errors).isEmpty();
+
+        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(true);
+        serializer = new DslJsonSerializer(coreConfiguration);
+        transformForDistributedTracing(payload);
+        final String contentInDistributedTracingFormat = serializer.toJsonString(payload);
+        Set<ValidationMessage> distributedTracingFormatErrors = schema.validate(objectMapper.readTree(contentInDistributedTracingFormat));
+        assertThat(distributedTracingFormatErrors).isEmpty();
+    }
+
+    private void transformForDistributedTracing(TransactionPayload payload) {
+        if (coreConfiguration.isDistributedTracingEnabled()) {
+            for (Transaction transaction : payload.getTransactions()) {
+                payload.getSpans().addAll(transaction.getSpans());
+                transaction.getSpans().clear();
+            }
+        }
     }
 }
