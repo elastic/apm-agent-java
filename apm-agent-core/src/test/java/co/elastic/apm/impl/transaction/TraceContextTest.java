@@ -45,6 +45,15 @@ class TraceContextTest {
     }
 
     @Test
+    void outgoingHeaderRootSpan() {
+        final TraceContext traceContext = new TraceContext();
+        traceContext.asRootSpan(ConstantSampler.of(true));
+        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).hasSize(55);
+        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).startsWith("00-");
+        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-01");
+    }
+
+    @Test
     void parseFromTraceParentHeader_notSampled() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
@@ -79,6 +88,16 @@ class TraceContextTest {
         traceContext.setSampled(true);
         assertThat(traceContext.isSampled()).isTrue();
         traceContext.setSampled(false);
+        assertThat(traceContext.isSampled()).isFalse();
+    }
+
+    @Test
+    void testInvalidHeader() {
+        final TraceContext traceContext = new TraceContext();
+        traceContext.asChildOf("01-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        assertThat(traceContext.getTraceId().isEmpty()).isTrue();
+        assertThat(traceContext.getParentId().asLong()).isZero();
+        assertThat(traceContext.getId().asLong()).isZero();
         assertThat(traceContext.isSampled()).isFalse();
     }
 }

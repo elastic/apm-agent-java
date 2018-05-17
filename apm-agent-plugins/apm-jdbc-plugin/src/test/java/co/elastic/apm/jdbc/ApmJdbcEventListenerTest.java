@@ -87,8 +87,8 @@ class ApmJdbcEventListenerTest extends AbstractInstrumentationTest {
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
-        assertThat(transaction.getSpans()).hasSize(1);
-        Span jdbcSpan = transaction.getSpans().get(0);
+        assertThat(reporter.getSpans()).hasSize(1);
+        Span jdbcSpan = reporter.getFirstSpan();
         assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT");
         assertThat(jdbcSpan.getType()).isEqualToIgnoringCase("db.h2.sql");
         Db db = jdbcSpan.getContext().getDb();

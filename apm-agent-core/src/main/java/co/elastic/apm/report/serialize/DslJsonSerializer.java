@@ -43,9 +43,7 @@ import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanContext;
 import co.elastic.apm.impl.transaction.SpanCount;
-import co.elastic.apm.impl.transaction.SpanId;
 import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.TraceId;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.transaction.TransactionId;
 import co.elastic.apm.util.HexUtils;
@@ -134,7 +132,13 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         writeDateField("timestamp", errorCapture.getTimestamp());
 
-        serializeTransactionReference(errorCapture);
+        if (distributedTracing) {
+            if (errorCapture.getTraceContext().hasContent()) {
+                serializeTraceContext(errorCapture.getTraceContext());
+            }
+        } else {
+            serializeTransactionReference(errorCapture);
+        }
         serializeContext(errorCapture.getContext());
         serializeException(errorCapture.getException());
 
@@ -145,23 +149,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (!errorCapture.getTransaction().hasContent()) {
             writeFieldName("transaction");
             jw.writeByte(JsonWriter.OBJECT_START);
-            if (distributedTracing) {
-                final SpanId spanId = errorCapture.getTransaction().getId();
-                writeFieldName("id");
-                jw.writeByte(JsonWriter.QUOTE);
-                HexUtils.writeBytesAsHex(spanId.getBytes(), jw);
-                jw.writeByte(JsonWriter.QUOTE);
-                jw.writeByte(COMMA);
-                final TraceId traceId = errorCapture.getTransaction().getTraceId();
-                writeFieldName("trace_id");
-                jw.writeByte(JsonWriter.QUOTE);
-                HexUtils.writeBytesAsHex(traceId.getBytes(), jw);
-                jw.writeByte(JsonWriter.QUOTE);
-            } else {
-                TransactionId transactionId = errorCapture.getTransaction().getTransactionId();
-                writeFieldName("id");
-                UUIDConverter.serialize(transactionId.getMostSignificantBits(), transactionId.getLeastSignificantBits(), jw);
-            }
+            TransactionId transactionId = errorCapture.getTransaction().getTransactionId();
+            writeFieldName("id");
+            UUIDConverter.serialize(transactionId.getMostSignificantBits(), transactionId.getLeastSignificantBits(), jw);
             jw.writeByte(JsonWriter.OBJECT_END);
             jw.writeByte(COMMA);
         }

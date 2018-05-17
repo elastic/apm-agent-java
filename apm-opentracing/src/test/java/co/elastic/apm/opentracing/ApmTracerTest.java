@@ -25,6 +25,7 @@ import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMapExtractAdapter;
@@ -84,7 +85,7 @@ class ApmTracerTest {
         apmTracer.buildSpan("nestedSpan").asChildOf(transaction).startActive(true).close();
         transaction.finish();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
@@ -118,15 +119,15 @@ class ApmTracerTest {
 
         assertThat(reporter.getTransactions()).hasSize(1);
         final Transaction transaction = reporter.getFirstTransaction();
-        final co.elastic.apm.impl.transaction.Span span = transaction.getSpans().get(0);
-        final co.elastic.apm.impl.transaction.Span nestedSpan = transaction.getSpans().get(1);
+        final co.elastic.apm.impl.transaction.Span span = reporter.getSpans().get(1);
+        final co.elastic.apm.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
         assertThat(transaction.getName().toString()).isEqualTo("transaction");
-        assertThat(transaction.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans()).hasSize(2);
         assertThat(span.getName().toString()).isEqualTo("span");
-        assertThat(span.getParent().asLong()).isEqualTo(0);
+        assertThat(span.isChildOf(transaction)).isTrue();
         assertThat(nestedSpan.getName().toString()).isEqualTo("nestedSpan");
-        assertThat(nestedSpan.getParent()).isEqualTo(span.getId());
+        assertThat(nestedSpan.isChildOf(span)).isTrue();
     }
 
     @Test
@@ -203,7 +204,7 @@ class ApmTracerTest {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getContext().getTags()).isEmpty();
-        assertThat(reporter.getFirstTransaction().getSpans()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
@@ -214,7 +215,7 @@ class ApmTracerTest {
         final ApmSpan span = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
                 new TextMapExtractAdapter(Map.of(TraceContext.TRACE_PARENT_HEADER,
-                "00-" + traceId + "-" + parentId + "-01"))))
+                    "00-" + traceId + "-" + parentId + "-01"))))
             .start();
         assertThat(span.getTransaction()).isNotNull();
         assertThat(span.getTransaction().isSampled()).isTrue();
@@ -230,6 +231,22 @@ class ApmTracerTest {
         assertThat(injectedContext.isSampled()).isTrue();
 
         span.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testAsChildOfSpanContextNull() {
+        apmTracer.buildSpan("span")
+            .asChildOf((SpanContext) null)
+            .start().finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testAsChildOfSpanNull() {
+        apmTracer.buildSpan("span")
+            .asChildOf((Span) null)
+            .start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
@@ -251,8 +268,8 @@ class ApmTracerTest {
             spanBuilder.start().finish();
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(1);
-        final co.elastic.apm.impl.transaction.Span span = reporter.getFirstTransaction().getSpans().get(0);
+        assertThat(reporter.getSpans()).hasSize(1);
+        final co.elastic.apm.impl.transaction.Span span = reporter.getFirstSpan();
         reporter.reset();
         return span;
     }

@@ -86,16 +86,16 @@ public class TransactionUtils {
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
             .withUser("readonly_user");
-        t.getSpans().add(span);
-        t.getSpans().add(new Span()
+        t.addSpan(span);
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));

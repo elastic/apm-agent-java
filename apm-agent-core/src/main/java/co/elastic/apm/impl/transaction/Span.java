@@ -82,7 +82,7 @@ public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api
         if (traceContext.isSampled()) {
             start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
             duration = nanoTime;
-            transaction.addSpan(this);
+            timestamp = System.currentTimeMillis();
         }
         return this;
     }

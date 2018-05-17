@@ -22,6 +22,8 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is an implementation of the
@@ -37,8 +39,12 @@ import co.elastic.apm.util.HexUtils;
 public class TraceContext implements Recyclable {
 
     public static final String TRACE_PARENT_HEADER = "traceparent";
+    private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     private static final int TRACE_PARENT_LENGTH = 55;
-    private static final byte FLAG_SAMPLED = 1;
+    // the first bit in the flags bit field determines if the trace should be sampled
+    // ???????1 -> sampled
+    // ???????0 -> not sampled
+    private static final byte FLAG_SAMPLED = 0b0000_0001;
     private final TraceId traceId = new TraceId();
     private final SpanId id = new SpanId();
     private final SpanId parentId = new SpanId();
@@ -47,16 +53,17 @@ public class TraceContext implements Recyclable {
 
     public void asChildOf(String traceParentHeader) {
         if (traceParentHeader.length() != 55) {
-            throw new IllegalArgumentException("The traceparent header has to be exactly 55 chars long");
+            logger.warn("The traceparent header has to be exactly 55 chars long, but was '{}'", traceParentHeader);
+            return;
         }
         if (!traceParentHeader.startsWith("00-")) {
-            throw new IllegalArgumentException("Only version 00 of the traceparent header is supported");
+            logger.warn("Only version 00 of the traceparent header is supported, but was '{}'", traceParentHeader);
+            return;
         }
         parseTraceId(traceParentHeader);
         parseParentId(traceParentHeader);
         id.setToRandomValue();
         flags = getTraceOptions(traceParentHeader);
-        fillTraceParentHeader(outgoingHeader, id);
     }
 
     public void asRootSpan(Sampler sampler) {
@@ -131,8 +138,6 @@ public class TraceContext implements Recyclable {
 
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
-     *
-     * @return
      */
     public String getIncomingTraceParentHeader() {
         final StringBuilder sb = new StringBuilder(TRACE_PARENT_LENGTH);
@@ -142,14 +147,11 @@ public class TraceContext implements Recyclable {
 
     /**
      * Returns the value of the {@code traceparent} header for downstream services.
-     *
-     * <p>
-     * The difference
-     * </p>
-     *
-     * @return
      */
     public StringBuilder getOutgoingTraceParentHeader() {
+        if (outgoingHeader.length() == 0) {
+            fillTraceParentHeader(outgoingHeader, id);
+        }
         return outgoingHeader;
     }
 
@@ -160,5 +162,13 @@ public class TraceContext implements Recyclable {
         HexUtils.writeBytesAsHex(spanId.getBytes(), sb);
         sb.append('-');
         HexUtils.writeByteAsHex(flags, sb);
+    }
+
+    public boolean isChildOf(TraceContext parent) {
+        return parent.getTraceId().equals(traceId) && parent.getId().equals(parentId);
+    }
+
+    public boolean hasContent() {
+        return !traceId.isEmpty() && parentId.asLong() != 0 && id.asLong() != 0;
     }
 }

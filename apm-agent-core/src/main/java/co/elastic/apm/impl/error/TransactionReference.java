@@ -20,9 +20,6 @@
 
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.transaction.SpanId;
-import co.elastic.apm.impl.transaction.TraceId;
-import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.transaction.TransactionId;
 import co.elastic.apm.objectpool.Recyclable;
 
@@ -32,47 +29,18 @@ import co.elastic.apm.objectpool.Recyclable;
  */
 public class TransactionReference implements Recyclable {
 
-    /**
-     * ID for the transaction
-     */
-    private final SpanId id = new SpanId();
-    /**
-     * ID of the trace forrest
-     */
-    private final TraceId traceId = new TraceId();
-    @Deprecated
     private final TransactionId transactionId = new TransactionId();
 
-    /**
-     * UUID for the transaction
-     */
-    public SpanId getId() {
-        return id;
-    }
-
-    public TraceId getTraceId() {
-        return traceId;
-    }
-
-    @Deprecated
     public TransactionId getTransactionId() {
         return transactionId;
     }
 
-    TransactionReference set(Transaction transaction) {
-        this.id.copyFrom(transaction.getTraceContext().getId());
-        this.traceId.copyFrom(transaction.getTraceContext().getTraceId());
-        this.transactionId.copyFrom(transaction.getId());
-        return this;
-    }
-
     @Override
     public void resetState() {
-        id.resetState();
-        traceId.resetState();
+        transactionId.resetState();
     }
 
     public boolean hasContent() {
-        return id.asLong() > 0;
+        return !transactionId.isEmpty();
     }
 }

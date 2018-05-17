@@ -51,8 +51,30 @@
             "required": ["message"]
         },
         "id": {
-            "type": ["string", "null"],
-            "description": "UUID for the error"
+            "description": "ID for the error",
+            "anyOf": [
+              {
+                  "deprecated": true,
+                  "description": "UUID",
+                  "type": ["string", "null"],
+                  "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+              },
+              {
+                  "description": "Unique within the corresponding trace, hex encoded 64 random bits",
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{16}$"
+              }
+          ]
+        },
+        "trace_id": {
+            "type": "string",
+            "description": "UUID for the trace, hex encoded 128 random bits",
+            "pattern": "^[a-fA-F0-9]{32}$"
+        },
+        "parent_id": {
+            "type": "string",
+            "description": "ID for the parent (transaction or span) where the error occured, hex encoded 64 random bits",
+            "pattern": "^[a-fA-F0-9]{16}$"
         },
         "log": {
             "type": ["object", "null"],

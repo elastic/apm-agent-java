@@ -4,20 +4,40 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": ["integer", "string", "null"],
-            "description": "The locally unique ID of the span."
-        },
-        "timestamp": {
-          "type": "string",
-          "pattern": "Z$",
-          "format": "date-time",
-          "description": "Recorded time of the span, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ"
-        },
-        "parent_id": {
-          "type": ["string", "null"]
+            "description": "ID for the span",
+            "anyOf": [
+                {
+                    "deprecated": true,
+                    "description": "UUID",
+                    "type": ["integer", "null"]
+                },
+                {
+                    "description": "Unique within the corresponding trace, hex encoded 64 random bits",
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{16}$"
+                }
+            ]
         },
         "trace_id": {
-          "type": ["string", "null"]
+            "type": "string",
+            "description": "UUID for the trace, hex encoded 128 random bits",
+            "pattern": "^[a-fA-F0-9]{32}$"
+        },
+        "parent_id": {
+            "type": "string",
+            "description": "ID for the parent (transaction or span), hex encoded 64 random bits",
+            "pattern": "^[a-fA-F0-9]{16}$"
+        },
+        "timestamp": {
+            "type": "string",
+            "pattern": "Z$",
+            "format": "date-time",
+            "description": "Recorded time of the span, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ"
+        },
+        "parent": {
+            "deprecated": true,
+            "type": ["integer", "null"],
+            "description": "The locally unique ID of the parent of the span."
         },
         "context": {
             "type": ["object", "null"],
@@ -55,10 +75,6 @@
             "type": "string",
             "description": "Generic designation of a span in the scope of a transaction",
             "maxLength": 1024
-        },
-        "parent": {
-            "type": ["integer", "null"],
-            "description": "The locally unique ID of the parent of the span."
         },
         "stacktrace": {
             "type": ["array", "null"],

@@ -224,12 +224,13 @@ public class ElasticApmTracer implements Tracer {
         } else {
             dropped = false;
         }
+        transaction.getSpanCount().increment();
         span.start(this, transaction, parentSpan, nanoTime, dropped);
         return span;
     }
 
     private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpans().size();
+        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getTotal();
     }
 
     public void captureException(Exception e) {
@@ -244,7 +245,7 @@ public class ElasticApmTracer implements Tracer {
         stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
         Transaction transaction = currentTransaction();
         if (transaction != null) {
-            error.withReference(transaction);
+            error.asChildOf(transaction);
             error.getContext().copyFrom(transaction.getContext());
         }
         reporter.report(error);
@@ -288,6 +289,11 @@ public class ElasticApmTracer implements Tracer {
             if (span.getDuration() >= spanFramesMinDurationMs) {
                 stacktraceFactory.fillStackTrace(span.getStacktrace());
             }
+        }
+        if (span.isSampled()) {
+            reporter.report(span);
+        } else {
+            span.recycle();
         }
     }
 

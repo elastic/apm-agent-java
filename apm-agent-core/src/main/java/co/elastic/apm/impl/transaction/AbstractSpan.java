@@ -93,4 +93,8 @@ public abstract class AbstractSpan implements Recyclable {
         timestamp = 0;
         duration = 0;
     }
+
+    public boolean isChildOf(AbstractSpan parent) {
+        return traceContext.isChildOf(parent.traceContext);
+    }
 }

@@ -25,13 +25,23 @@ import co.elastic.apm.objectpool.Recyclable;
 public class SpanCount implements Recyclable {
 
     private final Dropped dropped = new Dropped();
+    private int total = 0;
 
     public Dropped getDropped() {
         return dropped;
     }
 
+    public void increment() {
+        total++;
+    }
+
+    public int getTotal() {
+        return total;
+    }
+
     @Override
     public void resetState() {
         dropped.resetState();
+        total = 0;
     }
 }

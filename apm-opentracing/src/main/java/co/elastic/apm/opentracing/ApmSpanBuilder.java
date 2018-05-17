@@ -62,7 +62,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
         final ApmSpanContext parenApmContext = (ApmSpanContext) parent;
         if (parenApmContext instanceof ApmSpan) {
             asChildOf((Span) parenApmContext);
-        } else {
+        } else if (parent != null) {
             this.traceParentHeader = parenApmContext.getTraceParentHeader();
         }
         return this;

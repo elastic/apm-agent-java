@@ -12,14 +12,30 @@
             "description": "How long the transaction took to complete, in ms with 3 decimal points"
         },
         "id": {
-            "type": "string",
-            "description": "UUID for the transaction, referred by its spans"
-        },
-        "parent_id": {
-            "type": ["string", "null"]
+            "description": "ID for the transaction",
+            "anyOf": [
+                {
+                    "deprecated": true,
+                    "description": "UUID",
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+                },
+                {
+                    "description": "Unique within the corresponding trace, hex encoded 64 random bits",
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{16}$"
+                }
+            ]
         },
         "trace_id": {
-            "type": ["string", "null"]
+            "type": "string",
+            "description": "UUID for the trace, hex encoded 128 random bits",
+            "pattern": "^[a-fA-F0-9]{32}$"
+        },
+        "parent_id": {
+            "type": "string",
+            "description": "ID for the parent (transaction or span), hex encoded 64 random bits",
+            "pattern": "^[a-fA-F0-9]{16}$"
         },
         "name": {
             "type": ["string","null"],

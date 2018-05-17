@@ -141,10 +141,12 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         return this;
     }
 
+    @Deprecated
     public List<Span> getSpans() {
         return spans;
     }
 
+    @Deprecated
     public Transaction addSpan(Span span) {
         if (!isSampled()) {
             return this;
