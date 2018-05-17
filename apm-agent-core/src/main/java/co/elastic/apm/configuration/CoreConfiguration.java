@@ -162,7 +162,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("Enables distributed tracing and uses the updated json schema to serialize payloads, transactions and spans")
-        .buildWithDefault(true);
+        .buildWithDefault(false);
 
     public boolean isActive() {
         return active.get();
