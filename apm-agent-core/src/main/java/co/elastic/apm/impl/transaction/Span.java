@@ -231,4 +231,8 @@ public class Span implements Recyclable, co.elastic.apm.api.Span {
         return transaction;
     }
 
+    @Override
+    public String toString() {
+        return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
+    }
 }

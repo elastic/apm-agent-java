@@ -26,7 +26,6 @@ import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +103,7 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
     }
 
     public Transaction startNoop(ElasticApmTracer tracer) {
+        this.name.append("noop");
         this.tracer = tracer;
         this.sampled = false;
         this.noop = true;
@@ -316,5 +316,10 @@ public class Transaction implements Recyclable, co.elastic.apm.api.Transaction {
 
     public boolean isNoop() {
         return noop;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("'%s' %s", name, id);
     }
 }
