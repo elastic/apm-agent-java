@@ -165,6 +165,12 @@ public class ElasticApmTracer implements Tracer {
         } else {
             transaction = transactionPool.createInstance().start(this, traceContextHeader, nanoTime, sampler);
         }
+
+        logger.debug("startTransaction {} {", transaction);
+        if (logger.isTraceEnabled()) {
+            logger.trace("starting transaction at",
+                new RuntimeException("this exception is just used to record where the transaction has been started from"));
+        }
         return transaction;
     }
 
@@ -205,6 +211,11 @@ public class ElasticApmTracer implements Tracer {
             return null;
         } else {
             span = createRealSpan(transaction, parentSpan, nanoTime);
+        }
+        logger.debug("startSpan {} {", span);
+        if (logger.isTraceEnabled()) {
+            logger.trace("starting span at",
+                new RuntimeException("this exception is just used to record where the span has been started from"));
         }
         return span;
     }
@@ -261,6 +272,11 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction, boolean releaseActiveTransaction) {
+        logger.debug("} endTransaction {}", transaction);
+        if (logger.isTraceEnabled()) {
+            logger.trace("ending transaction at",
+                new RuntimeException("this exception is just used to record where the transaction has been ended from"));
+        }
         if (releaseActiveTransaction) {
             if (currentTransaction.get() != null && currentTransaction.get() != transaction) {
                 logger.warn("Trying to end a transaction which is not the current (thread local) transaction!");
@@ -277,6 +293,10 @@ public class ElasticApmTracer implements Tracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span, boolean releaseActiveSpan) {
+        logger.debug("} endSpan {}", span.toString());
+        if (logger.isTraceEnabled()) {
+            logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
+        }
         if (releaseActiveSpan) {
             if (currentSpan.get() != null && currentSpan.get() != span) {
                 logger.warn("Trying to end a span which is not the current (thread local) span!");

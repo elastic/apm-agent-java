@@ -92,6 +92,7 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
     }
 
     public Transaction startNoop(ElasticApmTracer tracer) {
+        this.name.append("noop");
         this.tracer = tracer;
         this.noop = true;
         return this;
@@ -261,4 +262,8 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         return noop;
     }
 
+    @Override
+    public String toString() {
+        return String.format("'%s' %s", name, id);
+    }
 }

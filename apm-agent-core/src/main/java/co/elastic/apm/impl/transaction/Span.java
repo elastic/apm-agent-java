@@ -200,4 +200,8 @@ public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api
         }
     }
 
+    @Override
+    public String toString() {
+        return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
+    }
 }
