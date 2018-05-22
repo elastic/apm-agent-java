@@ -65,12 +65,14 @@ public class ServletTransactionHelper {
 
     @Nullable
     @VisibleForAdvice
-    public Transaction onBefore(String servletPath, String pathInfo, String requestURI, String userAgentHeader) {
+    public Transaction onBefore(String servletPath, String pathInfo, String requestURI,
+                                @Nullable String userAgentHeader,
+                                @Nullable String traceContextHeader) {
         if (coreConfiguration.isActive() &&
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, requestURI, userAgentHeader)) {
-            return tracer.startTransaction();
+            return tracer.startTransaction(traceContextHeader);
         } else {
             return null;
         }
@@ -113,13 +115,13 @@ public class ServletTransactionHelper {
         transaction.end();
     }
 
-    private boolean isExcluded(String servletPath, String pathInfo, String requestURI, String userAgentHeader) {
+    private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
         boolean excludeUrl = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        boolean excludeAgent = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader);
         if (excludeUrl) {
             logger.debug("Not tracing this request as the URL {} is ignored by one of the matchers",
                 requestURI, webConfiguration.getIgnoreUrls());
         }
+        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader);
         if (excludeAgent) {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by one of the matchers",
                 userAgentHeader, webConfiguration.getIgnoreUserAgents());

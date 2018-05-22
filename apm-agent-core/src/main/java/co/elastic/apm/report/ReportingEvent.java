@@ -20,14 +20,15 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.TRANSACTION;
-
 
 public class ReportingEvent {
     @Nullable
@@ -36,6 +37,8 @@ public class ReportingEvent {
     private ReportingEventType type;
     @Nullable
     private ErrorCapture error;
+    @Nullable
+    private Span span;
 
     public void resetState() {
         this.transaction = null;
@@ -67,12 +70,22 @@ public class ReportingEvent {
         return error;
     }
 
+    @Nullable
+    public Span getSpan() {
+        return span;
+    }
+
     public void setError(ErrorCapture error) {
         this.error = error;
         this.type = ERROR;
     }
 
+    public void setSpan(Span span) {
+        this.span = span;
+        this.type = SPAN;
+    }
+
     enum ReportingEventType {
-        FLUSH, TRANSACTION, ERROR
+        FLUSH, TRANSACTION, SPAN, ERROR
     }
 }

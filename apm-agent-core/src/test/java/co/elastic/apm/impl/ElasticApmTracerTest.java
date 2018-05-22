@@ -26,6 +26,7 @@ import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -88,7 +89,7 @@ class ElasticApmTracerTest {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
-                assertThat(transaction.getSpans()).containsExactly(span);
+                assertThat(span.isChildOf(transaction)).isTrue();
             }
             assertThat(tracerImpl.currentSpan()).isNull();
         }
@@ -101,16 +102,16 @@ class ElasticApmTracerTest {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
-                assertThat(transaction.getSpans()).containsExactly(span);
+                assertThat(span.isChildOf(transaction)).isTrue();
                 try (Span nestedSpan = tracerImpl.startSpan()) {
                     assertThat(tracerImpl.currentSpan()).isSameAs(nestedSpan);
-                    assertThat(transaction.getSpans()).containsExactly(span, nestedSpan);
-                    assertThat(nestedSpan.getParent()).isEqualTo(span.getId());
+                    assertThat(nestedSpan.isChildOf(span)).isTrue();
                 }
             }
             assertThat(tracerImpl.currentSpan()).isNull();
         }
         assertThat(tracerImpl.currentTransaction()).isNull();
+        assertThat(reporter.getSpans()).hasSize(2);
     }
 
     @Test
@@ -119,8 +120,8 @@ class ElasticApmTracerTest {
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
             }
-            assertThat(transaction.getSpans().get(0).getStacktrace()).isEmpty();
         }
+        assertThat(reporter.getFirstSpan().getStacktrace()).isEmpty();
     }
 
     @Test
@@ -130,8 +131,8 @@ class ElasticApmTracerTest {
             try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
             }
-            assertThat(transaction.getSpans().get(0).getStacktrace()).isNotEmpty();
         }
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNotEmpty();
     }
 
     @Test
@@ -140,8 +141,9 @@ class ElasticApmTracerTest {
         try (Transaction transaction = tracerImpl.startTransaction()) {
             try (Span span = tracerImpl.startSpan()) {
             }
-            assertThat(transaction.getSpans().get(0).getStacktrace()).isEmpty();
         }
+        assertThat(reporter.getFirstSpan().getStacktrace()).isEmpty();
+
     }
 
     @Test
@@ -151,8 +153,8 @@ class ElasticApmTracerTest {
             try (Span span = tracerImpl.startSpan()) {
                 Thread.sleep(10);
             }
-            assertThat(transaction.getSpans().get(0).getStacktrace()).isNotEmpty();
         }
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNotEmpty();
     }
 
     @Test
@@ -160,11 +162,10 @@ class ElasticApmTracerTest {
         tracerImpl.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
-        assertThat(error.getId().isEmpty()).isFalse();
         assertThat(error.getException().getStacktrace()).isNotEmpty();
         assertThat(error.getException().getMessage()).isEqualTo("test");
         assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
-        assertThat(error.getTransaction().getId().isEmpty()).isTrue();
+        assertThat(error.getTraceContext().hasContent()).isFalse();
     }
 
     @Test
@@ -174,7 +175,7 @@ class ElasticApmTracerTest {
             tracerImpl.captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
-            assertThat(error.getTransaction().getId()).isEqualTo(transaction.getId());
+            assertThat(error.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
             assertThat(error.getContext().getRequest().getHeaders().get("foo")).isEqualTo("bar");
         }
     }
@@ -189,10 +190,11 @@ class ElasticApmTracerTest {
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(span.isSampled()).isFalse();
             }
-            assertThat(transaction.isSampled()).isTrue();
-            assertThat(transaction.getSpans()).hasSize(1);
-            assertThat(transaction.getSpanCount().getDropped().getTotal()).isEqualTo(1);
         }
+        assertThat(reporter.getFirstTransaction().isSampled()).isTrue();
+        assertThat(reporter.getFirstTransaction().getSpanCount().getDropped().getTotal()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getTotal()).isEqualTo(2);
+        assertThat(reporter.getSpans()).hasSize(1);
     }
 
     @Test
@@ -203,13 +205,13 @@ class ElasticApmTracerTest {
             assertThat(transaction.isSampled()).isFalse();
             try (Span span = tracerImpl.startSpan()) {
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
-                assertThat(transaction.getSpans()).isEmpty();
                 assertThat(span).isNull();
             }
             assertThat(tracerImpl.currentSpan()).isNull();
         }
         assertThat(tracerImpl.currentTransaction()).isNull();
         assertThat(reporter.getTransactions()).isEmpty();
+        assertThat(reporter.getSpans()).isEmpty();
     }
 
     @Test
@@ -220,23 +222,22 @@ class ElasticApmTracerTest {
             try (Span span = tracerImpl.startSpan()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test");
-                assertThat(span.getName()).isEqualTo("test");
+                assertThat(span.getName().toString()).isEqualTo("test");
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
-                assertThat(transaction.getSpans()).containsExactly(span);
+                assertThat(span.isChildOf(transaction)).isTrue();
             }
             try (Span span = tracerImpl.startSpan()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test2");
-                assertThat(span.getName()).isEqualTo("test2");
+                assertThat(span.getName().toString()).isEqualTo("test2");
                 assertThat(tracerImpl.currentSpan()).isSameAs(span);
-                assertThat(transaction.getSpans()).contains(span);
+                assertThat(span.isChildOf(transaction)).isTrue();
             }
             assertThat(tracerImpl.currentSpan()).isNull();
         }
         assertThat(tracerImpl.currentTransaction()).isNull();
-        assertThat(transaction.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans()).hasSize(2);
         assertThat(reporter.getFirstTransaction()).isSameAs(transaction);
-
     }
 
     @Test
@@ -248,7 +249,7 @@ class ElasticApmTracerTest {
             }
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getSpans()).hasSize(0);
+        assertThat(reporter.getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
     }
 
@@ -283,6 +284,19 @@ class ElasticApmTracerTest {
         try (Span span = tracerImpl.startSpan()) {
             assertThat(span).isNull();
         }
+    }
 
+    @Test
+    void testTransactionWithParentReference() {
+        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(true);
+        final String traceContextHeader = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
+        final Transaction transaction = tracerImpl.startManualTransaction(traceContextHeader, ConstantSampler.of(false), 0);
+        // the traced flag in the header overrides the sampler
+        assertThat(transaction.isSampled()).isTrue();
+        assertThat(transaction.getTraceContext().getParentId().toString()).isEqualTo("b9c7c989f97918e1");
+        assertThat(transaction.getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        transaction.end(1, false);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
     }
 }

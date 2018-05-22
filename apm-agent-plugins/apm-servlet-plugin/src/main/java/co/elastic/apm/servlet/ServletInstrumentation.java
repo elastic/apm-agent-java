@@ -24,6 +24,7 @@ import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -108,7 +109,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
                 // avoid to match all exclude patterns again
                 !Boolean.TRUE.equals(request.getAttribute(EXCLUDE_REQUEST))) {
                 return servletTransactionHelper.onBefore(request.getServletPath(), request.getPathInfo(),
-                    request.getRequestURI(), request.getHeader("User-Agent"));
+                    request.getRequestURI(), request.getHeader("User-Agent"), request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             }
             return null;
         }

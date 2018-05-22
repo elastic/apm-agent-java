@@ -29,28 +29,18 @@ import co.elastic.apm.objectpool.Recyclable;
  */
 public class TransactionReference implements Recyclable {
 
-    /**
-     * ID for the transaction
-     */
-    private final TransactionId id = new TransactionId();
+    private final TransactionId transactionId = new TransactionId();
 
-    /**
-     * UUID for the transaction
-     */
-    public TransactionId getId() {
-        return id;
-    }
-
-    /**
-     * UUID for the transaction
-     */
-    public TransactionReference withId(TransactionId id) {
-        this.id.copyFrom(id);
-        return this;
+    public TransactionId getTransactionId() {
+        return transactionId;
     }
 
     @Override
     public void resetState() {
-        id.resetState();
+        transactionId.resetState();
+    }
+
+    public boolean hasContent() {
+        return !transactionId.isEmpty();
     }
 }

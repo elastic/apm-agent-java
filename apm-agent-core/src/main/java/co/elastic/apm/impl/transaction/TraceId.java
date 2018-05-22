@@ -22,20 +22,19 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * A 128 bit random id which is used as a globally unique id for {@link Transaction}s
+ * A 128 bit globally unique ID of the whole trace forest
  */
-@Deprecated
-public class TransactionId implements Recyclable {
+public class TraceId implements Recyclable {
 
-    private final static TransactionId EMPTY = new TransactionId();
+    private final static TraceId EMPTY = new TraceId();
 
-    public static final int SIZE = 16;
+    private static final int SIZE = 16;
     private final byte[] data = new byte[SIZE];
 
     public void setToRandomValue() {
@@ -46,11 +45,50 @@ public class TransactionId implements Recyclable {
         random.nextBytes(data);
     }
 
+    public void setValue(long mostSignificantBits, long leastSignificantBits) {
+        ByteBuffer.wrap(data).putLong(mostSignificantBits).putLong(leastSignificantBits);
+    }
+
     @Override
     public void resetState() {
         for (int i = 0; i < data.length; i++) {
             data[i] = 0;
         }
+    }
+
+    public void copyFrom(TraceId other) {
+        System.arraycopy(other.data, 0, data, 0, SIZE);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TraceId that = (TraceId) o;
+        return Arrays.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(data);
+    }
+
+    @Override
+    public String toString() {
+        return HexUtils.bytesToHex(data);
+    }
+
+    public boolean isEmpty() {
+        return EMPTY.equals(this);
+    }
+
+    /**
+     * Returns the mutable underlying byte array
+     *
+     * @return the mutable underlying byte array
+     */
+    public byte[] getBytes() {
+        return data;
     }
 
     /**
@@ -72,43 +110,5 @@ public class TransactionId implements Recyclable {
             lsb = (lsb << 8) | (data[i] & 0xff);
         }
         return lsb;
-    }
-
-    public UUID toUuid() {
-        return new UUID(getMostSignificantBits(), getLeastSignificantBits());
-    }
-
-    public String toHexEncodedString() {
-        return HexUtils.bytesToHex(data);
-    }
-
-    public void copyFrom(TransactionId other) {
-        System.arraycopy(other.data, 0, data, 0, SIZE);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TransactionId that = (TransactionId) o;
-        return Arrays.equals(data, that.data);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(data);
-    }
-
-    @Override
-    public String toString() {
-        return toHexEncodedString();
-    }
-
-    public boolean isEmpty() {
-        return EMPTY.equals(this);
-    }
-
-    public byte[] getBytes() {
-        return data;
     }
 }

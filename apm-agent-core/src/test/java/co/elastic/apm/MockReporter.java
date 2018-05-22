@@ -19,7 +19,9 @@
  */
 package co.elastic.apm;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
@@ -43,9 +45,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class MockReporter implements Reporter {
     private final List<Transaction> transactions = new ArrayList<>();
+    private final List<Span> spans = new ArrayList<>();
     private final List<ErrorCapture> errors = new ArrayList<>();
     private final JsonSchema transactionSchema;
     private final JsonSchema errorSchema;
+    private final JsonSchema spanSchema;
     private final DslJsonSerializer dslJsonSerializer;
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
@@ -57,8 +61,9 @@ public class MockReporter implements Reporter {
     public MockReporter(boolean verifyJsonSchema) {
         this.verifyJsonSchema = verifyJsonSchema;
         transactionSchema = getSchema("/schema/transactions/transaction.json");
+        spanSchema = getSchema("/schema/transactions/span.json");
         errorSchema = getSchema("/schema/errors/error.json");
-        dslJsonSerializer = new DslJsonSerializer();
+        dslJsonSerializer = new DslJsonSerializer(new CoreConfiguration());
         objectMapper = new ObjectMapper();
     }
 
@@ -70,11 +75,23 @@ public class MockReporter implements Reporter {
     public void report(Transaction transaction) {
         verifyJsonSchema(transaction);
         transactions.add(transaction);
+        spans.addAll(transaction.getSpans());
+    }
+
+    @Override
+    public void report(Span span) {
+        verifyJsonSchema(span);
+        spans.add(span);
     }
 
     private void verifyJsonSchema(Transaction transaction) {
         final String content = dslJsonSerializer.toJsonString(transaction);
         verifyJsonSchema(content, transactionSchema);
+    }
+
+    private void verifyJsonSchema(Span span) {
+        final String content = dslJsonSerializer.toJsonString(span);
+        verifyJsonSchema(content, spanSchema);
     }
 
     private void verifyJsonSchema(ErrorCapture error) {
@@ -118,6 +135,15 @@ public class MockReporter implements Reporter {
     public void report(ErrorCapture error) {
         verifyJsonSchema(error);
         errors.add(error);
+    }
+
+
+    public Span getFirstSpan() {
+        return spans.get(0);
+    }
+
+    public List<Span> getSpans() {
+        return spans;
     }
 
     public List<ErrorCapture> getErrors() {
@@ -171,5 +197,6 @@ public class MockReporter implements Reporter {
     public void reset() {
         transactions.clear();
         errors.clear();
+        spans.clear();
     }
 }

@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.impl.sampling;
 
-import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.impl.transaction.TraceId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ProbabilitySamplerTest {
 
-    public static final int ITERATIONS = 1_000_000;
-    public static final int DELTA = (int) (ITERATIONS * 0.01);
-    public static final double SAMPLING_RATE = 0.5;
+    private static final int ITERATIONS = 1_000_000;
+    private static final int DELTA = (int) (ITERATIONS * 0.01);
+    private static final double SAMPLING_RATE = 0.5;
     private Sampler sampler;
 
     @BeforeEach
@@ -40,7 +40,7 @@ class ProbabilitySamplerTest {
     @Test
     void isSampledEmpiricalTest() {
         int sampledTransactions = 0;
-        TransactionId id = new TransactionId();
+        TraceId id = new TraceId();
         for (int i = 0; i < ITERATIONS; i++) {
             id.setToRandomValue();
             if (sampler.isSampled(id)) {
@@ -53,7 +53,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingUpperBoundary() {
         long upperBound = Long.MAX_VALUE / 2;
-        final TransactionId transactionId = new TransactionId();
+        final TraceId transactionId = new TraceId();
 
         transactionId.setValue(upperBound - 1, 0);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
@@ -68,7 +68,7 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingLowerBoundary() {
         long lowerBound = -Long.MAX_VALUE / 2;
-        final TransactionId transactionId = new TransactionId();
+        final TraceId transactionId = new TraceId();
 
         transactionId.setValue(lowerBound + 1, 0);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();

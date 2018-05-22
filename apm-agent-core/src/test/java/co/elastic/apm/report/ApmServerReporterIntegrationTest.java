@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
@@ -82,10 +83,12 @@ class ApmServerReporterIntegrationTest {
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
-        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(), reporterConfiguration);
+        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(),
+            new DslJsonSerializer(config.getConfig(CoreConfiguration.class)),
+            reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system, payloadSender, false,
-            reporterConfiguration, ProcessorEventHandler.loadProcessors(config));
+            reporterConfiguration, ProcessorEventHandler.loadProcessors(config), config.getConfig(CoreConfiguration.class));
     }
 
     @Test

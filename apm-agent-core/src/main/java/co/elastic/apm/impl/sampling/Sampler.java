@@ -20,7 +20,7 @@
 package co.elastic.apm.impl.sampling;
 
 import co.elastic.apm.api.Transaction;
-import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.impl.transaction.TraceId;
 
 /**
  * A sampler is responsible for determining whether a {@link Transaction} should be sampled.
@@ -41,8 +41,8 @@ public interface Sampler {
     /**
      * Determines whether the given transaction should be sampled.
      *
-     * @param transactionId The id of the transaction.
+     * @param traceId The id of the transaction.
      * @return The sampling decision.
      */
-    boolean isSampled(TransactionId transactionId);
+    boolean isSampled(TraceId traceId);
 }

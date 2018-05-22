@@ -129,4 +129,11 @@ public class Db implements Recyclable {
             type != null ||
             user != null;
     }
+
+    public void copyFrom(Db other) {
+        instance = other.instance;
+        statement = other.statement;
+        type = other.type;
+        user = other.user;
+    }
 }

@@ -51,12 +51,14 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class));
         return new ApmServerReporter(
             new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
             ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
             SystemInfo.create(),
-            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), new DslJsonSerializer(), reporterConfiguration),
-            true, reporterConfiguration, ProcessorEventHandler.loadProcessors(configurationRegistry));
+            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), payloadSerializer, reporterConfiguration),
+            true, reporterConfiguration, ProcessorEventHandler.loadProcessors(configurationRegistry),
+            configurationRegistry.getConfig(CoreConfiguration.class));
     }
 
     @Nonnull

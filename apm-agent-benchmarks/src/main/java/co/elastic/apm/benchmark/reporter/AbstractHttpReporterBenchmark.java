@@ -49,6 +49,7 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
 
     @Setup
     public void setUp(Blackhole blackhole) throws Exception {
+        super.setUp();
         noopBufferedSink = new NoopBufferedSink(blackhole);
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
@@ -56,7 +57,6 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
         server.start();
         port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
         payloadSerializer = getPayloadSerializer();
-        super.setUp();
     }
 
     @Override

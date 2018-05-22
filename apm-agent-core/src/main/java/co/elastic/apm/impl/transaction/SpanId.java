@@ -22,8 +22,6 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -71,14 +69,6 @@ public class SpanId implements Recyclable {
         return l;
     }
 
-    public String toHexEncodedString() {
-        return HexUtils.bytesToHex(data);
-    }
-
-    public void writeToOutputStream(OutputStream outputStream) throws IOException {
-        HexUtils.writeBytesAsHex(data, outputStream);
-    }
-
     public void copyFrom(SpanId other) {
         System.arraycopy(other.data, 0, data, 0, LENGTH);
     }
@@ -94,5 +84,14 @@ public class SpanId implements Recyclable {
     @Override
     public int hashCode() {
         return Arrays.hashCode(data);
+    }
+
+    public byte[] getBytes() {
+        return data;
+    }
+
+    @Override
+    public String toString() {
+        return HexUtils.bytesToHex(data);
     }
 }
