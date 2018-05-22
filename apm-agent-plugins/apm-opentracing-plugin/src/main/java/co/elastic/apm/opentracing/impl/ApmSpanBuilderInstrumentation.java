@@ -24,6 +24,7 @@ import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -79,15 +80,15 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                                          @Nullable Object parentTransaction,
                                          @Advice.FieldValue(value = "parentSpan", readOnly = false)
                                          @Nullable Object parentSpan) {
-            if (isGetActive(ignoreActiveSpan, parentTransaction, parentSpan)) {
+            if (tracer != null && isActive(ignoreActiveSpan, parentTransaction, parentSpan)) {
                 parentTransaction = tracer.currentTransaction();
                 parentSpan = tracer.currentSpan();
             }
         }
 
         @VisibleForAdvice
-        public static boolean isGetActive(boolean ignoreActiveSpan, @Nullable Object parentTransaction, @Nullable Object parentSpan) {
-            return tracer != null && !ignoreActiveSpan && parentSpan == null && parentTransaction == null;
+        public static boolean isActive(boolean ignoreActiveSpan, @Nullable Object parentTransaction, @Nullable Object parentSpan) {
+            return !ignoreActiveSpan && parentSpan == null && parentTransaction == null;
         }
     }
 
@@ -103,14 +104,16 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                                              @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                              @Advice.FieldValue(value = "operationName") String operationName,
                                              @Advice.FieldValue(value = "microseconds") long microseconds,
+                                             @Advice.Argument(0) @Nullable Iterable<Map.Entry<String, String>> baggage,
                                              @Advice.Return(readOnly = false) Object transaction) {
-            transaction = doCreateTransaction(parentTransaction, tags, operationName, microseconds);
+            transaction = doCreateTransaction(parentTransaction, tags, operationName, microseconds, baggage);
         }
 
         @Nullable
         @VisibleForAdvice
         public static Transaction doCreateTransaction(@Nullable Transaction parentTransaction, Map<String, Object> tags,
-                                                      String operationName, long microseconds) {
+                                                      String operationName, long microseconds,
+                                                      @Nullable Iterable<Map.Entry<String, String>> baggage) {
             if (tracer != null && parentTransaction == null) {
                 if ("client".equals(tags.get("span.kind"))) {
                     logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
@@ -124,7 +127,20 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                     } else {
                         sampler = tracer.getSampler();
                     }
-                    return tracer.startManualTransaction(sampler, getStartTime(microseconds));
+                    return tracer.startManualTransaction(getTraceContextHeader(baggage), sampler, getStartTime(microseconds));
+                }
+            }
+            return null;
+        }
+
+        @Nullable
+        @VisibleForAdvice
+        public static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
+            if (baggage != null) {
+                for (Map.Entry<String, String> entry : baggage) {
+                    if (entry.getKey().equalsIgnoreCase(TraceContext.TRACE_PARENT_HEADER)) {
+                        return entry.getValue();
+                    }
                 }
             }
             return null;

@@ -57,9 +57,8 @@ public class ElasticApmTracer implements io.opentracing.Tracer {
     public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
         if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
             TextMap textMap = (TextMap) carrier;
-            final String traceParentHeader = ((ApmSpanContext) spanContext).getTraceParentHeader();
-            if (traceParentHeader != null) {
-                textMap.put(TraceContext.TRACE_PARENT_HEADER, traceParentHeader);
+            for (Map.Entry<String, String> baggageItem : spanContext.baggageItems()) {
+                textMap.put(baggageItem.getKey(), baggageItem.getValue());
             }
         }
     }
@@ -69,11 +68,7 @@ public class ElasticApmTracer implements io.opentracing.Tracer {
     public <C> SpanContext extract(Format<C> format, C carrier) {
         if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
             TextMap textMap = (TextMap) carrier;
-            for (Map.Entry<String, String> entry : textMap) {
-                if (TraceContext.TRACE_PARENT_HEADER.equalsIgnoreCase(entry.getKey())) {
-                    return ApmSpanContext.ForHeader.of(entry.getValue());
-                }
-            }
+            return ExternalProcessSpanContext.of(textMap);
         }
         return null;
     }

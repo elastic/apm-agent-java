@@ -41,7 +41,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     private boolean ignoreActiveSpan = false;
     private long microseconds = -1;
     @Nullable
-    private String traceParentHeader;
+    private ExternalProcessSpanContext parentContext;
 
     ApmSpanBuilder(@Nullable String operationName, ApmScopeManager scopeManager) {
         this.operationName = operationName;
@@ -50,19 +50,20 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder asChildOf(SpanContext parent) {
-        final ApmSpanContext parenApmContext = (ApmSpanContext) parent;
-        if (parenApmContext instanceof ApmSpan) {
-            asChildOf((Span) parenApmContext);
-        } else if (parent != null) {
-            this.traceParentHeader = parenApmContext.getTraceParentHeader();
+        if (parent instanceof ApmSpan) {
+            asChildOf((Span) parent);
+        } else if (parent instanceof ExternalProcessSpanContext) {
+            this.parentContext = (ExternalProcessSpanContext) parent;
         }
         return this;
     }
 
     @Override
     public ApmSpanBuilder asChildOf(Span parent) {
-        this.parentSpan = ((ApmSpan) parent).getSpan();
-        this.parentTransaction = ((ApmSpan) parent).getTransaction();
+        if (parent != null) {
+            this.parentSpan = ((ApmSpan) parent).getSpan();
+            this.parentTransaction = ((ApmSpan) parent).getTransaction();
+        }
         return this;
     }
 
@@ -120,26 +121,25 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     private ApmSpan startApmSpan() {
         // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.StartApmSpanInstrumentation.startApmSpan
-        final Object transaction = createTransaction();
-        final Object span = createSpan();
+        final Iterable<Map.Entry<String, String>> baggage = parentContext != null ? parentContext.baggageItems() : null;
+        final Object transaction = createTransaction(baggage);
+        final Object span = createSpan(baggage);
         final ApmSpan apmSpan = new ApmSpan(transaction, span).setOperationName(operationName);
         addTags(apmSpan);
         return apmSpan;
     }
 
     @Nullable
-    private Object createTransaction() {
+    private Object createTransaction(Iterable<Map.Entry<String, String>> baggage) {
         // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateTransactionInstrumentation.createTransaction
         return null;
     }
 
-
     @Nullable
-    private Object createSpan() {
+    private Object createSpan(Iterable<Map.Entry<String, String>> baggage) {
         // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.createSpan
         return null;
     }
-
 
     private void addTags(ApmSpan apmSpan) {
         for (Map.Entry<String, Object> entry : tags.entrySet()) {

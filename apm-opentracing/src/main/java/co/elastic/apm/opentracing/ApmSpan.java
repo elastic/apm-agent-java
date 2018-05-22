@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-class ApmSpan implements Span, ApmSpanContext {
+class ApmSpan implements Span, SpanContext {
 
     @Nullable
     // co.elastic.apm.impl.transaction.Transaction
@@ -140,19 +140,8 @@ class ApmSpan implements Span, ApmSpanContext {
         return Collections.emptyList();
     }
 
-
     private void handleTag(String key, @Nullable Object value) {
         // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.TagInstrumentation.handleTag
     }
 
-    @Override
-    public String getTraceParentHeader() {
-        if (transaction != null) {
-            return transaction.getTraceContext().getOutgoingTraceParentHeader().toString();
-        }
-        if (span != null) {
-            return span.getTraceContext().getOutgoingTraceParentHeader().toString();
-        }
-        return null;
-    }
 }

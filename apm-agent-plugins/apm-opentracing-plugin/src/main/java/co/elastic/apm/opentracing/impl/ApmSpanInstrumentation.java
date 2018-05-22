@@ -22,6 +22,7 @@ package co.elastic.apm.opentracing.impl;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
@@ -31,6 +32,7 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -232,4 +234,35 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             return "redis".equals(dbType);
         }
     }
+
+    public static class BaggageItemsInstrumentation extends ApmSpanInstrumentation {
+
+        public BaggageItemsInstrumentation() {
+            super(named("baggageItems"));
+        }
+
+        @Advice.OnMethodExit
+        public static void getTraceParentHeader(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
+                                                @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+                                                @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
+            baggage = doGetBaggage(transaction, span);
+        }
+
+        @VisibleForAdvice
+        public static Iterable<Map.Entry<String, String>> doGetBaggage(@Nullable Transaction transaction, @Nullable Span span) {
+            String traceParentHeader = null;
+            if (transaction != null) {
+                traceParentHeader = transaction.getTraceContext().getOutgoingTraceParentHeader().toString();
+            }
+            if (span != null) {
+                traceParentHeader = span.getTraceContext().getOutgoingTraceParentHeader().toString();
+            }
+            if (traceParentHeader != null) {
+                return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceParentHeader).entrySet();
+            } else {
+                return Collections.emptyList();
+            }
+        }
+    }
+
 }

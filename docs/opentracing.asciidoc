@@ -68,3 +68,8 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
   appears in the "User" tab in the transaction details in the Elastic APM UI
 - `result` - sets the result of the transaction. Overrides the default value of `success`.
   If the `error` tag is set to `true`, the default value is `error`.
+
+[[propagation]]
+=== Context propagation
+This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Builtin.HTTP_HEADERS`.
+`Format.Builtin.BINARY` is currently not supported.

@@ -205,25 +205,25 @@ class ElasticApmTracerTest extends AbstractInstrumentationTest {
         final String traceId = "0af7651916cd43dd8448eb211c80319c";
         final String parentId = "b9c7c989f97918e1";
 
-        final ApmSpan span = apmTracer.buildSpan("span")
+        final Scope scope = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
                 new TextMapExtractAdapter(Map.of(TraceContext.TRACE_PARENT_HEADER,
                     "00-" + traceId + "-" + parentId + "-01"))))
-            .start();
-        assertThat(span.getTransaction()).isNotNull();
-        assertThat(span.getTransaction().isSampled()).isTrue();
-        assertThat(span.getTransaction().getTraceContext().getTraceId().toString()).isEqualTo(traceId);
-        assertThat(span.getTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
+            .startActive(true);
+        assertThat(tracer.currentTransaction()).isNotNull();
+        assertThat(tracer.currentTransaction().isSampled()).isTrue();
+        assertThat(tracer.currentTransaction().getTraceContext().getTraceId().toString()).isEqualTo(traceId);
+        assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
 
         final HashMap<String, String> map = new HashMap<>();
-        apmTracer.inject(span.context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
+        apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
         final TraceContext injectedContext = new TraceContext();
         injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER));
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
-        assertThat(injectedContext.getParentId()).isEqualTo(span.getTransaction().getTraceContext().getId());
+        assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();
 
-        span.finish();
+        scope.close();
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
