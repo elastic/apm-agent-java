@@ -33,7 +33,7 @@ class ApmSpan implements Span, SpanContext {
     // co.elastic.apm.impl.transaction.Transaction
     private final Object transaction;
     @Nullable
-    // co.elastic.apm.impl.transaction
+    // co.elastic.apm.impl.transaction.Span
     private final Object span;
 
     ApmSpan(@Nullable Object transaction, @Nullable Object span) {

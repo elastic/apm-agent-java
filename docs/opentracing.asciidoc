@@ -46,10 +46,10 @@ This bridge allows for different operation modes in combination with the Elastic
 
 [source,java]
 ----
-import co.elastic.apm.opentracing.ApmTracer;
+import co.elastic.apm.opentracing.ElasticApmTracer;
 import io.opentracing.Tracer
 
-Tracer tracer = new ApmTracer();
+Tracer tracer = new ElasticApmTracer();
 ----
 
 
