@@ -33,7 +33,7 @@ public class TransactionUtils {
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(null, null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
@@ -86,16 +86,16 @@ public class TransactionUtils {
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
             .withUser("readonly_user");
-        t.getSpans().add(span);
-        t.getSpans().add(new Span()
+        t.addSpan(span);
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
+        t.addSpan(new Span()
             .start(null, t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));

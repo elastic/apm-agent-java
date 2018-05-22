@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.TRANSACTION;
 
 class ReportingEventHandler implements EventHandler<ReportingEvent> {
@@ -59,6 +60,9 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
             if (transactionPayload.getTransactions().size() >= reporterConfiguration.getMaxQueueSize()) {
                 flush(transactionPayload);
             }
+        }
+        if (event.getType() == SPAN) {
+            transactionPayload.getSpans().add(event.getSpan());
         }
         if (event.getType() == ERROR) {
             errorPayload.getErrors().add(event.getError());

@@ -21,17 +21,19 @@ package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
-import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.Date;
 
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class ErrorCapture implements Recyclable {
+
+    private final TraceContext traceContext = new TraceContext();
 
     /**
      * Context
@@ -44,20 +46,17 @@ public class ErrorCapture implements Recyclable {
      */
     private final ExceptionInfo exception = new ExceptionInfo();
     /**
+     * Data for correlating errors with transactions
+     */
+    @Deprecated
+    private final TransactionReference transaction = new TransactionReference();
+    /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
     private long timestamp;
-    /**
-     * Data for correlating errors with transactions
-     */
-    private final TransactionReference transaction = new TransactionReference();
     @Nullable
     private transient ElasticApmTracer tracer;
-    /**
-     * ID for the error
-     */
-    private final TransactionId id = new TransactionId();
 
     /**
      * Context
@@ -76,13 +75,6 @@ public class ErrorCapture implements Recyclable {
     }
 
     /**
-     * UUID for the error
-     */
-    public TransactionId getId() {
-        return id;
-    }
-
-    /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
@@ -98,6 +90,7 @@ public class ErrorCapture implements Recyclable {
     /**
      * Data for correlating errors with transactions
      */
+    @Deprecated
     public TransactionReference getTransaction() {
         return transaction;
     }
@@ -106,15 +99,30 @@ public class ErrorCapture implements Recyclable {
     public void resetState() {
         exception.resetState();
         context.resetState();
-        id.resetState();
         transaction.resetState();
         timestamp = 0;
         tracer = null;
+        traceContext.resetState();
     }
 
     public void recycle() {
         if (tracer != null) {
             tracer.recycle(this);
         }
+    }
+
+    /**
+     * Creates a reference to a {@link co.elastic.apm.impl.transaction.Span} or {@link co.elastic.apm.impl.transaction.Transaction}
+     *
+     * @param parent
+     * @return {@code this}, for chaining
+     */
+    public ErrorCapture asChildOf(AbstractSpan parent) {
+        this.traceContext.asChildOf(parent.getTraceContext());
+        return this;
+    }
+
+    public TraceContext getTraceContext() {
+        return traceContext;
     }
 }

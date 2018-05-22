@@ -40,6 +40,8 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     private Object parentTransaction;
     private boolean ignoreActiveSpan = false;
     private long microseconds = -1;
+    @Nullable
+    private String traceParentHeader;
 
     ApmSpanBuilder(@Nullable String operationName, ApmScopeManager scopeManager) {
         this.operationName = operationName;
@@ -48,7 +50,12 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder asChildOf(SpanContext parent) {
-        // distributed tracing and span context relationships are not supported yet
+        final ApmSpanContext parenApmContext = (ApmSpanContext) parent;
+        if (parenApmContext instanceof ApmSpan) {
+            asChildOf((Span) parenApmContext);
+        } else if (parent != null) {
+            this.traceParentHeader = parenApmContext.getTraceParentHeader();
+        }
         return this;
     }
 
@@ -62,7 +69,6 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     @Override
     public ApmSpanBuilder addReference(String referenceType, SpanContext referencedContext) {
         // TODO add reference types
-        asChildOf(referencedContext);
         return this;
     }
 

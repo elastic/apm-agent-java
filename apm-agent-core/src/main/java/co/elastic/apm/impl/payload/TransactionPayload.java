@@ -20,6 +20,7 @@
 
 package co.elastic.apm.impl.payload;
 
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
 
@@ -39,6 +40,8 @@ public class TransactionPayload extends Payload {
      */
     private final List<Transaction> transactions = new ArrayList<Transaction>();
 
+    private final List<Span> spans = new ArrayList<Span>();
+
     public TransactionPayload(ProcessInfo process, Service service, SystemInfo system) {
         super(process, service, system);
     }
@@ -50,9 +53,14 @@ public class TransactionPayload extends Payload {
         return transactions;
     }
 
+    public List<Span> getSpans() {
+        return spans;
+    }
+
     @Override
     public void resetState() {
         transactions.clear();
+        spans.clear();
     }
 
     @Override
@@ -62,8 +70,11 @@ public class TransactionPayload extends Payload {
 
     @Override
     public void recycle() {
-        for (Transaction transaction : transactions) {
-            transaction.recycle();
+        for (int i = 0; i < transactions.size(); i++) {
+            transactions.get(i).recycle();
+        }
+        for (int i = 0; i < spans.size(); i++) {
+            spans.get(i).recycle();
         }
     }
 }

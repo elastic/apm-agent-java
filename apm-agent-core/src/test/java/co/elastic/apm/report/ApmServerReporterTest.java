@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
@@ -50,7 +51,8 @@ class ApmServerReporterTest {
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system,
             mock(PayloadSender.class), true, reporterConfiguration,
-            new ProcessorEventHandler(Collections.singletonList(new TestProcessor())));
+            new ProcessorEventHandler(Collections.singletonList(new TestProcessor())),
+            configurationRegistry.getConfig(CoreConfiguration.class));
     }
 
     @Test
