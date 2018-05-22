@@ -19,19 +19,16 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.impl.ElasticApmTracer;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
 
 import javax.annotation.Nullable;
 
-public class ApmTracer implements io.opentracing.Tracer {
-    private final ElasticApmTracer tracer;
+public class ElasticApmTracer implements io.opentracing.Tracer {
     private final ApmScopeManager scopeManager;
 
-    public ApmTracer(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-        this.scopeManager = new ApmScopeManager(tracer);
+    public ElasticApmTracer() {
+        this.scopeManager = new ApmScopeManager();
     }
 
     @Override
@@ -51,7 +48,7 @@ public class ApmTracer implements io.opentracing.Tracer {
 
     @Override
     public ApmSpanBuilder buildSpan(String operationName) {
-        return new ApmSpanBuilder(operationName, tracer, scopeManager());
+        return new ApmSpanBuilder(operationName, scopeManager());
     }
 
     @Override

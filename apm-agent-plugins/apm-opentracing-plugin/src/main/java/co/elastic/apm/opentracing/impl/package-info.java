@@ -17,5 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.opentracing;
 
+/**
+ * Injects the actual implementation of the OpenTracing API at runtime.
+ */
+@NonnullApi
+package co.elastic.apm.opentracing.impl;
+
+import co.elastic.apm.annotation.NonnullApi;
