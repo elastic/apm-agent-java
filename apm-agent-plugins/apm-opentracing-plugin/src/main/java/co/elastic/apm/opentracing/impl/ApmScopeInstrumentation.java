@@ -54,4 +54,9 @@ public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("release");
     }
+
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
+    }
 }

@@ -81,10 +81,6 @@ public class ElasticApmAgent {
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation,
                                            Iterable<ElasticApmInstrumentation> instrumentations) {
-        if (!tracer.getConfig(CoreConfiguration.class).isInstrument()) {
-            logger.info("Instrumentation is disabled");
-            return;
-        }
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
             return;
@@ -95,9 +91,12 @@ public class ElasticApmAgent {
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
         int numberOfAdvices = 0;
+        final boolean instrument = tracer.getConfig(CoreConfiguration.class).isInstrument();
         for (final ElasticApmInstrumentation advice : instrumentations) {
-            numberOfAdvices++;
-            agentBuilder = applyAdvice(tracer, agentBuilder, advice);
+            if (advice.includeWhenInstrumentationIsDisabled() || instrument) {
+                numberOfAdvices++;
+                agentBuilder = applyAdvice(tracer, agentBuilder, advice);
+            }
         }
         logger.debug("Applied {} advices", numberOfAdvices);
 

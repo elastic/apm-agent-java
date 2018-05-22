@@ -85,4 +85,14 @@ public abstract class ElasticApmInstrumentation {
         return getClass();
     }
 
+
+    /**
+     * Return {@code true},
+     * if this instrumentation should even be applied when
+     * {@link co.elastic.apm.configuration.CoreConfiguration#instrument} is set to {@code false}.
+     */
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return false;
+    }
+
 }

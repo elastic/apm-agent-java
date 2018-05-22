@@ -62,6 +62,11 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         return methodMatcher;
     }
 
+    @Override
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return true;
+    }
+
     public static class StartApmSpanInstrumentation extends ApmSpanBuilderInstrumentation {
 
         public StartApmSpanInstrumentation() {

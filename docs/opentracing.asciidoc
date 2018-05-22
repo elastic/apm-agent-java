@@ -39,7 +39,7 @@ This bridge allows for different operation modes in combination with the Elastic
 - Manual instrumentation +
   If you don't want Elastic APM to auto-instrument known frameworks,
   but instead only rely on manual instrumentation,
-  disable all framework integrations by configuring the option `instrumentation_whitelist` to `none`.
+  disable the auto instrumentation setting the configuration option `instrument` to `false`.
 
 [[init-tracer]]
 === Initialize tracer
