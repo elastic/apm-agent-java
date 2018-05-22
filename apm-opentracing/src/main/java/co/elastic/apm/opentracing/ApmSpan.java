@@ -132,11 +132,17 @@ class ApmSpan implements Span, SpanContext {
     @Override
     @Nullable
     public String getBaggageItem(String key) {
+        for (Map.Entry<String, String> baggage : baggageItems()) {
+            if (baggage.getKey().equals(key)) {
+                return baggage.getValue();
+            }
+        }
         return null;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> baggageItems() {
+        // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.BaggageItemsInstrumentation.baggageItems
         return Collections.emptyList();
     }
 

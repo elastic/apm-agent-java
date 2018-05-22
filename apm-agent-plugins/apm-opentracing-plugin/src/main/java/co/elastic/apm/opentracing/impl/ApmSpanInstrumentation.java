@@ -242,9 +242,9 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Advice.OnMethodExit
-        public static void getTraceParentHeader(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                                @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
-                                                @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
+        public static void baggageItems(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
+                                        @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+                                        @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
             baggage = doGetBaggage(transaction, span);
         }
 

@@ -69,7 +69,26 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
 - `result` - sets the result of the transaction. Overrides the default value of `success`.
   If the `error` tag is set to `true`, the default value is `error`.
 
+[[unsupported]]
+=== Caveats
+Not all features of the OpenTracing API are supported.
+
 [[propagation]]
-=== Context propagation
+==== Context propagation
 This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Builtin.HTTP_HEADERS`.
 `Format.Builtin.BINARY` is currently not supported.
+
+[[references]]
+==== References
+Currently, this bridge only supports `child_of` references.
+Other references,
+like `follows_from` are not supported yet.
+
+[[baggage]]
+==== Baggage
+The `Span.setBaggageItem(String, String)` method is not supported.
+Baggage items are silently dropped.
+
+[[logs]]
+==== Logs
+Only exception logging is supported (see <<opentracing-bridge>>).

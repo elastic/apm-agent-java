@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.opentracing;
 
+import io.opentracing.References;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
@@ -69,7 +70,9 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder addReference(String referenceType, SpanContext referencedContext) {
-        // TODO add reference types
+        if (References.CHILD_OF.equals(referenceType)) {
+            asChildOf(referencedContext);
+        }
         return this;
     }
 

@@ -243,6 +243,18 @@ class ElasticApmTracerTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
+    @Test
+    void testGetBaggageItem() {
+        final ApmSpan span = apmTracer.buildSpan("span")
+            .start();
+        assertThat(span.getBaggageItem(TraceContext.TRACE_PARENT_HEADER)).isNotNull();
+
+        // baggage is not supported yet
+        span.setBaggageItem("foo", "bar");
+        assertThat(span.getBaggageItem("foo")).isNull();
+        span.finish();
+    }
+
     private Transaction createTransactionFromOtTags(Map<String, String> tags) {
         final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
         tags.forEach(spanBuilder::withTag);
