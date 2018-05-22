@@ -25,6 +25,8 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import javax.annotation.Nullable;
+
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
  * (see {@link #getTypeMatcher()}).
@@ -39,6 +41,10 @@ import net.bytebuddy.matcher.ElementMatchers;
  */
 public abstract class ElasticApmInstrumentation {
 
+    @Nullable
+    @VisibleForAdvice
+    public static ElasticApmTracer tracer;
+
     /**
      * Initializes the advice with the {@link ElasticApmTracer}
      * <p>
@@ -51,6 +57,7 @@ public abstract class ElasticApmInstrumentation {
      * @param tracer the tracer to use for this advice.
      */
     public void init(ElasticApmTracer tracer) {
+        ElasticApmInstrumentation.tracer = tracer;
     }
 
     /**
@@ -76,6 +83,16 @@ public abstract class ElasticApmInstrumentation {
 
     public Class<?> getAdviceClass() {
         return getClass();
+    }
+
+
+    /**
+     * Return {@code true},
+     * if this instrumentation should even be applied when
+     * {@link co.elastic.apm.configuration.CoreConfiguration#instrument} is set to {@code false}.
+     */
+    public boolean includeWhenInstrumentationIsDisabled() {
+        return false;
     }
 
 }

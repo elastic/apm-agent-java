@@ -19,8 +19,6 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 
@@ -28,34 +26,40 @@ import javax.annotation.Nullable;
 
 class ApmScopeManager implements ScopeManager {
 
-    private final ElasticApmTracer tracer;
-
-    ApmScopeManager(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-    }
-
     @Override
     public ApmScope activate(Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
-        if (apmSpan.getTransaction() != null) {
-            tracer.activate(apmSpan.getTransaction());
-        } else if (apmSpan.getSpan() != null) {
-            tracer.activate(apmSpan.getSpan());
-        }
-        return new ApmScope(finishSpanOnClose, apmSpan, tracer);
+        doActivate(apmSpan.getTransaction(), apmSpan.getSpan());
+        return new ApmScope(finishSpanOnClose, apmSpan);
+    }
+
+    private void doActivate(@Nullable Object transaction, @Nullable Object span) {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
     }
 
     @Override
     @Nullable
     public ApmScope active() {
-        final co.elastic.apm.impl.transaction.Span span = tracer.currentSpan();
-        final Transaction transaction = tracer.currentTransaction();
+        final Object span = getCurrentSpan();
+        final Object transaction = getCurrentTransaction();
         if (span == null && transaction == null) {
             return null;
         } else if (span != null) {
-            return new ApmScope(false, new ApmSpan(null, span, tracer), tracer);
+            return new ApmScope(false, new ApmSpan(null, span));
         } else {
-            return new ApmScope(false, new ApmSpan(transaction, null, tracer), tracer);
+            return new ApmScope(false, new ApmSpan(transaction, null));
         }
+    }
+
+    @Nullable
+    private Object getCurrentTransaction() {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
+        return null;
+    }
+
+    @Nullable
+    private Object getCurrentSpan() {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
+        return null;
     }
 }

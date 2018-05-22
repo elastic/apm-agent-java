@@ -19,19 +19,18 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.impl.ElasticApmTracer;
 import io.opentracing.Scope;
+
+import javax.annotation.Nullable;
 
 class ApmScope implements Scope {
 
     private final boolean finishSpanOnClose;
     private final ApmSpan apmSpan;
-    private final ElasticApmTracer tracer;
 
-    ApmScope(boolean finishSpanOnClose, ApmSpan apmSpan, ElasticApmTracer tracer) {
+    ApmScope(boolean finishSpanOnClose, ApmSpan apmSpan) {
         this.finishSpanOnClose = finishSpanOnClose;
         this.apmSpan = apmSpan;
-        this.tracer = tracer;
     }
 
     @Override
@@ -39,11 +38,11 @@ class ApmScope implements Scope {
         if (finishSpanOnClose) {
             apmSpan.finish();
         }
-        if (apmSpan.getTransaction() != null) {
-            tracer.releaseActiveTransaction();
-        } else if (apmSpan.getSpan() != null) {
-            tracer.releaseActiveSpan();
-        }
+        release(apmSpan.getTransaction(), apmSpan.getSpan());
+    }
+
+    private void release(@Nullable Object transaction, @Nullable Object span) {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ApmScopeInstrumentation
     }
 
     @Override

@@ -19,8 +19,7 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.MockReporter;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
@@ -41,19 +40,13 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ApmTracerTest {
+class ElasticApmTracerTest extends AbstractInstrumentationTest {
 
-    private ApmTracer apmTracer;
-    private MockReporter reporter;
+    private ElasticApmTracer apmTracer;
 
     @BeforeEach
     void setUp() {
-        reporter = new MockReporter();
-        final ElasticApmTracer elasticApmTracer = ElasticApmTracer.builder()
-            .withConfig("service_name", "elastic-apm-test")
-            .reporter(reporter)
-            .build();
-        apmTracer = new ApmTracer(elasticApmTracer);
+        apmTracer = new ElasticApmTracer();
     }
 
     @Test
@@ -212,25 +205,25 @@ class ApmTracerTest {
         final String traceId = "0af7651916cd43dd8448eb211c80319c";
         final String parentId = "b9c7c989f97918e1";
 
-        final ApmSpan span = apmTracer.buildSpan("span")
+        final Scope scope = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
                 new TextMapExtractAdapter(Map.of(TraceContext.TRACE_PARENT_HEADER,
                     "00-" + traceId + "-" + parentId + "-01"))))
-            .start();
-        assertThat(span.getTransaction()).isNotNull();
-        assertThat(span.getTransaction().isSampled()).isTrue();
-        assertThat(span.getTransaction().getTraceContext().getTraceId().toString()).isEqualTo(traceId);
-        assertThat(span.getTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
+            .startActive(true);
+        assertThat(tracer.currentTransaction()).isNotNull();
+        assertThat(tracer.currentTransaction().isSampled()).isTrue();
+        assertThat(tracer.currentTransaction().getTraceContext().getTraceId().toString()).isEqualTo(traceId);
+        assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
 
         final HashMap<String, String> map = new HashMap<>();
-        apmTracer.inject(span.context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
+        apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
         final TraceContext injectedContext = new TraceContext();
         injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER));
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
-        assertThat(injectedContext.getParentId()).isEqualTo(span.getTransaction().getTraceContext().getId());
+        assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();
 
-        span.finish();
+        scope.close();
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
@@ -248,6 +241,18 @@ class ApmTracerTest {
             .asChildOf((Span) null)
             .start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testGetBaggageItem() {
+        final ApmSpan span = apmTracer.buildSpan("span")
+            .start();
+        assertThat(span.getBaggageItem(TraceContext.TRACE_PARENT_HEADER)).isNotNull();
+
+        // baggage is not supported yet
+        span.setBaggageItem("foo", "bar");
+        assertThat(span.getBaggageItem("foo")).isNull();
+        span.finish();
     }
 
     private Transaction createTransactionFromOtTags(Map<String, String> tags) {

@@ -19,8 +19,6 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.transaction.TraceContext;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
@@ -28,13 +26,11 @@ import io.opentracing.propagation.TextMap;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class ApmTracer implements io.opentracing.Tracer {
-    private final ElasticApmTracer tracer;
+public class ElasticApmTracer implements io.opentracing.Tracer {
     private final ApmScopeManager scopeManager;
 
-    public ApmTracer(ElasticApmTracer tracer) {
-        this.tracer = tracer;
-        this.scopeManager = new ApmScopeManager(tracer);
+    public ElasticApmTracer() {
+        this.scopeManager = new ApmScopeManager();
     }
 
     @Override
@@ -54,16 +50,15 @@ public class ApmTracer implements io.opentracing.Tracer {
 
     @Override
     public ApmSpanBuilder buildSpan(String operationName) {
-        return new ApmSpanBuilder(operationName, tracer, scopeManager());
+        return new ApmSpanBuilder(operationName, scopeManager());
     }
 
     @Override
     public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
         if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
             TextMap textMap = (TextMap) carrier;
-            final String traceParentHeader = ((ApmSpanContext) spanContext).getTraceParentHeader();
-            if (traceParentHeader != null) {
-                textMap.put(TraceContext.TRACE_PARENT_HEADER, traceParentHeader);
+            for (Map.Entry<String, String> baggageItem : spanContext.baggageItems()) {
+                textMap.put(baggageItem.getKey(), baggageItem.getValue());
             }
         }
     }
@@ -73,11 +68,7 @@ public class ApmTracer implements io.opentracing.Tracer {
     public <C> SpanContext extract(Format<C> format, C carrier) {
         if (format == Format.Builtin.HTTP_HEADERS || format == Format.Builtin.TEXT_MAP) {
             TextMap textMap = (TextMap) carrier;
-            for (Map.Entry<String, String> entry : textMap) {
-                if (TraceContext.TRACE_PARENT_HEADER.equalsIgnoreCase(entry.getKey())) {
-                    return ApmSpanContext.ForHeader.of(entry.getValue());
-                }
-            }
+            return ExternalProcessSpanContext.of(textMap);
         }
         return null;
     }

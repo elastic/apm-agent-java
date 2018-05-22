@@ -19,64 +19,60 @@
  */
 package co.elastic.apm.opentracing;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.sampling.ConstantSampler;
-import co.elastic.apm.impl.sampling.Sampler;
-import co.elastic.apm.impl.transaction.Transaction;
+import io.opentracing.References;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
-import io.opentracing.tag.Tags;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
 class ApmSpanBuilder implements Tracer.SpanBuilder {
-    private static final Logger logger = LoggerFactory.getLogger(ApmSpanBuilder.class);
 
     @Nullable
     private final String operationName;
-    private final ElasticApmTracer tracer;
+    // co.elastic.apm.impl.ElasticApmTracer
     private final Map<String, Object> tags = new HashMap<>();
     private final ApmScopeManager scopeManager;
     @Nullable
-    private ApmSpan parent;
-    private long nanoTime = System.nanoTime();
-    private boolean ignoreActiveSpan = false;
-    private Sampler sampler;
+    private Object parentSpan;
     @Nullable
-    private String traceParentHeader;
+    private Object parentTransaction;
+    private boolean ignoreActiveSpan = false;
+    private long microseconds = -1;
+    @Nullable
+    private ExternalProcessSpanContext parentContext;
 
-    ApmSpanBuilder(@Nullable String operationName, ElasticApmTracer tracer, ApmScopeManager scopeManager) {
+    ApmSpanBuilder(@Nullable String operationName, ApmScopeManager scopeManager) {
         this.operationName = operationName;
-        this.tracer = tracer;
         this.scopeManager = scopeManager;
-        sampler = tracer.getSampler();
     }
 
     @Override
     public ApmSpanBuilder asChildOf(SpanContext parent) {
-        final ApmSpanContext parenApmContext = (ApmSpanContext) parent;
-        if (parenApmContext instanceof ApmSpan) {
-            asChildOf((Span) parenApmContext);
-        } else if (parent != null) {
-            this.traceParentHeader = parenApmContext.getTraceParentHeader();
+        if (parent instanceof ApmSpan) {
+            asChildOf((Span) parent);
+        } else if (parent instanceof ExternalProcessSpanContext) {
+            this.parentContext = (ExternalProcessSpanContext) parent;
         }
         return this;
     }
 
     @Override
     public ApmSpanBuilder asChildOf(Span parent) {
-        this.parent = (ApmSpan) parent;
+        if (parent != null) {
+            this.parentSpan = ((ApmSpan) parent).getSpan();
+            this.parentTransaction = ((ApmSpan) parent).getTransaction();
+        }
         return this;
     }
 
     @Override
     public ApmSpanBuilder addReference(String referenceType, SpanContext referencedContext) {
-        // TODO add reference types
+        if (References.CHILD_OF.equals(referenceType)) {
+            asChildOf(referencedContext);
+        }
         return this;
     }
 
@@ -100,17 +96,13 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Override
     public ApmSpanBuilder withTag(String key, Number value) {
-        if (Tags.SAMPLING_PRIORITY.getKey().equals(key) && value != null) {
-            sampler = ConstantSampler.of(value.intValue() > 0);
-        } else {
-            tags.put(key, value);
-        }
+        tags.put(key, value);
         return this;
     }
 
     @Override
     public ApmSpanBuilder withStartTimestamp(long microseconds) {
-        this.nanoTime = microseconds * 1000;
+        this.microseconds = microseconds;
         return this;
     }
 
@@ -131,28 +123,25 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     }
 
     private ApmSpan startApmSpan() {
-        final ApmScope active = scopeManager.active();
-        if (!ignoreActiveSpan && active != null) {
-            asChildOf((Span) active.span());
-        }
-        final ApmSpan apmSpan;
-        if (parent == null) {
-            final Transaction transaction;
-            if (Tags.SPAN_KIND_CLIENT.equals(tags.get(Tags.SPAN_KIND.getKey()))) {
-                logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
-                    "Consider creating a span for the whole request.", operationName);
-                transaction = tracer.noopTransaction();
-            } else {
-                transaction = tracer.startManualTransaction(traceParentHeader, sampler, nanoTime);
-            }
-            apmSpan = new ApmSpan(transaction, null, tracer).setOperationName(operationName);
-        } else {
-            Transaction transaction = getTransaction(parent);
-            final co.elastic.apm.impl.transaction.Span span = tracer.startManualSpan(transaction, parent.getSpan(), nanoTime);
-            apmSpan = new ApmSpan(null, span, tracer).setOperationName(operationName);
-        }
+        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.StartApmSpanInstrumentation.startApmSpan
+        final Iterable<Map.Entry<String, String>> baggage = parentContext != null ? parentContext.baggageItems() : null;
+        final Object transaction = createTransaction(baggage);
+        final Object span = createSpan(baggage);
+        final ApmSpan apmSpan = new ApmSpan(transaction, span).setOperationName(operationName);
         addTags(apmSpan);
         return apmSpan;
+    }
+
+    @Nullable
+    private Object createTransaction(Iterable<Map.Entry<String, String>> baggage) {
+        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateTransactionInstrumentation.createTransaction
+        return null;
+    }
+
+    @Nullable
+    private Object createSpan(Iterable<Map.Entry<String, String>> baggage) {
+        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.createSpan
+        return null;
     }
 
     private void addTags(ApmSpan apmSpan) {
@@ -164,19 +153,6 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
             } else if (entry.getValue() instanceof Boolean) {
                 apmSpan.setTag(entry.getKey(), (Boolean) entry.getValue());
             }
-        }
-    }
-
-    private Transaction getTransaction(ApmSpan parent) {
-        final Transaction parentTransaction = parent.getTransaction();
-        if (parentTransaction != null) {
-            return parentTransaction;
-        } else {
-            final co.elastic.apm.impl.transaction.Span parentSpan = parent.getSpan();
-            assert parentSpan != null;
-            final Transaction transaction = parentSpan.getTransaction();
-            assert transaction != null;
-            return transaction;
         }
     }
 
