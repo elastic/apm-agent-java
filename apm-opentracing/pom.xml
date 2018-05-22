@@ -25,7 +25,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-java</artifactId>
+            <artifactId>apm-opentracing-plugin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
