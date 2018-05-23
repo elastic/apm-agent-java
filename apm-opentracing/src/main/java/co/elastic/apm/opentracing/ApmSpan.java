@@ -71,7 +71,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public void finish() {
-        finishInternal(System.nanoTime());
+        finishInternal(System.nanoTime() / 1000);
     }
 
     @Override
