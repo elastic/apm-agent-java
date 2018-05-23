@@ -15,25 +15,22 @@ The first configuration sources override the configuration values of over the la
  All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file +
- This file has to be placed under `src/main/resources/elasticapm.properties`
 
 Configuration options marked with Dynamic true can be changed at runtime
 via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
-The `elasticapm.properties` file will be regularly polled for updates.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>> (required),
 <<config-server-url>> and <<config-application-packages>>.
-So a minimal version of a configuration file might look like this:
+So a minimal version of a configuration might look like this:
 
 [source]
-.src/main/resources/elasticapm.properties
+.System properties
 ----
-service_name=my-cool-service
-application_packages=org.example
-# server_url=http://localhost:8300
+-Delastic.apm.service_name=my-cool-service
+-Delastic.apm.application_packages=org.example
+# -Delastic.apm.server_url=http://localhost:8300
 ----
 
 [[core]]
@@ -56,8 +53,8 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.active` | `ELASTIC_APM_ACTIVE` | `active`
+| Java System Properties      | Environment
+| `elastic.apm.active` | `ELASTIC_APM_ACTIVE`
 |============
 
 [float]
@@ -78,8 +75,8 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.instrument` | `ELASTIC_APM_INSTRUMENT` | `instrument`
+| Java System Properties      | Environment
+| `elastic.apm.instrument` | `ELASTIC_APM_INSTRUMENT`
 |============
 
 [float]
@@ -101,8 +98,8 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.service_name` | `ELASTIC_APM_SERVICE_NAME` | `service_name`
+| Java System Properties      | Environment
+| `elastic.apm.service_name` | `ELASTIC_APM_SERVICE_NAME`
 |============
 
 [float]
@@ -121,8 +118,8 @@ A version string for the currently deployed version of the service. If you donâ€
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.service_version` | `ELASTIC_APM_SERVICE_VERSION` | `service_version`
+| Java System Properties      | Environment
+| `elastic.apm.service_version` | `ELASTIC_APM_SERVICE_VERSION`
 |============
 
 [float]
@@ -141,8 +138,8 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.environment` | `ELASTIC_APM_ENVIRONMENT` | `environment`
+| Java System Properties      | Environment
+| `elastic.apm.environment` | `ELASTIC_APM_ENVIRONMENT`
 |============
 
 [float]
@@ -161,8 +158,8 @@ By default, the agent will sample every transaction (e.g. request to your servic
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.sample_rate` | `ELASTIC_APM_SAMPLE_RATE` | `sample_rate`
+| Java System Properties      | Environment
+| `elastic.apm.sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
 |============
 
 [float]
@@ -185,8 +182,8 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS` | `transaction_max_spans`
+| Java System Properties      | Environment
+| `elastic.apm.transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
 |============
 
 [float]
@@ -220,8 +217,8 @@ you should add an additional entry to this list (make sure to also include the d
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES` | `sanitize_field_names`
+| Java System Properties      | Environment
+| `elastic.apm.sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
 |============
 
 [[http]]
@@ -250,8 +247,8 @@ WARNING: request bodies often contain sensitive values like passwords, credit ca
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.capture_body` | `ELASTIC_APM_CAPTURE_BODY` | `capture_body`
+| Java System Properties      | Environment
+| `elastic.apm.capture_body` | `ELASTIC_APM_CAPTURE_BODY`
 |============
 
 [float]
@@ -277,8 +274,8 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.ignore_urls` | `ELASTIC_APM_IGNORE_URLS` | `ignore_urls`
+| Java System Properties      | Environment
+| `elastic.apm.ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
 |============
 
 [float]
@@ -305,8 +302,8 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS` | `ignore_user_agents`
+| Java System Properties      | Environment
+| `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
 [[reporter]]
@@ -329,8 +326,8 @@ Both the agents and the APM server have to be configured with the same secret to
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.secret_token` | `ELASTIC_APM_SECRET_TOKEN` | `secret_token`
+| Java System Properties      | Environment
+| `elastic.apm.secret_token` | `ELASTIC_APM_SECRET_TOKEN`
 |============
 
 [float]
@@ -349,8 +346,8 @@ The URL must be fully qualified, including protocol (http or https) and port.
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.server_url` | `ELASTIC_APM_SERVER_URL` | `server_url`
+| Java System Properties      | Environment
+| `elastic.apm.server_url` | `ELASTIC_APM_SERVER_URL`
 |============
 
 [float]
@@ -371,8 +368,8 @@ WARNING:  If timeouts are disabled or set to a high value, your app could experi
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT` | `server_timeout`
+| Java System Properties      | Environment
+| `elastic.apm.server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT`
 |============
 
 [float]
@@ -393,8 +390,8 @@ Verification can be disabled by changing this setting to false.
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT` | `verify_server_cert`
+| Java System Properties      | Environment
+| `elastic.apm.verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT`
 |============
 
 [float]
@@ -417,8 +414,8 @@ A higher value also impacts the time until transactions are indexed and searchab
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL` | `flush_interval`
+| Java System Properties      | Environment
+| `elastic.apm.flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL`
 |============
 
 [float]
@@ -443,8 +440,8 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE` | `max_queue_size`
+| Java System Properties      | Environment
+| `elastic.apm.max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
 
 [[stacktrace]]
@@ -465,8 +462,8 @@ Used to determine whether a stack trace frame is an 'in-app frame' or a 'library
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES` | `application_packages`
+| Java System Properties      | Environment
+| `elastic.apm.application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES`
 |============
 
 [float]
@@ -485,8 +482,8 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT` | `stack_trace_limit`
+| Java System Properties      | Environment
+| `elastic.apm.stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT`
 |============
 
 [float]
@@ -509,8 +506,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.span_frames_min_duration_ms` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION_MS` | `span_frames_min_duration_ms`
+| Java System Properties      | Environment
+| `elastic.apm.span_frames_min_duration_ms` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION_MS`
 |============
 
 

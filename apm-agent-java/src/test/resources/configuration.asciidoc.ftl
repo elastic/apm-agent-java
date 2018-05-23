@@ -11,25 +11,22 @@ The first configuration sources override the configuration values of over the la
  All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file +
- This file has to be placed under `src/main/resources/elasticapm.properties`
 
 Configuration options marked with Dynamic true can be changed at runtime
 via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
-The `elasticapm.properties` file will be regularly polled for updates.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>> (required),
 <<config-server-url>> and <<config-application-packages>>.
-So a minimal version of a configuration file might look like this:
+So a minimal version of a configuration might look like this:
 
 [source]
-.src/main/resources/elasticapm.properties
+.System properties
 ----
-service_name=my-cool-service
-application_packages=org.example
-# server_url=http://localhost:8300
+-Delastic.apm.service_name=my-cool-service
+-Delastic.apm.application_packages=org.example
+# -Delastic.apm.server_url=http://localhost:8300
 ----
 
 <#list config as category, options>
@@ -53,8 +50,8 @@ ${option.description}
 
 [options="header"]
 |============
-| Java System Properties      | Environment                            | `elasticapm.properties`
-| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case}` | `${option.key}`
+| Java System Properties      | Environment
+| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case}`
 |============
 
         </#if>

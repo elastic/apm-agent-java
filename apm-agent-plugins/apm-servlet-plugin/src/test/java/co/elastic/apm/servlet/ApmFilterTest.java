@@ -19,10 +19,8 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.MockReporter;
+import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -34,7 +32,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -47,39 +44,29 @@ import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-class ApmFilterTest {
+class ApmFilterTest extends AbstractInstrumentationTest {
 
-    private ApmFilter apmFilter;
-    private MockReporter reporter;
-    private ConfigurationRegistry config;
     private WebConfiguration webConfiguration;
+    private MockFilterChain filterChain;
 
     @BeforeEach
     void setUp() {
-        reporter = new MockReporter();
-        config = SpyConfiguration.createSpyConfig();
-        ElasticApmTracer tracer = ElasticApmTracer.builder()
-            .configurationRegistry(config)
-            .reporter(reporter)
-            .build();
-        apmFilter = new ApmFilter(tracer);
-        webConfiguration = config.getConfig(WebConfiguration.class);
+        webConfiguration = tracer.getConfig(WebConfiguration.class);
+        filterChain = new MockFilterChain();
     }
 
     @Test
     void testEndsTransaction() throws IOException, ServletException {
-        apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
     @Test
     void testDisabled() throws IOException, ServletException {
-        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
-        apmFilter = spy(apmFilter);
-        apmFilter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain());
+        when(tracer.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        filterChain.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
@@ -87,7 +74,7 @@ class ApmFilterTest {
     void testURLTransaction() throws IOException, ServletException {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo/bar");
         request.setQueryString("foo=bar");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         Url url = reporter.getFirstTransaction().getContext().getRequest().getUrl();
         assertThat(url.getProtocol()).isEqualTo("http");
         assertThat(url.getSearch()).isEqualTo("foo=bar");
@@ -105,7 +92,7 @@ class ApmFilterTest {
         request.addParameter("baz", "qux", "quux");
         request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
 
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
         PotentiallyMultiValuedMap params = (PotentiallyMultiValuedMap) reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(params.get("foo")).isEqualTo("bar");
@@ -116,9 +103,10 @@ class ApmFilterTest {
     void captureException() throws IOException, ServletException {
         final Servlet servlet = mock(Servlet.class);
         doThrow(new ServletException("Bazinga")).when(servlet).service(any(), any());
-        assertThatThrownBy(() -> apmFilter.doFilter(
+        filterChain = new MockFilterChain(servlet);
+        assertThatThrownBy(() -> filterChain.doFilter(
             new MockHttpServletRequest("GET", "/test"),
-            new MockHttpServletResponse(), new MockFilterChain(servlet)))
+            new MockHttpServletResponse()))
             .isInstanceOf(ServletException.class);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getMethod()).isEqualTo("GET");
@@ -132,7 +120,7 @@ class ApmFilterTest {
         when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/resources/test.js");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
@@ -141,7 +129,7 @@ class ApmFilterTest {
         when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("/resources*")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
@@ -151,7 +139,7 @@ class ApmFilterTest {
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/resources");
         request.setPathInfo("test.js");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
@@ -160,7 +148,7 @@ class ApmFilterTest {
         when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("curl/*")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", "curl/7.54.0");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
@@ -169,7 +157,7 @@ class ApmFilterTest {
         when(webConfiguration.getIgnoreUserAgents()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*pingdom*")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("user-agent", "Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
-        apmFilter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+        filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 }

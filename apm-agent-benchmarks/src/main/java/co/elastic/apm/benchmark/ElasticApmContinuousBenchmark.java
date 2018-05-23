@@ -23,7 +23,6 @@ import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.report.Reporter;
-import co.elastic.apm.servlet.ApmFilter;
 import io.undertow.Undertow;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -71,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  * </p>
  * <p>
  * Note that this benchmark is not using a real application server
- * but instead invokes the {@link ApmFilter} manually using mock instances of the request and response objects.
+ * but instead invokes an {@link HttpServlet} manually using mock instances of the request and response objects.
  * This aims to reduce the measurement uncertainty or clutter in terms of latency and allocations
  * otherwise introduced by the application server
  * and by sending an actual HTTP request inside the benchmark vs. just invoking a method.

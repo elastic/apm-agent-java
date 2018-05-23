@@ -36,7 +36,7 @@ import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ApmJdbcEventListenerTest extends AbstractInstrumentationTest {
+class JdbcInstrumentationTest extends AbstractInstrumentationTest {
 
     private Connection connection;
     private Transaction transaction;
