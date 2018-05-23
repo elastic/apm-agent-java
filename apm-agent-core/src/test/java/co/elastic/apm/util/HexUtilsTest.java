@@ -22,17 +22,15 @@ package co.elastic.apm.util;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class HexUtilsTest {
 
     @Test
-    void bytesToHex() throws IOException {
+    void hexConversionRoundTrip() throws IOException {
         byte[] bytes = new byte[8];
-        new Random().nextBytes(bytes);
-        assertThat(HexUtils.bytesToHex(bytes)).isEqualTo(String.format("%x", ByteBuffer.wrap(bytes).getLong()));
+        HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
+        assertThat(HexUtils.bytesToHex(bytes)).isEqualTo("09c2572177fdae24");
     }
 }
