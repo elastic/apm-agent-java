@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-class ElasticApmTracerTest extends AbstractInstrumentationTest {
+class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     private ElasticApmTracer apmTracer;
 
@@ -207,13 +207,15 @@ class ElasticApmTracerTest extends AbstractInstrumentationTest {
 
         final Scope scope = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
-                new TextMapExtractAdapter(Map.of(TraceContext.TRACE_PARENT_HEADER,
-                    "00-" + traceId + "-" + parentId + "-01"))))
+                new TextMapExtractAdapter(Map.of(
+                    TraceContext.TRACE_PARENT_HEADER, "00-" + traceId + "-" + parentId + "-01",
+                    "User-Agent", "curl"))))
             .startActive(true);
         assertThat(tracer.currentTransaction()).isNotNull();
         assertThat(tracer.currentTransaction().isSampled()).isTrue();
         assertThat(tracer.currentTransaction().getTraceContext().getTraceId().toString()).isEqualTo(traceId);
         assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
+        assertThat(scope.span().getBaggageItem("User-Agent")).isNull();
 
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
@@ -222,6 +224,8 @@ class ElasticApmTracerTest extends AbstractInstrumentationTest {
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();
+        assertThat(map.get("User-Agent")).isNull();
+
 
         scope.close();
         assertThat(reporter.getTransactions()).hasSize(1);
