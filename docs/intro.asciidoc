@@ -61,7 +61,6 @@ link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-j
 To get you off the ground, we've prepared guides for the most popular frameworks:
 
 * link:plugin-jdbc.asciidoc[Get started with JDBC]
-* link:plugin-spring-webmvc.asciidoc[Get started with Spring Web MVC]
 
 
 === Configuration
