@@ -18,11 +18,6 @@ you can use custom spans.
 For information about custom spans,
 see the link:public-api.asciidoc[public api documentation].
 
-NOTE: The agent does not yet support automatic instrumentation via `-javaagent`,
-however this is something which is definitely on our roadmap.
-So for the time being,
-you will have to manually integrate the agent into your application.
-
 The agent is only one of multiple components you need to get started with APM.
 Please also have a look at the documentation for
 
@@ -33,34 +28,24 @@ Please also have a look at the documentation for
 [[get-started]]
 === Get started
 
-The first step in getting started with the Elastic APM Java agent ist to declare a dependency on the agent:
+The first step in getting started with the Elastic APM Java agent ist to download the latest release of the agent jar file from
+link:http://mvnrepository.com/artifact/co.elastic.apm/apm-agent-java[maven central].
 
-[source,xml]
-.pom.xml
-----
-<dependency>
-    <groupId>co.elastic.apm</groupId>
-    <artifactId>apm-agent-java</artifactId>
-    <version>${elastic-apm.version}</version>
-</dependency>
-----
+NOTE: Don't declare a dependency to the agent in your application.
 
-[source,groovy]
-.build.gradle
-----
-compile "co.elastic.apm:apm-agent-java:$elasticApmVersion"
-----
-
-Replace the version placeholders with the
-link:http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-java%22[
-latest version from maven central]:
-image:https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg[
-link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java]
-
+[float]
+[[configuration]]
 === Configuration
 Once you are set with instrumenting your favorite framework,
 see the link:configuration.asciidoc[configuration guide] on how to configure Elastic APM.
 
+[float]
+[[javaagent]]
+=== Add `javaagent` flag
+When starting your application, add the JVM flag `-javaagent:/path/to/apm-agent-java-<version>.jar`
+
+[float]
+[[requirements]]
 === Requirements
 The Elastic APM Java agent supports the Oracle and OpenJDK versions 7, 8 and 9.
 
