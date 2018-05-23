@@ -12,11 +12,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>p6spy</groupId>
-            <artifactId>p6spy</artifactId>
-            <version>3.7.0</version>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>

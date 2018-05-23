@@ -21,9 +21,6 @@ package co.elastic.apm.jdbc;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
-import com.p6spy.engine.common.ConnectionInformation;
-import com.p6spy.engine.common.StatementInformation;
-import com.p6spy.engine.event.SimpleJdbcEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,22 +32,15 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/**
- * @deprecated use javaagent
- */
-@Deprecated
-public class ApmJdbcEventListener extends SimpleJdbcEventListener {
+public class JdbcHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApmJdbcEventListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcHelper.class);
     private static final Map<Connection, ConnectionMetaData> metaDataMap =
         Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
     private final ElasticApmTracer elasticApmTracer;
 
-    public ApmJdbcEventListener() {
-        this(ElasticApmTracer.get());
-    }
 
-    public ApmJdbcEventListener(ElasticApmTracer elasticApmTracer) {
+    public JdbcHelper(ElasticApmTracer elasticApmTracer) {
         this.elasticApmTracer = elasticApmTracer;
     }
 
@@ -83,15 +73,6 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
         return parent != null && parent.getType() != null && parent.getType().startsWith("db.");
     }
 
-    @Override
-    public void onAfterGetConnection(ConnectionInformation connectionInformation, SQLException e) {
-    }
-
-    @Override
-    public void onBeforeAnyExecute(StatementInformation statementInformation) {
-        createJdbcSpan(statementInformation.getStatementQuery(), statementInformation.getConnectionInformation().getConnection(),
-            elasticApmTracer.currentSpan());
-    }
 
     @Nullable
     Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable Span parentSpan) {
@@ -147,24 +128,6 @@ public class ApmJdbcEventListener extends SimpleJdbcEventListener {
             }
         }
         return "unknown";
-    }
-
-    @Override
-    public void onAfterAnyExecute(StatementInformation statementInformation, long timeElapsedNanos, SQLException e) {
-        Span span = elasticApmTracer.currentSpan();
-        if (span != null) {
-            span.end();
-        }
-    }
-
-    @Override
-    public void onBeforeAnyAddBatch(StatementInformation statementInformation) {
-        super.onBeforeAnyAddBatch(statementInformation);
-    }
-
-    @Override
-    public void onAfterAnyAddBatch(StatementInformation statementInformation, long timeElapsedNanos, SQLException e) {
-        super.onAfterAnyAddBatch(statementInformation, timeElapsedNanos, e);
     }
 
     private static class ConnectionMetaData {

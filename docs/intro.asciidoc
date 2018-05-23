@@ -57,12 +57,6 @@ latest version from maven central]:
 image:https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg[
 link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java]
 
-
-To get you off the ground, we've prepared guides for the most popular frameworks:
-
-* link:plugin-jdbc.asciidoc[Get started with JDBC]
-
-
 === Configuration
 Once you are set with instrumenting your favorite framework,
 see the link:configuration.asciidoc[configuration guide] on how to configure Elastic APM.

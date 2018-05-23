@@ -45,7 +45,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Nullable
     private static ElasticApmTracer tracer;
     @Nullable
-    private static ApmJdbcEventListener jdbcEventListener;
+    private static JdbcHelper jdbcEventListener;
 
     // not inlining as we can then set breakpoints into this method
     // also, we don't have class loader issues when doing so
@@ -73,7 +73,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Override
     public void init(ElasticApmTracer tracer) {
         PreparedStatementInstrumentation.tracer = tracer;
-        PreparedStatementInstrumentation.jdbcEventListener = new ApmJdbcEventListener(tracer);
+        PreparedStatementInstrumentation.jdbcEventListener = new JdbcHelper(tracer);
     }
 
     @Override
