@@ -56,10 +56,6 @@
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>com.p6spy</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.p6spy</shadedPattern>
-                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
