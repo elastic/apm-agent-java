@@ -33,6 +33,10 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <relocations>
                                 <relocation>
+                                    <pattern>net.bytebuddy</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.bytebuddy</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.dslplatform</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.dslplatform</shadedPattern>
                                 </relocation>
