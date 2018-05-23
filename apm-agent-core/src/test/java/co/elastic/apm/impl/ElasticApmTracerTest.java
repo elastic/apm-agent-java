@@ -76,7 +76,6 @@ class ElasticApmTracerTest {
     void testRegister() {
         Tracer tracer = ElasticApm.get();
         tracerImpl.register();
-        assertThat(ElasticApmTracer.get()).isSameAs(tracerImpl);
         try (co.elastic.apm.api.Transaction transaction = tracer.startTransaction()) {
             assertThat(transaction).isInstanceOf(Transaction.class);
         }

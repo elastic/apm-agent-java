@@ -34,10 +34,6 @@ import javax.annotation.Nullable;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
- * <p>
- * Note: usage of {@link ElasticApmTracer#get()} is discouraged in advices,
- * use the instance provided by {@link ElasticApmInstrumentation#init(ElasticApmTracer)} instead.
- * </p>
  */
 public abstract class ElasticApmInstrumentation {
 
@@ -50,8 +46,6 @@ public abstract class ElasticApmInstrumentation {
      * <p>
      * This enables tests to register a custom instance with a {@link co.elastic.apm.impl.ElasticApmTracerBuilder#configurationRegistry}
      * and {@link co.elastic.apm.impl.ElasticApmTracerBuilder#reporter} which is specific to a particular test or test class.
-     * Otherwise, the advice would just have a static reference to {@link ElasticApmTracer#get()},
-     * without the possibility to register custom instances.
      * </p>
      *
      * @param tracer the tracer to use for this advice.

@@ -124,13 +124,10 @@ public class ElasticApmTracer implements Tracer {
         return new ElasticApmTracerBuilder();
     }
 
-    public static ElasticApmTracer get() {
-        return instance;
-    }
-
     /**
      * Only to be executed by internal tests!
      */
+    @Deprecated
     public static void unregister() {
         synchronized (ElasticApmTracer.class) {
             instance = ElasticApmTracer.builder().build().register();
@@ -139,8 +136,9 @@ public class ElasticApmTracer implements Tracer {
     }
 
     /**
-     * Statically registers this instance so that it can be obtained via {@link ElasticApmTracer#get()} and {@link ElasticApm#get()}
+     * Statically registers this instance so that it can be obtained via {@link ElasticApm#get()}
      */
+    @Deprecated
     public ElasticApmTracer register() {
         instance = this;
         TracerRegistrar.register(instance);

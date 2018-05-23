@@ -122,8 +122,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     .add("server_url", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
-            .build()
-            .register();
+            .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         request = createRequest();
         response = createResponse();
