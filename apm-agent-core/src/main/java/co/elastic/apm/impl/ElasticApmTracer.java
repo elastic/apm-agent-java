@@ -19,9 +19,6 @@
  */
 package co.elastic.apm.impl;
 
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Tracer;
-import co.elastic.apm.api.TracerRegistrar;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -49,15 +46,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This is the implementation of the {@link Tracer} interface which provides access to lower level agent functionality.
+ * This is the tracer implementation which provides access to lower level agent functionality.
  * <p>
  * Note that this is a internal API, so there are no guarantees in terms of backwards compatibility.
  * </p>
  */
-public class ElasticApmTracer implements Tracer {
+public class ElasticApmTracer {
     public static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
-    private static ElasticApmTracer instance = ElasticApmTracer.builder().build().register();
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -124,28 +120,6 @@ public class ElasticApmTracer implements Tracer {
         return new ElasticApmTracerBuilder();
     }
 
-    /**
-     * Only to be executed by internal tests!
-     */
-    @Deprecated
-    public static void unregister() {
-        synchronized (ElasticApmTracer.class) {
-            instance = ElasticApmTracer.builder().build().register();
-            TracerRegistrar.unregister();
-        }
-    }
-
-    /**
-     * Statically registers this instance so that it can be obtained via {@link ElasticApm#get()}
-     */
-    @Deprecated
-    public ElasticApmTracer register() {
-        instance = this;
-        TracerRegistrar.register(instance);
-        return this;
-    }
-
-    @Override
     public Transaction startTransaction() {
         return startTransaction(null);
     }
@@ -180,17 +154,17 @@ public class ElasticApmTracer implements Tracer {
         currentTransaction.set(transaction);
     }
 
-    @Override
+    @Nullable
     public Transaction currentTransaction() {
         return currentTransaction.get();
     }
 
-    @Override
+    @Nullable
     public Span currentSpan() {
         return currentSpan.get();
     }
 
-    @Override
+    @Nullable
     public Span startSpan() {
         Transaction transaction = currentTransaction();
         final Span span = startManualSpan(transaction, currentSpan(), System.nanoTime());
@@ -242,22 +216,24 @@ public class ElasticApmTracer implements Tracer {
         return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getTotal();
     }
 
-    public void captureException(Exception e) {
+    public void captureException(@Nullable Exception e) {
         captureException(System.currentTimeMillis(), e);
     }
 
-    public void captureException(long epochTimestampMillis, Exception e) {
-        ErrorCapture error = new ErrorCapture();
-        error.withTimestamp(epochTimestampMillis);
-        error.getException().withMessage(e.getMessage());
-        error.getException().withType(e.getClass().getName());
-        stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
-        Transaction transaction = currentTransaction();
-        if (transaction != null) {
-            error.asChildOf(transaction);
-            error.getContext().copyFrom(transaction.getContext());
+    public void captureException(long epochTimestampMillis, @Nullable Exception e) {
+        if (e != null) {
+            ErrorCapture error = new ErrorCapture();
+            error.withTimestamp(epochTimestampMillis);
+            error.getException().withMessage(e.getMessage());
+            error.getException().withType(e.getClass().getName());
+            stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
+            Transaction transaction = currentTransaction();
+            if (transaction != null) {
+                error.asChildOf(transaction);
+                error.getContext().copyFrom(transaction.getContext());
+            }
+            reporter.report(error);
         }
-        reporter.report(error);
     }
 
     public ConfigurationRegistry getConfigurationRegistry() {

@@ -19,30 +19,26 @@
  */
 package co.elastic.apm.api;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+enum NoopSpan implements Span {
+    INSTANCE;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-class ElasticApmTest {
-
-    @BeforeEach
-    void setUp() {
-        ElasticApm.get().unregister();
+    @Override
+    public void setName(String name) {
+        // noop
     }
 
-    @Test
-    void getNoop() {
-        assertThat(ElasticApm.get()).isNotNull();
+    @Override
+    public void setType(String type) {
+        // noop
     }
 
-    @Test
-    void currentTransactionNoop() {
-        assertThat(ElasticApm.get().currentTransaction()).isSameAs(ElasticApm.NoopTracer.NoopTransaction.INSTANCE);
+    @Override
+    public void end() {
+        // noop
     }
 
-    @Test
-    void currentSpanNoop() {
-        assertThat(ElasticApm.get().currentSpan()).isSameAs(ElasticApm.NoopTracer.NoopSpan.INSTANCE);
+    @Override
+    public void close() {
+        // noop
     }
 }

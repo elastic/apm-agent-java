@@ -17,7 +17,44 @@
  * limitations under the License.
  * #L%
  */
-@NonnullApi
 package co.elastic.apm.api;
 
-import co.elastic.apm.annotation.NonnullApi;
+class TransactionImpl implements Transaction {
+
+    @SuppressWarnings("unused")
+    private final Object transaction;
+
+    public TransactionImpl(Object transaction) {
+        this.transaction = transaction;
+    }
+
+    @Override
+    public void setName(String name) {
+
+    }
+
+    @Override
+    public void setType(String type) {
+
+    }
+
+    @Override
+    public void addTag(String key, String value) {
+
+    }
+
+    @Override
+    public void setUser(String id, String email, String username) {
+
+    }
+
+    @Override
+    public void end() {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+}

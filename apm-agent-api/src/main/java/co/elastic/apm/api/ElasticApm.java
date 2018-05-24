@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * This class can be used to statically access the {@link ElasticApm}.
@@ -29,75 +30,28 @@ import javax.annotation.Nonnull;
  * <pre>{@code
  * private static final ElasticApm elasticApm = ElasticApm.get();
  * }</pre>
- *
+ * <p>
  * Then you can access the tracer to set a custom transaction name,
  * for example:
  * <pre>{@code
  * elasticApm.currentTransaction().setName("SuchController#muchMethod");
  * }</pre>
  */
-public class ElasticApm implements Tracer {
+public class ElasticApm {
 
-    /**
-     * The singleton instance of the Tracer.
-     */
-    private static final ElasticApm INSTANCE = new ElasticApm();
-
-    private Tracer tracer = NoopTracer.INSTANCE;
-
-    /**
-     * {@link ElasticApm} may only be accessed via {@link #get()}
-     */
     private ElasticApm() {
+        // do not instantiate
     }
 
-    /**
-     * Returns the tracer implementation.
-     *
-     * @return the tracer implementation (never {@code null})
-     */
     @Nonnull
-    public static ElasticApm get() {
-        return INSTANCE;
+    public static Transaction startTransaction() {
+        Object transaction = doStartTransaction();
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
     }
 
-    /**
-     * Statically registers the tracer implementation,
-     * so that it can be accessed via {@link ElasticApm#get()}
-     * <p>
-     * This method is called by the actual {@link Tracer} implementation.
-     * </p>
-     * <p>
-     * Users are not supposed to set a custom instrumentation so this method must not be {@code public}.
-     * Otherwise it would be part of the public API.
-     * </p>
-     * <p>
-     * Loading the concrete implementation from here is also not a good option,
-     * as it could not be easily set to a different (possibly mocked) implementation in tests.
-     * </p>
-     * <p>
-     * So the solution is to provide a package-private method which the implementation can call.
-     * What's not so nice about this solution is that the implementation has to have a class in
-     * the same package as the API in order to be able to call this package private method.
-     * But as this is not a public method,
-     * the concrete registration mechanism can always be changed later without breaking compatibility.
-     * </p>
-     *
-     * @param tracer The tracer implementation to register.
-     */
-    void register(Tracer tracer) {
-        INSTANCE.tracer = tracer;
-    }
-
-    // @VisibleForTesting
-    void unregister() {
-        INSTANCE.tracer = NoopTracer.INSTANCE;
-    }
-
-    @Override
-    @Nonnull
-    public Transaction startTransaction() {
-        return tracer.startTransaction();
+    private static Object doStartTransaction() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartTransaction
+        return null;
     }
 
     /**
@@ -109,11 +63,15 @@ public class ElasticApm implements Tracer {
      *
      * @return The currently running transaction, or a noop transaction (never {@code null}).
      */
-    @Override
     @Nonnull
-    public Transaction currentTransaction() {
-        Transaction transaction = tracer.currentTransaction();
-        return transaction != null ? transaction : NoopTracer.NoopTransaction.INSTANCE;
+    public static Transaction currentTransaction() {
+        Object transaction = doGetCurrentTransaction();
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
+    }
+
+    private static Object doGetCurrentTransaction() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentTransactionInstrumentation.doGetCurrentTransaction
+        return null;
     }
 
     /**
@@ -125,114 +83,52 @@ public class ElasticApm implements Tracer {
      *
      * @return The currently running span, or a noop span (never {@code null}).
      */
-    @Override
     @Nonnull
-    public Span currentSpan() {
-        Span span = tracer.currentSpan();
-        return span != null ? span : NoopTracer.NoopSpan.INSTANCE;
+    public static Span currentSpan() {
+        Object span = doGetCurrentSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
-    @Override
+    private static Object doGetCurrentSpan() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
+        return null;
+    }
+
+    /**
+     * Start and return a new custom span associated with the current active transaction.
+     * <p>
+     * It is important to call {@link Span#close()} when the span has ended.
+     * A best practice is to use the span in a try-with-resources block.
+     * Example:
+     * </p>
+     * <pre>
+     * try (Span span = tracer.startSpan()) {
+     *     span.setName("SELECT FROM customer");
+     *     span.setType("db.mysql.query");
+     *     // do your thing...
+     * }
+     * </pre>
+     *
+     * @return the started span, or {@code null} if there is no current transaction
+     */
     @Nonnull
-    public Span startSpan() {
-        final Span span = tracer.startSpan();
-        return span != null ? span : NoopTracer.NoopSpan.INSTANCE;
+    public static Span startSpan() {
+        Object span = doStartSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
-    @Override
-    public void captureException(@Nonnull Exception e) {
-        tracer.captureException(e);
+    private static Object doStartSpan() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.StartSpanInstrumentation.doStartSpan
+        return null;
     }
 
-    enum NoopTracer implements Tracer {
-
-        INSTANCE;
-
-        @Nonnull
-        @Override
-        public Transaction startTransaction() {
-            return NoopTransaction.INSTANCE;
-        }
-
-        @Override
-        public Transaction currentTransaction() {
-            return NoopTransaction.INSTANCE;
-        }
-
-        @Override
-        public Span currentSpan() {
-            return NoopSpan.INSTANCE;
-        }
-
-        @Nonnull
-        @Override
-        public Span startSpan() {
-            return NoopSpan.INSTANCE;
-        }
-
-        @Override
-        public void captureException(@Nonnull Exception e) {
-            // noop
-        }
-
-        enum NoopTransaction implements Transaction {
-
-            INSTANCE;
-
-            @Override
-            public void setName(String name) {
-                // noop
-            }
-
-            @Override
-            public void setType(String type) {
-                // noop
-            }
-
-            @Override
-            public void addTag(String key, String value) {
-                // noop
-            }
-
-            @Override
-            public void setUser(String id, String email, String username) {
-                // noop
-            }
-
-            @Override
-            public void end() {
-                // noop
-            }
-
-            @Override
-            public void close() {
-                // noop
-            }
-        }
-
-        enum NoopSpan implements Span {
-            INSTANCE;
-
-            @Override
-            public void setName(String name) {
-                // noop
-            }
-
-            @Override
-            public void setType(String type) {
-                // noop
-            }
-
-            @Override
-            public void end() {
-                // noop
-            }
-
-            @Override
-            public void close() {
-                // noop
-            }
-        }
+    /**
+     * Captures an exception and reports it to the APM server.
+     *
+     * @param e the exception to record
+     */
+    public static void captureException(@Nullable Exception e) {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CaptureExceptionInstrumentation.captureException
     }
 
 }

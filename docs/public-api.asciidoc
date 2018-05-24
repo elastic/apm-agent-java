@@ -5,6 +5,30 @@ customize and manually create spans and transactions,
 as well as track errors.
 
 // describe adding maven dependency when instrumentation is implemented
+The first step in getting started with the API ist to declare a dependency to the API:
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>co.elastic.apm</groupId>
+    <artifactId>apm-agent-api</artifactId>
+    <version>${elastic-apm.version}</version>
+</dependency>
+----
+
+[source,groovy]
+.build.gradle
+----
+compile "co.elastic.apm:apm-agent-api:$elasticApmVersion"
+----
+
+Replace the version placeholders with the
+link:http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-java%22[
+latest version from maven central]:
+image:https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg[
+link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java]
+
 
 [float]
 [[api-tracer-api]]
@@ -12,14 +36,7 @@ as well as track errors.
 The tracer gives you access to the currently active transaction and span.
 It can also be used to track an exception.
 
-This is how to get an instance of the tracer:
-[source,java]
-----
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Tracer;
-
-private static final ElasticApm elasticApm = ElasticApm.get();
-----
+To use the API, you can just invoke static methods on the class `co.elastic.apm.api.ElasticApm`.
 
 [float]
 [[api-current-transaction]]
@@ -36,7 +53,7 @@ which means that you never have to check for `null` values.
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Transaction;
 
-Transaction transaction = ElasticApm.get().currentTransaction();
+Transaction transaction = ElasticApm.currentTransaction();
 ----
 
 [float]
@@ -54,7 +71,7 @@ which means that you never have to check for `null` values.
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
 
-Span span = ElasticApm.get().currentSpan();
+Span span = ElasticApm.currentSpan();
 ----
 
 [float]

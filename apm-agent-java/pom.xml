@@ -120,27 +120,14 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-agent-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!--Agent plugins, sorted alphabetically -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-web-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-webmvc-plugin</artifactId>
+            <artifactId>apm-api-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -153,6 +140,22 @@
             <artifactId>apm-opentracing-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-spring-webmvc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-web-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- For auto-generating configuration docs -->
         <dependency>
             <groupId>org.freemarker</groupId>

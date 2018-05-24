@@ -1,0 +1,5 @@
+co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$StartTransactionInstrumentation
+co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
+co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$StartSpanInstrumentation
+co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
+co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation

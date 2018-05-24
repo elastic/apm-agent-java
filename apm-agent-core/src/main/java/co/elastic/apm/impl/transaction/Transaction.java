@@ -34,7 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Data captured by an agent representing an event occurring in a monitored service
  */
-public class Transaction extends AbstractSpan implements co.elastic.apm.api.Transaction {
+public class Transaction extends AbstractSpan implements AutoCloseable {
+
+    public static final String TYPE_REQUEST = "request";
 
     /**
      * This counter helps to assign the spans with sequential IDs
@@ -171,7 +173,6 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
      * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
      * (Required)
      */
-    @Override
     public void setType(@Nullable String type) {
         if (!isSampled()) {
             return;
@@ -179,7 +180,6 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         this.type = type;
     }
 
-    @Override
     public void addTag(String key, String value) {
         if (!isSampled()) {
             return;
@@ -187,7 +187,6 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         getContext().getTags().put(key, value);
     }
 
-    @Override
     public void setUser(String id, String email, String username) {
         if (!isSampled()) {
             return;
@@ -195,7 +194,6 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         getContext().getUser().withId(id).withEmail(email).withUsername(username);
     }
 
-    @Override
     public void end() {
         end(System.nanoTime(), true);
     }
@@ -210,7 +208,6 @@ public class Transaction extends AbstractSpan implements co.elastic.apm.api.Tran
         }
     }
 
-    @Override
     public void close() {
         end();
     }

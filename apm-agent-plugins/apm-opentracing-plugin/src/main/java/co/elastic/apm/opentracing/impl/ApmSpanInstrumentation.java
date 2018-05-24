@@ -73,7 +73,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             if (transaction != null) {
                 if (transaction.getType() == null) {
                     if (transaction.getContext().getRequest().hasContent()) {
-                        transaction.withType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
+                        transaction.withType(Transaction.TYPE_REQUEST);
                     } else {
                         transaction.withType("unknown");
                     }
@@ -174,15 +174,15 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 if (transaction.getResult() == null) {
                     transaction.withResult(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
                 }
-                transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
+                transaction.setType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {
                 transaction.getContext().getRequest().withMethod(value.toString());
-                transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
+                transaction.setType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.url".equals(key)) {
                 transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
-                transaction.setType(co.elastic.apm.api.Transaction.TYPE_REQUEST);
+                transaction.setType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("sampling.priority".equals(key)) {
                 // mid-trace sampling is not allowed
