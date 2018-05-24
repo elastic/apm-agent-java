@@ -45,9 +45,22 @@ see the link:configuration.asciidoc[configuration guide] on how to configure Ela
 When starting your application, add the JVM flag `-javaagent:/path/to/apm-agent-java-<version>.jar`
 
 [float]
-[[requirements]]
-=== Requirements
-The Elastic APM Java agent supports the Oracle and OpenJDK versions 7, 8 and 9.
+[[supported-technologies]]
+=== Supported technologies
 
-To see the requirements for a specific framework,
-see the corresponding getting started guide of that framework.
+|===
+|Technology |Supported versions
+
+|Java
+|Oracle and OpenJDK versions 7, 8 and 9
+
+|JDBC
+|4.1+
+
+|Servlet API
+|3+
+
+|Spring MVC
+|4+
+|===
+
