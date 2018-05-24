@@ -373,6 +373,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeDateField("timestamp", span.getTimestamp());
         if (distributedTracing) {
             serializeTraceContext(span.getTraceContext());
+            final Transaction transaction = span.getTransaction();
+            if (transaction != null) {
+                writeHexField("transaction_id", transaction.getTraceContext().getId().getBytes());
+            }
         } else {
             writeField("id", span.getId().asLong());
             final long parent = span.getParent().asLong();
@@ -382,14 +386,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         writeField("duration", span.getDuration());
         writeField("start", span.getStart());
-        writeField("type", span.getType());
         if (span.getStacktrace().size() > 0) {
             serializeStacktrace(span.getStacktrace());
         }
         if (span.getContext().hasContent()) {
             serializeSpanContext(span.getContext());
         }
-        writeLastField("sampled", span.isSampled());
+        writeLastField("type", span.getType());
         jw.writeByte(OBJECT_END);
     }
 
