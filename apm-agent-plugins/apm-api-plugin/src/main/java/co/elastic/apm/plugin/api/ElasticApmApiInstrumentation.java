@@ -55,7 +55,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction) {
+        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.startTransaction();
             }
@@ -69,7 +69,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doGetCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
+        private static void doGetCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.currentTransaction();
             }
@@ -83,7 +83,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doStartSpan(@Advice.Return(readOnly = false) Object span) {
+        private static void doStartSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
                 span = tracer.startSpan();
             }
@@ -97,7 +97,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
+        private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
                 span = tracer.currentSpan();
             }
@@ -111,7 +111,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        public static void captureException(@Advice.Argument(0) @Nullable Exception e) {
+        private static void captureException(@Advice.Argument(0) @Nullable Exception e) {
             if (tracer != null) {
                 tracer.captureException(e);
             }
