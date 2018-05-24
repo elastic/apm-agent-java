@@ -23,7 +23,7 @@ class SpanImpl implements Span {
 
     private final Object span;
 
-    public SpanImpl(Object span) {
+    SpanImpl(Object span) {
         this.span = span;
     }
 
@@ -42,8 +42,4 @@ class SpanImpl implements Span {
 
     }
 
-    @Override
-    public void close() {
-
-    }
 }

@@ -48,8 +48,4 @@ enum NoopTransaction implements Transaction {
         // noop
     }
 
-    @Override
-    public void close() {
-        // noop
-    }
 }

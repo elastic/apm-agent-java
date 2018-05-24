@@ -43,6 +43,33 @@ public class ElasticApm {
         // do not instantiate
     }
 
+    /**
+     * Use this method to create a custom transaction.
+     * <p>
+     * Note that the agent will do this for you automatically when ever your application receives an incoming HTTP request.
+     * You only need to use this method to create custom transactions.
+     * </p>
+     * <p>
+     * It is important to call {@link Transaction#end()} when the transaction has ended.
+     * A best practice is to use the transaction in a try-catch-finally construct.
+     * Example:
+     * </p>
+     * <pre>
+     * Transaction transaction = tracer.startTransaction()
+     * try {
+     *     transaction.setName("MyController#myAction");
+     *     span.setType(Transaction.TYPE_REQUEST);
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     ElasticApm.captureException(e);
+     *     throw e;
+     * } finally {
+     *     transaction.end();
+     * }
+     * </pre>
+     *
+     * @return the started transaction
+     */
     @Nonnull
     public static Transaction startTransaction() {
         Object transaction = doStartTransaction();
@@ -95,17 +122,23 @@ public class ElasticApm {
     }
 
     /**
-     * Start and return a new custom span associated with the current active transaction.
+     * Start and return a new custom span associated with the currently active transaction.
      * <p>
-     * It is important to call {@link Span#close()} when the span has ended.
-     * A best practice is to use the span in a try-with-resources block.
+     * It is important to call {@link Span#end()} when the span has ended.
+     * A best practice is to use the span in a try-catch-finally construct.
      * Example:
      * </p>
      * <pre>
-     * try (Span span = tracer.startSpan()) {
+     * Span span = tracer.startSpan()
+     * try {
      *     span.setName("SELECT FROM customer");
      *     span.setType("db.mysql.query");
      *     // do your thing...
+     * } catch (Exception e) {
+     *     ElasticApm.captureException(e);
+     *     throw e;
+     * } finally {
+     *     span.end();
      * }
      * </pre>
      *

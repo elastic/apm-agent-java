@@ -31,7 +31,7 @@ package co.elastic.apm.api;
  * Call {@link ElasticApm#currentSpan()} to get a reference of the current span.
  * </p>
  */
-public interface Span extends AutoCloseable {
+public interface Span {
 
     /**
      * The name of the span.
@@ -58,17 +58,7 @@ public interface Span extends AutoCloseable {
     /**
      * Ends the span.
      * If the span has already ended, nothing happens.
-     * <p>
-     * As Span also implements the `java.lang.AutoCloseable` interface,
-     * you can use it in try-with-resource blocks.
-     * See {@link ElasticApm#startSpan()}.
-     * </p>
      */
     void end();
 
-    /**
-     * An alias for {@link #end()} to make a {@link Span} work in try-with-resources statements.
-     */
-    @Override
-    void close();
 }

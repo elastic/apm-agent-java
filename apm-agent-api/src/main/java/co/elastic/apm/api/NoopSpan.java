@@ -37,8 +37,4 @@ enum NoopSpan implements Span {
         // noop
     }
 
-    @Override
-    public void close() {
-        // noop
-    }
 }

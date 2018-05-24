@@ -24,7 +24,7 @@ class TransactionImpl implements Transaction {
     @SuppressWarnings("unused")
     private final Object transaction;
 
-    public TransactionImpl(Object transaction) {
+    TransactionImpl(Object transaction) {
         this.transaction = transaction;
     }
 
@@ -53,8 +53,4 @@ class TransactionImpl implements Transaction {
 
     }
 
-    @Override
-    public void close() {
-
-    }
 }

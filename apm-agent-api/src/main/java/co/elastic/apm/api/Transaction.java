@@ -26,7 +26,7 @@ package co.elastic.apm.api;
  * To get a reference to the current transaction, call {@link ElasticApm#currentTransaction()}.
  * </p>
  */
-public interface Transaction extends AutoCloseable {
+public interface Transaction {
 
     String TYPE_REQUEST = "request";
 
@@ -90,16 +90,7 @@ public interface Transaction extends AutoCloseable {
      * <p>
      * Should be called e.g. at the end of a request or when ending a background task.
      * </p>
-     * <p>
-     * As Transaction also implements the `java.lang.AutoCloseable` interface,
-     * you can use it in try-with-resource blocks. See {@link ElasticApm#startTransaction()}.
-     * </p>
      */
     void end();
 
-    /**
-     * An alias for {@link #end()} to make a {@link Transaction} work in try-with-resources statements.
-     */
-    @Override
-    void close();
 }
