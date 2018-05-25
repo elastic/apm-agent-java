@@ -75,8 +75,8 @@ public abstract class AbstractTomcatIntegrationTest {
     }
 
     private static String getPathToJavaagent() {
-        File agentBuildDir = new File("../../apm-agent-java/target/");
-        FileFilter fileFilter = new WildcardFileFilter("apm-agent-java-*.jar");
+        File agentBuildDir = new File("../../elastic-apm-agent/target/");
+        FileFilter fileFilter = new WildcardFileFilter("elastic-apm-agent-*.jar");
         for (File file : agentBuildDir.listFiles(fileFilter)) {
             if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
                 return file.getAbsolutePath();

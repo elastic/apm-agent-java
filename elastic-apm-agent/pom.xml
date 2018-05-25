@@ -12,7 +12,7 @@
     </parent>
     <packaging>jar</packaging>
 
-    <artifactId>apm-agent-java</artifactId>
+    <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <build>

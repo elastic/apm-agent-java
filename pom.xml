@@ -78,7 +78,7 @@
 
     <modules>
         <module>apm-agent-core</module>
-        <module>apm-agent-java</module>
+        <module>elastic-apm-agent</module>
         <module>apm-agent-benchmarks</module>
         <module>apm-agent-plugins</module>
         <module>apm-agent-api</module>
