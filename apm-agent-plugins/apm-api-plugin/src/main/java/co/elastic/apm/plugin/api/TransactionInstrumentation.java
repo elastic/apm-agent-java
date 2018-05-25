@@ -30,6 +30,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
+ */
 public class TransactionInstrumentation extends ElasticApmInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;

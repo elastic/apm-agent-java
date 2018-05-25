@@ -36,7 +36,7 @@ link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-j
 The tracer gives you access to the currently active transaction and span.
 It can also be used to track an exception.
 
-To use the API, you can just invoke static methods on the class `co.elastic.apm.api.ElasticApm`.
+To use the API, you can just invoke the static methods on the class `co.elastic.apm.api.ElasticApm`.
 
 [float]
 [[api-current-transaction]]
@@ -84,7 +84,7 @@ Note that the agent will do this for you automatically when ever your applicatio
 You only need to use this method to create custom transactions.
 
 It is important to call <<api-transaction-end>> when the transaction has ended.
-A best practice is to use the transaction in a try-catch-finally construct.
+A best practice is to use the transaction in a try-catch-finally block.
 Example:
 
 [source,java]
@@ -108,7 +108,7 @@ try {
 Start and return a new custom span associated with the current active transaction.
 
 It is important to call <<api-span-end>> when the span has ended.
-A best practice is to use the span in a try-catch-finally construct.
+A best practice is to use the span in a try-catch-finally block.
 Example:
 
 [source,java]

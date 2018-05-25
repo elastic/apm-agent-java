@@ -30,6 +30,9 @@ import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * Injects the actual implementation of the public API class co.elastic.apm.api.ElasticApm.
+ */
 public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;

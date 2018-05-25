@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     private Span span;

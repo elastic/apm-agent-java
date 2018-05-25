@@ -23,18 +23,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * This class can be used to statically access the {@link ElasticApm}.
+ * This class is the main entry point of the public API for the Elastic APM agent.
  * <p>
- * You can store the reference as an instance variable like so:
+ * The tracer gives you access to the currently active transaction and span.
+ * It can also be used to track an exception.
+ * To use the API, you can just invoke the static methods on this class.
  * </p>
- * <pre>{@code
- * private static final ElasticApm elasticApm = ElasticApm.get();
- * }</pre>
- * <p>
- * Then you can access the tracer to set a custom transaction name,
+ * Use this API to set a custom transaction name,
  * for example:
  * <pre>{@code
- * elasticApm.currentTransaction().setName("SuchController#muchMethod");
+ * ElasticApm.currentTransaction().setName("SuchController#muchMethod");
  * }</pre>
  */
 public class ElasticApm {
@@ -51,7 +49,7 @@ public class ElasticApm {
      * </p>
      * <p>
      * It is important to call {@link Transaction#end()} when the transaction has ended.
-     * A best practice is to use the transaction in a try-catch-finally construct.
+     * A best practice is to use the transaction in a try-catch-finally block.
      * Example:
      * </p>
      * <pre>
@@ -125,7 +123,7 @@ public class ElasticApm {
      * Start and return a new custom span associated with the currently active transaction.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.
-     * A best practice is to use the span in a try-catch-finally construct.
+     * A best practice is to use the span in a try-catch-finally block.
      * Example:
      * </p>
      * <pre>

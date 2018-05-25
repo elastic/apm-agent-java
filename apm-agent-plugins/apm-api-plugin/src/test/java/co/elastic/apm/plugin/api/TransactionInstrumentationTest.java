@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     private Transaction transaction;
