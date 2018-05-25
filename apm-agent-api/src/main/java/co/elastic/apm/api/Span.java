@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,10 +28,10 @@ package co.elastic.apm.api;
  * and the type will hold information about the database type.
  * </p>
  * <p>
- * Call {@link Tracer#currentSpan()} to get a reference of the current span.
+ * Call {@link ElasticApm#currentSpan()} to get a reference of the current span.
  * </p>
  */
-public interface Span extends AutoCloseable {
+public interface Span {
 
     /**
      * The name of the span.
@@ -58,16 +58,7 @@ public interface Span extends AutoCloseable {
     /**
      * Ends the span.
      * If the span has already ended, nothing happens.
-     * <p>
-     * As Span also implements the `java.lang.AutoCloseable` interface,
-     * you can use it in try-with-resource blocks. See {@link Tracer#startSpan()}.
-     * </p>
      */
     void end();
 
-    /**
-     * An alias for {@link #end()} to make a {@link Span} work in try-with-resources statements.
-     */
-    @Override
-    void close();
 }

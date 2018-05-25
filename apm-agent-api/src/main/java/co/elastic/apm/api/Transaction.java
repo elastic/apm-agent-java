@@ -23,10 +23,10 @@ package co.elastic.apm.api;
  * A transaction is the data captured by an agent representing an event occurring in a monitored service
  * and groups multiple spans in a logical group.
  * <p>
- * To get a reference to the current transaction, call {@link Tracer#currentTransaction()}.
+ * To get a reference to the current transaction, call {@link ElasticApm#currentTransaction()}.
  * </p>
  */
-public interface Transaction extends AutoCloseable {
+public interface Transaction {
 
     String TYPE_REQUEST = "request";
 
@@ -90,16 +90,7 @@ public interface Transaction extends AutoCloseable {
      * <p>
      * Should be called e.g. at the end of a request or when ending a background task.
      * </p>
-     * <p>
-     * As Transaction also implements the `java.lang.AutoCloseable` interface,
-     * you can use it in try-with-resource blocks. See {@link Tracer#startTransaction()}.
-     * </p>
      */
     void end();
 
-    /**
-     * An alias for {@link #end()} to make a {@link Transaction} work in try-with-resources statements.
-     */
-    @Override
-    void close();
 }

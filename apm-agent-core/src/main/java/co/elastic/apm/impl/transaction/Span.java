@@ -29,7 +29,7 @@ import java.util.List;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
-public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api.Span {
+public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
@@ -143,12 +143,10 @@ public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
-    @Override
     public void setType(@Nullable String type) {
         withType(type);
     }
 
-    @Override
     public void end() {
         end(System.nanoTime(), true);
     }
@@ -162,7 +160,6 @@ public class Span extends AbstractSpan implements Recyclable, co.elastic.apm.api
         }
     }
 
-    @Override
     public void close() {
         end();
     }

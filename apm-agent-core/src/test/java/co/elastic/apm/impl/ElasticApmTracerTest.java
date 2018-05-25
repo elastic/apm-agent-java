@@ -20,8 +20,6 @@
 package co.elastic.apm.impl;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Tracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.context.LifecycleListener;
@@ -30,7 +28,6 @@ import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -56,30 +53,6 @@ class ElasticApmTracerTest {
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
-    }
-
-    @AfterEach
-    void tearDown() {
-        ElasticApmTracer.unregister();
-    }
-
-    @Test
-    void testNotRegistered() {
-        Tracer tracer = ElasticApm.get();
-        try (co.elastic.apm.api.Transaction transaction = tracer.startTransaction()) {
-            assertThat(transaction).isNotInstanceOf(Transaction.class);
-        }
-        assertThat(reporter.getTransactions()).isEmpty();
-    }
-
-    @Test
-    void testRegister() {
-        Tracer tracer = ElasticApm.get();
-        tracerImpl.register();
-        try (co.elastic.apm.api.Transaction transaction = tracer.startTransaction()) {
-            assertThat(transaction).isInstanceOf(Transaction.class);
-        }
-        assertThat(reporter.getTransactions()).hasSize(1);
     }
 
     @Test

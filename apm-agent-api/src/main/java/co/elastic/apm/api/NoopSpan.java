@@ -17,7 +17,24 @@
  * limitations under the License.
  * #L%
  */
-@NonnullApi
 package co.elastic.apm.api;
 
-import co.elastic.apm.annotation.NonnullApi;
+enum NoopSpan implements Span {
+    INSTANCE;
+
+    @Override
+    public void setName(String name) {
+        // noop
+    }
+
+    @Override
+    public void setType(String type) {
+        // noop
+    }
+
+    @Override
+    public void end() {
+        // noop
+    }
+
+}
