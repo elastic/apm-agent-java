@@ -4,14 +4,7 @@ set -e
 
 NOW_ISO_8601=$(date -u "+%Y-%m-%dT%H%M%SZ")
 
-# see http://stackoverflow.com/a/246128
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ ${SOURCE} != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-MICRO_BENCHMARK_HOME="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+echo $(pwd)
 
 function setUp() {
     echo "Setting CPU frequency to base frequency"
@@ -34,9 +27,9 @@ function setUp() {
         >&2 echo "Cannot determine base frequency for CPU model [${CPU_MODEL}]. Please adjust the build script."
         exit 1
     fi
-    MIN_FREQ=`cpufreq-info -l -c 0 | awk '{print $1}'`
+    MIN_FREQ=$(cpufreq-info -l -c 0 | awk '{print $1}')
     # This is the frequency including Turbo Boost. See also http://ark.intel.com/products/80916/Intel-Xeon-Processor-E3-1246-v3-8M-Cache-3_50-GHz
-    MAX_FREQ=`cpufreq-info -l -c 0 | awk '{print $2}'`
+    MAX_FREQ=$(cpufreq-info -l -c 0 | awk '{print $2}')
 
     # set all CPUs to the base frequency
     for (( cpu=0; cpu<=${CORE_INDEX}; cpu++ ))
@@ -65,8 +58,6 @@ function setCloudCredentials() {
 }
 
 function benchmark() {
-    cd ${WORKSPACE}
-
     COMMIT_ISO_8601=$(git log -1 -s --format=%cI)
     COMMIT_UNIX=$(git log -1 -s --format=%ct)
 
@@ -77,8 +68,6 @@ function benchmark() {
 
     sudo cset proc --exec /benchmark -- \
         $JAVA_HOME/bin/java -jar ${WORKSPACE}/apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" -prof gc -rf json -rff ~/${RESULT_FILE}
-
-    cd ~
 
     # remove strange non unicode chars inserted by JMH; see org.openjdk.jmh.results.Defaults.PREFIX
     tr -cd '\11\12\40-\176' < ${RESULT_FILE} > "${RESULT_FILE}.clean"
