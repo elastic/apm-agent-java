@@ -72,8 +72,8 @@ public class PostProcessBenchmarkResults {
             .put("os_name", System.getProperty("os.name"))
             .put("os_version", System.getProperty("os.version"))
             .put("jdk_version", System.getProperty("java.version"))
-            .put("revision", execCmd(String.format("git -C %s rev-parse --short HEAD", System.getenv("WORKSPACE"))))
-            .put("commit_message", execCmd(String.format("git -C %s log --format=%%s -n 1 HEAD", System.getenv("WORKSPACE"))))
+            .put("revision", execCmd("git rev-parse --short HEAD"))
+            .put("commit_message", execCmd("git log --format=%%s -n 1 HEAD"))
             .put("executed_at", Instant.now().toString());
         for (JsonNode benchmark : jmhResultJson) {
             final String benchmarkName = benchmark.get("benchmark").textValue();

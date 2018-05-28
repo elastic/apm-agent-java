@@ -49,18 +49,24 @@ When starting your application, add the JVM flag `-javaagent:/path/to/apm-agent-
 === Supported technologies
 
 |===
-|Technology |Supported versions
+|Technology |Supported versions | Description
 
 |Java
 |Oracle and OpenJDK versions 7, 8 and 9
+|
 
 |JDBC
 |4.1+
+|The agent automatically creates DB spans for all your JDBC queries.
+ This includes JDBC queries executed by O/R mappers like Hibernate.
 
 |Servlet API
 |3+
+|A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
 
 |Spring MVC
 |4+
+|If you are using Spring MVC (for example with Spring Boot),
+ the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
 |===
 
