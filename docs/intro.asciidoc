@@ -5,9 +5,8 @@
 Welcome to the APM Java Agent documentation.
 
 Elastic APM automatically measures the performance of your application and tracks errors.
-It records spans for database queries,
-incoming HTTP requests,
-and other slow operations that happen during requests to your app.
+For example, it records spans for database queries and transactions for incoming HTTP requests.
+See <<supported-technologies>> to learn about which frameworks and technologies the Elastic APM Java agent supports out-of-the-box.
 
 Spans are grouped in transactions - by default one for each incoming HTTP request.
 But it's possible to create custom transactions not associated with an HTTP request.
