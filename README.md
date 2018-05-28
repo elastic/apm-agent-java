@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/elastic/apm-agent-java.svg?branch=master)](https://travis-ci.org/elastic/apm-agent-java)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java)
 
