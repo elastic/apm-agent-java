@@ -1,3 +1,4 @@
+[![Build Status](https://img.shields.io/jenkins/s/https/apm-ci.elastic.co/job/elastic+apm-agent-java+master.svg)](https://apm-ci.elastic.co/job/elastic+apm-agent-java+master)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java)
 
