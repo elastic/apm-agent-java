@@ -89,4 +89,14 @@ public abstract class ElasticApmInstrumentation {
         return false;
     }
 
+    /**
+     * Returns a name which groups several instrumentations into a logical group.
+     * <p>
+     * This name is used in {@link co.elastic.apm.configuration.CoreConfiguration#disabledInstrumentations} to exclude a logical group
+     * of instrumentations.
+     * </p>
+     * @return a name which groups several instrumentations into a logical group
+     */
+    public abstract String getInstrumentationGroupName();
+
 }

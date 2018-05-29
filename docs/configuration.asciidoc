@@ -221,6 +221,26 @@ you should add an additional entry to this list (make sure to also include the d
 | `elastic.apm.sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
 |============
 
+[float]
+[[config-disabled-instrumentations]]
+==== `disabled_instrumentations`
+
+A list of instrumentations which should be disabled. Valid options are `jdbc`, `servlet-api` and `spring-mvc`.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Collection | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment
+| `elastic.apm.disabled_instrumentations` | `ELASTIC_APM_DISABLED_INSTRUMENTATIONS`
+|============
+
 [[http]]
 === HTTP configuration options
 [float]

@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import static co.elastic.apm.jdbc.ConnectionInstrumentation.JDBC_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.isSubTypeOf;
@@ -89,5 +90,10 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
         return nameStartsWith("execute")
             .and(isPublic())
             .and(takesArguments(0));
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return JDBC_INSTRUMENTATION_GROUP;
     }
 }

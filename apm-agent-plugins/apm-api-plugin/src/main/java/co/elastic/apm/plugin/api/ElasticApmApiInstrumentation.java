@@ -35,6 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  */
 public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
+    static final String PUBLIC_API_INSTRUMENTATION_GROUP = "public-api";
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
     ElasticApmApiInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
@@ -54,6 +55,11 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return PUBLIC_API_INSTRUMENTATION_GROUP;
     }
 
     public static class StartTransactionInstrumentation extends ElasticApmApiInstrumentation {

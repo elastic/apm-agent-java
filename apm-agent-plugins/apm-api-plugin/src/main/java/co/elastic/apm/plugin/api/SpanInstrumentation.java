@@ -28,6 +28,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -54,6 +55,11 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return PUBLIC_API_INSTRUMENTATION_GROUP;
     }
 
     public static class SetNameInstrumentation extends SpanInstrumentation {

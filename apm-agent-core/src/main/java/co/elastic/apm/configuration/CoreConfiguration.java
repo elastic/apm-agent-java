@@ -27,6 +27,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
@@ -164,6 +166,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Enables distributed tracing and uses the updated json schema to serialize payloads, transactions and spans")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
+        .key("disabled_instrumentations")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of instrumentations which should be disabled. Valid options are `jdbc`, `servlet-api` and `spring-mvc`.")
+        .buildWithDefault(Collections.<String>emptyList());
+
     public boolean isActive() {
         return active.get();
     }
@@ -198,5 +206,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isDistributedTracingEnabled() {
         return distributedTracing.get();
+    }
+
+    public Collection<String> getDisabledInstrumentations() {
+        return disabledInstrumentations.get();
     }
 }

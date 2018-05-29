@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.Collection;
 import java.util.ServiceLoader;
 
 import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
@@ -91,9 +92,8 @@ public class ElasticApmAgent {
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
         int numberOfAdvices = 0;
-        final boolean instrument = tracer.getConfig(CoreConfiguration.class).isInstrument();
         for (final ElasticApmInstrumentation advice : instrumentations) {
-            if (advice.includeWhenInstrumentationIsDisabled() || instrument) {
+            if (isIncluded(advice, tracer.getConfig(CoreConfiguration.class))) {
                 numberOfAdvices++;
                 agentBuilder = applyAdvice(tracer, agentBuilder, advice);
             }
@@ -101,6 +101,19 @@ public class ElasticApmAgent {
         logger.debug("Applied {} advices", numberOfAdvices);
 
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
+    }
+
+    private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
+        final Collection<String> disabledInstrumentations = coreConfiguration.getDisabledInstrumentations();
+        return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupName()) && isInstrumentationEnabled(advice, coreConfiguration);
+    }
+
+    private static boolean isGroupDisabled(Collection<String> disabledInstrumentations, String instrumentationGroupName) {
+        return disabledInstrumentations.contains(instrumentationGroupName);
+    }
+
+    private static boolean isInstrumentationEnabled(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
+        return advice.includeWhenInstrumentationIsDisabled() || coreConfiguration.isInstrument();
     }
 
     private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
