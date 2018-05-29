@@ -28,7 +28,7 @@ Please also have a look at the documentation for
 === Get started
 
 The first step in getting started with the Elastic APM Java agent ist to download the latest release of the agent jar file from
-link:http://mvnrepository.com/artifact/co.elastic.apm/apm-agent-java[maven central].
+link:http://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/[maven central].
 
 NOTE: Don't declare a dependency to the agent in your application.
 
@@ -41,7 +41,31 @@ see the link:configuration.asciidoc[configuration guide] on how to configure Ela
 [float]
 [[javaagent]]
 === Add `javaagent` flag
-When starting your application, add the JVM flag `-javaagent:/path/to/apm-agent-java-<version>.jar`
+When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
+
+[float]
+[[spring-boot-javaagent]]
+==== Add `javaagent` flag for a Spring Boot application
+
+Start your spring application and add the `-javaagent` JVM flag:
+
+[source,bash]
+----
+java -jar my-spring-boot-application.jar -javaagent:/path/to/elastic-apm-agent-<version>.jar
+----
+
+[float]
+[[tomcat-javaagent]]
+==== Add `javaagent` flag for Apache Tomcat
+Create `$CATALINA_BASE/bin/setenv.sh` (or modify if the file already exists).
+
+Add the following line:
+
+[source,bash]
+.setenv.sh
+----
+export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
+----
 
 [float]
 [[supported-technologies]]
