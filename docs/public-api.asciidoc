@@ -1,10 +1,14 @@
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
 [[api]]
 == Public API
 The public API of the Elastic APM Java agent lets you
 customize and manually create spans and transactions,
 as well as track errors.
 
-// describe adding maven dependency when instrumentation is implemented
 The first step in getting started with the API ist to declare a dependency to the API:
 
 [source,xml]
@@ -24,11 +28,9 @@ compile "co.elastic.apm:apm-agent-api:$elasticApmVersion"
 ----
 
 Replace the version placeholders with the
-link:http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-java%22[
+link:http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-api%22[
 latest version from maven central]:
-image:https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg[
-link=https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java]
-
+image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg[Maven Central]
 
 [float]
 [[api-tracer-api]]
