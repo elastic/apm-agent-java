@@ -1,15 +1,15 @@
 [![Build Status](https://img.shields.io/jenkins/s/https/apm-ci.elastic.co/job/elastic+apm-agent-java+master.svg)](https://apm-ci.elastic.co/job/elastic+apm-agent-java+master)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/co.elastic.apm/apm-agent-java)
+[![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-api%22)
 
 # apm-agent-java
 
-This agent is in pre-alpha state and under heavy development. Do not deploy into production! 
+This agent is in alpha state and under heavy development. Do not deploy into production! 
 
 Please fill out this survey to help us prioritizing framework support: https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link
 
 ## Documentation
-Docs are located [here](docs/intro.asciidoc).
+Docs are located [here](docs/index.asciidoc).
 
 ## Getting Help
 If you find a bug,
