@@ -48,6 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
+    static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
     private static final Map<PreparedStatement, String> statementSqlMap =
         Collections.synchronizedMap(new WeakHashMap<PreparedStatement, String>());
 
@@ -88,6 +89,11 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
             .and(isPublic())
             .and(returns(isSubTypeOf(PreparedStatement.class)))
             .and(takesArgument(0, String.class));
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return JDBC_INSTRUMENTATION_GROUP;
     }
 
 }

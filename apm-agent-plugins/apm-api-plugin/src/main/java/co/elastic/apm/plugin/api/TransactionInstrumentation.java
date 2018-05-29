@@ -28,6 +28,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -49,6 +50,11 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return methodMatcher;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return PUBLIC_API_INSTRUMENTATION_GROUP;
     }
 
     @Override

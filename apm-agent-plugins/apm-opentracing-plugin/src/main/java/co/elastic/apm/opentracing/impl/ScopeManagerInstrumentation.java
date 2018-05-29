@@ -31,6 +31,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.OPENTRACING_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
@@ -54,6 +55,11 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return OPENTRACING_INSTRUMENTATION_GROUP;
     }
 
     public static class ActivateInstrumentation extends ScopeManagerInstrumentation {

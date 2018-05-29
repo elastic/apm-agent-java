@@ -40,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Enumeration;
 
+import static co.elastic.apm.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -52,6 +53,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class FilterChainInstrumentation extends ElasticApmInstrumentation {
 
+    @VisibleForAdvice
     public static final String EXCLUDE_REQUEST = "elastic.apm.servlet.request.exclude";
 
     @Override
@@ -79,6 +81,11 @@ public class FilterChainInstrumentation extends ElasticApmInstrumentation {
     @Override
     public Class<?> getAdviceClass() {
         return FilterChainAdvice.class;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return SERVLET_API;
     }
 
     /**

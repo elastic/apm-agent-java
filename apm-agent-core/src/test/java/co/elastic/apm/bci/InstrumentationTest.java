@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.bci;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -27,29 +28,42 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class InstrumentationTest {
 
-    @BeforeEach
-    void setUp() {
-        ElasticApmAgent.initInstrumentation(ElasticApmTracer.builder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .build(), ByteBuddyAgent.install());
-    }
-
-    @AfterAll
-    static void afterAll() {
+    @AfterEach
+    void afterAll() {
         ElasticApmAgent.reset();
     }
 
     @Test
     void testIntercept() {
+        init(SpyConfiguration.createSpyConfig());
         assertThat(interceptMe()).isEqualTo("intercepted");
+    }
+
+    @Test
+    void testDisabled() {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("test"));
+        init(config);
+        assertThat(interceptMe()).isEmpty();
+    }
+
+    private void init(ConfigurationRegistry config) {
+        ElasticApmAgent.initInstrumentation(ElasticApmTracer.builder()
+                .configurationRegistry(config)
+                .build(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new TestInstrumentation()));
     }
 
     private String interceptMe() {
@@ -70,6 +84,11 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return ElementMatchers.named("interceptMe");
+        }
+
+        @Override
+        public String getInstrumentationGroupName() {
+            return "test";
         }
     }
 }

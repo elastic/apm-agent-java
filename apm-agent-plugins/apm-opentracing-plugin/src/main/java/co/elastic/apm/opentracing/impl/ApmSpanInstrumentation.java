@@ -39,6 +39,8 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
+    static final String OPENTRACING_INSTRUMENTATION_GROUP = "opentracing";
+
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
     public ApmSpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
@@ -58,6 +60,11 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public boolean includeWhenInstrumentationIsDisabled() {
         return true;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return OPENTRACING_INSTRUMENTATION_GROUP;
     }
 
     public static class FinishInstrumentation extends ApmSpanInstrumentation {

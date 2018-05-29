@@ -57,6 +57,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ServletInstrumentation extends ElasticApmInstrumentation {
 
+    static final String SERVLET_API = "servlet-api";
+
     @Override
     public void init(ElasticApmTracer tracer) {
         ServletAdvice.init(tracer);
@@ -82,6 +84,11 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public Class<?> getAdviceClass() {
         return ServletAdvice.class;
+    }
+
+    @Override
+    public String getInstrumentationGroupName() {
+        return SERVLET_API;
     }
 
     /**

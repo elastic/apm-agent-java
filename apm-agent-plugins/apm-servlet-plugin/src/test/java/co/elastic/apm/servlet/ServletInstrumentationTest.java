@@ -147,5 +147,10 @@ class ServletInstrumentationTest {
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return none();
         }
+
+        @Override
+        public String getInstrumentationGroupName() {
+            return "noop";
+        }
     }
 }
