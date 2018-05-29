@@ -97,7 +97,7 @@ This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Buil
 `Format.Builtin.BINARY` is currently not supported.
 
 [[references]]
-==== References
+==== Span References
 Currently, this bridge only supports `child_of` references.
 Other references,
 like `follows_from` are not supported yet.

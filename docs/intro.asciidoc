@@ -38,7 +38,7 @@ link:http://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/[maven centr
 NOTE: Don't declare a dependency to the agent in your application.
 
 [float]
-[[configuration]]
+[[get-started-configuration]]
 === Configuration
 Once you are set with instrumenting your favorite framework,
 see the <<configuration,configuration guide>> on how to configure Elastic APM.

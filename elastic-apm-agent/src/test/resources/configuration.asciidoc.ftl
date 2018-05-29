@@ -1,5 +1,5 @@
 <#-- @ftlvariable name="config" type="java.util.Map<java.lang.String,java.util.List<org.stagemonitor.configuration.ConfigurationOption<?>>>" -->
-[configuration]
+[[configuration]]
 == Configuration
 To adapt the Elastic APM agent to your needs,
 you can configure it using different configuration sources,
@@ -21,12 +21,12 @@ the most important configuration options are <<config-service-name>> (required),
 <<config-server-url>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
-[source]
+[source,bash]
 .System properties
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
-# -Delastic.apm.server_url=http://localhost:8300
+-Delastic.apm.server_url=http://localhost:8300
 ----
 
 <#list config as category, options>
