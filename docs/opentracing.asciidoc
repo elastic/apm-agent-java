@@ -14,7 +14,7 @@ it translates the calls to the OpenTracing API to Elastic APM and thus allows fo
 The first span of a service will be converted to an Elastic APM
 link:https://www.elastic.co/guide/en/apm/server/current/transactions.html[`Transaction`],
 subsequent spans are mapped to Elastic APM
-link:https://www.elastic.co/guide/en/apm/server/current/spans.html)[`Span`]s.
+link:https://www.elastic.co/guide/en/apm/server/current/spans.html[`Span`]s.
 
 [[operation-modes]]
 === Operation Modes
