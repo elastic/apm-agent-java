@@ -58,5 +58,5 @@ ${option.description}
     </#list>
 </#list>
 
-<#macro defaultValue option>${option.defaultValueAsString?has_content?then("pass:[${option.defaultValueAsString}]",'<none>')}</#macro>
+<#macro defaultValue option>${option.defaultValueAsString?has_content?then("+${option.defaultValueAsString}+",'<none>')}</#macro>
 
