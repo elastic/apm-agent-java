@@ -47,7 +47,7 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+true+` | Boolean | true
+| `true` | Boolean | true
 |============
 
 
@@ -69,7 +69,7 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+true+` | Boolean | false
+| `true` | Boolean | false
 |============
 
 
@@ -152,7 +152,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+1.0+` | Double | true
+| `1.0` | Double | true
 |============
 
 
@@ -176,7 +176,7 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+500+` | Integer | true
+| `500` | Integer | true
 |============
 
 
@@ -211,7 +211,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+(?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie+` | List | true
+| `(?i)password, (?i)passwd, (?i)pwd, (?i)secret, (?i)token, (?i)*key, (?i)*token, (?i)*session*, (?i)*credit*, (?i)*card*, (?i)authorization, (?i)set-cookie` | List | true
 |============
 
 
@@ -261,7 +261,7 @@ WARNING: request bodies often contain sensitive values like passwords, credit ca
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+OFF+` | EventType | true
+| `OFF` | EventType | true
 |============
 
 
@@ -288,7 +288,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+/VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2+` | List | true
+| `/VAADIN/*, (?i)/heartbeat/*, /favicon.ico, *.js, *.css, *.jpg, *.jpeg, *.png, *.webp, *.svg, *.woff, *.woff2` | List | true
 |============
 
 
@@ -360,7 +360,7 @@ The URL must be fully qualified, including protocol (http or https) and port.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+http://localhost:8200+` | URL | true
+| `http://localhost:8200` | URL | true
 |============
 
 
@@ -382,7 +382,7 @@ WARNING:  If timeouts are disabled or set to a high value, your app could experi
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+5+` | Integer | false
+| `5` | Integer | false
 |============
 
 
@@ -404,7 +404,7 @@ Verification can be disabled by changing this setting to false.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+true+` | Boolean | false
+| `true` | Boolean | false
 |============
 
 
@@ -428,7 +428,7 @@ A higher value also impacts the time until transactions are indexed and searchab
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+1+` | Integer | false
+| `1` | Integer | false
 |============
 
 
@@ -454,7 +454,7 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+500+` | Integer | true
+| `500` | Integer | true
 |============
 
 
@@ -496,7 +496,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+50+` | Integer | true
+| `50` | Integer | true
 |============
 
 
@@ -520,7 +520,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `+5+` | Integer | true
+| `5` | Integer | true
 |============
 
 
