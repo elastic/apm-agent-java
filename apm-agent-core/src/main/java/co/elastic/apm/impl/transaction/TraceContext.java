@@ -28,17 +28,21 @@ import org.slf4j.LoggerFactory;
 /**
  * This is an implementation of the
  * <a href="https://w3c.github.io/distributed-tracing/report-trace-context.html#traceparent-field">w3c traceparent header draft</a>.
+ * <p>
+ * As this is just a draft at the moment,
+ * we don't use the official header name but prepend the custom prefix {@code Elastic-Apm-}.
+ * </p>
  *
  * <pre>
- * traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
- * (_________)  () (______________________________) (______________) ()
- *      v       v                 v                        v         v
- * Header name  Version        Trace-Id                Span-Id     Flags
+ * Elastic-Apm-Traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+ * (_____________________)  () (______________________________) (______________) ()
+ *            v             v                 v                        v         v
+ *       Header name     Version           Trace-Id                Span-Id     Flags
  * </pre>
  */
 public class TraceContext implements Recyclable {
 
-    public static final String TRACE_PARENT_HEADER = "traceparent";
+    public static final String TRACE_PARENT_HEADER = "Elastic-Apm-Traceparent";
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     private static final int TRACE_PARENT_LENGTH = 55;
     // the first bit in the flags bit field determines if the trace should be sampled
