@@ -26,13 +26,13 @@ This bridge allows for different operation modes in combination with the Elastic
   If the `javaagent` is not specified, the bridge is in noop mode and does not actually record and report spans.
 - Mix and Match +
   If you want to leverage the auto instrumentation of Elastic APM,
-  but also want do create custom `Span`s or use the OpenTracing API to add custom tags to the `Span`s created by Elastic APM,
+  but also want do create custom spans or use the OpenTracing API to add custom tags to the spanss created by Elastic APM,
   you can just do that.
   The OpenTracing bridge and the standard Elastic APM API interact seamlessly.
 - Manual instrumentation +
   If you don't want Elastic APM to auto-instrument known frameworks,
   but instead only rely on manual instrumentation,
-  disable the auto instrumentation setting the configuration option `instrument` to `false`.
+  disable the auto instrumentation setting the configuration option <<config-instrument,`instrument`>> to `false`.
 
 [float]
 [[getting-started]]
