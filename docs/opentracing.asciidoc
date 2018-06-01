@@ -16,6 +16,7 @@ link:https://www.elastic.co/guide/en/apm/server/current/transactions.html[`Trans
 subsequent spans are mapped to Elastic APM
 link:https://www.elastic.co/guide/en/apm/server/current/spans.html[`Span`]s.
 
+[float]
 [[operation-modes]]
 === Operation Modes
 
@@ -33,6 +34,7 @@ This bridge allows for different operation modes in combination with the Elastic
   but instead only rely on manual instrumentation,
   disable the auto instrumentation setting the configuration option `instrument` to `false`.
 
+[float]
 [[getting-started]]
 === Getting started
 The first step in getting started with the OpenTracing API bridge ist to declare a dependency to the API:
@@ -59,6 +61,7 @@ latest version from maven central]:
 image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-opentracing.svg[Maven Central]
 
 
+[float]
 [[init-tracer]]
 === Initialize tracer
 
@@ -71,6 +74,7 @@ Tracer tracer = new ElasticApmTracer();
 ----
 
 
+[float]
 [[elastic-apm-tags]]
 === Elastic APM specific tags
 
@@ -87,26 +91,31 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
 - `result` - sets the result of the transaction. Overrides the default value of `success`.
   If the `error` tag is set to `true`, the default value is `error`.
 
+[float]
 [[unsupported]]
 === Caveats
 Not all features of the OpenTracing API are supported.
 
+[float]
 [[propagation]]
 ==== Context propagation
 This bridge only supports the formats `Format.Builtin.TEXT_MAP` and `Format.Builtin.HTTP_HEADERS`.
 `Format.Builtin.BINARY` is currently not supported.
 
+[float]
 [[references]]
 ==== Span References
 Currently, this bridge only supports `child_of` references.
 Other references,
 like `follows_from` are not supported yet.
 
+[float]
 [[baggage]]
 ==== Baggage
 The `Span.setBaggageItem(String, String)` method is not supported.
 Baggage items are silently dropped.
 
+[float]
 [[logs]]
 ==== Logs
 Only exception logging is supported.
