@@ -20,25 +20,11 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.context.Response;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
-import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.security.Principal;
-import java.util.Enumeration;
-
-import static co.elastic.apm.servlet.FilterChainInstrumentation.EXCLUDE_REQUEST;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -61,7 +47,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        ServletAdvice.init(tracer);
+        ServletApiAdvice.init(tracer);
     }
 
     @Override
@@ -83,73 +69,12 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {
-        return ServletAdvice.class;
+        return ServletApiAdvice.class;
     }
 
     @Override
     public String getInstrumentationGroupName() {
         return SERVLET_API;
     }
-
-    /**
-     * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
-     * {@code javax.servlet}, as these are inlined into the matching methods.
-     * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
-     * See https://github.com/raphw/byte-buddy/issues/465 for more information.
-     */
-    public static class ServletAdvice {
-
-        @Nullable
-        @VisibleForAdvice
-        public static ServletTransactionHelper servletTransactionHelper;
-
-
-        static void init(ElasticApmTracer tracer) {
-            servletTransactionHelper = new ServletTransactionHelper(tracer);
-        }
-
-        @Nullable
-        @Advice.OnMethodEnter
-        public static Transaction onEnterServletService(@Advice.Argument(0) HttpServletRequest request) {
-            if (servletTransactionHelper != null &&
-                // if the request has already been excluded while processing the filter chain,
-                // avoid to match all exclude patterns again
-                !Boolean.TRUE.equals(request.getAttribute(EXCLUDE_REQUEST))) {
-                return servletTransactionHelper.onBefore(request.getServletPath(), request.getPathInfo(),
-                    request.getRequestURI(), request.getHeader("User-Agent"), request.getHeader(TraceContext.TRACE_PARENT_HEADER));
-            }
-            return null;
-        }
-
-        @Advice.OnMethodExit(onThrowable = Exception.class)
-        public static void onExitServletService(@Advice.Argument(0) HttpServletRequest request,
-                                                @Advice.Argument(1) HttpServletResponse response,
-                                                @Advice.Enter @Nullable Transaction transaction,
-                                                @Advice.Thrown @Nullable Exception exception) {
-            if (servletTransactionHelper != null && transaction != null) {
-                final Request req = transaction.getContext().getRequest();
-                if (request.getCookies() != null) {
-                    for (Cookie cookie : request.getCookies()) {
-                        req.addCookie(cookie.getName(), cookie.getValue());
-                    }
-                }
-                final Enumeration headerNames = request.getHeaderNames();
-                while (headerNames.hasMoreElements()) {
-                    final String headerName = (String) headerNames.nextElement();
-                    req.addHeader(headerName, request.getHeader(headerName));
-                }
-                final Response resp = transaction.getContext().getResponse();
-                for (String headerName : response.getHeaderNames()) {
-                    resp.addHeader(headerName, response.getHeader(headerName));
-                }
-                final Principal userPrincipal = request.getUserPrincipal();
-                servletTransactionHelper.onAfter(transaction, exception, userPrincipal != null ? userPrincipal.getName() : null,
-                    request.getProtocol(), request.getMethod(), request.isSecure(), request.getScheme(), request.getServerName(),
-                    request.getServerPort(), request.getRequestURI(), request.getQueryString(), request.getParameterMap(),
-                    request.getRemoteAddr(), request.getRequestURL(), response.isCommitted(), response.getStatus());
-            }
-        }
-    }
-
 
 }
