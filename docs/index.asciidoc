@@ -1,4 +1,6 @@
 = APM Java Agent Reference (Alpha)
+:branch: current
+include::{asciidoc-dir}/../../shared/attributes.asciidoc[]
 
 ifdef::env-github[]
 NOTE: For the best reading experience,
