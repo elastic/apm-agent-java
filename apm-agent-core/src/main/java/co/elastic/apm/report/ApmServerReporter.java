@@ -33,7 +33,9 @@ import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
+import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Future;
@@ -98,7 +100,7 @@ public class ApmServerReporter implements Reporter {
                 thread.setName("apm-reporter");
                 return thread;
             }
-        });
+        }, ProducerType.MULTI, new SleepingWaitStrategy());
         this.coreConfiguration = coreConfiguration;
         reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration);
         disruptor
