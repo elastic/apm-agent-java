@@ -60,6 +60,10 @@
                                     <pattern>org.stagemonitor</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.agrona</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.agrona</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />

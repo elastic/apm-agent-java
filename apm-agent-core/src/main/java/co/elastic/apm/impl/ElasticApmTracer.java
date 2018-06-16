@@ -32,9 +32,10 @@ import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
-import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
+import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -76,21 +77,21 @@ public class ElasticApmTracer {
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
-        transactionPool = new RingBufferObjectPool<>(maxPooledElements, false,
+        transactionPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<Transaction>(maxPooledElements), false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction();
                 }
             });
-        spanPool = new RingBufferObjectPool<>(maxPooledElements, false,
+        spanPool = new QueueBasedObjectPool(new ManyToManyConcurrentArrayQueue<Span>(maxPooledElements), false,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
                     return new Span();
                 }
             });
-        errorPool = new RingBufferObjectPool<>(64, false,
+        errorPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<ErrorCapture>(maxPooledElements), false,
             new RecyclableObjectFactory<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {

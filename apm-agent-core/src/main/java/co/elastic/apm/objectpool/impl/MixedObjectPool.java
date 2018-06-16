@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,11 +31,10 @@ public class MixedObjectPool<T extends Recyclable> extends AbstractObjectPool<T>
     private final ObjectPool<T> primaryPool;
     private final ObjectPool<T> secondaryPool;
 
-    public MixedObjectPool(final int primaryPoolSize, final int secondaryPoolSize, final boolean preAllocate,
-                           final RecyclableObjectFactory<T> recyclableObjectFactory) {
+    public MixedObjectPool(final RecyclableObjectFactory<T> recyclableObjectFactory, ObjectPool<T> primaryPool, ObjectPool<T> secondaryPool) {
         super(recyclableObjectFactory);
-        primaryPool = new ThreadLocalObjectPool<>(primaryPoolSize, preAllocate, recyclableObjectFactory);
-        secondaryPool = new RingBufferObjectPool<>(secondaryPoolSize, preAllocate, recyclableObjectFactory);
+        this.primaryPool = primaryPool;
+        this.secondaryPool = secondaryPool;
     }
 
 

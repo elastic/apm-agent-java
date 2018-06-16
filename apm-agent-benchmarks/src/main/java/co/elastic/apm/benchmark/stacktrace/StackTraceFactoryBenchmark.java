@@ -25,7 +25,8 @@ import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
+import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
+import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -62,7 +63,7 @@ public class StackTraceFactoryBenchmark extends AbstractBenchmark {
     @Setup
     public void setUp() {
         StacktraceConfiguration stacktraceConfiguration = new StacktraceConfiguration();
-        objectPool = new RingBufferObjectPool<>(64, true, Stacktrace::new);
+        objectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(64), true, Stacktrace::new);
         currentThreadStackTraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stacktraceConfiguration,
             new NoopObjectPool<>(Stacktrace::new));
         currentThreadStackTraceFactoryRecycling = new StacktraceFactory.CurrentThreadStackTraceFactory(stacktraceConfiguration, objectPool);

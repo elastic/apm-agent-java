@@ -21,10 +21,10 @@ package co.elastic.apm.benchmark.objectpool;
 
 import co.elastic.apm.benchmark.AbstractBenchmark;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.objectpool.impl.BlockingQueueObjectPool;
 import co.elastic.apm.objectpool.impl.MixedObjectPool;
-import co.elastic.apm.objectpool.impl.RingBufferObjectPool;
+import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
+import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -34,14 +34,15 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.runner.RunnerException;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.AverageTime)
+@BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ObjectPoolBenchmark extends AbstractBenchmark {
 
-    private RingBufferObjectPool<Transaction> ringBufferObjectPool;
-    private BlockingQueueObjectPool<Transaction> blockingQueueObjectPool;
+    private QueueBasedObjectPool<Transaction> blockingQueueObjectPool;
+    private QueueBasedObjectPool<Transaction> agronaQueueObjectPool;
     private MixedObjectPool<Transaction> mixedObjectPool;
     private ThreadLocalObjectPool<Transaction> threadLocalObjectPool;
 
@@ -51,16 +52,17 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() {
-        ringBufferObjectPool = new RingBufferObjectPool<>(256, true, Transaction::new);
-        blockingQueueObjectPool = new BlockingQueueObjectPool<>(256, true, Transaction::new);
-        mixedObjectPool = new MixedObjectPool<>(256, 1024, true, Transaction::new);
+        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, Transaction::new);
+        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new);
+        mixedObjectPool = new MixedObjectPool<>(Transaction::new,
+            new ThreadLocalObjectPool<>(256, true, Transaction::new),
+            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new));
         threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, Transaction::new);
     }
 
     @TearDown
     public void tearDown() {
-        System.out.println("Objects created by RingBufferObjectPool: " + ringBufferObjectPool.getGarbageCreated());
-        System.out.println("Objects created by RingBufferObjectPool: " + ringBufferObjectPool.getGarbageCreated());
+        System.out.println("Objects created by agronaQueueObjectPool: " + agronaQueueObjectPool.getGarbageCreated());
         System.out.println("Objects created by MixedObjectPool: " + mixedObjectPool.getGarbageCreated());
     }
 
@@ -72,9 +74,9 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     @Benchmark
     @Threads(8)
-    public Transaction testRingBufferObjectPool() {
-        Transaction transaction = ringBufferObjectPool.createInstance();
-        ringBufferObjectPool.recycle(transaction);
+    public Transaction testArgonaQueueObjectPool() {
+        Transaction transaction = agronaQueueObjectPool.createInstance();
+        agronaQueueObjectPool.recycle(transaction);
         return transaction;
     }
 
