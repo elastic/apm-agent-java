@@ -44,11 +44,17 @@ import java.util.Enumeration;
  */
 public class ServletApiAdvice {
 
+    @VisibleForAdvice
+    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
+    @Nullable
+    @VisibleForAdvice
+    public static ElasticApmTracer tracer;
 
     static void init(ElasticApmTracer tracer) {
+        ServletApiAdvice.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
 
@@ -68,6 +74,8 @@ public class ServletApiAdvice {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 request.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
                 return null;
+            } else {
+                request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && request.getCookies() != null) {
@@ -95,20 +103,26 @@ public class ServletApiAdvice {
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Enter @Nullable Transaction transaction,
                                             @Advice.Thrown @Nullable Exception exception) {
-        if (servletTransactionHelper != null &&
+        if (tracer != null && servletTransactionHelper != null &&
             transaction != null &&
             servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
 
-            final HttpServletResponse response = (HttpServletResponse) servletResponse;
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            final Response resp = transaction.getContext().getResponse();
-            for (String headerName : response.getHeaderNames()) {
-                resp.addHeader(headerName, response.getHeader(headerName));
-            }
+            if (request.isAsyncStarted()) {
+                // the response is not ready yet; the request is handled asynchronously
+                tracer.releaseActiveTransaction();
+            } else {
+                // this is not an async request, so we can end the transaction immediately            final HttpServletRequest request= (HttpServletRequest) servletRequest;
+                final Response resp = transaction.getContext().getResponse();
+                final HttpServletResponse response = (HttpServletResponse) servletResponse;
+                for (String headerName : response.getHeaderNames()) {
+                    resp.addHeader(headerName, response.getHeader(headerName));
+                }
 
-            servletTransactionHelper.onAfter(transaction, exception, response.isCommitted(), response.getStatus(), request.getMethod(),
-                request.getParameterMap());
+                servletTransactionHelper.onAfter(transaction, exception, response.isCommitted(), response.getStatus(), request.getMethod(),
+                    request.getParameterMap());
+            }
         }
     }
 }

@@ -121,7 +121,7 @@ public class ServletTransactionHelper {
 
 
     @VisibleForAdvice
-    public void onAfter(Transaction transaction, @Nullable Exception exception, boolean committed, int status, String method,
+    public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         Map<String, String[]> parameterMap) {
         try {
             fillRequestParameters(transaction, method, parameterMap);
