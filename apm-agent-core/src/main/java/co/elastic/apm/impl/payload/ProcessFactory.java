@@ -58,7 +58,13 @@ public interface ProcessFactory {
         private final ProcessFactory dispatcher;
 
         ForCurrentVM() {
-            dispatcher = ForJava9CompatibleVM.make();
+            ProcessFactory processFactory;
+            try {
+                processFactory = ForJava9CompatibleVM.make();
+            } catch (NoClassDefFoundError | Exception ignore) {
+                processFactory = ForLegacyVM.INSTANCE;
+            }
+            dispatcher = processFactory;
         }
 
         @Override
@@ -143,12 +149,8 @@ public interface ProcessFactory {
          * @return a {@link ProcessFactory} which depends on APIs intruduced in Java 9. Returns a fallback if not running on
          * Java 9.
          */
-        public static ProcessFactory make() {
-            try {
-                return new ForJava9CompatibleVM(Class.forName("java.lang.ProcessHandle").getMethod("current"));
-            } catch (Exception ignore) {
-                return ForLegacyVM.INSTANCE;
-            }
+        static ProcessFactory make() throws Exception {
+            return new ForJava9CompatibleVM(Class.forName("java.lang.ProcessHandle").getMethod("current"));
         }
 
         /**
