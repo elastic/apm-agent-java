@@ -377,7 +377,7 @@
                     It doesn't require you to assign to us any copyright you have, the ownership of which remains in full with you.
                     You cannot withdraw permission for its use at a later date."
                     -->
-                    <organizationName>the original author or authors</organizationName>
+                    <organizationName>Elastic and contributors</organizationName>
                     <roots>
                         <root>src/main/java</root>
                         <root>src/test/java</root>

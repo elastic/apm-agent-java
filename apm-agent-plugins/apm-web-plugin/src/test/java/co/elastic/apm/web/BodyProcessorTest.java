@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 the original author or authors
+ * Copyright (C) 2018 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@
 package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.web.BodyProcessor;
-import co.elastic.apm.web.WebConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
