@@ -24,12 +24,25 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(Parameterized.class)
 public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
+
+    public ServletIntegrationTest(String tomcatVersion) {
+        super(tomcatVersion, "../simple-webapp/target/ROOT.war");
+    }
+
+    @Parameterized.Parameters(name = "Tomcat {0}")
+    public static Iterable<Object[]> data() {
+        return Arrays.asList(new Object[][]{{"7-jre7-slim"}, {"8.5-jre8-slim"}, {"9-jre9-slim"}, {"9-jre10-slim"}});
+    }
 
     @Test
     public void testTransactionReporting() throws Exception {
