@@ -26,8 +26,8 @@ import javax.annotation.Nullable;
 /**
  * Utility class which helps to determine the real IP of a HTTP request
  * <p>
- * This implementation is based on
- * <a href="https://github.com/stagemonitor/stagemonitor/blob/0.88.2/stagemonitor-web-servlet/src/main/java/org/stagemonitor/web/servlet/MonitoredHttpRequest.java">stagemonitor</a>
+ * This implementation is based on org.stagemonitor.web.servlet.MonitoredHttpRequest#getClientIp,
+ * under Apache License 2.0
  * </p>
  */
 public class ClientIpUtils {

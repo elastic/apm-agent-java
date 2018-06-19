@@ -199,3 +199,13 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+===============================================
+= Non-Apache 2.0 licenses of bundled products =
+===============================================
+
+This product bundles dsl-json, which is available under a "3-clause BSD" license.
+For details, see https://github.com/ngs-doo/dsl-json/blob/master/LICENSE.
+
+This product bundles slf4j, which is available under a "MIT" license.
+For details, see https://www.slf4j.org/license.html.
