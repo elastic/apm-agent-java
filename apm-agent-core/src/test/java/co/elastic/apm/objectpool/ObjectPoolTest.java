@@ -20,7 +20,7 @@
 package co.elastic.apm.objectpool;
 
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
-import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +35,7 @@ public class ObjectPoolTest {
     @BeforeEach
     void setUp() {
 //        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
-        objectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
+        objectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
     }
 
     @Test

@@ -101,6 +101,11 @@
             <artifactId>byte-buddy-agent</artifactId>
             <version>${version.byte-buddy}</version>
         </dependency>
+        <dependency>
+            <groupId>org.agrona</groupId>
+            <artifactId>agrona</artifactId>
+            <version>0.9.18</version>
+        </dependency>
     </dependencies>
 
     <properties>

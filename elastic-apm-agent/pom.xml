@@ -61,8 +61,8 @@
                                     <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.agrona</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.agrona</shadedPattern>
+                                    <pattern>org.jctools</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.jctools</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>
