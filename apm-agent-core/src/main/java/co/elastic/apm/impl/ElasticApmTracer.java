@@ -35,7 +35,7 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
+import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -45,6 +45,8 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 /**
  * This is the tracer implementation which provides access to lower level agent functionality.
@@ -77,21 +79,21 @@ public class ElasticApmTracer {
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
-        transactionPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<Transaction>(maxPooledElements), false,
+        transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)),false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction();
                 }
             });
-        spanPool = new QueueBasedObjectPool(new ManyToManyConcurrentArrayQueue<Span>(maxPooledElements), false,
+        spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
                     return new Span();
                 }
             });
-        errorPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<ErrorCapture>(maxPooledElements), false,
+        errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements)), false,
             new RecyclableObjectFactory<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {
