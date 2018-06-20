@@ -27,7 +27,8 @@ import com.networknt.schema.ValidationMessage;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
@@ -42,7 +43,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
@@ -57,21 +57,49 @@ import static org.mockserver.model.HttpRequest.request;
  * </p>
  * <p>
  * To debug simple-webapp which is deployed to tomcat,
- * add a break point in {@link #beforeClass()} and evaluate tomcatContainer.getMappedPort(8000).
+ * add a break point in {@link #setUpMockServer()} and evaluate tomcatContainer.getMappedPort(8000).
  * Then create a remote debug configuration in IntelliJ using this port and start debugging.
  * TODO use {@link org.testcontainers.containers.SocatContainer} to always have the same debugging port
  * </p>
  */
 public abstract class AbstractTomcatIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractTomcatIntegrationTest.class);
+    protected static MockServerContainer mockServerContainer = new MockServerContainer()
+        .withNetworkAliases("apm-server")
+        .withNetwork(Network.SHARED);
+    protected static OkHttpClient httpClient;
+    private static JsonSchema schema;
 
-    private static final String pathToWar = "../simple-webapp/target/ROOT.war";
-    private static final String pathToJavaagent;
     static {
-        pathToJavaagent = getPathToJavaagent();
+        mockServerContainer.start();
+    }
+
+    protected final GenericContainer tomcatContainer;
+    protected AbstractTomcatIntegrationTest(final String tomcatVersion, String pathToWar) {
+        String pathToJavaagent = getPathToJavaagent();
         checkFilePresent(pathToWar);
         checkFilePresent(pathToJavaagent);
+        tomcatContainer = new GenericContainer<>(
+            new ImageFromDockerfile()
+                .withDockerfileFromBuilder(builder -> builder
+                    .from("tomcat:" + tomcatVersion)
+                    .env("JPDA_ADDRESS", "8000")
+                    .env("JPDA_TRANSPORT", "dt_socket")
+                    .env("CATALINA_OPTS", "-javaagent:/apm-agent-java.jar")
+                    .run("rm -rf /usr/local/tomcat/webapps/*")
+                    .expose(8080, 8000)
+                    .entryPoint("catalina.sh", "jpda", "run")))
+            .withNetwork(Network.SHARED)
+            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
+            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
+            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
+            .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
+            .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
+            .withFileSystemBind(pathToJavaagent, "/apm-agent-java.jar")
+            .withExposedPorts(8080, 8000);
+        tomcatContainer.start();
     }
 
     private static String getPathToJavaagent() {
@@ -85,35 +113,6 @@ public abstract class AbstractTomcatIntegrationTest {
         return null;
     }
 
-    protected static GenericContainer tomcatContainer = new GenericContainer<>(
-        new ImageFromDockerfile()
-            .withDockerfileFromBuilder(builder -> builder
-                .from("tomcat:8")
-                .env("JPDA_ADDRESS", "8000")
-                .env("JPDA_TRANSPORT", "dt_socket")
-                .env("CATALINA_OPTS", "-javaagent:/apm-agent-java.jar")
-                .run("rm -rf /usr/local/tomcat/webapps/*")
-                .expose(8080, 8000)
-                .entryPoint("catalina.sh", "jpda", "run")))
-        .withNetwork(Network.SHARED)
-        .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-        .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
-        .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
-        .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-        .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
-        .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
-        .withFileSystemBind(pathToJavaagent, "/apm-agent-java.jar")
-        .withExposedPorts(8080, 8000);
-    protected static MockServerContainer mockServerContainer = new MockServerContainer()
-        .withNetworkAliases("apm-server")
-        .withNetwork(Network.SHARED);
-    protected static OkHttpClient httpClient;
-    private static JsonSchema schema;
-
-    static {
-        Stream.of(tomcatContainer, mockServerContainer).parallel().forEach(GenericContainer::start);
-    }
-
     private static void checkFilePresent(String pathToWar) {
         final File warFile = new File(pathToWar);
         logger.info("Check file {}", warFile.getAbsolutePath());
@@ -122,8 +121,8 @@ public abstract class AbstractTomcatIntegrationTest {
         assertThat(warFile.length()).isGreaterThan(0);
     }
 
-    @BeforeClass
-    public static void beforeClass() {
+    @Before
+    public final void setUpMockServer() {
         mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
         schema = JsonSchemaFactory.getInstance().getSchema(
@@ -131,6 +130,11 @@ public abstract class AbstractTomcatIntegrationTest {
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
+    }
+
+    @After
+    public final void clearMockServer() throws Exception {
+        mockServerContainer.getClient().clear(HttpRequest.request());
     }
 
     protected List<JsonNode> getReportedTransactions() throws IOException {
