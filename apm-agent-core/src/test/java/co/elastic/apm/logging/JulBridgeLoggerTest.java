@@ -4,6 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.ResourceBundle;
+import java.util.logging.LogRecord;
+
 import static java.util.logging.Level.CONFIG;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
@@ -15,6 +18,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 class JulBridgeLoggerTest {
 
@@ -132,6 +136,36 @@ class JulBridgeLoggerTest {
     }
 
     @Test
+    void testLogRecord() {
+        julLogger.log(new LogRecord(INFO, "test"));
+        verify(slf4jLogger).info("test");
+    }
+
+    @Test
+    void testLogp() {
+        julLogger.logp(INFO, null, null, "test");
+        julLogger.logp(INFO, null, null, "test", new Object());
+        julLogger.logp(INFO, null, null, "test", new Object[]{});
+        julLogger.logp(INFO, null, null, "test", e);
+        verify(slf4jLogger, times(3)).info("test");
+        verify(slf4jLogger, times(1)).info("test", e);
+    }
+
+    @Test
+    void testLogrb() {
+        julLogger.logrb(INFO, "", "", "", "test");
+        julLogger.logrb(INFO, "", "", "", "test", new Object());
+        julLogger.logrb(INFO, "", "", "", "test", new Object[]{});
+        julLogger.logrb(INFO, "", "", (ResourceBundle) null, "test");
+        julLogger.logrb(INFO, null, "test");
+        julLogger.logrb(INFO, "", "", "", "test", e);
+        julLogger.logrb(INFO, "", "", (ResourceBundle) null, "test", e);
+        julLogger.logrb(INFO, null, "test", e);
+        verify(slf4jLogger, times(5)).info("test");
+        verify(slf4jLogger, times(3)).info("test", e);
+    }
+
+    @Test
     void testIsLoggable() {
         final JulBridgeLogger logger = JulBridgeLogger.getLogger(getClass().getName());
         assertThat(logger.isLoggable(SEVERE)).isTrue();
@@ -142,5 +176,24 @@ class JulBridgeLoggerTest {
         assertThat(logger.isLoggable(FINER)).isTrue();
         assertThat(logger.isLoggable(FINEST)).isFalse();
         assertThat(logger.getLevel()).isSameAs(FINE);
+    }
+
+    @Test
+    void testNoops() {
+        julLogger.setLevel(FINEST);
+        julLogger.setLevel(null);
+        julLogger.entering(null, null);
+        julLogger.entering(null, null, new Object());
+        julLogger.entering(null, null, new Object[]{});
+        julLogger.exiting(null, null);
+        julLogger.exiting(null, null, null);
+        julLogger.throwing(null, null, e);
+        julLogger.setResourceBundle(null);
+        julLogger.setFilter(null);
+        julLogger.addHandler(null);
+        julLogger.removeHandler(null);
+        julLogger.setUseParentHandlers(true);
+        julLogger.setParent(null);
+        verifyZeroInteractions(slf4jLogger);
     }
 }
