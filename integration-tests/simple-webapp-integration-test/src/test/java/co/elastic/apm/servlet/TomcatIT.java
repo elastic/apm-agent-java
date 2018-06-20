@@ -33,9 +33,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
-public class ServletIntegrationTest extends AbstractTomcatIntegrationTest {
+public class TomcatIT extends AbstractTomcatIntegrationTest {
 
-    public ServletIntegrationTest(String tomcatVersion) {
+    public TomcatIT(String tomcatVersion) {
         super(tomcatVersion, "../simple-webapp/target/ROOT.war");
     }
 

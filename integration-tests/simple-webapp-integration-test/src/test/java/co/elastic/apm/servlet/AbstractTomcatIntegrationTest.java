@@ -29,7 +29,6 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
@@ -58,14 +57,14 @@ import static org.mockserver.model.HttpRequest.request;
  * </p>
  * <p>
  * To debug simple-webapp which is deployed to tomcat,
- * add a break point in {@link #beforeClass()} and evaluate tomcatContainer.getMappedPort(8000).
+ * add a break point in {@link #setUpMockServer()} and evaluate tomcatContainer.getMappedPort(8000).
  * Then create a remote debug configuration in IntelliJ using this port and start debugging.
  * TODO use {@link org.testcontainers.containers.SocatContainer} to always have the same debugging port
  * </p>
  */
 public abstract class AbstractTomcatIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletIntegrationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractTomcatIntegrationTest.class);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
