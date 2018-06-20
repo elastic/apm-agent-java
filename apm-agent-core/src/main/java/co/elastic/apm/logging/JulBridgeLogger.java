@@ -33,6 +33,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.OFF;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 
@@ -58,11 +59,11 @@ public class JulBridgeLogger {
     public static final JulBridgeLogger global = new JulBridgeLogger(LoggerFactory.getLogger(GLOBAL_LOGGER_NAME));
     private final Logger logger;
 
-    private JulBridgeLogger(Logger logger) {
+    JulBridgeLogger(Logger logger) {
         this.logger = logger;
     }
 
-    public static final JulBridgeLogger getGlobal() {
+    public static JulBridgeLogger getGlobal() {
         return global;
     }
 
@@ -115,37 +116,90 @@ public class JulBridgeLogger {
     }
 
     public void log(Level level, String msg) {
-        log(level, msg, (Object) null);
-    }
-
-    public void log(LogRecord record) {
-        log(record.getLevel(), record.getMessage(), record.getParameters());
-    }
-
-    public void log(Level level, String msg, Object param1) {
         if (level == SEVERE) {
-            logger.error(msg, param1);
+            logger.error(msg);
         } else if (level == WARNING) {
-            logger.warn(msg, param1);
+            logger.warn(msg);
         } else if (level == INFO) {
-            logger.info(msg, param1);
+            logger.info(msg);
         } else if (level == CONFIG) {
-            logger.info(msg, param1);
+            logger.info(msg);
         } else if (level == FINE) {
-            logger.debug(msg, param1);
+            logger.debug(msg);
         } else if (level == FINER) {
-            logger.debug(msg, param1);
+            logger.debug(msg);
         } else if (level == FINEST) {
-            logger.trace(msg, param1);
+            logger.trace(msg);
         }
     }
 
-    public void log(Level level, String msg, Object params[]) {
-        log(level, msg, (Object) params);
+    public void log(Level level, String msg, Throwable thrown) {
+        if (level == SEVERE) {
+            logger.error(msg, thrown);
+        } else if (level == WARNING) {
+            logger.warn(msg, thrown);
+        } else if (level == INFO) {
+            logger.info(msg, thrown);
+        } else if (level == CONFIG) {
+            logger.info(msg, thrown);
+        } else if (level == FINE) {
+            logger.debug(msg, thrown);
+        } else if (level == FINER) {
+            logger.debug(msg, thrown);
+        } else if (level == FINEST) {
+            logger.trace(msg, thrown);
+        }
     }
 
-    public void log(Level level, String msg, Throwable thrown) {
-        log(level, msg, (Object) thrown);
+    public Level getLevel() {
+        if (logger.isTraceEnabled()) {
+            return FINEST;
+        } else if (logger.isDebugEnabled()) {
+            return FINE;
+        } else if (logger.isInfoEnabled()) {
+            return INFO;
+        } else if (logger.isWarnEnabled()) {
+            return WARNING;
+        } else if (logger.isErrorEnabled()) {
+            return SEVERE;
+        }
+        return OFF;
+    }
+
+    public void setLevel(Level newLevel) throws SecurityException {
+        // noop
+    }
+
+    public boolean isLoggable(Level level) {
+        if (level == SEVERE) {
+            return logger.isErrorEnabled();
+        } else if (level == WARNING) {
+            return logger.isWarnEnabled();
+        } else if (level == INFO) {
+            return logger.isInfoEnabled();
+        } else if (level == CONFIG) {
+            return logger.isInfoEnabled();
+        } else if (level == FINE) {
+            return logger.isDebugEnabled();
+        } else if (level == FINER) {
+            return logger.isDebugEnabled();
+        } else if (level == FINEST) {
+            return logger.isTraceEnabled();
+        } else {
+            return false;
+        }
+    }
+
+    public void log(LogRecord record) {
+        log(record.getLevel(), record.getMessage());
+    }
+
+    public void log(Level level, String msg, Object param1) {
+        log(level, msg);
+    }
+
+    public void log(Level level, String msg, Object params[]) {
+        log(level, msg);
     }
 
     public void logp(Level level, String sourceClass, String sourceMethod, String msg) {
@@ -153,11 +207,11 @@ public class JulBridgeLogger {
     }
 
     public void logp(Level level, String sourceClass, String sourceMethod, String msg, Object param1) {
-        log(level, msg, param1);
+        log(level, msg);
     }
 
     public void logp(Level level, String sourceClass, String sourceMethod, String msg, Object params[]) {
-        log(level, msg, params);
+        log(level, msg);
     }
 
     public void logp(Level level, String sourceClass, String sourceMethod, String msg, Throwable thrown) {
@@ -169,19 +223,19 @@ public class JulBridgeLogger {
     }
 
     public void logrb(Level level, String sourceClass, String sourceMethod, String bundleName, String msg, Object param1) {
-        log(level, msg, param1);
+        log(level, msg);
     }
 
     public void logrb(Level level, String sourceClass, String sourceMethod, String bundleName, String msg, Object params[]) {
-        log(level, msg, params);
+        log(level, msg);
     }
 
     public void logrb(Level level, String sourceClass, String sourceMethod, ResourceBundle bundle, String msg, Object... params) {
-        log(level, msg, params);
+        log(level, msg);
     }
 
     public void logrb(Level level, ResourceBundle bundle, String msg, Object... params) {
-        log(level, msg, params);
+        log(level, msg);
     }
 
     public void logrb(Level level, String sourceClass, String sourceMethod, String bundleName, String msg, Throwable thrown) {
@@ -197,21 +251,27 @@ public class JulBridgeLogger {
     }
 
     public void entering(String sourceClass, String sourceMethod) {
+        // noop
     }
 
     public void entering(String sourceClass, String sourceMethod, Object param1) {
+        // noop
     }
 
     public void entering(String sourceClass, String sourceMethod, Object params[]) {
+        // noop
     }
 
     public void exiting(String sourceClass, String sourceMethod) {
+        // noop
     }
 
     public void exiting(String sourceClass, String sourceMethod, Object result) {
+        // noop
     }
 
     public void throwing(String sourceClass, String sourceMethod, Throwable thrown) {
+        // noop
     }
 
     public ResourceBundle getResourceBundle() {
@@ -219,6 +279,7 @@ public class JulBridgeLogger {
     }
 
     public void setResourceBundle(ResourceBundle bundle) {
+        // noop
     }
 
     public String getResourceBundleName() {
@@ -230,23 +291,15 @@ public class JulBridgeLogger {
     }
 
     public void setFilter(Filter newFilter) throws SecurityException {
-    }
-
-    public Level getLevel() {
-        return null;
-    }
-
-    public void setLevel(Level newLevel) throws SecurityException {
-    }
-
-    public boolean isLoggable(Level level) {
-        return false;
+        // noop
     }
 
     public void addHandler(Handler handler) throws SecurityException {
+        // noop
     }
 
     public void removeHandler(Handler handler) throws SecurityException {
+        // noop
     }
 
     public Handler[] getHandlers() {
@@ -258,6 +311,7 @@ public class JulBridgeLogger {
     }
 
     public void setUseParentHandlers(boolean useParentHandlers) {
+        // noop
     }
 
     public JulBridgeLogger getParent() {
@@ -265,6 +319,6 @@ public class JulBridgeLogger {
     }
 
     public void setParent(JulBridgeLogger parent) {
+        // noop
     }
 }
-
