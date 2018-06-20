@@ -27,49 +27,35 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 
-/**
- * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
- * This creates the {@code ROOT.war} file,
- * which is bound into the docker container.
- * <p>
- * Whenever you make changes to the application,
- * you have to rerun {@code mvn clean package}.
- * </p>
- * <p>
- * To debug simple-webapp which is deployed to tomcat,
- * add a break point in {@link #setUpMockServer()} and evaluate tomcatContainer.getMappedPort(8000).
- * Then create a remote debug configuration in IntelliJ using this port and start debugging.
- * TODO use {@link org.testcontainers.containers.SocatContainer} to always have the same debugging port
- * </p>
- */
 @RunWith(Parameterized.class)
-public class TomcatIT extends AbstractServletContainerIntegrationTest {
+public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
-    public TomcatIT(final String tomcatVersion) {
+    public WildFlyIT(final String wildFlyVersion) {
         super(new GenericContainer<>(
             new ImageFromDockerfile()
                 .withDockerfileFromBuilder(builder -> builder
-                    .from("tomcat:" + tomcatVersion)
-                    .env("JPDA_ADDRESS", "8000")
-                    .env("JPDA_TRANSPORT", "dt_socket")
-                    .env("CATALINA_OPTS", "-javaagent:/apm-agent-java.jar")
-                    .run("rm -rf /usr/local/tomcat/webapps/*")
-                    .expose(8080, 8000)
-                    .entryPoint("catalina.sh", "jpda", "run")))
+                    .from("jboss/wildfly:" + wildFlyVersion)
+                    .run("echo 'JAVA_OPTS=\"$JAVA_OPTS -javaagent:/apm-agent-java.jar\"' >> /opt/jboss/wildfly/bin/standalone.conf")))
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
-            .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
+            .withLogConsumer(new StandardOutLogConsumer().withPrefix("wildfly"))
+            .withFileSystemBind(pathToWar, "/opt/jboss/wildfly/standalone/deployments/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/apm-agent-java.jar")
-            .withExposedPorts(8080, 8000));
+            .withExposedPorts(8080, 9990));
     }
 
-    @Parameterized.Parameters(name = "Tomcat {0}")
+    @Parameterized.Parameters(name = "Wildfly {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{"7-jre7-slim"}, {"8.5-jre8-slim"}, {"9-jre9-slim"}, {"9-jre10-slim"}});
+        return Arrays.asList(new Object[][]{
+            {"8.2.1.Final"},
+            {"9.0.0.Final"},
+            {"10.0.0.Final"},
+            {"11.0.0.Final"},
+            {"12.0.0.Final"},
+            {"13.0.0.Final"}
+        });
     }
-
 }

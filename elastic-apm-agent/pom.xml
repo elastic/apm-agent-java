@@ -64,6 +64,19 @@
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.jctools</shadedPattern>
                                 </relocation>
+                                <!--
+                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
+                                Although this is not a package but a string constant, it does work
+                                -->
+                                <relocation>
+                                    <pattern>simplelogger.properties</pattern>
+                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
+                                </relocation>
+                                <!-- See javadoc of co.elastic.apm.logging.JulBridgeLogger -->
+                                <relocation>
+                                    <pattern>java.util.logging.Logger</pattern>
+                                    <shadedPattern>co.elastic.apm.logging.JulBridgeLogger</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
@@ -110,7 +123,12 @@
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${version.slf4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
             <version>${version.slf4j}</version>
         </dependency>
         <dependency>
