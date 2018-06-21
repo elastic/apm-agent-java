@@ -52,7 +52,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
                     .from("tomcat:" + tomcatVersion)
                     .env("JPDA_ADDRESS", "8000")
                     .env("JPDA_TRANSPORT", "dt_socket")
-                    .env("CATALINA_OPTS", "-javaagent:/apm-agent-java.jar")
+                    .env("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
                     .run("rm -rf /usr/local/tomcat/webapps/*")
                     .expose(8080, 8000)
                     .entryPoint("catalina.sh", "jpda", "run")))
@@ -63,7 +63,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
             .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
-            .withFileSystemBind(pathToJavaagent, "/apm-agent-java.jar")
+            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withExposedPorts(8080, 8000));
     }
 
