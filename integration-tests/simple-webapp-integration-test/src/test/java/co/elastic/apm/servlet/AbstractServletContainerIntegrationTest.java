@@ -30,6 +30,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +55,7 @@ import static org.mockserver.model.HttpRequest.request;
 public abstract class AbstractServletContainerIntegrationTest {
     protected static final String pathToWar = "../simple-webapp/target/ROOT.war";
     protected static final String pathToJavaagent;
-    private static final Logger logger = LoggerFactory.getLogger(TomcatIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     protected static MockServerContainer mockServerContainer = new MockServerContainer()
         .withNetworkAliases("apm-server")
         .withNetwork(Network.SHARED);
@@ -74,9 +75,17 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private final GenericContainer servletContainer;
+    private final int webPort;
+    private final String contextPath;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer servletContainer) {
+        this(servletContainer, 8080, "");
+    }
+
+    protected AbstractServletContainerIntegrationTest(GenericContainer servletContainer, int webPort, String contextPath) {
         this.servletContainer = servletContainer;
+        this.webPort = webPort;
+        this.contextPath = contextPath;
     }
 
     private static String getPathToJavaagent() {
@@ -102,7 +111,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     public final void setUpMockServer() {
         mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
-        servletContainer.waitingFor(Wait.forHttp("/status.jsp").forPort(8080));
+        servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp").forPort(webPort));
         servletContainer.start();
     }
 
@@ -121,7 +130,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     public void testTransactionReporting() throws Exception {
         final Response response = httpClient.newCall(new Request.Builder()
             .get()
-            .url(getBaseUrl() + "/index.jsp")
+            .url(getBaseUrl() + getPathToTest())
             .build())
             .execute();
 
@@ -133,11 +142,16 @@ public abstract class AbstractServletContainerIntegrationTest {
         final List<JsonNode> reportedTransactions = getReportedTransactions();
         assertThat(reportedTransactions.size()).isEqualTo(1);
         assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
-            .isEqualTo("/index.jsp");
+            .isEqualTo(contextPath + getPathToTest());
+    }
+
+    @NotNull
+    protected String getPathToTest() {
+        return "/index.jsp";
     }
 
     private String getBaseUrl() {
-        return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(8080);
+        return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort) + contextPath;
     }
 
     private List<JsonNode> getReportedTransactions() throws IOException {

@@ -124,7 +124,13 @@ public class ElasticApmAgent {
             .type(new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
-                    final boolean typeMatches = advice.getTypeMatcher().matches(typeDescription);
+                    boolean typeMatches;
+                    try {
+                        typeMatches = advice.getTypeMatcher().matches(typeDescription);
+                    } catch (Exception ignored) {
+                        // happens for example on WebSphere, not sure why ¯\_(ツ)_/¯
+                        typeMatches = false;
+                    }
                     if (typeMatches) {
                         logger.debug("Type match for advice {}: {} matches {}",
                             advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);

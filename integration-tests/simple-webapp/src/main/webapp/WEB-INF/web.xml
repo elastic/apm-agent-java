@@ -4,4 +4,13 @@
 
 <web-app>
     <display-name>Simple Web App</display-name>
+
+    <servlet>
+        <servlet-name>TestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.TestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TestServlet</servlet-name>
+        <url-pattern>/servlet</url-pattern>
+    </servlet-mapping>
 </web-app>
