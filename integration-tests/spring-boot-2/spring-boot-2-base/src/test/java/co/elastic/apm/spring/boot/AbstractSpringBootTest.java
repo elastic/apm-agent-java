@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,12 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.spring.webmvc;
+package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.MockReporter;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -48,7 +49,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
-public class SpringBootInstrumentationTest {
+public abstract class AbstractSpringBootTest {
 
     private MockReporter reporter;
     private ConfigurationRegistry config;
@@ -59,6 +60,7 @@ public class SpringBootInstrumentationTest {
     @Before
     public void setUp() {
         config = SpyConfiguration.createSpyConfig();
+        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         reporter = new MockReporter();
         ElasticApmTracer tracer = ElasticApmTracer.builder()
             .configurationRegistry(config)
@@ -81,7 +83,7 @@ public class SpringBootInstrumentationTest {
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
-        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("HomeController#greeting");
+        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("TestApp#greeting");
     }
 
     @Test
@@ -93,21 +95,18 @@ public class SpringBootInstrumentationTest {
         assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("ResourceHttpRequestHandler");
     }
 
+    @RestController
     @SpringBootApplication
-    public static class Application {
+    public static class TestApp {
 
         public static void main(String[] args) {
-            SpringApplication.run(Application.class, args);
+            SpringApplication.run(TestApp.class, args);
         }
 
-        @RestController
-        public static class HomeController {
-
-            @GetMapping("/")
-            public String greeting() {
-                return "Hello World";
-            }
-
+        @GetMapping("/")
+        public String greeting() {
+            return "Hello World";
         }
+
     }
 }
