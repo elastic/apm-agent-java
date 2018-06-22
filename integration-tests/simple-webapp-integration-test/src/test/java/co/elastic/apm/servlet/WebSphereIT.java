@@ -27,33 +27,33 @@ import org.testcontainers.containers.Network;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class WildFlyIT extends AbstractServletContainerIntegrationTest {
+public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
-    public WildFlyIT(final String wildFlyVersion) {
-        super(new GenericContainer<>("jboss/wildfly:" + wildFlyVersion)
+    public WebSphereIT(final String version) {
+        super(new GenericContainer<>(
+              /* uncomment to debug (waits for debugger to attach)
+              new ImageFromDockerfile()
+                    .withDockerfileFromBuilder(builder -> builder
+                        .from("websphere-liberty:" + version)
+                        .cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")
+              */
+            "websphere-liberty:" + version
+        )
             .withNetwork(Network.SHARED)
-            // this overrides the defaults, so we have to manually re-add preferIPv4Stack
-            // the other defaults don't seem to be important
-            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true")
+            .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar -Dco.elastic.apm.shaded.slf4j.simpleLogger.defaultLogLevel=DEBUG")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("wildfly"))
-            .withFileSystemBind(pathToWar, "/opt/jboss/wildfly/standalone/deployments/ROOT.war")
+            .withLogConsumer(new StandardOutLogConsumer().withPrefix("websphere"))
+            .withFileSystemBind(pathToWar, "/config/dropins/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990));
+            .withExposedPorts(9080, 7777), 9080, "/simple-webapp");
     }
 
-    @Parameterized.Parameters(name = "Wildfly {0}")
+    @Parameterized.Parameters(name = "WebSphere {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"8.2.1.Final"},
-            {"9.0.0.Final"},
-            {"10.0.0.Final"},
-            {"11.0.0.Final"},
-            {"12.0.0.Final"},
-            {"13.0.0.Final"}
-        });
+        return Arrays.asList(new Object[][]{{"8.5.5"}, {"webProfile7"}});
     }
+
 }

@@ -28,6 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameContainsIgnoreCase;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -56,7 +57,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
             // the hasSuperType matcher is quite costly,
             // as the inheritance hierarchy of each class would have to be examined
             // this pre-selects candidates and hopefully does not cause lots of false negatives
-            .and(nameContains("Servlet"))
+            .and(nameContains("Servlet").or(nameContainsIgnoreCase("jsp")))
             .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
     }
 

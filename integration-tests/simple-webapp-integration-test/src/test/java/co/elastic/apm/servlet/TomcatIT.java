@@ -23,7 +23,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 
@@ -46,25 +45,19 @@ import java.util.Arrays;
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     public TomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>(
-            new ImageFromDockerfile()
-                .withDockerfileFromBuilder(builder -> builder
-                    .from("tomcat:" + tomcatVersion)
-                    .env("JPDA_ADDRESS", "8000")
-                    .env("JPDA_TRANSPORT", "dt_socket")
-                    .env("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
-                    .run("rm -rf /usr/local/tomcat/webapps/*")
-                    .expose(8080, 8000)
-                    .entryPoint("catalina.sh", "jpda", "run")))
+        super(new GenericContainer<>("tomcat:" + tomcatVersion)
             .withNetwork(Network.SHARED)
+            .withEnv("JPDA_ADDRESS", "8000")
+            .withEnv("JPDA_TRANSPORT", "dt_socket")
+            .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
-            .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/ROOT.war")
+            .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 8000));
+            .withExposedPorts(8080, 8000), 8080, "/simple-webapp");
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
