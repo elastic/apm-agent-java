@@ -20,9 +20,11 @@
 package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.MockReporter;
+import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -83,7 +85,11 @@ public abstract class AbstractSpringBootTest {
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
-        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("TestApp#greeting");
+        final Transaction transaction = reporter.getFirstTransaction(500);
+        assertThat(transaction.getName().toString()).isEqualTo("TestApp#greeting");
+        assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
+        assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
+        assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
     }
 
     @Test
@@ -105,6 +111,7 @@ public abstract class AbstractSpringBootTest {
 
         @GetMapping("/")
         public String greeting() {
+            ElasticApm.currentTransaction().setUser("id", "email", "username");
             return "Hello World";
         }
 

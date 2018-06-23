@@ -97,7 +97,10 @@ public class ServletTransactionHelper {
                 remoteAddr, requestURL);
 
             fillResponse(context.getResponse(), committed, status);
-            context.getUser().withUsername(userName);
+            // only set username if not manually set
+            if (context.getUser().getUsername() == null) {
+                context.getUser().withUsername(userName);
+            }
 
             // the HTTP method is not a good transaction name, but better than none...
             if (transaction.getName().length() == 0) {
