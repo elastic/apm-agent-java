@@ -35,6 +35,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -159,5 +162,22 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         request.addHeader("user-agent", "Pingdom.com_bot_version_1.4_(http://www.pingdom.com)");
         filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(0);
+    }
+
+
+    @Test
+    void testDoNotOverrideUsername() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                tracer.currentTransaction().setUser("id", "email", "username");
+            }
+        });
+
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("id");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("email");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
     }
 }
