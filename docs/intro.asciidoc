@@ -81,7 +81,7 @@ This section lists all supported technologies.
 
 
 [float]
-[[supported-technologies]]
+[[supported-java-versions]]
 ==== Java versions
 
 |===
