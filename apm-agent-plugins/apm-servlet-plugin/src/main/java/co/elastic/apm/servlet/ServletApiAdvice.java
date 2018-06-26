@@ -28,6 +28,7 @@ import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
@@ -63,6 +64,7 @@ public class ServletApiAdvice {
     public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
         if (servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
+            servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(servletRequest.getAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST))) {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
@@ -113,7 +115,7 @@ public class ServletApiAdvice {
                 // the response is not ready yet; the request is handled asynchronously
                 tracer.releaseActiveTransaction();
             } else {
-                // this is not an async request, so we can end the transaction immediately            final HttpServletRequest request= (HttpServletRequest) servletRequest;
+                // this is not an async request, so we can end the transaction immediately
                 final Response resp = transaction.getContext().getResponse();
                 final HttpServletResponse response = (HttpServletResponse) servletResponse;
                 for (String headerName : response.getHeaderNames()) {

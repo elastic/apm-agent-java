@@ -24,6 +24,7 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 /**
@@ -36,7 +37,8 @@ import java.util.Arrays;
  * </p>
  * <p>
  * To debug simple-webapp which is deployed to tomcat,
- * add a break point in {@link #setUpMockServer()} and evaluate tomcatContainer.getMappedPort(8000).
+ * add a break point in {@link super#AbstractServletContainerIntegrationTest(GenericContainer, int, String)} and evaluate
+ * tomcatContainer.getMappedPort(8000).
  * Then create a remote debug configuration in IntelliJ using this port and start debugging.
  * TODO use {@link org.testcontainers.containers.SocatContainer} to always have the same debugging port
  * </p>
@@ -64,6 +66,11 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{"7-jre7-slim"}, {"8.5-jre8-slim"}, {"9-jre9-slim"}, {"9-jre10-slim"}});
+    }
+
+    @Nullable
+    protected String getServerLogsPath() {
+        return "/usr/local/tomcat/logs/*";
     }
 
 }

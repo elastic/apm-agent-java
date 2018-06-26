@@ -32,8 +32,8 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
@@ -42,10 +42,13 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -64,8 +67,11 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     static {
         mockServerContainer.start();
+        mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
+        mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
+        mockServerContainer.getClient().when(request("/healthcheck")).respond(HttpResponse.response().withStatusCode(200));
         schema = JsonSchemaFactory.getInstance().getSchema(
-            TomcatIT.class.getResourceAsStream("/schema/transactions/payload.json"));
+            AbstractServletContainerIntegrationTest.class.getResourceAsStream("/schema/transactions/payload.json"));
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
@@ -86,6 +92,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
+        this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp").forPort(webPort));
+        this.servletContainer.start();
     }
 
     private static String getPathToJavaagent() {
@@ -107,18 +115,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(warFile.length()).isGreaterThan(0);
     }
 
-    @Before
-    public final void setUpMockServer() {
-        mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
-        mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
-        mockServerContainer.getClient().when(request("/healthcheck")).respond(HttpResponse.response().withStatusCode(200));
-        servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp").forPort(webPort));
-        servletContainer.start();
-    }
-
     @After
-    public final void clearMockServer() {
-        mockServerContainer.getClient().clear(HttpRequest.request());
+    public final void stopServer() {
         servletContainer.stop();
     }
 
@@ -129,26 +127,45 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @Test
     public void testTransactionReporting() throws Exception {
-        final Response response = httpClient.newCall(new Request.Builder()
-            .get()
-            .url(getBaseUrl() + getPathToTest())
-            .build())
-            .execute();
+        for (String pathToTest : getPathsToTest()) {
+            mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
 
-        assertThat(response.code()).withFailMessage(response.toString()).isEqualTo(200);
-        final ResponseBody responseBody = response.body();
-        assertThat(responseBody).isNotNull();
-        assertThat(responseBody.string()).contains("Hello World");
+            final Response response = httpClient.newCall(new Request.Builder()
+                .get()
+                .url(getBaseUrl() + pathToTest)
+                .build())
+                .execute();
+            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(200);
+            final ResponseBody responseBody = response.body();
+            assertThat(responseBody).isNotNull();
+            assertThat(responseBody.string()).contains("Hello World");
 
-        final List<JsonNode> reportedTransactions = getReportedTransactions();
-        assertThat(reportedTransactions.size()).isEqualTo(1);
-        assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
-            .isEqualTo(contextPath + getPathToTest());
+            final List<JsonNode> reportedTransactions = getReportedTransactions();
+            assertThat(reportedTransactions.size()).isEqualTo(1);
+            assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
+                .isEqualTo(contextPath + pathToTest);
+        }
+    }
+
+    @Nonnull
+    private String getServerLogs() throws IOException, InterruptedException {
+        final String serverLogsPath = getServerLogsPath();
+        if (serverLogsPath != null) {
+            return "\nlogs:\n" +
+                servletContainer.execInContainer("bash", "-c", "cat " + serverLogsPath).getStdout();
+        } else {
+            return "";
+        }
+    }
+
+    @Nullable
+    protected String getServerLogsPath() {
+        return null;
     }
 
     @NotNull
-    protected String getPathToTest() {
-        return "/index.jsp";
+    protected List<String> getPathsToTest() {
+        return Arrays.asList("/index.jsp", "/servlet", "/async-servlet");
     }
 
     private String getBaseUrl() {
