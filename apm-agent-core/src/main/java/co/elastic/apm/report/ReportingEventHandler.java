@@ -25,6 +25,7 @@ import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
+import co.elastic.apm.report.processor.ProcessorEventHandler;
 import com.lmax.disruptor.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,13 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
     private final ErrorPayload errorPayload;
     private final PayloadSender payloadSender;
     private final ReporterConfiguration reporterConfiguration;
+    private final ProcessorEventHandler processorEventHandler;
 
-    public ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender, ReporterConfiguration reporterConfiguration) {
+    public ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
+                                 ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler) {
         this.payloadSender = payloadSender;
         this.reporterConfiguration = reporterConfiguration;
+        this.processorEventHandler = processorEventHandler;
         transactionPayload = new TransactionPayload(process, service, system);
         errorPayload = new ErrorPayload(process, service, system);
     }
@@ -51,6 +55,7 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
         logger.trace("Receiving {} event (sequence {})", event.getType(), sequence);
+        processorEventHandler.onEvent(event, sequence, endOfBatch);
         if (event.getType() == FLUSH) {
             flush(transactionPayload);
             flush(errorPayload);

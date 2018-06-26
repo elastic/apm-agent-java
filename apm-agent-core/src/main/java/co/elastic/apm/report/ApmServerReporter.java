@@ -33,7 +33,7 @@ import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
-import com.lmax.disruptor.SleepingWaitStrategy;
+import com.lmax.disruptor.PhasedBackoffWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
@@ -100,12 +100,10 @@ public class ApmServerReporter implements Reporter {
                 thread.setName("apm-reporter");
                 return thread;
             }
-        }, ProducerType.MULTI, new SleepingWaitStrategy());
+        }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
         this.coreConfiguration = coreConfiguration;
-        reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration);
-        disruptor
-            .handleEventsWith(processorEventHandler)
-            .then(reportingEventHandler);
+        reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration, processorEventHandler);
+        disruptor.handleEventsWith(reportingEventHandler);
         disruptor.start();
         if (reporterConfiguration.getFlushInterval() > 0) {
             flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
