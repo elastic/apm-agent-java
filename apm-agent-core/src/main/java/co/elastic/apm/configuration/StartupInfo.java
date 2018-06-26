@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@ package co.elastic.apm.configuration;
 
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -35,6 +36,16 @@ import org.stagemonitor.configuration.ConfigurationOption;
 public class StartupInfo implements LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StartupInfo.class);
+    private final String elasticApmVersion;
+
+    public StartupInfo() {
+        final String version = VersionUtils.getVersionFromPomProperties(getClass(), "co.elastic.apm", "elastic-apm-agent");
+        if (version != null) {
+            elasticApmVersion = version;
+        } else {
+            elasticApmVersion = "(unknown version)";
+        }
+    }
 
     private static String getJvmAndOsVersionString() {
         return "Java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ") " +
@@ -43,7 +54,7 @@ public class StartupInfo implements LifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        logger.info("Starting Elastic APM on {}", getJvmAndOsVersionString());
+        logger.info("Starting Elastic APM {} on {}", elasticApmVersion, getJvmAndOsVersionString());
         for (ConfigurationOption<?> option : tracer.getConfigurationRegistry().getConfigurationOptionsByKey().values()) {
             if (!option.isDefault()) {
                 logger.debug("{}: '{}' (source: {})", option.getKey(),
