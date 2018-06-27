@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,20 +17,24 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.logging;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.SimpleSource;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import java.util.Collections;
 
-class ElasticApmTracerBuilderTest {
+import static org.assertj.core.api.Assertions.assertThat;
+
+class LoggingConfigurationTest {
 
     @Test
-    void testMissingDefaultValues() {
-        final ElasticApmTracer noopTracer = new ElasticApmTracerBuilder().build();
-
-        assertThat(noopTracer.getConfig(CoreConfiguration.class).isActive()).isFalse();
-        assertThat(noopTracer.startTransaction().isNoop()).isTrue();
+    void testSetLogLevel() {
+        ConfigurationRegistry.builder()
+            .optionProviders(Collections.singletonList(new LoggingConfiguration()))
+            .addConfigSource(new SimpleSource().add("logging.log_level", "DEBUG"))
+            .build();
+        assertThat(System.getProperty("org.slf4j.simpleLogger.log.co.elastic.apm")).isEqualTo("DEBUG");
     }
 }

@@ -17,20 +17,30 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.configuration.source;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import javax.annotation.Nullable;
 
-class ElasticApmTracerBuilderTest {
+/**
+ * A variation of {@link org.stagemonitor.configuration.source.SystemPropertyConfigurationSource} which does not initialize a logger.
+ */
+public class SystemPropertyConfigurationSource extends AbstractConfigurationSource {
 
-    @Test
-    void testMissingDefaultValues() {
-        final ElasticApmTracer noopTracer = new ElasticApmTracerBuilder().build();
+	@Override
+    @Nullable
+	public String getValue(String key) {
+		try {
+			return System.getProperty(key);
+		} catch (SecurityException e) {
+		    e.printStackTrace();
+			return null;
+		}
+	}
 
-        assertThat(noopTracer.getConfig(CoreConfiguration.class).isActive()).isFalse();
-        assertThat(noopTracer.startTransaction().isNoop()).isTrue();
-    }
+	@Override
+	public String getName() {
+		return "Java System Properties";
+	}
 }

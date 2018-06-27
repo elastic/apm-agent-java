@@ -22,6 +22,7 @@ package co.elastic.apm.benchmark;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.report.Reporter;
 import io.undertow.Undertow;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -113,7 +114,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
             .setHandler(exchange -> exchange.setStatusCode(200).endExchange()).build();
         server.start();
         int port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
-        tracer = ElasticApmTracer.builder()
+        tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(ConfigurationRegistry.builder()
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")

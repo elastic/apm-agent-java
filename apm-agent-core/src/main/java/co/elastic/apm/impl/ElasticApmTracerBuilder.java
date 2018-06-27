@@ -21,9 +21,12 @@ package co.elastic.apm.impl;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
+import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.stacktrace.StacktraceFactory;
+import co.elastic.apm.logging.LoggingConfiguration;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterFactory;
 import org.slf4j.Logger;
@@ -33,9 +36,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSource;
-import org.stagemonitor.configuration.source.PropertyFileConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
-import org.stagemonitor.configuration.source.SystemPropertyConfigurationSource;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -47,8 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracerBuilder {
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracerBuilder.class);
-
+    private final Logger logger;
     @Nullable
     private ConfigurationRegistry configurationRegistry;
     @Nullable
@@ -58,6 +58,14 @@ public class ElasticApmTracerBuilder {
     @Nullable
     private Iterable<LifecycleListener> lifecycleListeners;
     private Map<String, String> inlineConfig = new HashMap<>();
+
+    public ElasticApmTracerBuilder() {
+        final List<ConfigurationSource> configSources = getConfigSources();
+        // the ConfigurationRegistry uses and thereby initializes a logger,
+        // so we can't use it here
+        LoggingConfiguration.init(configSources);
+        logger = LoggerFactory.getLogger(getClass());
+    }
 
     public ElasticApmTracerBuilder configurationRegistry(ConfigurationRegistry configurationRegistry) {
         this.configurationRegistry = configurationRegistry;
@@ -86,7 +94,8 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracer build() {
         if (configurationRegistry == null) {
-            configurationRegistry = getDefaultConfigurationRegistry();
+            final List<ConfigurationSource> configSources = getConfigSources();
+            configurationRegistry = getDefaultConfigurationRegistry(configSources);
         }
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, null, null);
@@ -101,10 +110,10 @@ public class ElasticApmTracerBuilder {
         return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory, lifecycleListeners);
     }
 
-    private ConfigurationRegistry getDefaultConfigurationRegistry() {
+    private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
         try {
             final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
-                .configSources(getConfigSources())
+                .configSources(configSources)
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class, ElasticApmTracer.class.getClassLoader()))
                 .failOnMissingRequiredValues(true)
                 .build();

@@ -24,6 +24,7 @@ import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -100,7 +101,7 @@ class ServletInstrumentationTest {
 
     private void testInstrumentation(ElasticApmInstrumentation instrumentation, int expectedTransactions) throws IOException {
         final MockReporter reporter = new MockReporter();
-        ElasticApmAgent.initInstrumentation(ElasticApmTracer.builder()
+        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
             .build(), ByteBuddyAgent.install(), Collections.singleton(instrumentation));

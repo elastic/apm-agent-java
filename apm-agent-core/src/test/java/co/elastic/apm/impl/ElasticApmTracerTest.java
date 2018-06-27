@@ -49,7 +49,7 @@ class ElasticApmTracerTest {
     void setUp() {
         reporter = new MockReporter(false);
         config = SpyConfiguration.createSpyConfig();
-        tracerImpl = ElasticApmTracer.builder()
+        tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
@@ -229,7 +229,7 @@ class ElasticApmTracerTest {
     void testLifecycleListener() {
         final AtomicBoolean startCalled = new AtomicBoolean();
         final AtomicBoolean stopCalled = new AtomicBoolean();
-        final ElasticApmTracer tracer = ElasticApmTracer.builder()
+        final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .lifecycleListeners(Collections.singletonList(new LifecycleListener() {

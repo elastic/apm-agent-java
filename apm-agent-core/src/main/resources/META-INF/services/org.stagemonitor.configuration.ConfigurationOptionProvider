@@ -1,3 +1,4 @@
 co.elastic.apm.configuration.CoreConfiguration
 co.elastic.apm.report.ReporterConfiguration
 co.elastic.apm.impl.stacktrace.StacktraceConfiguration
+co.elastic.apm.logging.LoggingConfiguration

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,7 @@ import co.elastic.apm.MockReporter;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -63,7 +64,7 @@ public class SpringBoot1_5IT {
         config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         reporter = new MockReporter();
-        ElasticApmTracer tracer = ElasticApmTracer.builder()
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
