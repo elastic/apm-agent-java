@@ -19,18 +19,27 @@
  */
 package co.elastic.apm.logging;
 
+import co.elastic.apm.bci.ElasticApmAgent;
 import org.slf4j.event.Level;
 import org.slf4j.impl.SimpleLogger;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
+import javax.annotation.Nonnull;
+import java.io.File;
+import java.net.URISyntaxException;
 import java.util.List;
 
 public class LoggingConfiguration extends ConfigurationOptionProvider {
 
-    private static final String LOGGING_CATEGORY = "Logging";
+    private static final String SYSTEM_OUT = "System.out";
     private static final String LOG_LEVEL_KEY = "logging.log_level";
+    private static final String LOG_FILE_KEY = "logging.log_file";
+    private static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
+
+    private static final String LOGGING_CATEGORY = "Logging";
+    private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
 
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
@@ -45,9 +54,39 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(Level.INFO);
 
+    public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
+        .key(LOG_FILE_KEY)
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("Sets the path of the agent logs.\n" +
+            "The special value '_AGENT_HOME_' is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
+            "Example: '_AGENT_HOME_/logs/elastic-apm.log'\n" +
+            "\n" +
+            "When set to the special value 'System.out',\n" +
+            "the logs are sent to standard out.\n" +
+            "\n" +
+            "NOTE: When logging to a file,\n" +
+            "it's content is deleted when the application starts.")
+        .dynamic(false)
+        .buildWithDefault(DEFAULT_LOG_FILE);
+
+
     public static void init(List<ConfigurationSource> sources) {
-        final String level = getValue(LOG_LEVEL_KEY, sources, Level.INFO.toString());
-        LoggingConfiguration.setLogLevel(level);
+        setLogLevel(getValue(LOG_LEVEL_KEY, sources, Level.INFO.toString()));
+        setLogFileLocation(getAgentHome(), getValue(LOG_FILE_KEY, sources, DEFAULT_LOG_FILE));
+    }
+
+    private static String getAgentHome() {
+        try {
+            final File agentJar = new File(ElasticApmAgent.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            if (!agentJar.getName().endsWith(".jar")) {
+                // we are probably executing a unit test
+                return null;
+            }
+            return agentJar.getAbsoluteFile().getParent();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static String getValue(String key, List<ConfigurationSource> sources, String defaultValue) {
@@ -61,8 +100,33 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     private static void setLogLevel(String level) {
-        System.setProperty(SimpleLogger.LOG_FILE_KEY, "System.out");
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.shaded", Level.WARN.toString());
+        System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
+        System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd'T'HH:mm:ss.SSS");
     }
+
+    private static void setLogFileLocation(String agentHome, String logFile) {
+        if (SYSTEM_OUT.equals(logFile) || agentHome == null) {
+            System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
+        } else {
+            System.out.println("Writing Elastic APM logs to " + logFile);
+            System.setProperty(SimpleLogger.LOG_FILE_KEY, getActualLogFile(agentHome, logFile));
+        }
+    }
+
+    @Nonnull
+    private static String getActualLogFile(String agentHome, String logFile) {
+        logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+        final File logDir = new File(logFile).getParentFile();
+        if (!logDir.exists()) {
+            logDir.mkdirs();
+        }
+        if (!logDir.canWrite()) {
+            System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
+            return SYSTEM_OUT;
+        }
+        return logFile;
+    }
+
 }
