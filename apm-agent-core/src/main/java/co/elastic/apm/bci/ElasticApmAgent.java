@@ -36,7 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.net.URISyntaxException;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.ServiceLoader;
@@ -191,4 +193,27 @@ public class ElasticApmAgent {
             .disableClassFormatChanges();
     }
 
+    /**
+     * Returns the directory the agent jar resides in.
+     * <p>
+     * In scenarios where the agent jar can't be resolved,
+     * like in unit tests,
+     * this method returns {@code null}.
+     * </p>
+     * @return the directory the agent jar resides in
+     */
+    @Nullable
+    public static String getAgentHome() {
+        try {
+            final File agentJar = new File(ElasticApmAgent.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            if (!agentJar.getName().endsWith(".jar")) {
+                // we are probably executing a unit test
+                return null;
+            }
+            return agentJar.getAbsoluteFile().getParent();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

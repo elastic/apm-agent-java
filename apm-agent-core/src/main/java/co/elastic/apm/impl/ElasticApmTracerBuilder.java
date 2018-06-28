@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.impl;
 
+import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
@@ -135,16 +136,22 @@ public class ElasticApmTracerBuilder {
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
         result.add(new AbstractConfigurationSource() {
-                @Override
-                public String getValue(String key) {
-                    return inlineConfig.get(key);
-                }
+            @Override
+            public String getValue(String key) {
+                return inlineConfig.get(key);
+            }
 
-                @Override
-                public String getName() {
-                    return "Inline configuration";
-                }
-            });
+            @Override
+            public String getName() {
+                return "Inline configuration";
+            }
+        });
+        String agentHome = ElasticApmAgent.getAgentHome();
+        if (agentHome != null && PropertyFileConfigurationSource.isPresent(agentHome + "/elasticapm.properties")) {
+            result.add(new PropertyFileConfigurationSource(agentHome + "/elasticapm.properties"));
+        }
+        // looks if we can find a elasticapm.properties on the classpath
+        // mainly useful for unit tests
         if (PropertyFileConfigurationSource.isPresent("elasticapm.properties")) {
             result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
         }

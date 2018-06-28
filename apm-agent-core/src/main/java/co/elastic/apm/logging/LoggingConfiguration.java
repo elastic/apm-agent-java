@@ -27,8 +27,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
-import java.net.URISyntaxException;
 import java.util.List;
 
 /**
@@ -89,21 +89,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     public static void init(List<ConfigurationSource> sources) {
         setLogLevel(getValue(LOG_LEVEL_KEY, sources, Level.INFO.toString()));
-        setLogFileLocation(getAgentHome(), getValue(LOG_FILE_KEY, sources, DEFAULT_LOG_FILE));
-    }
-
-    private static String getAgentHome() {
-        try {
-            final File agentJar = new File(ElasticApmAgent.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            if (!agentJar.getName().endsWith(".jar")) {
-                // we are probably executing a unit test
-                return null;
-            }
-            return agentJar.getAbsoluteFile().getParent();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return null;
-        }
+        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, DEFAULT_LOG_FILE));
     }
 
     /**
@@ -120,33 +106,30 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         return defaultValue;
     }
 
-    private static void setLogLevel(String level) {
+    private static void setLogLevel(@Nullable String level) {
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.shaded", Level.WARN.toString());
         System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
         System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd HH:mm:ss.SSS");
     }
 
-    private static void setLogFileLocation(String agentHome, String logFile) {
+    private static void setLogFileLocation(@Nullable String agentHome, String logFile) {
         if (SYSTEM_OUT.equalsIgnoreCase(logFile)) {
             System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
-        } else if (agentHomeIsRequiredButMissing(logFile, agentHome)) {
-            System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
-            System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
         } else {
-            System.out.println("Writing Elastic APM logs to " + logFile);
             System.setProperty(SimpleLogger.LOG_FILE_KEY, getActualLogFile(agentHome, logFile));
         }
     }
 
-    private static boolean agentHomeIsRequiredButMissing(String logFile, String agentHome) {
-        return agentHome == null && logFile.contains(AGENT_HOME_PLACEHOLDER);
-    }
-
     @Nonnull
-    private static String getActualLogFile(String agentHome, String logFile) {
+    private static String getActualLogFile(@Nullable String agentHome, String logFile) {
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
-            logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            if (agentHome == null) {
+                System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
+                return SYSTEM_OUT;
+            } else {
+                logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            }
         }
         final File logDir = new File(logFile).getParentFile();
         if (!logDir.exists()) {
@@ -156,6 +139,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
             System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");
             return SYSTEM_OUT;
         }
+        System.out.println("Writing Elastic APM logs to " + logFile);
         return logFile;
     }
 

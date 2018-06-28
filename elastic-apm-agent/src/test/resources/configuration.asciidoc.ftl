@@ -8,9 +8,12 @@ The first configuration sources override the configuration values of over the la
 
 [arabic]
 . Java system properties +
- All configuration keys are prefixed with `elastic.apm.`
+  All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
- All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+. `elasticapm.properties` file +
+  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  No prefix is required for the configuration keys.
 
 Configuration options marked with Dynamic true can be changed at runtime
 via configuration sources which support dynamic reloading.
