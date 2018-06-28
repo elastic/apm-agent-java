@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,34 +21,27 @@ package co.elastic.apm.configuration.source;
 
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.util.IOUtils;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * A variation of {@link org.stagemonitor.configuration.source.PropertyFileConfigurationSource} which does not initialize a logger.
+ * A variation of {@link org.stagemonitor.configuration.source.PropertyFileConfigurationSource} (under Apache license 2.0)
+ * which does not initialize a logger.
+ * <p>
+ * This is important when using this configuration source to configure the logger.
+ * </p>
  */
 public final class PropertyFileConfigurationSource extends AbstractConfigurationSource {
 
     private final String location;
     private Properties properties;
-    private File file;
-    private boolean writeable;
 
     public PropertyFileConfigurationSource(String location) {
         this.location = location;
-        try {
-            this.file = IOUtils.getFile(location);
-            this.writeable = file.canWrite();
-        } catch (Exception e) {
-            this.writeable = false;
-        }
         reload();
     }
 
@@ -102,11 +95,6 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
     }
 
     @Override
-    public boolean isSavingPersistent() {
-        return true;
-    }
-
-    @Override
     public String getName() {
         return location;
     }
@@ -114,26 +102,6 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
     @Override
     public String getValue(String key) {
         return properties.getProperty(key);
-    }
-
-    @Override
-    public boolean isSavingPossible() {
-        return writeable;
-    }
-
-    @Override
-    public void save(String key, String value) throws IOException {
-        if (file != null) {
-            synchronized (this) {
-                properties.put(key, value);
-                final FileOutputStream out = new FileOutputStream(file);
-                properties.store(out, null);
-                out.flush();
-                out.close();
-            }
-        } else {
-            throw new IOException(location + " is not writeable");
-        }
     }
 
 }

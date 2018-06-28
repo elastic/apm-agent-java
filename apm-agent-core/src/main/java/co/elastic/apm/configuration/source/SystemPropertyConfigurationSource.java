@@ -24,7 +24,11 @@ import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 import javax.annotation.Nullable;
 
 /**
- * A variation of {@link org.stagemonitor.configuration.source.SystemPropertyConfigurationSource} which does not initialize a logger.
+ * A variation of {@link org.stagemonitor.configuration.source.SystemPropertyConfigurationSource} (under Apache license 2.0)
+ * which does not initialize a logger.
+ * <p>
+ * This is important when using this configuration source to configure the logger.
+ * </p>
  */
 public class SystemPropertyConfigurationSource extends AbstractConfigurationSource {
 

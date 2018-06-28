@@ -31,6 +31,21 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.util.List;
 
+/**
+ * Defines configuration options related to logging.
+ * <p>
+ * This class is a bit special compared to other {@link ConfigurationOptionProvider}s,
+ * because we have to make sure that wie initialize the logger before anyone calls
+ * {@link org.slf4j.LoggerFactory#getLogger(Class)}.
+ * That's why we don't read the values from the {@link ConfigurationOption} fields but
+ * iterate over the {@link ConfigurationSource}s manually to read the values
+ * (see {@link #getValue(String, List, String)}).
+ * </p>
+ * <p>
+ * It still makes sense to extend {@link ConfigurationOptionProvider} and register this class as a service,
+ * so that the documentation gets generated for the options in this class.
+ * </p>
+ */
 public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     private static final String SYSTEM_OUT = "System.out";
@@ -41,6 +56,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private static final String LOGGING_CATEGORY = "Logging";
     private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
 
+    @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
@@ -54,12 +70,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         })
         .buildWithDefault(Level.INFO);
 
+    @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
         .key(LOG_FILE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the path of the agent logs.\n" +
-            "The special value '_AGENT_HOME_' is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
-            "Example: '_AGENT_HOME_/logs/elastic-apm.log'\n" +
+            "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
+            "Example: `_AGENT_HOME_/logs/elastic-apm.log`\n" +
             "\n" +
             "When set to the special value 'System.out',\n" +
             "the logs are sent to standard out.\n" +
@@ -89,7 +106,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         }
     }
 
-    public static String getValue(String key, List<ConfigurationSource> sources, String defaultValue) {
+    /**
+     * The ConfigurationRegistry uses and thereby initializes a logger,
+     * so we can't use it here initialize the {@link ConfigurationOption}s in this class.
+     */
+    private static String getValue(String key, List<ConfigurationSource> sources, String defaultValue) {
         for (ConfigurationSource source : sources) {
             final String value = source.getValue(key);
             if (value != null) {
@@ -103,11 +124,14 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.shaded", Level.WARN.toString());
         System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
-        System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd HH:mm:ss.SSS");
     }
 
     private static void setLogFileLocation(String agentHome, String logFile) {
-        if (SYSTEM_OUT.equals(logFile) || agentHome == null) {
+        if (SYSTEM_OUT.equalsIgnoreCase(logFile)) {
+            System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
+        } else if (agentHomeIsRequiredButMissing(logFile, agentHome)) {
+            System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
             System.setProperty(SimpleLogger.LOG_FILE_KEY, SYSTEM_OUT);
         } else {
             System.out.println("Writing Elastic APM logs to " + logFile);
@@ -115,12 +139,18 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         }
     }
 
+    private static boolean agentHomeIsRequiredButMissing(String logFile, String agentHome) {
+        return agentHome == null && logFile.contains(AGENT_HOME_PLACEHOLDER);
+    }
+
     @Nonnull
     private static String getActualLogFile(String agentHome, String logFile) {
-        logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+        if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
+            logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+        }
         final File logDir = new File(logFile).getParentFile();
         if (!logDir.exists()) {
-            logDir.mkdirs();
+            logDir.mkdir();
         }
         if (!logDir.canWrite()) {
             System.err.println("Log file " + logFile + " is not writable. Falling back to System.out.");

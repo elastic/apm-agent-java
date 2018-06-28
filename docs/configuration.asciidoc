@@ -353,8 +353,8 @@ Sets the logging level for the agent.
 ==== `logging.log_file`
 
 Sets the path of the agent logs.
-The special value '_AGENT_HOME_' is a placeholder for the folder the elastic-apm-agent.jar is in.
-Example: '_AGENT_HOME_/logs/elastic-apm.log'
+The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+Example: `_AGENT_HOME_/logs/elastic-apm.log`
 
 When set to the special value 'System.out',
 the logs are sent to standard out.

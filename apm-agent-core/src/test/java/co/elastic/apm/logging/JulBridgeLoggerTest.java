@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.logging;
 
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ class JulBridgeLoggerTest {
 
     @BeforeEach
     void setUp() {
+        // initializes and configures logging
+        new ElasticApmTracerBuilder();
         slf4jLogger = mock(Logger.class);
         julLogger = new JulBridgeLogger(slf4jLogger);
         e = new Exception("This exception is used to test exception logging");
@@ -191,6 +194,7 @@ class JulBridgeLoggerTest {
         assertThat(logger.isLoggable(WARNING)).isTrue();
         assertThat(logger.isLoggable(INFO)).isTrue();
         assertThat(logger.isLoggable(CONFIG)).isTrue();
+        // debug logging should be enabled for tests
         assertThat(logger.isLoggable(FINE)).isTrue();
         assertThat(logger.isLoggable(FINER)).isTrue();
         assertThat(logger.isLoggable(FINEST)).isFalse();

@@ -54,6 +54,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
+            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
             .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -62,7 +63,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{/*{"7-jre7-slim"}, {"8.5-jre8-slim"}, {"9-jre9-slim"},*/ {"9-jre10-slim"}});
+        return Arrays.asList(new Object[][]{{"7-jre7-slim"}, {"8.5-jre8-slim"}, {"9-jre9-slim"}, {"9-jre10-slim"}});
     }
 
 }

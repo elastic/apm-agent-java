@@ -61,8 +61,6 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder() {
         final List<ConfigurationSource> configSources = getConfigSources();
-        // the ConfigurationRegistry uses and thereby initializes a logger,
-        // so we can't use it here
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
     }
