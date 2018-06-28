@@ -43,7 +43,7 @@ class LoggingConfigurationTest {
 
     @Test
     void testSetLogFile() {
-        final String logFile = System.getProperty("java.io.tmpdir") + "apm.log";
+        final String logFile = "./apm.log";
         LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("logging.log_file", logFile)));
         assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo(logFile);
     }
