@@ -16,6 +16,7 @@
         <version.spring-boot-1.5>1.5.14.RELEASE</version.spring-boot-1.5>
     </properties>
     <dependencies>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webmvc-plugin</artifactId>
@@ -33,11 +34,19 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${version.spring-boot-1.5}</version>
             <scope>test</scope>
+            <!-- avoid having multiple slf4j implementations on the classpath -->
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
