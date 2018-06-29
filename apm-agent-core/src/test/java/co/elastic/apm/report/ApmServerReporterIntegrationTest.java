@@ -75,7 +75,9 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() {
         handler = exchange -> {
-            receivedHttpRequests.incrementAndGet();
+            if (!exchange.getRequestPath().equals("/healthcheck")) {
+                receivedHttpRequests.incrementAndGet();
+            }
             exchange.setStatusCode(200).endExchange();
         };
         receivedHttpRequests.set(0);

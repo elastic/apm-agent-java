@@ -36,6 +36,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ApmServerHttpPayloadSender implements PayloadSender {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHttpPayloadSender.class);
@@ -45,6 +50,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     private final OkHttpClient httpClient;
     private final ReporterConfiguration reporterConfiguration;
     private final PayloadSerializer payloadSerializer;
+    private final ScheduledExecutorService healthCheckExecutorService;
     private long droppedTransactions = 0;
 
     public ApmServerHttpPayloadSender(OkHttpClient httpClient, PayloadSerializer payloadSerializer,
@@ -52,6 +58,16 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         this.httpClient = httpClient;
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
+        healthCheckExecutorService = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread thread = new Thread(r);
+                thread.setName("apm-server-healthcheck");
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+        healthCheckExecutorService.scheduleWithFixedDelay(new ApmServerHealthChecker(httpClient, reporterConfiguration), 0, 10, TimeUnit.SECONDS);
     }
 
     @Override
@@ -127,4 +143,44 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         return droppedTransactions;
     }
 
+    private static class ApmServerHealthChecker implements Runnable {
+        private final OkHttpClient httpClient;
+        private final ReporterConfiguration reporterConfiguration;
+        private final AtomicBoolean serverHealthy = new AtomicBoolean(true);
+
+        ApmServerHealthChecker(OkHttpClient httpClient, ReporterConfiguration reporterConfiguration) {
+            this.httpClient = httpClient;
+            this.reporterConfiguration = reporterConfiguration;
+        }
+
+        @Override
+        public void run() {
+            boolean success;
+            String message = null;
+            try {
+                final int status = httpClient.newCall(new Request.Builder()
+                    .url(reporterConfiguration.getServerUrl() + "/healthcheck")
+                    .build())
+                    .execute()
+                    .code();
+                success = status == 200;
+                if (!success) {
+                    message = Integer.toString(status);
+                }
+            } catch (IOException e) {
+                message = e.getMessage();
+                success = false;
+            }
+
+            if (success) {
+                if (!serverHealthy.getAndSet(true)) {
+                    logger.info("Elastic APM server is available");
+                }
+            } else {
+                if (serverHealthy.getAndSet(false)) {
+                    logger.warn("Elastic APM server is not available ({})", message);
+                }
+            }
+        }
+    }
 }
