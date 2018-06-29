@@ -164,7 +164,6 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
-
     @Test
     void testDoNotOverrideUsername() throws IOException, ServletException {
         filterChain = new MockFilterChain(new HttpServlet() {
@@ -179,5 +178,55 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("id");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
+    }
+
+    @Test
+    void testExceptionCapturingShouldContainContextInformation() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+                tracer.captureException(new RuntimeException("Test exception capturing"));
+            }
+        });
+
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getContext().getRequest().getUrl().getPathname()).isEqualTo("/foo");
+        assertThat(reporter.getFirstError().getTransaction().getTransactionId()).isEqualTo(reporter.getFirstTransaction().getId());
+    }
+
+    @Test
+    void testExceptionCapturingShouldContainUserInformationRecordedOnTheTransaction() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+                tracer.currentTransaction().setUser("id", "email", "username");
+                tracer.captureException(new RuntimeException("Test exception capturing"));
+            }
+        });
+
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getContext().getUser().getId()).isEqualTo("id");
+        assertThat(reporter.getFirstError().getContext().getUser().getEmail()).isEqualTo("email");
+        assertThat(reporter.getFirstError().getContext().getUser().getUsername()).isEqualTo("username");
+    }
+
+    @Test
+    void exceptionCapturingShouldNotContainUserInformationRecordedOnTheTransactionAfterTheErrorWasCaptured() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+                tracer.captureException(new RuntimeException("Test exception capturing"));
+                tracer.currentTransaction().setUser("id", "email", "username");
+            }
+        });
+
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getContext().getUser().hasContent()).isFalse();
     }
 }

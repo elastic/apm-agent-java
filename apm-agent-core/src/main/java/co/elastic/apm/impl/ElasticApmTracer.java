@@ -232,6 +232,7 @@ public class ElasticApmTracer {
             Transaction transaction = currentTransaction();
             if (transaction != null) {
                 error.asChildOf(transaction);
+                error.getTransaction().getTransactionId().copyFrom(transaction.getId());
                 error.getContext().copyFrom(transaction.getContext());
             }
             reporter.report(error);

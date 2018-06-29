@@ -63,6 +63,29 @@ public class ServletTransactionHelper {
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
+    /*
+     * As much of the request information as possible should be set before the request processing starts.
+     *
+     * That way, when recording an error,
+     * we can copy the transaction context to the error context.
+     *
+     * This has the advantage that we don't have to create the context for the error again.
+     * As creating the context is framework specific,
+     * this also means less effort when adding support for new frameworks,
+     * because the creating the context is handled in one central place.
+     *
+     * Furthermore, it is not trivial to create an error context at an arbitrary location
+     * (when the user calls ElasticApm.captureError()),
+     * as we don't necessarily have access to the framework's request and response objects.
+     *
+     * Additionally, we only have access to the classes of the instrumented classes inside advice methods.
+     *
+     * Currently, there is no configuration option to disable tracing but to still enable error tracking.
+     * But even when introducing that, the approach of copying the transaction context can still work.
+     * We will then capture the transaction but not report it.
+     * As the capturing of the transaction is garbage free, this should not add a significant overhead.
+     * Also, this setting would be rather niche, as we are a APM solution after all.
+     */
     @Nullable
     @VisibleForAdvice
     public Transaction onBefore(String servletPath, String pathInfo, String requestURI,
@@ -78,34 +101,31 @@ public class ServletTransactionHelper {
         }
     }
 
-    /*
-     * filling the transaction after the request has been processed is safer
-     * as reading the parameters could potentially decode them in the wrong encoding
-     * or trigger exceptions,
-     * for example when the amount of query parameters is longer than the application server allows
-     * in that case, we rather want that the agent looks like the cause for this
-     */
     @VisibleForAdvice
-    public void onAfter(Transaction transaction, @Nullable Exception exception,
-                        @Nullable String userName, String protocol, String method, boolean secure, String scheme, String serverName,
-                        int serverPort, String requestURI, String queryString, Map<String, String[]> parameterMap, String remoteAddr,
-                        StringBuffer requestURL, boolean committed, int status) {
+    public void fillRequestContext(Transaction transaction, @Nullable String userName, String protocol, String method, boolean secure,
+                                   String scheme, String serverName, int serverPort, String requestURI, String queryString,
+                                   String remoteAddr, StringBuffer requestURL) {
+        // the HTTP method is not a good transaction name, but better than none...
+        if (transaction.getName().length() == 0) {
+            transaction.withName(method);
+        }
+        Context context = transaction.getContext();
+        final Request request = transaction.getContext().getRequest();
+        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
+
+        // only set username if not manually set
+        if (context.getUser().getUsername() == null) {
+            context.getUser().withUsername(userName);
+        }
+    }
+
+
+    @VisibleForAdvice
+    public void onAfter(Transaction transaction, @Nullable Exception exception, boolean committed, int status, String method,
+                        Map<String, String[]> parameterMap) {
         try {
-            Context context = transaction.getContext();
-            final Request request = transaction.getContext().getRequest();
-            fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, parameterMap,
-                remoteAddr, requestURL);
-
-            fillResponse(context.getResponse(), committed, status);
-            // only set username if not manually set
-            if (context.getUser().getUsername() == null) {
-                context.getUser().withUsername(userName);
-            }
-
-            // the HTTP method is not a good transaction name, but better than none...
-            if (transaction.getName().length() == 0) {
-                transaction.withName(method);
-            }
+            fillRequestParameters(transaction, method, parameterMap);
+            fillResponse(transaction.getContext().getResponse(), committed, status);
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
             if (exception != null) {
@@ -116,6 +136,24 @@ public class ServletTransactionHelper {
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
         transaction.end();
+    }
+
+    /*
+     * Filling the parameter after the request has been processed is safer
+     * as reading the parameters could potentially decode them in the wrong encoding
+     * or trigger exceptions,
+     * for example when the amount of query parameters is longer than the application server allows.
+     * In that case, we rather not want that the agent looks like the cause for this.
+     */
+    private void fillRequestParameters(Transaction transaction, String method, Map<String, String[]> parameterMap) {
+        Request request = transaction.getContext().getRequest();
+        if (hasBody(request.getHeaders(), method)) {
+            if (webConfiguration.getCaptureBody() != OFF) {
+                captureBody(request, parameterMap);
+            } else {
+                request.redactBody();
+            }
+        }
     }
 
     private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
@@ -140,16 +178,8 @@ public class ServletTransactionHelper {
 
     private void fillRequest(Request request, String protocol, String method, boolean secure,
                              String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                             Map<String, String[]> parameterMap, String remoteAddr, StringBuffer requestURL) {
-        final WebConfiguration.EventType eventType = webConfiguration.getCaptureBody();
+                             String remoteAddr, StringBuffer requestURL) {
 
-        if (hasBody(request.getHeaders(), method)) {
-            if (eventType != OFF) {
-                captureBody(request, parameterMap);
-            } else {
-                request.redactBody();
-            }
-        }
         request.withHttpVersion(getHttpVersion(protocol));
         request.withMethod(method);
 

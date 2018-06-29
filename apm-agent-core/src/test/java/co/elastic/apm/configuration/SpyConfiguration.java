@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.configuration;
 
+import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
@@ -47,5 +48,11 @@ public class SpyConfiguration {
         return builder
             .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME).add("service_name", "elastic-apm-test"))
             .build();
+    }
+
+    public static void reset(ConfigurationRegistry config) {
+        for (ConfigurationOptionProvider provider : config.getConfigurationOptionProviders()) {
+            Mockito.reset(provider);
+        }
     }
 }
