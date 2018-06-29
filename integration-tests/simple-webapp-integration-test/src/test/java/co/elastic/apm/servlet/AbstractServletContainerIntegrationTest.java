@@ -111,6 +111,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     public final void setUpMockServer() {
         mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
+        mockServerContainer.getClient().when(request("/healthcheck")).respond(HttpResponse.response().withStatusCode(200));
         servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp").forPort(webPort));
         servletContainer.start();
     }
