@@ -12,9 +12,12 @@ The first configuration sources override the configuration values of over the la
 
 [arabic]
 . Java system properties +
- All configuration keys are prefixed with `elastic.apm.`
+  All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
- All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+. `elasticapm.properties` file +
+  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  No prefix is required for the configuration keys.
 
 Configuration options marked with Dynamic true can be changed at runtime
 via configuration sources which support dynamic reloading.
@@ -324,6 +327,56 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 |============
 | Java System Properties      | Environment
 | `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
+|============
+
+[[logging]]
+=== Logging configuration options
+[float]
+[[config-logging-log-level]]
+==== `logging.log_level`
+
+Sets the logging level for the agent.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `INFO` | Level | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment
+| `elastic.apm.logging.log_level` | `ELASTIC_APM_LOGGING.LOG_LEVEL`
+|============
+
+[float]
+[[config-logging-log-file]]
+==== `logging.log_file`
+
+Sets the path of the agent logs.
+The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+Example: `_AGENT_HOME_/logs/elastic-apm.log`
+
+When set to the special value 'System.out',
+the logs are sent to standard out.
+
+NOTE: When logging to a file,
+it's content is deleted when the application starts.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `System.out` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment
+| `elastic.apm.logging.log_file` | `ELASTIC_APM_LOGGING.LOG_FILE`
 |============
 
 [[reporter]]

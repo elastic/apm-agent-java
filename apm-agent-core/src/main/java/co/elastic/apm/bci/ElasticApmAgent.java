@@ -22,6 +22,7 @@ package co.elastic.apm.bci;
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -35,7 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.net.URISyntaxException;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.ServiceLoader;
@@ -49,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public class ElasticApmAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -62,7 +65,7 @@ public class ElasticApmAgent {
      * @param instrumentation The instrumentation instance.
      */
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
+        initInstrumentation(new ElasticApmTracerBuilder().build(), instrumentation);
     }
 
     /**
@@ -73,7 +76,7 @@ public class ElasticApmAgent {
      */
     @SuppressWarnings("unused")
     public static void agentmain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(ElasticApmTracer.builder().build(), instrumentation);
+        initInstrumentation(new ElasticApmTracerBuilder().build(), instrumentation);
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
@@ -82,6 +85,7 @@ public class ElasticApmAgent {
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation,
                                            Iterable<ElasticApmInstrumentation> instrumentations) {
+        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
             return;
@@ -118,6 +122,7 @@ public class ElasticApmAgent {
 
     private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
                                             final ElasticApmInstrumentation advice) {
+        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying advice {}", advice.getClass().getName());
         advice.init(tracer);
         return agentBuilder
@@ -188,4 +193,27 @@ public class ElasticApmAgent {
             .disableClassFormatChanges();
     }
 
+    /**
+     * Returns the directory the agent jar resides in.
+     * <p>
+     * In scenarios where the agent jar can't be resolved,
+     * like in unit tests,
+     * this method returns {@code null}.
+     * </p>
+     * @return the directory the agent jar resides in
+     */
+    @Nullable
+    public static String getAgentHome() {
+        try {
+            final File agentJar = new File(ElasticApmAgent.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            if (!agentJar.getName().endsWith(".jar")) {
+                // we are probably executing a unit test
+                return null;
+            }
+            return agentJar.getAbsoluteFile().getParent();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

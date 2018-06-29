@@ -22,6 +22,7 @@ package co.elastic.apm.bci;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,7 +60,7 @@ class InstrumentationTest {
     }
 
     private void init(ConfigurationRegistry config) {
-        ElasticApmAgent.initInstrumentation(ElasticApmTracer.builder()
+        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
                 .configurationRegistry(config)
                 .build(),
             ByteBuddyAgent.install(),

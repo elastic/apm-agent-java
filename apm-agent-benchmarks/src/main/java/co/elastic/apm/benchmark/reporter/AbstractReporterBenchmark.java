@@ -22,6 +22,7 @@ package co.elastic.apm.benchmark.reporter;
 import co.elastic.apm.benchmark.AbstractBenchmark;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.payload.Agent;
@@ -65,7 +66,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        tracer = ElasticApmTracer.builder()
+        tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)
             .configurationRegistry(ConfigurationRegistry.builder()
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))

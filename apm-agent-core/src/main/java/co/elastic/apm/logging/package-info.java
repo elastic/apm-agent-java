@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+@NonnullApi
+package co.elastic.apm.logging;
 
-public class SpringBoot1_5Test {
-}
+import co.elastic.apm.annotation.NonnullApi;

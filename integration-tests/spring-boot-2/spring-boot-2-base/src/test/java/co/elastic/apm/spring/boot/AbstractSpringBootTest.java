@@ -24,6 +24,7 @@ import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.web.WebConfiguration;
@@ -64,7 +65,7 @@ public abstract class AbstractSpringBootTest {
         config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         reporter = new MockReporter();
-        ElasticApmTracer tracer = ElasticApmTracer.builder()
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .build();

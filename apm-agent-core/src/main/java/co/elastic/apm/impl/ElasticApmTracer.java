@@ -119,10 +119,6 @@ public class ElasticApmTracer {
         }
     }
 
-    public static ElasticApmTracerBuilder builder() {
-        return new ElasticApmTracerBuilder();
-    }
-
     public Transaction startTransaction() {
         return startTransaction(null);
     }
