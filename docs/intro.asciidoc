@@ -56,7 +56,7 @@ Start your spring application and add the `-javaagent` JVM flag:
 
 [source,bash]
 ----
-java -jar my-spring-boot-application.jar -javaagent:/path/to/elastic-apm-agent-<version>.jar
+java -javaagent:/path/to/elastic-apm-agent-<version>.jar -jar my-spring-boot-application.jar
 ----
 
 [float]
