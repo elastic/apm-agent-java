@@ -20,6 +20,7 @@
 package co.elastic.apm.benchmark;
 
 import co.elastic.apm.bci.ElasticApmAgent;
+import co.elastic.apm.benchmark.sql.BlackholeConnection;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
@@ -33,6 +34,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -47,7 +49,6 @@ import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -108,7 +109,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     }
 
     @Setup
-    public void setUp() throws SQLException {
+    public void setUp(Blackhole blackhole) throws SQLException {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
             .setHandler(exchange -> exchange.setStatusCode(200).endExchange()).build();
@@ -127,11 +128,14 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
         request = createRequest();
         response = createResponse();
+        final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
+        blackholeConnection.init(blackhole);
 
         Connection connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
         connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        httpServlet = new BenchmarkingServlet(connection, tracer);
+
+        httpServlet = new BenchmarkingServlet(connection, tracer, blackhole);
     }
 
     @TearDown
@@ -214,10 +218,12 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
         private final Connection connection;
         private final Reporter reporter;
+        private final Blackhole blackhole;
 
-        private BenchmarkingServlet(Connection connection, ElasticApmTracer tracer) {
+        private BenchmarkingServlet(Connection connection, ElasticApmTracer tracer, Blackhole blackhole) {
             this.connection = connection;
-            reporter = tracer.getReporter();
+            this.reporter = tracer.getReporter();
+            this.blackhole = blackhole;
         }
 
         @Override
@@ -226,14 +232,11 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                 final PreparedStatement preparedStatement = connection
                     .prepareStatement("SELECT * FROM ELASTIC_APM WHERE foo=?");
                 preparedStatement.setInt(1, 1);
-                final ResultSet resultSet = preparedStatement.executeQuery();
-                int count = 0;
-                while (resultSet.next()) {
-                    count += resultSet.getString(1).length();
-                }
+                blackhole.consume(preparedStatement.executeQuery());
                 // makes sure the jdbc query and the reporting can't be eliminated by JIT
                 // setting it as the http status code so that there are no allocations necessary
-                response.setStatus(count + reporter.getDropped());
+                // for example converting to string
+                response.setStatus(reporter.getDropped());
             } catch (Exception e) {
                 throw new ServletException(e);
             }
