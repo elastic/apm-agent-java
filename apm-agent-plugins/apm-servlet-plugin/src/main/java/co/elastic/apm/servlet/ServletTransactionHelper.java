@@ -75,7 +75,7 @@ public class ServletTransactionHelper {
      * because the creating the context is handled in one central place.
      *
      * Furthermore, it is not trivial to create an error context at an arbitrary location
-     * (when the user calls ElasticApm.captureError()),
+     * (when the user calls ElasticApm.captureException()),
      * as we don't necessarily have access to the framework's request and response objects.
      *
      * Additionally, we only have access to the classes of the instrumented classes inside advice methods.

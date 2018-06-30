@@ -231,6 +231,8 @@ public class ElasticApmTracer {
             stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
             Transaction transaction = currentTransaction();
             if (transaction != null) {
+                // TODO add memory fence to make sure its fields are visible
+                // as the transaction might be created in a different thread
                 error.asChildOf(transaction);
                 error.getTransaction().getTransactionId().copyFrom(transaction.getId());
                 error.getContext().copyFrom(transaction.getContext());
