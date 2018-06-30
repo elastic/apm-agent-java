@@ -54,7 +54,9 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
-        logger.trace("Receiving {} event (sequence {})", event.getType(), sequence);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Receiving {} event (sequence {})", event.getType(), sequence);
+        }
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         if (event.getType() == FLUSH) {
             flush(transactionPayload);
@@ -76,7 +78,9 @@ class ReportingEventHandler implements EventHandler<ReportingEvent> {
                 flush(errorPayload);
             }
         }
-        logger.trace("Finished processing {} event (sequence {})", event.getType(), sequence);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Finished processing {} event (sequence {})", event.getType(), sequence);
+        }
         event.resetState();
     }
 
