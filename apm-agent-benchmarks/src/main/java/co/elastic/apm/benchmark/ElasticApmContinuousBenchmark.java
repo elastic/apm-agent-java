@@ -47,9 +47,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -110,7 +108,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     }
 
     @Setup
-    public void setUp(Blackhole blackhole) throws SQLException {
+    public void setUp(Blackhole blackhole) {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
             .setHandler(exchange -> {
@@ -135,11 +133,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
         blackholeConnection.init(blackhole);
 
-        Connection connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
-        connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
-        connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-
-        httpServlet = new BenchmarkingServlet(connection, tracer, blackhole);
+        httpServlet = new BenchmarkingServlet(blackholeConnection, tracer, blackhole);
     }
 
     @TearDown
