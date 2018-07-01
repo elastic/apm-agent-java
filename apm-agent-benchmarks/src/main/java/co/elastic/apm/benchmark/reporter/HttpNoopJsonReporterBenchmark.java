@@ -36,9 +36,9 @@ public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return (sink, payload) -> {
-            sink.writeByte('{');
-            sink.writeByte('}');
+        return (os, payload) -> {
+            os.write('{');
+            os.write('}');
         };
     }
 }

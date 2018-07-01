@@ -40,6 +40,21 @@ public class NoopReporterBenchmark extends AbstractReporterBenchmark {
     }
 
     protected PayloadSender getPayloadSender() {
-        return Payload::recycle;
+        return new PayloadSender() {
+            @Override
+            public void sendPayload(Payload payload) {
+                payload.recycle();
+            }
+
+            @Override
+            public long getReported() {
+                return 0;
+            }
+
+            @Override
+            public long getDropped() {
+                return 0;
+            }
+        };
     }
 }

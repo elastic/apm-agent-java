@@ -54,11 +54,11 @@ import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
 import com.dslplatform.json.UUIDConverter;
-import okio.BufferedSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -89,11 +89,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     @Override
-    public void serializePayload(final BufferedSink sink, final Payload payload) {
+    public void serializePayload(final OutputStream os, final Payload payload) {
         if (logger.isTraceEnabled()) {
             logger.trace(toJsonString(payload));
         }
-        jw.reset(sink.outputStream());
+        jw.reset(os);
         if (payload instanceof TransactionPayload) {
             serializeTransactionPayload((TransactionPayload) payload);
         } else if (payload instanceof ErrorPayload) {

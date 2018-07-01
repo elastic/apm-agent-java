@@ -29,18 +29,19 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
-import okio.GzipSink;
-import okio.Okio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 
 public class ApmServerHttpPayloadSender implements PayloadSender {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHttpPayloadSender.class);
@@ -51,7 +52,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     private final ReporterConfiguration reporterConfiguration;
     private final PayloadSerializer payloadSerializer;
     private final ScheduledExecutorService healthCheckExecutorService;
-    private long droppedTransactions = 0;
+    private long dropped = 0;
+    private long reported = 0;
 
     public ApmServerHttpPayloadSender(OkHttpClient httpClient, PayloadSerializer payloadSerializer,
                                       ReporterConfiguration reporterConfiguration) {
@@ -98,12 +100,12 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
 
                 @Override
                 public void writeTo(BufferedSink sink) throws IOException {
+                    OutputStream os = sink.outputStream();
                     if (useGzip(payload)) {
-                        GzipSink gzipSink = new GzipSink(sink);
-                        gzipSink.deflater().setLevel(GZIP_COMPRESSION_LEVEL);
-                        sink = Okio.buffer(gzipSink);
+                        final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
+                        os = new DeflaterOutputStream(os, def);
                     }
-                    payloadSerializer.serializePayload(sink, payload);
+                    payloadSerializer.serializePayload(os, payload);
                     sink.close();
                     payload.recycle();
                 }
@@ -115,15 +117,17 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             int statusCode = response.code();
             logger.debug("APM server responded with status code {}", statusCode);
             if (statusCode >= 400) {
-                droppedTransactions += payload.getPayloadObjects().size();
+                dropped += payload.getPayloadObjects().size();
                 if (response.body() != null) {
                     logger.debug(response.body().string());
                 }
+            } else {
+                reported += payload.getPayloadObjects().size();
             }
             response.close();
         } catch (IOException e) {
             logger.debug("Sending payload to APM server failed", e);
-            droppedTransactions += payload.getPayloadObjects().size();
+            dropped += payload.getPayloadObjects().size();
         }
     }
 
@@ -139,8 +143,14 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         return payload.getPayloadObjects().size() > 1;
     }
 
-    public long getDroppedTransactions() {
-        return droppedTransactions;
+    @Override
+    public long getDropped() {
+        return dropped;
+    }
+
+    @Override
+    public long getReported() {
+        return reported;
     }
 
     private static class ApmServerHealthChecker implements Runnable {

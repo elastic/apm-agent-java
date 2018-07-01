@@ -22,11 +22,11 @@ package co.elastic.apm.benchmark.serializer;
 import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okio.BufferedSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.OutputStream;
 
 public class JacksonPayloadSerializer implements PayloadSerializer {
     private static final Logger logger = LoggerFactory.getLogger(JacksonPayloadSerializer.class);
@@ -37,8 +37,8 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
     }
 
     @Override
-    public void serializePayload(BufferedSink sink, Payload payload) throws IOException {
-        objectMapper.writeValue(sink.outputStream(), payload);
+    public void serializePayload(OutputStream os, Payload payload) throws IOException {
+        objectMapper.writeValue(os, payload);
         if (logger.isTraceEnabled()) {
             logger.trace(objectMapper.writeValueAsString(payload));
         }

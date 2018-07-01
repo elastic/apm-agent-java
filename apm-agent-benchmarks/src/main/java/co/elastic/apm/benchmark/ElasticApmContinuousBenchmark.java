@@ -103,6 +103,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     protected HttpServlet httpServlet;
     private Undertow server;
     private ElasticApmTracer tracer;
+    private long receivedPayloads = 0;
 
     public ElasticApmContinuousBenchmark(boolean apmEnabled) {
         this.apmEnabled = apmEnabled;
@@ -112,7 +113,10 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     public void setUp(Blackhole blackhole) throws SQLException {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
-            .setHandler(exchange -> exchange.setStatusCode(200).endExchange()).build();
+            .setHandler(exchange -> {
+                receivedPayloads++;
+                exchange.setStatusCode(200).endExchange();
+            }).build();
         server.start();
         int port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
         tracer = new ElasticApmTracerBuilder()
@@ -143,6 +147,9 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         server.stop();
         tracer.stop();
         ElasticApmAgent.reset();
+        System.out.println("Reported: " + tracer.getReporter().getReported());
+        System.out.println("Dropped: " + tracer.getReporter().getDropped());
+        System.out.println("receivedPayloads = " + receivedPayloads);
     }
 
     private MockHttpServletRequest createRequest() {
@@ -236,7 +243,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                 // makes sure the jdbc query and the reporting can't be eliminated by JIT
                 // setting it as the http status code so that there are no allocations necessary
                 // for example converting to string
-                response.setStatus(reporter.getDropped());
+                response.setStatus((int) reporter.getDropped());
             } catch (Exception e) {
                 throw new ServletException(e);
             }

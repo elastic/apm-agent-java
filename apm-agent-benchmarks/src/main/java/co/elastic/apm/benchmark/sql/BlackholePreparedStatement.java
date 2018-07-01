@@ -9,6 +9,7 @@ import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
@@ -23,17 +24,17 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-public class BlackholePreparedStatment extends BlackholeStatement implements PreparedStatement {
+public class BlackholePreparedStatement extends BlackholeStatement implements PreparedStatement {
     private final Blackhole blackhole;
 
-    BlackholePreparedStatment(Blackhole blackhole) {
-        super(blackhole);
+    BlackholePreparedStatement(Blackhole blackhole, Connection connection) {
+        super(blackhole, connection);
         this.blackhole = blackhole;
     }
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        return null;
+        return blackholeResultSet;
     }
 
     @Override

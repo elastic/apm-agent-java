@@ -8,21 +8,27 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-public class  BlackholeStatement implements Statement {
+public class BlackholeStatement implements Statement {
 
     private final Blackhole blackhole;
+    private final Connection connection;
+    protected final BlackholeResultSet blackholeResultSet;
 
-    public BlackholeStatement(Blackhole blackhole) {
+    BlackholeStatement(Blackhole blackhole, Connection connection) {
         this.blackhole = blackhole;
+        this.blackholeResultSet = new BlackholeResultSet(blackhole);
+        this.connection = connection;
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        blackhole.consume(sql);
         return null;
     }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
+        blackhole.consume(sql);
         return 0;
     }
 
@@ -88,6 +94,7 @@ public class  BlackholeStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
+        blackhole.consume(sql);
         return false;
     }
 
@@ -107,23 +114,23 @@ public class  BlackholeStatement implements Statement {
     }
 
     @Override
-    public void setFetchDirection(int direction) throws SQLException {
-
-    }
-
-    @Override
     public int getFetchDirection() throws SQLException {
         return 0;
     }
 
     @Override
-    public void setFetchSize(int rows) throws SQLException {
+    public void setFetchDirection(int direction) throws SQLException {
 
     }
 
     @Override
     public int getFetchSize() throws SQLException {
         return 0;
+    }
+
+    @Override
+    public void setFetchSize(int rows) throws SQLException {
+
     }
 
     @Override
@@ -138,7 +145,7 @@ public class  BlackholeStatement implements Statement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-
+        blackhole.consume(sql);
     }
 
     @Override
@@ -153,7 +160,7 @@ public class  BlackholeStatement implements Statement {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return null;
+        return connection;
     }
 
     @Override
@@ -207,13 +214,13 @@ public class  BlackholeStatement implements Statement {
     }
 
     @Override
-    public void setPoolable(boolean poolable) throws SQLException {
-
+    public boolean isPoolable() throws SQLException {
+        return false;
     }
 
     @Override
-    public boolean isPoolable() throws SQLException {
-        return false;
+    public void setPoolable(boolean poolable) throws SQLException {
+
     }
 
     @Override

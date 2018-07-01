@@ -31,7 +31,9 @@ public interface Reporter extends Closeable {
 
     void report(Span span);
 
-    int getDropped();
+    long getDropped();
+
+    long getReported();
 
     Future<Void> flush();
 

@@ -24,7 +24,6 @@ import co.elastic.apm.benchmark.serializer.JacksonPayloadSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
-import okio.Buffer;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
@@ -51,9 +50,6 @@ public abstract class AbstractHttpJacksonReporterBenchmark extends AbstractHttpR
     @Setup
     public void setUp() throws Exception {
         super.setUp();
-        Buffer buffer = new Buffer();
-        getPayloadSerializer().serializePayload(buffer, payload);
-        System.out.println("Size of payload in bytes: " + buffer.readByteString().toByteArray().length);
     }
 
     @Override

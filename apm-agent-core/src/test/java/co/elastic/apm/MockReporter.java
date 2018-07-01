@@ -155,7 +155,12 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public int getDropped() {
+    public long getDropped() {
+        return 0;
+    }
+
+    @Override
+    public long getReported() {
         return 0;
     }
 

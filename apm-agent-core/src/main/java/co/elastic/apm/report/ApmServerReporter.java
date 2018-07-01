@@ -43,7 +43,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This reporter asynchronously reports {@link Transaction}s to the APM server
@@ -80,10 +80,11 @@ public class ApmServerReporter implements Reporter {
 
     private final Disruptor<ReportingEvent> disruptor;
     private final CoreConfiguration coreConfiguration;
-    private final AtomicInteger dropped = new AtomicInteger();
+    private final AtomicLong dropped = new AtomicLong();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
+    private final PayloadSender payloadSender;
     @Nullable
     private ScheduledThreadPoolExecutor flushScheduler;
 
@@ -92,6 +93,7 @@ public class ApmServerReporter implements Reporter {
                              ProcessorEventHandler processorEventHandler, CoreConfiguration coreConfiguration) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
+        this.payloadSender = payloadSender;
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -149,8 +151,13 @@ public class ApmServerReporter implements Reporter {
     }
 
     @Override
-    public int getDropped() {
-        return dropped.get();
+    public long getDropped() {
+        return dropped.get() + payloadSender.getDropped();
+    }
+
+    @Override
+    public long getReported() {
+        return payloadSender.getReported();
     }
 
     /**
