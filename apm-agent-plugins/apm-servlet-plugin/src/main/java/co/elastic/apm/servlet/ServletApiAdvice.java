@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,18 +54,37 @@ public class ServletApiAdvice {
 
     @Nullable
     @Advice.OnMethodEnter
-    public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest request) {
+    public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
         if (servletTransactionHelper != null &&
-            request instanceof HttpServletRequest &&
-            !Boolean.TRUE.equals(request.getAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST))) {
-            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            final Transaction transaction = servletTransactionHelper.onBefore(httpServletRequest.getServletPath(), httpServletRequest.getPathInfo(),
-                httpServletRequest.getRequestURI(), httpServletRequest.getHeader("User-Agent"),
-                httpServletRequest.getHeader(TraceContext.TRACE_PARENT_HEADER));
+            servletRequest instanceof HttpServletRequest &&
+            !Boolean.TRUE.equals(servletRequest.getAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST))) {
+
+            final HttpServletRequest request = (HttpServletRequest) servletRequest;
+            final Transaction transaction = servletTransactionHelper.onBefore(
+                request.getServletPath(), request.getPathInfo(),
+                request.getRequestURI(), request.getHeader("User-Agent"),
+                request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
-                httpServletRequest.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
+                request.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
+                return null;
             }
+            final Request req = transaction.getContext().getRequest();
+            if (transaction.isSampled() && request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    req.addCookie(cookie.getName(), cookie.getValue());
+                }
+            }
+            final Enumeration headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                final String headerName = (String) headerNames.nextElement();
+                req.addHeader(headerName, request.getHeader(headerName));
+            }
+
+            final Principal userPrincipal = request.getUserPrincipal();
+            servletTransactionHelper.fillRequestContext(transaction, userPrincipal != null ? userPrincipal.getName() : null,
+                request.getProtocol(), request.getMethod(), request.isSecure(), request.getScheme(), request.getServerName(),
+                request.getServerPort(), request.getRequestURI(), request.getQueryString(), request.getRemoteAddr(), request.getRequestURL());
             return transaction;
         }
         return null;
@@ -76,30 +95,20 @@ public class ServletApiAdvice {
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Enter @Nullable Transaction transaction,
                                             @Advice.Thrown @Nullable Exception exception) {
-        if (servletTransactionHelper != null && transaction != null && servletRequest instanceof HttpServletRequest &&
+        if (servletTransactionHelper != null &&
+            transaction != null &&
+            servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
-            final HttpServletRequest request = (HttpServletRequest) servletRequest;
+
             final HttpServletResponse response = (HttpServletResponse) servletResponse;
-            final Request req = transaction.getContext().getRequest();
-            if (request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    req.addCookie(cookie.getName(), cookie.getValue());
-                }
-            }
-            final Enumeration headerNames = request.getHeaderNames();
-            while (headerNames.hasMoreElements()) {
-                final String headerName = (String) headerNames.nextElement();
-                req.addHeader(headerName, request.getHeader(headerName));
-            }
+            final HttpServletRequest request = (HttpServletRequest) servletRequest;
             final Response resp = transaction.getContext().getResponse();
             for (String headerName : response.getHeaderNames()) {
                 resp.addHeader(headerName, response.getHeader(headerName));
             }
-            final Principal userPrincipal = request.getUserPrincipal();
-            servletTransactionHelper.onAfter(transaction, exception, userPrincipal != null ? userPrincipal.getName() : null,
-                request.getProtocol(), request.getMethod(), request.isSecure(), request.getScheme(), request.getServerName(),
-                request.getServerPort(), request.getRequestURI(), request.getQueryString(), request.getParameterMap(),
-                request.getRemoteAddr(), request.getRequestURL(), response.isCommitted(), response.getStatus());
+
+            servletTransactionHelper.onAfter(transaction, exception, response.isCommitted(), response.getStatus(), request.getMethod(),
+                request.getParameterMap());
         }
     }
 }

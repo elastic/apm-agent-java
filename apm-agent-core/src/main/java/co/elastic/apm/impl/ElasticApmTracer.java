@@ -231,8 +231,11 @@ public class ElasticApmTracer {
             stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
             Transaction transaction = currentTransaction();
             if (transaction != null) {
+                // The error might have occurred in a different thread than the one the transaction was recorded
+                // That's why we have to ensure the visibility of the transaction properties
+                error.getContext().copyFrom(transaction.getContextEnsureVisibility());
                 error.asChildOf(transaction);
-                error.getContext().copyFrom(transaction.getContext());
+                error.getTransaction().getTransactionId().copyFrom(transaction.getId());
             }
             reporter.report(error);
         }

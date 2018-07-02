@@ -27,16 +27,19 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 public abstract class AbstractInstrumentationTest {
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
+    protected static ConfigurationRegistry config;
 
     @BeforeAll
     static void beforeAll() {
         reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
         tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -49,6 +52,7 @@ public abstract class AbstractInstrumentationTest {
 
     @BeforeEach
     final void resetReporter() {
+        SpyConfiguration.reset(config);
         reporter.reset();
     }
 }

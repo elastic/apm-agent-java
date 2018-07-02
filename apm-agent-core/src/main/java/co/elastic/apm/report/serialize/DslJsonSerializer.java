@@ -146,7 +146,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void serializeTransactionReference(ErrorCapture errorCapture) {
-        if (!errorCapture.getTransaction().hasContent()) {
+        if (errorCapture.getTransaction().hasContent()) {
             writeFieldName("transaction");
             jw.writeByte(JsonWriter.OBJECT_START);
             TransactionId transactionId = errorCapture.getTransaction().getTransactionId();
