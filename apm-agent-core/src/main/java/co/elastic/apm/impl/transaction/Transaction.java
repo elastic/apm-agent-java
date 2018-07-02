@@ -110,6 +110,18 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
     }
 
     /**
+     * Returns the context and ensures visibility when accessed from a different thread.
+     *
+     * @return the transaction context
+     * @see #getContext()
+     */
+    public Context getContextEnsureVisibility() {
+        synchronized (this) {
+            return context;
+        }
+    }
+
+    /**
      * UUID for the transaction, referred by its spans
      * (Required)
      */
