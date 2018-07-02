@@ -21,5 +21,6 @@ If you need help or hit an issue,
 please start by opening a topic on our discuss forums.
 Please note that we reserve GitHub tickets for confirmed bugs and enhancement requests.
 
-## Build
-Execute `./mvnw install` to build the artifacts and to install them to your local maven repository.
+## Build form source
+Execute `./mvnw clean install -PskipTests=true` to build the artifacts and to install them to your local maven repository.
+The agent jar is in the folder `elastic-apm-agent/target`.
