@@ -1,0 +1,88 @@
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
+[[trouble-shooting]]
+== Troubleshooting
+Something isn't quite working as expected?
+Here are some guidelines how to find out what's going wrong.
+
+Don't worry if you can't figure out what the problem is.
+Open a topic in the https://discuss.elastic.co/c/apm:[APM discuss forum]
+and we will help you out.
+If you do so, please attach your debug logs so that we can analyze the problem.
+
+[float]
+[[trouble-shooting-logging]]
+=== Logging
+There are several <<config-logging, logging related configuration options>>.
+The most important one is <<config-logging-log-level>>.
+Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
+
+
+[float]
+[[trouble-shooting-debugging]]
+=== Debugging
+Sometimes reading the logs is just not enough to debug a problem.
+As the agent is OpenSource and released on Maven Central,
+debugging the agent code is really easy.
+
+In order for your IDE to download the sources,
+first declare a dependency to the agent.
+
+NOTE: The agent is added via the `-javaagent` flag.
+So you have to make sure that you declare the dependency in a way that the agent is not on the classpath twice.
+For example,
+when you are developing a web application,
+make sure that the agent is not packaged in your war in `WEB-INF/lib`.
+In the debug window of your IDE,
+make sure that `elastic-apm-agent` does not appear in the `-classpath`.
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>co.elastic.apm</groupId>
+    <artifactId>elastic-apm-agent</artifactId>
+    <version>${elastic-apm.version}</version>
+    <scope>provided</scope>
+</dependency>
+----
+
+NOTE: Even when setting the `scope` to `provided`,
+IntelliJ sometimes adds the agent on the classpath anyway.
+One workaround is to set the `scope` to `test`.
+
+[source,groovy]
+.build.gradle
+----
+compileOnly "co.elastic.apm:elastic-apm-agent:$elasticApmVersion"
+----
+
+
+[float]
+[[trouble-shooting-common-issues]]
+=== Common problems
+
+[float]
+[[trouble-shooting-no-data]]
+==== There is no data in the Kibana APM UI
+
+The most common source of this problem are connection issues between the agent and the APM server.
+
+If the APM server does not receive data from the agent,
+check if the agent is able to establish a connection to the server.
+In the agent logs,
+look out for logs containing `Elastic APM server is available`
+and `Elastic APM server is not available`.
+
+If you see the message `Elastic APM server is not available`,
+the agent has problems connecting to the APM server.
+Check the setting of <<config-server-url>> and make sure the agent is able to connect to the server.
+Try to execute `curl -v <apm-server-url>/healthcheck` from the machine the agent is running on.
+The server should respond with a 200 status code.
+
+If the APM server does not respond successfully,
+have a look at the APM server logs to verify that the server is actually running.
+Also make sure to configure your firewalls so that the host the agent runs on can open HTTP connections to the APM server.

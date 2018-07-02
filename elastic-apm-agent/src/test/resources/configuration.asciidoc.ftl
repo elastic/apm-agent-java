@@ -33,7 +33,7 @@ So a minimal version of a configuration might look like this:
 ----
 
 <#list config as category, options>
-[[${category?lower_case?replace(" ", "-")}]]
+[[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
     <#list options as option>
         <#if !option.tags?seq_contains("internal")>

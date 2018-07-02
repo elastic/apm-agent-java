@@ -36,7 +36,7 @@ So a minimal version of a configuration might look like this:
 -Delastic.apm.server_url=http://localhost:8300
 ----
 
-[[core]]
+[[config-core]]
 === Core configuration options
 [float]
 [[config-active]]
@@ -244,7 +244,7 @@ A list of instrumentations which should be disabled. Valid options are `jdbc`, `
 | `elastic.apm.disabled_instrumentations` | `ELASTIC_APM_DISABLED_INSTRUMENTATIONS`
 |============
 
-[[http]]
+[[config-http]]
 === HTTP configuration options
 [float]
 [[config-capture-body]]
@@ -329,7 +329,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 | `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
-[[logging]]
+[[config-logging]]
 === Logging configuration options
 [float]
 [[config-logging-log-level]]
@@ -379,7 +379,7 @@ it's content is deleted when the application starts.
 | `elastic.apm.logging.log_file` | `ELASTIC_APM_LOGGING.LOG_FILE`
 |============
 
-[[reporter]]
+[[config-reporter]]
 === Reporter configuration options
 [float]
 [[config-secret-token]]
@@ -517,7 +517,7 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 | `elastic.apm.max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
 
-[[stacktrace]]
+[[config-stacktrace]]
 === Stacktrace configuration options
 [float]
 [[config-application-packages]]
