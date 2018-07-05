@@ -91,6 +91,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Blocks the requests until the transaction has been reported to the APM server.")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> includeProcessArguments = ConfigurationOption.booleanOption()
+        .key("include_process_args")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("Whether each transaction should have the process arguments attached. Disabled by default to save disk space.")
+        .buildWithDefault(false);
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -118,5 +124,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isReportSynchronously() {
         return reportSynchronously.get();
+    }
+
+    public boolean isIncludeProcessArguments() {
+        return includeProcessArguments.get();
     }
 }

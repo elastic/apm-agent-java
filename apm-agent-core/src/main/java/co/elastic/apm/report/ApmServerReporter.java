@@ -105,6 +105,9 @@ public class ApmServerReporter implements Reporter {
         }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
         this.coreConfiguration = coreConfiguration;
         reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration, processorEventHandler);
+        if (!reporterConfiguration.isIncludeProcessArguments()) {
+            process.getArgv().clear();
+        }
         disruptor.handleEventsWith(reportingEventHandler);
         disruptor.start();
         if (reporterConfiguration.getFlushInterval() > 0) {
