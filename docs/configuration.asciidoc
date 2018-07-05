@@ -517,6 +517,27 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 | `elastic.apm.max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
 
+[float]
+[[config-include-process-args]]
+==== `include_process_args`
+
+Whether each transaction should have the process arguments attached.
+Disabled by default to save disk space.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Environment
+| `elastic.apm.include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
+|============
+
 [[config-stacktrace]]
 === Stacktrace configuration options
 [float]

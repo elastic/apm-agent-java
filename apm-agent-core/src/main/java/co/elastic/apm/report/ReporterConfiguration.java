@@ -94,7 +94,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> includeProcessArguments = ConfigurationOption.booleanOption()
         .key("include_process_args")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Whether each transaction should have the process arguments attached. Disabled by default to save disk space.")
+        .description("Whether each transaction should have the process arguments attached.\n" +
+            "Disabled by default to save disk space.")
         .buildWithDefault(false);
 
     @Nullable
