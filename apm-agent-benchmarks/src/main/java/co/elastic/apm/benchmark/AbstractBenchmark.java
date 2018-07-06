@@ -35,7 +35,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Measurement(iterations = 10)
 @Fork(value = 1, jvmArgsAppend = {
     "-Xmx1g",
-    "-Xms1g"/*,
+    "-Xms1g",
     "-XX:+UnlockDiagnosticVMOptions",
     "-XX:+DebugNonSafepoints",
     "-XX:+UnlockCommercialFeatures",
@@ -43,7 +43,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
     "-XX:StartFlightRecording=disk=true," +
         "dumponexit=true," +
         "filename=./recording.jfr," +
-        "settings=profile"*/
+        "settings=profile"
 })
 public abstract class AbstractBenchmark {
 

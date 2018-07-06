@@ -105,9 +105,12 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                         final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
                         os = new DeflaterOutputStream(os, def);
                     }
-                    payloadSerializer.serializePayload(os, payload);
-                    sink.close();
-                    payload.recycle();
+                    try {
+                        payloadSerializer.serializePayload(os, payload);
+                    } finally {
+                        os.close();
+                        payload.recycle();
+                    }
                 }
             })
             .build();
