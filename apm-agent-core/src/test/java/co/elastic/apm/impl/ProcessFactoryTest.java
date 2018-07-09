@@ -31,7 +31,6 @@ class ProcessFactoryTest {
     void testProcessInformationForLegacyVm() {
         ProcessInfo proc = ProcessFactory.ForLegacyVM.INSTANCE.getProcessInformation();
         assertSoftly(softly -> {
-            softly.assertThat(proc.getArgv()).isNotEmpty();
             softly.assertThat(proc.getPid()).isNotEqualTo(0);
             softly.assertThat(proc.getTitle()).contains("java");
         });
@@ -41,7 +40,6 @@ class ProcessFactoryTest {
     void testProcessInformationForCurrentVm() {
         ProcessInfo proc = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         assertSoftly(softly -> {
-            softly.assertThat(proc.getArgv()).isNotEmpty();
             softly.assertThat(proc.getPid()).isNotEqualTo(0);
             softly.assertThat(proc.getPpid()).isNotNull();
             softly.assertThat(proc.getTitle()).contains("java");
