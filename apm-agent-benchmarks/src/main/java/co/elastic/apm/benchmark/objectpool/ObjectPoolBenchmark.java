@@ -57,14 +57,14 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() {
-        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, Transaction::new);
-        jctoolsQueueObjectPool = new QueueBasedObjectPool<>(new MpmcArrayQueue<>(256), true, Transaction::new);
-        jctoolsAtomicQueueObjectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(256), true, Transaction::new);
-        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new);
-        mixedObjectPool = new MixedObjectPool<>(Transaction::new,
-            new ThreadLocalObjectPool<>(256, true, Transaction::new),
-            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new));
-        threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, Transaction::new);
+        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, () -> new Transaction(null));
+        jctoolsQueueObjectPool = new QueueBasedObjectPool<>(new MpmcArrayQueue<>(256), true, () -> new Transaction(null));
+        jctoolsAtomicQueueObjectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(null));
+        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(null));
+        mixedObjectPool = new MixedObjectPool<>(() -> new Transaction(null),
+            new ThreadLocalObjectPool<>(256, true, () -> new Transaction(null)),
+            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(null)));
+        threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, () -> new Transaction(null));
     }
 
     @TearDown

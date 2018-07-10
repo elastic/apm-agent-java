@@ -238,6 +238,7 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
         spanCount.increment();
         span.start(tracer, this, currentSpan, System.nanoTime(), dropped);
         currentSpan = span;
+        tracer.activate(span);
         return span;
     }
     
@@ -250,9 +251,6 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
     }
 
     public void end(long nanoTime, boolean releaseActiveTransaction) {
-        while (this.currentSpan != null) {
-            this.currentSpan.close();
-        }
         this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
         if (!isSampled()) {
             context.resetState();
