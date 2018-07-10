@@ -42,6 +42,7 @@ import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
@@ -99,7 +100,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()), coreConfiguration);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
-            Transaction t = new Transaction();
+            Transaction t = new Transaction(coreConfiguration);
             fillTransaction(t);
             payload.getTransactions().add(t);
         }

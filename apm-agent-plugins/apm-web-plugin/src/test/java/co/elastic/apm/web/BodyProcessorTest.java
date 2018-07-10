@@ -22,6 +22,7 @@ package co.elastic.apm.web;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -115,7 +116,7 @@ class BodyProcessorTest {
     }
 
     private Transaction processTransaction() {
-        final Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction(null);
         transaction.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;

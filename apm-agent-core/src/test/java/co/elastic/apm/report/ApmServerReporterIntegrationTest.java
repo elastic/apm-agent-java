@@ -28,9 +28,12 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
+
 import okhttp3.OkHttpClient;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +98,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(null));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -109,7 +112,7 @@ class ApmServerReporterIntegrationTest {
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(null));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

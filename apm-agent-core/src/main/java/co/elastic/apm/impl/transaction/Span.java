@@ -24,6 +24,7 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,21 +51,23 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      * The locally unique ID of the parent of the span.
      */
     @Deprecated
-    private SpanId parent = new SpanId();
+    private final SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
-    private double start;
+    private volatile double start;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
     @Nullable
-    private String type;
+    private volatile String type;
+    
+    private volatile Span parentSpan;
 
     @Nullable
-    private Transaction transaction;
+    private volatile Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.tracer = tracer;
@@ -84,9 +87,10 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
             duration = nanoTime;
             timestamp = System.currentTimeMillis();
         }
+        this.parentSpan = parentSpan;
         return this;
     }
-
+    
     /**
      * The locally unique ID of the span.
      */
@@ -152,6 +156,7 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
     }
 
     public void end(long nanoTime, boolean releaseActiveSpan) {
+        this.transaction.setCurrentSpan(this.parentSpan);
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
@@ -160,6 +165,7 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         }
     }
 
+    @Override
     public void close() {
         end();
     }

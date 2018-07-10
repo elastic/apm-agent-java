@@ -27,6 +27,7 @@ import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -58,7 +59,7 @@ class ApmServerReporterTest {
     @Test
     void testTransactionProcessor() throws ExecutionException, InterruptedException {
         final int transactionCount = TestProcessor.getTransactionCount();
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(null));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);

@@ -26,10 +26,12 @@ import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +65,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private Transaction createTransactionWithRequiredValues() {
-        Transaction t = new Transaction();
+        Transaction t = new Transaction(null);
         t.start(mock(ElasticApmTracer.class), null, 0, ConstantSampler.of(true));
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
@@ -77,7 +79,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayloadWithAllValues() {
-        final Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction(null);
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
@@ -96,7 +98,7 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(new Transaction());
+        payload.getTransactions().add(new Transaction(null));
         final String content = new DslJsonSerializer(coreConfiguration).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);

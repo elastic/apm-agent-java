@@ -1,2 +1,7 @@
 target
 dependency-reduced-pom.xml
+/.metadata/
+/.recommenders/
+.classpath
+.project
+.settings

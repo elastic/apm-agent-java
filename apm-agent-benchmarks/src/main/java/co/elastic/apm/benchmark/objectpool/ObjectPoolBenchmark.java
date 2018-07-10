@@ -24,6 +24,7 @@ import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.impl.MixedObjectPool;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
+
 import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.jctools.queues.MpmcArrayQueue;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -75,7 +76,7 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
     //    @Benchmark
     @Threads(8)
     public Transaction testNewOperator() {
-        return new Transaction();
+        return new Transaction(null);
     }
 
     @Benchmark

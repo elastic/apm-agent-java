@@ -23,6 +23,7 @@ import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processTransactions() {
-        Transaction transaction = new Transaction();
+        Transaction transaction = new Transaction(null);
         fillContext(transaction.getContext());
 
         processor.processBeforeReport(transaction);

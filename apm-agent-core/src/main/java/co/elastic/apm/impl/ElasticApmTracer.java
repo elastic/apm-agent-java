@@ -35,6 +35,7 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -79,11 +81,12 @@ public class ElasticApmTracer {
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
+        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)),false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
-                    return new Transaction();
+                    return new Transaction(coreConfiguration);
                 }
             });
         spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -106,7 +109,6 @@ public class ElasticApmTracer {
                 return new Stacktrace();
             }
         });
-        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -197,25 +199,13 @@ public class ElasticApmTracer {
     public void activate(Span span) {
         currentSpan.set(span);
     }
-
-    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
-        Span span;
-        span = spanPool.createInstance();
-        final boolean dropped;
-        if (isTransactionSpanLimitReached(transaction)) {
-            // TODO only drop leaf spans
-            dropped = true;
-            transaction.getSpanCount().getDropped().increment();
-        } else {
-            dropped = false;
-        }
-        transaction.getSpanCount().increment();
-        span.start(this, transaction, parentSpan, nanoTime, dropped);
-        return span;
+    
+    public Span createSpan() {
+        return spanPool.createInstance();
     }
-
-    private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getTotal();
+    
+    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
+        return transaction.createSpan();
     }
 
     public void captureException(@Nullable Exception e) {
