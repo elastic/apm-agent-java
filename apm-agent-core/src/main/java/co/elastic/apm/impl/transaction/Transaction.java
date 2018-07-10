@@ -19,15 +19,17 @@
  */
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.sampling.Sampler;
 
 import javax.annotation.Nullable;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -42,6 +44,7 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
      * This counter helps to assign the spans with sequential IDs
      */
     private final AtomicInteger spanIdCounter = new AtomicInteger();
+    private final CoreConfiguration coreConfiguration;
 
     /**
      * Context
@@ -53,8 +56,12 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
     /**
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
      */
-    private final Map<String, Object> marks = new HashMap<>();
+    private final Map<String, Object> marks = new ConcurrentHashMap<>();
     private final SpanCount spanCount = new SpanCount();
+    /**
+     * Current span created for this transaction or null if there is no span at the moment. If there are nested spans this should contain the deepest.
+     */
+    private volatile Span currentSpan;
     /**
      * UUID for the transaction, referred by its spans
      * (Required)
@@ -77,6 +84,10 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
     private boolean noop;
+    
+    public Transaction(CoreConfiguration coreConfiguration) {
+        this.coreConfiguration = coreConfiguration;
+    }
 
     public Transaction start(ElasticApmTracer tracer, @Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
         this.tracer = tracer;
@@ -209,8 +220,39 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
     public void end() {
         end(System.nanoTime(), true);
     }
+    
+    /**
+     * Creates span bound to the transaction
+     */
+    public Span createSpan() {
+        Span span;
+        span = tracer.createSpan();
+        final boolean dropped;
+        if (isTransactionSpanLimitReached()) {
+            // TODO only drop leaf spans
+            dropped = true;
+            spanCount.getDropped().increment();
+        } else {
+            dropped = false;
+        }
+        spanCount.increment();
+        span.start(tracer, this, currentSpan, System.nanoTime(), dropped);
+        currentSpan = span;
+        return span;
+    }
+    
+    private boolean isTransactionSpanLimitReached() {
+        return coreConfiguration.getTransactionMaxSpans() <= spanCount.getTotal();
+    }
+    
+    public void setCurrentSpan(Span currentSpan) {
+        this.currentSpan = currentSpan;
+    }
 
     public void end(long nanoTime, boolean releaseActiveTransaction) {
+        while (this.currentSpan != null) {
+            this.currentSpan.close();
+        }
         this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
         if (!isSampled()) {
             context.resetState();
@@ -220,6 +262,7 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
         }
     }
 
+    @Override
     public void close() {
         end();
     }

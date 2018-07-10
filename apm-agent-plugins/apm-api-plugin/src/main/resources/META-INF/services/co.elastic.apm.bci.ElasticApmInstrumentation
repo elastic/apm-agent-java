@@ -8,6 +8,7 @@ co.elastic.apm.plugin.api.TransactionInstrumentation$SetTypeInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$EndInstrumentation
+co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation

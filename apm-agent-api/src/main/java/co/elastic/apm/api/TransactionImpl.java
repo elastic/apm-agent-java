@@ -61,4 +61,14 @@ class TransactionImpl implements Transaction {
         // co.elastic.apm.plugin.api.TransactionInstrumentation$EndInstrumentation.end
     }
 
+    @Override
+    public Span createSpan() {
+        Object span = doCreateSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+    
+    private Object doCreateSpan() {
+        // co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        return null;
+    }
 }

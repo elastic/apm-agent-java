@@ -22,26 +22,28 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class SpanCount implements Recyclable {
 
     private final Dropped dropped = new Dropped();
-    private int total = 0;
+    private final AtomicInteger total = new AtomicInteger(0);
 
     public Dropped getDropped() {
         return dropped;
     }
 
     public void increment() {
-        total++;
+        total.incrementAndGet();
     }
 
     public int getTotal() {
-        return total;
+        return total.get();
     }
 
     @Override
     public void resetState() {
         dropped.resetState();
-        total = 0;
+        total.set(0);
     }
 }
