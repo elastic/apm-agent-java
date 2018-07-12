@@ -20,6 +20,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.asm.Advice;
@@ -27,7 +28,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -55,7 +55,7 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        StartAsyncAdvice.init(tracer);
+        helperClassManager.registerHelperClasses(StartAsyncAdviceHelper.class, "co.elastic.apm.servlet.helper.StartAsyncAdviceHelperImpl", "co.elastic.apm.servlet.helper.ApmAsyncListener");
     }
 
     @Override
@@ -97,33 +97,20 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
         return StartAsyncAdvice.class;
     }
 
-    public static class StartAsyncAdvice {
-        @VisibleForAdvice
-        public static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
-        @Nullable
-        @VisibleForAdvice
-        public static ServletTransactionHelper servletTransactionHelper;
+    public interface StartAsyncAdviceHelper<T> extends HelperClassManager.AdviceHelper {
+        void onExitStartAsync(T asyncContext);
+    }
 
-        static void init(ElasticApmTracer tracer) {
-            servletTransactionHelper = new ServletTransactionHelper(tracer);
-        }
+    @VisibleForAdvice
+    public static class StartAsyncAdvice {
 
         @Advice.OnMethodExit
         private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
-            final ServletRequest request = asyncContext.getRequest();
-            if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
-                return;
-            }
-            if (servletTransactionHelper != null &&
-                request.getAttribute(ServletApiAdvice.TRANSACTION_ATTRIBUTE) != null &&
-                request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
-                // makes sure that the listener is only added once, even if the request is wrapped
-                // which leads to multiple invocations of startAsync for the same underlying request
-                request.setAttribute(ASYNC_LISTENER_ADDED, Boolean.TRUE);
-                asyncContext.addListener(new ApmAsyncListener());
+            if (helperClassManager != null) {
+                helperClassManager.<StartAsyncAdviceHelper<AsyncContext>>getHelperClass(asyncContext.getClass().getClassLoader(), StartAsyncAdviceHelper.class)
+                    .onExitStartAsync(asyncContext);
             }
         }
-
     }
 
 }

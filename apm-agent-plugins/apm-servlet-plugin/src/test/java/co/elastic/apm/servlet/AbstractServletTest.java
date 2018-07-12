@@ -20,7 +20,6 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.MockReporter;
-import co.elastic.apm.bci.ElasticApmAgent;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
@@ -35,15 +34,18 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public abstract class AbstractServletTest {
+    protected static final MockReporter reporter = new MockReporter();
     @Nullable
     private static Server server;
-    protected final MockReporter reporter = new MockReporter();
     protected OkHttpClient httpClient;
 
     @AfterAll
     static void stopServer() throws Exception {
         server.stop();
+        server = null;
     }
 
     @BeforeEach
@@ -56,6 +58,7 @@ public abstract class AbstractServletTest {
             server.setHandler(handler);
             server.start();
         }
+        assertThat(getPort()).isPositive();
 
         httpClient = new OkHttpClient.Builder()
             // set to 0 for debugging
@@ -74,7 +77,7 @@ public abstract class AbstractServletTest {
 
     @AfterEach
     final void tearDown() {
-        ElasticApmAgent.reset();
+        reporter.reset();
     }
 
     protected int getPort() {

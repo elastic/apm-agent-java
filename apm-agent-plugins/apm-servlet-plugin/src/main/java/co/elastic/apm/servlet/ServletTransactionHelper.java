@@ -57,7 +57,8 @@ public class ServletTransactionHelper {
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
 
-    ServletTransactionHelper(ElasticApmTracer tracer) {
+    @VisibleForAdvice
+    public ServletTransactionHelper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);

@@ -40,6 +40,9 @@ public abstract class ElasticApmInstrumentation {
     @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
+    @Nullable
+    @VisibleForAdvice
+    public static HelperClassManager helperClassManager;
 
     /**
      * Initializes the advice with the {@link ElasticApmTracer}
@@ -50,8 +53,19 @@ public abstract class ElasticApmInstrumentation {
      *
      * @param tracer the tracer to use for this advice.
      */
+    static void staticInit(ElasticApmTracer tracer) {
+        // allow re-init with a different tracer
+        if (tracer != ElasticApmInstrumentation.tracer) {
+            synchronized (ElasticApmInstrumentation.class) {
+                if (tracer != ElasticApmInstrumentation.tracer) {
+                    ElasticApmInstrumentation.tracer = tracer;
+                    helperClassManager = new HelperClassManager(tracer);
+                }
+            }
+        }
+    }
+
     public void init(ElasticApmTracer tracer) {
-        ElasticApmInstrumentation.tracer = tracer;
     }
 
     /**
@@ -95,6 +109,7 @@ public abstract class ElasticApmInstrumentation {
      * This name is used in {@link co.elastic.apm.configuration.CoreConfiguration#disabledInstrumentations} to exclude a logical group
      * of instrumentations.
      * </p>
+     *
      * @return a name which groups several instrumentations into a logical group
      */
     public abstract String getInstrumentationGroupName();

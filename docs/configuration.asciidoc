@@ -228,7 +228,7 @@ you should add an additional entry to this list (make sure to also include the d
 [[config-disabled-instrumentations]]
 ==== `disabled_instrumentations`
 
-A list of instrumentations which should be disabled. Valid options are `jdbc`, `servlet-api` and `spring-mvc`.
+A list of instrumentations which should be disabled. Valid options are `jdbc`, `servlet-api`, `servlet-api-async` and `spring-mvc`.
 
 
 [options="header"]

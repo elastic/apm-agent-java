@@ -140,11 +140,21 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(responseBody).isNotNull();
             assertThat(responseBody.string()).contains("Hello World");
 
-            final List<JsonNode> reportedTransactions = getReportedTransactions();
-            assertThat(reportedTransactions.size()).isEqualTo(1);
+            final List<JsonNode> reportedTransactions = assertOneTransactionReported(500);
             assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
                 .isEqualTo(contextPath + pathToTest);
         }
+    }
+
+    @Nonnull
+    private List<JsonNode> assertOneTransactionReported(int timeoutMs) throws IOException {
+        long start = System.currentTimeMillis();
+        List<JsonNode> reportedTransactions;
+        do {
+            reportedTransactions = getReportedTransactions();
+        } while (reportedTransactions.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        assertThat(reportedTransactions.size()).isEqualTo(1);
+        return reportedTransactions;
     }
 
     @Nonnull

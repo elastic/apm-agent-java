@@ -45,8 +45,6 @@ import java.util.Enumeration;
  */
 public class ServletApiAdvice {
 
-    @VisibleForAdvice
-    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
@@ -76,8 +74,6 @@ public class ServletApiAdvice {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 request.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
                 return null;
-            } else {
-                request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && request.getCookies() != null) {

@@ -25,7 +25,8 @@ import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.context.Context;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.AsyncContext;
@@ -41,6 +42,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class AsyncServletTest extends AbstractServletTest {
 
+    @BeforeAll
+    static void setUp() {
+        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .reporter(reporter)
+            .build(), ByteBuddyAgent.install());
+    }
+
+    @AfterAll
+    static void afterAll() {
+        ElasticApmAgent.reset();
+    }
+
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
         handler.addServlet(PlainServlet.class, "/plain").setAsyncSupported(true);
@@ -51,14 +65,6 @@ public class AsyncServletTest extends AbstractServletTest {
         handler.addServlet(AsyncErrorServlet.class, "/async-error").setAsyncSupported(true);
         handler.addServlet(ErrorServlet.class, "/error").setAsyncSupported(true);
         handler.addServlet(AsyncTimeoutServlet.class, "/async-timeout").setAsyncSupported(true);
-    }
-
-    @BeforeEach
-    void setUp() {
-        ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(reporter)
-            .build(), ByteBuddyAgent.install());
     }
 
     @Test

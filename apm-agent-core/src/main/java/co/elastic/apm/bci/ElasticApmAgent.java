@@ -90,6 +90,7 @@ public class ElasticApmAgent {
             logger.warn("Instrumentation has already been initialized");
             return;
         }
+        ElasticApmInstrumentation.staticInit(tracer);
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))

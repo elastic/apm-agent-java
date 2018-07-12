@@ -29,6 +29,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.DispatcherType;
@@ -49,6 +50,11 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ServletInstrumentationTest extends AbstractServletTest {
+
+    @AfterEach
+    final void afterEach() {
+        ElasticApmAgent.reset();
+    }
 
     @Override
     protected void setUpHandler(ServletContextHandler handler) {

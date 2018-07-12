@@ -17,10 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.servlet.helper;
 
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.servlet.ServletTransactionHelper;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -29,7 +30,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class ApmAsyncListener implements AsyncListener {
+    private final ServletTransactionHelper servletTransactionHelper;
+    private final Transaction transaction;
     private volatile boolean completed = false;
+
+    ApmAsyncListener(ServletTransactionHelper servletTransactionHelper, Transaction transaction) {
+        this.servletTransactionHelper = servletTransactionHelper;
+        this.transaction = transaction;
+    }
 
     @Override
     public void onComplete(AsyncEvent event) {
@@ -72,18 +80,14 @@ public class ApmAsyncListener implements AsyncListener {
     // because only the onExitServletService method may contain references to the servlet API
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
-        final ServletTransactionHelper servletTransactionHelper = AsyncInstrumentation.StartAsyncAdvice.servletTransactionHelper;
-        if (servletTransactionHelper != null) {
-            HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
-            HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
-            Transaction transaction = (Transaction) request.getAttribute(ServletApiAdvice.TRANSACTION_ATTRIBUTE);
-            final Response resp = transaction.getContext().getResponse();
-            for (String headerName : response.getHeaderNames()) {
-                resp.addHeader(headerName, response.getHeader(headerName));
-            }
-
-            servletTransactionHelper.onAfter(transaction, event.getThrowable(),
-                response.isCommitted(), response.getStatus(), request.getMethod(), request.getParameterMap());
+        HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
+        HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
+        final Response resp = transaction.getContext().getResponse();
+        for (String headerName : response.getHeaderNames()) {
+            resp.addHeader(headerName, response.getHeader(headerName));
         }
+
+        servletTransactionHelper.onAfter(transaction, event.getThrowable(),
+            response.isCommitted(), response.getStatus(), request.getMethod(), request.getParameterMap());
     }
 }

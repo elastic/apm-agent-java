@@ -21,7 +21,6 @@ package co.elastic.apm.spring.webmvc;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,11 +52,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * </p>
  */
 public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        HandlerAdapterAdvice.tracer = tracer;
-    }
 
     /**
      * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
@@ -93,9 +87,6 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
 
     @VisibleForAdvice
     public static class HandlerAdapterAdvice {
-        @Nullable
-        @VisibleForAdvice
-        public static ElasticApmTracer tracer;
 
         @Advice.OnMethodEnter
         static void setTransactionName(@Advice.Argument(2) Object handler) {

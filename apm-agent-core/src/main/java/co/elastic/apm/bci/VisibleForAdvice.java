@@ -36,6 +36,6 @@ import java.lang.annotation.Target;
  * </p>
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface VisibleForAdvice {
 }

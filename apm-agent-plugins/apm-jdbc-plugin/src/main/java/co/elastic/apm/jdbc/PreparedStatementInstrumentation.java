@@ -44,8 +44,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class PreparedStatementInstrumentation extends ElasticApmInstrumentation {
 
     @Nullable
-    private static ElasticApmTracer tracer;
-    @Nullable
     private static JdbcHelper jdbcEventListener;
 
     // not inlining as we can then set breakpoints into this method
@@ -73,7 +71,6 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        PreparedStatementInstrumentation.tracer = tracer;
         PreparedStatementInstrumentation.jdbcEventListener = new JdbcHelper(tracer);
     }
 
