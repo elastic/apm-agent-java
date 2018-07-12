@@ -6,7 +6,7 @@ endif::[]
 [[opentracing-bridge]]
 == Elastic APM OpenTracing bridge
 
-The Elastic APM OpenTracing bridge makes allows to create Elastic APM `Transactions` and `Spans`,
+The Elastic APM OpenTracing bridge allows to create Elastic APM `Transactions` and `Spans`,
 using the OpenTracing API.
 In other words,
 it translates the calls to the OpenTracing API to Elastic APM and thus allows for reusing existing instrumentation.
