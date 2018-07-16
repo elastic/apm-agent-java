@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +31,12 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testCreateTransaction() {
         assertThat(ElasticApm.startTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
         assertThat(ElasticApm.currentTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
+    }
+
+    @Test
+    void testCreateAsyncTransaction() {
+        assertThat(ElasticApm.startAsyncTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
+        assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
     }
 
     @Test

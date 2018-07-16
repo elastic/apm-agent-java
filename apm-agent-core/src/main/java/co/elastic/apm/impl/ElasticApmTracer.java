@@ -86,7 +86,7 @@ public class ElasticApmTracer {
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
-                    return new Transaction(coreConfiguration);
+                    return new Transaction();
                 }
             });
         spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -125,6 +125,10 @@ public class ElasticApmTracer {
         return startTransaction(null);
     }
 
+    public Transaction startAsyncTransaction() {
+        return startManualTransaction(null, sampler, System.nanoTime());
+    }
+
     public Transaction startTransaction(@Nullable String traceContextHeader) {
         Transaction transaction = startManualTransaction(traceContextHeader, sampler, System.nanoTime());
         activate(transaction);
@@ -154,6 +158,7 @@ public class ElasticApmTracer {
 
     public void activate(Transaction transaction) {
         currentTransaction.set(transaction);
+        transaction.setAsync(false);
     }
 
     @Nullable
@@ -205,14 +210,16 @@ public class ElasticApmTracer {
     }
     
     private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
-        return transaction.createSpan();
+        Span result = transaction.createSpan(parentSpan, nanoTime);
+        activate(result);
+        return result;
     }
 
-    public void captureException(@Nullable Exception e) {
+    public void captureException(@Nullable Throwable e) {
         captureException(System.currentTimeMillis(), e);
     }
 
-    public void captureException(long epochTimestampMillis, @Nullable Exception e) {
+    public void captureException(long epochTimestampMillis, @Nullable Throwable e) {
         if (e != null) {
             ErrorCapture error = new ErrorCapture();
             error.withTimestamp(epochTimestampMillis);

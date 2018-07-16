@@ -66,7 +66,7 @@ public class ElasticApm {
      * }
      * </pre>
      *
-     * @return the started transaction
+     * @return the started transaction.  
      */
     @Nonnull
     public static Transaction startTransaction() {
@@ -76,6 +76,22 @@ public class ElasticApm {
 
     private static Object doStartTransaction() {
         // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartTransaction
+        return null;
+    }
+    
+    
+    /**
+     * The same as {@link ElasticApm#startTransaction()} but doesn't bind created transaction to the current thread
+     * @return the started transaction.  
+     */
+    @Nonnull
+    public static Transaction startAsyncTransaction() {
+        Object transaction = doStartAsyncTransaction();
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
+    }
+    
+    private static Object doStartAsyncTransaction() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartAsyncTransaction
         return null;
     }
 
@@ -158,7 +174,7 @@ public class ElasticApm {
      *
      * @param e the exception to record
      */
-    public static void captureException(@Nullable Exception e) {
+    public static void captureException(@Nullable Throwable e) {
         // co.elastic.apm.api.ElasticApmInstrumentation.CaptureExceptionInstrumentation.captureException
     }
 

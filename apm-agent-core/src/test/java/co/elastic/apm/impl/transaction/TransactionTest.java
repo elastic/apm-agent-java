@@ -31,9 +31,9 @@ class TransactionTest {
 
     @Test
     void resetState() {
-        final Transaction transaction = new Transaction(null);
+        final Transaction transaction = new Transaction();
         TransactionUtils.fillTransaction(transaction);
         transaction.resetState();
-        assertThat(toJson(transaction)).isEqualTo(toJson(new Transaction(null)));
+        assertThat(toJson(transaction)).isEqualTo(toJson(new Transaction()));
     }
 }

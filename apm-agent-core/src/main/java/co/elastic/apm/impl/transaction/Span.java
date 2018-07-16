@@ -63,15 +63,15 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      */
     @Nullable
     private volatile String type;
+    private volatile boolean async;
     
-    private volatile Span parentSpan;
-
     @Nullable
     private volatile Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.tracer = tracer;
         this.transaction = transaction;
+        this.async = false;
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
@@ -87,7 +87,6 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
             duration = nanoTime;
             timestamp = System.currentTimeMillis();
         }
-        this.parentSpan = parentSpan;
         return this;
     }
     
@@ -142,6 +141,18 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
     public String getType() {
         return type;
     }
+    
+    /**
+     * Create child span
+     * @return new child span
+     */
+    @Nullable
+    public Span createSpan() {
+        if (transaction != null) {
+            return transaction.createSpan(this, System.nanoTime());
+        }
+        return null;
+    }
 
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
@@ -152,11 +163,10 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
     }
 
     public void end() {
-        end(System.nanoTime(), true);
+        end(System.nanoTime(), !async);
     }
 
     public void end(long nanoTime, boolean releaseActiveSpan) {
-        this.transaction.setCurrentSpan(this.parentSpan);
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
@@ -164,7 +174,7 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
             this.tracer.endSpan(this, releaseActiveSpan);
         }
     }
-
+    
     @Override
     public void close() {
         end();
@@ -201,6 +211,10 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         if (tracer != null) {
             tracer.recycle(this);
         }
+    }
+    
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 
     @Override

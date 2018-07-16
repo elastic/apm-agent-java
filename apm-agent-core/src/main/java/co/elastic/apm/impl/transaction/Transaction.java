@@ -44,7 +44,8 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
      * This counter helps to assign the spans with sequential IDs
      */
     private final AtomicInteger spanIdCounter = new AtomicInteger();
-    private final CoreConfiguration coreConfiguration;
+    private volatile int maxSpans;
+    private volatile boolean async;
 
     /**
      * Context
@@ -58,10 +59,6 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
      */
     private final Map<String, Object> marks = new ConcurrentHashMap<>();
     private final SpanCount spanCount = new SpanCount();
-    /**
-     * Current span created for this transaction or null if there is no span at the moment. If there are nested spans this should contain the deepest.
-     */
-    private volatile Span currentSpan;
     /**
      * UUID for the transaction, referred by its spans
      * (Required)
@@ -85,12 +82,12 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
      */
     private boolean noop;
     
-    public Transaction(CoreConfiguration coreConfiguration) {
-        this.coreConfiguration = coreConfiguration;
-    }
-
     public Transaction start(ElasticApmTracer tracer, @Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
         this.tracer = tracer;
+        this.async = false;
+        if (tracer != null && tracer.getConfig(CoreConfiguration.class) != null) {
+            maxSpans = tracer.getConfig(CoreConfiguration.class).getTransactionMaxSpans();
+        }
         if (traceParentHeader != null) {
             traceContext.asChildOf(traceParentHeader);
         } else {
@@ -106,6 +103,7 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
 
     public Transaction startNoop(ElasticApmTracer tracer) {
         this.name.append("noop");
+        this.async = false;
         this.tracer = tracer;
         this.noop = true;
         return this;
@@ -218,15 +216,28 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
     }
 
     public void end() {
-        end(System.nanoTime(), true);
+        end(System.nanoTime(), !async);
+    }
+    
+    public void setAsync(boolean async) {
+        this.async = async;
     }
     
     /**
      * Creates span bound to the transaction
      */
     public Span createSpan() {
-        Span span;
-        span = tracer.createSpan();
+        return createSpan(null, System.nanoTime());
+    }
+    
+    /**
+     * Creates span bound to the transaction
+     */
+    public Span createSpan(@Nullable Span parentSpan, long nanoTime) {
+        if (tracer == null) {
+            return null;
+        }
+        Span span = tracer.createSpan();
         final boolean dropped;
         if (isTransactionSpanLimitReached()) {
             // TODO only drop leaf spans
@@ -236,20 +247,15 @@ public class Transaction extends AbstractSpan implements AutoCloseable {
             dropped = false;
         }
         spanCount.increment();
-        span.start(tracer, this, currentSpan, System.nanoTime(), dropped);
-        currentSpan = span;
-        tracer.activate(span);
+        span.start(tracer, this, parentSpan, nanoTime, dropped);
+        span.setAsync(async);
         return span;
     }
     
     private boolean isTransactionSpanLimitReached() {
-        return coreConfiguration.getTransactionMaxSpans() <= spanCount.getTotal();
+        return maxSpans <= spanCount.getTotal();
     }
     
-    public void setCurrentSpan(Span currentSpan) {
-        this.currentSpan = currentSpan;
-    }
-
     public void end(long nanoTime, boolean releaseActiveTransaction) {
         this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
         if (!isSampled()) {

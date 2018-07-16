@@ -47,6 +47,17 @@ class SpanImpl implements Span {
     }
 
     @Override
+    public Span createSpan() {
+        Object span = doCreateSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+    
+    private Object doCreateSpan() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        return null;
+    }
+    
+    @Override
     public void end() {
         // co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation.end
     }
