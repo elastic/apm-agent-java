@@ -105,6 +105,8 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final GenericContainer servletContainer;
     private final int webPort;
     private final String contextPath;
+    @Nullable
+    private final GenericContainer<?> debugProxy;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer) {
         this(servletContainer, 8080, "");
@@ -114,7 +116,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
-        startDebugProxy(servletContainer, 5005);
+        this.debugProxy = createDebugProxy(servletContainer, 5005);
+        if (debugProxy != null) {
+            this.debugProxy.start();
+        }
         this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
                 .forPort(webPort)
                 // set to a higher value for debugging
@@ -124,15 +129,17 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     // makes sure the debugging port is always 5005
     // if the port is not available, the test can still run
-    private void startDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
+    @Nullable
+    private GenericContainer<?> createDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
         try {
-            new SocatContainer() {{
+            return new SocatContainer() {{
                 addFixedExposedPort(debugPort, debugPort);
             }}
                 .withNetwork(Network.SHARED)
-                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0)).start();
+                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0));
         } catch (Exception e) {
             logger.warn("Starting debug proxy failed");
+            return null;
         }
     }
 
@@ -158,6 +165,9 @@ public abstract class AbstractServletContainerIntegrationTest {
     @After
     public final void stopServer() {
         servletContainer.stop();
+        if (debugProxy != null) {
+            debugProxy.stop();
+        }
     }
 
     private void validateJsonSchema(JsonNode payload) {
