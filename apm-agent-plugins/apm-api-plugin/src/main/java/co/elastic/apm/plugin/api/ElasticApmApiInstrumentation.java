@@ -21,6 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -75,6 +76,20 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
             }
         }
     }
+    
+    public static class StartAsyncTransactionInstrumentation extends ElasticApmApiInstrumentation {
+        public StartAsyncTransactionInstrumentation() {
+            super(named("doStartAsyncTransaction"));
+        }
+        
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        private static void doStartAsyncTransaction(@Advice.Return(readOnly = false) Object transaction) {
+            if (tracer != null) {
+                transaction = tracer.startAsyncTransaction();
+            }
+        }
+    }
 
     public static class CurrentTransactionInstrumentation extends ElasticApmApiInstrumentation {
         public CurrentTransactionInstrumentation() {
@@ -125,7 +140,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        private static void captureException(@Advice.Argument(0) @Nullable Exception e) {
+        private static void captureException(@Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
                 tracer.captureException(e);
             }

@@ -41,7 +41,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processTransactions() {
-        Transaction transaction = new Transaction(null);
+        Transaction transaction = new Transaction();
         fillContext(transaction.getContext());
 
         processor.processBeforeReport(transaction);

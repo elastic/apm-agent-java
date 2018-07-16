@@ -44,7 +44,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 class ApmServerReporterIntegrationTest {
@@ -98,7 +98,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction(null));
+        reporter.report(new Transaction());
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -112,7 +112,7 @@ class ApmServerReporterIntegrationTest {
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction(null));
+        reporter.report(new Transaction());
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

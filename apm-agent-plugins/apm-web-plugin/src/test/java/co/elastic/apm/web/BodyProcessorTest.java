@@ -116,7 +116,7 @@ class BodyProcessorTest {
     }
 
     private Transaction processTransaction() {
-        final Transaction transaction = new Transaction(null);
+        final Transaction transaction = new Transaction();
         transaction.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;

@@ -100,7 +100,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()), coreConfiguration);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
-            Transaction t = new Transaction(coreConfiguration);
+            Transaction t = new Transaction();
             fillTransaction(t);
             payload.getTransactions().add(t);
         }

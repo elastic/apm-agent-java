@@ -59,7 +59,7 @@ class ApmServerReporterTest {
     @Test
     void testTransactionProcessor() throws ExecutionException, InterruptedException {
         final int transactionCount = TestProcessor.getTransactionCount();
-        reporter.report(new Transaction(null));
+        reporter.report(new Transaction());
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);

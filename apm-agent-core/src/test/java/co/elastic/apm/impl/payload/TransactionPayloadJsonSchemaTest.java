@@ -65,7 +65,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private Transaction createTransactionWithRequiredValues() {
-        Transaction t = new Transaction(null);
+        Transaction t = new Transaction();
         t.start(mock(ElasticApmTracer.class), null, 0, ConstantSampler.of(true));
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
@@ -79,7 +79,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayloadWithAllValues() {
-        final Transaction transaction = new Transaction(null);
+        final Transaction transaction = new Transaction();
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
@@ -98,7 +98,7 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(new Transaction(null));
+        payload.getTransactions().add(new Transaction());
         final String content = new DslJsonSerializer(coreConfiguration).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);

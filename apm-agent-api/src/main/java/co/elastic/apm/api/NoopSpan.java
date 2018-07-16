@@ -37,4 +37,8 @@ enum NoopSpan implements Span {
         // noop
     }
 
+    @Override
+    public Span createSpan() {
+        return INSTANCE;
+    }
 }

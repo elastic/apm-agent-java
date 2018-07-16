@@ -89,6 +89,21 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
             span.setType(type);
         }
     }
+    
+    public static class DoCreateSpanInstrumentation extends SpanInstrumentation {
+        public DoCreateSpanInstrumentation() {
+            super(named("doCreateSpan"));
+        }
+        
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
+                @Advice.Return(readOnly = false) Object result) {
+            if (span != null) {
+                result = span.createSpan();
+            }
+        }
+    }
 
     public static class EndInstrumentation extends SpanInstrumentation {
         public EndInstrumentation() {
