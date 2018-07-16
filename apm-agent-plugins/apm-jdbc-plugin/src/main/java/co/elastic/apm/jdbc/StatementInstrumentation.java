@@ -20,6 +20,7 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
@@ -48,16 +49,16 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class StatementInstrumentation extends ElasticApmInstrumentation {
 
-    // not inlining as we can then set breakpoints into this method
-    // also, we don't have class loader issues when doing so
-    // another benefit of not inlining is that the advice methods are included in coverage reports
+    @Nullable
+    @VisibleForAdvice
+    public static HelperClassManager<JdbcHelper> jdbcHelper;
+
     @Nullable
     @VisibleForAdvice
     @Advice.OnMethodEnter
     public static Span onBeforeExecute(@Advice.This Statement statement, @Advice.Argument(0) String sql) throws SQLException {
-        if (tracer != null && helperClassManager != null) {
-            return helperClassManager.getHelperClass(Statement.class.getClassLoader(), JdbcHelper.class)
-                .createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+        if (tracer != null && jdbcHelper != null) {
+            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
         }
         return null;
     }
@@ -73,10 +74,8 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        if (helperClassManager != null) {
-            helperClassManager.registerHelperClasses(JdbcHelper.class, "co.elastic.apm.jdbc.helper.JdbcHelperImpl",
-                "co.elastic.apm.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
-        }
+        jdbcHelper = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
     @Override

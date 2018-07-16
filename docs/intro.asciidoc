@@ -161,4 +161,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Undertow Servlet
 |1.4
 
+|Payara
+|4.x, 5.x
+
 |===

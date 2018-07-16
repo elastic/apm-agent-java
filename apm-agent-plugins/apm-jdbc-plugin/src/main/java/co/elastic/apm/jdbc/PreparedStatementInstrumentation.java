@@ -20,7 +20,9 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
@@ -45,6 +47,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class PreparedStatementInstrumentation extends ElasticApmInstrumentation {
 
+    @Nullable
+    @VisibleForAdvice
+    public static HelperClassManager<JdbcHelper> jdbcHelper;
 
     // not inlining as we can then set breakpoints into this method
     // also, we don't have class loader issues when doing so
@@ -53,10 +58,9 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @VisibleForAdvice
     @Advice.OnMethodEnter
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
-        if (tracer != null && helperClassManager != null) {
+        if (tracer != null && jdbcHelper != null) {
             final String sql = ConnectionInstrumentation.getSqlForStatement(statement);
-            return helperClassManager.getHelperClass(Statement.class.getClassLoader(), JdbcHelper.class)
-                .createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
         }
         return null;
     }
@@ -67,6 +71,12 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
         if (span != null) {
             span.deactivate().end();
         }
+    }
+
+    @Override
+    public void init(ElasticApmTracer tracer) {
+        jdbcHelper = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
     @Override

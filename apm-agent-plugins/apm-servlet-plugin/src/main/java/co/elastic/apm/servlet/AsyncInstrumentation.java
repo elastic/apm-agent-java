@@ -20,6 +20,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.asm.Advice;
@@ -27,6 +28,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -47,14 +49,23 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@code javax.servlet}, as these are inlined into the matching methods.
  * The agent itself does not have access to the Servlet API classes, as they are loaded by a child class loader.
  * See https://github.com/raphw/byte-buddy/issues/465 for more information.
+ * However, the helper class {@link StartAsyncAdviceHelper} has access to the Servlet API,
+ * as it is loaded by the child classloader of {@link AsyncContext}
+ * (see {@link StartAsyncAdvice#onExitStartAsync(AsyncContext)}).
  */
 public class AsyncInstrumentation extends ElasticApmInstrumentation {
 
-    public static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
+    private static final String SERVLET_API_ASYNC_GROUP_NAME = "servlet-api-async";
+    @Nullable
+    @VisibleForAdvice
+    // referring to AsyncContext is legal because of type erasure
+    public static HelperClassManager<StartAsyncAdviceHelper<AsyncContext>> asyncHelper;
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        helperClassManager.registerHelperClasses(StartAsyncAdviceHelper.class, "co.elastic.apm.servlet.helper.StartAsyncAdviceHelperImpl", "co.elastic.apm.servlet.helper.ApmAsyncListener");
+        asyncHelper = HelperClassManager.ForSingleClassLoader.of(tracer,
+            "co.elastic.apm.servlet.helper.StartAsyncAdviceHelperImpl",
+            "co.elastic.apm.servlet.helper.ApmAsyncListener");
     }
 
     @Override
@@ -105,9 +116,8 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodExit
         private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
-            if (helperClassManager != null) {
-                helperClassManager.<StartAsyncAdviceHelper<AsyncContext>>getHelperClass(asyncContext.getClass().getClassLoader(), StartAsyncAdviceHelper.class)
-                    .onExitStartAsync(asyncContext);
+            if (asyncHelper != null) {
+                asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
             }
         }
     }

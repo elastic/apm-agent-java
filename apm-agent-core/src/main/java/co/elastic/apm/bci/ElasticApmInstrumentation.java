@@ -40,9 +40,6 @@ public abstract class ElasticApmInstrumentation {
     @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
-    @Nullable
-    @VisibleForAdvice
-    public static HelperClassManager helperClassManager;
 
     /**
      * Initializes the advice with the {@link ElasticApmTracer}
@@ -59,7 +56,6 @@ public abstract class ElasticApmInstrumentation {
             synchronized (ElasticApmInstrumentation.class) {
                 if (tracer != ElasticApmInstrumentation.tracer) {
                     ElasticApmInstrumentation.tracer = tracer;
-                    helperClassManager = new HelperClassManager(tracer);
                 }
             }
         }
