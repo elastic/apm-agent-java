@@ -19,15 +19,41 @@
  */
 package co.elastic.webapp;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class TestServlet extends HttpServlet {
 
+    private final Connection connection;
+
+    public TestServlet() throws Exception {
+        // registers the driver in the DriverManager
+        Class.forName("org.h2.Driver");
+        connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
+        final Statement connectionStatement = connection.createStatement();
+        connectionStatement.execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
+        connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'Hello World!')");
+    }
+
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.getWriter().append("Hello World!");
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ELASTIC_APM WHERE FOO=$1");
+            preparedStatement.setInt(1, 1);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            resultSet.next();
+            resp.getWriter().append(resultSet.getString("bar"));
+        } catch (SQLException e) {
+            throw new ServletException(e);
+        }
     }
 }

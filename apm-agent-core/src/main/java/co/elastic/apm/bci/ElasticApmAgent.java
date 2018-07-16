@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.instrument.Instrumentation;
-import java.net.URISyntaxException;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.ServiceLoader;
@@ -57,25 +56,17 @@ public class ElasticApmAgent {
     private static Instrumentation instrumentation;
     @Nullable
     private static ResettableClassFileTransformer resettableClassFileTransformer;
+    @Nullable
+    private static File agentJarFile;
 
     /**
-     * Allows the installation of this agent via the {@code javaagent} command line argument.
+     * Called reflectively by {@link AgentMain} to initialize the agent
      *
-     * @param agentArguments  The unused agent arguments.
-     * @param instrumentation The instrumentation instance.
+     * @param instrumentation the instrumentation instance
+     * @param agentJarFile    a reference to the agent jar on the file system
      */
-    public static void premain(String agentArguments, Instrumentation instrumentation) {
-        initInstrumentation(new ElasticApmTracerBuilder().build(), instrumentation);
-    }
-
-    /**
-     * Allows the installation of this agent via the Attach API.
-     *
-     * @param agentArguments  The unused agent arguments.
-     * @param instrumentation The instrumentation instance.
-     */
-    @SuppressWarnings("unused")
-    public static void agentmain(String agentArguments, Instrumentation instrumentation) {
+    public static void initialize(Instrumentation instrumentation, File agentJarFile) {
+        ElasticApmAgent.agentJarFile = agentJarFile;
         initInstrumentation(new ElasticApmTracerBuilder().build(), instrumentation);
     }
 
@@ -140,6 +131,9 @@ public class ElasticApmAgent {
                     if (typeMatches) {
                         logger.debug("Type match for advice {}: {} matches {}",
                             advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
+                        if (logger.isTraceEnabled()) {
+                            logClassLoaderHierarchy(classLoader, logger, advice);
+                        }
                     }
                     return typeMatches;
                 }
@@ -159,6 +153,23 @@ public class ElasticApmAgent {
                 .include(advice.getAdviceClass().getClassLoader())
                 .withExceptionHandler(PRINTING))
             .asDecorator();
+    }
+
+    // may help to debug classloading problems
+    private static void logClassLoaderHierarchy(@Nullable ClassLoader classLoader, Logger logger, ElasticApmInstrumentation advice) {
+        logger.trace("Advice {} is loaded by {}", advice.getClass().getName(), advice.getClass().getClassLoader());
+        if (classLoader != null) {
+            boolean canLoadAgent = false;
+            try {
+                classLoader.loadClass(advice.getClass().getName());
+                canLoadAgent = true;
+            } catch (ClassNotFoundException ignore) {
+            }
+            logger.trace("{} can load advice ({}): {}", classLoader, advice.getClass().getName(), canLoadAgent);
+            logClassLoaderHierarchy(classLoader.getParent(), logger, advice);
+        } else {
+            logger.trace("bootstrap classloader");
+        }
     }
 
     /**
@@ -201,20 +212,11 @@ public class ElasticApmAgent {
      * like in unit tests,
      * this method returns {@code null}.
      * </p>
+     *
      * @return the directory the agent jar resides in
      */
     @Nullable
     public static String getAgentHome() {
-        try {
-            final File agentJar = new File(ElasticApmAgent.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            if (!agentJar.getName().endsWith(".jar")) {
-                // we are probably executing a unit test
-                return null;
-            }
-            return agentJar.getAbsoluteFile().getParent();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return agentJarFile == null ? null : agentJarFile.getParent();
     }
 }

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.jdbc.helper;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.AbstractSpan;
@@ -33,54 +33,15 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-public class JdbcHelper {
+public class JdbcHelperImpl implements JdbcHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
     private static final Map<Connection, ConnectionMetaData> metaDataMap =
         Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
-    private final ElasticApmTracer elasticApmTracer;
 
-
-    public JdbcHelper(ElasticApmTracer elasticApmTracer) {
-        this.elasticApmTracer = elasticApmTracer;
-    }
-
+    @Override
     @Nullable
-    static String getMethod(@Nullable String sql) {
-        if (sql == null) {
-            return null;
-        }
-        // don't allocate objects for the common case
-        if (sql.startsWith("SELECT") || sql.startsWith("select")) {
-            return "SELECT";
-        }
-        sql = sql.trim();
-        final int indexOfWhitespace = sql.indexOf(' ');
-        if (indexOfWhitespace > 0) {
-            return sql.substring(0, indexOfWhitespace).toUpperCase();
-        } else {
-            // for example COMMIT
-            return sql.toUpperCase();
-        }
-    }
-
-    /*
-     * This makes sure that even when there are wrappers for the statement,
-     * we only record each JDBC call once.
-     */
-    private static boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
-        }
-        Span parentSpan = (Span) parent;
-        // a db span can't be the child of another db span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().startsWith("db.");
-    }
-
-
-    @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
+    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
         if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;
         }
@@ -104,6 +65,40 @@ public class JdbcHelper {
         return span;
     }
 
+    @Nullable
+    private String getMethod(@Nullable String sql) {
+        if (sql == null) {
+            return null;
+        }
+        // don't allocate objects for the common case
+        if (sql.startsWith("SELECT") || sql.startsWith("select")) {
+            return "SELECT";
+        }
+        sql = sql.trim();
+        final int indexOfWhitespace = sql.indexOf(' ');
+        if (indexOfWhitespace > 0) {
+            return sql.substring(0, indexOfWhitespace).toUpperCase();
+        } else {
+            // for example COMMIT
+            return sql.toUpperCase();
+        }
+    }
+
+    /*
+     * This makes sure that even when there are wrappers for the statement,
+     * we only record each JDBC call once.
+     */
+    private boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
+        if (!(parent instanceof Span)) {
+            return false;
+        }
+        Span parentSpan = (Span) parent;
+        // a db span can't be the child of another db span
+        // this means the span has already been created for this db call
+        return parentSpan.getType() != null && parentSpan.getType().startsWith("db.");
+    }
+
+
     private ConnectionMetaData getConnectionMetaData(Connection connection) throws SQLException {
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
         if (connectionMetaData == null) {
@@ -116,7 +111,7 @@ public class JdbcHelper {
 
     }
 
-    String getDbVendor(String url) {
+    private String getDbVendor(String url) {
         // jdbc:h2:mem:test
         //     ^
         int indexOfJdbc = url.indexOf("jdbc:") + 5;

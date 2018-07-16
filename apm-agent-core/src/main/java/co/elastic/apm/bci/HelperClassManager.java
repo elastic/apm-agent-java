@@ -23,6 +23,8 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,14 +32,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 // TODO docs (see co/elastic/apm/servlet/helper/package-info.java)
 public class HelperClassManager {
 
+    public static final String BOOTSTRAP_CLASSLOADER = "_BOOTSTRAP_CLASSLOADER_";
     private final ElasticApmTracer tracer;
-    private final Map<Class<?>, List<String>> helperClassDefinitions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Class<?>, List<String>> helperClassDefinitions = new ConcurrentHashMap<>();
     // TODO use weak maps to prevent class loader leaks
-    private final ConcurrentHashMap<ClassLoader, Map<Class<?>, Object>> helperClassCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Object, Map<Class<?>, Object>> helperClassCache = new ConcurrentHashMap<>();
 
     HelperClassManager(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -47,14 +51,14 @@ public class HelperClassManager {
         final ArrayList<String> helperClassNames = new ArrayList<>(additionalHelpers.length + 1);
         helperClassNames.add(implementation);
         helperClassNames.addAll(Arrays.asList(additionalHelpers));
-        helperClassDefinitions.put(helperInterface, helperClassNames);
+        helperClassDefinitions.putIfAbsent(helperInterface, helperClassNames);
     }
 
-    public <T extends AdviceHelper> T getHelperClass(ClassLoader targetClassLoader, Class<? super T> helperInterface) {
-        if (!helperClassCache.containsKey(targetClassLoader)) {
-            helperClassCache.putIfAbsent(targetClassLoader, new ConcurrentHashMap<Class<?>, Object>());
+    public <T> T getHelperClass(@Nullable ClassLoader targetClassLoader, Class<? super T> helperInterface) {
+        if (!helperClassCache.containsKey(maskNull(targetClassLoader))) {
+            helperClassCache.putIfAbsent(maskNull(targetClassLoader), new ConcurrentHashMap<Class<?>, Object>());
         }
-        final Map<Class<?>, Object> helpersForCL = helperClassCache.get(targetClassLoader);
+        final Map<Class<?>, Object> helpersForCL = helperClassCache.get(maskNull(targetClassLoader));
         if (!helpersForCL.containsKey(helperInterface)) {
             synchronized (helperInterface) {
                 final T helper = createHelper(targetClassLoader, helperClassDefinitions.get(helperInterface));
@@ -64,17 +68,38 @@ public class HelperClassManager {
         return (T) helpersForCL.get(helperInterface);
     }
 
-    private <T extends AdviceHelper> T createHelper(ClassLoader targetClassLoader, List<String> helperClasses) {
+    @Nonnull
+    private Object maskNull(@Nullable ClassLoader targetClassLoader) {
+        return targetClassLoader != null ? targetClassLoader : BOOTSTRAP_CLASSLOADER;
+    }
+
+    private <T> T createHelper(@Nullable ClassLoader targetClassLoader, List<String> helperClasses) {
         try {
-            ClassLoader tracersCL = new ByteArrayClassLoader.ChildFirst(targetClassLoader, true, getTypeDefinitions(helperClasses));
-            // the first helper class is the implementation of the interface
-            Class<T> tracerClass = (Class<T>) tracersCL.loadClass(helperClasses.get(0));
-            final T helper = tracerClass.getDeclaredConstructor().newInstance();
-            helper.init(tracer);
-            return helper;
+            Class<T> helperClass;
+            try {
+                helperClass = loadHelperClass(targetClassLoader, helperClasses);
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                // in the unit tests, the agent is not added to the bootstrap class loader
+                helperClass = loadHelperClass(ClassLoader.getSystemClassLoader(), helperClasses);
+            }
+            // the helper class may have a no-arg or a ElasticApmTracer constructor
+            // this is preferable to a init method,
+            // as it allows the tracer instance variable to be non-null
+            try {
+                return helperClass.getDeclaredConstructor(ElasticApmTracer.class).newInstance(tracer);
+            } catch (NoSuchMethodException e) {
+                return helperClass.getDeclaredConstructor().newInstance();
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Class<T> loadHelperClass(@Nullable ClassLoader targetClassLoader, List<String> helperClasses) throws ClassNotFoundException, IOException {
+        final ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(targetClassLoader, true, getTypeDefinitions(helperClasses));
+        // the first helper class is the implementation of the interface
+        return (Class<T>) helperCL.loadClass(helperClasses.get(0));
     }
 
     private Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
@@ -87,7 +112,4 @@ public class HelperClassManager {
         return typeDefinitions;
     }
 
-    public interface AdviceHelper {
-        void init(ElasticApmTracer tracer);
-    }
 }

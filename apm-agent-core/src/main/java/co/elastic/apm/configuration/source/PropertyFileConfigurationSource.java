@@ -53,7 +53,7 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
         if (location == null) {
             return null;
         }
-        Properties props = getFromClasspath(location, org.stagemonitor.configuration.source.PropertyFileConfigurationSource.class.getClassLoader());
+        Properties props = getFromClasspath(location, ClassLoader.getSystemClassLoader());
         if (props == null) {
             props = getFromFileSystem(location);
         }

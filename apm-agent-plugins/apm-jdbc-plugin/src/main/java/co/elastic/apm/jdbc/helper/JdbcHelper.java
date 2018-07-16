@@ -17,12 +17,15 @@
  * limitations under the License.
  * #L%
  */
-/**
- * The JDBC API is not loaded by the bootstrap classloader,
- * that's why the agent can't directly access it,
- * but has to inject a helper class in order to do so.
- */
-@NonnullApi
-package co.elastic.apm.jdbc;
+package co.elastic.apm.jdbc.helper;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.impl.transaction.Span;
+
+import javax.annotation.Nullable;
+import java.sql.Connection;
+
+public interface JdbcHelper {
+    @Nullable
+    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent);
+}

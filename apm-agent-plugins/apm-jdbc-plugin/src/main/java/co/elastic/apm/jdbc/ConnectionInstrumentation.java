@@ -33,11 +33,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isSubTypeOf;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -49,11 +50,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
     static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
-    private static final Map<PreparedStatement, String> statementSqlMap =
-        Collections.synchronizedMap(new WeakHashMap<PreparedStatement, String>());
+    @VisibleForAdvice
+    public static final Map<Object, String> statementSqlMap = Collections.synchronizedMap(new WeakHashMap<Object, String>());
 
     @VisibleForAdvice
-    @Advice.OnMethodExit(inline = false)
+    @Advice.OnMethodExit
     public static void storeSql(@Advice.Return final PreparedStatement statement, @Advice.Argument(0) String sql) {
         statementSqlMap.put(statement, sql);
     }
@@ -67,7 +68,8 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
      * @return the SQL statement belonging to provided {@link PreparedStatement}, or {@code null}
      */
     @Nullable
-    static String getSqlForStatement(PreparedStatement statement) {
+    @VisibleForAdvice
+    public static String getSqlForStatement(Object statement) {
         final String sql = statementSqlMap.get(statement);
         if (sql != null) {
             statementSqlMap.remove(statement);
@@ -78,16 +80,16 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // pre-select candidates for the more expensive isSubTypeOf matcher
+            // pre-select candidates for the more expensive hasSuperType matcher
             .and(nameContains("Connection"))
-            .and(isSubTypeOf(Connection.class));
+            .and(hasSuperType(named("java.sql.Connection")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return nameStartsWith("prepare")
             .and(isPublic())
-            .and(returns(isSubTypeOf(PreparedStatement.class)))
+            .and(returns(hasSuperType(named("java.sql.PreparedStatement"))))
             .and(takesArgument(0, String.class));
     }
 

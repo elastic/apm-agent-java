@@ -8,6 +8,8 @@
     <servlet>
         <servlet-name>TestServlet</servlet-name>
         <servlet-class>co.elastic.webapp.TestServlet</servlet-class>
+        <!--initializes servlet eagerly so that the db initialization is not part of the transaction-->
+        <load-on-startup>0</load-on-startup>
         <async-supported>true</async-supported>
     </servlet>
     <servlet-mapping>
@@ -18,6 +20,7 @@
     <servlet>
         <servlet-name>AsyncTestServlet</servlet-name>
         <servlet-class>co.elastic.webapp.AsyncTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
         <async-supported>true</async-supported>
     </servlet>
     <servlet-mapping>

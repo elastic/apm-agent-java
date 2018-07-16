@@ -21,8 +21,8 @@ package co.elastic.apm.jdbc;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -31,38 +31,38 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static co.elastic.apm.jdbc.ConnectionInstrumentation.JDBC_INSTRUMENTATION_GROUP;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isSubTypeOf;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class PreparedStatementInstrumentation extends ElasticApmInstrumentation {
 
-    @Nullable
-    private static JdbcHelper jdbcEventListener;
 
     // not inlining as we can then set breakpoints into this method
     // also, we don't have class loader issues when doing so
     // another benefit of not inlining is that the advice methods are included in coverage reports
     @Nullable
     @VisibleForAdvice
-    @Advice.OnMethodEnter(inline = false)
+    @Advice.OnMethodEnter
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
-        if (tracer != null && jdbcEventListener != null) {
+        if (tracer != null && helperClassManager != null) {
             final String sql = ConnectionInstrumentation.getSqlForStatement(statement);
-            return jdbcEventListener.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            return helperClassManager.getHelperClass(Statement.class.getClassLoader(), JdbcHelper.class)
+                .createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
         }
         return null;
     }
 
-
     @VisibleForAdvice
-    @Advice.OnMethodExit(inline = false, onThrowable = SQLException.class)
+    @Advice.OnMethodExit(onThrowable = SQLException.class)
     public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown SQLException e) {
         if (span != null) {
             span.deactivate().end();
@@ -70,16 +70,11 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     }
 
     @Override
-    public void init(ElasticApmTracer tracer) {
-        PreparedStatementInstrumentation.jdbcEventListener = new JdbcHelper(tracer);
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // pre-select candidates for the more expensive isSubTypeOf matcher
+            // pre-select candidates for the more expensive hasSuperType matcher
             .and(nameContains("Statement"))
-            .and(isSubTypeOf(PreparedStatement.class));
+            .and(hasSuperType(named("java.sql.PreparedStatement")));
     }
 
     @Override

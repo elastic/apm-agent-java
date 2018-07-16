@@ -27,6 +27,11 @@ import co.elastic.apm.impl.ElasticApmTracer;
  * By adding the base package of the APM agent,
  * the instrumented classes have access to the agent classes,
  * without specifying {@code Import-Package} bundle headers.
+ * <p>
+ * Note: in Apache Felix the boot delegation only works for classes loaded by the bootstrap classloader,
+ * which means that the whole agent code needs to be added to the bootstrap classloader.
+ * See {@link AgentMain#init(java.lang.instrument.Instrumentation)}
+ * </p>
  */
 public class OsgiBootDelegationEnabler implements LifecycleListener {
     private static final String OSGI_BOOTDELEGATION = "org.osgi.framework.bootdelegation";

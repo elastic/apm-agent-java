@@ -36,8 +36,8 @@ public final class VersionUtils {
 
     @Nullable
     public static String getVersionFromPomProperties(Class clazz, String groupId, String artifactId) {
-        final String classpathLocation = "META-INF/maven/" + groupId + "/" + artifactId + "/pom.properties";
-        final Properties pomProperties = getFromClasspath(classpathLocation, clazz.getClassLoader());
+        final String classpathLocation = "/META-INF/maven/" + groupId + "/" + artifactId + "/pom.properties";
+        final Properties pomProperties = getFromClasspath(classpathLocation, clazz);
         if (pomProperties != null) {
             return pomProperties.getProperty("version");
         }
@@ -45,22 +45,14 @@ public final class VersionUtils {
     }
 
     @Nullable
-    private static Properties getFromClasspath(String classpathLocation, ClassLoader classLoader) {
+    private static Properties getFromClasspath(String classpathLocation, Class clazz) {
         final Properties props = new Properties();
-        InputStream resourceStream = classLoader.getResourceAsStream(classpathLocation);
-        if (resourceStream != null) {
-            try {
+        try (InputStream resourceStream = clazz.getResourceAsStream(classpathLocation)) {
+            if (resourceStream != null) {
                 props.load(resourceStream);
                 return props;
-            } catch (IOException e) {
-                // ignore
-            } finally {
-                try {
-                    resourceStream.close();
-                } catch (IOException e) {
-                    // ignore
-                }
             }
+        } catch (IOException ignore) {
         }
         return null;
     }

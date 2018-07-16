@@ -20,7 +20,6 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.asm.Advice;
@@ -97,7 +96,7 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
         return StartAsyncAdvice.class;
     }
 
-    public interface StartAsyncAdviceHelper<T> extends HelperClassManager.AdviceHelper {
+    public interface StartAsyncAdviceHelper<T> {
         void onExitStartAsync(T asyncContext);
     }
 

@@ -72,7 +72,8 @@
         <version.plugin.jar>3.1.0</version.plugin.jar>
         <version.plugin.javadoc>3.0.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
-        <version.byte-buddy>1.8.13</version.byte-buddy>
+        <!-- TODO requires https://github.com/raphw/byte-buddy/pull/496 to work on Glassfish -->
+        <version.byte-buddy>1.8.14-SNAPSHOT</version.byte-buddy>
     </properties>
 
     <modules>

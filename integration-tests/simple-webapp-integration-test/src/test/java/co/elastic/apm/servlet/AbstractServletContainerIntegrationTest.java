@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import javax.annotation.Nonnull;
@@ -47,14 +48,31 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 
+/**
+ * When you want to execute the test in the IDE, execute {@code mvn clean package} before.
+ * This creates the {@code ROOT.war} file,
+ * which is bound into the docker container.
+ * <p>
+ * Whenever you make changes to the application,
+ * you have to rerun {@code mvn clean package}.
+ * </p>
+ * <p>
+ * To debug, add a remote debugging configuration for port 5005.
+ * Note: not all server are configured for debugging.
+ * Currently, {@link TomcatIT} and {@link PayaraIT} have debugging configured
+ * </p>
+ */
 public abstract class AbstractServletContainerIntegrationTest {
     protected static final String pathToWar = "../simple-webapp/target/ROOT.war";
     protected static final String pathToJavaagent;
@@ -74,7 +92,11 @@ public abstract class AbstractServletContainerIntegrationTest {
             AbstractServletContainerIntegrationTest.class.getResourceAsStream("/schema/transactions/payload.json"));
         final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger::info);
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        httpClient = new OkHttpClient.Builder().addInterceptor(loggingInterceptor).build();
+        httpClient = new OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            // set to 0 for debugging
+            .readTimeout(10, TimeUnit.SECONDS)
+            .build();
         pathToJavaagent = getPathToJavaagent();
         checkFilePresent(pathToWar);
         checkFilePresent(pathToJavaagent);
@@ -84,16 +106,34 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final int webPort;
     private final String contextPath;
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer servletContainer) {
+    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer) {
         this(servletContainer, 8080, "");
     }
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer servletContainer, int webPort, String contextPath) {
+    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort, String contextPath) {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
-        this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp").forPort(webPort));
+        startDebugProxy(servletContainer, 5005);
+        this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
+                .forPort(webPort)
+                // set to a higher value for debugging
+                .withStartupTimeout(Duration.ofSeconds(60)));
         this.servletContainer.start();
+    }
+
+    // makes sure the debugging port is always 5005
+    // if the port is not available, the test can still run
+    private void startDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
+        try {
+            new SocatContainer() {{
+                addFixedExposedPort(debugPort, debugPort);
+            }}
+                .withNetwork(Network.SHARED)
+                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0)).start();
+        } catch (Exception e) {
+            logger.warn("Starting debug proxy failed");
+        }
     }
 
     private static String getPathToJavaagent() {
@@ -140,18 +180,22 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(responseBody).isNotNull();
             assertThat(responseBody.string()).contains("Hello World");
 
-            final List<JsonNode> reportedTransactions = assertOneTransactionReported(500);
+            final List<JsonNode> reportedTransactions = assertContainsOneEntryReported(500, this::getReportedTransactions);
             assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
                 .isEqualTo(contextPath + pathToTest);
+            // TODO make that less hacky
+            if (pathToTest.equals("/servlet")) {
+                assertContainsOneEntryReported(500, this::getReportedSpans);
+            }
         }
     }
 
     @Nonnull
-    private List<JsonNode> assertOneTransactionReported(int timeoutMs) throws IOException {
+    private List<JsonNode> assertContainsOneEntryReported(int timeoutMs, Supplier<List<JsonNode>> supplier) throws IOException {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
-            reportedTransactions = getReportedTransactions();
+            reportedTransactions = supplier.get();
         } while (reportedTransactions.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
         assertThat(reportedTransactions.size()).isEqualTo(1);
         return reportedTransactions;
@@ -182,16 +226,48 @@ public abstract class AbstractServletContainerIntegrationTest {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort) + contextPath;
     }
 
-    private List<JsonNode> getReportedTransactions() throws IOException {
-        final List<JsonNode> transactions = new ArrayList<>();
-        final ObjectMapper objectMapper = new ObjectMapper();
-        for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request("/v1/transactions"))) {
-            final JsonNode payload = objectMapper.readTree(httpRequest.getBodyAsString());
-            validateJsonSchema(payload);
-            for (JsonNode transaction : payload.get("transactions")) {
-                transactions.add(transaction);
+    private List<JsonNode> getReportedTransactions() {
+        try {
+            final List<JsonNode> transactions = new ArrayList<>();
+            final ObjectMapper objectMapper = new ObjectMapper();
+            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request("/v1/transactions"))) {
+                final JsonNode payload = objectMapper.readTree(httpRequest.getBodyAsString());
+                validateJsonSchema(payload);
+                for (JsonNode transaction : payload.get("transactions")) {
+                    transactions.add(transaction);
+                }
+            }
+            return transactions;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<JsonNode> getReportedSpans() {
+        try {
+            final List<JsonNode> spans = new ArrayList<>();
+            final ObjectMapper objectMapper = new ObjectMapper();
+            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request("/v1/transactions"))) {
+                final JsonNode payload;
+                payload = objectMapper.readTree(httpRequest.getBodyAsString());
+                validateJsonSchema(payload);
+                addSpans(spans, payload);
+                for (JsonNode transaction : payload.get("transactions")) {
+                    addSpans(spans, transaction);
+                }
+            }
+            return spans;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void addSpans(List<JsonNode> spans, JsonNode payload) {
+        final JsonNode jsonSpans = payload.get("spans");
+        if (jsonSpans != null) {
+            for (JsonNode jsonSpan : jsonSpans) {
+                spans.add(jsonSpan);
             }
         }
-        return transactions;
     }
 }

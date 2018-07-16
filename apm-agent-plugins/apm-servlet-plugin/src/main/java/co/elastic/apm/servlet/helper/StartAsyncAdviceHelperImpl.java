@@ -24,7 +24,6 @@ import co.elastic.apm.servlet.AsyncInstrumentation;
 import co.elastic.apm.servlet.ServletApiAdvice;
 import co.elastic.apm.servlet.ServletTransactionHelper;
 
-import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 
@@ -32,13 +31,10 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
 
-    @Nullable
-    private ServletTransactionHelper servletTransactionHelper;
-    @Nullable
-    private ElasticApmTracer tracer;
+    private final ServletTransactionHelper servletTransactionHelper;
+    private final ElasticApmTracer tracer;
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public StartAsyncAdviceHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }
@@ -49,9 +45,7 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
             return;
         }
-        if (servletTransactionHelper != null &&
-            tracer != null &&
-            tracer.currentTransaction() != null &&
+        if (tracer.currentTransaction() != null &&
             request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request
