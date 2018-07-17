@@ -60,7 +60,6 @@ import java.util.Map;
  * Note: trying to load the helper class implementations from the bootstrap classloader leads to {@link NoClassDefFoundError}s.
  * </p>
  *
- * @see co.elastic.apm.servlet.helper
  * @param <T> the type of the helper interface
  */
 public interface HelperClassManager<T> {

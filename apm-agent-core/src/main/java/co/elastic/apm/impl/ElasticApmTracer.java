@@ -221,10 +221,6 @@ public class ElasticApmTracer {
         captureException(System.currentTimeMillis(), e, getActive());
     }
 
-    public void captureException(@Nullable Throwable e, @Nullable AbstractSpan<?> active) {
-        captureException(System.currentTimeMillis(), e, active);
-    }
-
     public void captureException(long epochTimestampMillis, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
         if (e != null) {
             ErrorCapture error = new ErrorCapture();

@@ -9,5 +9,7 @@
 ## Features
  * Add `Span#captureException` and `Transaction#captureException` to public API.
    `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
+ * Added support for async servlet requests
+ * Added support for Payara/Glassfish
 
 ## Bug Fixes
