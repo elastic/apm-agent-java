@@ -36,9 +36,8 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     private final Map<String, Object> tags = new HashMap<>();
     private final ApmScopeManager scopeManager;
     @Nullable
-    private Object parentSpan;
-    @Nullable
-    private Object parentTransaction;
+    private ApmSpan parent;
+
     private boolean ignoreActiveSpan = false;
     private long microseconds = -1;
     @Nullable
@@ -62,8 +61,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     @Override
     public ApmSpanBuilder asChildOf(Span parent) {
         if (parent != null) {
-            this.parentSpan = ((ApmSpan) parent).getSpan();
-            this.parentTransaction = ((ApmSpan) parent).getTransaction();
+            this.parent = ((ApmSpan) parent);
         }
         return this;
     }
@@ -123,23 +121,22 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     }
 
     private ApmSpan startApmSpan() {
-        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.StartApmSpanInstrumentation.startApmSpan
+        if (!ignoreActiveSpan && parent == null) {
+            final ApmScope active = scopeManager.active();
+            if (active != null) {
+                parent = active.span();
+            }
+        }
         final Iterable<Map.Entry<String, String>> baggage = parentContext != null ? parentContext.baggageItems() : null;
-        final Object transaction = createTransaction(baggage);
-        final Object span = createSpan(baggage);
-        final ApmSpan apmSpan = new ApmSpan(transaction, span).setOperationName(operationName);
+        final Object span = createSpan(parent, parent != null ? parent.getSpan() : null, baggage);
+        final ApmSpan apmSpan = new ApmSpan(span).setOperationName(operationName);
         addTags(apmSpan);
         return apmSpan;
     }
 
-    @Nullable
-    private Object createTransaction(Iterable<Map.Entry<String, String>> baggage) {
-        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateTransactionInstrumentation.createTransaction
-        return null;
-    }
 
     @Nullable
-    private Object createSpan(Iterable<Map.Entry<String, String>> baggage) {
+    private Object createSpan(ApmSpan parent, Object apmParent, Iterable<Map.Entry<String, String>> baggage) {
         // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.createSpan
         return null;
     }

@@ -66,7 +66,7 @@ public class ElasticApm {
      * }
      * </pre>
      *
-     * @return the started transaction.  
+     * @return the started transaction.
      */
     @Nonnull
     public static Transaction startTransaction() {
@@ -76,22 +76,6 @@ public class ElasticApm {
 
     private static Object doStartTransaction() {
         // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartTransaction
-        return null;
-    }
-    
-    
-    /**
-     * The same as {@link ElasticApm#startTransaction()} but doesn't bind created transaction to the current thread
-     * @return the started transaction.  
-     */
-    @Nonnull
-    public static Transaction startAsyncTransaction() {
-        Object transaction = doStartAsyncTransaction();
-        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
-    }
-    
-    private static Object doStartAsyncTransaction() {
-        // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartAsyncTransaction
         return null;
     }
 
@@ -132,40 +116,6 @@ public class ElasticApm {
 
     private static Object doGetCurrentSpan() {
         // co.elastic.apm.api.ElasticApmInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
-        return null;
-    }
-
-    /**
-     * Start and return a new custom span associated with the currently active transaction.
-     * <p>
-     * It is important to call {@link Span#end()} when the span has ended.
-     * A best practice is to use the span in a try-catch-finally block.
-     * Example:
-     * </p>
-     * <pre>
-     * Span span = tracer.startSpan()
-     * try {
-     *     span.setName("SELECT FROM customer");
-     *     span.setType("db.mysql.query");
-     *     // do your thing...
-     * } catch (Exception e) {
-     *     ElasticApm.captureException(e);
-     *     throw e;
-     * } finally {
-     *     span.end();
-     * }
-     * </pre>
-     *
-     * @return the started span, or {@code null} if there is no current transaction
-     */
-    @Nonnull
-    public static Span startSpan() {
-        Object span = doStartSpan();
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
-    }
-
-    private static Object doStartSpan() {
-        // co.elastic.apm.api.ElasticApmInstrumentation.StartSpanInstrumentation.doStartSpan
         return null;
     }
 

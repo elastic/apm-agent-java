@@ -30,7 +30,7 @@ import java.util.List;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
-public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
+public class Span extends AbstractSpan<Span> implements Recyclable {
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
@@ -45,8 +45,6 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      */
     @Deprecated
     private final SpanId id = new SpanId();
-    @Nullable
-    private transient ElasticApmTracer tracer;
     /**
      * The locally unique ID of the parent of the span.
      */
@@ -57,21 +55,13 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      * (Required)
      */
     private volatile double start;
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
-    private volatile boolean async;
-    
+
     @Nullable
     private volatile Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.tracer = tracer;
         this.transaction = transaction;
-        this.async = false;
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
@@ -89,7 +79,12 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         }
         return this;
     }
-    
+
+    public Span startNoop(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+        return this;
+    }
+
     /**
      * The locally unique ID of the span.
      */
@@ -137,55 +132,23 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
-    @Nullable
-    public String getType() {
-        return type;
-    }
-    
-    /**
-     * Create child span
-     * @return new child span
-     */
-    @Nullable
-    public Span createSpan() {
-        if (transaction != null) {
-            return transaction.createSpan(this, System.nanoTime());
-        }
-        return null;
-    }
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
-     * (Required)
-     */
     public void setType(@Nullable String type) {
         withType(type);
     }
 
+    @Override
     public void end() {
-        end(System.nanoTime(), !async);
+        end(System.nanoTime());
     }
 
-    public void end(long nanoTime, boolean releaseActiveSpan) {
+    @Override
+    public void end(long nanoTime) {
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
         if (this.tracer != null) {
-            this.tracer.endSpan(this, releaseActiveSpan);
+            this.tracer.endSpan(this);
         }
-    }
-    
-    @Override
-    public void close() {
-        end();
-    }
-
-    public Span withType(@Nullable String type) {
-        if (!isSampled()) {
-            return this;
-        }
-        this.type = type;
-        return this;
     }
 
     @Override
@@ -196,8 +159,6 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         parent.resetState();
         stacktrace.clear();
         start = 0;
-        type = null;
-        tracer = null;
         transaction = null;
         traceContext.resetState();
     }
@@ -212,13 +173,10 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
             tracer.recycle(this);
         }
     }
-    
-    public void setAsync(boolean async) {
-        this.async = async;
-    }
 
     @Override
     public String toString() {
         return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
     }
+
 }

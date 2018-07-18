@@ -3,10 +3,7 @@ co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$CreateErrorInstrumentatio
 co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$TagInstrumentation
 co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$SetOperationName
 co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$BaggageItemsInstrumentation
-co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation$StartApmSpanInstrumentation
-co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation$CreateTransactionInstrumentation
 co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation$CreateSpanInstrumentation
 co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation$ActivateInstrumentation
-co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.opentracing.impl.ApmScopeInstrumentation

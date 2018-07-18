@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * If the agent is active, it injects the implementation from
  * co.elastic.apm.plugin.api.TransactionInstrumentation
@@ -29,10 +31,11 @@ package co.elastic.apm.api;
  */
 class TransactionImpl implements Transaction {
 
+    @Nonnull
     @SuppressWarnings("unused")
     private final Object transaction;
 
-    TransactionImpl(Object transaction) {
+    TransactionImpl(@Nonnull Object transaction) {
         this.transaction = transaction;
     }
 
@@ -66,7 +69,7 @@ class TransactionImpl implements Transaction {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
-    
+
     private Object doCreateSpan() {
         // co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;

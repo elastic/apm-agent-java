@@ -21,11 +21,11 @@ package co.elastic.apm.opentracing.impl;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.sampling.Sampler;
-import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -34,6 +34,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -74,74 +75,66 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         return OPENTRACING_INSTRUMENTATION_GROUP;
     }
 
-    public static class StartApmSpanInstrumentation extends ApmSpanBuilderInstrumentation {
+    public static class CreateSpanInstrumentation extends ApmSpanBuilderInstrumentation {
 
-        public StartApmSpanInstrumentation() {
-            super(named("startApmSpan"));
-        }
-
-        @Advice.OnMethodEnter
-        private static void startApmSpan(@Advice.FieldValue(value = "ignoreActiveSpan") boolean ignoreActiveSpan,
-                                         @Advice.FieldValue(value = "parentTransaction", readOnly = false)
-                                         @Nullable Object parentTransaction,
-                                         @Advice.FieldValue(value = "parentSpan", readOnly = false)
-                                         @Nullable Object parentSpan) {
-            if (tracer != null && isActive(ignoreActiveSpan, parentTransaction, parentSpan)) {
-                parentTransaction = tracer.currentTransaction();
-                parentSpan = tracer.currentSpan();
-            }
-        }
-
-        @VisibleForAdvice
-        public static boolean isActive(boolean ignoreActiveSpan, @Nullable Object parentTransaction, @Nullable Object parentSpan) {
-            return !ignoreActiveSpan && parentSpan == null && parentTransaction == null;
-        }
-    }
-
-    public static class CreateTransactionInstrumentation extends ApmSpanBuilderInstrumentation {
-
-        public CreateTransactionInstrumentation() {
-            super(named("createTransaction"));
+        public CreateSpanInstrumentation() {
+            super(named("createSpan"));
         }
 
         @Advice.OnMethodExit
-        public static void createTransaction(@Advice.FieldValue(value = "parentTransaction", typing = Assigner.Typing.DYNAMIC)
-                                             @Nullable Transaction parentTransaction,
-                                             @Advice.FieldValue(value = "tags") Map<String, Object> tags,
-                                             @Advice.FieldValue(value = "operationName") String operationName,
-                                             @Advice.FieldValue(value = "microseconds") long microseconds,
-                                             @Advice.Argument(0) @Nullable Iterable<Map.Entry<String, String>> baggage,
-                                             @Advice.Return(readOnly = false) Object transaction) {
-            transaction = doCreateTransaction(parentTransaction, tags, operationName, microseconds, baggage);
+        public static void createSpan(@Advice.Argument(value = 0)
+                                      @Nullable Object parent,
+                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC)
+                                      @Nullable AbstractSpan<?> apmParent,
+                                      @Advice.FieldValue(value = "tags") Map<String, Object> tags,
+                                      @Advice.FieldValue(value = "operationName") String operationName,
+                                      @Advice.FieldValue(value = "microseconds") long microseconds,
+                                      @Advice.Argument(2) @Nullable Iterable<Map.Entry<String, String>> baggage,
+                                      @Advice.Return(readOnly = false) Object span) {
+            span = doCreateTransactionOrSpan(parent, apmParent, tags, operationName, microseconds, baggage);
         }
 
         @Nullable
         @VisibleForAdvice
-        public static Transaction doCreateTransaction(@Nullable Transaction parentTransaction, Map<String, Object> tags,
-                                                      String operationName, long microseconds,
-                                                      @Nullable Iterable<Map.Entry<String, String>> baggage) {
-            if (tracer != null && parentTransaction == null) {
-                if ("client".equals(tags.get("span.kind"))) {
-                    logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
-                        "Consider creating a span for the whole request.", operationName);
-                    return tracer.noopTransaction();
+        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable Object parent,
+                                                                @Nullable AbstractSpan<?> apmParent,
+                                                                Map<String, Object> tags,
+                                                                String operationName, long microseconds,
+                                                                @Nullable Iterable<Map.Entry<String, String>> baggage) {
+            if (tracer != null) {
+                if (parent == null) {
+                    return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
-                    final Sampler sampler;
-                    final Object samplingPriority = tags.get("sampling.priority");
-                    if (samplingPriority instanceof Number) {
-                        sampler = ConstantSampler.of(((Number) samplingPriority).intValue() > 0);
-                    } else {
-                        sampler = tracer.getSampler();
+                    if (apmParent != null) {
+                        return apmParent.createSpan(getStartTime(microseconds));
                     }
-                    return tracer.startManualTransaction(getTraceContextHeader(baggage), sampler, getStartTime(microseconds));
                 }
             }
             return null;
         }
 
+        @Nonnull
+        private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
+                                                         @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer) {
+            if ("client".equals(tags.get("span.kind"))) {
+                logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
+                    "Consider creating a span for the whole request.", operationName);
+                return tracer.noopTransaction();
+            } else {
+                final Sampler sampler;
+                final Object samplingPriority = tags.get("sampling.priority");
+                if (samplingPriority instanceof Number) {
+                    sampler = ConstantSampler.of(((Number) samplingPriority).intValue() > 0);
+                } else {
+                    sampler = tracer.getSampler();
+                }
+                return tracer.startTransaction(getTraceContextHeader(baggage), sampler, getStartTime(microseconds));
+            }
+        }
+
         @Nullable
         @VisibleForAdvice
-        public static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
+        static String getTraceContextHeader(@Nullable Iterable<Map.Entry<String, String>> baggage) {
             if (baggage != null) {
                 for (Map.Entry<String, String> entry : baggage) {
                     if (entry.getKey().equalsIgnoreCase(TraceContext.TRACE_PARENT_HEADER)) {
@@ -150,44 +143,6 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                 }
             }
             return null;
-        }
-    }
-
-    public static class CreateSpanInstrumentation extends ApmSpanBuilderInstrumentation {
-
-        public CreateSpanInstrumentation() {
-            super(named("createSpan"));
-        }
-
-        @Advice.OnMethodExit
-        private static void createSpan(@Advice.FieldValue(value = "parentTransaction", typing = Assigner.Typing.DYNAMIC)
-                                       @Nullable Transaction parentTransaction,
-                                       @Advice.FieldValue(value = "parentSpan", typing = Assigner.Typing.DYNAMIC)
-                                       @Nullable Span parentSpan,
-                                       @Advice.FieldValue(value = "microseconds") long microseconds,
-                                       @Advice.Return(readOnly = false) Object span) {
-            span = doCreateSpan(parentTransaction, parentSpan, microseconds);
-        }
-
-        @Nullable
-        @VisibleForAdvice
-        public static Span doCreateSpan(@Nullable Transaction parentTransaction, @Nullable Span parentSpan, long microseconds) {
-            if (tracer != null && parentTransaction != null) {
-                Transaction transaction = getTransaction(parentTransaction, parentSpan);
-                return tracer.startManualSpan(transaction, parentSpan, getStartTime(microseconds));
-            }
-            return null;
-        }
-
-        @Nullable
-        private static Transaction getTransaction(@Nullable Transaction parentTransaction, @Nullable Span parentSpan) {
-            if (parentTransaction != null) {
-                return parentTransaction;
-            } else if (parentSpan != null) {
-                return parentSpan.getTransaction();
-            } else {
-                return null;
-            }
         }
     }
 

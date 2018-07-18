@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,20 +20,27 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.TransactionUtils;
-
+import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.report.serialize.DslJsonSerializer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static co.elastic.apm.JsonUtils.toJson;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TransactionTest {
+
+    private DslJsonSerializer jsonSerializer;
+
+    @BeforeEach
+    void setUp() {
+        jsonSerializer = new DslJsonSerializer(new CoreConfiguration());
+    }
 
     @Test
     void resetState() {
         final Transaction transaction = new Transaction();
         TransactionUtils.fillTransaction(transaction);
         transaction.resetState();
-        assertThat(toJson(transaction)).isEqualTo(toJson(new Transaction()));
+        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction()));
     }
 }

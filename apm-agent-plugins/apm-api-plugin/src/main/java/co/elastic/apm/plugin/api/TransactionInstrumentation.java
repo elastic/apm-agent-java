@@ -19,9 +19,6 @@
  */
 package co.elastic.apm.plugin.api;
 
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -30,6 +27,9 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
@@ -125,19 +125,17 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
             transaction.end();
         }
     }
-    
+
     public static class DoCreateSpanInstrumentation extends TransactionInstrumentation {
         public DoCreateSpanInstrumentation() {
             super(named("doCreateSpan"));
         }
-        
+
         @VisibleForAdvice
         @Advice.OnMethodExit
         public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                @Advice.Return(readOnly = false) Object span) {
-            if (transaction != null) {
-                span = transaction.createSpan();
-            }
+                                        @Advice.Return(readOnly = false) Object span) {
+            span = transaction.createSpan();
         }
     }
 }

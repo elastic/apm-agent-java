@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,11 +19,13 @@
  */
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.Scope;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
-public abstract class AbstractSpan implements Recyclable {
+public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable {
     protected final TraceContext traceContext = new TraceContext();
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
@@ -39,6 +41,19 @@ public abstract class AbstractSpan implements Recyclable {
      * (Required)
      */
     protected double duration;
+    // TODO make Nonnull and final
+    @Nullable
+    protected volatile ElasticApmTracer tracer;
+    @Nullable
+    private volatile AbstractSpan<?> previouslyActive;
+    /**
+     * Keyword of specific relevance in the service's domain
+     * (eg:  'request', 'backgroundjob' for transactions and
+     * 'db.postgresql.query', 'template.erb', etc for spans)
+     * (Required)
+     */
+    @Nullable
+    private volatile String type;
 
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
@@ -92,9 +107,90 @@ public abstract class AbstractSpan implements Recyclable {
         name.setLength(0);
         timestamp = 0;
         duration = 0;
+        type = null;
+        // don't reset previouslyActive, as deactivate can be called after end
     }
 
-    public boolean isChildOf(AbstractSpan parent) {
+    public boolean isChildOf(AbstractSpan<?> parent) {
         return traceContext.isChildOf(parent.traceContext);
+    }
+
+    @Nullable
+    public abstract Transaction getTransaction();
+
+    public T activate() {
+        final ElasticApmTracer tracer = this.tracer;
+        if (tracer != null) {
+            previouslyActive = tracer.getActive();
+            tracer.setActive(this);
+        }
+        return (T) this;
+    }
+
+    public T deactivate() {
+        final ElasticApmTracer tracer = this.tracer;
+        if (tracer != null) {
+            tracer.setActive(previouslyActive);
+        }
+        return (T) this;
+    }
+
+    public Scope activateInScope() {
+        final ElasticApmTracer tracer = this.tracer;
+        if (tracer == null) {
+            return Scope.NoopScope.INSTANCE;
+        }
+        // already in scope
+        if (tracer.currentTransaction() == this) {
+            return Scope.NoopScope.INSTANCE;
+        }
+        activate();
+        return new Scope() {
+            @Override
+            public void close() {
+                deactivate();
+            }
+        };
+    }
+
+    @Nullable
+    public Span createSpan() {
+        return createSpan(System.nanoTime());
+    }
+
+    @Nullable
+    public Span createSpan(long startTimeNanos) {
+        final ElasticApmTracer tracer = this.tracer;
+        if (tracer != null) {
+            return tracer.startSpan(this, startTimeNanos);
+        }
+        return null;
+    }
+
+    public abstract void end();
+
+    public abstract void end(long nanoTime);
+
+    /**
+     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
+     * (Required)
+     */
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Keyword of specific relevance in the service's domain
+     * (eg:  'request', 'backgroundjob' for transactions and
+     * 'db.postgresql.query', 'template.erb', etc for spans)
+     * (Required)
+     */
+    public T withType(@Nullable String type) {
+        if (!isSampled()) {
+            return (T) this;
+        }
+        this.type = type;
+        return (T) this;
     }
 }
