@@ -56,7 +56,7 @@ public class ElasticApm {
      * Transaction transaction = tracer.startTransaction()
      * try {
      *     transaction.setName("MyController#myAction");
-     *     span.setType(Transaction.TYPE_REQUEST);
+     *     transaction.setType(Transaction.TYPE_REQUEST);
      *     // do your thing...
      * } catch (Exception e) {
      *     ElasticApm.captureException(e);
