@@ -77,8 +77,11 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
-    public Transaction start(ElasticApmTracer tracer, @Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
-        this.tracer = tracer;
+    public Transaction(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
+    public Transaction start(@Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
         if (traceParentHeader != null) {
             traceContext.asChildOf(traceParentHeader);
         } else {
@@ -92,9 +95,8 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    public Transaction startNoop(ElasticApmTracer tracer) {
+    public Transaction startNoop() {
         this.name.append("noop");
-        this.tracer = tracer;
         this.noop = true;
         return this;
     }

@@ -20,14 +20,15 @@
 package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class SanitizingWebProcessorTest {
 
@@ -41,7 +42,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processTransactions() {
-        Transaction transaction = new Transaction();
+        Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
         fillContext(transaction.getContext());
 
         processor.processBeforeReport(transaction);

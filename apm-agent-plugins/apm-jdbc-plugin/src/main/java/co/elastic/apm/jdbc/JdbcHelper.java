@@ -85,9 +85,6 @@ public class JdbcHelper {
             return null;
         }
         Span span = parent.createSpan();
-        if (span == null) {
-            return null;
-        }
         span.setName(getMethod(sql));
         // temporarily setting the type here is important
         // getting the meta data can result in another jdbc call
