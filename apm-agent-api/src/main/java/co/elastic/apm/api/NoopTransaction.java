@@ -48,4 +48,8 @@ enum NoopTransaction implements Transaction {
         // noop
     }
 
+    @Override
+    public Span createSpan() {
+        return NoopSpan.INSTANCE;
+    }
 }

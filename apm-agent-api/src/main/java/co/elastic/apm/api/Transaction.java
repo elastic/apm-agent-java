@@ -92,5 +92,11 @@ public interface Transaction {
      * </p>
      */
     void end();
+    
+    /**
+     * Creates span bound to the current transaction
+     * @return {@link Span}
+     */
+    Span createSpan();
 
 }

@@ -22,6 +22,7 @@ package co.elastic.apm.plugin.api;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.Span;
+
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -29,6 +30,7 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -85,6 +87,21 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
                                    @Advice.Argument(0) String type) {
             span.setType(type);
+        }
+    }
+    
+    public static class DoCreateSpanInstrumentation extends SpanInstrumentation {
+        public DoCreateSpanInstrumentation() {
+            super(named("doCreateSpan"));
+        }
+        
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
+                @Advice.Return(readOnly = false) Object result) {
+            if (span != null) {
+                result = span.createSpan();
+            }
         }
     }
 

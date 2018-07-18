@@ -56,6 +56,13 @@ public interface Span {
     void setType(String type);
 
     /**
+     * Creates child span for this span.
+     * 
+     * @return new span or noop span (never {@code null}).
+     */
+    Span createSpan();
+    
+    /**
      * Ends the span.
      * If the span has already ended, nothing happens.
      */

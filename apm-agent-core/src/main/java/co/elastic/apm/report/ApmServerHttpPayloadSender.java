@@ -23,12 +23,13 @@ import co.elastic.apm.impl.error.ErrorPayload;
 import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okio.BufferedSink;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,13 +41,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPOutputStream;
+
+import okio.BufferedSink;
 
 public class ApmServerHttpPayloadSender implements PayloadSender {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHttpPayloadSender.class);
     private static final MediaType MEDIA_TYPE_JSON = Objects.requireNonNull(MediaType.parse("application/json"));
-    private static final int GZIP_COMPRESSION_LEVEL = 3;
 
     private final OkHttpClient httpClient;
     private final ReporterConfiguration reporterConfiguration;
@@ -102,8 +103,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                 public void writeTo(BufferedSink sink) throws IOException {
                     OutputStream os = sink.outputStream();
                     if (useGzip(payload)) {
-                        final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
-                        os = new DeflaterOutputStream(os, def);
+                        os = new GZIPOutputStream(os);
                     }
                     try {
                         payloadSerializer.serializePayload(os, payload);

@@ -21,7 +21,9 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -67,7 +69,32 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
     }
-
+    
+    @Test
+    public void createSpan() throws Exception {
+        Span span = transaction.createSpan();
+        span.setType("foo");
+        span.setName("bar");
+        Span child = span.createSpan();
+        child.setType("foo2");
+        child.setName("bar2");
+        Span span3 = transaction.createSpan();
+        span3.setType("foo3");
+        span3.setName("bar3");
+        span3.end();
+        child.end();
+        span.end();
+        endTransaction();
+        assertThat(reporter.getSpans()).hasSize(3);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo3");
+        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("bar3");
+        assertThat(reporter.getSpans().get(1).getType()).isEqualTo("foo2");
+        assertThat(reporter.getSpans().get(1).getName().toString()).isEqualTo("bar2");
+        assertThat(reporter.getSpans().get(1).getTraceContext().getParentId()).isEqualTo(reporter.getSpans().get(2).getTraceContext().getId());
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
+    }
+    
     private void endTransaction() {
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);

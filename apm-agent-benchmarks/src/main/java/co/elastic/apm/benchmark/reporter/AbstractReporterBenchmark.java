@@ -42,6 +42,7 @@ import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;

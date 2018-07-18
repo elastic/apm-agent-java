@@ -24,6 +24,7 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,25 +51,27 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
      * The locally unique ID of the parent of the span.
      */
     @Deprecated
-    private SpanId parent = new SpanId();
+    private final SpanId parent = new SpanId();
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
-    private double start;
+    private volatile double start;
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
      * (Required)
      */
     @Nullable
-    private String type;
-
+    private volatile String type;
+    private volatile boolean async;
+    
     @Nullable
-    private Transaction transaction;
+    private volatile Transaction transaction;
 
     public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.tracer = tracer;
         this.transaction = transaction;
+        this.async = false;
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
@@ -86,7 +89,7 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         }
         return this;
     }
-
+    
     /**
      * The locally unique ID of the span.
      */
@@ -138,6 +141,18 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
     public String getType() {
         return type;
     }
+    
+    /**
+     * Create child span
+     * @return new child span
+     */
+    @Nullable
+    public Span createSpan() {
+        if (transaction != null) {
+            return transaction.createSpan(this, System.nanoTime());
+        }
+        return null;
+    }
 
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
@@ -148,7 +163,7 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
     }
 
     public void end() {
-        end(System.nanoTime(), true);
+        end(System.nanoTime(), !async);
     }
 
     public void end(long nanoTime, boolean releaseActiveSpan) {
@@ -159,7 +174,8 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
             this.tracer.endSpan(this, releaseActiveSpan);
         }
     }
-
+    
+    @Override
     public void close() {
         end();
     }
@@ -195,6 +211,10 @@ public class Span extends AbstractSpan implements Recyclable, AutoCloseable {
         if (tracer != null) {
             tracer.recycle(this);
         }
+    }
+    
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 
     @Override

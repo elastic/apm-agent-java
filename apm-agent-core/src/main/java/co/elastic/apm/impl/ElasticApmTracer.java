@@ -35,6 +35,7 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -79,6 +81,7 @@ public class ElasticApmTracer {
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
+        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)),false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
@@ -106,7 +109,6 @@ public class ElasticApmTracer {
                 return new Stacktrace();
             }
         });
-        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -121,6 +123,10 @@ public class ElasticApmTracer {
 
     public Transaction startTransaction() {
         return startTransaction(null);
+    }
+
+    public Transaction startAsyncTransaction() {
+        return startManualTransaction(null, sampler, System.nanoTime());
     }
 
     public Transaction startTransaction(@Nullable String traceContextHeader) {
@@ -152,6 +158,7 @@ public class ElasticApmTracer {
 
     public void activate(Transaction transaction) {
         currentTransaction.set(transaction);
+        transaction.setAsync(false);
     }
 
     @Nullable
@@ -197,32 +204,22 @@ public class ElasticApmTracer {
     public void activate(Span span) {
         currentSpan.set(span);
     }
-
+    
+    public Span createSpan() {
+        return spanPool.createInstance();
+    }
+    
     private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
-        Span span;
-        span = spanPool.createInstance();
-        final boolean dropped;
-        if (isTransactionSpanLimitReached(transaction)) {
-            // TODO only drop leaf spans
-            dropped = true;
-            transaction.getSpanCount().getDropped().increment();
-        } else {
-            dropped = false;
-        }
-        transaction.getSpanCount().increment();
-        span.start(this, transaction, parentSpan, nanoTime, dropped);
-        return span;
+        Span result = transaction.createSpan(parentSpan, nanoTime);
+        activate(result);
+        return result;
     }
 
-    private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getTotal();
-    }
-
-    public void captureException(@Nullable Exception e) {
+    public void captureException(@Nullable Throwable e) {
         captureException(System.currentTimeMillis(), e);
     }
 
-    public void captureException(long epochTimestampMillis, @Nullable Exception e) {
+    public void captureException(long epochTimestampMillis, @Nullable Throwable e) {
         if (e != null) {
             ErrorCapture error = new ErrorCapture();
             error.withTimestamp(epochTimestampMillis);
