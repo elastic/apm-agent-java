@@ -24,7 +24,6 @@ import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,8 +58,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     private volatile Transaction transaction;
 
-    public Span start(ElasticApmTracer tracer, Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
-        this.tracer = tracer;
+    public Span(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
+    public Span start(Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
         this.transaction = transaction;
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
@@ -80,8 +82,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    public Span startNoop(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+    public Span startNoop() {
         return this;
     }
 

@@ -20,14 +20,15 @@
 package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class BodyProcessorTest {
@@ -116,7 +117,7 @@ class BodyProcessorTest {
     }
 
     private Transaction processTransaction() {
-        final Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
         transaction.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;

@@ -36,7 +36,6 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,6 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -86,14 +84,14 @@ public class ElasticApmTracer {
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
-                    return new Transaction();
+                    return new Transaction(ElasticApmTracer.this);
                 }
             });
         spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
-                    return new Span();
+                    return new Span(ElasticApmTracer.this);
                 }
             });
         errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -134,7 +132,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(this, traceContextHeader, nanoTime, sampler);
+            transaction = transactionPool.createInstance().start(traceContextHeader, nanoTime, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -147,7 +145,7 @@ public class ElasticApmTracer {
     }
 
     public Transaction noopTransaction() {
-        return transactionPool.createInstance().startNoop(this);
+        return transactionPool.createInstance().startNoop();
     }
 
     @Nullable
@@ -196,7 +194,7 @@ public class ElasticApmTracer {
     }
 
     private Span createNoopSpan() {
-        return spanPool.createInstance().startNoop(this);
+        return spanPool.createInstance().startNoop();
     }
 
     private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
@@ -211,7 +209,7 @@ public class ElasticApmTracer {
             dropped = false;
         }
         transaction.getSpanCount().increment();
-        span.start(this, transaction, parentSpan, nanoTime, dropped);
+        span.start(transaction, parentSpan, nanoTime, dropped);
         return span;
     }
 

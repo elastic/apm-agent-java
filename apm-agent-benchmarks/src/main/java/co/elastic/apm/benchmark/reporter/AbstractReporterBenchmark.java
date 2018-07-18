@@ -42,7 +42,6 @@ import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
@@ -100,14 +99,14 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()), coreConfiguration);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
-            Transaction t = new Transaction();
+            Transaction t = new Transaction(tracer);
             fillTransaction(t);
             payload.getTransactions().add(t);
         }
     }
 
     private void fillTransaction(Transaction t) {
-        t.start(null, null, 0, ConstantSampler.of(true));
+        t.start(null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
@@ -151,8 +150,8 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);
 
-        Span span = new Span()
-            .start(null, t, null, 0, false)
+        Span span = new Span(tracer)
+            .start(t, null, 0, false)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -161,16 +160,16 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
             .withType("sql")
             .withUser("readonly_user");
         t.getSpans().add(span);
-        t.getSpans().add(new Span()
-            .start(null, t, null, 0, false)
+        t.getSpans().add(new Span(tracer)
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
-            .start(null, t, null, 0, false)
+        t.getSpans().add(new Span(tracer)
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.getSpans().add(new Span()
-            .start(null, t, null, 0, false)
+        t.getSpans().add(new Span(tracer)
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
     }

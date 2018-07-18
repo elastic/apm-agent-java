@@ -21,11 +21,13 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.TransactionUtils;
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class TransactionTest {
 
@@ -38,9 +40,9 @@ class TransactionTest {
 
     @Test
     void resetState() {
-        final Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
         TransactionUtils.fillTransaction(transaction);
         transaction.resetState();
-        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction()));
+        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(mock(ElasticApmTracer.class))));
     }
 }

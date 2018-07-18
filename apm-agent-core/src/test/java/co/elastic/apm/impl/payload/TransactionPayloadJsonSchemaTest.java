@@ -26,12 +26,10 @@ import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -65,13 +63,13 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private Transaction createTransactionWithRequiredValues() {
-        Transaction t = new Transaction();
-        t.start(mock(ElasticApmTracer.class), null, 0, ConstantSampler.of(true));
+        Transaction t = new Transaction(mock(ElasticApmTracer.class));
+        t.start(null, 0, ConstantSampler.of(true));
         t.setType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
-        Span s = new Span();
-        s.start(mock(ElasticApmTracer.class), t, null, 0, false)
+        Span s = new Span(mock(ElasticApmTracer.class));
+        s.start(t, null, 0, false)
             .withType("type")
             .withName("name");
         t.addSpan(s);
@@ -79,7 +77,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayloadWithAllValues() {
-        final Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
@@ -98,7 +96,7 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(new Transaction());
+        payload.getTransactions().add(new Transaction(mock(ElasticApmTracer.class)));
         final String content = new DslJsonSerializer(coreConfiguration).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);

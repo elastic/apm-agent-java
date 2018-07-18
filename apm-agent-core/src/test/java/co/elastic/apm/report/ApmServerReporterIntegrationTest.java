@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
@@ -28,12 +29,9 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
-
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
-
 import okhttp3.OkHttpClient;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ApmServerReporterIntegrationTest {
@@ -98,7 +97,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -112,7 +111,7 @@ class ApmServerReporterIntegrationTest {
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

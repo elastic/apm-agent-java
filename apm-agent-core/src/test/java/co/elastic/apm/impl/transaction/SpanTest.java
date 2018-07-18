@@ -19,15 +19,17 @@
  */
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.impl.ElasticApmTracer;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class SpanTest {
 
     @Test
     void resetState() {
-        Span span = new Span()
+        Span span = new Span(mock(ElasticApmTracer.class))
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()

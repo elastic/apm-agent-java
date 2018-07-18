@@ -21,13 +21,13 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -59,7 +59,7 @@ class ApmServerReporterTest {
     @Test
     void testTransactionProcessor() throws ExecutionException, InterruptedException {
         final int transactionCount = TestProcessor.getTransactionCount();
-        reporter.report(new Transaction());
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);

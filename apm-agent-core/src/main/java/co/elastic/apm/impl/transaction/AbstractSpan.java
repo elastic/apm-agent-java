@@ -31,6 +31,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
+    protected final ElasticApmTracer tracer;
     /**
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
@@ -41,9 +42,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * (Required)
      */
     protected double duration;
-    // TODO make Nonnull and final
-    @Nullable
-    protected volatile ElasticApmTracer tracer;
     @Nullable
     private volatile AbstractSpan<?> previouslyActive;
     /**
@@ -54,6 +52,10 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      */
     @Nullable
     private volatile String type;
+
+    public AbstractSpan(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
 
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
@@ -120,26 +122,19 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public T activate() {
         final ElasticApmTracer tracer = this.tracer;
-        if (tracer != null) {
-            previouslyActive = tracer.getActive();
-            tracer.setActive(this);
-        }
+        previouslyActive = tracer.getActive();
+        tracer.setActive(this);
         return (T) this;
     }
 
     public T deactivate() {
         final ElasticApmTracer tracer = this.tracer;
-        if (tracer != null) {
-            tracer.setActive(previouslyActive);
-        }
+        tracer.setActive(previouslyActive);
         return (T) this;
     }
 
     public Scope activateInScope() {
         final ElasticApmTracer tracer = this.tracer;
-        if (tracer == null) {
-            return Scope.NoopScope.INSTANCE;
-        }
         // already in scope
         if (tracer.currentTransaction() == this) {
             return Scope.NoopScope.INSTANCE;
@@ -153,18 +148,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         };
     }
 
-    @Nullable
     public Span createSpan() {
         return createSpan(System.nanoTime());
     }
 
-    @Nullable
     public Span createSpan(long startTimeNanos) {
-        final ElasticApmTracer tracer = this.tracer;
-        if (tracer != null) {
-            return tracer.startSpan(this, startTimeNanos);
-        }
-        return null;
+        return tracer.startSpan(this, startTimeNanos);
     }
 
     public abstract void end();

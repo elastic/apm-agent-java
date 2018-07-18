@@ -20,11 +20,12 @@
 package co.elastic.apm.benchmark.objectpool;
 
 import co.elastic.apm.benchmark.AbstractBenchmark;
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.impl.MixedObjectPool;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
-
 import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.jctools.queues.MpmcArrayQueue;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
@@ -44,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ObjectPoolBenchmark extends AbstractBenchmark {
 
+    private ElasticApmTracer tracer;
     private QueueBasedObjectPool<Transaction> blockingQueueObjectPool;
     private QueueBasedObjectPool<Transaction> agronaQueueObjectPool;
     private MixedObjectPool<Transaction> mixedObjectPool;
@@ -57,14 +59,15 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     @Setup
     public void setUp() {
-        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, Transaction::new);
-        jctoolsQueueObjectPool = new QueueBasedObjectPool<>(new MpmcArrayQueue<>(256), true, Transaction::new);
-        jctoolsAtomicQueueObjectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(256), true, Transaction::new);
-        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new);
-        mixedObjectPool = new MixedObjectPool<>(Transaction::new,
-            new ThreadLocalObjectPool<>(256, true, Transaction::new),
-            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, Transaction::new));
-        threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, Transaction::new);
+        tracer = new ElasticApmTracerBuilder().build();
+        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, () -> new Transaction(tracer));
+        jctoolsQueueObjectPool = new QueueBasedObjectPool<>(new MpmcArrayQueue<>(256), true, () -> new Transaction(tracer));
+        jctoolsAtomicQueueObjectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(tracer));
+        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer));
+        mixedObjectPool = new MixedObjectPool<>(() -> new Transaction(tracer),
+            new ThreadLocalObjectPool<>(256, true, () -> new Transaction(tracer)),
+            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer)));
+        threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, () -> new Transaction(tracer));
     }
 
     @TearDown
@@ -76,7 +79,7 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
     //    @Benchmark
     @Threads(8)
     public Transaction testNewOperator() {
-        return new Transaction();
+        return new Transaction(tracer);
     }
 
     @Benchmark

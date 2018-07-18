@@ -19,6 +19,7 @@
  */
 package co.elastic.apm;
 
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.sampling.ConstantSampler;
@@ -28,12 +29,14 @@ import co.elastic.apm.impl.transaction.Transaction;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
+
 public class TransactionUtils {
 
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
-        t.start(null, null, 0, ConstantSampler.of(true));
+        t.start(null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.setType("request");
         t.withResult("success");
@@ -77,8 +80,8 @@ public class TransactionUtils {
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);
 
-        Span span = new Span()
-            .start(null, t, null, 0, false)
+        Span span = new Span(mock(ElasticApmTracer.class))
+            .start(t, null, 0, false)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -87,16 +90,16 @@ public class TransactionUtils {
             .withType("sql")
             .withUser("readonly_user");
         t.addSpan(span);
-        t.addSpan(new Span()
-            .start(null, t, null, 0, false)
+        t.addSpan(new Span(mock(ElasticApmTracer.class))
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span()
-            .start(null, t, null, 0, false)
+        t.addSpan(new Span(mock(ElasticApmTracer.class))
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span()
-            .start(null, t, null, 0, false)
+        t.addSpan(new Span(mock(ElasticApmTracer.class))
+            .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
     }
