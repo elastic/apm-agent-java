@@ -86,8 +86,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final ApmScope scope = apmTracer.buildSpan("test").withStartTimestamp(0).startActive(false);
 
         assertThat(apmTracer.activeSpan()).isNotNull();
-        assertThat(apmTracer.activeSpan().getTransaction()).isSameAs(scope.span().getTransaction());
-        assertThat(apmTracer.scopeManager().active().span().getTransaction()).isSameAs(scope.span().getTransaction());
+        assertThat(apmTracer.activeSpan().getSpan()).isSameAs(scope.span().getSpan());
+        assertThat(apmTracer.scopeManager().active().span().getSpan()).isSameAs(scope.span().getSpan());
 
         // close scope, but not finish span
         scope.close();
@@ -146,12 +146,19 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
     @Test
     void testCreatingClientTransactionCreatesNoopSpan() {
-        try (Scope transaction = apmTracer.buildSpan("transaction").withTag("span.kind", "client").startActive(true)) {
-            try (Scope span = apmTracer.buildSpan("span").startActive(true)) {
-                try (Scope nestedSpan = apmTracer.buildSpan("nestedSpan").startActive(true)) {
+        assertThat(apmTracer.scopeManager().active()).isNull();
+        try (ApmScope transactionScope = apmTracer.buildSpan("transaction").withTag("span.kind", "client").startActive(true)) {
+            try (ApmScope spanScope = apmTracer.buildSpan("span").startActive(true)) {
+                assertThat(apmTracer.scopeManager().active().span().getSpan()).isEqualTo(spanScope.span().getSpan());
+                try (ApmScope nestedSpanScope = apmTracer.buildSpan("nestedSpan").startActive(true)) {
+                    assertThat(apmTracer.scopeManager().active().span().getSpan()).isEqualTo(nestedSpanScope.span().getSpan());
                 }
+                assertThat(apmTracer.scopeManager().active().span().getSpan()).isEqualTo(spanScope.span().getSpan());
             }
+            assertThat(apmTracer.scopeManager().active().span().getSpan()).isEqualTo(transactionScope.span().getSpan());
         }
+        assertThat(apmTracer.scopeManager().active()).isNull();
+        assertThat(reporter.getSpans()).isEmpty();
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
@@ -184,7 +191,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             .containsEntry("number", "1")
             .containsEntry("boolean", "true");
     }
-
 
     @Test
     void testManualSampling() {

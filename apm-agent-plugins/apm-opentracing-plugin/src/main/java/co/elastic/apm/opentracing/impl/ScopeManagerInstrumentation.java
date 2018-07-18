@@ -21,6 +21,7 @@ package co.elastic.apm.opentracing.impl;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -70,29 +71,9 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable Span span) {
-            if (tracer != null) {
-                if (transaction != null) {
-                    tracer.activate(transaction);
-                } else if (span != null) {
-                    tracer.activate(span);
-                }
-            }
-        }
-    }
-
-    public static class CurrentTransactionInstrumentation extends ScopeManagerInstrumentation {
-
-        public CurrentTransactionInstrumentation() {
-            super(named("getCurrentTransaction"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void getCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
-            if (tracer != null) {
-                transaction = tracer.currentTransaction();
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
+            if (span != null) {
+                span.activate();
             }
         }
     }
@@ -107,7 +88,7 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.currentSpan();
+                span = tracer.getActive();
             }
         }
 

@@ -23,21 +23,19 @@ import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 class ApmSpan implements Span, SpanContext {
 
     @Nullable
-    // co.elastic.apm.impl.transaction.Transaction
-    private final Object transaction;
-    @Nullable
-    // co.elastic.apm.impl.transaction.Span
+    // co.elastic.apm.impl.transaction.AbstractSpan
     private final Object span;
 
-    ApmSpan(@Nullable Object transaction, @Nullable Object span) {
-        this.transaction = transaction;
+    ApmSpan(@Nullable Object span) {
         this.span = span;
     }
 
@@ -66,6 +64,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan setOperationName(String operationName) {
+        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$SetOperationName
         return this;
     }
 
@@ -86,11 +85,6 @@ class ApmSpan implements Span, SpanContext {
     @Nullable
     Object getSpan() {
         return span;
-    }
-
-    @Nullable
-    Object getTransaction() {
-        return transaction;
     }
 
     @Override
@@ -148,6 +142,11 @@ class ApmSpan implements Span, SpanContext {
 
     private void handleTag(String key, @Nullable Object value) {
         // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.TagInstrumentation.handleTag
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(span);
     }
 
 }

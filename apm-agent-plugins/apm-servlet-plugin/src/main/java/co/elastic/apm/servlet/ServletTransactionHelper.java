@@ -95,7 +95,7 @@ public class ServletTransactionHelper {
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, requestURI, userAgentHeader)) {
-            return tracer.startTransaction(traceContextHeader);
+            return tracer.startTransaction(traceContextHeader).activate();
         } else {
             return null;
         }
@@ -135,7 +135,7 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        transaction.end();
+        transaction.deactivate().end();
     }
 
     /*

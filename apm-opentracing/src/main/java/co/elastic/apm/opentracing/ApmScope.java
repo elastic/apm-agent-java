@@ -22,6 +22,7 @@ package co.elastic.apm.opentracing;
 import io.opentracing.Scope;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 class ApmScope implements Scope {
 
@@ -35,18 +36,23 @@ class ApmScope implements Scope {
 
     @Override
     public void close() {
+        release(apmSpan.getSpan());
         if (finishSpanOnClose) {
             apmSpan.finish();
         }
-        release(apmSpan.getTransaction(), apmSpan.getSpan());
     }
 
-    private void release(@Nullable Object transaction, @Nullable Object span) {
+    private void release(Object span) {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ApmScopeInstrumentation
     }
 
     @Override
     public ApmSpan span() {
         return apmSpan;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Scope(%s)", apmSpan);
     }
 }

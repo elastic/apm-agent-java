@@ -46,7 +46,7 @@ class JdbcInstrumentationTest extends AbstractInstrumentationTest {
         connection = DriverManager.getConnection("jdbc:h2:mem:test", "user", "");
         connection.createStatement().execute("CREATE TABLE IF NOT EXISTS ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        transaction = tracer.startTransaction();
+        transaction = tracer.startTransaction().activate();
         transaction.setName("transaction");
         transaction.setType("request");
         transaction.withResult("success");
@@ -55,7 +55,7 @@ class JdbcInstrumentationTest extends AbstractInstrumentationTest {
     @AfterEach
     void tearDown() throws SQLException {
         connection.close();
-        transaction.end();
+        transaction.deactivate().end();
     }
 
     @Test

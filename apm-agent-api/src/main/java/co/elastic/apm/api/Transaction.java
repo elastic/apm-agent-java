@@ -92,10 +92,29 @@ public interface Transaction {
      * </p>
      */
     void end();
-    
+
     /**
-     * Creates span bound to the current transaction
-     * @return {@link Span}
+     * Start and return a new custom span associated with this transaction.
+     * <p>
+     * It is important to call {@link Span#end()} when the span has ended.
+     * A best practice is to use the span in a try-catch-finally block.
+     * Example:
+     * </p>
+     * <pre>
+     * Span span = transaction.startSpan()
+     * try {
+     *     span.setName("SELECT FROM customer");
+     *     span.setType("db.mysql.query");
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     ElasticApm.captureException(e);
+     *     throw e;
+     * } finally {
+     *     span.end();
+     * }
+     * </pre>
+     *
+     * @return the started span, or {@code null} if there is no current transaction
      */
     Span createSpan();
 

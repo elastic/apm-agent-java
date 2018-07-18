@@ -20,6 +20,7 @@
 package co.elastic.apm.jdbc;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,19 +68,23 @@ public class JdbcHelper {
      * This makes sure that even when there are wrappers for the statement,
      * we only record each JDBC call once.
      */
-    private static boolean isAlreadyMonitored(@Nullable Span parent) {
+    private static boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
+        if (!(parent instanceof Span)) {
+            return false;
+        }
+        Span parentSpan = (Span) parent;
         // a db span can't be the child of another db span
         // this means the span has already been created for this db call
-        return parent != null && parent.getType() != null && parent.getType().startsWith("db.");
+        return parentSpan.getType() != null && parentSpan.getType().startsWith("db.");
     }
 
 
     @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable Span parentSpan) {
-        if (sql == null || isAlreadyMonitored(parentSpan)) {
+    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
+        if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;
         }
-        Span span = elasticApmTracer.startSpan();
+        Span span = parent.createSpan();
         if (span == null) {
             return null;
         }

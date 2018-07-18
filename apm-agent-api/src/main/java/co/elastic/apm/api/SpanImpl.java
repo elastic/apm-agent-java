@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * If the agent is active, it injects the implementation from
  * co.elastic.apm.plugin.api.SpanInstrumentation
@@ -29,10 +31,11 @@ package co.elastic.apm.api;
  */
 class SpanImpl implements Span {
 
+    @Nonnull
     // co.elastic.apm.impl.transaction.Span
     private final Object span;
 
-    SpanImpl(Object span) {
+    SpanImpl(@Nonnull Object span) {
         this.span = span;
     }
 
@@ -51,12 +54,12 @@ class SpanImpl implements Span {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
-    
+
     private Object doCreateSpan() {
         // co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
     }
-    
+
     @Override
     public void end() {
         // co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation.end

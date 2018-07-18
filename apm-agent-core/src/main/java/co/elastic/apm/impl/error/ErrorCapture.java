@@ -117,7 +117,7 @@ public class ErrorCapture implements Recyclable {
      * @param parent
      * @return {@code this}, for chaining
      */
-    public ErrorCapture asChildOf(AbstractSpan parent) {
+    public ErrorCapture asChildOf(AbstractSpan<?> parent) {
         this.traceContext.asChildOf(parent.getTraceContext());
         return this;
     }

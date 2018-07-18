@@ -76,20 +76,6 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
             }
         }
     }
-    
-    public static class StartAsyncTransactionInstrumentation extends ElasticApmApiInstrumentation {
-        public StartAsyncTransactionInstrumentation() {
-            super(named("doStartAsyncTransaction"));
-        }
-        
-        @VisibleForAdvice
-        @Advice.OnMethodExit
-        private static void doStartAsyncTransaction(@Advice.Return(readOnly = false) Object transaction) {
-            if (tracer != null) {
-                transaction = tracer.startAsyncTransaction();
-            }
-        }
-    }
 
     public static class CurrentTransactionInstrumentation extends ElasticApmApiInstrumentation {
         public CurrentTransactionInstrumentation() {
@@ -101,20 +87,6 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
         private static void doGetCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.currentTransaction();
-            }
-        }
-    }
-
-    public static class StartSpanInstrumentation extends ElasticApmApiInstrumentation {
-        public StartSpanInstrumentation() {
-            super(named("doStartSpan"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit
-        private static void doStartSpan(@Advice.Return(readOnly = false) Object span) {
-            if (tracer != null) {
-                span = tracer.startSpan();
             }
         }
     }

@@ -22,18 +22,19 @@ package co.elastic.apm.opentracing;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 class ApmScopeManager implements ScopeManager {
 
     @Override
-    public ApmScope activate(Span span, boolean finishSpanOnClose) {
+    public ApmScope activate(@Nonnull Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
-        doActivate(apmSpan.getTransaction(), apmSpan.getSpan());
+        doActivate(apmSpan.getSpan());
         return new ApmScope(finishSpanOnClose, apmSpan);
     }
 
-    private void doActivate(@Nullable Object transaction, @Nullable Object span) {
+    private void doActivate(@Nullable Object span) {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
     }
 
@@ -41,20 +42,11 @@ class ApmScopeManager implements ScopeManager {
     @Nullable
     public ApmScope active() {
         final Object span = getCurrentSpan();
-        final Object transaction = getCurrentTransaction();
-        if (span == null && transaction == null) {
+        if (span == null) {
             return null;
-        } else if (span != null) {
-            return new ApmScope(false, new ApmSpan(null, span));
         } else {
-            return new ApmScope(false, new ApmSpan(transaction, null));
+            return new ApmScope(false, new ApmSpan(span));
         }
-    }
-
-    @Nullable
-    private Object getCurrentTransaction() {
-        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
-        return null;
     }
 
     @Nullable

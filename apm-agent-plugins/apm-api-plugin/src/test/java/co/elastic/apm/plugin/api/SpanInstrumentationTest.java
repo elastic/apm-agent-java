@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,12 +31,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     private Span span;
+    private Transaction transaction;
 
     @BeforeEach
     void setUp() {
-        final Transaction transaction = ElasticApm.startTransaction();
+        transaction = ElasticApm.startTransaction();
         transaction.setType("default");
-        span = ElasticApm.startSpan();
+        span = transaction.createSpan();
         span.setType("default");
         span.setName("default");
     }
@@ -56,8 +57,8 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     private void endSpan() {
-        ElasticApm.currentTransaction().end();
         span.end();
+        transaction.end();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getTransactions()).hasSize(1);
     }

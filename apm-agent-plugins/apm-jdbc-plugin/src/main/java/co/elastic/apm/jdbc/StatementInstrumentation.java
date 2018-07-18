@@ -59,7 +59,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
     @Advice.OnMethodEnter(inline = false)
     public static Span onBeforeExecute(@Advice.This Statement statement, @Advice.Argument(0) String sql) throws SQLException {
         if (tracer != null && jdbcEventListener != null) {
-            return jdbcEventListener.createJdbcSpan(sql, statement.getConnection(), tracer.currentSpan());
+            return jdbcEventListener.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
         }
         return null;
     }

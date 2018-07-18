@@ -21,6 +21,7 @@ package co.elastic.apm.opentracing.impl;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -74,24 +75,27 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void finishInternal(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                          @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+        public static void finishInternal(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                           @Advice.Argument(0) long finishMicros) {
-            if (transaction != null) {
-                if (transaction.getType() == null) {
-                    if (transaction.getContext().getRequest().hasContent()) {
-                        transaction.withType(Transaction.TYPE_REQUEST);
-                    } else {
-                        transaction.withType("unknown");
+            if (span == null) {
+                return;
+            }
+
+            if (span.getType() == null) {
+                if (span instanceof Transaction) {
+                    Transaction transaction = (Transaction) span;
+                    if (transaction.getType() == null) {
+                        if (transaction.getContext().getRequest().hasContent()) {
+                            transaction.withType(Transaction.TYPE_REQUEST);
+                        } else {
+                            transaction.withType("unknown");
+                        }
                     }
-                }
-                transaction.end(finishMicros * 1000, false);
-            } else if (span != null) {
-                if (span.getType() == null) {
+                } else {
                     span.withType("unknown");
                 }
-                span.end(finishMicros * 1000, false);
             }
+            span.end(finishMicros * 1000);
         }
     }
 
@@ -102,12 +106,9 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void setOperationName(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                            @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+        public static void setOperationName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                             @Advice.Argument(0) @Nullable String operationName) {
-            if (transaction != null) {
-                transaction.setName(operationName);
-            } else if (span != null) {
+            if (span != null) {
                 span.setName(operationName);
             }
         }
@@ -137,17 +138,16 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void handleTag(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                     @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+        public static void handleTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                      @Advice.Argument(0) String key,
                                      @Advice.Argument(1) @Nullable Object value) {
             if (value == null) {
                 return;
             }
-            if (transaction != null) {
-                handleTransactionTag(transaction, key, value);
-            } else if (span != null) {
-                handleSpanTag(span, key, value);
+            if (span instanceof Transaction) {
+                handleTransactionTag((Transaction) span, key, value);
+            } else if (span instanceof Span) {
+                handleSpanTag((Span) span, key, value);
             }
         }
 
@@ -249,22 +249,15 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Advice.OnMethodExit
-        public static void baggageItems(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) @Nullable Transaction transaction,
-                                        @Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable Span span,
+        public static void baggageItems(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
-            baggage = doGetBaggage(transaction, span);
+            baggage = doGetBaggage(span);
         }
 
         @VisibleForAdvice
-        public static Iterable<Map.Entry<String, String>> doGetBaggage(@Nullable Transaction transaction, @Nullable Span span) {
-            String traceParentHeader = null;
-            if (transaction != null) {
-                traceParentHeader = transaction.getTraceContext().getOutgoingTraceParentHeader().toString();
-            }
+        public static Iterable<Map.Entry<String, String>> doGetBaggage(@Nullable AbstractSpan<?> span) {
             if (span != null) {
-                traceParentHeader = span.getTraceContext().getOutgoingTraceParentHeader().toString();
-            }
-            if (traceParentHeader != null) {
+                String traceParentHeader = span.getTraceContext().getOutgoingTraceParentHeader().toString();
                 return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceParentHeader).entrySet();
             } else {
                 return Collections.emptyList();

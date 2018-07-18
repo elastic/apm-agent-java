@@ -185,9 +185,9 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
     @Threads(Threads.MAX)
     @Benchmark
     public void testReport() {
-        try (Transaction t = tracer.startTransaction()) {
-            fillTransaction(t);
-        }
+        Transaction t = tracer.startTransaction();
+        fillTransaction(t);
+        t.end();
     }
 
     @Benchmark
