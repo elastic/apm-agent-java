@@ -89,7 +89,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }
         if (useGzip(payload)) {
-            builder.header("Content-Encoding", "gzip");
+            builder.header("Content-Encoding", "deflate");
         }
         Request request = builder
             .post(new RequestBody() {
