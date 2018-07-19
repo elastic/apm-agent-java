@@ -55,7 +55,7 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
 
     @Override
     protected PayloadSender getPayloadSender() {
-        return new ApmServerHttpPayloadSender(new OkHttpClient(), payloadSerializer, new ReporterConfiguration() {
+        return new ApmServerHttpPayloadSender(new OkHttpClient(), getPayloadSerializer(), new ReporterConfiguration() {
             @Override
             public String getServerUrl() {
                 return "http://localhost:" + port;
