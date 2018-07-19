@@ -48,7 +48,7 @@ class JdbcInstrumentationTest extends AbstractInstrumentationTest {
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction().activate();
         transaction.setName("transaction");
-        transaction.setType("request");
+        transaction.withType("request");
         transaction.withResult("success");
     }
 

@@ -65,7 +65,7 @@ class TransactionPayloadJsonSchemaTest {
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction(mock(ElasticApmTracer.class));
         t.start(null, 0, ConstantSampler.of(true));
-        t.setType("type");
+        t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
         Span s = new Span(mock(ElasticApmTracer.class));

@@ -108,7 +108,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
     private void fillTransaction(Transaction t) {
         t.start(null, 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
-        t.setType("request");
+        t.withType("request");
         t.withResult("success");
 
         Context context = t.getContext();

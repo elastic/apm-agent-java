@@ -90,10 +90,10 @@ public class JdbcHelper {
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError
         // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
-        span.setType("db.unknown.sql");
+        span.withType("db.unknown.sql");
         try {
             final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-            span.setType(connectionMetaData.type);
+            span.withType(connectionMetaData.type);
             span.getContext().getDb()
                 .withUser(connectionMetaData.user)
                 .withStatement(sql)

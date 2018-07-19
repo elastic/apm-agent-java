@@ -166,7 +166,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         // as we can't declare a direct dependency on the OT API
         private static boolean handleSpecialTransactionTag(Transaction transaction, String key, Object value) {
             if ("type".equals(key)) {
-                transaction.setType(value.toString());
+                transaction.withType(value.toString());
                 return true;
             } else if ("result".equals(key)) {
                 transaction.withResult(value.toString());
@@ -181,15 +181,15 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 if (transaction.getResult() == null) {
                     transaction.withResult(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
                 }
-                transaction.setType(Transaction.TYPE_REQUEST);
+                transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {
                 transaction.getContext().getRequest().withMethod(value.toString());
-                transaction.setType(Transaction.TYPE_REQUEST);
+                transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.url".equals(key)) {
                 transaction.getContext().getRequest().getUrl().appendToFull(value.toString());
-                transaction.setType(Transaction.TYPE_REQUEST);
+                transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("sampling.priority".equals(key)) {
                 // mid-trace sampling is not allowed
@@ -209,7 +209,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
             if ("type".equals(key)) {
-                span.setType(value.toString());
+                span.withType(value.toString());
                 return true;
             } else if ("sampling.priority".equals(key)) {
                 // mid-trace sampling is not allowed
@@ -217,9 +217,9 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             } else if ("db.type".equals(key)) {
                 span.getContext().getDb().withType(value.toString());
                 if (isCache(value)) {
-                    span.setType("cache");
+                    span.withType("cache");
                 } else {
-                    span.setType("db");
+                    span.withType("db");
                 }
                 return true;
             } else if ("db.instance".equals(key)) {
@@ -230,7 +230,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 return true;
             } else if ("span.kind".equals(key)) {
                 if (span.getType() == null && ("producer".equals(value) || "client".equals(value))) {
-                    span.setType("ext");
+                    span.withType("ext");
                 }
                 return true;
             }
