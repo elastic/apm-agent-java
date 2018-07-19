@@ -194,7 +194,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
                 .isEqualTo(contextPath + pathToTest);
             // TODO make that less hacky
-            if (pathToTest.equals("/servlet")) {
+            if (!pathToTest.equals("/index.jsp")) {
                 assertContainsOneEntryReported(500, this::getReportedSpans);
             }
         }

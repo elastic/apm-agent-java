@@ -20,6 +20,7 @@
 package co.elastic.apm.servlet.helper;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.servlet.AsyncInstrumentation;
 import co.elastic.apm.servlet.ServletApiAdvice;
 import co.elastic.apm.servlet.ServletTransactionHelper;
@@ -45,7 +46,9 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
         if (request.getAttribute(ASYNC_LISTENER_ADDED) != null) {
             return;
         }
-        if (tracer.currentTransaction() != null &&
+        final Transaction transaction = tracer.currentTransaction();
+        if (transaction != null &&
+            transaction.isSampled() &&
             request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request
@@ -53,7 +56,7 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
             // specifying the request and response is important
             // otherwise AsyncEvent.getSuppliedRequest returns null per spec
             // however, only some application server like WebSphere actually implement it that way
-            asyncContext.addListener(new ApmAsyncListener(servletTransactionHelper, tracer.currentTransaction()),
+            asyncContext.addListener(new ApmAsyncListener(servletTransactionHelper, transaction),
                 asyncContext.getRequest(), asyncContext.getResponse());
         }
     }

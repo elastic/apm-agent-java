@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.Scope;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.transaction.TraceContext;
@@ -45,6 +46,8 @@ import java.util.Enumeration;
  */
 public class ServletApiAdvice {
 
+    @VisibleForAdvice
+    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
@@ -59,21 +62,33 @@ public class ServletApiAdvice {
 
     @Nullable
     @Advice.OnMethodEnter
-    public static Transaction onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest) {
+    public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
+                                             @Advice.Local("transaction") Transaction transaction,
+                                             @Advice.Local("scope") Scope scope) {
+        if (tracer == null) {
+            return;
+        }
+        // re-activate transactions for async requests
+        final Transaction transactionAttr = (Transaction) servletRequest.getAttribute(TRANSACTION_ATTRIBUTE);
+        if (tracer.currentTransaction() == null && transactionAttr != null) {
+            scope = transactionAttr.activateInScope();
+        }
         if (servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(servletRequest.getAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST))) {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            final Transaction transaction = servletTransactionHelper.onBefore(
+            transaction = servletTransactionHelper.onBefore(
                 request.getServletPath(), request.getPathInfo(),
                 request.getRequestURI(), request.getHeader("User-Agent"),
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 request.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
-                return null;
+                return;
+            } else {
+                request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && request.getCookies() != null) {
@@ -91,17 +106,19 @@ public class ServletApiAdvice {
             servletTransactionHelper.fillRequestContext(transaction, userPrincipal != null ? userPrincipal.getName() : null,
                 request.getProtocol(), request.getMethod(), request.isSecure(), request.getScheme(), request.getServerName(),
                 request.getServerPort(), request.getRequestURI(), request.getQueryString(), request.getRemoteAddr(), request.getRequestURL());
-            return transaction;
         }
-        return null;
     }
 
     @Advice.OnMethodExit(onThrowable = Exception.class)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
-                                            @Advice.Enter @Nullable Transaction transaction,
+                                            @Advice.Local("transaction") @Nullable Transaction transaction,
+                                            @Advice.Local("scope") @Nullable Scope scope,
                                             @Advice.Thrown @Nullable Exception exception) {
-        if (tracer != null && servletTransactionHelper != null &&
+        if (scope != null) {
+            scope.close();
+        }
+        if (servletTransactionHelper != null &&
             transaction != null &&
             servletRequest instanceof HttpServletRequest &&
             servletResponse instanceof HttpServletResponse) {
@@ -109,7 +126,7 @@ public class ServletApiAdvice {
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             if (request.isAsyncStarted()) {
                 // the response is not ready yet; the request is handled asynchronously
-                tracer.releaseActiveTransaction();
+                transaction.deactivate();
             } else {
                 // this is not an async request, so we can end the transaction immediately
                 final Response resp = transaction.getContext().getResponse();
