@@ -56,14 +56,14 @@ public interface Span {
     void setType(String type);
 
     /**
-     * Start and return a new custom span as a child of this transaction.
+     * Start and return a new custom span as a child of this span.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.
      * A best practice is to use the span in a try-catch-finally block.
      * Example:
      * </p>
      * <pre>
-     * Span span = span.startSpan()
+     * Span span = parentSpan.startSpan()
      * try {
      *     span.setName("SELECT FROM customer");
      *     span.setType("db.mysql.query");

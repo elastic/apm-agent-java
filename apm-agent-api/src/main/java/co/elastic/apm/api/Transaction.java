@@ -94,7 +94,7 @@ public interface Transaction extends Span {
     void end();
 
     /**
-     * Start and return a new custom span associated with this transaction.
+     * Start and return a new custom span as a child of this transaction.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.
      * A best practice is to use the span in a try-catch-finally block.
