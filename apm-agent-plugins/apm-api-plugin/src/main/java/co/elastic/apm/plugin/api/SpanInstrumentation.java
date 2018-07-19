@@ -21,7 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -69,7 +69,7 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
+        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String name) {
             span.setName(name);
         }
@@ -82,9 +82,9 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
+        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String type) {
-            span.setType(type);
+            span.withType(type);
         }
     }
 
@@ -95,8 +95,8 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span,
-                @Advice.Return(readOnly = false) Object result) {
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                        @Advice.Return(readOnly = false) Object result) {
             result = span.createSpan();
         }
     }
@@ -108,7 +108,7 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Span span) {
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
             span.end();
         }
     }

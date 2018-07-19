@@ -20,7 +20,6 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
-
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,5 +52,30 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testCaptureException() {
         ElasticApm.captureException(new RuntimeException("Bazinga"));
         assertThat(reporter.getErrors()).hasSize(1);
+    }
+
+    @Test
+    void testCreateChildSpanOfCurrentTransaction() {
+        final co.elastic.apm.impl.transaction.Transaction  transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final Span span = ElasticApm.currentSpan().createSpan();
+        span.setName("span");
+        span.setType("db");
+        span.end();
+        transaction.deactivate().end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
+    }
+
+    @Test
+    // https://github.com/elastic/apm-agent-java/issues/132
+    void testAutomaticAndManualTransactions() {
+        final co.elastic.apm.impl.transaction.Transaction  transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final Transaction manualTransaction = ElasticApm.startTransaction();
+        manualTransaction.setName("manual transaction");
+        manualTransaction.setType("request");
+        manualTransaction.end();
+        transaction.deactivate().end();
+        assertThat(reporter.getTransactions()).hasSize(2);
     }
 }

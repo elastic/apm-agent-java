@@ -182,17 +182,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         return type;
     }
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
-     * (Required)
-     */
-    public void setType(@Nullable String type) {
-        if (!isSampled()) {
-            return;
-        }
-        this.type = type;
-    }
-
     public void addTag(String key, String value) {
         if (!isSampled()) {
             return;

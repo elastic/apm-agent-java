@@ -84,7 +84,7 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter
         public static void setType(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String type) {
-            transaction.setType(type);
+            transaction.withType(type);
         }
     }
 

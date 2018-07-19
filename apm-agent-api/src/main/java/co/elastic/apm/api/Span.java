@@ -56,12 +56,30 @@ public interface Span {
     void setType(String type);
 
     /**
-     * Creates child span for this span.
-     * 
-     * @return new span or noop span (never {@code null}).
+     * Start and return a new custom span as a child of this transaction.
+     * <p>
+     * It is important to call {@link Span#end()} when the span has ended.
+     * A best practice is to use the span in a try-catch-finally block.
+     * Example:
+     * </p>
+     * <pre>
+     * Span span = span.startSpan()
+     * try {
+     *     span.setName("SELECT FROM customer");
+     *     span.setType("db.mysql.query");
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     ElasticApm.captureException(e);
+     *     throw e;
+     * } finally {
+     *     span.end();
+     * }
+     * </pre>
+     *
+     * @return the started span, never {@code null}
      */
     Span createSpan();
-    
+
     /**
      * Ends the span.
      * If the span has already ended, nothing happens.

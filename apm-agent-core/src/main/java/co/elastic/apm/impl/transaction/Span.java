@@ -129,14 +129,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return start;
     }
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
-     * (Required)
-     */
-    public void setType(@Nullable String type) {
-        withType(type);
-    }
-
     @Override
     public void end() {
         end(System.nanoTime());

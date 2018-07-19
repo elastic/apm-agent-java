@@ -100,13 +100,13 @@ public class ElasticApm {
     }
 
     /**
-     * Returns the currently running span.
+     * Returns the currently active span or transaction.
      * <p>
      * If there is no current span, this method will return a noop span,
      * which means that you never have to check for {@code null} values.
      * </p>
      *
-     * @return The currently running span, or a noop span (never {@code null}).
+     * @return The currently active span, or transaction, or a noop span (never {@code null}).
      */
     @Nonnull
     public static Span currentSpan() {

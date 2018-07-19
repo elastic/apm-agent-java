@@ -32,7 +32,7 @@ import javax.annotation.Nonnull;
 class SpanImpl implements Span {
 
     @Nonnull
-    // co.elastic.apm.impl.transaction.Span
+    // co.elastic.apm.impl.transaction.AbstractSpan
     private final Object span;
 
     SpanImpl(@Nonnull Object span) {

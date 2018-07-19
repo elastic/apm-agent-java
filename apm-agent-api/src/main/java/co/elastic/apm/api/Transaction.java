@@ -26,7 +26,7 @@ package co.elastic.apm.api;
  * To get a reference to the current transaction, call {@link ElasticApm#currentTransaction()}.
  * </p>
  */
-public interface Transaction {
+public interface Transaction extends Span {
 
     String TYPE_REQUEST = "request";
 
@@ -114,7 +114,7 @@ public interface Transaction {
      * }
      * </pre>
      *
-     * @return the started span, or {@code null} if there is no current transaction
+     * @return the started span, never {@code null}
      */
     Span createSpan();
 

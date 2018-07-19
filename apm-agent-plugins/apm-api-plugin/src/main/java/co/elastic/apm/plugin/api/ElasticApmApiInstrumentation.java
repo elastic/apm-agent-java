@@ -21,7 +21,6 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -100,7 +99,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.currentSpan();
+                span = tracer.getActive();
             }
         }
     }
