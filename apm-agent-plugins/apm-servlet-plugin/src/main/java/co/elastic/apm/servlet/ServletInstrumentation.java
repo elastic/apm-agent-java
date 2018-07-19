@@ -25,6 +25,9 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -74,8 +77,8 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return SERVLET_API;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(SERVLET_API);
     }
 
 }

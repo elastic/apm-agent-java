@@ -26,6 +26,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
@@ -108,6 +109,6 @@ public abstract class ElasticApmInstrumentation {
      *
      * @return a name which groups several instrumentations into a logical group
      */
-    public abstract String getInstrumentationGroupName();
+    public abstract Collection<String> getInstrumentationGroupNames();
 
 }

@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import static co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.OPENTRACING_INSTRUMENTATION_GROUP;
@@ -71,8 +73,8 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return OPENTRACING_INSTRUMENTATION_GROUP;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
     }
 
     public static class CreateSpanInstrumentation extends ApmSpanBuilderInstrumentation {

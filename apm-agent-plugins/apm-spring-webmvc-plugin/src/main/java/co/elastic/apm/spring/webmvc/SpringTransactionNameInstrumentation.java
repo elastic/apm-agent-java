@@ -29,6 +29,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.method.HandlerMethod;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -81,8 +83,8 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return "spring-mvc";
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton("spring-mvc");
     }
 
     @VisibleForAdvice

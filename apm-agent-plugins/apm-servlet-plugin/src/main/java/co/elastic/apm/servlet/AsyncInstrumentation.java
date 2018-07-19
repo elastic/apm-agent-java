@@ -33,6 +33,8 @@ import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -98,8 +100,8 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return SERVLET_API_ASYNC_GROUP_NAME;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList(ServletInstrumentation.SERVLET_API, SERVLET_API_ASYNC_GROUP_NAME);
     }
 
     @Override

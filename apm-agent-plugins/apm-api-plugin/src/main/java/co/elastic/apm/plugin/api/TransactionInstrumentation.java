@@ -28,6 +28,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -54,8 +57,8 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return PUBLIC_API_INSTRUMENTATION_GROUP;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
     }
 
     @Override

@@ -34,6 +34,8 @@ import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
+import java.util.Collections;
 
 import static co.elastic.apm.jdbc.ConnectionInstrumentation.JDBC_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -95,7 +97,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return JDBC_INSTRUMENTATION_GROUP;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(JDBC_INSTRUMENTATION_GROUP);
     }
 }

@@ -21,7 +21,6 @@ package co.elastic.apm.bci;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
@@ -33,6 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.util.Collection;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,8 +88,8 @@ class InstrumentationTest {
         }
 
         @Override
-        public String getInstrumentationGroupName() {
-            return "test";
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.singleton("test");
         }
     }
 }

@@ -26,6 +26,9 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import static co.elastic.apm.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -70,8 +73,8 @@ public class FilterChainInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return SERVLET_API;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(SERVLET_API);
     }
 
 }

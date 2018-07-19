@@ -29,6 +29,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -94,8 +95,8 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return JDBC_INSTRUMENTATION_GROUP;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(JDBC_INSTRUMENTATION_GROUP);
     }
 
 }

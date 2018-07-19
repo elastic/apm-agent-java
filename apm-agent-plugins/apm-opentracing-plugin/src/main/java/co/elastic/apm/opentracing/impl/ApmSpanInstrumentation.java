@@ -33,6 +33,7 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
@@ -64,8 +65,8 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
-    public String getInstrumentationGroupName() {
-        return OPENTRACING_INSTRUMENTATION_GROUP;
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
     }
 
     public static class FinishInstrumentation extends ApmSpanInstrumentation {

@@ -101,11 +101,16 @@ public class ElasticApmAgent {
 
     private static boolean isIncluded(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
         final Collection<String> disabledInstrumentations = coreConfiguration.getDisabledInstrumentations();
-        return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupName()) && isInstrumentationEnabled(advice, coreConfiguration);
+        return !isGroupDisabled(disabledInstrumentations, advice.getInstrumentationGroupNames()) && isInstrumentationEnabled(advice, coreConfiguration);
     }
 
-    private static boolean isGroupDisabled(Collection<String> disabledInstrumentations, String instrumentationGroupName) {
-        return disabledInstrumentations.contains(instrumentationGroupName);
+    private static boolean isGroupDisabled(Collection<String> disabledInstrumentations, Collection<String> instrumentationGroupNames) {
+        for (String instrumentationGroupName : instrumentationGroupNames) {
+            if (disabledInstrumentations.contains(instrumentationGroupName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isInstrumentationEnabled(ElasticApmInstrumentation advice, CoreConfiguration coreConfiguration) {
