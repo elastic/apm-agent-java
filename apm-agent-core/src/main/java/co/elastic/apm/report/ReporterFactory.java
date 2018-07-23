@@ -25,7 +25,11 @@ import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.util.VersionUtils;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +43,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
@@ -73,7 +78,25 @@ public class ReporterFactory {
             loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
             builder.addInterceptor(loggingInterceptor);
         }
+        builder.addInterceptor(new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
+                Request originalRequest = chain.request();
+                Request requestWithUserAgent = originalRequest.newBuilder()
+                    .header("User-Agent", getUserAgent())
+                    .build();
+                return chain.proceed(chain.request());
+            }
+        });
         return builder.build();
+    }
+
+    private String getUserAgent() {
+        String agentVersion = VersionUtils.getAgentVersion();
+        if (agentVersion != null) {
+            return "apm-agent-java " + agentVersion;
+        }
+        return "apm-agent-java";
     }
 
     // based on https://gist.github.com/mefarazath/c9b588044d6bffd26aac3c520660bf40

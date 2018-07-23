@@ -20,7 +20,6 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.error.ErrorPayload;
-import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Payload;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import okhttp3.MediaType;
@@ -35,11 +34,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
@@ -51,7 +48,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     private final OkHttpClient httpClient;
     private final ReporterConfiguration reporterConfiguration;
     private final PayloadSerializer payloadSerializer;
-    private final ScheduledExecutorService healthCheckExecutorService;
     private long dropped = 0;
     private long reported = 0;
 
@@ -60,7 +56,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         this.httpClient = httpClient;
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
-        healthCheckExecutorService = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread thread = new Thread(r);
@@ -69,7 +65,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                 return thread;
             }
         });
-        healthCheckExecutorService.scheduleWithFixedDelay(new ApmServerHealthChecker(httpClient, reporterConfiguration), 0, 10, TimeUnit.SECONDS);
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
+        healthCheckExecutorService.shutdown();
     }
 
     @Override
@@ -83,8 +80,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             path = "/v1/transactions";
         }
         final Request.Builder builder = new Request.Builder()
-            .url(reporterConfiguration.getServerUrl() + path)
-            .header("User-Agent", getUserAgent(payload));
+            .url(reporterConfiguration.getServerUrl() + path);
         if (reporterConfiguration.getSecretToken() != null) {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }
@@ -134,14 +130,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         }
     }
 
-    private String getUserAgent(Payload payload) {
-        Agent agent = payload.getService().getAgent();
-        if (agent != null) {
-            return "apm-agent-java " + agent.getVersion();
-        }
-        return "apm-agent-java";
-    }
-
     private boolean useGzip(Payload payload) {
         return payload.getPayloadObjects().size() > 1;
     }
@@ -159,7 +147,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
     private static class ApmServerHealthChecker implements Runnable {
         private final OkHttpClient httpClient;
         private final ReporterConfiguration reporterConfiguration;
-        private final AtomicBoolean serverHealthy = new AtomicBoolean(true);
 
         ApmServerHealthChecker(OkHttpClient httpClient, ReporterConfiguration reporterConfiguration) {
             this.httpClient = httpClient;
@@ -186,13 +173,9 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             }
 
             if (success) {
-                if (!serverHealthy.getAndSet(true)) {
-                    logger.info("Elastic APM server is available");
-                }
+                logger.info("Elastic APM server is available");
             } else {
-                if (serverHealthy.getAndSet(false)) {
-                    logger.warn("Elastic APM server is not available ({})", message);
-                }
+                logger.warn("Elastic APM server is not available ({})", message);
             }
         }
     }
