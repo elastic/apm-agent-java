@@ -348,7 +348,7 @@ Sets the logging level for the agent.
 [options="header"]
 |============
 | Java System Properties      | Environment
-| `elastic.apm.logging.log_level` | `ELASTIC_APM_LOGGING.LOG_LEVEL`
+| `elastic.apm.logging.log_level` | `ELASTIC_APM_LOGGING_LOG_LEVEL`
 |============
 
 [float]
@@ -376,7 +376,7 @@ it's content is deleted when the application starts.
 [options="header"]
 |============
 | Java System Properties      | Environment
-| `elastic.apm.logging.log_file` | `ELASTIC_APM_LOGGING.LOG_FILE`
+| `elastic.apm.logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
 |============
 
 [[config-reporter]]

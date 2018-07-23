@@ -55,6 +55,23 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testCaptureExceptionNoopSpan() {
+        ElasticApm.currentSpan().captureException(new RuntimeException("Bazinga"));
+        assertThat(reporter.getErrors()).hasSize(1);
+    }
+
+    @Test
+    void testTransactionWithError() {
+        final Transaction transaction = ElasticApm.startTransaction();
+        transaction.setType("request");
+        transaction.setName("transaction");
+        transaction.captureException(new RuntimeException("Bazinga"));
+        transaction.end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+    }
+
+    @Test
     void testCreateChildSpanOfCurrentTransaction() {
         final co.elastic.apm.impl.transaction.Transaction  transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
         final Span span = ElasticApm.currentSpan().createSpan();

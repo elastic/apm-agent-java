@@ -30,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
@@ -136,6 +137,19 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                         @Advice.Return(readOnly = false) Object span) {
             span = transaction.createSpan();
+        }
+    }
+
+    public static class CaptureExceptionInstrumentation extends TransactionInstrumentation {
+        public CaptureExceptionInstrumentation() {
+            super(named("captureException").and(takesArguments(Throwable.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                        @Advice.Argument(0) Throwable t) {
+            transaction.captureException(t);
         }
     }
 }

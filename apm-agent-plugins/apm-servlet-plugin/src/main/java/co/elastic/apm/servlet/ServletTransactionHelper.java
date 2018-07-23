@@ -129,7 +129,7 @@ public class ServletTransactionHelper {
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
             if (exception != null) {
-                tracer.captureException(exception);
+                transaction.captureException(exception);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us

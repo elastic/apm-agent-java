@@ -54,7 +54,7 @@ ${option.description}
 [options="header"]
 |============
 | Java System Properties      | Environment
-| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case}`
+| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
 
         </#if>
