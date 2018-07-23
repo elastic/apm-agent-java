@@ -68,6 +68,10 @@ If there is no current span,
 this method will return a noop span,
 which means that you never have to check for `null` values.
 
+Note that even if this method is returning a noop span,
+you can still <<api-span-capture-exception,capture exceptions>> on it.
+These exceptions will not have a link to a Span or a Transaction.
+
 [source,java]
 ----
 import co.elastic.apm.api.ElasticApm;
@@ -97,18 +101,13 @@ try {
     transaction.setType(Transaction.TYPE_REQUEST);
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    transaction.captureException(e);
     throw e;
 } finally {
     transaction.end();
 }
 ----
 
-
-[float]
-[[api-capture-exception]]
-==== `void captureException(Exception e)`
-Captures an exception and reports it to the APM server.
 
 //----------------------------
 [float]
@@ -197,6 +196,12 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 
 
 [float]
+[[api-transaction-capture-exception]]
+==== `void captureException(Exception e)`
+Captures an exception and reports it to the APM server.
+
+
+[float]
 [[api-transaction-start-span]]
 ==== `Span createSpan()`
 Start and return a new custom span as a child of this transaction.
@@ -276,6 +281,12 @@ the following are standardized across all Elastic APM agents: `app`, `db`, `cach
 * `type`: the type of the span
 
 [float]
+[[api-span-capture-exception]]
+==== `void captureException(Exception e)`
+Captures an exception and reports it to the APM server.
+
+
+[float]
 [[api-span-end]]
 ==== `void end()`
 Ends the span.
@@ -299,7 +310,7 @@ try {
     span.setType("db.mysql.query");
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    span.captureException(e);
     throw e;
 } finally {
     span.end();

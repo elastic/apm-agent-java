@@ -59,7 +59,7 @@ public class ElasticApm {
      *     transaction.setType(Transaction.TYPE_REQUEST);
      *     // do your thing...
      * } catch (Exception e) {
-     *     ElasticApm.captureException(e);
+     *     transaction.captureException(e);
      *     throw e;
      * } finally {
      *     transaction.end();
@@ -105,6 +105,11 @@ public class ElasticApm {
      * If there is no current span, this method will return a noop span,
      * which means that you never have to check for {@code null} values.
      * </p>
+     * <p>
+     * Note that even if this method is returning a noop span,
+     * you can still {@link Span#captureException(Throwable) capture exceptions} on it.
+     * These exceptions will not have a link to a Span or a Transaction.
+     * </p>
      *
      * @return The currently active span, or transaction, or a noop span (never {@code null}).
      */
@@ -123,7 +128,9 @@ public class ElasticApm {
      * Captures an exception and reports it to the APM server.
      *
      * @param e the exception to record
+     * @deprecated use {@link #currentSpan()}.{@link Span#captureException(Throwable) captureException(Throwable)} instead
      */
+    @Deprecated
     public static void captureException(@Nullable Throwable e) {
         // co.elastic.apm.api.ElasticApmInstrumentation.CaptureExceptionInstrumentation.captureException
     }

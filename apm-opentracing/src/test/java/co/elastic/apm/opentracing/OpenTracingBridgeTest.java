@@ -177,6 +177,25 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
         assertThat(reporter.getFirstError().getException().getStacktrace()).isNotEmpty();
+        assertThat(reporter.getFirstError().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
+    }
+
+    @Test
+    void testErrorLoggingWithoutScope() {
+        Span span = apmTracer.buildSpan("someWork").start();
+        try {
+            throw new RuntimeException("Catch me if you can");
+        } catch (Exception ex) {
+            Tags.ERROR.set(span, true);
+            span.log(Map.of(Fields.EVENT, "error", Fields.ERROR_OBJECT, ex, Fields.MESSAGE, ex.getMessage()));
+        } finally {
+            span.finish();
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
+        assertThat(reporter.getFirstError().getException().getStacktrace()).isNotEmpty();
+        assertThat(reporter.getFirstError().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }
 
     @Test

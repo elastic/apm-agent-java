@@ -7,5 +7,7 @@
    and are thus not available via `ElasticApm.activeTransaction` and `ElasticApm.activeSpan`.
 
 ## Features
+ * Add `Span#captureException` and `Transaction#captureException` to public API.
+   `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
 
 ## Bug Fixes

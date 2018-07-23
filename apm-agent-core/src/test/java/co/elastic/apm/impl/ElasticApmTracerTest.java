@@ -171,7 +171,7 @@ class ElasticApmTracerTest {
         Transaction transaction = tracerImpl.startTransaction();
         try (Scope scope = transaction.activateInScope()) {
             transaction.getContext().getRequest().addHeader("foo", "bar");
-            tracerImpl.captureException(new Exception("test"));
+            tracerImpl.currentTransaction().captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
             assertThat(error.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();

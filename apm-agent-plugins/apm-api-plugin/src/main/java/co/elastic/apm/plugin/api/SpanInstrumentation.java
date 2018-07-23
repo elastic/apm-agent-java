@@ -30,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
@@ -110,6 +111,20 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
             span.end();
+        }
+    }
+
+
+    public static class CaptureExceptionInstrumentation extends SpanInstrumentation {
+        public CaptureExceptionInstrumentation() {
+            super(named("captureException").and(takesArguments(Throwable.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                        @Advice.Argument(0) Throwable t) {
+            span.captureException(t);
         }
     }
 }

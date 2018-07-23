@@ -65,4 +65,9 @@ class SpanImpl implements Span {
         // co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation.end
     }
 
+    @Override
+    public void captureException(Throwable throwable) {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.CaptureExceptionInstrumentation
+    }
+
 }

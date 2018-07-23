@@ -69,7 +69,7 @@ public interface Span {
      *     span.setType("db.mysql.query");
      *     // do your thing...
      * } catch (Exception e) {
-     *     ElasticApm.captureException(e);
+     *     span.captureException(e);
      *     throw e;
      * } finally {
      *     span.end();
@@ -85,5 +85,11 @@ public interface Span {
      * If the span has already ended, nothing happens.
      */
     void end();
+
+    /**
+     *
+     * @param throwable
+     */
+    void captureException(Throwable throwable);
 
 }

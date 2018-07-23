@@ -121,11 +121,12 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void createError(@Advice.Argument(0) long epochTimestampMillis,
+        public static void createError(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                                       @Advice.Argument(0) long epochTimestampMillis,
                                        @Advice.Argument(1) Map<String, ?> fields) {
             final Object errorObject = fields.get("error.object");
-            if (tracer != null && errorObject instanceof Exception) {
-                tracer.captureException(epochTimestampMillis, (Exception) errorObject);
+            if (span != null && errorObject instanceof Throwable) {
+                span.captureException(epochTimestampMillis, (Throwable) errorObject);
             }
         }
     }

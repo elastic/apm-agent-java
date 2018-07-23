@@ -65,6 +65,11 @@ class TransactionImpl implements Transaction {
     }
 
     @Override
+    public void captureException(Throwable throwable) {
+        // co.elastic.apm.plugin.api.TransactionInstrumentation.CaptureExceptionInstrumentation
+    }
+
+    @Override
     public Span createSpan() {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;

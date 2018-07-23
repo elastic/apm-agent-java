@@ -218,23 +218,25 @@ public class ElasticApmTracer {
     }
 
     public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis(), e);
+        captureException(System.currentTimeMillis(), e, getActive());
     }
 
-    public void captureException(long epochTimestampMillis, @Nullable Throwable e) {
+    public void captureException(long epochTimestampMillis, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
         if (e != null) {
             ErrorCapture error = new ErrorCapture();
             error.withTimestamp(epochTimestampMillis);
             error.getException().withMessage(e.getMessage());
             error.getException().withType(e.getClass().getName());
             stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
-            Transaction transaction = currentTransaction();
-            if (transaction != null) {
-                // The error might have occurred in a different thread than the one the transaction was recorded
-                // That's why we have to ensure the visibility of the transaction properties
-                error.getContext().copyFrom(transaction.getContextEnsureVisibility());
-                error.asChildOf(transaction);
-                error.getTransaction().getTransactionId().copyFrom(transaction.getId());
+            if (active != null) {
+                if (active instanceof Transaction) {
+                    Transaction transaction = (Transaction) active;
+                    // The error might have occurred in a different thread than the one the transaction was recorded
+                    // That's why we have to ensure the visibility of the transaction properties
+                    error.getContext().copyFrom(transaction.getContextEnsureVisibility());
+                    error.getTransaction().getTransactionId().copyFrom(transaction.getId());
+                }
+                error.asChildOf(active);
             }
             reporter.report(error);
         }
