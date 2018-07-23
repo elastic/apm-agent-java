@@ -43,6 +43,9 @@ So a minimal version of a configuration might look like this:
 
 ${option.description}
 
+<#if option.validOptions?has_content>
+Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
+</#if>
 
 [options="header"]
 |============

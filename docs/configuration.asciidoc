@@ -252,14 +252,14 @@ A list of instrumentations which should be disabled. Valid options are `jdbc`, `
 
 For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
 
-Possible values: errors, transactions, all, off.
-
 If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 
-For requests with a content type of multipart/form-data, any uploaded files will be referenced in a special _files key. It contains the name of the field, and the name of the uploaded file, if provided.
+NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
+Forms which include a file upload (`multipart/form-data`) are not supported.
 
 WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc.If your service handles data like this, we advise to only enable this feature with care.
 
+Valid options: `off`, `errors`, `transactions`, `all`
 
 [options="header"]
 |============
@@ -337,6 +337,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 Sets the logging level for the agent.
 
+Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
