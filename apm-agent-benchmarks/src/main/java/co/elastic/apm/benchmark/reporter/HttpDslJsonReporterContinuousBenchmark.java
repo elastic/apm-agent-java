@@ -42,6 +42,6 @@ public class HttpDslJsonReporterContinuousBenchmark extends AbstractHttpReporter
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return new DslJsonSerializer(tracer.getConfig(CoreConfiguration.class));
+        return new DslJsonSerializer(tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled());
     }
 }

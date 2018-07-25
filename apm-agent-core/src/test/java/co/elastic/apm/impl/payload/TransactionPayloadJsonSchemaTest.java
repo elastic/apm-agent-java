@@ -97,7 +97,7 @@ class TransactionPayloadJsonSchemaTest {
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(new Transaction(mock(ElasticApmTracer.class)));
-        final String content = new DslJsonSerializer(coreConfiguration).toJsonString(payload);
+        final String content = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled()).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
     }
@@ -114,14 +114,14 @@ class TransactionPayloadJsonSchemaTest {
 
     private void validate(TransactionPayload payload) throws IOException {
         when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
-        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration);
+        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled());
 
         final String content = serializer.toJsonString(payload);
         Set<ValidationMessage> errors = schema.validate(objectMapper.readTree(content));
         assertThat(errors).isEmpty();
 
         when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(true);
-        serializer = new DslJsonSerializer(coreConfiguration);
+        serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled());
         transformForDistributedTracing(payload);
         final String contentInDistributedTracingFormat = serializer.toJsonString(payload);
         Set<ValidationMessage> distributedTracingFormatErrors = schema.validate(objectMapper.readTree(contentInDistributedTracingFormat));

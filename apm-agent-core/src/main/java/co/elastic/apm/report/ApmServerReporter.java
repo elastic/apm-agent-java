@@ -21,13 +21,9 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.util.ExecutorUtils;
 import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
@@ -84,16 +80,13 @@ public class ApmServerReporter implements Reporter {
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
-    private final PayloadSender payloadSender;
     @Nullable
     private ScheduledThreadPoolExecutor flushScheduler;
 
-    public ApmServerReporter(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
-                             boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             ProcessorEventHandler processorEventHandler, CoreConfiguration coreConfiguration) {
+    public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
+                             CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
-        this.payloadSender = payloadSender;
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -104,11 +97,8 @@ public class ApmServerReporter implements Reporter {
             }
         }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
         this.coreConfiguration = coreConfiguration;
-        reportingEventHandler = new ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration, processorEventHandler);
-        if (!reporterConfiguration.isIncludeProcessArguments()) {
-            process.getArgv().clear();
-        }
-        disruptor.handleEventsWith(reportingEventHandler);
+        this.reportingEventHandler = reportingEventHandler;
+        disruptor.handleEventsWith(this.reportingEventHandler);
         disruptor.start();
         if (reporterConfiguration.getFlushInterval() > 0) {
             flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
@@ -155,12 +145,12 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public long getDropped() {
-        return dropped.get() + payloadSender.getDropped();
+        return dropped.get() + reportingEventHandler.getDropped();
     }
 
     @Override
     public long getReported() {
-        return payloadSender.getReported();
+        return reportingEventHandler.getReported();
     }
 
     /**

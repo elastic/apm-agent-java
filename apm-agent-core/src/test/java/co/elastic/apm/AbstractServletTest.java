@@ -17,9 +17,8 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm;
 
-import co.elastic.apm.MockReporter;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;

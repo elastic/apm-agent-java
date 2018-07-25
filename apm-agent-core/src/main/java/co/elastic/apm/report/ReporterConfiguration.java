@@ -98,6 +98,13 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Disabled by default to save disk space.")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> enableIntakeV2 = ConfigurationOption.booleanOption()
+        .key("enable_intake_v2")
+        .configurationCategory(REPORTER_CATEGORY)
+        .tags("internal")
+        .description("Enables the nd-json-based intake v2 protocol")
+        .buildWithDefault(false);
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -129,5 +136,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isIncludeProcessArguments() {
         return includeProcessArguments.get();
+    }
+
+    public boolean isIntakeV2Enabled() {
+        return enableIntakeV2.get();
     }
 }

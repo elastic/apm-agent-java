@@ -56,17 +56,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         this.httpClient = httpClient;
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
-        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = new Thread(r);
-                thread.setName("apm-server-healthcheck");
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
-        healthCheckExecutorService.shutdown();
     }
 
     @Override
@@ -116,12 +105,12 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             int statusCode = response.code();
             logger.debug("APM server responded with status code {}", statusCode);
             if (statusCode >= 400) {
-                dropped += payload.getPayloadObjects().size();
+                dropped += payload.getPayloadSize();
                 if (response.body() != null) {
                     logger.debug(response.body().string());
                 }
             } else {
-                reported += payload.getPayloadObjects().size();
+                reported += payload.getPayloadSize();
             }
             response.close();
         } catch (IOException e) {
@@ -144,39 +133,4 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         return reported;
     }
 
-    private static class ApmServerHealthChecker implements Runnable {
-        private final OkHttpClient httpClient;
-        private final ReporterConfiguration reporterConfiguration;
-
-        ApmServerHealthChecker(OkHttpClient httpClient, ReporterConfiguration reporterConfiguration) {
-            this.httpClient = httpClient;
-            this.reporterConfiguration = reporterConfiguration;
-        }
-
-        @Override
-        public void run() {
-            boolean success;
-            String message = null;
-            try {
-                final int status = httpClient.newCall(new Request.Builder()
-                    .url(reporterConfiguration.getServerUrl() + "/healthcheck")
-                    .build())
-                    .execute()
-                    .code();
-                success = status == 200;
-                if (!success) {
-                    message = Integer.toString(status);
-                }
-            } catch (IOException e) {
-                message = e.getMessage();
-                success = false;
-            }
-
-            if (success) {
-                logger.info("Elastic APM server is available");
-            } else {
-                logger.warn("Elastic APM server is not available ({})", message);
-            }
-        }
-    }
 }

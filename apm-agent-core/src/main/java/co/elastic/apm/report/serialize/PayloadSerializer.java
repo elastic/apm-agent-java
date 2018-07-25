@@ -19,11 +19,44 @@
  */
 package co.elastic.apm.report.serialize;
 
+import co.elastic.apm.impl.MetaData;
+import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.Payload;
+import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.Transaction;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 public interface PayloadSerializer {
+
     void serializePayload(OutputStream os, Payload payload) throws IOException;
+
+    /**
+     * Sets the output stream which the {@code *NdJson} methods should write to.
+     *
+     * @param os
+     */
+    void setOutputStream(OutputStream os);
+
+    void serializeMetaDataNdJson(MetaData metaData);
+
+    void serializeTransactionNdJson(Transaction transaction);
+
+    void serializeSpanNdJson(Span span);
+
+    void serializeErrorNdJson(ErrorCapture error);
+
+    /**
+     * Flushes the {@link OutputStream} which has been set via {@link #setOutputStream(OutputStream)}
+     * and detaches that {@link OutputStream} from the serializer.
+     */
+    void flush();
+
+    /**
+     * Gets the number of bytes which are currently buffered
+     *
+     * @return the number of bytes which are currently buffered
+     */
+    int getBufferSize();
 }

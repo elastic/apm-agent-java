@@ -41,7 +41,8 @@ class DslJsonSerializerTest {
 
     @BeforeEach
     void setUp() {
-        serializer = new DslJsonSerializer(new CoreConfiguration());
+        final CoreConfiguration config = new CoreConfiguration();
+        serializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
         objectMapper = new ObjectMapper();
     }
 

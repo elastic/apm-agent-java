@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.payload.ProcessFactory;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
@@ -47,6 +48,9 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class ReporterFactory {
@@ -56,14 +60,45 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class));
+        final OkHttpClient httpClient = getOkHttpClient(reporterConfiguration);
+        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread thread = new Thread(r);
+                thread.setName("apm-server-healthcheck");
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
+        healthCheckExecutorService.shutdown();
+        final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
+            frameworkVersion, reporterConfiguration, httpClient);
         return new ApmServerReporter(
-            new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
-            ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
-            SystemInfo.create(),
-            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), payloadSerializer, reporterConfiguration),
-            true, reporterConfiguration, ProcessorEventHandler.loadProcessors(configurationRegistry),
-            configurationRegistry.getConfig(CoreConfiguration.class));
+            true, reporterConfiguration,
+            configurationRegistry.getConfig(CoreConfiguration.class), reportingEventHandler);
+    }
+
+    @Nonnull
+    private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
+                                                           @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration,
+                                                           OkHttpClient httpClient) {
+
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class).isDistributedTracingEnabled());
+        final co.elastic.apm.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
+        final ApmServerHttpPayloadSender payloadSender = new ApmServerHttpPayloadSender(httpClient, payloadSerializer, reporterConfiguration);
+        final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
+        final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
+        if (!reporterConfiguration.isIncludeProcessArguments()) {
+            processInformation.getArgv().clear();
+        }
+        if (reporterConfiguration.isIntakeV2Enabled()) {
+            return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
+                processorEventHandler, payloadSerializer);
+        } else {
+            return new IntakeV1ReportingEventHandler(service, processInformation, SystemInfo.create(), payloadSender, reporterConfiguration,
+                processorEventHandler);
+        }
     }
 
     @Nonnull

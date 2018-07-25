@@ -38,9 +38,11 @@ import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ApmServerReporter;
+import co.elastic.apm.report.IntakeV1ReportingEventHandler;
 import co.elastic.apm.report.PayloadSender;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+import co.elastic.apm.report.ReportingEventHandler;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
@@ -95,8 +97,11 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
         SystemInfo system = new SystemInfo("x86_64", "Felixs-MBP", "Mac OS X");
         ReporterConfiguration reporterConfiguration = tracer.getConfig(ReporterConfiguration.class);
         CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
-        reporter = new ApmServerReporter(service, process, system, payloadSender, false, reporterConfiguration,
-            ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()), coreConfiguration);
+        final ReportingEventHandler reportingEventHandler;
+        reportingEventHandler = new IntakeV1ReportingEventHandler(service, process, system, payloadSender, reporterConfiguration,
+            ProcessorEventHandler.loadProcessors(tracer.getConfigurationRegistry()));
+        reporter = new ApmServerReporter(false, reporterConfiguration,
+            coreConfiguration, reportingEventHandler);
         payload = new TransactionPayload(process, service, system);
         for (int i = 0; i < reporterConfiguration.getMaxQueueSize(); i++) {
             Transaction t = new Transaction(tracer);

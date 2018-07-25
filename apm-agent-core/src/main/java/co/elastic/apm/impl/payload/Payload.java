@@ -74,5 +74,7 @@ public abstract class Payload implements Recyclable {
 
     public abstract List<? extends Recyclable> getPayloadObjects();
 
+    public abstract int getPayloadSize();
+
     public abstract void recycle();
 }

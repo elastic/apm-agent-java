@@ -88,11 +88,13 @@ class ApmServerReporterIntegrationTest {
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(),
-            new DslJsonSerializer(config.getConfig(CoreConfiguration.class)),
+            new DslJsonSerializer(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()),
             reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system, payloadSender, false,
-            reporterConfiguration, ProcessorEventHandler.loadProcessors(config), config.getConfig(CoreConfiguration.class));
+        final Service service = new Service();
+        final ProcessInfo title = new ProcessInfo("title");
+        reporter = new ApmServerReporter(false,
+            reporterConfiguration, config.getConfig(CoreConfiguration.class), new IntakeV1ReportingEventHandler(service, title, system, payloadSender, reporterConfiguration, ProcessorEventHandler.loadProcessors(config)));
     }
 
     @Test

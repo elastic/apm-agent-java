@@ -35,7 +35,8 @@ class TransactionTest {
 
     @BeforeEach
     void setUp() {
-        jsonSerializer = new DslJsonSerializer(new CoreConfiguration());
+        final CoreConfiguration config = new CoreConfiguration();
+        jsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
     }
 
     @Test
