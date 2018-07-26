@@ -134,8 +134,8 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         response = createResponse();
         final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
         blackholeConnection.init(blackhole);
-
         httpServlet = new BenchmarkingServlet(blackholeConnection, tracer, blackhole);
+        System.getProperties().put(Reporter.class.getName(), tracer.getReporter());
     }
 
     @TearDown
