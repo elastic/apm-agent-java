@@ -19,8 +19,10 @@
  */
 package co.elastic.apm.report;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Response;
+import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Transaction;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -36,25 +38,30 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+// Jenkins fails with java.lang.IllegalStateException: no valid keystore
+// tbh, I have no clue why
+@DisabledIfEnvironmentVariable(named = "JENKINS_HOME", matches = ".*")
 class ReporterFactoryTest {
 
     private Server server;
     private ReporterFactory reporterFactory = new ReporterFactory();
-    private ReporterConfiguration configuration;
+    private ConfigurationRegistry configuration;
+    private AtomicBoolean requestHandled = new AtomicBoolean(false);
+    private ReporterConfiguration reporterConfiguration;
 
     @BeforeEach
     void setUp() throws Exception {
         server = new Server();
-        configuration = mock(ReporterConfiguration.class);
 
         final SslContextFactory sslContextFactory = new SslContextFactory(getClass().getResource("/keystore").getPath());
         sslContextFactory.setKeyStorePassword("password");
@@ -75,9 +82,13 @@ class ReporterFactoryTest {
             @Override
             public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
                 baseRequest.setHandled(true);
+                requestHandled.set(true);
             }
         });
         server.start();
+        configuration = SpyConfiguration.createSpyConfig();
+        reporterConfiguration = configuration.getConfig(ReporterConfiguration.class);
+        when(reporterConfiguration.getServerUrl()).thenReturn("https://localhost:" + getPort());
     }
 
     @AfterEach
@@ -90,15 +101,50 @@ class ReporterFactoryTest {
     }
 
     @Test
-    // Jenkins fails with java.lang.IllegalStateException: no valid keystore
-    // tbh, I have no clue why
-    @DisabledIfEnvironmentVariable(named = "JENKINS_HOME", matches = ".*")
-    void testNotValidatingSslCertificate() throws IOException {
-        when(configuration.isVerifyServerCert()).thenReturn(false);
+    void testNotValidatingSslCertificate_intakeV1() throws Exception {
+        when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
+        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(false);
+        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
 
-        final OkHttpClient okHttpClient = reporterFactory.getOkHttpClient(configuration);
-        final Response response = okHttpClient.newCall(new okhttp3.Request.Builder().url("https://localhost:" + getPort()).build())
-            .execute();
-        assertThat(response.code()).isEqualTo(200);
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.flush().get();
+
+        assertThat(requestHandled).isTrue();
+    }
+
+    @Test
+    void testNotValidatingSslCertificate_intakeV2() throws Exception {
+        when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
+        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(true);
+        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
+
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.flush().get();
+
+        assertThat(requestHandled).isTrue();
+    }
+
+    @Test
+    void testValidatingSslCertificate_intakeV1() throws Exception {
+        when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
+        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(false);
+        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
+
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.flush().get();
+
+        assertThat(requestHandled).isFalse();
+    }
+
+    @Test
+    void testValidatingSslCertificate_intakeV2() throws Exception {
+        when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
+        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(true);
+        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
+
+        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.flush().get();
+
+        assertThat(requestHandled).isFalse();
     }
 }

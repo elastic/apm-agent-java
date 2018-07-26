@@ -26,6 +26,7 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
@@ -35,7 +36,8 @@ import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.InetSocketAddress;
@@ -54,7 +56,9 @@ class ApmServerReporterIntegrationTest {
     private static HttpHandler handler;
     private ApmServerHttpPayloadSender payloadSender;
     private ReporterConfiguration reporterConfiguration;
-    private ApmServerReporter reporter;
+    private ApmServerReporter reporterV1;
+    private ApmServerReporter reporterV2;
+    private ConfigurationRegistry config;
 
     @BeforeAll
     static void startServer() {
@@ -83,47 +87,78 @@ class ApmServerReporterIntegrationTest {
             exchange.setStatusCode(200).endExchange();
         };
         receivedHttpRequests.set(0);
-        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
-        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(),
-            new DslJsonSerializer(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()),
-            reporterConfiguration);
+        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
-        reporter = new ApmServerReporter(false,
-            reporterConfiguration, config.getConfig(CoreConfiguration.class), new IntakeV1ReportingEventHandler(service, title, system, payloadSender, reporterConfiguration, ProcessorEventHandler.loadProcessors(config)));
+        final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
+        final IntakeV1ReportingEventHandler v1handler = new IntakeV1ReportingEventHandler(service, title, system, payloadSender,
+            reporterConfiguration, processorEventHandler);
+        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
+            processorEventHandler, new DslJsonSerializer(true));
+        reporterV1 = new ApmServerReporter(false, reporterConfiguration,
+            config.getConfig(CoreConfiguration.class), v1handler);
+        reporterV2 = new ApmServerReporter(false, reporterConfiguration,
+            config.getConfig(CoreConfiguration.class), v2handler);
     }
 
-    @Test
-    void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
-        reporter.flush().get();
-        assertThat(reporter.getDropped()).isEqualTo(0);
+    @ParameterizedTest
+    @ValueSource(strings = {"v1", "v2"})
+    void testReportTransaction(String version) throws ExecutionException, InterruptedException {
+        getReporter(version).report(new Transaction(mock(ElasticApmTracer.class)));
+        getReporter(version).flush().get();
+        assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
     }
 
-    @Test
-    void testSecretToken() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    // testing v1 without dt makes no sense as spans can't be reported on their own
+    @ValueSource(strings = {"v2"})
+    void testReportSpan(String version) throws ExecutionException, InterruptedException {
+        getReporter(version).report(new Span(mock(ElasticApmTracer.class)));
+        getReporter(version).flush().get();
+        assertThat(getReporter(version).getDropped()).isEqualTo(0);
+        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"v1", "v2"})
+    void testSecretToken(String version) throws ExecutionException, InterruptedException {
         when(reporterConfiguration.getSecretToken()).thenReturn("token");
         handler = exchange -> {
             assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
-        reporter.flush().get();
-        assertThat(reporter.getDropped()).isEqualTo(0);
+        getReporter(version).report(new Transaction(mock(ElasticApmTracer.class)));
+        getReporter(version).flush().get();
+        assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
     }
 
-    @Test
-    void testReportErrorCapture() throws ExecutionException, InterruptedException {
-        reporter.report(new ErrorCapture());
-        reporter.flush().get();
-        assertThat(reporter.getDropped()).isEqualTo(0);
+    @ParameterizedTest
+    @ValueSource(strings = {"v1", "v2"})
+    void testReportErrorCapture(String version) throws ExecutionException, InterruptedException {
+        getReporter(version).report(new ErrorCapture());
+        getReporter(version).flush().get();
+        assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
+    }
+
+    private ApmServerReporter getReporter(String apiVersion) {
+        switch (apiVersion) {
+            case "v1":
+                when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(false);
+                return reporterV1;
+            case "v2":
+                when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(true);
+                return reporterV2;
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 }

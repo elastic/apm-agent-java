@@ -1,3 +1,22 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 Elastic and contributors
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
 package co.elastic.apm.report;
 
 import co.elastic.apm.impl.MetaData;
@@ -13,18 +32,23 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 /**
  * This reporter supports the nd-json HTTP streaming based /v2/intake protocol
  */
-// TODO support verify_server_cert, api_request_size, api_request_time
 public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
@@ -34,13 +58,19 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private final ProcessorEventHandler processorEventHandler;
     private final MetaData metaData;
     private final PayloadSerializer payloadSerializer;
+    private final Timer timeoutTimer;
     private Deflater deflater;
     private long currentlyTransmitting = 0;
     private long reported = 0;
+    private long dropped = 0;
     @Nullable
     private HttpURLConnection connection;
     @Nullable
     private OutputStream os;
+    @Nullable
+    private ApmServerReporter reporter;
+    @Nullable
+    private TimerTask timeoutTask;
 
     IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                   ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -50,6 +80,12 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         this.payloadSerializer = payloadSerializer;
         this.metaData = new MetaData(process, service, system);
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
+        this.timeoutTimer = new Timer("apm-request-timeout-timer", true);
+    }
+
+    @Override
+    public void init(ApmServerReporter reporter) {
+        this.reporter = reporter;
     }
 
     @Override
@@ -88,7 +124,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private boolean shouldFlush() {
-        return deflater.getBytesRead() + DslJsonSerializer.BUFFER_SIZE >= 10 * 1024 * 1024;
+        return deflater.getBytesWritten() + DslJsonSerializer.BUFFER_SIZE >= reporterConfiguration.getApiRequestSize();
     }
 
     private HttpURLConnection startRequest() throws IOException {
@@ -97,6 +133,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
         URL url = new URL(reporterConfiguration.getServerUrl() + "/v2/intake");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        if (!reporterConfiguration.isVerifyServerCert()) {
+            if (connection instanceof HttpsURLConnection) {
+                trustAll((HttpsURLConnection) connection);
+            }
+        }
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
         if (reporterConfiguration.getSecretToken() != null) {
@@ -107,13 +148,29 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         connection.setRequestProperty("Content-Encoding", "deflate");
         connection.setRequestProperty("Content-Type", "application/x-ndjson");
         connection.setUseCaches(false);
+        connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(reporterConfiguration.getServerTimeout()));
+        connection.setReadTimeout((int) TimeUnit.SECONDS.toMillis(reporterConfiguration.getServerTimeout()));
         connection.connect();
         os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
         payloadSerializer.setOutputStream(os);
+        if (reporter != null) {
+            timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+            timeoutTimer.schedule(timeoutTask, TimeUnit.SECONDS.toMillis(reporterConfiguration.getApiRequestTime()));
+        }
         return connection;
     }
 
+    private void trustAll(HttpsURLConnection connection) {
+        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
+        if (sf != null) {
+            // using the same instances is important for TCP connection reuse
+            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
+            connection.setSSLSocketFactory(sf);
+        }
+    }
+
     void flush() {
+        cancelTimeout();
         if (connection != null) {
             try {
                 payloadSerializer.flush();
@@ -145,6 +202,13 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
     }
 
+    private void cancelTimeout() {
+        if (timeoutTask != null) {
+            timeoutTask.cancel();
+            timeoutTask = null;
+        }
+    }
+
     private void onFlushSuccess(InputStream inputStream) {
         reported += currentlyTransmitting;
         currentlyTransmitting = 0;
@@ -155,16 +219,25 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private void onFlushError(int responseCode, InputStream inputStream, @Nullable IOException e) {
-        // TODO increment dropped count based on response
         logger.debug("APM server responded with {}", responseCode);
-        if (e != null) {
-            logger.warn(e.getMessage(), e);
+        if (logger.isDebugEnabled()) {
+            try {
+                logger.debug(IOUtils.toString(inputStream));
+            } catch (IOException e1) {
+                logger.warn(e1.getMessage(), e);
+            } finally {
+                IOUtils.closeQuietly(inputStream);
+            }
+        } else {
+            // in order to be able to reuse the underlying TCP connections,
+            // the input stream must be consumed and closed
+            // see also https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
+            IOUtils.consumeAndClose(inputStream);
         }
-        // TODO proper error logging based on apm server response
-        // in order to be able to reuse the underlying TCP connections,
-        // the input stream must be consumed and closed
-        // see also https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
-        IOUtils.consumeAndClose(inputStream);
+        if (e != null) {
+            logger.debug("Sending payload to APM server failed", e);
+            dropped += currentlyTransmitting;
+        }
     }
 
     @Override
@@ -174,6 +247,38 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public long getDropped() {
-        return 0;
+        return dropped;
+    }
+
+    @Override
+    public void close() {
+        timeoutTimer.cancel();
+    }
+
+    private static class FlushOnTimeoutTimerTask extends TimerTask {
+        @Nullable
+        private Future<Void> flush;
+        private final ApmServerReporter reporter;
+
+        private FlushOnTimeoutTimerTask(ApmServerReporter reporter) {
+            this.reporter = reporter;
+        }
+
+        @Override
+        public void run() {
+            // if the ring buffer is full this waits until a slot becomes available
+            // as this happens on a different thread,
+            // the reporting does not block and thus there is no danger of deadlocks
+            flush = reporter.flush();
+        }
+
+        @Override
+        public boolean cancel() {
+            final boolean cancel = super.cancel();
+            if (flush != null) {
+                flush.cancel(false);
+            }
+            return cancel;
+        }
     }
 }

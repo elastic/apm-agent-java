@@ -73,9 +73,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         if (reporterConfiguration.getSecretToken() != null) {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }
-        if (useGzip(payload)) {
-            builder.header("Content-Encoding", "deflate");
-        }
+        builder.header("Content-Encoding", "deflate");
         Request request = builder
             .post(new RequestBody() {
                 @Override
@@ -86,10 +84,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                 @Override
                 public void writeTo(BufferedSink sink) throws IOException {
                     OutputStream os = sink.outputStream();
-                    if (useGzip(payload)) {
-                        final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
-                        os = new DeflaterOutputStream(os, def);
-                    }
+                    final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
+                    os = new DeflaterOutputStream(os, def);
                     try {
                         payloadSerializer.serializePayload(os, payload);
                     } finally {
@@ -117,10 +113,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             logger.debug("Sending payload to APM server failed", e);
             dropped += payload.getPayloadObjects().size();
         }
-    }
-
-    private boolean useGzip(Payload payload) {
-        return payload.getPayloadObjects().size() > 1;
     }
 
     @Override

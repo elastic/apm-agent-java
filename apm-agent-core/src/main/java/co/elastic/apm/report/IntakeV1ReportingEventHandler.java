@@ -26,8 +26,13 @@ import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
+import co.elastic.apm.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.report.ReportingEvent.ReportingEventType.FLUSH;
@@ -44,6 +49,8 @@ public class IntakeV1ReportingEventHandler implements ReportingEventHandler {
     private final PayloadSender payloadSender;
     private final ReporterConfiguration reporterConfiguration;
     private final ProcessorEventHandler processorEventHandler;
+    @Nullable
+    private ScheduledThreadPoolExecutor flushScheduler;
 
     public IntakeV1ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system, PayloadSender payloadSender,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler) {
@@ -52,6 +59,19 @@ public class IntakeV1ReportingEventHandler implements ReportingEventHandler {
         this.processorEventHandler = processorEventHandler;
         transactionPayload = new TransactionPayload(process, service, system);
         errorPayload = new ErrorPayload(process, service, system);
+    }
+
+    @Override
+    public void init(final ApmServerReporter reporter) {
+        if (reporterConfiguration.getFlushInterval() > 0) {
+            flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
+            flushScheduler.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    reporter.flush();
+                }
+            }, reporterConfiguration.getFlushInterval(), reporterConfiguration.getFlushInterval(), TimeUnit.SECONDS);
+        }
     }
 
     @Override
@@ -107,5 +127,12 @@ public class IntakeV1ReportingEventHandler implements ReportingEventHandler {
     @Override
     public long getDropped() {
         return payloadSender.getDropped();
+    }
+
+    @Override
+    public void close() {
+        if (flushScheduler != null) {
+            flushScheduler.shutdown();
+        }
     }
 }

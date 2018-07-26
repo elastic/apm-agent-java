@@ -1,12 +1,33 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 Elastic and contributors
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
 package co.elastic.apm.report;
 
 import co.elastic.apm.AbstractServletTest;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
@@ -30,7 +51,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.InflaterInputStream;
 
@@ -65,18 +85,39 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
     }
 
     @Test
-    void testReportTransaction() throws Exception {
+    void testReport() throws Exception {
+        reportTransaction();
+        reportSpan();
+        reportError();
+        reportingEventHandler.flush();
+
+        final List<JsonNode> ndJsonNodes = getNdJsonNodes();
+        assertThat(ndJsonNodes).hasSize(4);
+        assertThat(ndJsonNodes.get(0).get("metaData")).isNotNull();
+        assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
+        assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
+        assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
+    }
+
+    private void reportTransaction() throws IOException {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
 
         reportingEventHandler.onEvent(reportingEvent, 1, true);
-        reportingEventHandler.flush();
-        TimeUnit.SECONDS.sleep(1);
+    }
 
-        final List<JsonNode> ndJsonNodes = getNdJsonNodes();
-        assertThat(ndJsonNodes.size()).isGreaterThan(1);
-        assertThat(ndJsonNodes.get(0).get("metaData")).isNotNull();
-        assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
+    private void reportSpan() throws IOException {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        reportingEvent.setSpan(new Span(mock(ElasticApmTracer.class)));
+
+        reportingEventHandler.onEvent(reportingEvent, 1, true);
+    }
+
+    private void reportError() throws IOException {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        reportingEvent.setError(new ErrorCapture());
+
+        reportingEventHandler.onEvent(reportingEvent, 1, true);
     }
 
     private List<JsonNode> getNdJsonNodes() throws IOException {

@@ -24,18 +24,16 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.util.ExecutorUtils;
 import co.elastic.apm.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
+import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.PhasedBackoffWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -80,8 +78,6 @@ public class ApmServerReporter implements Reporter {
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
-    @Nullable
-    private ScheduledThreadPoolExecutor flushScheduler;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
                              CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
@@ -98,17 +94,10 @@ public class ApmServerReporter implements Reporter {
         }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
         this.coreConfiguration = coreConfiguration;
         this.reportingEventHandler = reportingEventHandler;
+        disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
         disruptor.start();
-        if (reporterConfiguration.getFlushInterval() > 0) {
-            flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
-            flushScheduler.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
-                }
-            }, reporterConfiguration.getFlushInterval(), reporterConfiguration.getFlushInterval(), TimeUnit.SECONDS);
-        }
+        reportingEventHandler.init(this);
     }
 
     @Override
@@ -166,24 +155,32 @@ public class ApmServerReporter implements Reporter {
         disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
         final long cursor = disruptor.getCursor();
         return new Future<Void>() {
+            private volatile boolean cancelled = false;
+
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
+                if (isDone()) {
+                    return false;
+                }
+                disruptor.get(cursor).resetState();
+                // the volatile write also ensures visibility of the resetState() in other threads
+                cancelled = true;
+                return true;
             }
 
             @Override
             public boolean isCancelled() {
-                return false;
+                return cancelled;
             }
 
             @Override
             public boolean isDone() {
-                return false;
+                return isEventProcessed(cursor);
             }
 
             @Override
             public Void get() throws InterruptedException {
-                while (!isEventProcessed(cursor)) {
+                while (!isDone()) {
                     Thread.sleep(1);
                 }
                 return null;
@@ -194,10 +191,10 @@ public class ApmServerReporter implements Reporter {
              */
             @Override
             public Void get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
-                for (; timeout > 0 && !isEventProcessed(cursor); timeout--) {
+                for (; timeout > 0 && !isDone(); timeout--) {
                     Thread.sleep(1);
                 }
-                if (!isEventProcessed(cursor)) {
+                if (!isDone()) {
                     throw new TimeoutException();
                 }
                 return null;
@@ -212,9 +209,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void close() {
         disruptor.shutdown();
-        if (flushScheduler != null) {
-            flushScheduler.shutdown();
-        }
+        reportingEventHandler.close();
     }
 
     @Override
