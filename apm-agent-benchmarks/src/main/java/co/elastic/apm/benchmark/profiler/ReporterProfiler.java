@@ -38,14 +38,16 @@ import java.util.concurrent.TimeUnit;
 public class ReporterProfiler implements InternalProfiler {
 
     private long reportedCountStart;
+    private long droppedCountStart;
+    private long receivedBytesStart;
+    private long receivedPayloadsStart;
 
 
     public ReporterProfiler() {
     }
 
     private Reporter getReporter() {
-        Reporter reporter = (Reporter) System.getProperties().get(Reporter.class.getName());
-        return reporter;
+        return (Reporter) System.getProperties().get(Reporter.class.getName());
     }
 
     @Override
@@ -53,7 +55,14 @@ public class ReporterProfiler implements InternalProfiler {
         final Reporter reporter = getReporter();
         if (reporter != null) {
             reportedCountStart = reporter.getReported();
+            droppedCountStart = reporter.getDropped();
+            receivedBytesStart = getLong("server.received.bytes");
+            receivedPayloadsStart = getLong("server.received.payloads");
         }
+    }
+
+    private long getLong(String propertyName) {
+        return (Long) System.getProperties().get(propertyName);
     }
 
     @Override
@@ -62,16 +71,34 @@ public class ReporterProfiler implements InternalProfiler {
         final TimeValue time = iterationParams.getTime();
         final Reporter reporter = getReporter();
         if (reporter != null) {
-            final long reportedDuringThisIteration = reporter.getReported() - reportedCountStart;
             final double iterationDurationNs = time.convertTo(TimeUnit.NANOSECONDS);
-            double reportsPerSecond = reportedDuringThisIteration / iterationDurationNs * TimeUnit.SECONDS.toNanos(1);
+
+            final long reportedDuringThisIteration = reporter.getReported() - reportedCountStart;
+            double reportsPerSecond = perSecond(iterationDurationNs, reportedDuringThisIteration);
             results.add(new ScalarResult(Defaults.PREFIX + "reporter.reported", reportsPerSecond, "events/s", AggregationPolicy.AVG));
+
+            final long droppedDuringThisIteration = reporter.getDropped() - droppedCountStart;
+            double dropsPerSecond = perSecond(iterationDurationNs, droppedDuringThisIteration);
+            results.add(new ScalarResult(Defaults.PREFIX + "reporter.dropped", dropsPerSecond, "events/s", AggregationPolicy.AVG));
+
+            long receivedBytesDuringThisIteration = getLong("server.received.bytes") - receivedBytesStart;
+            results.add(new ScalarResult(Defaults.PREFIX + "server.received.bytes", perSecond(iterationDurationNs,
+                receivedBytesDuringThisIteration), "bytes/s", AggregationPolicy.AVG));
+
+            long receivedPayloadsDuringThisIteration = getLong("server.received.payloads") - receivedPayloadsStart;
+            results.add(new ScalarResult(Defaults.PREFIX + "server.received.payloads", perSecond(iterationDurationNs,
+                receivedPayloadsDuringThisIteration), "payloads/s", AggregationPolicy.AVG));
+
         }
         return results;
     }
 
+    private double perSecond(double iterationDurationNs, long deltaThisIteration) {
+        return deltaThisIteration / iterationDurationNs * TimeUnit.SECONDS.toNanos(1);
+    }
+
     @Override
     public String getDescription() {
-        return "CPU profiling via MBeans";
+        return "APM Server reporter profiler";
     }
 }

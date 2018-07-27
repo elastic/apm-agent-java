@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,9 +38,10 @@ public class SizeOfSpan {
         System.out.println("sizeof transaction: " + sizeOfTransaction);
         System.out.println("sizeof error: " + sizeOfError);
 
-        final long totalSize = sizeOfSpan + sizeOfTransaction + sizeOfError;
-
-        final long sizeOfObjectPools = MathUtils.getNextPowerOf2(new ReporterConfiguration().getMaxQueueSize()) * 2 * totalSize;
+        final int queueSize = MathUtils.getNextPowerOf2(new ReporterConfiguration().getMaxQueueSize());
+        final long sizeOfObjectPools = queueSize * 2 * sizeOfSpan +
+            queueSize * 2 * sizeOfTransaction +
+            queueSize * sizeOfError;
         System.out.println("sizeOfObjectPools: " + sizeOfObjectPools / 1024.0 / 1024.0 + " MiB");
     }
 }
