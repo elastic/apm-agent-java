@@ -1,0 +1,3 @@
+This product includes software from openzipkin/brave,
+under the Apache License 2.0. See:
+ - co.elastic.apm.servlet.helper.ApmAsyncListener
