@@ -29,6 +29,9 @@ import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * Based on brave.servlet.ServletRuntime$TracingAsyncListener (under Apache license 2.0)
+ */
 public class ApmAsyncListener implements AsyncListener {
     private final ServletTransactionHelper servletTransactionHelper;
     private final Transaction transaction;
@@ -63,17 +66,15 @@ public class ApmAsyncListener implements AsyncListener {
         }
     }
 
-    // taken from
-    // https://github.com/openzipkin/brave/blob/release-5.0.0/instrumentation/servlet/src/main/java/brave/servlet/ServletRuntime.java#L110
-    // cheers to @adriancole
-
     /**
      * If another async is created (ex via asyncContext.dispatch), this needs to be re-attached
      */
     @Override
     public void onStartAsync(AsyncEvent event) {
         AsyncContext eventAsyncContext = event.getAsyncContext();
-        if (eventAsyncContext != null) eventAsyncContext.addListener(this);
+        if (eventAsyncContext != null) {
+            eventAsyncContext.addListener(this, event.getSuppliedRequest(), event.getSuppliedResponse());
+        }
     }
 
     // unfortunately, the duplication can't be avoided,
