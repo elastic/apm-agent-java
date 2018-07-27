@@ -124,7 +124,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     @Override
     public void serializeMetaDataNdJson(MetaData metaData) {
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeFieldName("metaData");
+        writeFieldName("metadata");
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService());
         jw.writeByte(COMMA);
