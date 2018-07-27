@@ -208,9 +208,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             context.resetState();
         }
         final ElasticApmTracer tracer = this.tracer;
-        if (tracer != null) {
-            tracer.endTransaction(this);
-        }
+        tracer.endTransaction(this);
     }
 
     public Transaction withType(@Nullable String type) {

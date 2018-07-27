@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.report.serialize;
 
-import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.MetaData;
 import co.elastic.apm.impl.context.Context;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
@@ -58,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -72,20 +73,37 @@ import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
+    /**
+     * Matches default ZLIB buffer size; twice the size of {@link okio.Segment#SIZE}.
+     * Lets us assume the ZLIB buffer is always empty,
+     * so that {@link #getBufferSize()} is the total amount of buffered bytes.
+     */
+    public static final int BUFFER_SIZE = 16384;
+    public static final byte NEW_LINE = (byte) '\n';
     static final int MAX_VALUE_LENGTH = 1024;
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
-
     // visible for testing
     final JsonWriter jw;
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
 
-    public DslJsonSerializer(CoreConfiguration config) {
-        jw = new DslJson<>().newWriter();
+    public DslJsonSerializer(boolean distributedTracingEnabled) {
+        jw = new DslJson<>().newWriter(BUFFER_SIZE);
         dateSerializer = new DateSerializer();
-        distributedTracing = config.isDistributedTracingEnabled();
+        distributedTracing = distributedTracingEnabled;
+    }
+
+    @Override
+    public void setOutputStream(final OutputStream os) {
+        jw.reset(os);
+    }
+
+    @Override
+    public void flush() {
+        jw.flush();
+        jw.reset();
     }
 
     @Override
@@ -103,14 +121,72 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.reset();
     }
 
+    @Override
+    public void serializeMetaDataNdJson(MetaData metaData) {
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("metaData");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        serializeService(metaData.getService());
+        jw.writeByte(COMMA);
+        serializeProcess(metaData.getProcess());
+        jw.writeByte(COMMA);
+        serializeSystem(metaData.getSystem());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeTransactionNdJson(Transaction transaction) {
+        if (logger.isDebugEnabled()) {
+            logger.debug(toJsonString(transaction));
+        }
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("transaction");
+        serializeTransaction(transaction);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeSpanNdJson(Span span) {
+        if (logger.isTraceEnabled()) {
+            logger.trace(toJsonString(span));
+        }
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("span");
+        serializeSpan(span);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeErrorNdJson(ErrorCapture error) {
+        if (logger.isTraceEnabled()) {
+            logger.trace(toJsonString(error));
+        }
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeFieldName("error");
+        serializeError(error);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public int getBufferSize() {
+        return jw.size();
+    }
+
     private void serializeErrorPayload(ErrorPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
+        jw.writeByte(COMMA);
         serializeProcess(payload.getProcess());
+        jw.writeByte(COMMA);
         serializeSystem(payload.getSystem());
+        jw.writeByte(COMMA);
         serializeErrors(payload.getErrors());
         jw.writeByte(JsonWriter.OBJECT_END);
-
     }
 
     private void serializeErrors(List<ErrorCapture> errors) {
@@ -206,8 +282,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeTransactionPayload(final TransactionPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
+        jw.writeByte(COMMA);
         serializeProcess(payload.getProcess());
+        jw.writeByte(COMMA);
         serializeSystem(payload.getSystem());
+        jw.writeByte(COMMA);
         serializeSpans(payload.getSpans());
         serializeTransactions(payload);
         jw.writeByte(JsonWriter.OBJECT_END);
@@ -251,7 +330,6 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         writeLastField("version", service.getVersion());
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     private void serializeAgent(final Agent agent) {
@@ -302,7 +380,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("argv", argv);
         writeLastField("title", process.getTitle());
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     private void serializeSystem(final SystemInfo system) {
@@ -312,7 +389,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("hostname", system.getHostname());
         writeLastField("platform", system.getPlatform());
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(COMMA);
     }
 
     private void serializeTransactions(final List<Transaction> transactions) {

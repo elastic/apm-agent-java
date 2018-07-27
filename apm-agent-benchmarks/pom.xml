@@ -90,6 +90,11 @@
             <artifactId>agrona</artifactId>
             <version>0.9.18</version>
         </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>sizeof</artifactId>
+            <version>0.3.0</version>
+        </dependency>
     </dependencies>
 
     <properties>

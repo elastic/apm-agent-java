@@ -63,7 +63,8 @@ public class MockReporter implements Reporter {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
         spanSchema = getSchema("/schema/transactions/span.json");
         errorSchema = getSchema("/schema/errors/error.json");
-        dslJsonSerializer = new DslJsonSerializer(new CoreConfiguration());
+        final CoreConfiguration config = new CoreConfiguration();
+        dslJsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
         objectMapper = new ObjectMapper();
     }
 

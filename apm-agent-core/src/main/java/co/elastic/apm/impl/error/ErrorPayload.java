@@ -59,6 +59,11 @@ public class ErrorPayload extends Payload {
     }
 
     @Override
+    public int getPayloadSize() {
+        return errors.size();
+    }
+
+    @Override
     public void recycle() {
         for (ErrorCapture error : errors) {
             error.recycle();

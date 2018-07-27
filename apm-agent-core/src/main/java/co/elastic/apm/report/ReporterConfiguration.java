@@ -98,6 +98,29 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Disabled by default to save disk space.")
         .buildWithDefault(false);
 
+    private final ConfigurationOption<Boolean> enableIntakeV2 = ConfigurationOption.booleanOption()
+        .key("enable_intake_v2")
+        .configurationCategory(REPORTER_CATEGORY)
+        .tags("internal", "incubating", "intake-v2")
+        .description("Enables the nd-json-based intake v2 protocol")
+        .buildWithDefault(false);
+
+    private final ConfigurationOption<Integer> apiRequestTime = ConfigurationOption.integerOption()
+        .key("api_request_time")
+        .configurationCategory(REPORTER_CATEGORY)
+        .tags("internal", "incubating", "intake-v2")
+        .description("Maximum number of seconds to keep an HTTP request to the APM Server open for.")
+        .buildWithDefault(10);
+
+    private final ConfigurationOption<Integer> apiRequestSize = ConfigurationOption.integerOption()
+        .key("api_request_size")
+        .configurationCategory(REPORTER_CATEGORY)
+        .tags("internal", "incubating", "intake-v2")
+        .description("The maximum total compressed size in bytes of the request body which is sent to the APM server intake api via a " +
+            "chunked encoding (HTTP streaming).\n" +
+            "Note that a small overshoot is possible.")
+        .buildWithDefault(768 * 1024);
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -129,5 +152,17 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isIncludeProcessArguments() {
         return includeProcessArguments.get();
+    }
+
+    public boolean isIntakeV2Enabled() {
+        return enableIntakeV2.get();
+    }
+
+    public int getApiRequestTime() {
+        return apiRequestTime.get();
+    }
+
+    public int getApiRequestSize() {
+        return apiRequestSize.get();
     }
 }

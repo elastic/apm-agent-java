@@ -20,6 +20,7 @@
 package co.elastic.apm.benchmark;
 
 import co.elastic.apm.benchmark.profiler.CpuProfiler;
+import co.elastic.apm.benchmark.profiler.ReporterProfiler;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -58,6 +59,7 @@ public abstract class AbstractBenchmark {
             .include(benchmark.getSimpleName())
             .addProfiler(GCProfiler.class)
             .addProfiler(CpuProfiler.class)
+            .addProfiler(ReporterProfiler.class)
             .build())
             .run();
     }

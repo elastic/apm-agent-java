@@ -19,8 +19,16 @@
  */
 package co.elastic.apm.benchmark.reporter;
 
+import co.elastic.apm.impl.MetaData;
+import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.payload.Payload;
+import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import org.openjdk.jmh.runner.RunnerException;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark {
 
@@ -36,9 +44,46 @@ public class HttpNoopJsonReporterBenchmark extends AbstractHttpReporterBenchmark
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return (os, payload) -> {
-            os.write('{');
-            os.write('}');
+        return new PayloadSerializer() {
+            @Override
+            public void serializePayload(OutputStream os, Payload payload) {
+                // noop
+            }
+
+            @Override
+            public void serializeMetaDataNdJson(MetaData metaData) {
+                // noop
+            }
+
+            @Override
+            public void serializeTransactionNdJson(Transaction transaction) {
+                // noop
+            }
+
+            @Override
+            public void serializeSpanNdJson(Span span) {
+                // noop
+            }
+
+            @Override
+            public void serializeErrorNdJson(ErrorCapture error) {
+                // noop
+            }
+
+            @Override
+            public int getBufferSize() {
+                return 0;
+            }
+
+            @Override
+            public void setOutputStream(OutputStream os) {
+                // noop
+            }
+
+            @Override
+            public void flush() {
+                // noop
+            }
         };
     }
 }

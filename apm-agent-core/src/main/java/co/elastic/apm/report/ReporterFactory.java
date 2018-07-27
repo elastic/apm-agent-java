@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.payload.ProcessFactory;
+import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
@@ -37,16 +38,11 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class ReporterFactory {
@@ -56,14 +52,45 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class));
+        final OkHttpClient httpClient = getOkHttpClient(reporterConfiguration);
+        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread thread = new Thread(r);
+                thread.setName("apm-server-healthcheck");
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
+        healthCheckExecutorService.shutdown();
+        final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
+            frameworkVersion, reporterConfiguration, httpClient);
         return new ApmServerReporter(
-            new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion),
-            ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation(),
-            SystemInfo.create(),
-            new ApmServerHttpPayloadSender(getOkHttpClient(reporterConfiguration), payloadSerializer, reporterConfiguration),
-            true, reporterConfiguration, ProcessorEventHandler.loadProcessors(configurationRegistry),
-            configurationRegistry.getConfig(CoreConfiguration.class));
+            true, reporterConfiguration,
+            configurationRegistry.getConfig(CoreConfiguration.class), reportingEventHandler);
+    }
+
+    @Nonnull
+    private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
+                                                           @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration,
+                                                           OkHttpClient httpClient) {
+
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class).isDistributedTracingEnabled());
+        final co.elastic.apm.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
+        final ApmServerHttpPayloadSender payloadSender = new ApmServerHttpPayloadSender(httpClient, payloadSerializer, reporterConfiguration);
+        final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
+        final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
+        if (!reporterConfiguration.isIncludeProcessArguments()) {
+            processInformation.getArgv().clear();
+        }
+        if (reporterConfiguration.isIntakeV2Enabled()) {
+            return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
+                processorEventHandler, payloadSerializer);
+        } else {
+            return new IntakeV1ReportingEventHandler(service, processInformation, SystemInfo.create(), payloadSender, reporterConfiguration,
+                processorEventHandler);
+        }
     }
 
     @Nonnull
@@ -99,44 +126,12 @@ public class ReporterFactory {
         return "apm-agent-java";
     }
 
-    // based on https://gist.github.com/mefarazath/c9b588044d6bffd26aac3c520660bf40
     private void disableCertificateValidation(OkHttpClient.Builder builder) {
-        // Create a trust manager that does not validate certificate chains
-        final TrustManager[] trustAllCerts = new TrustManager[]{
-            new X509TrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                }
-
-                @Override
-                public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                }
-
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            }
-        };
-
-        try {
-            // Install the all-trusting trust manager
-            final SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            // Create an ssl socket factory with our all-trusting manager
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-
+        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
+        if (sf != null) {
             builder
-                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
-                .hostnameVerifier(new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                });
-        } catch (KeyManagementException | NoSuchAlgorithmException e) {
-            logger.warn(e.getMessage(), e);
+                .sslSocketFactory(sf, SslUtils.getTrustAllTrustManager())
+                .hostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
         }
     }
 }

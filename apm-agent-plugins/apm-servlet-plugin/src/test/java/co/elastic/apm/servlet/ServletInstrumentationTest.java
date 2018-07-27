@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.AbstractServletTest;
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.configuration.SpyConfiguration;

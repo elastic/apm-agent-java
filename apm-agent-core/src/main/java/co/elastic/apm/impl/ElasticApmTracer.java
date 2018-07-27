@@ -94,7 +94,8 @@ public class ElasticApmTracer {
                     return new Span(ElasticApmTracer.this);
                 }
             });
-        errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements)), false,
+        // we are assuming that we don't need as many errors as spans or transactions
+        errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements / 2)), false,
             new RecyclableObjectFactory<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {
@@ -335,12 +336,12 @@ public class ElasticApmTracer {
         return sampler;
     }
 
-    public void setActive(@Nullable AbstractSpan<?> span) {
-        active.set(span);
-    }
-
     @Nullable
     public AbstractSpan<?> getActive() {
         return active.get();
+    }
+
+    public void setActive(@Nullable AbstractSpan<?> span) {
+        active.set(span);
     }
 }

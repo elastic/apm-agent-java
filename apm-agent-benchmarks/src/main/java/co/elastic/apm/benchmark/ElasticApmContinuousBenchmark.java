@@ -26,6 +26,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.report.Reporter;
 import io.undertow.Undertow;
+import io.undertow.server.handlers.BlockingHandler;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -45,6 +46,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -96,12 +98,14 @@ import java.util.concurrent.TimeUnit;
 public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     private final boolean apmEnabled;
+    private final byte[] buffer = new byte[32 * 1024];
     protected MockHttpServletRequest request;
     protected MockHttpServletResponse response;
     protected HttpServlet httpServlet;
     private Undertow server;
     private ElasticApmTracer tracer;
     private long receivedPayloads = 0;
+    private long receivedBytes = 0;
 
     public ElasticApmContinuousBenchmark(boolean apmEnabled) {
         this.apmEnabled = apmEnabled;
@@ -111,10 +115,27 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     public void setUp(Blackhole blackhole) {
         server = Undertow.builder()
             .addHttpListener(0, "127.0.0.1")
-            .setHandler(exchange -> {
-                receivedPayloads++;
-                exchange.setStatusCode(200).endExchange();
-            }).build();
+            .setHandler(new BlockingHandler(exchange -> {
+                if (!exchange.getRequestPath().equals("/healthcheck")) {
+                    receivedPayloads++;
+                    if (receivedPayloads == 1) {
+                        System.out.println(exchange.getRequestHeaders());
+                    }
+                    exchange.startBlocking();
+                    try (InputStream is = exchange.getInputStream()) {
+                        for (int n = 0; -1 != n; n = is.read(buffer)) {
+                            if (receivedPayloads == 1) {
+                                System.out.println(n);
+                            }
+                            receivedBytes += n;
+                        }
+                    }
+                    System.getProperties().put("server.received.bytes", receivedBytes);
+                    System.getProperties().put("server.received.payloads", receivedPayloads);
+                    exchange.setStatusCode(200).endExchange();
+                }
+            })).build();
+
         server.start();
         int port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
         tracer = new ElasticApmTracerBuilder()
@@ -123,7 +144,9 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
                     .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
-                    .add("server_url", "http://localhost:" + port))
+                    .add("server_url", "http://localhost:" + port)
+                    .add("enable_intake_v2", "false")
+                    .add("distributed_tracing", "false"))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
             .build();
@@ -132,8 +155,8 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         response = createResponse();
         final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
         blackholeConnection.init(blackhole);
-
         httpServlet = new BenchmarkingServlet(blackholeConnection, tracer, blackhole);
+        System.getProperties().put(Reporter.class.getName(), tracer.getReporter());
     }
 
     @TearDown
@@ -144,6 +167,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         System.out.println("Reported: " + tracer.getReporter().getReported());
         System.out.println("Dropped: " + tracer.getReporter().getDropped());
         System.out.println("receivedPayloads = " + receivedPayloads);
+        System.out.println("receivedBytes = " + receivedBytes);
     }
 
     private MockHttpServletRequest createRequest() {

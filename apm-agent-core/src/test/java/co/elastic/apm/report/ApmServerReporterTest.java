@@ -50,10 +50,11 @@ class ApmServerReporterTest {
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        reporter = new ApmServerReporter(new Service(), new ProcessInfo("title"), system,
-            mock(PayloadSender.class), true, reporterConfiguration,
-            new ProcessorEventHandler(Collections.singletonList(new TestProcessor())),
-            configurationRegistry.getConfig(CoreConfiguration.class));
+        final Service service = new Service();
+        final ProcessInfo title = new ProcessInfo("title");
+        final ProcessorEventHandler processorEventHandler = new ProcessorEventHandler(Collections.singletonList(new TestProcessor()));
+        reporter = new ApmServerReporter(true, reporterConfiguration,
+            configurationRegistry.getConfig(CoreConfiguration.class), new IntakeV1ReportingEventHandler(service, title, system, mock(PayloadSender.class), reporterConfiguration, processorEventHandler));
     }
 
     @Test

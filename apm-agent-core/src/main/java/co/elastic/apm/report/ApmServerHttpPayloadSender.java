@@ -56,17 +56,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         this.httpClient = httpClient;
         this.reporterConfiguration = reporterConfiguration;
         this.payloadSerializer = payloadSerializer;
-        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = new Thread(r);
-                thread.setName("apm-server-healthcheck");
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
-        healthCheckExecutorService.shutdown();
     }
 
     @Override
@@ -84,9 +73,7 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         if (reporterConfiguration.getSecretToken() != null) {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }
-        if (useGzip(payload)) {
-            builder.header("Content-Encoding", "deflate");
-        }
+        builder.header("Content-Encoding", "deflate");
         Request request = builder
             .post(new RequestBody() {
                 @Override
@@ -97,10 +84,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                 @Override
                 public void writeTo(BufferedSink sink) throws IOException {
                     OutputStream os = sink.outputStream();
-                    if (useGzip(payload)) {
-                        final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
-                        os = new DeflaterOutputStream(os, def);
-                    }
+                    final Deflater def = new Deflater(GZIP_COMPRESSION_LEVEL);
+                    os = new DeflaterOutputStream(os, def);
                     try {
                         payloadSerializer.serializePayload(os, payload);
                     } finally {
@@ -116,22 +101,18 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
             int statusCode = response.code();
             logger.debug("APM server responded with status code {}", statusCode);
             if (statusCode >= 400) {
-                dropped += payload.getPayloadObjects().size();
+                dropped += payload.getPayloadSize();
                 if (response.body() != null) {
                     logger.debug(response.body().string());
                 }
             } else {
-                reported += payload.getPayloadObjects().size();
+                reported += payload.getPayloadSize();
             }
             response.close();
         } catch (IOException e) {
             logger.debug("Sending payload to APM server failed", e);
             dropped += payload.getPayloadObjects().size();
         }
-    }
-
-    private boolean useGzip(Payload payload) {
-        return payload.getPayloadObjects().size() > 1;
     }
 
     @Override
@@ -144,39 +125,4 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         return reported;
     }
 
-    private static class ApmServerHealthChecker implements Runnable {
-        private final OkHttpClient httpClient;
-        private final ReporterConfiguration reporterConfiguration;
-
-        ApmServerHealthChecker(OkHttpClient httpClient, ReporterConfiguration reporterConfiguration) {
-            this.httpClient = httpClient;
-            this.reporterConfiguration = reporterConfiguration;
-        }
-
-        @Override
-        public void run() {
-            boolean success;
-            String message = null;
-            try {
-                final int status = httpClient.newCall(new Request.Builder()
-                    .url(reporterConfiguration.getServerUrl() + "/healthcheck")
-                    .build())
-                    .execute()
-                    .code();
-                success = status == 200;
-                if (!success) {
-                    message = Integer.toString(status);
-                }
-            } catch (IOException e) {
-                message = e.getMessage();
-                success = false;
-            }
-
-            if (success) {
-                logger.info("Elastic APM server is available");
-            } else {
-                logger.warn("Elastic APM server is not available ({})", message);
-            }
-        }
-    }
 }
