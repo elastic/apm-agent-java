@@ -51,6 +51,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.InflaterInputStream;
 
@@ -61,6 +63,7 @@ import static org.mockito.Mockito.when;
 class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static CountDownLatch serverReceivedPayload = new CountDownLatch(1);
     private IntakeV2ReportingEventHandler reportingEventHandler;
 
     @Nonnull
@@ -82,6 +85,7 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,
             mock(ProcessorEventHandler.class), new DslJsonSerializer(true));
+        serverReceivedPayload = new CountDownLatch(1);
     }
 
     @Test
@@ -90,6 +94,7 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         reportSpan();
         reportError();
         reportingEventHandler.flush();
+        serverReceivedPayload.await(5, TimeUnit.SECONDS);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
         assertThat(ndJsonNodes).hasSize(4);
@@ -152,6 +157,7 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
             in = new InflaterInputStream(in);
             bytes = in.readAllBytes();
             logger.info("Received payload with {} bytes:\n{}", bytes.length, new String(bytes));
+            serverReceivedPayload.countDown();
         }
 
         @Override
