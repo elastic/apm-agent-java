@@ -90,8 +90,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public void onEvent(ReportingEvent event, long sequence, boolean endOfBatch) throws IOException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Receiving {} event (sequence {})", event.getType(), sequence);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
         if (event.getType() == null) {
             return;
@@ -124,7 +124,12 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private boolean shouldFlush() {
-        return deflater.getBytesWritten() + DslJsonSerializer.BUFFER_SIZE >= reporterConfiguration.getApiRequestSize();
+        final long written = deflater.getBytesWritten() + DslJsonSerializer.BUFFER_SIZE;
+        final boolean flush = written >= reporterConfiguration.getApiRequestSize();
+        if (flush && logger.isDebugEnabled()) {
+            logger.debug("Flushing, because request size limit exceeded {}/{}", written, reporterConfiguration.getApiRequestSize());
+        }
+        return flush;
     }
 
     private HttpURLConnection startRequest() throws IOException {
@@ -155,6 +160,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         payloadSerializer.setOutputStream(os);
         if (reporter != null) {
             timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Scheduling request timeout in {}s", reporterConfiguration.getApiRequestTime());
+            }
             timeoutTimer.schedule(timeoutTask, TimeUnit.SECONDS.toMillis(reporterConfiguration.getApiRequestTime()));
         }
         return connection;
@@ -257,7 +265,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     private static class FlushOnTimeoutTimerTask extends TimerTask {
         @Nullable
-        private Future<Void> flush;
+        private volatile Future<Void> flush;
         private final ApmServerReporter reporter;
 
         private FlushOnTimeoutTimerTask(ApmServerReporter reporter) {
@@ -269,12 +277,14 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             // if the ring buffer is full this waits until a slot becomes available
             // as this happens on a different thread,
             // the reporting does not block and thus there is no danger of deadlocks
+            logger.debug("Request flush because the request timeout occurred");
             flush = reporter.flush();
         }
 
         @Override
         public boolean cancel() {
             final boolean cancel = super.cancel();
+            final Future<Void> flush = this.flush;
             if (flush != null) {
                 flush.cancel(false);
             }
