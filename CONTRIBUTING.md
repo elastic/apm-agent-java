@@ -139,7 +139,6 @@ Once approved, the author of the pull request,
 or reviewer if the author does not have commit access,
 should "Squash and merge".
 
-
 ### Coding guidelines
 
 There are a few guidelines or goals for the development of the agent.
@@ -148,7 +147,8 @@ like performance and readability.
 We should try to find the best compromise and balance for each specific case.
 
 Not all of these guidelines are perfectly put into practice and there is always room for improvement.
-But for each change, we should think about whether they bring us closer to or further away from those goals.
+But for each change,
+we should think about whether they bring us closer to or further away from those goals.
 
 * Easy to understand and to extend
   * This is an Open Source project and we embrace our community.
@@ -174,7 +174,7 @@ But for each change, we should think about whether they bring us closer to or fu
 * Performance is a feature
   * Find the right balance of low-level and high-level code
   * We are especially proud of the low allocation rate of the agent.
-    This does not only the average overhead look good,
+    This does not only make the average overhead look good,
     but also makes the performance of the agent way more predictable and stable in the higher percentiles,
     as these are heavily influenced by GC pauses.
   * Don't guess when it comes to performance.
@@ -187,12 +187,12 @@ But for each change, we should think about whether they bring us closer to or fu
     the better.
 * Testability/Test Pyramid
   * Most tests should be simple and easily debuggable JUnit tests.
-    In fact, the main workflow should be to tests alongside the production code.
+    In fact, the main workflow should be to write tests alongside the production code.
     You should rarely have to build the agent and attach it to a test application in order to verify your new code works as expected.
     This makes turnarounds much faster and usually also increases the test coverage.
     Speaking of which,
     use code coverage tools to check that the most important branches are covered by unit tests.
-    The coverage of new code should not be lower than the current total coverage of the project.
+    The coverage of new code should typically not be lower than the current total coverage of the project.
   * Integration tests should also be easy to execute and debug locally,
     without the requirement of a complex testing setup.
     The integration test should be smoke/sanity tests for a specific technology like an application server or database.
