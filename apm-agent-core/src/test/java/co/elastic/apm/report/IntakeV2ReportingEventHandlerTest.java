@@ -108,21 +108,21 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
 
-        reportingEventHandler.onEvent(reportingEvent, 1, true);
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private void reportSpan() throws IOException {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setSpan(new Span(mock(ElasticApmTracer.class)));
 
-        reportingEventHandler.onEvent(reportingEvent, 1, true);
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private void reportError() throws IOException {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture());
 
-        reportingEventHandler.onEvent(reportingEvent, 1, true);
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private List<JsonNode> getNdJsonNodes() throws IOException {
