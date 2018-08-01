@@ -7,7 +7,8 @@ follow these steps:
 
 1. Create a new maven sub-module in `apm-agent-plugins`
 1. Add the module in the `<modules>` section of [`apm-agent-plugins/pom.xml`](pom.xml)
-1. Add a dependency to your new module in `elastic-apm-agent/pom.xml` to make sure it is included in the agent jar
+1. Add a dependency to your new module in [`elastic-apm-agent/pom.xml`](../elastic-apm-agent/pom.xml)
+   to make sure it is included in the agent jar
 1. If you need to add any new runtime dependencies for the agent, make sure to properly configure shading in 
    [`elastic-apm-agent/pom.xml`](../elastic-apm-agent/pom.xml)
 1. Properly test your module with unit tests and consider adding integration tests.
