@@ -19,7 +19,8 @@ If you do so, please attach your debug logs so that we can analyze the problem.
 There are several <<config-logging, logging related configuration options>>.
 The most important one is <<config-logging-log-level>>.
 Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
-
+The `TRACE` log level is even more verbose than `DEBUG` and prints a stack trace every time a transaction or span is started or stopped.
+Also, the JSON documents which are sent to the APM server will be logged on `TRACE` level.
 
 [float]
 [[trouble-shooting-debugging]]
