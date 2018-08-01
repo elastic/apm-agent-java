@@ -30,7 +30,7 @@ See the [contributing documentation](CONTRIBUTING.md)
 ## Snapshots
 
 Nightly snapshots of the `master` branch are released to the
-[sonatype snapshot repository](https://oss.sonatype.org/content/repositories/snapshots/co/elastic/apm/)
+[sonatype snapshot repository](https://oss.sonatype.org/content/repositories/snapshots/co/elastic/apm/elastic-apm-agent/)
 
 ## Build form source
 
