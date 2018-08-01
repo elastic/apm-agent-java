@@ -219,7 +219,7 @@ See [`apm-agent-core/README.md`](apm-agent-core/README.md)
 
 ### Adding support for instrumenting new libraries/frameworks/APIs
 
-See [`apm-agent-plugins/README.md`](https://github.com/elastic/apm-agent-java/blob/master/apm-agent-plugins/README.md)
+See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 
 ### Releasing
 
