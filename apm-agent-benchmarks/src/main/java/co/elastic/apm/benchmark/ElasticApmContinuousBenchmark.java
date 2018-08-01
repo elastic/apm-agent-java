@@ -124,9 +124,6 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     exchange.startBlocking();
                     try (InputStream is = exchange.getInputStream()) {
                         for (int n = 0; -1 != n; n = is.read(buffer)) {
-                            if (receivedPayloads == 1) {
-                                System.out.println(n);
-                            }
                             receivedBytes += n;
                         }
                     }

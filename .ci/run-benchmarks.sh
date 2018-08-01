@@ -67,7 +67,10 @@ function benchmark() {
     BULK_UPLOAD_FILE=apm-agent-bulk-${NOW_ISO_8601}.json
 
     sudo cset proc --exec /benchmark -- \
-        $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" -prof gc -rf json -rff ${RESULT_FILE}
+        $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" \
+        -prof gc co.elastic.apm.benchmark.profiler.ReporterProfiler \
+        -rf json \
+        -rff ${RESULT_FILE}
 
     # remove strange non unicode chars inserted by JMH; see org.openjdk.jmh.results.Defaults.PREFIX
     tr -cd '\11\12\40-\176' < ${RESULT_FILE} > "${RESULT_FILE}.clean"
