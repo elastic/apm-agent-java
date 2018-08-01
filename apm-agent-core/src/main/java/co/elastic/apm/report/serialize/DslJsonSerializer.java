@@ -58,8 +58,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +90,8 @@ public class DslJsonSerializer implements PayloadSerializer {
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
+    @Nullable
+    private OutputStream os;
 
     public DslJsonSerializer(boolean distributedTracingEnabled) {
         jw = new DslJson<>().newWriter(BUFFER_SIZE);
@@ -97,13 +101,31 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void setOutputStream(final OutputStream os) {
-        jw.reset(os);
+        if (logger.isTraceEnabled()) {
+            this.os = new ByteArrayOutputStream() {
+                @Override
+                public void flush() throws IOException {
+                    os.write(buf);
+                    os.flush();
+                    logger.trace(new String(buf, Charset.forName("UTF-8")));
+                }
+            };
+        } else {
+            this.os = os;
+        }
+        jw.reset(this.os);
     }
 
     @Override
-    public void flush() {
+    public void flush() throws IOException {
         jw.flush();
-        jw.reset();
+        try {
+            if (os != null) {
+                os.flush();
+            }
+        } finally {
+            jw.reset();
+        }
     }
 
     @Override
@@ -138,9 +160,6 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeTransactionNdJson(Transaction transaction) {
-        if (logger.isDebugEnabled()) {
-            logger.debug(toJsonString(transaction));
-        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("transaction");
         serializeTransaction(transaction);
@@ -150,9 +169,6 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeSpanNdJson(Span span) {
-        if (logger.isTraceEnabled()) {
-            logger.trace(toJsonString(span));
-        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("span");
         serializeSpan(span);
@@ -162,9 +178,6 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeErrorNdJson(ErrorCapture error) {
-        if (logger.isTraceEnabled()) {
-            logger.trace(toJsonString(error));
-        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("error");
         serializeError(error);

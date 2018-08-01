@@ -51,7 +51,7 @@ public interface PayloadSerializer {
      * Flushes the {@link OutputStream} which has been set via {@link #setOutputStream(OutputStream)}
      * and detaches that {@link OutputStream} from the serializer.
      */
-    void flush();
+    void flush() throws IOException;
 
     /**
      * Gets the number of bytes which are currently buffered
