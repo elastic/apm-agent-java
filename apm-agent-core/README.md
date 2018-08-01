@@ -56,3 +56,9 @@ The class co.elastic.apm.report.ReporterConfiguration contains all relevant conf
      - Favor primitive types over boxed (int vs Integer)
 
 \* this describes the new intake v2 protocol, v1 works a bit differently
+
+# Instrumentation
+
+Each instrumentation has a separate plugin sub-module.
+
+See [`apm-agent-plugins/README.md`](../apm-agent-plugins/README.md)
