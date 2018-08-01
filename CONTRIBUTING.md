@@ -213,6 +213,10 @@ we should think about whether they bring us closer to or further away from those
   Another advantage is that users can try out cutting-edge features by activating a configuration option.
   Instrumentations can be tagged with `incubating` which makes them being disabled by default.
 
+### Architecture overview
+
+See [`apm-agent-core/README.md`](apm-agent-core/README.md)
+
 ### Adding support for instrumenting new libraries/frameworks/APIs
 
 See [`apm-agent-plugins/README.md`](https://github.com/elastic/apm-agent-java/blob/master/apm-agent-plugins/README.md)
