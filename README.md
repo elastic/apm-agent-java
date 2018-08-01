@@ -36,3 +36,4 @@ Nightly snapshots of the `master` branch are released to the
 
 Execute `./mvnw clean install -PskipTests=true` to build the artifacts and to install them to your local maven repository.
 The agent jar is in the folder `elastic-apm-agent/target`.
+bla
