@@ -68,7 +68,8 @@ function benchmark() {
 
     sudo cset proc --exec /benchmark -- \
         $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" \
-        -prof gc co.elastic.apm.benchmark.profiler.ReporterProfiler \
+        -prof gc \
+        -prof co.elastic.apm.benchmark.profiler.ReporterProfiler \
         -rf json \
         -rff ${RESULT_FILE}
 

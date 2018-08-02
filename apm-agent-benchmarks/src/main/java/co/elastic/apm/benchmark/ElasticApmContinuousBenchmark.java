@@ -118,9 +118,6 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
             .setHandler(new BlockingHandler(exchange -> {
                 if (!exchange.getRequestPath().equals("/healthcheck")) {
                     receivedPayloads++;
-                    if (receivedPayloads == 1) {
-                        System.out.println(exchange.getRequestHeaders());
-                    }
                     exchange.startBlocking();
                     try (InputStream is = exchange.getInputStream()) {
                         for (int n = 0; -1 != n; n = is.read(buffer)) {
