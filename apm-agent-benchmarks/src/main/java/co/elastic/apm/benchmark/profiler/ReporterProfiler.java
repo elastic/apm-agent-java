@@ -30,6 +30,7 @@ import org.openjdk.jmh.results.Result;
 import org.openjdk.jmh.results.ScalarResult;
 import org.openjdk.jmh.runner.options.TimeValue;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -39,8 +40,10 @@ public class ReporterProfiler implements InternalProfiler {
 
     private long reportedCountStart;
     private long droppedCountStart;
-    private long receivedBytesStart;
-    private long receivedPayloadsStart;
+    @Nullable
+    private Long receivedBytesStart;
+    @Nullable
+    private Long receivedPayloadsStart;
 
 
     public ReporterProfiler() {
@@ -61,7 +64,7 @@ public class ReporterProfiler implements InternalProfiler {
         }
     }
 
-    private long getLong(String propertyName) {
+    private Long getLong(String propertyName) {
         return (Long) System.getProperties().get(propertyName);
     }
 
@@ -74,21 +77,28 @@ public class ReporterProfiler implements InternalProfiler {
             final double iterationDurationNs = time.convertTo(TimeUnit.NANOSECONDS);
 
             final long reportedDuringThisIteration = reporter.getReported() - reportedCountStart;
-            double reportsPerSecond = perSecond(iterationDurationNs, reportedDuringThisIteration);
-            results.add(new ScalarResult(Defaults.PREFIX + "reporter.reported", reportsPerSecond, "events/s", AggregationPolicy.AVG));
+            if (reportedDuringThisIteration > 0) {
+                double reportsPerSecond = perSecond(iterationDurationNs, reportedDuringThisIteration);
+                results.add(new ScalarResult(Defaults.PREFIX + "reporter.reported", reportsPerSecond, "events/s", AggregationPolicy.AVG));
+            }
 
             final long droppedDuringThisIteration = reporter.getDropped() - droppedCountStart;
-            double dropsPerSecond = perSecond(iterationDurationNs, droppedDuringThisIteration);
-            results.add(new ScalarResult(Defaults.PREFIX + "reporter.dropped", dropsPerSecond, "events/s", AggregationPolicy.AVG));
+            if (droppedDuringThisIteration >0) {
+                double dropsPerSecond = perSecond(iterationDurationNs, droppedDuringThisIteration);
+                results.add(new ScalarResult(Defaults.PREFIX + "reporter.dropped", dropsPerSecond, "events/s", AggregationPolicy.AVG));
+            }
 
-            long receivedBytesDuringThisIteration = getLong("server.received.bytes") - receivedBytesStart;
-            results.add(new ScalarResult(Defaults.PREFIX + "server.received.bytes", perSecond(iterationDurationNs,
-                receivedBytesDuringThisIteration), "bytes/s", AggregationPolicy.AVG));
+            if (receivedBytesStart != null) {
+                long receivedBytesDuringThisIteration = getLong("server.received.bytes") - receivedBytesStart;
+                results.add(new ScalarResult(Defaults.PREFIX + "server.received.bytes", perSecond(iterationDurationNs,
+                    receivedBytesDuringThisIteration), "bytes/s", AggregationPolicy.AVG));
+            }
 
-            long receivedPayloadsDuringThisIteration = getLong("server.received.payloads") - receivedPayloadsStart;
-            results.add(new ScalarResult(Defaults.PREFIX + "server.received.payloads", perSecond(iterationDurationNs,
-                receivedPayloadsDuringThisIteration), "payloads/s", AggregationPolicy.AVG));
-
+            if (receivedPayloadsStart != null) {
+                long receivedPayloadsDuringThisIteration = getLong("server.received.payloads") - receivedPayloadsStart;
+                results.add(new ScalarResult(Defaults.PREFIX + "server.received.payloads", perSecond(iterationDurationNs,
+                    receivedPayloadsDuringThisIteration), "payloads/s", AggregationPolicy.AVG));
+            }
         }
         return results;
     }

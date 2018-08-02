@@ -30,6 +30,7 @@ import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10)
@@ -57,6 +58,8 @@ public abstract class AbstractBenchmark {
     public static void run(Class<? extends AbstractBenchmark> benchmark) throws RunnerException {
         new Runner(new OptionsBuilder()
             .include(benchmark.getSimpleName())
+            .measurementTime(TimeValue.seconds(1))
+            .warmupTime(TimeValue.seconds(1))
             .addProfiler(GCProfiler.class)
             .addProfiler(CpuProfiler.class)
             .addProfiler(ReporterProfiler.class)
