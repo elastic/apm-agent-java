@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,10 +64,14 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    @Advice.OnMethodExit
-    public static void onAfterExecute(@Advice.Return CloseableHttpResponse response, @Nullable @Advice.Local("span") Span span) {
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    public static void onAfterExecute(@Advice.Return CloseableHttpResponse response,
+                                      @Advice.Local("span") @Nullable Span span,
+                                      @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
-            span.deactivate().end();
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
     }
 

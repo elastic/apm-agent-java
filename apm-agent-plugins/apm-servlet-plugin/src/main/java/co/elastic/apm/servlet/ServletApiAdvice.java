@@ -109,12 +109,12 @@ public class ServletApiAdvice {
         }
     }
 
-    @Advice.OnMethodExit(onThrowable = Exception.class)
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Local("transaction") @Nullable Transaction transaction,
                                             @Advice.Local("scope") @Nullable Scope scope,
-                                            @Advice.Thrown @Nullable Exception exception) {
+                                            @Advice.Thrown @Nullable Throwable t) {
         if (scope != null) {
             scope.close();
         }
@@ -135,7 +135,7 @@ public class ServletApiAdvice {
                     resp.addHeader(headerName, response.getHeader(headerName));
                 }
 
-                servletTransactionHelper.onAfter(transaction, exception, response.isCommitted(), response.getStatus(), request.getMethod(),
+                servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     request.getParameterMap());
             }
         }
