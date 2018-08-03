@@ -11,5 +11,6 @@
    `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
  * Added support for async servlet requests
  * Added support for Payara/Glassfish
+ * Incubating support for Apache HttpClient
 
 ## Bug Fixes

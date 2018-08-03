@@ -14,6 +14,7 @@
         <module>apm-spring-webmvc-plugin</module>
         <module>apm-web-plugin</module>
         <module>apm-api-plugin</module>
+        <module>apm-apache-httpclient-plugin</module>
     </modules>
 
     <properties>
