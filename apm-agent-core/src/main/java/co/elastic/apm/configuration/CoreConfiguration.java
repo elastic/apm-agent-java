@@ -169,8 +169,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
         .key("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
-        .description("A list of instrumentations which should be disabled. Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, " +
-            "`spring-mvc` and `incubating`.")
+        .description("A list of instrumentations which should be disabled.\n" +
+            "Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc` and `incubating`.\n" +
+            "If you want to try out incubating features,\n" +
+            "set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
 
     public boolean isActive() {

@@ -67,10 +67,12 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
 
     @VisibleForAdvice
-    @Advice.OnMethodExit(onThrowable = SQLException.class)
-    public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown SQLException e) {
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
         if (span != null) {
-            span.deactivate().end();
+            span.captureException(t)
+                .deactivate()
+                .end();
         }
     }
 

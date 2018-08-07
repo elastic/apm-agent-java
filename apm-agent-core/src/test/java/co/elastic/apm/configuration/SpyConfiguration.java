@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
 import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -47,6 +48,7 @@ public class SpyConfiguration {
         }
         return builder
             .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME).add("service_name", "elastic-apm-test"))
+            .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
             .build();
     }
 

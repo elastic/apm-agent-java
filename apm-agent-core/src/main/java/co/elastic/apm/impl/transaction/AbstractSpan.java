@@ -84,6 +84,20 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     /**
+     * Appends a string to the name.
+     * <p>
+     * This method helps to avoid the memory allocations of string concatenations
+     * as the underlying {@link StringBuilder} instance will be reused.
+     * </p>
+     * @param s the string to append to the name
+     * @return {@code this}, for chaining
+     */
+    public T appendToName(String s) {
+        name.append(s);
+        return (T) this;
+    }
+
+    /**
      * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
@@ -183,8 +197,11 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return (T) this;
     }
 
-    public void captureException(Throwable t) {
-        captureException(System.currentTimeMillis(), t);
+    public T captureException(@Nullable Throwable t) {
+        if (t != null) {
+            captureException(System.currentTimeMillis(), t);
+        }
+        return (T) this;
     }
 
     public void captureException(long epochTimestampMillis, Throwable t) {

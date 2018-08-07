@@ -98,30 +98,16 @@ This section lists all supported technologies.
 
 |===
 
-
 [float]
-[[supported-apis]]
-==== APIs
+[[supported-web-frameworks]]
+==== Web Frameworks
 |===
-|API |Supported versions | Description
-
-|JDBC
-|4.1+
-|The agent automatically creates DB spans for all your JDBC queries.
- This includes JDBC queries executed by O/R mappers like Hibernate.
+|Framework |Supported versions | Description
 
 |Servlet API
 |3+
 |A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
-
-|===
-
-[float]
-[[supported-frameworks]]
-==== Frameworks
-|===
-|Framework |Supported versions | Description
-
+ See also <<supported-app-servers>>
 
 |Spring Web MVC
 |4.x, 5.x
@@ -165,3 +151,31 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |4.x, 5.x
 
 |===
+
+[float]
+[[supported-databases]]
+==== Databases
+|===
+|Database |Supported versions | Description
+
+|JDBC
+|4.1+
+|The agent automatically creates DB spans for all your JDBC queries.
+ This includes JDBC queries executed by O/R mappers like Hibernate.
+
+|===
+
+[float]
+[[supported-networking-frameworks]]
+==== Networking frameworks
+|===
+|Framework |Supported versions | Description
+
+|Apache HttpClient (<<config-disabled-instrumentations,incubating>>)
+|4.3+
+|The agent automatically creates spans for outgoing HTTP requests.
+ The spans are named after the schema `<method> <host>`.
+
+|===
+
+
