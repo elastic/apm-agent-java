@@ -23,6 +23,30 @@ The most important one is <<config-logging-log-level>>.
 Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
 
 
+Please always post the whole content of your log files when asking for help.
+
+When the agent starts up,
+you should see logs similar to these:
+
+----
+[main] INFO co.elastic.apm.configuration.StartupInfo - Starting Elastic APM (unknown version) on Java 10 (Oracle Corporation) Mac OS X 10.13.6
+[main] DEBUG co.elastic.apm.configuration.StartupInfo - service_name: 'elastic-apm-test' (source: Java System Properties)
+[main] DEBUG co.elastic.apm.configuration.StartupInfo - logging.log_level: 'DEBUG' (source: Java System Properties)
+----
+
+Make sure to execute some requests to your application before posting your log files.
+Each request should at least add some lines similar to these in the logs:
+
+----
+[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - startTransaction '' e0d6b9f84cf758a30a303f4fb607a9a6 {
+[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - startSpan '' e0d6b9f84cf758a30a303f4fb607a9a6:1 {
+[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endSpan 'SELECT' e0d6b9f84cf758a30a303f4fb607a9a6:1
+[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endTransaction 'GET' e0d6b9f84cf758a30a303f4fb607a9a6
+----
+
+If you don't see anything in your logs,
+the technology stack you are using is probably not <<supported-technologies,supported>>.
+
 [float]
 [[trouble-shooting-debugging]]
 === Debugging
