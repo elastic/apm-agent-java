@@ -145,7 +145,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |WildFly
 |8-13
 
-|Jetty
+|Jetty (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
 
 |WebSphere
