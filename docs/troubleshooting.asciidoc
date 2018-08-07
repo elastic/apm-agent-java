@@ -13,6 +13,8 @@ Open a topic in the https://discuss.elastic.co/c/apm:[APM discuss forum]
 and we will help you out.
 If you do so, please attach your debug logs so that we can analyze the problem.
 
+Also, please check if your stack is compatible with the currently <<supported-technologies,supported technologies>>.
+
 [float]
 [[trouble-shooting-logging]]
 === Logging
