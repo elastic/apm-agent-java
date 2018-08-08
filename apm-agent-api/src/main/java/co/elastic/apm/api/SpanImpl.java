@@ -70,4 +70,11 @@ class SpanImpl implements Span {
         // co.elastic.apm.plugin.api.SpanInstrumentation.CaptureExceptionInstrumentation
     }
 
+    @Nonnull
+    @Override
+    public String getId() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.GetIdInstrumentation
+        return "";
+    }
+
 }

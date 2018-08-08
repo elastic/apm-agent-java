@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 enum NoopSpan implements Span {
     INSTANCE;
 
@@ -40,6 +42,12 @@ enum NoopSpan implements Span {
     @Override
     public void captureException(Throwable throwable) {
         // co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
+    }
+
+    @Nonnull
+    @Override
+    public String getId() {
+        return "";
     }
 
     @Override
