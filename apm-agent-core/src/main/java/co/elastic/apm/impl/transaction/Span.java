@@ -72,7 +72,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.traceContext.asChildOf(transaction.getTraceContext());
         }
         if (dropped) {
-            traceContext.setSampled(false);
+            traceContext.setRecorded(false);
         }
         if (traceContext.isSampled()) {
             start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;

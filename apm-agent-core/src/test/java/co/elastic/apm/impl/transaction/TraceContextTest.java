@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,8 @@ class TraceContextTest {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
         traceContext.asChildOf(header);
+        assertThat(traceContext.isRequested()).isTrue();
+        assertThat(traceContext.isRecorded()).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
         assertThat(traceContext.getIncomingTraceParentHeader()).isEqualTo(header);
     }
@@ -85,9 +87,9 @@ class TraceContextTest {
         final TraceContext traceContext = new TraceContext();
         traceContext.asRootSpan(ConstantSampler.of(false));
         assertThat(traceContext.isSampled()).isFalse();
-        traceContext.setSampled(true);
+        traceContext.setRecorded(true);
         assertThat(traceContext.isSampled()).isTrue();
-        traceContext.setSampled(false);
+        traceContext.setRecorded(false);
         assertThat(traceContext.isSampled()).isFalse();
     }
 
