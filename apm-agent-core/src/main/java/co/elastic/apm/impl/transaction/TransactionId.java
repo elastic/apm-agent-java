@@ -74,10 +74,6 @@ public class TransactionId implements Recyclable {
         return lsb;
     }
 
-    public UUID toUuid() {
-        return new UUID(getMostSignificantBits(), getLeastSignificantBits());
-    }
-
     public String toHexEncodedString() {
         return HexUtils.bytesToHex(data);
     }
