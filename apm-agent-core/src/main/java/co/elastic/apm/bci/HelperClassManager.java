@@ -100,7 +100,7 @@ public interface HelperClassManager<T> {
         private final String implementation;
         private final String[] additionalHelpers;
         @Nullable
-        private T helperImplementation;
+        private volatile T helperImplementation;
 
         private ForSingleClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             this.tracer = tracer;
@@ -114,15 +114,18 @@ public interface HelperClassManager<T> {
 
         @Override
         public T getForClassLoaderOfClass(Class<?> classOfTargetClassLoader) {
-            if (helperImplementation == null) {
+            // local variable helps to avoid multiple volatile reads
+            T localHelper = this.helperImplementation;
+            if (localHelper == null) {
                 synchronized (this) {
-                    if (helperImplementation == null) {
-                        helperImplementation = createHelper(classOfTargetClassLoader.getClassLoader(), tracer,
-                            implementation, additionalHelpers);
+                    localHelper = this.helperImplementation;
+                    if (localHelper == null) {
+                        localHelper = createHelper(classOfTargetClassLoader.getClassLoader(), tracer, implementation, additionalHelpers);
+                        this.helperImplementation = localHelper;
                     }
                 }
             }
-            return helperImplementation;
+            return localHelper;
         }
 
         private static <T> T createHelper(@Nullable ClassLoader targetClassLoader, ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
