@@ -7,8 +7,10 @@
    and are thus not available via `ElasticApm.activeTransaction` and `ElasticApm.activeSpan`.
 
 ## Features
- * Add `Span#captureException` and `Transaction#captureException` to public API.
-   `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
+ * Public API
+    * Add `Span#captureException` and `Transaction#captureException` to public API.
+      `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
+    * Added `Transaction.getId` and `Span.getId` methods 
  * Added support for async servlet requests
  * Added support for Payara/Glassfish
  * Incubating support for Apache HttpClient
