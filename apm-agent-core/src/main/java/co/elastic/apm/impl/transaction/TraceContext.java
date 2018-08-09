@@ -48,8 +48,8 @@ public class TraceContext implements Recyclable {
     // ???????1 -> requested
     // ???????0 -> not requested
     private static final byte FLAG_REQUESTED = 0b0000_0001;
-    // ???????1 -> maybe recorded
-    // ???????0 -> not recorded
+    // ??????1? -> maybe recorded
+    // ??????0? -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0010;
     private final TraceId traceId = new TraceId();
     private final SpanId id = new SpanId();
