@@ -76,9 +76,11 @@ public class ServletApiAdvice {
                 }
             }
             final Enumeration headerNames = request.getHeaderNames();
-            while (headerNames.hasMoreElements()) {
-                final String headerName = (String) headerNames.nextElement();
-                req.addHeader(headerName, request.getHeader(headerName));
+            if (headerNames != null) {
+                while (headerNames.hasMoreElements()) {
+                    final String headerName = (String) headerNames.nextElement();
+                    req.addHeader(headerName, request.getHeader(headerName));
+                }
             }
 
             final Principal userPrincipal = request.getUserPrincipal();

@@ -112,8 +112,10 @@ public class Request implements Recyclable {
      * @param headerValue The value of the header.
      * @return {@code this}, for fluent method chaining
      */
-    public Request addHeader(String headerName, String headerValue) {
-        headers.add(headerName, headerValue);
+    public Request addHeader(String headerName, @Nullable String headerValue) {
+        if (headerValue != null) {
+            headers.add(headerName, headerValue);
+        }
         return this;
     }
 
