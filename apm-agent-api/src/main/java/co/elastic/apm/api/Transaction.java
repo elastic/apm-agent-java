@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * A transaction is the data captured by an agent representing an event occurring in a monitored service
  * and groups multiple spans in a logical group.
@@ -117,5 +119,17 @@ public interface Transaction extends Span {
      * @return the started span, never {@code null}
      */
     Span createSpan();
+
+    /**
+     * Returns the id of this transaction (never {@code null})
+     * <p>
+     * If this transaction represents a noop,
+     * this method returns an empty string.
+     * </p>
+     *
+     * @return the id of this transaction (never {@code null})
+     */
+    @Nonnull
+    String getId();
 
 }

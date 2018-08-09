@@ -100,6 +100,10 @@ public class TransactionId implements Recyclable {
         return toHexEncodedString();
     }
 
+    public UUID toUUID() {
+        return new UUID(getMostSignificantBits(), getLeastSignificantBits());
+    }
+
     public boolean isEmpty() {
         return EMPTY.equals(this);
     }

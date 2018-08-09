@@ -9,9 +9,11 @@ co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$EndInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$CaptureExceptionInstrumentation
+co.elastic.apm.plugin.api.TransactionInstrumentation$GetIdInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$CaptureExceptionInstrumentation
+co.elastic.apm.plugin.api.SpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.plugin.api.CaptureExceptionInstrumentation

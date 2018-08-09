@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * A span contains information about a specific code path, executed as part of a {@link Transaction}.
  * <p>
@@ -91,5 +93,17 @@ public interface Span {
      * @param throwable
      */
     void captureException(Throwable throwable);
+
+    /**
+     * Returns the id of this span (never {@code null})
+     * <p>
+     * If this span represents a noop,
+     * this method returns an empty string.
+     * </p>
+     *
+     * @return the id of this span (never {@code null})
+     */
+    @Nonnull
+    String getId();
 
 }

@@ -200,6 +200,13 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 ==== `void captureException(Exception e)`
 Captures an exception and reports it to the APM server.
 
+[float]
+[[api-transaction-get-id]]
+==== `String getId()`
+Returns the id of this transaction (never `null`)
+
+If this transaction represents a noop,
+this method returns an empty string.
 
 [float]
 [[api-transaction-start-span]]
@@ -285,6 +292,13 @@ the following are standardized across all Elastic APM agents: `app`, `db`, `cach
 ==== `void captureException(Exception e)`
 Captures an exception and reports it to the APM server.
 
+[float]
+[[api-span-get-id]]
+==== `String getId()`
+Returns the id of this span (never `null`)
+
+If this span represents a noop,
+this method returns an empty string.
 
 [float]
 [[api-span-end]]

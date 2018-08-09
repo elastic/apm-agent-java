@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 enum NoopTransaction implements Transaction {
 
     INSTANCE;
@@ -51,6 +53,12 @@ enum NoopTransaction implements Transaction {
     @Override
     public void captureException(Throwable throwable) {
         // co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
+    }
+
+    @Nonnull
+    @Override
+    public String getId() {
+        return "";
     }
 
     @Override

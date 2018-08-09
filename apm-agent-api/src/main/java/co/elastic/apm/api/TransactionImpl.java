@@ -69,6 +69,13 @@ class TransactionImpl implements Transaction {
         // co.elastic.apm.plugin.api.TransactionInstrumentation.CaptureExceptionInstrumentation
     }
 
+    @Nonnull
+    @Override
+    public String getId() {
+        // co.elastic.apm.plugin.api.TransactionInstrumentation.GetIdInstrumentation
+        return "";
+    }
+
     @Override
     public Span createSpan() {
         Object span = doCreateSpan();
