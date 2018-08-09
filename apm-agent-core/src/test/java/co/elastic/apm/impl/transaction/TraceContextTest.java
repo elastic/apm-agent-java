@@ -27,23 +27,65 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TraceContextTest {
 
     @Test
-    void parseFromTraceParentHeader_sampled() {
+    void parseFromTraceParentHeader_notRecorded_notRequested() {
+        final TraceContext traceContext = new TraceContext();
+        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
+        traceContext.asChildOf(header);
+        assertThat(traceContext.isSampled()).isFalse();
+        // if the parent did not record and tracing this request was not requested,
+        // we should not record this request and
+        // propagate downstream that we have not recorded and that tracing has not been requested
+        // -> 0000 0000 binary, 00 hex
+        assertThat(traceContext.getOutgoingTraceParentHeader()).endsWith("-00");
+    }
+
+    @Test
+    void parseFromTraceParentHeader_recorded_notRequested() {
+        final TraceContext traceContext = new TraceContext();
+        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-02";
+        traceContext.asChildOf(header);
+        assertThat(traceContext.isSampled()).isTrue();
+        // if the parent recorded, but tracing this request was not requested,
+        // we should also record this request (deferred tracing decision) and
+        // propagate downstream that we have recorded, but tracing has not been requested
+        // -> 0000 0010 binary, 02 hex
+        assertThat(traceContext.getOutgoingTraceParentHeader()).endsWith("-02");
+    }
+
+    @Test
+    void parseFromTraceParentHeader_notRecorded_requested() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
         traceContext.asChildOf(header);
-        assertThat(traceContext.isRequested()).isTrue();
-        assertThat(traceContext.isRecorded()).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
-        assertThat(traceContext.getIncomingTraceParentHeader()).isEqualTo(header);
+        // if the parent did not record, but tracing the request is requested (maybe due to rate limiting),
+        // we should trace this request and
+        // propagate downstream that we have recorded and tracing is requested
+        // -> 0000 0011 binary, 03 hex
+        // it also means that we have an incomplete trace
+        assertThat(traceContext.getOutgoingTraceParentHeader()).endsWith("-03");
+    }
+
+    @Test
+    void parseFromTraceParentHeader_recorded_requested() {
+        final TraceContext traceContext = new TraceContext();
+        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
+        traceContext.asChildOf(header);
+        assertThat(traceContext.isSampled()).isTrue();
+        // if the parent recorded, and tracing the request is requested,
+        // we should just sample and
+        // propagate the same flags downstream
+        // -> 0000 0011 binary, 03 hex
+        assertThat(traceContext.getOutgoingTraceParentHeader()).endsWith("-03");
     }
 
     @Test
     void outgoingHeader() {
         final TraceContext traceContext = new TraceContext();
-        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
+        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
         traceContext.asChildOf(header);
         assertThat(traceContext.getOutgoingTraceParentHeader().toString())
-            .isEqualTo("00-0af7651916cd43dd8448eb211c80319c-"+ traceContext.getId().toString() + "-01");
+            .isEqualTo("00-0af7651916cd43dd8448eb211c80319c-"+ traceContext.getId().toString() + "-03");
     }
 
     @Test
@@ -52,7 +94,7 @@ class TraceContextTest {
         traceContext.asRootSpan(ConstantSampler.of(true));
         assertThat(traceContext.getOutgoingTraceParentHeader().toString()).hasSize(55);
         assertThat(traceContext.getOutgoingTraceParentHeader().toString()).startsWith("00-");
-        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-01");
+        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-03");
     }
 
     @Test
@@ -96,7 +138,7 @@ class TraceContextTest {
     @Test
     void testInvalidHeader() {
         final TraceContext traceContext = new TraceContext();
-        traceContext.asChildOf("01-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        traceContext.asChildOf("01-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03");
         assertThat(traceContext.getTraceId().isEmpty()).isTrue();
         assertThat(traceContext.getParentId().asLong()).isZero();
         assertThat(traceContext.getId().asLong()).isZero();

@@ -89,6 +89,7 @@ public class TraceContext implements Recyclable {
     public void asChildOf(TraceContext traceContext) {
         traceId.copyFrom(traceContext.traceId);
         parentId.copyFrom(traceContext.id);
+        flags = traceContext.flags;
         id.setToRandomValue();
     }
 
@@ -164,6 +165,13 @@ public class TraceContext implements Recyclable {
         }
     }
 
+    void setRequested(boolean requested) {
+        if (requested) {
+            flags |= FLAG_REQUESTED;
+        } else {
+            flags &= ~FLAG_REQUESTED;
+        }
+    }
 
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
