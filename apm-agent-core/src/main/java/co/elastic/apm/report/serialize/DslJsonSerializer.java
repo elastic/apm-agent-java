@@ -676,11 +676,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializePotentiallyMultiValuedEntry(String key, Object value) {
+    private void serializePotentiallyMultiValuedEntry(String key, @Nullable Object value) {
         jw.writeString(key);
         jw.writeByte(JsonWriter.SEMI);
         if (value instanceof String) {
-            StringConverter.serializeNullable((String) value, jw);
+            StringConverter.serialize((String) value, jw);
         } else if (value instanceof List) {
             jw.writeByte(ARRAY_START);
             final List<String> values = (List<String>) value;
@@ -690,6 +690,8 @@ public class DslJsonSerializer implements PayloadSerializer {
                 jw.writeString(values.get(i));
             }
             jw.writeByte(ARRAY_END);
+        } else if (value == null) {
+            jw.writeNull();
         }
     }
 

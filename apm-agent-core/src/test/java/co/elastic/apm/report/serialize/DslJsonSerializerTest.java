@@ -20,6 +20,8 @@
 package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,6 +34,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.mock;
 
 
 class DslJsonSerializerTest {
@@ -73,6 +76,19 @@ class DslJsonSerializerTest {
         assertThat(jsonNode.get("stringBuilder").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
         assertThat(jsonNode.get("string").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
         assertThat(jsonNode.get("lastString").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
+    }
+
+    @Test
+    void testNullHeaders() throws IOException {
+        Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        transaction.getContext().getRequest().addHeader("foo", null);
+        transaction.getContext().getRequest().getHeaders().add("bar", null);
+        JsonNode jsonNode = objectMapper.readTree(serializer.toJsonString(transaction));
+        System.out.println(jsonNode);
+        // calling addHeader with a null value ignores the header
+        assertThat(jsonNode.get("context").get("request").get("headers").get("foo")).isNull();
+        // should a null value sneak in, it should not break
+        assertThat(jsonNode.get("context").get("request").get("headers").get("bar").isNull()).isTrue();
     }
 
     private String toJson(Map<String, String> map) {
