@@ -45,10 +45,12 @@ public class TraceContext implements Recyclable {
     public static final String TRACE_PARENT_HEADER = "Elastic-Apm-Traceparent";
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
     private static final int TRACE_PARENT_LENGTH = 55;
-    // the first bit in the flags bit field determines if the trace should be sampled
-    // ???????1 -> sampled
-    // ???????0 -> not sampled
-    private static final byte FLAG_SAMPLED = 0b0000_0001;
+    // ???????1 -> requested
+    // ???????0 -> not requested
+    private static final byte FLAG_REQUESTED = 0b0000_0001;
+    // ???????1 -> maybe recorded
+    // ???????0 -> not recorded
+    private static final byte FLAG_RECORDED = 0b0000_0010;
     private final TraceId traceId = new TraceId();
     private final SpanId id = new SpanId();
     private final SpanId parentId = new SpanId();
@@ -68,20 +70,25 @@ public class TraceContext implements Recyclable {
         parseParentId(traceParentHeader);
         id.setToRandomValue();
         flags = getTraceOptions(traceParentHeader);
+        // TODO don't blindly trust the flags from the caller
+        // consider implement rate limiting and/or having a list of trusted sources
+        // trace the request if it's either requested or if the parent has recorded it
+        if (isRequested()) {
+            setRecorded(true);
+        }
     }
 
     public void asRootSpan(Sampler sampler) {
         traceId.setToRandomValue();
         id.setToRandomValue();
         if (sampler.isSampled(traceId)) {
-            this.flags = FLAG_SAMPLED;
+            this.flags = FLAG_RECORDED | FLAG_REQUESTED;
         }
     }
 
     public void asChildOf(TraceContext traceContext) {
         traceId.copyFrom(traceContext.traceId);
         parentId.copyFrom(traceContext.id);
-        flags = traceContext.flags;
         id.setToRandomValue();
     }
 
@@ -129,16 +136,34 @@ public class TraceContext implements Recyclable {
     }
 
     public boolean isSampled() {
-        return (flags & FLAG_SAMPLED) == FLAG_SAMPLED;
+        return isRecorded();
     }
 
-    public void setSampled(boolean sampled) {
-        if (sampled) {
-            flags |= FLAG_SAMPLED;
+    /**
+     * When {@code true}, recommends the request should be traced.
+     * A caller who defers a tracing decision leaves this
+     * flag unset.
+     */
+    boolean isRequested() {
+        return (flags & FLAG_REQUESTED) == FLAG_REQUESTED;
+    }
+
+    /**
+     * When {@code true}, documents that the caller may have recorded trace data.
+     * A caller who does not record trace data out-of-band leaves this flag unset.
+     */
+    boolean isRecorded() {
+        return (flags & FLAG_RECORDED) == FLAG_RECORDED;
+    }
+
+    void setRecorded(boolean recorded) {
+        if (recorded) {
+            flags |= FLAG_RECORDED;
         } else {
-            flags &= ~FLAG_SAMPLED;
+            flags &= ~FLAG_RECORDED;
         }
     }
+
 
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
