@@ -9,7 +9,7 @@ The public API of the Elastic APM Java agent lets you
 customize and manually create spans and transactions,
 as well as track errors.
 
-The first step in getting started with the API ist to declare a dependency to the API:
+The first step in getting started with the API is to declare a dependency to the API:
 
 [source,xml]
 .pom.xml
@@ -95,7 +95,7 @@ Example:
 
 [source,java]
 ----
-Transaction transaction = tracer.startTransaction()
+Transaction transaction = ElasticApm.startTransaction();
 try {
     transaction.setName("MyController#myAction");
     transaction.setType(Transaction.TYPE_REQUEST);
@@ -219,7 +219,7 @@ Example:
 
 [source,java]
 ----
-Span span = transaction.startSpan()
+Span span = parent.startSpan();
 try {
     span.setName("SELECT FROM customer");
     span.setType("db.mysql.query");
@@ -318,7 +318,7 @@ Example:
 
 [source,java]
 ----
-Span span = parentSpan.startSpan()
+Span span = parent.startSpan();
 try {
     span.setName("SELECT FROM customer");
     span.setType("db.mysql.query");

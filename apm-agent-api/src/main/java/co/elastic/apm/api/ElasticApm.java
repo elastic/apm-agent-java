@@ -53,7 +53,7 @@ public class ElasticApm {
      * Example:
      * </p>
      * <pre>
-     * Transaction transaction = tracer.startTransaction()
+     * Transaction transaction = ElasticApm.startTransaction();
      * try {
      *     transaction.setName("MyController#myAction");
      *     transaction.setType(Transaction.TYPE_REQUEST);

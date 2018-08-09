@@ -103,7 +103,7 @@ public interface Transaction extends Span {
      * Example:
      * </p>
      * <pre>
-     * Span span = transaction.startSpan()
+     * Span span = transaction.startSpan();
      * try {
      *     span.setName("SELECT FROM customer");
      *     span.setType("db.mysql.query");

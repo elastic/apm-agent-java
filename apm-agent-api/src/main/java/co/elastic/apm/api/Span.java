@@ -65,7 +65,7 @@ public interface Span {
      * Example:
      * </p>
      * <pre>
-     * Span span = parentSpan.startSpan()
+     * Span span = parent.startSpan();
      * try {
      *     span.setName("SELECT FROM customer");
      *     span.setType("db.mysql.query");
