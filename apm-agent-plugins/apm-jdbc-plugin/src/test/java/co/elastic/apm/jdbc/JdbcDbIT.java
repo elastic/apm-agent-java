@@ -28,6 +28,10 @@ import java.util.Arrays;
 @RunWith(Parameterized.class)
 public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
 
+    static {
+        System.setProperty("oracle.jdbc.timezoneAsRegion", "false");
+    }
+
     public JdbcDbIT(String url, String expectedSpanType) throws Exception {
         super(DriverManager.getConnection(url), expectedSpanType);
     }
