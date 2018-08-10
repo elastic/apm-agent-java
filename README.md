@@ -1,6 +1,6 @@
 [![Build Status](https://apm-ci.elastic.co/job/elastic+apm-agent-java+master/badge/icon)](https://apm-ci.elastic.co/job/elastic+apm-agent-java+master/)
 [![codecov](https://codecov.io/gh/elastic/apm-agent-java/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/apm-agent-java)
-[![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22co.elastic.apm%22%20AND%20a%3A%22apm-agent-api%22)
+[![Maven Central](https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg)](https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent)
 
 # apm-agent-java
 
