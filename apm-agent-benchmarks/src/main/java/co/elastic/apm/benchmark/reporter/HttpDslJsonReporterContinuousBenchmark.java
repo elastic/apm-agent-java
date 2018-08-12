@@ -20,6 +20,7 @@
 package co.elastic.apm.benchmark.reporter;
 
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import co.elastic.apm.report.serialize.PayloadSerializer;
 import org.openjdk.jmh.runner.RunnerException;
@@ -42,6 +43,6 @@ public class HttpDslJsonReporterContinuousBenchmark extends AbstractHttpReporter
 
     @Override
     protected PayloadSerializer getPayloadSerializer() {
-        return new DslJsonSerializer(tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled());
+        return new DslJsonSerializer(tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled(), tracer.getConfig(StacktraceConfiguration.class));
     }
 }

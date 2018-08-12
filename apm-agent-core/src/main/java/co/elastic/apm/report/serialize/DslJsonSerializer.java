@@ -28,7 +28,6 @@ import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.error.ErrorPayload;
-import co.elastic.apm.impl.error.ExceptionInfo;
 import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Framework;
 import co.elastic.apm.impl.payload.Language;
@@ -38,7 +37,7 @@ import co.elastic.apm.impl.payload.RuntimeInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
-import co.elastic.apm.impl.stacktrace.Stacktrace;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanContext;
@@ -62,6 +61,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,8 @@ public class DslJsonSerializer implements PayloadSerializer {
      * so that {@link #getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
-    public static final byte NEW_LINE = (byte) '\n';
+    private static final byte NEW_LINE = (byte) '\n';
+    private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     static final int MAX_VALUE_LENGTH = 1024;
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
@@ -92,8 +94,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     private final boolean distributedTracing;
     @Nullable
     private OutputStream os;
+    private final StacktraceConfiguration stacktraceConfiguration;
 
-    public DslJsonSerializer(boolean distributedTracingEnabled) {
+    public DslJsonSerializer(boolean distributedTracingEnabled, StacktraceConfiguration stacktraceConfiguration) {
+        this.stacktraceConfiguration = stacktraceConfiguration;
         jw = new DslJson<>().newWriter(BUFFER_SIZE);
         dateSerializer = new DateSerializer();
         distributedTracing = distributedTracingEnabled;
@@ -246,13 +250,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void serializeException(ExceptionInfo exception) {
+    private void serializeException(@Nullable Throwable exception) {
         writeFieldName("exception");
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeField("code", exception.getCode());
-        writeField("message", exception.getMessage());
-        serializeStacktrace(exception.getStacktrace());
-        writeLastField("type", exception.getType());
+        if (exception != null) {
+            writeField("message", exception.getMessage());
+            serializeStacktrace(exception.getStackTrace());
+            writeLastField("type", exception.getClass().getName());
+        }
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
@@ -475,8 +480,8 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         writeField("duration", span.getDuration());
         writeField("start", span.getStart());
-        if (span.getStacktrace().size() > 0) {
-            serializeStacktrace(span.getStacktrace());
+        if (span.getStacktrace() != null) {
+            serializeStacktrace(span.getStacktrace().getStackTrace());
         }
         if (span.getContext().hasContent()) {
             serializeSpanContext(span.getContext());
@@ -485,29 +490,72 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeStacktrace(List<Stacktrace> stacktrace) {
-        if (stacktrace.size() > 0) {
+    private void serializeStacktrace(StackTraceElement[] stacktrace) {
+        if (stacktrace.length > 0) {
             writeFieldName("stacktrace");
             jw.writeByte(ARRAY_START);
-            serializeStackTraceElement(stacktrace.get(0));
-            for (int i = 1; i < stacktrace.size(); i++) {
-                jw.writeByte(COMMA);
-                serializeStackTraceElement(stacktrace.get(i));
-            }
+            serializeStackTraceArrayElements(stacktrace);
             jw.writeByte(ARRAY_END);
             jw.writeByte(COMMA);
         }
     }
 
-    private void serializeStackTraceElement(Stacktrace stacktrace) {
+    private void serializeStackTraceArrayElements(StackTraceElement[] stacktrace) {
+
+        boolean topMostElasticApmPackagesSkipped = false;
+        int collectedStackFrames = 0;
+        int stackTraceLimit = stacktraceConfiguration.getStackTraceLimit();
+        for (int i = 1; i < stacktrace.length && collectedStackFrames < stackTraceLimit; i++) {
+            StackTraceElement stackTraceElement = stacktrace[i];
+            // only skip the top most apm stack frames
+            if (!topMostElasticApmPackagesSkipped && stackTraceElement.getClassName().startsWith("co.elastic.apm")) {
+                continue;
+            }
+            topMostElasticApmPackagesSkipped = true;
+
+            if (isExcluded(stackTraceElement)) {
+                continue;
+            }
+
+            if (collectedStackFrames > 0) {
+                jw.writeByte(COMMA);
+            }
+            serializeStackTraceElement(stackTraceElement);
+            collectedStackFrames++;
+        }
+    }
+
+    private boolean isExcluded(StackTraceElement stackTraceElement) {
+        // file name is a required field
+        if (stackTraceElement.getFileName() == null) {
+            return true;
+        }
+        String className = stackTraceElement.getClassName();
+        for (String excludedStackFrame : excludedStackFrames) {
+            if (className.startsWith(excludedStackFrame)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void serializeStackTraceElement(StackTraceElement stacktrace) {
         jw.writeByte(OBJECT_START);
-        writeField("filename", stacktrace.getFilename());
-        writeField("function", stacktrace.getFunction());
-        writeField("library_frame", stacktrace.isLibraryFrame());
-        writeField("lineno", stacktrace.getLineno());
-        writeField("module", stacktrace.getModule());
-        writeLastField("abs_path", stacktrace.getAbsPath());
+        writeField("filename", stacktrace.getFileName());
+        writeField("function", stacktrace.getMethodName());
+        writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
+        writeField("lineno", stacktrace.getLineNumber());
+        writeLastField("abs_path", stacktrace.getClassName());
         jw.writeByte(OBJECT_END);
+    }
+
+    private boolean isLibraryFrame(String className) {
+        for (String applicationPackage : stacktraceConfiguration.getApplicationPackages()) {
+            if (className.startsWith(applicationPackage)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void serializeSpanContext(SpanContext context) {

@@ -175,8 +175,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
-        assertThat(reporter.getFirstError().getException().getStacktrace()).isNotEmpty();
         assertThat(reporter.getFirstError().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }
 
@@ -193,8 +193,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException()).isNotNull();
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Catch me if you can");
-        assertThat(reporter.getFirstError().getException().getStacktrace()).isNotEmpty();
         assertThat(reporter.getFirstError().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }
 

@@ -24,6 +24,7 @@ import co.elastic.apm.impl.payload.ProcessFactory;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.ServiceFactory;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import co.elastic.apm.util.VersionUtils;
@@ -76,7 +77,9 @@ public class ReporterFactory {
                                                            @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration,
                                                            OkHttpClient httpClient) {
 
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(CoreConfiguration.class).isDistributedTracingEnabled());
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(
+            configurationRegistry.getConfig(CoreConfiguration.class).isDistributedTracingEnabled(),
+            configurationRegistry.getConfig(StacktraceConfiguration.class));
         final co.elastic.apm.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
         final ApmServerHttpPayloadSender payloadSender = new ApmServerHttpPayloadSender(httpClient, payloadSerializer, reporterConfiguration);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();

@@ -19,12 +19,9 @@
  */
 package co.elastic.apm.impl.error;
 
-import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Additional information added when logging the error.
@@ -34,7 +31,6 @@ public class Log implements Recyclable {
     private static final String DEFAULT_LOGGER_NAME = "default";
     private static final String DEFAULT_LEVEL = "error";
 
-    private final List<Stacktrace> stacktrace = new ArrayList<>();
     /**
      * The severity of the record.
      */
@@ -119,16 +115,11 @@ public class Log implements Recyclable {
         return this;
     }
 
-    public List<Stacktrace> getStacktrace() {
-        return stacktrace;
-    }
-
     @Override
     public void resetState() {
         loggerName = DEFAULT_LOGGER_NAME;
         level = DEFAULT_LEVEL;
         message = null;
         paramMessage = null;
-        stacktrace.clear();
     }
 }

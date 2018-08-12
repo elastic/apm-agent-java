@@ -24,6 +24,7 @@ import co.elastic.apm.impl.Scope;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
@@ -92,7 +93,7 @@ public class ApacheHttpClientInstrumentationTest extends AbstractInstrumentation
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
-        assertThat(reporter.getFirstError().getException().getType()).isEqualTo("org.apache.http.client.CircularRedirectException");
+        assertThat(reporter.getFirstError().getException().getClass()).isEqualTo(CircularRedirectException.class);
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/circular-redirect"))

@@ -24,13 +24,10 @@ import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.impl.sampling.Sampler;
-import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.objectpool.NoopObjectPool;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
@@ -64,23 +61,20 @@ public class ElasticApmTracer {
     private final Iterable<LifecycleListener> lifecycleListeners;
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
-    private final ObjectPool<Stacktrace> stackTracePool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
-    private final StacktraceFactory stacktraceFactory;
     private final ThreadLocal<AbstractSpan> active = new ThreadLocal<>();
     private final CoreConfiguration coreConfiguration;
     private Sampler sampler;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, StacktraceFactory stacktraceFactory, Iterable<LifecycleListener> lifecycleListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
-        this.stacktraceFactory = stacktraceFactory;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)),false,
+        transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
@@ -102,12 +96,6 @@ public class ElasticApmTracer {
                     return new ErrorCapture();
                 }
             });
-        stackTracePool = new NoopObjectPool<Stacktrace>(new RecyclableObjectFactory<Stacktrace>() {
-            @Override
-            public Stacktrace createInstance() {
-                return new Stacktrace();
-            }
-        });
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -226,9 +214,7 @@ public class ElasticApmTracer {
         if (e != null) {
             ErrorCapture error = new ErrorCapture();
             error.withTimestamp(epochTimestampMillis);
-            error.getException().withMessage(e.getMessage());
-            error.getException().withType(e.getClass().getName());
-            stacktraceFactory.fillStackTrace(error.getException().getStacktrace(), e.getStackTrace());
+            error.setException(e);
             if (active != null) {
                 if (active instanceof Transaction) {
                     Transaction transaction = (Transaction) active;
@@ -278,7 +264,7 @@ public class ElasticApmTracer {
         int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
         if (spanFramesMinDurationMs != 0 && span.isSampled()) {
             if (span.getDuration() >= spanFramesMinDurationMs) {
-                stacktraceFactory.fillStackTrace(span.getStacktrace());
+                span.withStacktrace(new Throwable());
             }
         }
         if (span.isSampled()) {
@@ -297,10 +283,6 @@ public class ElasticApmTracer {
     }
 
     public void recycle(Span span) {
-        List<Stacktrace> stacktrace = span.getStacktrace();
-        for (int i = 0; i < stacktrace.size(); i++) {
-            stackTracePool.recycle(stacktrace.get(i));
-        }
         spanPool.recycle(span);
     }
 
@@ -318,7 +300,6 @@ public class ElasticApmTracer {
             reporter.close();
             transactionPool.close();
             spanPool.close();
-            stackTracePool.close();
             errorPool.close();
             for (LifecycleListener lifecycleListener : lifecycleListeners) {
                 lifecycleListener.stop();

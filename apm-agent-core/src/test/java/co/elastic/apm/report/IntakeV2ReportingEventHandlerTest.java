@@ -27,6 +27,7 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
@@ -84,7 +85,7 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,
-            mock(ProcessorEventHandler.class), new DslJsonSerializer(true));
+            mock(ProcessorEventHandler.class), new DslJsonSerializer(true, mock(StacktraceConfiguration.class)));
         serverReceivedPayload = new CountDownLatch(1);
     }
 

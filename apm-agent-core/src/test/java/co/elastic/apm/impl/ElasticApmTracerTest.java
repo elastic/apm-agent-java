@@ -107,7 +107,7 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        assertThat(reporter.getFirstSpan().getStacktrace()).isEmpty();
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNull();
     }
 
     @Test
@@ -122,7 +122,7 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        assertThat(reporter.getFirstSpan().getStacktrace()).isNotEmpty();
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNotNull();
     }
 
     @Test
@@ -136,7 +136,7 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        assertThat(reporter.getFirstSpan().getStacktrace()).isEmpty();
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNull();
 
     }
 
@@ -152,7 +152,7 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
-        assertThat(reporter.getFirstSpan().getStacktrace()).isNotEmpty();
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNotNull();
     }
 
     @Test
@@ -160,9 +160,7 @@ class ElasticApmTracerTest {
         tracerImpl.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
-        assertThat(error.getException().getStacktrace()).isNotEmpty();
-        assertThat(error.getException().getMessage()).isEqualTo("test");
-        assertThat(error.getException().getType()).isEqualTo(Exception.class.getName());
+        assertThat(error.getException()).isNotNull();
         assertThat(error.getTraceContext().hasContent()).isFalse();
     }
 

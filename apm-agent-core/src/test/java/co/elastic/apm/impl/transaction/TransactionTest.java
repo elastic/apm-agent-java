@@ -22,6 +22,7 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.TransactionUtils;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class TransactionTest {
     @BeforeEach
     void setUp() {
         final CoreConfiguration config = new CoreConfiguration();
-        jsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
+        jsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
     }
 
     @Test
