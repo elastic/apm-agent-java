@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.8.0</version>
+            <version>${version.testcontainers}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
