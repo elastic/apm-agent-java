@@ -44,7 +44,8 @@ public class ErrorCapture implements Recyclable {
     /**
      * Information about the originally thrown error.
      */
-    private final ExceptionInfo exception = new ExceptionInfo();
+    @Nullable
+    private Throwable exception;
     /**
      * Data for correlating errors with transactions
      */
@@ -70,7 +71,8 @@ public class ErrorCapture implements Recyclable {
     /**
      * Information about the originally thrown error.
      */
-    public ExceptionInfo getException() {
+    @Nullable
+    public Throwable getException() {
         return exception;
     }
 
@@ -97,7 +99,7 @@ public class ErrorCapture implements Recyclable {
 
     @Override
     public void resetState() {
-        exception.resetState();
+        exception = null;
         context.resetState();
         transaction.resetState();
         timestamp = 0;
@@ -124,5 +126,9 @@ public class ErrorCapture implements Recyclable {
 
     public TraceContext getTraceContext() {
         return traceContext;
+    }
+
+    public void setException(Throwable e) {
+        this.exception = e;
     }
 }

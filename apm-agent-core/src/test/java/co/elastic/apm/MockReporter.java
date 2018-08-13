@@ -21,6 +21,7 @@ package co.elastic.apm;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.Reporter;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class MockReporter implements Reporter {
     private final List<Transaction> transactions = new ArrayList<>();
@@ -64,7 +66,7 @@ public class MockReporter implements Reporter {
         spanSchema = getSchema("/schema/transactions/span.json");
         errorSchema = getSchema("/schema/errors/error.json");
         final CoreConfiguration config = new CoreConfiguration();
-        dslJsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
+        dslJsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
         objectMapper = new ObjectMapper();
     }
 

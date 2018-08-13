@@ -20,12 +20,9 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.stacktrace.Stacktrace;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
 
@@ -36,10 +33,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      */
     private final SpanContext context = new SpanContext();
     /**
-     * List of stack frames with variable attributes (eg: lineno, filename, etc)
-     */
-    private final List<Stacktrace> stacktrace = new ArrayList<Stacktrace>();
-    /**
      * The locally unique ID of the span.
      */
     @Deprecated
@@ -49,6 +42,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      */
     @Deprecated
     private final SpanId parent = new SpanId();
+    @Nullable
+    private Throwable stacktrace;
     /**
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
@@ -114,10 +109,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return parent;
     }
 
-    /**
-     * List of stack frames with variable attributes (eg: lineno, filename, etc)
-     */
-    public List<Stacktrace> getStacktrace() {
+    @Nullable
+    public Throwable getStacktrace() {
         return stacktrace;
     }
 
@@ -150,7 +143,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         id.resetState();
         context.resetState();
         parent.resetState();
-        stacktrace.clear();
+        stacktrace = null;
         start = 0;
         transaction = null;
         traceContext.resetState();
@@ -172,4 +165,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
     }
 
+    public Span withStacktrace(Throwable stacktrace) {
+        this.stacktrace = stacktrace;
+        return this;
+    }
 }

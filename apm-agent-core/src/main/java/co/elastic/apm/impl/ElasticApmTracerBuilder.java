@@ -25,8 +25,6 @@ import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.logging.LoggingConfiguration;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterFactory;
@@ -55,8 +53,6 @@ public class ElasticApmTracerBuilder {
     @Nullable
     private Reporter reporter;
     @Nullable
-    private StacktraceFactory stacktraceFactory;
-    @Nullable
     private Iterable<LifecycleListener> lifecycleListeners;
     private Map<String, String> inlineConfig = new HashMap<>();
 
@@ -73,11 +69,6 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracerBuilder reporter(Reporter reporter) {
         this.reporter = reporter;
-        return this;
-    }
-
-    public ElasticApmTracerBuilder stacktraceFactory(StacktraceFactory stacktraceFactory) {
-        this.stacktraceFactory = stacktraceFactory;
         return this;
     }
 
@@ -99,14 +90,10 @@ public class ElasticApmTracerBuilder {
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, null, null);
         }
-        if (stacktraceFactory == null) {
-            StacktraceConfiguration stackConfig = configurationRegistry.getConfig(StacktraceConfiguration.class);
-            stacktraceFactory = new StacktraceFactory.CurrentThreadStackTraceFactory(stackConfig);
-        }
         if (lifecycleListeners == null) {
             lifecycleListeners = ServiceLoader.load(LifecycleListener.class, getClass().getClassLoader());
         }
-        return new ElasticApmTracer(configurationRegistry, reporter, stacktraceFactory, lifecycleListeners);
+        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {

@@ -34,7 +34,6 @@ import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.sampling.ConstantSampler;
-import co.elastic.apm.impl.stacktrace.StacktraceFactory;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.ApmServerReporter;
@@ -75,7 +74,6 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
                 .addConfigSource(new SimpleSource()
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark"))
                 .build())
-            .stacktraceFactory(StacktraceFactory.Noop.INSTANCE)
             .build();
         // in contrast to production configuration, do not drop transactions if the ring buffer is full
         // instead blocking wait until a slot becomes available

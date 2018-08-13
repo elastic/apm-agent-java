@@ -21,6 +21,7 @@ package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,7 +46,7 @@ class DslJsonSerializerTest {
     @BeforeEach
     void setUp() {
         final CoreConfiguration config = new CoreConfiguration();
-        serializer = new DslJsonSerializer(config.isDistributedTracingEnabled());
+        serializer = new DslJsonSerializer(config.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
         objectMapper = new ObjectMapper();
     }
 

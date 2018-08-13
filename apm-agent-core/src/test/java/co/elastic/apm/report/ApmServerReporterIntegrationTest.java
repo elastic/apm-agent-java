@@ -26,6 +26,7 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
 import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
@@ -91,7 +92,7 @@ class ApmServerReporterIntegrationTest {
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
         when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
-        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false), reporterConfiguration);
+        payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false, mock(StacktraceConfiguration.class)), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
@@ -99,7 +100,7 @@ class ApmServerReporterIntegrationTest {
         final IntakeV1ReportingEventHandler v1handler = new IntakeV1ReportingEventHandler(service, title, system, payloadSender,
             reporterConfiguration, processorEventHandler);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(true));
+            processorEventHandler, new DslJsonSerializer(true, mock(StacktraceConfiguration.class)));
         reporterV1 = new ApmServerReporter(false, reporterConfiguration,
             config.getConfig(CoreConfiguration.class), v1handler);
         reporterV2 = new ApmServerReporter(false, reporterConfiguration,
