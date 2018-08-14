@@ -167,7 +167,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(false);
 
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
-        .key("disabled_instrumentations")
+        .key("disable_instrumentations")
+        .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc` and `incubating`.\n" +

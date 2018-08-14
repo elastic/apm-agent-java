@@ -225,8 +225,8 @@ you should add an additional entry to this list (make sure to also include the d
 |============
 
 [float]
-[[config-disabled-instrumentations]]
-==== `disabled_instrumentations`
+[[config-disable-instrumentations]]
+==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
 Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc` and `incubating`.
@@ -244,7 +244,7 @@ set the value to an empty string.
 [options="header"]
 |============
 | Java System Properties      | Environment
-| `elastic.apm.disabled_instrumentations` | `ELASTIC_APM_DISABLED_INSTRUMENTATIONS`
+| `elastic.apm.disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
 |============
 
 [[config-http]]
@@ -585,8 +585,8 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 |============
 
 [float]
-[[config-span-frames-min-duration-ms]]
-==== `span_frames_min_duration_ms`
+[[config-span-frames-min-duration]]
+==== `span_frames_min_duration`
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
@@ -605,7 +605,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 [options="header"]
 |============
 | Java System Properties      | Environment
-| `elastic.apm.span_frames_min_duration_ms` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION_MS`
+| `elastic.apm.span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
 |============
 
 
