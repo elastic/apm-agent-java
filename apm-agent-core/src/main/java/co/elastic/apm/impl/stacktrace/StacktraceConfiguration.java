@@ -45,7 +45,8 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(50);
 
     private final ConfigurationOption<Integer> spanFramesMinDurationMs = ConfigurationOption.integerOption()
-        .key("span_frames_min_duration_ms")
+        .key("span_frames_min_duration")
+        .aliasKeys("span_frames_min_duration_ms")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("In its default settings, the APM agent will collect a stack trace with every recorded span.\n" +
             "While this is very helpful to find the exact place in your code that causes the span, " +
