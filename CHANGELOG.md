@@ -14,5 +14,6 @@
  * Added support for async servlet requests
  * Added support for Payara/Glassfish
  * Incubating support for Apache HttpClient
+ * Support for Spring RestTemplate
 
 ## Bug Fixes
