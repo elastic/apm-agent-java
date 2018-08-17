@@ -20,7 +20,7 @@
 package co.elastic.apm.httpclient;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.http.client.HttpClientHelper;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.TraceContext;
@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -45,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_CLIENT_HTTP = "ext.http.apache-httpclient";
+    private static final String SPAN_TYPE_APACHE_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "apache-httpclient";
 
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
@@ -55,7 +56,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
             return;
         }
         final AbstractSpan<?> parent = tracer.getActive();
-        span = startHttpClientSpan(parent, request.getMethod(), route.getTargetHost().getHostName());
+        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
@@ -73,32 +74,6 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
                 .deactivate()
                 .end();
         }
-    }
-
-    @Nullable
-    @VisibleForAdvice
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, String hostName) {
-        if (!isAlreadyMonitored(parent)) {
-            return parent
-                .createSpan()
-                .withType(SPAN_TYPE_CLIENT_HTTP)
-                .appendToName(method).appendToName(" ").appendToName(hostName)
-                .activate();
-        }
-        return null;
-    }
-
-    /*
-     * typically, more than one ClientExecChain implementation is invoked during an HTTP request
-     */
-    private static boolean isAlreadyMonitored(AbstractSpan<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
-        }
-        Span parentSpan = (Span) parent;
-        // a http client span can't be the child of another http client span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().equals(SPAN_TYPE_CLIENT_HTTP);
     }
 
     @Override

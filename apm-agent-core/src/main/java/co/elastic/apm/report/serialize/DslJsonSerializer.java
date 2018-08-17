@@ -254,7 +254,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("exception");
         jw.writeByte(JsonWriter.OBJECT_START);
         if (exception != null) {
-            writeField("message", exception.getMessage());
+            writeField("message", String.valueOf(exception.getMessage()));
             serializeStacktrace(exception.getStackTrace());
             writeLastField("type", exception.getClass().getName());
         }
