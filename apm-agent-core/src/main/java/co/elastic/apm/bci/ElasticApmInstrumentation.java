@@ -53,13 +53,7 @@ public abstract class ElasticApmInstrumentation {
      */
     static void staticInit(ElasticApmTracer tracer) {
         // allow re-init with a different tracer
-        if (tracer != ElasticApmInstrumentation.tracer) {
-            synchronized (ElasticApmInstrumentation.class) {
-                if (tracer != ElasticApmInstrumentation.tracer) {
-                    ElasticApmInstrumentation.tracer = tracer;
-                }
-            }
-        }
+        ElasticApmInstrumentation.tracer = tracer;
     }
 
     public void init(ElasticApmTracer tracer) {
