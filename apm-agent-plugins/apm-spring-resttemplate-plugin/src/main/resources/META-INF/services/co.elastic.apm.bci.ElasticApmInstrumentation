@@ -1,1 +1,1 @@
-co.elastic.apm.restclient.SpringRestTemplateInstrumentation
+co.elastic.apm.resttemplate.SpringRestTemplateInstrumentation

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.restclient;
+package co.elastic.apm.resttemplate;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.http.client.HttpClientHelper;
