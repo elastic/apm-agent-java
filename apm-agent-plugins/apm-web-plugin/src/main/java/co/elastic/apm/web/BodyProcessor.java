@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.web;
 
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -55,7 +55,7 @@ public class BodyProcessor implements Processor {
         redactBodyIfNecessary(error.getContext(), ERRORS);
     }
 
-    private void redactBodyIfNecessary(Context context, WebConfiguration.EventType eventType) {
+    private void redactBodyIfNecessary(TransactionContext context, WebConfiguration.EventType eventType) {
         assert webConfiguration != null;
         final WebConfiguration.EventType eventTypeConfig = webConfiguration.getCaptureBody();
         if (hasBody(context.getRequest()) && eventTypeConfig != eventType && eventTypeConfig != ALL) {

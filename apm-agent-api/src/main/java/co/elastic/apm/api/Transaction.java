@@ -57,21 +57,6 @@ public interface Transaction extends Span {
     void setType(String type);
 
     /**
-     * A flat mapping of user-defined tags with string values.
-     * <p>
-     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
-     * By all means,
-     * you should avoid that user specified data,
-     * like URL parameters,
-     * is used as a tag key as it can lead to mapping explosions.
-     * </p>
-     *
-     * @param key   The tag key.
-     * @param value The tag value.
-     */
-    void addTag(String key, String value);
-
-    /**
      * Call this to enrich collected performance data and errors with information about the user/client.
      * <p>
      * This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).

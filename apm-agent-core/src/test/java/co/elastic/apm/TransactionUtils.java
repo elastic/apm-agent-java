@@ -20,7 +20,7 @@
 package co.elastic.apm;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
@@ -41,7 +41,7 @@ public class TransactionUtils {
         t.withType("request");
         t.withResult("success");
 
-        Context context = t.getContext();
+        TransactionContext context = t.getContext();
         Request request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");

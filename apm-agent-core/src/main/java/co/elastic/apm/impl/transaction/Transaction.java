@@ -20,7 +20,7 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.sampling.Sampler;
 
 import javax.annotation.Nullable;
@@ -48,7 +48,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    private final Context context = new Context();
+    private final TransactionContext context = new TransactionContext();
     private final List<Span> spans = new ArrayList<Span>();
     /**
      * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
@@ -106,7 +106,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    public Context getContext() {
+    public TransactionContext getContext() {
         return context;
     }
 
@@ -116,7 +116,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      * @return the transaction context
      * @see #getContext()
      */
-    public Context getContextEnsureVisibility() {
+    public TransactionContext getContextEnsureVisibility() {
         synchronized (this) {
             return context;
         }
@@ -182,6 +182,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return type;
     }
 
+    @Override
     public void addTag(String key, String value) {
         if (!isSampled()) {
             return;
@@ -253,9 +254,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public void recycle() {
-        if (tracer != null) {
-            tracer.recycle(this);
-        }
+        tracer.recycle(this);
     }
 
     public boolean isNoop() {

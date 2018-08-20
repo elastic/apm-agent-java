@@ -19,8 +19,6 @@
  */
 package co.elastic.apm.impl.context;
 
-import co.elastic.apm.objectpool.Recyclable;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
  */
-public class Context implements Recyclable {
+public class TransactionContext extends AbstractContext {
 
     /**
      * An arbitrary mapping of additional metadata to store with the event.
@@ -44,18 +42,13 @@ public class Context implements Recyclable {
      */
     private final Request request = new Request();
     /**
-     * A flat mapping of user-defined tags with string values.
-     */
-    private final Map<String, String> tags = new ConcurrentHashMap<>();
-    /**
      * User
      * <p>
      * Describes the authenticated User for a request.
      */
     private final User user = new User();
 
-
-    public void copyFrom(Context other) {
+    public void copyFrom(TransactionContext other) {
         response.copyFrom(other.response);
         request.copyFrom(other.request);
         user.copyFrom(other.user);
@@ -82,13 +75,6 @@ public class Context implements Recyclable {
     }
 
     /**
-     * A flat mapping of user-defined tags with string values.
-     */
-    public Map<String, String> getTags() {
-        return tags;
-    }
-
-    /**
      * User
      * <p>
      * Describes the authenticated User for a request.
@@ -99,11 +85,10 @@ public class Context implements Recyclable {
 
     @Override
     public void resetState() {
+        super.resetState();
         custom.clear();
         response.resetState();
         request.resetState();
-        tags.clear();
         user.resetState();
-
     }
 }

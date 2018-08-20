@@ -50,6 +50,11 @@ class SpanImpl implements Span {
     }
 
     @Override
+    public void addTag(String key, String value) {
+        // co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation.addTag
+    }
+
+    @Override
     public Span createSpan() {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;

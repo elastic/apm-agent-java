@@ -160,8 +160,9 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         private static void handleSpanTag(Span span, String key, Object value) {
-            handleSpecialSpanTag(span, key, value);
-            // TODO implement span tags
+            if (!handleSpecialSpanTag(span, key, value)) {
+                span.addTag(key, value.toString());
+            }
         }
 
         // unfortunately, we can't use the constants in io.opentracing.tag.Tags,

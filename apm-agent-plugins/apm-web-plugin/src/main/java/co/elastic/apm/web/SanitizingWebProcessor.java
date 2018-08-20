@@ -20,7 +20,7 @@
 package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -55,7 +55,7 @@ public class SanitizingWebProcessor implements Processor {
         sanitizeContext(error.getContext());
     }
 
-    private void sanitizeContext(Context context) {
+    private void sanitizeContext(TransactionContext context) {
         sanitizeRequest(context.getRequest());
         sanitizeMap(context.getResponse().getHeaders());
     }

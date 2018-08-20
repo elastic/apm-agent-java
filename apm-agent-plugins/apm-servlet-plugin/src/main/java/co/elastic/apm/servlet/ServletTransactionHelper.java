@@ -22,7 +22,7 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.Url;
@@ -110,7 +110,7 @@ public class ServletTransactionHelper {
         if (transaction.getName().length() == 0) {
             transaction.withName(method);
         }
-        Context context = transaction.getContext();
+        TransactionContext context = transaction.getContext();
         final Request request = transaction.getContext().getRequest();
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
 

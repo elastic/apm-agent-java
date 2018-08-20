@@ -284,6 +284,20 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         span.finish();
     }
 
+    @Test
+    void testSpanTags() {
+        try (ApmScope transaction = apmTracer.buildSpan("transaction").startActive(true)) {
+            try (ApmScope span = apmTracer.buildSpan("span").startActive(true)) {
+                transaction.span().setTag("foo", "bar");
+                span.span().setTag("bar", "baz");
+            }
+        }
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("bar", "baz");
+    }
+
     private Transaction createTransactionFromOtTags(Map<String, String> tags) {
         final ApmSpanBuilder spanBuilder = apmTracer.buildSpan("transaction");
         tags.forEach(spanBuilder::withTag);
