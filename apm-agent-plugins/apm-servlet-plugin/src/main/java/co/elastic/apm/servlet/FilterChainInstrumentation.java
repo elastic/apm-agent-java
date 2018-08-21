@@ -55,8 +55,7 @@ public class FilterChainInstrumentation extends ElasticApmInstrumentation {
         return not(isInterface())
             // the hasSuperType matcher is quite costly,
             // as the inheritance hierarchy of each class would have to be examined
-            // this pre-selects candidates and hopefully does not cause lots of false negatives
-            .and(nameContains("Chain"))
+            // TODO: add a pre-filter to reduce number of classes being examined
             .and(hasSuperType(named("javax.servlet.FilterChain")));
     }
 
