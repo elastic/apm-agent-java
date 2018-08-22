@@ -52,7 +52,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
             "\n" +
-            "With the default setting, `-1`, stack traces will be collected for all spans. " +
+            "When setting this option to `-1`, stack traces will be collected for all spans. " +
             "Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans " +
             "with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.\n" +
             "\n" +
