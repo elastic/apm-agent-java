@@ -56,8 +56,8 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.active` | `ELASTIC_APM_ACTIVE`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.active` | `active` | `ELASTIC_APM_ACTIVE`
 |============
 
 [float]
@@ -78,8 +78,8 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.instrument` | `ELASTIC_APM_INSTRUMENT`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.instrument` | `instrument` | `ELASTIC_APM_INSTRUMENT`
 |============
 
 [float]
@@ -101,8 +101,8 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.service_name` | `ELASTIC_APM_SERVICE_NAME`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.service_name` | `service_name` | `ELASTIC_APM_SERVICE_NAME`
 |============
 
 [float]
@@ -121,8 +121,8 @@ A version string for the currently deployed version of the service. If you donâ€
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.service_version` | `ELASTIC_APM_SERVICE_VERSION`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.service_version` | `service_version` | `ELASTIC_APM_SERVICE_VERSION`
 |============
 
 [float]
@@ -141,8 +141,8 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.environment` | `ELASTIC_APM_ENVIRONMENT`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.environment` | `environment` | `ELASTIC_APM_ENVIRONMENT`
 |============
 
 [float]
@@ -161,8 +161,8 @@ By default, the agent will sample every transaction (e.g. request to your servic
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.sample_rate` | `sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
 |============
 
 [float]
@@ -185,8 +185,8 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.transaction_max_spans` | `transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
 |============
 
 [float]
@@ -220,8 +220,8 @@ you should add an additional entry to this list (make sure to also include the d
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
 |============
 
 [float]
@@ -240,8 +240,8 @@ A list of instrumentations which should be disabled. Valid options are `jdbc`, `
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
 |============
 
 [[config-http]]
@@ -260,6 +260,7 @@ For requests with a content type of multipart/form-data, any uploaded files will
 
 WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc.If your service handles data like this, we advise to only enable this feature with care.
 
+Valid options: `OFF`, `ERRORS`, `TRANSACTIONS`, `ALL`
 
 [options="header"]
 |============
@@ -270,8 +271,8 @@ WARNING: request bodies often contain sensitive values like passwords, credit ca
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.capture_body` | `ELASTIC_APM_CAPTURE_BODY`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
 |============
 
 [float]
@@ -297,8 +298,8 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.ignore_urls` | `ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
 |============
 
 [float]
@@ -325,8 +326,8 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
 [[config-logging]]
@@ -337,6 +338,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 Sets the logging level for the agent.
 
+Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
 |============
@@ -347,8 +349,8 @@ Sets the logging level for the agent.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.logging.log_level` | `ELASTIC_APM_LOGGING.LOG_LEVEL`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.logging.log_level` | `logging.log_level` | `ELASTIC_APM_LOGGING_LOG_LEVEL`
 |============
 
 [float]
@@ -375,8 +377,8 @@ it's content is deleted when the application starts.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.logging.log_file` | `ELASTIC_APM_LOGGING.LOG_FILE`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.logging.log_file` | `logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
 |============
 
 [[config-reporter]]
@@ -399,8 +401,8 @@ Both the agents and the APM server have to be configured with the same secret to
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.secret_token` | `ELASTIC_APM_SECRET_TOKEN`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.secret_token` | `secret_token` | `ELASTIC_APM_SECRET_TOKEN`
 |============
 
 [float]
@@ -419,8 +421,8 @@ The URL must be fully qualified, including protocol (http or https) and port.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.server_url` | `ELASTIC_APM_SERVER_URL`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
 |============
 
 [float]
@@ -441,8 +443,8 @@ WARNING:  If timeouts are disabled or set to a high value, your app could experi
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.server_timeout` | `server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT`
 |============
 
 [float]
@@ -463,8 +465,8 @@ Verification can be disabled by changing this setting to false.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.verify_server_cert` | `verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT`
 |============
 
 [float]
@@ -487,8 +489,8 @@ A higher value also impacts the time until transactions are indexed and searchab
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.flush_interval` | `flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL`
 |============
 
 [float]
@@ -513,8 +515,8 @@ This setting is useful to limit memory consumption if you experience a sudden sp
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.max_queue_size` | `max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
 
 [float]
@@ -534,8 +536,8 @@ Disabled by default to save disk space.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.include_process_args` | `include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
 |============
 
 [[config-stacktrace]]
@@ -556,8 +558,8 @@ Used to determine whether a stack trace frame is an 'in-app frame' or a 'library
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.application_packages` | `application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES`
 |============
 
 [float]
@@ -576,8 +578,8 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.stack_trace_limit` | `stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT`
 |============
 
 [float]
@@ -586,7 +588,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-With the default setting, `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to 0.
 
@@ -600,8 +602,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.span_frames_min_duration` | `span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
 |============
 
 

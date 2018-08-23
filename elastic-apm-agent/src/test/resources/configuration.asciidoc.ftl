@@ -43,6 +43,9 @@ So a minimal version of a configuration might look like this:
 
 ${option.description}
 
+<#if option.validOptions?has_content>
+Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
+</#if>
 
 [options="header"]
 |============
@@ -53,8 +56,8 @@ ${option.description}
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case}`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
 
         </#if>
