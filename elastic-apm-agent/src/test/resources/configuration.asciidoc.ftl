@@ -56,8 +56,8 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 
 [options="header"]
 |============
-| Java System Properties      | Environment
-| `elastic.apm.${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
 
         </#if>
