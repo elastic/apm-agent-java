@@ -32,6 +32,22 @@ So a minimal version of a configuration might look like this:
 -Delastic.apm.server_url=http://localhost:8300
 ----
 
+[source,properties]
+.elasticapm.properties
+----
+service_name=my-cool-service
+application_packages=org.example
+server_url=http://localhost:8300
+----
+
+[source,bash]
+.Environment variables
+----
+ELASTIC_APM_SERVICE_NAME=my-cool-service
+ELASTIC_APM_APPLICATION_PACKAGES=org.example
+ELASTIC_APM_SERVER_URL=http://localhost:8300
+----
+
 <#list config as category, options>
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
