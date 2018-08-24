@@ -180,7 +180,12 @@ Other Servlet 3+ compliant servers will most likely work as well.
 
 |Apache HttpClient (<<config-disable-instrumentations,incubating>>)
 |4.3+
-|The agent automatically creates spans for outgoing HTTP requests.
+|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+ The spans are named after the schema `<method> <host>`.
+
+|Spring RestTemplate
+|4+
+|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
  The spans are named after the schema `<method> <host>`.
 
 |===

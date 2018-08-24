@@ -245,7 +245,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc` and `incubating`.
+Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
 If you want to try out incubating features,
 set the value to an empty string.
 

@@ -17,25 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.httpclient;
+@NonnullApi
+package co.elastic.apm.resttemplate;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.Before;
-
-public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
-
-    private HttpClient client;
-
-    @Before
-    public void setUp() {
-        client = HttpClients.createDefault();
-    }
-
-    @Override
-    protected void performGet(String path) throws Exception {
-        client.execute(new HttpGet(path)).getStatusLine().getStatusCode();
-    }
-
-}
+import co.elastic.apm.annotation.NonnullApi;
