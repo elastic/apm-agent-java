@@ -399,6 +399,30 @@ it's content is deleted when the application starts.
 | `elastic.apm.logging.log_file` | `logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
 |============
 
+[float]
+[[config-enable-log-correlation]]
+==== `enable_log_correlation`
+
+A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+
+While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 [float]
