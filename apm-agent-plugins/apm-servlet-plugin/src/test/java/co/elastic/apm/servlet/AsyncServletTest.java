@@ -24,7 +24,7 @@ import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterAll;
@@ -119,7 +119,7 @@ public class AsyncServletTest extends AbstractServletTest {
         assertThat(get(path).body().string()).matches(bodyPredicate);
         assertThat(reporter.getFirstTransaction(500)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
-        final Context context = reporter.getFirstTransaction().getContext();
+        final TransactionContext context = reporter.getFirstTransaction().getContext();
         assertThat(context.getRequest().getUrl().getPathname()).isEqualTo(path);
         assertThat(context.getResponse().getStatusCode()).isEqualTo(status);
     }

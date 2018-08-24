@@ -18,15 +18,15 @@
  * #L%
  */
 
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.impl.context;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.impl.transaction.Db;
 
 
 /**
  * Any other arbitrary data captured by the agent, optionally provided by the user
  */
-public class SpanContext implements Recyclable {
+public class SpanContext extends AbstractContext {
 
     /**
      * An object containing contextual data for database spans
@@ -42,6 +42,7 @@ public class SpanContext implements Recyclable {
 
     @Override
     public void resetState() {
+        super.resetState();
         db.resetState();
     }
 

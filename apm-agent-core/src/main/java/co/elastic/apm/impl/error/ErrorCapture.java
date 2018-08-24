@@ -20,7 +20,7 @@
 package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.objectpool.Recyclable;
@@ -40,7 +40,7 @@ public class ErrorCapture implements Recyclable {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    private final Context context = new Context();
+    private final TransactionContext context = new TransactionContext();
     /**
      * Information about the originally thrown error.
      */
@@ -64,7 +64,7 @@ public class ErrorCapture implements Recyclable {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
-    public Context getContext() {
+    public TransactionContext getContext() {
         return context;
     }
 

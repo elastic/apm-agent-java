@@ -288,6 +288,24 @@ the following are standardized across all Elastic APM agents: `app`, `db`, `cach
 * `type`: the type of the span
 
 [float]
+[[api-span-add-tag]]
+==== `void addTag(String key, String value)`
+A flat mapping of user-defined tags with string values.
+Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+By all means,
+you should avoid that user specified data,
+like URL parameters,
+is used as a tag key as it can lead to mapping explosions.
+
+[source,java]
+----
+span.setTag("foo", "bar");
+----
+
+* `key`:   The tag key
+* `value`: The tag value
+
+[float]
 [[api-span-capture-exception]]
 ==== `void captureException(Exception e)`
 Captures an exception and reports it to the APM server.

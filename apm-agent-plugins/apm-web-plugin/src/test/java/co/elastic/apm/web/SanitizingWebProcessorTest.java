@@ -21,7 +21,7 @@ package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +60,7 @@ class SanitizingWebProcessorTest {
         assertContainsNoSensitiveInformation(errorCapture.getContext());
     }
 
-    private void fillContext(Context context) {
+    private void fillContext(TransactionContext context) {
         context.getRequest().addCookie("JESESSIONID", "CAFEBABE");
         context.getRequest().addCookie("non-sensitive", "foo");
         context.getRequest().addFormUrlEncodedParameter("cretidCard", "1234 1234 1234 1234");
@@ -73,7 +73,7 @@ class SanitizingWebProcessorTest {
         context.getResponse().addHeader("Content-Length", "-1");
     }
 
-    private void assertContainsNoSensitiveInformation(Context context) {
+    private void assertContainsNoSensitiveInformation(TransactionContext context) {
         assertThat(context.getRequest().getCookies().get("JESESSIONID")).isEqualTo(SanitizingWebProcessor.REDACTED);
         assertThat(context.getRequest().getCookies().get("non-sensitive")).isEqualTo("foo");
 

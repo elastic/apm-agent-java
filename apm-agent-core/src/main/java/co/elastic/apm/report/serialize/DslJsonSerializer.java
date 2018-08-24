@@ -20,7 +20,7 @@
 package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.impl.MetaData;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.Socket;
@@ -40,7 +40,7 @@ import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.SpanContext;
+import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.impl.transaction.SpanCount;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -567,7 +567,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("instance", db.getInstance());
         writeField("statement", db.getStatement());
         writeField("type", db.getType());
-        writeLastField("user", db.getUser());
+        writeField("user", db.getUser());
+        writeFieldName("tags");
+        serializeTags(context.getTags());
         jw.writeByte(OBJECT_END);
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
@@ -585,7 +587,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void serializeContext(final Context context) {
+    private void serializeContext(final TransactionContext context) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 

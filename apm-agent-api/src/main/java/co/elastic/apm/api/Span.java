@@ -58,6 +58,21 @@ public interface Span {
     void setType(String type);
 
     /**
+     * A flat mapping of user-defined tags with string values.
+     * <p>
+     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a tag key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The tag key.
+     * @param value The tag value.
+     */
+    void addTag(String key, String value);
+
+    /**
      * Start and return a new custom span as a child of this span.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.

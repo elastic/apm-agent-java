@@ -16,4 +16,5 @@ co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$CaptureExceptionInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$GetIdInstrumentation
+co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.CaptureExceptionInstrumentation

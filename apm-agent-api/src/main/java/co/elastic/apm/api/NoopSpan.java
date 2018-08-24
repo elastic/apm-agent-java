@@ -35,6 +35,11 @@ enum NoopSpan implements Span {
     }
 
     @Override
+    public void addTag(String key, String value) {
+        // noop
+    }
+
+    @Override
     public void end() {
         // noop
     }

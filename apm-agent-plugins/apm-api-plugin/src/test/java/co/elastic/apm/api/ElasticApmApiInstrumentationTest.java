@@ -142,4 +142,22 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(ElasticApm.currentTransaction().getId()).isEmpty();
         assertThat(ElasticApm.currentSpan().getId()).isEmpty();
     }
+
+    @Test
+    void testAddTag() {
+        Transaction transaction = ElasticApm.startTransaction();
+        transaction.setName("foo");
+        transaction.setType("bar");
+        transaction.addTag("foo", "bar");
+        Span span = transaction.createSpan();
+        span.setName("foo");
+        span.setType("bar");
+        span.addTag("bar", "baz");
+        span.end();
+        transaction.end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("bar", "baz");
+    }
 }

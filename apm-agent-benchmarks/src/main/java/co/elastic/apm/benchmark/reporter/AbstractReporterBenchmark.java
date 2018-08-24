@@ -23,7 +23,7 @@ import co.elastic.apm.benchmark.AbstractBenchmark;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.context.Context;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.payload.Agent;
 import co.elastic.apm.impl.payload.Framework;
@@ -114,7 +114,7 @@ public abstract class AbstractReporterBenchmark extends AbstractBenchmark {
         t.withType("request");
         t.withResult("success");
 
-        Context context = t.getContext();
+        TransactionContext context = t.getContext();
         Request request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");

@@ -20,6 +20,7 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
@@ -132,9 +133,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (isSampled()) {
             this.duration = (nanoTime - duration) / MS_IN_NANOS;
         }
-        if (this.tracer != null) {
-            this.tracer.endSpan(this);
-        }
+        this.tracer.endSpan(this);
     }
 
     @Override
@@ -154,10 +153,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return transaction;
     }
 
+    @Override
+    public void addTag(String key, String value) {
+        context.getTags().put(key, value);
+    }
+
     public void recycle() {
-        if (tracer != null) {
-            tracer.recycle(this);
-        }
+        tracer.recycle(this);
     }
 
     @Override

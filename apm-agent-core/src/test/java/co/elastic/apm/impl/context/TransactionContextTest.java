@@ -24,36 +24,36 @@ import org.junit.jupiter.api.Test;
 import static co.elastic.apm.JsonUtils.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ContextTest {
+class TransactionContextTest {
 
     @Test
     void testCopyFrom() {
-        Context context = createContext();
-        Context copyOfContext = new Context();
+        TransactionContext context = createContext();
+        TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
         assertThat(toJson(context)).isEqualTo(toJson(copyOfContext));
     }
 
     @Test
     void testCopyFromDoNotCopyTags() {
-        Context context = new Context();
+        TransactionContext context = new TransactionContext();
         context.getTags().put("foo", "bar");
-        Context copyOfContext = new Context();
+        TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
         assertThat(copyOfContext.getTags()).isEmpty();
     }
 
     @Test
     void testCopyFromDoNotCopyCustom() {
-        Context context = new Context();
+        TransactionContext context = new TransactionContext();
         context.getCustom().put("foo", "bar");
-        Context copyOfContext = new Context();
+        TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
         assertThat(copyOfContext.getCustom()).isEmpty();
     }
 
-    private Context createContext() {
-        Context context = new Context();
+    private TransactionContext createContext() {
+        TransactionContext context = new TransactionContext();
         Request request = context.getRequest();
         request.withHttpVersion("1.1");
         request.withMethod("POST");

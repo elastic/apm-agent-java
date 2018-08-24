@@ -170,6 +170,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return tracer.startSpan(this, startTimeNanos);
     }
 
+    public abstract void addTag(String key, String value);
+
     public abstract void end();
 
     public abstract void end(long nanoTime);

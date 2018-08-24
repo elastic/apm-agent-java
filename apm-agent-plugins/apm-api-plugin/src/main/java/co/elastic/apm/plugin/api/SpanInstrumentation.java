@@ -158,4 +158,17 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
             }
         }
     }
+
+    public static class AddTagInstrumentation extends SpanInstrumentation {
+        public AddTagInstrumentation() {
+            super(named("addTag"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                  @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
+            span.addTag(key, value);
+        }
+    }
 }

@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.benchmark;
 
+import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -30,8 +32,9 @@ public class SizeOfSpan {
 
     public static void main(String[] args) {
         final SizeOf sizeOf = SizeOf.newInstance();
-        final long sizeOfSpan = sizeOf.deepSizeOf(new Span(null));
-        final long sizeOfTransaction = sizeOf.deepSizeOf(new Transaction(null));
+        ElasticApmTracer tracer = new ElasticApmTracerBuilder().build();
+        final long sizeOfSpan = sizeOf.deepSizeOf(new Span(tracer));
+        final long sizeOfTransaction = sizeOf.deepSizeOf(new Transaction(tracer));
         final long sizeOfError = sizeOf.deepSizeOf(new ErrorCapture());
 
         System.out.println("sizeof span: " + sizeOfSpan);
