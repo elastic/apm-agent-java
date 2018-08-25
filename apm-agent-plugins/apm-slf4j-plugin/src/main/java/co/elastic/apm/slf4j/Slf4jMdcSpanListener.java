@@ -74,7 +74,7 @@ public class Slf4jMdcSpanListener implements SpanListener {
 
     @Override
     public void onActivate(AbstractSpan<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled()) {
+        if (config != null && config.isLogCorrelationEnabled() && span.isSampled()) {
             MethodHandle put = mdcPutMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             TraceContext traceContext = span.getTraceContext();
             if (put != null) {
@@ -86,7 +86,7 @@ public class Slf4jMdcSpanListener implements SpanListener {
 
     @Override
     public void onDeactivate(AbstractSpan<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled()) {
+        if (config != null && config.isLogCorrelationEnabled() && span.isSampled()) {
             MethodHandle remove = mdcRemoveMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             if (remove != null) {
                 remove.invokeExact("traceId");
