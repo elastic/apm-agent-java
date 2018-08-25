@@ -148,6 +148,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
                 spanListeners.get(i).onActivate(this);
+            } catch (Error e) {
+                throw e;
             } catch (Throwable t) {
                 logger.warn("Exception while calling {}#onActivate", spanListeners.get(i).getClass().getSimpleName(), t);
             }
@@ -162,6 +164,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
                 spanListeners.get(i).onDeactivate(this);
+            } catch (Error e) {
+                throw e;
             } catch (Throwable t) {
                 logger.warn("Exception while calling {}#onDeactivate", spanListeners.get(i).getClass().getSimpleName(), t);
             }
