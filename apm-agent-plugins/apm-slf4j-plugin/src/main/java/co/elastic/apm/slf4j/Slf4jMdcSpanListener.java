@@ -23,6 +23,7 @@ import co.elastic.apm.cache.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.SpanListener;
 import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.logging.LoggingConfiguration;
 
@@ -36,6 +37,9 @@ public class Slf4jMdcSpanListener implements SpanListener {
     // the string concatenation prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.shaded.slf4j.MDC
     // the toString prevents constant folding, which would also make the shade plugin relocate
     private static final String ORG_SLF4J_MDC = "org." + "slf4j.MDC".toString();
+    private static final String TRACE_ID = "trace.id";
+    private static final String SPAN_ID = "span.id";
+    private static final String TRANSACTION_ID = "transaction.id";
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache =
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
             @Nullable
@@ -78,8 +82,9 @@ public class Slf4jMdcSpanListener implements SpanListener {
             MethodHandle put = mdcPutMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             TraceContext traceContext = span.getTraceContext();
             if (put != null) {
-                put.invokeExact("traceId", traceContext.getTraceId().toString());
-                put.invokeExact("spanId", traceContext.getId().toString());
+                put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
+                String idKey = span instanceof Span ? SPAN_ID : TRANSACTION_ID;
+                put.invokeExact(idKey, traceContext.getId().toString());
             }
         }
     }
@@ -89,8 +94,9 @@ public class Slf4jMdcSpanListener implements SpanListener {
         if (config != null && config.isLogCorrelationEnabled() && span.isSampled()) {
             MethodHandle remove = mdcRemoveMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             if (remove != null) {
-                remove.invokeExact("traceId");
-                remove.invokeExact("spanId");
+                remove.invokeExact(TRACE_ID);
+                remove.invokeExact(SPAN_ID);
+                remove.invokeExact(TRANSACTION_ID);
             }
         }
     }

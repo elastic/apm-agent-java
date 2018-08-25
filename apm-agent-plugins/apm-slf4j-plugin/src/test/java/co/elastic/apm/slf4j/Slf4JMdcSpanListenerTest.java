@@ -86,13 +86,14 @@ class Slf4JMdcSpanListenerTest extends AbstractInstrumentationTest {
     }
 
     private void assertMdcIsSet(Transaction transaction) {
-        assertThat(MDC.get("traceId")).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        assertThat(MDC.get("spanId")).isEqualTo(transaction.getTraceContext().getId().toString());
+        assertThat(MDC.get("trace.id")).isEqualTo(transaction.getTraceContext().getTraceId().toString());
+        assertThat(MDC.get("transaction.id")).isEqualTo(transaction.getTraceContext().getId().toString());
     }
 
     private void assertMdcIsEmpty() {
-        assertThat(MDC.get("traceId")).isNull();
-        assertThat(MDC.get("spanId")).isNull();
+        assertThat(MDC.get("trace.id")).isNull();
+        assertThat(MDC.get("transaction.id")).isNull();
+        assertThat(MDC.get("span.id")).isNull();
     }
 
 }
