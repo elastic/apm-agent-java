@@ -121,7 +121,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(traceContextHeader, nanoTime, sampler);
+            transaction = createTransaction().start(traceContextHeader, nanoTime, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -134,7 +134,20 @@ public class ElasticApmTracer {
     }
 
     public Transaction noopTransaction() {
-        return transactionPool.createInstance().startNoop();
+        return createTransaction().startNoop();
+    }
+
+    private Transaction createTransaction() {
+        Transaction transaction;
+        do {
+            transaction = transactionPool.createInstance();
+            if (transaction.isStarted()) {
+                String message = "This transaction has already been started: %s";
+                logger.warn(String.format(message, transaction));
+                assert false : String.format(message, transaction);
+            }
+        } while (transaction.isStarted());
+        return transaction;
     }
 
     @Nullable

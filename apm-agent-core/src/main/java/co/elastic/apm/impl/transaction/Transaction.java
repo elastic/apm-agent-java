@@ -76,6 +76,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
     private boolean noop;
+    private volatile boolean started;
 
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
@@ -92,6 +93,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         this.timestamp = System.currentTimeMillis();
         this.id.setToRandomValue();
         this.noop = false;
+        this.started = true;
         return this;
     }
 
@@ -204,7 +206,7 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public void end(long nanoTime) {
-        this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
+        this.duration = (nanoTime - startTimestampNanos) / ElasticApmTracer.MS_IN_NANOS;
         if (!isSampled()) {
             context.resetState();
         }
@@ -245,7 +247,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanCount.resetState();
         spanIdCounter.set(0);
         noop = false;
-        traceContext.resetState();
+        started = false;
     }
 
     @Override
@@ -259,6 +261,10 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public boolean isNoop() {
         return noop;
+    }
+
+    public boolean isStarted() {
+        return started;
     }
 
     @Override
