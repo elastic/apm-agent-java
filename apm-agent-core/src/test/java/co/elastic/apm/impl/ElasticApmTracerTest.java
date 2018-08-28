@@ -34,6 +34,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,6 +71,7 @@ class ElasticApmTracerTest {
             transaction.end();
         }
         assertThat(tracerImpl.currentTransaction()).isNull();
+        assertThat(transaction.getDuration()).isLessThan(TimeUnit.SECONDS.toMillis(10));
     }
 
     @Test

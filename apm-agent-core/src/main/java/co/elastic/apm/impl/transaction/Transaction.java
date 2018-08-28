@@ -89,7 +89,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             traceContext.asRootSpan(sampler);
         }
 
-        this.duration = startTimestampNanos;
+        this.startTimestampNanos = startTimestampNanos;
         this.timestamp = System.currentTimeMillis();
         this.id.setToRandomValue();
         this.noop = false;
