@@ -67,6 +67,8 @@ class ElasticApmTracerTest {
                 assertThat(span.isChildOf(transaction)).isTrue();
                 span.end();
             }
+            assertThat(span.getDuration()).isLessThan(TimeUnit.SECONDS.toMillis(10));
+            assertThat(span.getStart()).isLessThan(TimeUnit.SECONDS.toMillis(10));
             assertThat(tracerImpl.currentSpan()).isNull();
             transaction.end();
         }
