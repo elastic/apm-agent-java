@@ -71,11 +71,13 @@ class DslJsonSerializerTest {
         serializer.jw.writeByte(JsonWriter.OBJECT_START);
         serializer.writeField("stringBuilder", longValue);
         serializer.writeField("string", longValue.toString());
+        serializer.writeFieldUnlimited("stringUnlimited", longValue.toString());
         serializer.writeLastField("lastString", longValue.toString());
         serializer.jw.writeByte(JsonWriter.OBJECT_END);
         final JsonNode jsonNode = objectMapper.readTree(serializer.jw.toString());
         assertThat(jsonNode.get("stringBuilder").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
         assertThat(jsonNode.get("string").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
+        assertThat(jsonNode.get("stringUnlimited").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH+1).endsWith("0");
         assertThat(jsonNode.get("lastString").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
     }
 
