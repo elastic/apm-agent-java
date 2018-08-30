@@ -273,6 +273,7 @@ For transactions that are HTTP requests, the Java agent can optionally capture t
 
 If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 
+This option is case-insensitive.
 NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
 Forms which include a file upload (`multipart/form-data`) are not supported.
 
@@ -356,6 +357,8 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 
 Sets the logging level for the agent.
 
+This option is case-insensitive.
+
 Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 
 [options="header"]
@@ -407,7 +410,8 @@ it's content is deleted when the application starts.
 
 This string is used to ensure that only your agents can send data to your APM server.
 
-Both the agents and the APM server have to be configured with the same secret token.Use if APM Server requires a token.
+Both the agents and the APM server have to be configured with the same secret token.
+Use if APM Server requires a token.
 
 
 [options="header"]
@@ -447,9 +451,11 @@ The URL must be fully qualified, including protocol (http or https) and port.
 [[config-server-timeout]]
 ==== `server_timeout`
 
-If a request to the APM server takes longer than the configured timeout, the request is cancelled and the event (exception or transaction) is discarded. Set to None to disable timeouts.
+If a request to the APM server takes longer than the configured timeout,
+the request is cancelled and the event (exception or transaction) is discarded.
+Set to 0 to disable timeouts.
 
-WARNING:  If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
+WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 
 
 [options="header"]
@@ -493,7 +499,8 @@ Verification can be disabled by changing this setting to false.
 
 Interval with which transactions should be sent to the APM server, in seconds.
 
-A lower value will increase the load on your APM server, while a higher value can increase the memory pressure on your app.
+A lower value will increase the load on your APM server,
+while a higher value can increase the memory pressure on your app.
 
 A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 
@@ -517,7 +524,8 @@ A higher value also impacts the time until transactions are indexed and searchab
 
 Maximum queue length of transactions before sending transactions to the APM server.
 
-A lower value will increase the load on your APM server,while a higher value can increase the memory pressure of your app.
+A lower value will increase the load on your APM server,
+while a higher value can increase the memory pressure of your app.
 
 A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 
@@ -639,37 +647,57 @@ To disable stack trace collection for spans completely, set the value to 0.
 # A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
+#
 # This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
 #
 # active=true
 
 # A boolean specifying if the agent should instrument the application to collect performance metrics for the app. When set to false, Elastic APM will not affect your application at all.
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
 #
 # instrument=true
 
+# The name of your service (required)
+#
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
 # 
 # NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
 #
 # service_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
 #
 # service_version=
 
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
 #
 # environment=
 
 # By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
+#
 # This setting can be changed at runtime
+# Type: Double
+# Default value: 1.0
 #
 # sample_rate=1.0
 
@@ -678,7 +706,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).
 # 
 # Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
+#
 # This setting can be changed at runtime
+# Type: Integer
+# Default value: 500
 #
 # transaction_max_spans=500
 
@@ -698,7 +729,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # NOTE: Review the data captured by Elastic APM carefully to make sure it does not capture sensitive information.
 # If you do find sensitive data in the Elasticsearch index,
 # you should add an additional entry to this list (make sure to also include the default entries).
+#
 # This setting can be changed at runtime
+# Type: comma separated list
+# Default value: (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie
 #
 # sanitize_field_names=(?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie
 
@@ -706,7 +740,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
 # If you want to try out incubating features,
 # set the value to an empty string.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: incubating
 #
 # disable_instrumentations=incubating
 
@@ -718,12 +755,16 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
+# This option is case-insensitive.
 # NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
 # Forms which include a file upload (`multipart/form-data`) are not supported.
 # 
 # WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc.If your service handles data like this, we advise to only enable this feature with care.
-# Valid options: `off`, `errors`, `transactions`, `all`
+#
+# Valid options: off, errors, transactions, all
 # This setting can be changed at runtime
+# Type: EventType
+# Default value: OFF
 #
 # capture_body=OFF
 
@@ -735,7 +776,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
+#
 # This setting can be changed at runtime
+# Type: comma separated list
+# Default value: /VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2
 #
 # ignore_urls=/VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2
 
@@ -748,7 +792,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Example: `curl/*, (?i)*pingdom*`
 # 
 # NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
+#
 # This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
 #
 # ignore_user_agents=
 
@@ -757,8 +804,13 @@ To disable stack trace collection for spans completely, set the value to 0.
 ############################################
 
 # Sets the logging level for the agent.
-# Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+# 
+# This option is case-insensitive.
+#
+# Valid options: ERROR, WARN, INFO, DEBUG, TRACE
 # This setting can be changed at runtime
+# Type: Level
+# Default value: INFO
 #
 # logging.log_level=INFO
 
@@ -771,7 +823,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # NOTE: When logging to a file,
 # it's content is deleted when the application starts.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: System.out
 #
 # logging.log_file=System.out
 
@@ -781,53 +836,83 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 # This string is used to ensure that only your agents can send data to your APM server.
 # 
-# Both the agents and the APM server have to be configured with the same secret token.Use if APM Server requires a token.
+# Both the agents and the APM server have to be configured with the same secret token.
+# Use if APM Server requires a token.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
 #
 # secret_token=
 
+# The URL for your APM Server
+#
 # The URL must be fully qualified, including protocol (http or https) and port.
+#
 # This setting can be changed at runtime
+# Type: URL
+# Default value: http://localhost:8200
 #
 # server_url=http://localhost:8200
 
-# If a request to the APM server takes longer than the configured timeout, the request is cancelled and the event (exception or transaction) is discarded. Set to None to disable timeouts.
+# A timeout in seconds
+#
+# If a request to the APM server takes longer than the configured timeout,
+# the request is cancelled and the event (exception or transaction) is discarded.
+# Set to 0 to disable timeouts.
 # 
-# WARNING:  If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
+# WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 5
 #
 # server_timeout=5
 
 # By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
 # 
 # Verification can be disabled by changing this setting to false.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
 #
 # verify_server_cert=true
 
 # Interval with which transactions should be sent to the APM server, in seconds.
 # 
-# A lower value will increase the load on your APM server, while a higher value can increase the memory pressure on your app.
+# A lower value will increase the load on your APM server,
+# while a higher value can increase the memory pressure on your app.
 # 
 # A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Integer
+# Default value: 1
 #
 # flush_interval=1
 
 # Maximum queue length of transactions before sending transactions to the APM server.
 # 
-# A lower value will increase the load on your APM server,while a higher value can increase the memory pressure of your app.
+# A lower value will increase the load on your APM server,
+# while a higher value can increase the memory pressure of your app.
 # 
 # A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 # 
 # This setting is useful to limit memory consumption if you experience a sudden spike of traffic.
+#
 # This setting can be changed at runtime
+# Type: Integer
+# Default value: 500
 #
 # max_queue_size=500
 
 # Whether each transaction should have the process arguments attached.
 # Disabled by default to save disk space.
+#
 # This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
 #
 # include_process_args=false
 
@@ -836,12 +921,18 @@ To disable stack trace collection for spans completely, set the value to 0.
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+#
 # This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
 #
 # application_packages=
 
 # Setting it to 0 will disable stack trace collection. Any positive integer value will be used as the maximum number of frames to collect. Setting it -1 means that all frames will be collected.
+#
 # This setting can be changed at runtime
+# Type: Integer
+# Default value: 50
 #
 # stack_trace_limit=50
 
@@ -850,7 +941,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to 0.
+#
 # This setting can be changed at runtime
+# Type: Integer
+# Default value: 5
 #
 # span_frames_min_duration=5
 
