@@ -283,7 +283,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private void onConnectionError(long droppedEvents, long reportedEvents) {
-        gracePeriodEnd = calculateEndOfGracePeriod(++errorCount);
+        gracePeriodEnd = calculateEndOfGracePeriod(errorCount++);
         dropped += droppedEvents;
         reported += reportedEvents;
     }
