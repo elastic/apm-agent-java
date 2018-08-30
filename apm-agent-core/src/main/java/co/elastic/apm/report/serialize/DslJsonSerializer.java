@@ -562,10 +562,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("db");
         jw.writeByte(OBJECT_START);
         final Db db = context.getDb();
-        writeField("instance", db.getInstance());
-        writeField("statement", db.getStatement());
-        writeField("type", db.getType());
-        writeField("user", db.getUser());
+        writeFieldUnlimited("instance", db.getInstance());
+        writeFieldUnlimited("statement", db.getStatement());
+        writeFieldUnlimited("type", db.getType());
+        writeFieldUnlimited("user", db.getUser());
         writeFieldName("tags");
         serializeTags(context.getTags());
         jw.writeByte(OBJECT_END);
@@ -768,6 +768,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
+    void writeFieldUnlimited(final String fieldName, @Nullable final String value) {
+        if (value != null) {
+            writeFieldName(fieldName);
+            writeStringValueUnlimited(value);
+            jw.writeByte(COMMA);
+        }
+    }
+
     private void writeStringBuilderValue(StringBuilder value) {
         if (value.length() > MAX_VALUE_LENGTH) {
             value.setLength(MAX_VALUE_LENGTH - 1);
@@ -784,6 +792,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         } else {
             jw.writeString(value);
         }
+    }
+	/*Write the string value with no limit applied on the string length. Enabled for Span context*/
+    private void writeStringValueUnlimited(String value) {
+          jw.writeString(value);
     }
 
     private void writeField(final String fieldName, final long value) {
