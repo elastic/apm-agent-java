@@ -40,6 +40,8 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "If the request has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
             "\n" +
+            "This option is case-insensitive." +
+            "\n" +
             "NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.\n" +
             "Forms which include a file upload (`multipart/form-data`) are not supported.\n" +
             "\n" +

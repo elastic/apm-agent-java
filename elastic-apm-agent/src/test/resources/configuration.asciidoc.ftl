@@ -82,3 +82,36 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 
 <#macro defaultValue option>${option.defaultValueAsString?has_content?then("${option.defaultValueAsString?replace(',([^\\\\s])', ', $1', 'r')}", '<none>')}</#macro>
 
+[[config-reference-properties-file]]
+=== Property file reference
+
+[source,properties]
+.elasticapm.properties
+----
+<#list config as category, options>
+############################################
+# ${category?right_pad(40)} #
+############################################
+
+    <#list options as option>
+        <#if !option.tags?seq_contains("internal")>
+<#if option.label?has_content>
+# ${option.label}
+#
+</#if>
+# ${option.description?replace("\n", "\n# ", "r")}
+#
+<#if option.validOptions?has_content>
+# Valid options: <#list option.validOptionsLabelMap?values as validOption>${validOption}<#if validOption_has_next>, </#if></#list>
+</#if>
+# ${option.dynamic?then("This setting can be changed at runtime",
+    "This setting can not be changed at runtime. Changes require a restart of the application.")}
+# Type: ${option.valueType?matches("List|Collection")?then("comma separated list", option.valueType)}
+# Default value: ${option.defaultValueAsString!}
+#
+# ${option.key}=${option.defaultValueAsString!}
+
+        </#if>
+    </#list>
+</#list>
+----

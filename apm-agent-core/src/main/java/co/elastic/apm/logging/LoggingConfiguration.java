@@ -60,7 +60,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
-        .description("Sets the logging level for the agent.")
+        .description("Sets the logging level for the agent.\n" +
+            "\n" +
+            "This option is case-insensitive.")
         .dynamic(true)
         .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
             @Override
