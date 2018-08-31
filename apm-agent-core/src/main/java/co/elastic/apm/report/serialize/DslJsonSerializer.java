@@ -430,9 +430,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext());
-        if (transaction.getSpanCount().getDropped().getTotal() > 0) {
-            serializeSpanCount(transaction.getSpanCount());
-        }
+        serializeSpanCount(transaction.getSpanCount());
         serializeSpans(transaction.getSpans());
         // TODO marks
         writeLastField("sampled", transaction.isSampled());
