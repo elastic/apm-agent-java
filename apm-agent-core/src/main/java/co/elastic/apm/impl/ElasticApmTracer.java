@@ -42,7 +42,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
