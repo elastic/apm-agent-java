@@ -85,11 +85,12 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     static final int MAX_VALUE_LENGTH = 1024;
+    static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
-    private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
+    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
     @Nullable
@@ -565,7 +566,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         final Db db = context.getDb();
         writeField("instance", db.getInstance());
-        writeField("statement", db.getStatement());
+        writeLongStringField("statement", db.getStatement());
         writeField("type", db.getType());
         writeField("user", db.getUser());
         writeFieldName("tags");
@@ -762,6 +763,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
+
+ 	void writeLongStringField (final String fieldName, @Nullable final String value) {
+        if (value != null) {
+            writeFieldName(fieldName);
+            writeLongStringValue(value);
+            jw.writeByte(COMMA);
+        }
+    }
+
     void writeField(final String fieldName, @Nullable final String value) {
         if (value != null) {
             writeFieldName(fieldName);
@@ -783,6 +793,25 @@ public class DslJsonSerializer implements PayloadSerializer {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH));
             writeStringBuilderValue(replaceBuilder);
+        } else {
+            jw.writeString(value);
+        }
+    }
+
+    private void writeLongStringBuilderValue(StringBuilder value) {
+        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+            value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
+            value.append('…');
+        }
+        jw.writeString(value);
+    }
+
+
+    private void writeLongStringValue(String value) {
+        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+            replaceBuilder.setLength(0);
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH));
+            writeLongStringBuilderValue(replaceBuilder);
         } else {
             jw.writeString(value);
         }
