@@ -409,8 +409,13 @@ it's content is deleted when the application starts.
 A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
 If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
 You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-
+With the help of Filebeat and Logstash or an Elasticsearch ingest node,
+you can index your log files and correlate them with APM traces.
+With this integration you can get all logs belonging to a particular trace and vice-versa:
+for a specific log, see in which context it has been logged and which parameters the user provided. 
 While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+
+NOTE: This is an incubating feature and the MDC key names might change.
 
 
 [options="header"]
@@ -853,6 +858,23 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Default value: System.out
 #
 # logging.log_file=System.out
+
+# A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+# If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+# You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+# With the help of Filebeat and Logstash or an Elasticsearch ingest node,
+# you can index your log files and correlate them with APM traces.
+# With this integration you can get all logs belonging to a particular trace and vice-versa:
+# for a specific log, see in which context it has been logged and which parameters the user provided. 
+# While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+# 
+# NOTE: This is an incubating feature and the MDC key names might change.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# enable_log_correlation=false
 
 ############################################
 # Reporter                                 #
