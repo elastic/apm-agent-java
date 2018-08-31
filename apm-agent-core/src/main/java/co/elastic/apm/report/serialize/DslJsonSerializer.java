@@ -20,10 +20,11 @@
 package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.impl.MetaData;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.Socket;
+import co.elastic.apm.impl.context.SpanContext;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -40,7 +41,6 @@ import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.impl.transaction.SpanCount;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -90,7 +90,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
-    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH);
+    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
     @Nullable
@@ -762,7 +762,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
 
- 	void writeLongStringField (final String fieldName, @Nullable final String value) {
+    void writeLongStringField(final String fieldName, @Nullable final String value) {
         if (value != null) {
             writeFieldName(fieldName);
             writeLongStringValue(value);
@@ -789,7 +789,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void writeStringValue(String value) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH));
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
             writeStringBuilderValue(replaceBuilder);
         } else {
             jw.writeString(value);
@@ -804,11 +804,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeString(value);
     }
 
-
     private void writeLongStringValue(String value) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH));
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
             writeLongStringBuilderValue(replaceBuilder);
         } else {
             jw.writeString(value);

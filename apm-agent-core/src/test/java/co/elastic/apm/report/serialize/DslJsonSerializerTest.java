@@ -73,8 +73,8 @@ class DslJsonSerializerTest {
             longStringValue.append('0');
         }
         serializer.jw.writeByte(JsonWriter.OBJECT_START);
-        serializer.writeField("stringBuilder", longValue);
         serializer.writeField("string", longValue.toString());
+        serializer.writeField("stringBuilder", longValue);
         serializer.writeLongStringField("longString", longStringValue.toString());
         serializer.writeLastField("lastString", longValue.toString());
         serializer.jw.writeByte(JsonWriter.OBJECT_END);
