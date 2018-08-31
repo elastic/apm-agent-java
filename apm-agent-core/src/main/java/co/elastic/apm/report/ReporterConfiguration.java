@@ -54,7 +54,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "WARNING:  If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times " +
             "out.")
-        .buildWithDefault(60);
+        .buildWithDefault(5);
 
     private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
         .key("verify_server_cert")
@@ -119,7 +119,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("The maximum total compressed size in bytes of the request body which is sent to the APM server intake api via a " +
             "chunked encoding (HTTP streaming).\n" +
             "Note that a small overshoot is possible.")
-        .buildWithDefault(1024 * 1024);
+        .buildWithDefault(768 * 1024);
 
     @Nullable
     public String getSecretToken() {

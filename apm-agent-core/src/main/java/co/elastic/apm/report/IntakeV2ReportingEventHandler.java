@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -72,7 +71,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private ApmServerReporter reporter;
     @Nullable
     private TimerTask timeoutTask;
-    private int errorCount = 3;
+    private int errorCount;
     private long gracePeriodEnd;
 
     IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
