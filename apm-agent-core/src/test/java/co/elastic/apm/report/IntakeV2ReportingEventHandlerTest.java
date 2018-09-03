@@ -51,6 +51,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -77,11 +79,11 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         new ElasticApmTracerBuilder().configurationRegistry(configurationRegistry).build();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + getPort());
+        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + getPort())));
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,

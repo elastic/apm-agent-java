@@ -25,6 +25,9 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
 import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
     public static final String REPORTER_CATEGORY = "Reporter";
@@ -38,13 +41,14 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
-    private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
-        .key("server_url")
+    private final ConfigurationOption<List<URL>> serverUrl = ConfigurationOption.urlsOption()
+        .key("server_urls")
+        .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
         .label("The URL for your APM Server")
         .description("The URL must be fully qualified, including protocol (http or https) and port.")
-        .dynamic(true)
-        .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
+        .dynamic(false)
+        .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
     private final ConfigurationOption<Integer> serverTimeout = ConfigurationOption.integerOption()
         .key("server_timeout")
@@ -133,8 +137,13 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return secretToken.get();
     }
 
+    @Deprecated
     public String getServerUrl() {
-        return serverUrl.getValueAsString();
+        return serverUrl.get().get(0).toString();
+    }
+
+    public List<URL> getServerUrls() {
+        return serverUrl.get();
     }
 
     public int getServerTimeout() {
