@@ -7,3 +7,4 @@ dependency-reduced-pom.xml
 .settings
 .idea/
 *.iml
+html_docs
