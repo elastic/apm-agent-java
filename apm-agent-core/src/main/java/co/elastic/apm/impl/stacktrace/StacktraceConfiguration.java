@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.impl.stacktrace;
 
+import co.elastic.apm.configuration.converter.DurationUnitValueConverter;
+import co.elastic.apm.configuration.converter.TimeDuration;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
@@ -44,7 +46,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(50);
 
-    private final ConfigurationOption<Integer> spanFramesMinDurationMs = ConfigurationOption.integerOption()
+    private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = DurationUnitValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
         .configurationCategory(STACKTRACE_CATEGORY)
@@ -53,12 +55,12 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "collecting this stack trace does have some overhead. " +
             "\n" +
             "When setting this option to `-1`, stack traces will be collected for all spans. " +
-            "Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans " +
-            "with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.\n" +
+            "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
+            "with durations equal or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
             "To disable stack trace collection for spans completely, set the value to 0.")
         .dynamic(true)
-        .buildWithDefault(5);
+        .buildWithDefault(TimeDuration.of("5ms"));
 
     public Collection<String> getApplicationPackages() {
         return applicationPackages.get();
@@ -68,7 +70,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         return stackTraceLimit.get();
     }
 
-    public int getSpanFramesMinDurationMs() {
-        return spanFramesMinDurationMs.getValue();
+    public long getSpanFramesMinDurationMs() {
+        return spanFramesMinDurationMs.getValue().getMillis();
     }
 }

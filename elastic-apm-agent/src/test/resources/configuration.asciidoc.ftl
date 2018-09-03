@@ -59,6 +59,11 @@ ELASTIC_APM_SERVER_URL=http://localhost:8300
 
 ${option.description}
 
+<#if option.valueType?matches("TimeDuration")>
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `${option.defaultValueAsString}`.
+The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`
+</#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
 </#if>
@@ -107,6 +112,10 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # ${option.dynamic?then("This setting can be changed at runtime",
     "This setting can not be changed at runtime. Changes require a restart of the application.")}
 # Type: ${option.valueType?matches("List|Collection")?then("comma separated list", option.valueType)}
+<#if option.valueType?matches("TimeDuration")>
+# Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
+# The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
+</#if>
 # Default value: ${option.defaultValueAsString!}
 #
 # ${option.key}=${option.defaultValueAsString!}

@@ -457,11 +457,14 @@ Set to 0 to disable timeouts.
 
 WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | false
+| `5s` | TimeDuration | false
 |============
 
 
@@ -497,18 +500,21 @@ Verification can be disabled by changing this setting to false.
 [[config-flush-interval]]
 ==== `flush_interval`
 
-Interval with which transactions should be sent to the APM server, in seconds.
+Interval with which transactions should be sent to the APM server.
 
 A lower value will increase the load on your APM server,
 while a higher value can increase the memory pressure on your app.
 
 A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1` | Integer | false
+| `1s` | TimeDuration | false
 |============
 
 
@@ -614,15 +620,18 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to 0.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5ms`.
+The default unit for this option is `ms`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | true
+| `5ms` | TimeDuration | true
 |============
 
 
@@ -855,7 +864,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # server_url=http://localhost:8200
 
-# A timeout in seconds
+# Server timeout
 #
 # If a request to the APM server takes longer than the configured timeout,
 # the request is cancelled and the event (exception or transaction) is discarded.
@@ -864,10 +873,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
 #
-# server_timeout=5
+# server_timeout=5s
 
 # By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
 # 
@@ -879,7 +890,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # verify_server_cert=true
 
-# Interval with which transactions should be sent to the APM server, in seconds.
+# Interval with which transactions should be sent to the APM server.
 # 
 # A lower value will increase the load on your APM server,
 # while a higher value can increase the memory pressure on your app.
@@ -887,10 +898,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 1
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1s.
+# The default unit for this option is s.
+# Default value: 1s
 #
-# flush_interval=1
+# flush_interval=1s
 
 # Maximum queue length of transactions before sending transactions to the APM server.
 # 
@@ -938,14 +951,16 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to 0.
 #
 # This setting can be changed at runtime
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5ms.
+# The default unit for this option is ms.
+# Default value: 5ms
 #
-# span_frames_min_duration=5
+# span_frames_min_duration=5ms
 
 ----

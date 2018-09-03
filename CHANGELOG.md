@@ -15,5 +15,6 @@
  * Added support for Payara/Glassfish
  * Incubating support for Apache HttpClient
  * Support for Spring RestTemplate
+ * Support duration suffixes (`ms`, `s` and `m`) for duration configuration options
 
 ## Bug Fixes
