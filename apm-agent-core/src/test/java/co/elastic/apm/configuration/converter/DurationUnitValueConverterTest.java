@@ -29,5 +29,7 @@ class DurationUnitValueConverterTest {
     void convertWithDefaultDuration() {
         DurationUnitValueConverter converter = DurationUnitValueConverter.withDefaultDuration("s");
         assertThat(converter.convert("1").toString()).isEqualTo("1s");
+        assertThat(converter.convert("1m").toString()).isEqualTo("1m");
+        assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
     }
 }
