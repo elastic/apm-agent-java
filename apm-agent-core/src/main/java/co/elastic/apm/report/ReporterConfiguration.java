@@ -25,7 +25,6 @@ import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
 import java.net.URL;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,8 +44,10 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .key("server_urls")
         .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
-        .label("The URL for your APM Server")
-        .description("The URL must be fully qualified, including protocol (http or https) and port.")
+        .label("The URLs for your APM Servers")
+        .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
+            "\n" +
+            "NOTE: Providing multiple URLs only works if intake API v2 is enabled.")
         .dynamic(false)
         .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
@@ -135,11 +136,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
-    }
-
-    @Deprecated
-    public String getServerUrl() {
-        return serverUrl.get().get(0).toString();
     }
 
     public List<URL> getServerUrls() {

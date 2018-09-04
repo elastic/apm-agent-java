@@ -93,7 +93,6 @@ class ApmServerReporterIntegrationTest {
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
-        when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false, mock(StacktraceConfiguration.class)), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");

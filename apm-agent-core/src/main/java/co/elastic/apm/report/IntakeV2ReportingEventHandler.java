@@ -82,18 +82,27 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                   ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
                                   PayloadSerializer payloadSerializer) {
+        this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration));
+    }
+
+    IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
+                                  ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
+                                  PayloadSerializer payloadSerializer, List<URL> serverUrls) {
         this.reporterConfiguration = reporterConfiguration;
         this.processorEventHandler = processorEventHandler;
         this.payloadSerializer = payloadSerializer;
         this.metaData = new MetaData(process, service, system);
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
         this.timeoutTimer = new Timer("apm-request-timeout-timer", true);
+        this.serverUrlIterator = new CyclicIterator<>(serverUrls);
+    }
 
+    private static List<URL> shuffleUrls(ReporterConfiguration reporterConfiguration) {
         List<URL> serverUrls = new ArrayList<>(reporterConfiguration.getServerUrls());
         // shuffling the URL list helps to distribute the load across the apm servers
         // when there are multiple agents, they should not all start connecting to the same apm server
         Collections.shuffle(serverUrls);
-        serverUrlIterator = new CyclicIterator<>(serverUrls);
+        return serverUrls;
     }
 
     private static long calculateEndOfGracePeriod(long errorCount) {
@@ -171,11 +180,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private HttpURLConnection startRequest() {
         try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Starting new request");
-            }
             URL url = null;
             url = new URL(serverUrlIterator.get(), "/v2/intake");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting new request to {}", url);
+            }
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             if (!reporterConfiguration.isVerifyServerCert()) {
                 if (connection instanceof HttpsURLConnection) {

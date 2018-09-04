@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.report;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -90,7 +89,6 @@ class ReporterFactoryTest {
         server.start();
         configuration = SpyConfiguration.createSpyConfig();
         reporterConfiguration = configuration.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrl()).thenReturn("https://localhost:" + getPort());
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("https://localhost:" + getPort())));
     }
 

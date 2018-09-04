@@ -19,10 +19,8 @@
  */
 package co.elastic.apm.report;
 
-import co.elastic.apm.AbstractServletTest;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
@@ -34,39 +32,40 @@ import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Response;
-import org.eclipse.jetty.servlet.ServletContextHandler;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.InflaterInputStream;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
+class IntakeV2ReportingEventHandlerTest {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static CountDownLatch serverReceivedPayload = new CountDownLatch(1);
+    @Rule
+    public WireMockRule mockApmServer1 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    @Rule
+    public WireMockRule mockApmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private IntakeV2ReportingEventHandler reportingEventHandler;
 
     @Nonnull
@@ -80,24 +79,34 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        List.of(mockApmServer1, mockApmServer2).forEach(apmServer -> {
+            apmServer.start();
+            apmServer.stubFor(post("/v2/intake").willReturn(ok()));
+        });
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        new ElasticApmTracerBuilder().configurationRegistry(configurationRegistry).build();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + getPort())));
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         reportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,
-            mock(ProcessorEventHandler.class), new DslJsonSerializer(true, mock(StacktraceConfiguration.class)));
-        serverReceivedPayload = new CountDownLatch(1);
+            mock(ProcessorEventHandler.class),
+            new DslJsonSerializer(true, mock(StacktraceConfiguration.class)),
+            List.of(
+                new URL("http://localhost:" + mockApmServer1.port()),
+                new URL("http://localhost:" + mockApmServer2.port())
+            ));
+    }
+
+    @AfterEach
+    void tearDown() {
+        List.of(mockApmServer1, mockApmServer2).forEach(WireMockRule::stop);
     }
 
     @Test
-    void testReport() throws Exception {
+    void testReport() {
         reportTransaction();
         reportSpan();
         reportError();
         reportingEventHandler.flush();
-        serverReceivedPayload.await(5, TimeUnit.SECONDS);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
         assertThat(ndJsonNodes).hasSize(4);
@@ -105,6 +114,24 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
         assertThat(ndJsonNodes.get(2).get("span")).isNotNull();
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
+    }
+
+    @Test
+    void testReportRoundRobinOnServerError() {
+        mockApmServer1.stubFor(post("/v2/intake").willReturn(serviceUnavailable()));
+
+        reportTransaction();
+        reportingEventHandler.flush();
+        mockApmServer1.verify(postRequestedFor(urlEqualTo("/v2/intake")));
+        mockApmServer2.verify(0, postRequestedFor(urlEqualTo("/v2/intake")));
+
+        mockApmServer1.resetRequests();
+        mockApmServer2.resetRequests();
+
+        reportTransaction();
+        reportingEventHandler.flush();
+        mockApmServer1.verify(0, postRequestedFor(urlEqualTo("/v2/intake")));
+        mockApmServer2.verify(postRequestedFor(urlEqualTo("/v2/intake")));
     }
 
     @Test
@@ -119,70 +146,36 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(7)).isEqualTo(36);
     }
 
-    private void reportTransaction() throws IOException {
+    private void reportTransaction() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportSpan() throws IOException {
+    private void reportSpan() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setSpan(new Span(mock(ElasticApmTracer.class)));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private void reportError() throws IOException {
+    private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture());
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
-    private List<JsonNode> getNdJsonNodes() throws IOException {
-        final Response response = get("/v2/intake");
-        if (response.isSuccessful()) {
-            return new BufferedReader(new InputStreamReader(response.body().byteStream())).lines()
+    private List<JsonNode> getNdJsonNodes() {
+        return Stream.of(mockApmServer1, mockApmServer2)
+            .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo("/v2/intake"))).stream())
+            .findFirst()
+            .map(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody()))))
+                .lines()
                 .map(IntakeV2ReportingEventHandlerTest::getReadTree)
-                .collect(Collectors.toList());
-        }
-        throw new RuntimeException(response.toString());
+                .collect(Collectors.toList()))
+            .orElseThrow(() -> new IllegalStateException("No matching requests for POST /v2/intake"));
     }
 
-    @Override
-    protected void setUpHandler(ServletContextHandler handler) {
-        handler.addServlet(EchoServlet.class, "/v2/intake");
-    }
-
-    public static class EchoServlet extends HttpServlet {
-
-        private static final Logger logger = LoggerFactory.getLogger(EchoServlet.class);
-
-        @Nullable
-        private byte[] bytes;
-
-        @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            assertThat(req.getHeader("Content-Encoding")).isEqualTo("deflate");
-            assertThat(req.getHeader("Transfer-Encoding")).isEqualTo("chunked");
-            assertThat(req.getHeader("Content-Type")).isEqualTo("application/x-ndjson");
-            assertThat(req.getContentLength()).isEqualTo(-1);
-            InputStream in = req.getInputStream();
-            in = new InflaterInputStream(in);
-            bytes = in.readAllBytes();
-            logger.info("Received payload with {} bytes:\n{}", bytes.length, new String(bytes));
-            serverReceivedPayload.countDown();
-        }
-
-        @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            if (bytes == null) {
-                resp.sendError(400, "Did not receive a payload yet");
-            } else {
-                resp.getOutputStream().write(bytes);
-            }
-            bytes = null;
-        }
-    }
 }
