@@ -119,6 +119,7 @@ public class AsyncServletTest extends AbstractServletTest {
         assertThat(get(path).body().string()).matches(bodyPredicate);
         assertThat(reporter.getFirstTransaction(500)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).contains("Servlet").contains("#doGet");
         final TransactionContext context = reporter.getFirstTransaction().getContext();
         assertThat(context.getRequest().getUrl().getPathname()).isEqualTo(path);
         assertThat(context.getResponse().getStatusCode()).isEqualTo(status);

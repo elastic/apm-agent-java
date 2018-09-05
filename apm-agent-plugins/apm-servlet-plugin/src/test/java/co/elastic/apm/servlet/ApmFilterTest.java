@@ -33,20 +33,24 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.Servlet;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Objects;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ApmFilterTest extends AbstractInstrumentationTest {
@@ -103,9 +107,14 @@ class ApmFilterTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void captureException() throws IOException, ServletException {
-        final Servlet servlet = mock(Servlet.class);
-        doThrow(new ServletException("Bazinga")).when(servlet).service(any(), any());
+    void captureException() {
+        // we can't use mock(Servlet.class) here as the agent would instrument the created mock which confuses mockito
+        final HttpServlet servlet = new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
+                throw new ServletException("Bazinga");
+            }
+        };
         filterChain = new MockFilterChain(servlet);
         assertThatThrownBy(() -> filterChain.doFilter(
             new MockHttpServletRequest("GET", "/test"),
@@ -228,5 +237,74 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getContext().getUser().hasContent()).isFalse();
+    }
+
+    @Test
+    void captureTransactionNameBasedOnServlet() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new TestServlet());
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("ApmFilterTest$TestServlet#doGet");
+    }
+
+    @Test
+    void captureTransactionNameManuallySetInFilter() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new TestServlet(), new TransactionNamingFilter("CustomName"));
+        filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("CustomName");
+    }
+
+    public static class TestServlet implements Servlet {
+
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+
+        }
+
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+
+        }
+
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+    }
+
+    private static class TransactionNamingFilter implements Filter {
+
+        private final String customName;
+
+        private TransactionNamingFilter(String customName) {
+            this.customName = customName;
+        }
+
+        @Override
+        public void init(FilterConfig filterConfig) throws ServletException {
+
+        }
+
+        @Override
+        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+            Objects.requireNonNull(tracer.currentTransaction()).withName(customName);
+            chain.doFilter(request, response);
+        }
+
+        @Override
+        public void destroy() {
+
+        }
     }
 }

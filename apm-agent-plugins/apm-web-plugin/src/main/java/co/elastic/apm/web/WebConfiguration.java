@@ -95,6 +95,18 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<Boolean> usePathAsName = ConfigurationOption.booleanOption()
+        .key("use_path_as_transaction_name")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("experimental")
+        .description("If set to `true`,\n" +
+            "transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.\n" +
+            "\n" +
+            "WARNING: If your URLs contain path parameters like `/user/$userId`," +
+            "you should NOT enable this flag," +
+            "as it leads to an explosion of transaction groups.")
+        .buildWithDefault(false);
+
     public EventType getCaptureBody() {
         return captureBody.get();
     }
@@ -105,6 +117,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getIgnoreUserAgents() {
         return ignoreUserAgents.get();
+    }
+
+    public boolean isUsePathAsName() {
+        return usePathAsName.get();
     }
 
     public enum EventType {

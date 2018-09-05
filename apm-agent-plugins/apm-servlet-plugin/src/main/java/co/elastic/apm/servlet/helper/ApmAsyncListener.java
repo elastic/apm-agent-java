@@ -89,6 +89,7 @@ public class ApmAsyncListener implements AsyncListener {
         }
 
         servletTransactionHelper.onAfter(transaction, event.getThrowable(),
-            response.isCommitted(), response.getStatus(), request.getMethod(), request.getParameterMap());
+            response.isCommitted(), response.getStatus(), request.getMethod(), request.getParameterMap(),
+            request.getServletPath(), request.getPathInfo());
     }
 }

@@ -349,6 +349,29 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 | `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
+[float]
+[[config-use-path-as-transaction-name]]
+==== `use_path_as_transaction_name`
+
+If set to `true`,
+transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+
+WARNING: If your URLs contain path parameters like `/user/$userId`,you should NOT enable this flag,as it leads to an explosion of transaction groups.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_path_as_transaction_name` | `use_path_as_transaction_name` | `ELASTIC_APM_USE_PATH_AS_TRANSACTION_NAME`
+|============
+
 [[config-logging]]
 === Logging configuration options
 [float]
@@ -798,6 +821,17 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Default value: 
 #
 # ignore_user_agents=
+
+# If set to `true`,
+# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+# 
+# WARNING: If your URLs contain path parameters like `/user/$userId`,you should NOT enable this flag,as it leads to an explosion of transaction groups.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# use_path_as_transaction_name=false
 
 ############################################
 # Logging                                  #

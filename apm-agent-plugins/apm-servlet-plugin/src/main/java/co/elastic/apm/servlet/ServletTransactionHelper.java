@@ -22,9 +22,9 @@ package co.elastic.apm.servlet;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
@@ -106,10 +106,7 @@ public class ServletTransactionHelper {
     public void fillRequestContext(Transaction transaction, @Nullable String userName, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, StringBuffer requestURL) {
-        // the HTTP method is not a good transaction name, but better than none...
-        if (transaction.getName().length() == 0) {
-            transaction.withName(method);
-        }
+
         TransactionContext context = transaction.getContext();
         final Request request = transaction.getContext().getRequest();
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
@@ -123,12 +120,15 @@ public class ServletTransactionHelper {
 
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        Map<String, String[]> parameterMap) {
+                        Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo) {
         try {
             fillRequestParameters(transaction, method, parameterMap);
             fillResponse(transaction.getContext().getResponse(), committed, status);
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
+            if (transaction.getName().length() == 0) {
+                applyDefaultTransactionName(method, servletPath, pathInfo, transaction.getName());
+            }
             if (exception != null) {
                 transaction.captureException(exception);
             }
@@ -137,6 +137,17 @@ public class ServletTransactionHelper {
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
         transaction.deactivate().end();
+    }
+
+    private void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
+        if (webConfiguration.isUsePathAsName()) {
+            transactionName.append(method).append(' ').append(servletPath);
+            if (pathInfo != null) {
+                transactionName.append(pathInfo);
+            }
+        } else {
+            transactionName.append(method);
+        }
     }
 
     /*
@@ -240,4 +251,40 @@ public class ServletTransactionHelper {
         }
     }
 
+    @VisibleForAdvice
+    public static void setTransactionNameByServletClass(String method, @Nullable Class<?> servletClass, StringBuilder transactionName) {
+        if (servletClass == null || transactionName.length() > 0) {
+            return;
+        }
+        String servletClassName = servletClass.getName();
+        for (int i = servletClassName.lastIndexOf(".") + 1; i < servletClassName.length(); i++) {
+            transactionName.append(servletClassName.charAt(i));
+        }
+        transactionName.append('#');
+        switch (method) {
+            case "DELETE":
+                transactionName.append("doDelete");
+                break;
+            case "HEAD":
+                transactionName.append("doHead");
+                break;
+            case "GET":
+                transactionName.append("doGet");
+                break;
+            case "OPTIONS":
+                transactionName.append("doOptions");
+                break;
+            case "POST":
+                transactionName.append("doPost");
+                break;
+            case "PUT":
+                transactionName.append("doPut");
+                break;
+            case "TRACE":
+                transactionName.append("doTrace");
+                break;
+            default:
+                transactionName.append(method);
+        }
+    }
 }
