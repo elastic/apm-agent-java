@@ -94,7 +94,7 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
             .and(takesArguments(0)
                 .or(
                     takesArgument(0, named("javax.servlet.ServletRequest"))
-                        .and(takesArgument(1, named("javax.servletServletResponse")))
+                        .and(takesArgument(1, named("javax.servlet.ServletResponse")))
                 )
             );
     }
