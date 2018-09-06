@@ -34,6 +34,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
@@ -119,11 +120,15 @@ public class ServletApiAdvice {
                                             @Advice.Local("scope") @Nullable Scope scope,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
-        if (thiz instanceof Servlet) {
-            ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), tracer.currentTransaction().getName());
+        if (tracer == null) {
+            return;
         }
         if (scope != null) {
             scope.close();
+        }
+        Transaction currentTransaction = tracer.currentTransaction();
+        if (currentTransaction != null && thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
+            ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), currentTransaction.getName());
         }
         if (servletTransactionHelper != null &&
             transaction != null &&

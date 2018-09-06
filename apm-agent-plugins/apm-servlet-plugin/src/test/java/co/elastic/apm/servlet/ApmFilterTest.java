@@ -255,32 +255,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("CustomName");
     }
 
-    public static class TestServlet implements Servlet {
-
-        @Override
-        public void init(ServletConfig config) throws ServletException {
-
-        }
-
-        @Override
-        public ServletConfig getServletConfig() {
-            return null;
-        }
-
-        @Override
-        public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-
-        }
-
-        @Override
-        public String getServletInfo() {
-            return null;
-        }
-
-        @Override
-        public void destroy() {
-
-        }
+    public static class TestServlet extends HttpServlet {
     }
 
     private static class TransactionNamingFilter implements Filter {

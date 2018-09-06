@@ -30,6 +30,8 @@ import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameContainsIgnoreCase;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -55,14 +57,18 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            // the hasSuperType matcher is quite costly,
+            // as the inheritance hierarchy of each class would have to be examined
+            // this pre-selects candidates and hopefully does not cause lots of false negatives
+            .and(nameContains("Servlet").or(nameContainsIgnoreCase("jsp")))
+            .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
+            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")));
     }
 
     @Override
