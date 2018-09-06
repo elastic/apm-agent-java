@@ -215,7 +215,8 @@ e.g. remove sensitive data.
 Configure a list of wildcard patterns of field names which should be sanitized.
 These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 
-Entries can have a wildcard at the beginning and at the end.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: Data in the query string is considered non-sensitive,
@@ -302,7 +303,8 @@ Used to restrict requests to certain URLs from being instrumented.
 
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-Entries can have a wildcard at the beginning and at the end.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
@@ -329,9 +331,10 @@ Used to restrict requests from certain User-Agents from being instrumented.
 
 When an incoming HTTP request is detected,
 the User-Agent from the request headers will be tested against each element in this list.
-Entries can have a wildcard at the beginning and at the end.
-Prepending an element with `(?i)` makes the matching case-insensitive.
 Example: `curl/*, (?i)*pingdom*`
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
@@ -347,6 +350,57 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
+|============
+
+[float]
+[[config-use-path-as-transaction-name]]
+==== `use_path_as_transaction_name`
+
+If set to `true`,
+transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+
+WARNING: If your URLs contain path parameters like `/user/$userId`,
+you should be very careful when enabling this flag,
+as it can lead to an explosion of transaction groups.
+Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_path_as_transaction_name` | `use_path_as_transaction_name` | `ELASTIC_APM_USE_PATH_AS_TRANSACTION_NAME`
+|============
+
+[float]
+[[config-url-groups]]
+==== `url_groups`
+
+This option is only considered, when `use_path_as_transaction_name` is active.
+
+With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+Prepending an element with `(?i)` makes the matching case-insensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
 |============
 
 [[config-logging]]
@@ -719,7 +773,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Configure a list of wildcard patterns of field names which should be sanitized.
 # These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 # 
-# Entries can have a wildcard at the beginning and at the end.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 # Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: Data in the query string is considered non-sensitive,
@@ -772,7 +827,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # This property should be set to an array containing one or more strings.
 # When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-# Entries can have a wildcard at the beginning and at the end.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 # Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
@@ -787,9 +843,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # When an incoming HTTP request is detected,
 # the User-Agent from the request headers will be tested against each element in this list.
-# Entries can have a wildcard at the beginning and at the end.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
 # Example: `curl/*, (?i)*pingdom*`
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+# Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 #
@@ -798,6 +855,33 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Default value: 
 #
 # ignore_user_agents=
+
+# If set to `true`,
+# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+# 
+# WARNING: If your URLs contain path parameters like `/user/$userId`,
+# you should be very careful when enabling this flag,
+# as it can lead to an explosion of transaction groups.
+# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# use_path_as_transaction_name=false
+
+# This option is only considered, when `use_path_as_transaction_name` is active.
+# 
+# With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+# Prepending an element with `(?i)` makes the matching case-insensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# url_groups=
 
 ############################################
 # Logging                                  #
