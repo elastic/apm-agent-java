@@ -15,5 +15,11 @@
  * Added support for Payara/Glassfish
  * Incubating support for Apache HttpClient
  * Support for Spring RestTemplate
+ * Added configuration options `use_path_as_transaction_name` and `url_groups`,
+   which allow to use the URL path as the transaction name.
+   As that could contain path parameters, like `/user/$userId` however,
+   You can set the `url_groups` option to define a wildcard pattern, like `/user/*`,
+   to group those paths together.
+   This is especially helpful when using an unsupported Servlet API-based framework. 
 
 ## Bug Fixes
