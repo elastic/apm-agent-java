@@ -58,8 +58,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This property should be set to an array containing one or more strings.\n" +
             "When an incoming HTTP request is detected, its URL will be tested against each element in this list.\n" +
-            "Entries can have a wildcard at the beginning and at the end.\n" +
-            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
             "this setting.")
@@ -86,9 +85,8 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "When an incoming HTTP request is detected,\n" +
             "the User-Agent from the request headers will be tested against each element in this list.\n" +
-            "Entries can have a wildcard at the beginning and at the end.\n" +
-            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
             "Example: `curl/*, (?i)*pingdom*`\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server " +
             "regardless of this setting.")
@@ -102,10 +100,22 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .description("If set to `true`,\n" +
             "transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.\n" +
             "\n" +
-            "WARNING: If your URLs contain path parameters like `/user/$userId`," +
-            "you should NOT enable this flag," +
-            "as it leads to an explosion of transaction groups.")
+            "WARNING: If your URLs contain path parameters like `/user/$userId`,\n" +
+            "you should be very careful when enabling this flag,\n" +
+            "as it can lead to an explosion of transaction groups.\n" +
+            "Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.")
         .buildWithDefault(false);
+
+    private final ConfigurationOption<List<WildcardMatcher>> urlGroups = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("url_groups")
+        .configurationCategory(HTTP_CATEGORY)
+        .description("This option is only considered, when `use_path_as_transaction_name` is active.\n" +
+            "\n" +
+            "With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public EventType getCaptureBody() {
         return captureBody.get();
@@ -121,6 +131,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public boolean isUsePathAsName() {
         return usePathAsName.get();
+    }
+
+    public List<WildcardMatcher> getUrlGroups() {
+        return urlGroups.get();
     }
 
     public enum EventType {

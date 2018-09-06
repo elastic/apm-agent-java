@@ -40,6 +40,27 @@ class WildcardMatcherTest {
     }
 
     @Test
+    void testWildcardInTheMiddle() {
+        final WildcardMatcher matcher = WildcardMatcher.valueOf("/foo/*/baz");
+        assertSoftly(softly -> {
+            softly.assertThat(matcher.toString()).isEqualTo("/foo/*/baz");
+            softly.assertThat(matcher.matches("/foo/bar/baz")).isTrue();
+            softly.assertThat(matcher.matches("/foo/bar", "/baz")).isTrue();
+            softly.assertThat(matcher.matches("/foo/bar/b", "az")).isTrue();
+            softly.assertThat(matcher.matches("/foo/bar", "/boaz")).isFalse();
+            softly.assertThat(matcher.matches("/foo/bar")).isFalse();
+        });
+    }
+
+    @Test
+    void testInvalidExpressions() {
+        assertSoftly(softly -> {
+            softly.assertThatThrownBy(() -> WildcardMatcher.valueOf("/foo/*/baz*")).isInstanceOf(IllegalArgumentException.class);
+            softly.assertThatThrownBy(() -> WildcardMatcher.valueOf("/foo/*/bar/*/baz")).isInstanceOf(IllegalArgumentException.class);
+        });
+    }
+
+    @Test
     void testInfixEmptyMatcher() {
         final WildcardMatcher matcher = WildcardMatcher.valueOf("**");
         assertSoftly(softly -> {
@@ -160,12 +181,12 @@ class WildcardMatcherTest {
         final WildcardMatcher matcher1 = WildcardMatcher.valueOf("foo*");
         final WildcardMatcher matcher2 = WildcardMatcher.valueOf("bar*");
         assertSoftly(softly -> {
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "foo")).isTrue();
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "bar")).isTrue();
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "baz")).isFalse();
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "fo", "o")).isTrue();
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "r")).isTrue();
-            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "z")).isFalse();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "foo")).isEqualTo(matcher1);
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "bar")).isEqualTo(matcher2);
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "baz")).isNull();
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "fo", "o")).isEqualTo(matcher1);
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "r")).isEqualTo(matcher2);
+            softly.assertThat(WildcardMatcher.anyMatch(Arrays.asList(matcher1, matcher2), "ba", "z")).isNull();
         });
     }
 

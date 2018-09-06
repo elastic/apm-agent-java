@@ -139,11 +139,16 @@ public class ServletTransactionHelper {
         transaction.deactivate().end();
     }
 
-    private void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
+    void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
         if (webConfiguration.isUsePathAsName()) {
-            transactionName.append(method).append(' ').append(servletPath);
-            if (pathInfo != null) {
-                transactionName.append(pathInfo);
+            WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
+            if (groupMatcher != null) {
+                transactionName.append(method).append(' ').append(groupMatcher.toString());
+            } else {
+                transactionName.append(method).append(' ').append(servletPath);
+                if (pathInfo != null) {
+                    transactionName.append(pathInfo);
+                }
             }
         } else {
             transactionName.append(method);
@@ -169,12 +174,12 @@ public class ServletTransactionHelper {
     }
 
     private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
-        boolean excludeUrl = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
+        boolean excludeUrl = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo) != null;
         if (excludeUrl) {
             logger.debug("Not tracing this request as the URL {} is ignored by one of the matchers",
                 requestURI, webConfiguration.getIgnoreUrls());
         }
-        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader);
+        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) != null;
         if (excludeAgent) {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by one of the matchers",
                 userAgentHeader, webConfiguration.getIgnoreUserAgents());
