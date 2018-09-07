@@ -31,18 +31,20 @@ class ByteValueTest {
     @Test
     void testParseUnitSuccess() {
         assertSoftly(softly -> {
-            softly.assertThat(ByteValue.of("1b").getBytes()).isEqualTo(1);
-            softly.assertThat(ByteValue.of("1B").getBytes()).isEqualTo(1);
-            softly.assertThat(ByteValue.of("2kb").getBytes()).isEqualTo(2048);
-            softly.assertThat(ByteValue.of("2KB").getBytes()).isEqualTo(2048);
-            softly.assertThat(ByteValue.of("3mb").getBytes()).isEqualTo(3 * 1024 * 1024);
-            softly.assertThat(ByteValue.of("3MB").getBytes()).isEqualTo(3 * 1024 * 1024);
+            softly.assertThat(ByteValue.of("1b").getBytes()).isEqualTo(1L);
+            softly.assertThat(ByteValue.of("1B").getBytes()).isEqualTo(1L);
+            softly.assertThat(ByteValue.of("2kb").getBytes()).isEqualTo(2048L);
+            softly.assertThat(ByteValue.of("2kB").getBytes()).isEqualTo(2048L);
+            softly.assertThat(ByteValue.of("3mb").getBytes()).isEqualTo(3L * 1024 * 1024);
+            softly.assertThat(ByteValue.of("3MB").getBytes()).isEqualTo(3L * 1024 * 1024);
+            softly.assertThat(ByteValue.of("3gb").getBytes()).isEqualTo(3L * 1024 * 1024 * 1024);
+            softly.assertThat(ByteValue.of("3GB").getBytes()).isEqualTo(3L * 1024 * 1024 * 1024);
         });
     }
 
     @Test
     void testParseUnitInvalid() {
-        for (String invalid : List.of("1Kib", "-1b", " 1b", "1 b", "1b ", "1gb")) {
+        for (String invalid : List.of("1Kib", "-1b", " 1b", "1 b", "1b ", "1tb")) {
             assertThatCode(() -> ByteValue.of(invalid)).isInstanceOf(IllegalArgumentException.class);
         }
     }

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 public class ByteValue {
 
-    public static final Pattern BYTE_PATTERN = Pattern.compile("^(\\d+)(b|kb|mb)$");
+    public static final Pattern BYTE_PATTERN = Pattern.compile("^(\\d+)(b|kb|mb|gb)$");
 
     private final long bytes;
     private final String byteString;
@@ -48,6 +48,8 @@ public class ByteValue {
                 return 1024;
             case "mb":
                 return 1024 * 1024;
+            case "gb":
+                return 1024 * 1024 * 1024;
             default:
                 throw new IllegalStateException("Byte unit '" + unit + "' is unknown");
         }
