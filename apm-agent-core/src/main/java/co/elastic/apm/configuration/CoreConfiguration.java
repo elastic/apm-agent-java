@@ -123,8 +123,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
             "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
             "\n" +
-            "Entries can have a wildcard at the beginning and at the end.\n" +
-            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: Data in the query string is considered non-sensitive,\n" +
             "as sensitive information should not be sent in the query string.\n" +
