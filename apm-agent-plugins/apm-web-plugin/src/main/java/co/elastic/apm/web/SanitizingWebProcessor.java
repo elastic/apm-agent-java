@@ -20,8 +20,8 @@
 package co.elastic.apm.web;
 
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
@@ -81,6 +81,6 @@ public class SanitizingWebProcessor implements Processor {
 
     private boolean isSensitive(String key) {
         assert config != null;
-        return WildcardMatcher.anyMatch(config.getSanitizeFieldNames(), key);
+        return WildcardMatcher.anyMatch(config.getSanitizeFieldNames(), key) != null;
     }
 }
