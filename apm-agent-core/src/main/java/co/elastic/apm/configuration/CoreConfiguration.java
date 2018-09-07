@@ -36,7 +36,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
-    public static final String SAMPLE_RATE = "sample_rate";
+    public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
@@ -86,6 +86,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
         .key(SAMPLE_RATE)
+        .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +

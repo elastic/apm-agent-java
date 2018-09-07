@@ -162,8 +162,8 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 |============
 
 [float]
-[[config-sample-rate]]
-==== `sample_rate`
+[[config-transaction-sample-rate]]
+==== `transaction_sample_rate`
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 
@@ -178,7 +178,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.sample_rate` | `sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
+| `elastic.apm.transaction_sample_rate` | `transaction_sample_rate` | `ELASTIC_APM_TRANSACTION_SAMPLE_RATE`
 |============
 
 [float]
@@ -406,8 +406,8 @@ Prepending an element with `(?i)` makes the matching case-insensitive.
 [[config-logging]]
 === Logging configuration options
 [float]
-[[config-logging-log-level]]
-==== `logging.log_level`
+[[config-log-level]]
+==== `log_level`
 
 Sets the logging level for the agent.
 
@@ -425,12 +425,12 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_level` | `logging.log_level` | `ELASTIC_APM_LOGGING_LOG_LEVEL`
+| `elastic.apm.log_level` | `log_level` | `ELASTIC_APM_LOG_LEVEL`
 |============
 
 [float]
-[[config-logging-log-file]]
-==== `logging.log_file`
+[[config-log-file]]
+==== `log_file`
 
 Sets the path of the agent logs.
 The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -453,7 +453,7 @@ it's content is deleted when the application starts.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_file` | `logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
+| `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
 [[config-reporter]]
@@ -762,7 +762,7 @@ The default unit for this option is `ms`
 # Type: Double
 # Default value: 1.0
 #
-# sample_rate=1.0
+# transaction_sample_rate=1.0
 
 # Limits the amount of spans that are recorded per transaction.
 # 
@@ -905,7 +905,7 @@ The default unit for this option is `ms`
 # Type: Level
 # Default value: INFO
 #
-# logging.log_level=INFO
+# log_level=INFO
 
 # Sets the path of the agent logs.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -921,7 +921,7 @@ The default unit for this option is `ms`
 # Type: String
 # Default value: System.out
 #
-# logging.log_file=System.out
+# log_file=System.out
 
 ############################################
 # Reporter                                 #
