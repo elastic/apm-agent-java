@@ -262,9 +262,7 @@ public class ServletTransactionHelper {
             return;
         }
         String servletClassName = servletClass.getName();
-        for (int i = servletClassName.lastIndexOf(".") + 1; i < servletClassName.length(); i++) {
-            transactionName.append(servletClassName.charAt(i));
-        }
+        transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
         transactionName.append('#');
         switch (method) {
             case "DELETE":
