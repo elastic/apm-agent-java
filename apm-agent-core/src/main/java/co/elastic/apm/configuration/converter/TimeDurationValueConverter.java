@@ -20,22 +20,22 @@
 package co.elastic.apm.configuration.converter;
 
 import org.stagemonitor.configuration.ConfigurationOption;
-import org.stagemonitor.configuration.converter.ValueConverter;
+import org.stagemonitor.configuration.converter.AbstractValueConverter;
 
-public class DurationUnitValueConverter implements ValueConverter<TimeDuration> {
+public class TimeDurationValueConverter extends AbstractValueConverter<TimeDuration> {
 
     private final String defaultDurationSuffix;
 
-    private DurationUnitValueConverter(String defaultDurationSuffix) {
+    private TimeDurationValueConverter(String defaultDurationSuffix) {
         this.defaultDurationSuffix = defaultDurationSuffix;
     }
 
-    public static DurationUnitValueConverter withDefaultDuration(String defaultDurationSuffix) {
-        return new DurationUnitValueConverter(defaultDurationSuffix);
+    public static TimeDurationValueConverter withDefaultDuration(String defaultDurationSuffix) {
+        return new TimeDurationValueConverter(defaultDurationSuffix);
     }
 
     public static ConfigurationOption.ConfigurationOptionBuilder<TimeDuration> durationOption(String defaultDuration) {
-        return ConfigurationOption.<TimeDuration>builder(new DurationUnitValueConverter(defaultDuration), TimeDuration.class);
+        return ConfigurationOption.<TimeDuration>builder(new TimeDurationValueConverter(defaultDuration), TimeDuration.class);
     }
 
     @Override
@@ -48,11 +48,6 @@ public class DurationUnitValueConverter implements ValueConverter<TimeDuration> 
 
     @Override
     public String toString(TimeDuration value) {
-        return value.toString();
-    }
-
-    @Override
-    public String toSafeString(TimeDuration value) {
         return value.toString();
     }
 

@@ -19,8 +19,8 @@
  */
 package co.elastic.apm.report;
 
-import co.elastic.apm.configuration.converter.DurationUnitValueConverter;
 import co.elastic.apm.configuration.converter.TimeDuration;
+import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
@@ -48,7 +48,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
 
-    private final ConfigurationOption<TimeDuration> serverTimeout = DurationUnitValueConverter.durationOption("s")
+    private final ConfigurationOption<TimeDuration> serverTimeout = TimeDurationValueConverter.durationOption("s")
         .key("server_timeout")
         .configurationCategory(REPORTER_CATEGORY)
         .label("Server timeout")
@@ -68,7 +68,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
 
-    private final ConfigurationOption<TimeDuration> flushInterval = DurationUnitValueConverter.durationOption("s")
+    private final ConfigurationOption<TimeDuration> flushInterval = TimeDurationValueConverter.durationOption("s")
         .key("flush_interval")
         .configurationCategory(REPORTER_CATEGORY)
         .description("Interval with which transactions should be sent to the APM server.\n" +
@@ -114,7 +114,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("Enables the nd-json-based intake v2 protocol")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<TimeDuration> apiRequestTime = DurationUnitValueConverter.durationOption("s")
+    private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
         .tags("internal", "incubating", "intake-v2")

@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 public class TimeDuration {
 
-    private static final Pattern durationPattern = Pattern.compile("^(-)?(\\d+)(ms|s|m)?$");
+    public static final Pattern DURATION_PATTERN = Pattern.compile("^(-)?(\\d+)(ms|s|m)$");
     private final String durationString;
 
     private final long durationMs;
@@ -35,7 +35,7 @@ public class TimeDuration {
     }
 
     public static TimeDuration of(String durationString) {
-        Matcher matcher = durationPattern.matcher(durationString);
+        Matcher matcher = DURATION_PATTERN.matcher(durationString);
         if (matcher.matches()) {
             long duration = Long.parseLong(matcher.group(2));
             if (matcher.group(1) != null) {

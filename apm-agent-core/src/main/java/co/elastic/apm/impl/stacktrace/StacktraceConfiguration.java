@@ -19,8 +19,8 @@
  */
 package co.elastic.apm.impl.stacktrace;
 
-import co.elastic.apm.configuration.converter.DurationUnitValueConverter;
 import co.elastic.apm.configuration.converter.TimeDuration;
+import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
@@ -46,7 +46,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(50);
 
-    private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = DurationUnitValueConverter.durationOption("ms")
+    private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
         .configurationCategory(STACKTRACE_CATEGORY)

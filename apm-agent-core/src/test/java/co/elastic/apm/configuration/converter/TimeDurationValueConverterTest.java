@@ -23,11 +23,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DurationUnitValueConverterTest {
+class TimeDurationValueConverterTest {
 
     @Test
     void convertWithDefaultDuration() {
-        DurationUnitValueConverter converter = DurationUnitValueConverter.withDefaultDuration("s");
+        TimeDurationValueConverter converter = TimeDurationValueConverter.withDefaultDuration("s");
         assertThat(converter.convert("1").toString()).isEqualTo("1s");
         assertThat(converter.convert("1m").toString()).isEqualTo("1m");
         assertThat(converter.convert("1ms").toString()).isEqualTo("1ms");
