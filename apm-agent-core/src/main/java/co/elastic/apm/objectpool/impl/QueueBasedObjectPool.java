@@ -22,6 +22,8 @@ package co.elastic.apm.objectpool.impl;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import com.lmax.disruptor.EventFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -31,6 +33,7 @@ import java.util.Queue;
 public class QueueBasedObjectPool<T extends Recyclable> extends AbstractObjectPool<T> implements Collection<T> {
 
     private final Queue<T> queue;
+    private static final Logger logger = LoggerFactory.getLogger(QueueBasedObjectPool.class);
 
     /**
      * @param queue                   the underlying queue
@@ -57,6 +60,9 @@ public class QueueBasedObjectPool<T extends Recyclable> extends AbstractObjectPo
 
     @Override
     public void recycle(T obj) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("recycling {}", System.identityHashCode(obj));
+        }
         obj.resetState();
         queue.offer(obj);
     }

@@ -269,6 +269,6 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, id);
+        return String.format("'%s' %s (%d)", name, id, System.identityHashCode(this));
     }
 }
