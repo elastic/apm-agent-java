@@ -105,6 +105,18 @@ class IntakeV2ReportingEventHandlerTest extends AbstractServletTest {
         assertThat(ndJsonNodes.get(3).get("error")).isNotNull();
     }
 
+    @Test
+    void testExponentialBackoff() {
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(0)).isEqualTo(0);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(1)).isEqualTo(1);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(2)).isEqualTo(4);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(3)).isEqualTo(9);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(4)).isEqualTo(16);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(5)).isEqualTo(25);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(6)).isEqualTo(36);
+        assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(7)).isEqualTo(36);
+    }
+
     private void reportTransaction() throws IOException {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));

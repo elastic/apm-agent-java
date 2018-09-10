@@ -68,14 +68,20 @@ class DslJsonSerializerTest {
             longValue.append('0');
         }
 
+        StringBuilder longStringValue = new StringBuilder(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH + 1);
+        for (int i = 0; i < DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH + 1; i++) {
+            longStringValue.append('0');
+        }
         serializer.jw.writeByte(JsonWriter.OBJECT_START);
-        serializer.writeField("stringBuilder", longValue);
         serializer.writeField("string", longValue.toString());
+        serializer.writeField("stringBuilder", longValue);
+        serializer.writeLongStringField("longString", longStringValue.toString());
         serializer.writeLastField("lastString", longValue.toString());
         serializer.jw.writeByte(JsonWriter.OBJECT_END);
         final JsonNode jsonNode = objectMapper.readTree(serializer.jw.toString());
         assertThat(jsonNode.get("stringBuilder").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
         assertThat(jsonNode.get("string").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
+        assertThat(jsonNode.get("longString").textValue()).hasSize(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH).endsWith("…");
         assertThat(jsonNode.get("lastString").textValue()).hasSize(DslJsonSerializer.MAX_VALUE_LENGTH).endsWith("…");
     }
 

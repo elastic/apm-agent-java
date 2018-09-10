@@ -49,8 +49,8 @@ import java.util.List;
 public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     private static final String SYSTEM_OUT = "System.out";
-    private static final String LOG_LEVEL_KEY = "logging.log_level";
-    private static final String LOG_FILE_KEY = "logging.log_file";
+    private static final String LOG_LEVEL_KEY = "log_level";
+    private static final String LOG_FILE_KEY = "log_file";
     private static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
@@ -59,8 +59,11 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
+        .aliasKeys("logging.log_level")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("Sets the logging level for the agent.")
+        .description("Sets the logging level for the agent.\n" +
+            "\n" +
+            "This option is case-insensitive.")
         .dynamic(true)
         .addChangeListener(new ConfigurationOption.ChangeListener<Level>() {
             @Override
@@ -73,6 +76,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
         .key(LOG_FILE_KEY)
+        .aliasKeys("logging.log_file")
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the path of the agent logs.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +

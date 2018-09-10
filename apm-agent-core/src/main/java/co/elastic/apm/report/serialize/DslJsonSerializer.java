@@ -20,10 +20,11 @@
 package co.elastic.apm.report.serialize;
 
 import co.elastic.apm.impl.MetaData;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.Socket;
+import co.elastic.apm.impl.context.SpanContext;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.impl.context.User;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -40,7 +41,6 @@ import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.impl.transaction.SpanCount;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -85,11 +85,12 @@ public class DslJsonSerializer implements PayloadSerializer {
     private static final byte NEW_LINE = (byte) '\n';
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     static final int MAX_VALUE_LENGTH = 1024;
+    static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
-    private final StringBuilder replaceBuilder = new StringBuilder(MAX_VALUE_LENGTH);
+    private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
     @Nullable
@@ -430,9 +431,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext());
-        if (transaction.getSpanCount().getDropped().getTotal() > 0) {
-            serializeSpanCount(transaction.getSpanCount());
-        }
+        serializeSpanCount(transaction.getSpanCount());
         serializeSpans(transaction.getSpans());
         // TODO marks
         writeLastField("sampled", transaction.isSampled());
@@ -565,7 +564,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_START);
         final Db db = context.getDb();
         writeField("instance", db.getInstance());
-        writeField("statement", db.getStatement());
+        writeLongStringField("statement", db.getStatement());
         writeField("type", db.getType());
         writeField("user", db.getUser());
         writeFieldName("tags");
@@ -762,6 +761,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
+
+    void writeLongStringField(final String fieldName, @Nullable final String value) {
+        if (value != null) {
+            writeFieldName(fieldName);
+            writeLongStringValue(value);
+            jw.writeByte(COMMA);
+        }
+    }
+
     void writeField(final String fieldName, @Nullable final String value) {
         if (value != null) {
             writeFieldName(fieldName);
@@ -781,8 +789,26 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void writeStringValue(String value) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
-            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH));
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
             writeStringBuilderValue(replaceBuilder);
+        } else {
+            jw.writeString(value);
+        }
+    }
+
+    private void writeLongStringBuilderValue(StringBuilder value) {
+        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+            value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
+            value.append('…');
+        }
+        jw.writeString(value);
+    }
+
+    private void writeLongStringValue(String value) {
+        if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
+            replaceBuilder.setLength(0);
+            replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
+            writeLongStringBuilderValue(replaceBuilder);
         } else {
             jw.writeString(value);
         }

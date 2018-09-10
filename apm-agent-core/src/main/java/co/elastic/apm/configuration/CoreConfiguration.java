@@ -36,7 +36,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
-    public static final String SAMPLE_RATE = "sample_rate";
+    public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
@@ -60,7 +60,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
         .key(SERVICE_NAME)
         .configurationCategory(CORE_CATEGORY)
-        .label("The name of your service")
+        .label("The name of your service (required)")
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
@@ -86,6 +86,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
         .key(SAMPLE_RATE)
+        .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
@@ -122,8 +123,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Configure a list of wildcard patterns of field names which should be sanitized.\n" +
             "These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.\n" +
             "\n" +
-            "Entries can have a wildcard at the beginning and at the end.\n" +
-            "Prepending an element with `(?i)` makes the matching case-insensitive.\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: Data in the query string is considered non-sensitive,\n" +
             "as sensitive information should not be sent in the query string.\n" +
