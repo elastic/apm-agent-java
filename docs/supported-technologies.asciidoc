@@ -1,0 +1,122 @@
+[[supported-technologies-details]]
+== Supported technologies
+The Elastic APM Java agent automatically instruments various APIs,
+frameworks and application servers.
+This section lists all supported technologies.
+
+If your favorite technology is not supported yet,
+you can vote for it by participating in our
+https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey].
+We will use the results to add support for the most requested technologies.
+
+Another option is to get involved in the development of the agent.
+See the https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[contributing guide] for more details.
+
+NOTE: If, for example,
+the HTTP client library of your choice is not listed,
+it means that there won't be spans for those outgoing HTTP requests.
+If the web framework you are using is not supported,
+the agent does not capture transactions.
+
+[float]
+[[supported-java-versions]]
+=== Java versions
+
+|===
+|Vendor |Supported versions
+
+|Oracle JDK
+|7, 8, 9, 10
+
+|Open JDK
+|7, 8, 9, 10
+
+|IBM J9 VM
+|8
+
+|===
+
+[float]
+[[supported-web-frameworks]]
+=== Web Frameworks
+|===
+|Framework |Supported versions | Description
+
+|Servlet API
+|3+
+|A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
+ See also <<supported-app-servers>>
+
+|Spring Web MVC
+|4.x, 5.x
+|If you are using Spring MVC (for example with Spring Boot),
+  the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
+
+|Spring Boot
+|1.5+, 2.x
+|Supports embedded Tomcat, Jetty and Undertow
+
+|===
+
+
+[float]
+[[supported-app-servers]]
+=== Application Servers/Servlet Containers
+The Elastic APM Java agent has generic support for the Servlet API 3+.
+However, some servers require special handling.
+The servers listed here are tested by an integration test suite to make sure Elastic APM is compatible with them.
+Other Servlet 3+ compliant servers will most likely work as well.
+
+|===
+|Server |Supported versions
+
+|Tomcat
+|7.x, 8.5.x, 9.x
+
+|WildFly
+|8-13
+
+|Jetty (only the `ServletContextHandler` is supported)
+|9.2, 9.3, 9.4
+
+|WebSphere
+|8.5.5, 18.0.x
+
+|Undertow Servlet
+|1.4
+
+|Payara
+|4.x, 5.x
+
+|===
+
+[float]
+[[supported-databases]]
+=== Databases
+|===
+|Database |Supported versions | Description
+
+|JDBC
+|4.1+
+|The agent automatically creates DB spans for all your JDBC queries.
+ This includes JDBC queries executed by O/R mappers like Hibernate.
+
+|===
+
+[float]
+[[supported-networking-frameworks]]
+=== Networking frameworks
+|===
+|Framework |Supported versions | Description
+
+|Apache HttpClient (<<config-disable-instrumentations,incubating>>)
+|4.3+
+|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+ The spans are named after the schema `<method> <host>`.
+
+|Spring RestTemplate
+|4+
+|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+ The spans are named after the schema `<method> <host>`.
+
+|===
