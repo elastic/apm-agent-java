@@ -145,7 +145,10 @@ A version string for the currently deployed version of the service. If you donâ€
 [[config-environment]]
 ==== `environment`
 
-The name of the environment this service is deployed in, e.g. "production" or "staging".
+The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+You can use the query bar to filter for a specific environment,
+but by default the environments will be mixed together.
+Also keep that in mind when creating alerts.
 
 
 [options="header"]
@@ -739,7 +742,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # service_version=
 
-# The name of the environment this service is deployed in, e.g. "production" or "staging".
+# The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+# You can use the query bar to filter for a specific environment,
+# but by default the environments will be mixed together.
+# Also keep that in mind when creating alerts.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
