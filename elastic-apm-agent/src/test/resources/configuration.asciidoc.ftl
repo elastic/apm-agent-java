@@ -66,7 +66,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<@defaultValue option/>` | ${option.valueType} | ${option.dynamic?c}
+| <#if option.key?matches("service_name")>Name of main class or jar<#else>`<@defaultValue option/>`</#if> | ${option.valueType} | ${option.dynamic?c}
 |============
 
 
@@ -107,9 +107,9 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # ${option.dynamic?then("This setting can be changed at runtime",
     "This setting can not be changed at runtime. Changes require a restart of the application.")}
 # Type: ${option.valueType?matches("List|Collection")?then("comma separated list", option.valueType)}
-# Default value: ${option.defaultValueAsString!}
+# Default value: ${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 #
-# ${option.key}=${option.defaultValueAsString!}
+# ${option.key}=${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 
         </#if>
     </#list>

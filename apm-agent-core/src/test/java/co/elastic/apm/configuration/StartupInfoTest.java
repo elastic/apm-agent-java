@@ -46,6 +46,7 @@ class StartupInfoTest {
                     .dynamic(true)
                     .buildWithDefault("default");
             })
+            .addOptionProvider(new CoreConfiguration())
             .addConfigSource(new SimpleSource())
             .build();
         startupInfo = new StartupInfo();

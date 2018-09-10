@@ -60,7 +60,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
         .key(SERVICE_NAME)
         .configurationCategory(CORE_CATEGORY)
-        .label("The name of your service (required)")
+        .label("The name of your service")
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
@@ -68,6 +68,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
+        .defaultValue(ServiceNameUtil.getDefaultServiceName())
         .buildRequired();
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()

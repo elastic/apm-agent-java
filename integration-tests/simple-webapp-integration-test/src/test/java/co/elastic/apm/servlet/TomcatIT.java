@@ -37,14 +37,13 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             .withEnv("JPDA_TRANSPORT", "dt_socket")
             .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
             .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080), 8080, "/simple-webapp");
+            .withExposedPorts(8080), 8080, "/simple-webapp", "tomcat-application");
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")

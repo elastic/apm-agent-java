@@ -111,7 +111,7 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| Name of main class | String | false
 |============
 
 
@@ -718,7 +718,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # instrument=true
 
-# The name of your service (required)
+# The name of your service
 #
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
@@ -727,9 +727,9 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value: Name of main class
 #
-# service_name=
+# service_name=Name of main class
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #

@@ -107,40 +107,26 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final String contextPath;
     @Nullable
     private final GenericContainer<?> debugProxy;
+    private final String expectedDefaultServiceName;
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer) {
-        this(servletContainer, 8080, "");
+    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName) {
+        this(servletContainer, 8080, "", expectedDefaultServiceName);
     }
 
-    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort, String contextPath) {
+    protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort, String contextPath, String expectedDefaultServiceName) {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
         this.debugProxy = createDebugProxy(servletContainer, 5005);
+        this.expectedDefaultServiceName = expectedDefaultServiceName;
         if (debugProxy != null) {
             this.debugProxy.start();
         }
         this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
-                .forPort(webPort)
-                // set to a higher value for debugging
-                .withStartupTimeout(Duration.ofSeconds(60)));
+            .forPort(webPort)
+            // set to a higher value for debugging
+            .withStartupTimeout(Duration.ofSeconds(60)));
         this.servletContainer.start();
-    }
-
-    // makes sure the debugging port is always 5005
-    // if the port is not available, the test can still run
-    @Nullable
-    private GenericContainer<?> createDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
-        try {
-            return new SocatContainer() {{
-                addFixedExposedPort(debugPort, debugPort);
-            }}
-                .withNetwork(Network.SHARED)
-                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0));
-        } catch (Exception e) {
-            logger.warn("Starting debug proxy failed");
-            return null;
-        }
     }
 
     private static String getPathToJavaagent() {
@@ -160,6 +146,22 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(warFile).exists();
         assertThat(warFile).isFile();
         assertThat(warFile.length()).isGreaterThan(0);
+    }
+
+    // makes sure the debugging port is always 5005
+    // if the port is not available, the test can still run
+    @Nullable
+    private GenericContainer<?> createDebugProxy(GenericContainer<?> servletContainer, final int debugPort) {
+        try {
+            return new SocatContainer() {{
+                addFixedExposedPort(debugPort, debugPort);
+            }}
+                .withNetwork(Network.SHARED)
+                .withTarget(debugPort, servletContainer.getNetworkAliases().get(0));
+        } catch (Exception e) {
+            logger.warn("Starting debug proxy failed");
+            return null;
+        }
     }
 
     @After
@@ -196,6 +198,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             // TODO make that less hacky
             if (!pathToTest.equals("/index.jsp")) {
                 assertContainsOneEntryReported(500, this::getReportedSpans);
+                assertThat(getServiceName()).isEqualTo(expectedDefaultServiceName);
             }
         }
     }
@@ -267,6 +270,19 @@ public abstract class AbstractServletContainerIntegrationTest {
                 }
             }
             return spans;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getServiceName() {
+        try {
+            final ObjectMapper objectMapper = new ObjectMapper();
+            final JsonNode payload;
+            payload = objectMapper
+                .readTree(mockServerContainer.getClient()
+                    .retrieveRecordedRequests(request("/v1/transactions"))[0].getBodyAsString());
+            return payload.get("service").get("name").textValue();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
