@@ -24,7 +24,7 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
-the most important configuration options are <<config-service-name>> (required),
+the most important configuration options are <<config-service-name>>,
 <<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
@@ -111,7 +111,7 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| Name of main class or jar | String | false
 |============
 
 
@@ -761,7 +761,7 @@ The default unit for this option is `ms`
 #
 # instrument=true
 
-# The name of your service (required)
+# The name of your service
 #
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
@@ -770,9 +770,9 @@ The default unit for this option is `ms`
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value: Name of main class or jar
 #
-# service_name=
+# service_name=Name of main class or jar
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #

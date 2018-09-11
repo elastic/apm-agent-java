@@ -51,14 +51,13 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
         )
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("payara"))
             .withFileSystemBind(pathToWar, deploymentsFolder + "/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080), 8080, "/simple-webapp");
+            .withExposedPorts(8080), 8080, "/simple-webapp", "glassfish-application");
     }
 
     @Parameterized.Parameters(name = "Payara {0}")

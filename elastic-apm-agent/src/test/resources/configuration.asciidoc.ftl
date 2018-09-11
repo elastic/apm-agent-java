@@ -20,7 +20,7 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
-the most important configuration options are <<config-service-name>> (required),
+the most important configuration options are <<config-service-name>>,
 <<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
@@ -71,7 +71,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<@defaultValue option/>` | ${option.valueType} | ${option.dynamic?c}
+| <#if option.key?matches("service_name")>Name of main class or jar<#else>`<@defaultValue option/>`</#if> | ${option.valueType} | ${option.dynamic?c}
 |============
 
 
@@ -116,9 +116,9 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
 # The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
 </#if>
-# Default value: ${option.defaultValueAsString!}
+# Default value: ${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 #
-# ${option.key}=${option.defaultValueAsString!}
+# ${option.key}=${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 
         </#if>
     </#list>

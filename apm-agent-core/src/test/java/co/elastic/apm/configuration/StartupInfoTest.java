@@ -45,6 +45,7 @@ class StartupInfoTest {
         config = new TestConfig();
         this.configurationRegistry = ConfigurationRegistry.builder()
             .addOptionProvider(config)
+            .addOptionProvider(new CoreConfiguration())
             .addConfigSource(new SimpleSource().add("duration", "1"))
             .build();
         startupInfo = new StartupInfo();
