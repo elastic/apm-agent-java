@@ -31,20 +31,20 @@ class LoggingConfigurationTest {
 
     @Test
     void testSetLogLevel() {
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("logging.log_level", "DEBUG")));
+        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_level", "DEBUG")));
         assertThat(System.getProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm")).isEqualTo("DEBUG");
     }
 
     @Test
     void testSetLogFileInvalid() {
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("logging.log_file", "/this/does/not/exist")));
+        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", "/this/does/not/exist")));
         assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo("System.out");
     }
 
     @Test
     void testSetLogFile() {
         final String logFile = "./apm.log";
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("logging.log_file", logFile)));
+        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", logFile)));
         assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo(logFile);
     }
 
@@ -52,7 +52,7 @@ class LoggingConfigurationTest {
     void testSetLogFileAgentHomeCantBeResolvedInTests() {
         // re-configuring the log file does not actually work,
         // so we can't verify the content of the log file
-        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("logging.log_file", "_AGENT_HOME_/logs/apm.log")));
+        LoggingConfiguration.init(Collections.singletonList(new SimpleSource().add("log_file", "_AGENT_HOME_/logs/apm.log")));
         assertThat(System.getProperty(SimpleLogger.LOG_FILE_KEY)).isEqualTo("System.out");
     }
 }

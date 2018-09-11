@@ -266,7 +266,7 @@ public class ElasticApmTracer {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
         }
-        int spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
         if (spanFramesMinDurationMs != 0 && span.isSampled()) {
             if (span.getDuration() >= spanFramesMinDurationMs) {
                 span.withStacktrace(new Throwable());
