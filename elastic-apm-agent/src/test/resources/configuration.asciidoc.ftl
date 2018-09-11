@@ -21,7 +21,7 @@ Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>> (required),
-<<config-server-url>> and <<config-application-packages>>.
+<<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -29,7 +29,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_url=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8300
 ----
 
 [source,properties]
@@ -37,7 +37,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_url=http://localhost:8300
+server_urls=http://localhost:8300
 ----
 
 [source,bash]
@@ -45,7 +45,7 @@ server_url=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URL=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8300
 ----
 
 <#list config as category, options>

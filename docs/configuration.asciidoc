@@ -25,7 +25,7 @@ Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>> (required),
-<<config-server-url>> and <<config-application-packages>>.
+<<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -33,7 +33,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_url=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8300
 ----
 
 [source,properties]
@@ -41,7 +41,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_url=http://localhost:8300
+server_urls=http://localhost:8300
 ----
 
 [source,bash]
@@ -49,7 +49,7 @@ server_url=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URL=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8300
 ----
 
 [[config-core]]
@@ -517,7 +517,9 @@ Use if APM Server requires a token.
 [[config-server-urls]]
 ==== `server_urls`
 
-The URL must be fully qualified, including protocol (http or https) and port.
+The URLs must be fully qualified, including protocol (http or https) and port.
+
+NOTE: Providing multiple URLs only works if intake API v2 is enabled.
 
 
 [options="header"]
@@ -990,15 +992,17 @@ The default unit for this option is `ms`
 #
 # secret_token=
 
-# The URL for your APM Server
+# The URLs for your APM Servers
 #
-# The URL must be fully qualified, including protocol (http or https) and port.
+# The URLs must be fully qualified, including protocol (http or https) and port.
+# 
+# NOTE: Providing multiple URLs only works if intake API v2 is enabled.
 #
-# This setting can be changed at runtime
-# Type: URL
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
 # Default value: http://localhost:8200
 #
-# server_url=http://localhost:8200
+# server_urls=http://localhost:8200
 
 # Server timeout
 #
