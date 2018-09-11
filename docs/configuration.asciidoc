@@ -24,7 +24,7 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
-the most important configuration options are <<config-service-name>> (required),
+the most important configuration options are <<config-service-name>>,
 <<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 

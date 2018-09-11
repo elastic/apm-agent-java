@@ -26,5 +26,14 @@
  * Add ability to add multiple APM server URLs, which enables client-side load balancing.
    The configuration option `server_url` has been renamed to `server_urls` to reflect this change.
    However, `server_url` still works for backwards compatibility.
+ * The configuration option `service_name` is now optional.
+   It defaults to the main class name,
+   the name of the executed jar file (removing the version number),
+   or the application server name (for example `tomcat-application`).
+   In a lot of cases,
+   you will still want to set the `service_name` explicitly.
+   But it helps getting started and seeing data easier,
+   as there are no required configuration options anymore.
+   In the future we will most likely determine more useful application names for Servlet API-based applications.
 
 ## Bug Fixes
