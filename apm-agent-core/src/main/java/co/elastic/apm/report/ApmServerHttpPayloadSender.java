@@ -34,9 +34,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
@@ -60,16 +57,16 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
 
     @Override
     public void sendPayload(final Payload payload) {
+        String serverUrl = reporterConfiguration.getServerUrls().get(0).toString();
         logger.debug("Sending payload with {} elements to APM server {}",
-            payload.getPayloadObjects().size(), reporterConfiguration.getServerUrl());
+            payload.getPayloadObjects().size(), serverUrl);
         final String path;
         if (payload instanceof ErrorPayload) {
             path = "/v1/errors";
         } else {
             path = "/v1/transactions";
         }
-        final Request.Builder builder = new Request.Builder()
-            .url(reporterConfiguration.getServerUrl() + path);
+        final Request.Builder builder = new Request.Builder().url(serverUrl + path);
         if (reporterConfiguration.getSecretToken() != null) {
             builder.header("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
         }

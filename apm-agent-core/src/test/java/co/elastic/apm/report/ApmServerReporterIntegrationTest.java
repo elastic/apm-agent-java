@@ -43,6 +43,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,7 +83,7 @@ class ApmServerReporterIntegrationTest {
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         handler = exchange -> {
             if (!exchange.getRequestPath().equals("/healthcheck")) {
                 receivedHttpRequests.incrementAndGet();
@@ -92,7 +94,7 @@ class ApmServerReporterIntegrationTest {
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1s"));
-        when(reporterConfiguration.getServerUrl()).thenReturn("http://localhost:" + port);
+        when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false, mock(StacktraceConfiguration.class)), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();

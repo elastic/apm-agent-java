@@ -485,8 +485,8 @@ Use if APM Server requires a token.
 |============
 
 [float]
-[[config-server-url]]
-==== `server_url`
+[[config-server-urls]]
+==== `server_urls`
 
 The URL must be fully qualified, including protocol (http or https) and port.
 
@@ -494,14 +494,14 @@ The URL must be fully qualified, including protocol (http or https) and port.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://localhost:8200` | List | false
 |============
 
 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
+| `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
 |============
 
 [float]
