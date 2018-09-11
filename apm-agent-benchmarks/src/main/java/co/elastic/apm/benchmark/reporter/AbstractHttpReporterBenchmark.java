@@ -30,10 +30,14 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.infra.Blackhole;
+import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenchmark {
     private Undertow server;
@@ -57,8 +61,8 @@ public abstract class AbstractHttpReporterBenchmark extends AbstractReporterBenc
     protected PayloadSender getPayloadSender() {
         return new ApmServerHttpPayloadSender(new OkHttpClient(), getPayloadSerializer(), new ReporterConfiguration() {
             @Override
-            public String getServerUrl() {
-                return "http://localhost:" + port;
+            public List<URL> getServerUrls() {
+                return Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:" + port));
             }
         });
     }

@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.util.VersionUtils;
@@ -62,7 +63,8 @@ public class StartupInfo implements LifecycleListener {
     }
 
     void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
-        logger.info("Starting Elastic APM {} on {}", elasticApmVersion, getJvmAndOsVersionString());
+        final String serviceName = configurationRegistry.getConfig(CoreConfiguration.class).getServiceName();
+        logger.info("Starting Elastic APM {} as {} on {}", elasticApmVersion, serviceName, getJvmAndOsVersionString());
         for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
             for (ConfigurationOption<?> option : options) {
                 if (!option.isDefault()) {
@@ -85,6 +87,12 @@ public class StartupInfo implements LifecycleListener {
         if (!option.getKey().equals(option.getUsedKey())) {
             logger.warn("Detected usage of an old configuration key: '{}'. Please use '{}' instead.",
                 option.getUsedKey(), option.getKey());
+        }
+        if (option.getValue() instanceof TimeDuration && !TimeDuration.DURATION_PATTERN.matcher(option.getValueAsString()).matches()) {
+            logger.warn("DEPRECATION WARNING: {}: '{}' (source: {}) is not using a time unit. Please use one of 'ms', 's' or 'm'.",
+                option.getKey(),
+                option.getValueAsString(),
+                option.getNameOfCurrentConfigurationSource());
         }
     }
 

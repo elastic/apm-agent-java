@@ -36,14 +36,13 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             // the other defaults don't seem to be important
             .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("wildfly"))
             .withFileSystemBind(pathToWar, "/opt/jboss/wildfly/standalone/deployments/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990));
+            .withExposedPorts(8080, 9990), "jboss-application");
     }
 
     @Parameterized.Parameters(name = "Wildfly {0}")

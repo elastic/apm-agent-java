@@ -20,8 +20,8 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
-the most important configuration options are <<config-service-name>> (required),
-<<config-server-url>> and <<config-application-packages>>.
+the most important configuration options are <<config-service-name>>,
+<<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -29,7 +29,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_url=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8300
 ----
 
 [source,properties]
@@ -37,7 +37,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_url=http://localhost:8300
+server_urls=http://localhost:8300
 ----
 
 [source,bash]
@@ -45,7 +45,7 @@ server_url=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URL=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8300
 ----
 
 <#list config as category, options>
@@ -59,6 +59,11 @@ ELASTIC_APM_SERVER_URL=http://localhost:8300
 
 ${option.description}
 
+<#if option.valueType?matches("TimeDuration")>
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `${option.defaultValueAsString}`.
+The default unit for this option is `${option.valueConverter.defaultDurationSuffix}`
+</#if>
 <#if option.validOptions?has_content>
 Valid options: <#list option.validOptionsLabelMap?values as validOption>`${validOption}`<#if validOption_has_next>, </#if></#list>
 </#if>
@@ -66,7 +71,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<@defaultValue option/>` | ${option.valueType} | ${option.dynamic?c}
+| <#if option.key?matches("service_name")>Name of main class or jar<#else>`<@defaultValue option/>`</#if> | ${option.valueType} | ${option.dynamic?c}
 |============
 
 
@@ -107,9 +112,13 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # ${option.dynamic?then("This setting can be changed at runtime",
     "This setting can not be changed at runtime. Changes require a restart of the application.")}
 # Type: ${option.valueType?matches("List|Collection")?then("comma separated list", option.valueType)}
-# Default value: ${option.defaultValueAsString!}
+<#if option.valueType?matches("TimeDuration")>
+# Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
+# The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
+</#if>
+# Default value: ${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 #
-# ${option.key}=${option.defaultValueAsString!}
+# ${option.key}=${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
 
         </#if>
     </#list>

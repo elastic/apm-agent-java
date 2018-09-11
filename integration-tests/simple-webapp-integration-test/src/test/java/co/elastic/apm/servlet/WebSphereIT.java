@@ -42,14 +42,13 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             .withNetwork(Network.SHARED)
             .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("websphere"))
             .withFileSystemBind(pathToWar, "/config/dropins/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(9080, 7777), 9080, "/simple-webapp");
+            .withExposedPorts(9080, 7777), 9080, "/simple-webapp", "websphere-application");
     }
 
     @Parameterized.Parameters(name = "WebSphere {0}")

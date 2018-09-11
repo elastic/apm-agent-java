@@ -17,6 +17,7 @@
         <module>apm-apache-httpclient-plugin</module>
         <module>apm-spring-resttemplate-plugin</module>
         <module>apm-httpclient-core</module>
+        <module>apm-slf4j-plugin</module>
     </modules>
 
     <properties>
@@ -37,12 +38,6 @@
             <artifactId>apm-agent-core</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>2.18.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

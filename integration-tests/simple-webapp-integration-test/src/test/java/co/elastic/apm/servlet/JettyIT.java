@@ -34,14 +34,13 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
             .withNetwork(Network.SHARED)
             .withEnv("JAVA_OPTIONS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_SERVICE_NAME", "servlet-test-app")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("jetty"))
             .withFileSystemBind(pathToWar, "/var/lib/jetty/webapps/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990));
+            .withExposedPorts(8080, 9990), "jetty-application");
     }
 
     @Parameterized.Parameters(name = "Jetty {0}")

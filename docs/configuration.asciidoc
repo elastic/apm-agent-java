@@ -24,8 +24,8 @@ via configuration sources which support dynamic reloading.
 Java system properties can be set from within the application.
 
 In order to get started with Elastic APM,
-the most important configuration options are <<config-service-name>> (required),
-<<config-server-url>> and <<config-application-packages>>.
+the most important configuration options are <<config-service-name>>,
+<<config-server-urls>> and <<config-application-packages>>.
 So a minimal version of a configuration might look like this:
 
 [source,bash]
@@ -33,7 +33,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_url=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8300
 ----
 
 [source,properties]
@@ -41,7 +41,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_url=http://localhost:8300
+server_urls=http://localhost:8300
 ----
 
 [source,bash]
@@ -49,7 +49,7 @@ server_url=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URL=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8300
 ----
 
 [[config-core]]
@@ -111,7 +111,7 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | String | false
+| Name of main class or jar | String | false
 |============
 
 
@@ -145,7 +145,10 @@ A version string for the currently deployed version of the service. If you donâ€
 [[config-environment]]
 ==== `environment`
 
-The name of the environment this service is deployed in, e.g. "production" or "staging".
+The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+You can use the query bar to filter for a specific environment,
+but by default the environments will be mixed together.
+Also keep that in mind when creating alerts.
 
 
 [options="header"]
@@ -456,6 +459,35 @@ it's content is deleted when the application starts.
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
+[float]
+[[config-enable-log-correlation]]
+==== `enable_log_correlation`
+
+A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+you can index your log files and correlate them with APM traces.
+With this integration you can get all logs belonging to a particular trace and vice-versa:
+for a specific log, see in which context it has been logged and which parameters the user provided. 
+While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+
+NOTE: This is an incubating feature and the MDC key names might change.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 [float]
@@ -482,23 +514,25 @@ Use if APM Server requires a token.
 |============
 
 [float]
-[[config-server-url]]
-==== `server_url`
+[[config-server-urls]]
+==== `server_urls`
 
-The URL must be fully qualified, including protocol (http or https) and port.
+The URLs must be fully qualified, including protocol (http or https) and port.
+
+NOTE: Providing multiple URLs only works if intake API v2 is enabled.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | URL | true
+| `http://localhost:8200` | List | false
 |============
 
 
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.server_url` | `server_url` | `ELASTIC_APM_SERVER_URL`
+| `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
 |============
 
 [float]
@@ -511,11 +545,14 @@ Set to 0 to disable timeouts.
 
 WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | false
+| `5s` | TimeDuration | false
 |============
 
 
@@ -551,18 +588,21 @@ Verification can be disabled by changing this setting to false.
 [[config-flush-interval]]
 ==== `flush_interval`
 
-Interval with which transactions should be sent to the APM server, in seconds.
+Interval with which transactions should be sent to the APM server.
 
 A lower value will increase the load on your APM server,
 while a higher value can increase the memory pressure on your app.
 
 A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1` | Integer | false
+| `1s` | TimeDuration | false
 |============
 
 
@@ -668,15 +708,18 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to 0.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5ms`.
+The default unit for this option is `ms`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | true
+| `5ms` | TimeDuration | true
 |============
 
 
@@ -718,7 +761,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # instrument=true
 
-# The name of your service (required)
+# The name of your service
 #
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
@@ -727,9 +770,9 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: 
+# Default value: Name of main class or jar
 #
-# service_name=
+# service_name=Name of main class or jar
 
 # A version string for the currently deployed version of the service. If you donâ€™t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #
@@ -739,7 +782,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # service_version=
 
-# The name of the environment this service is deployed in, e.g. "production" or "staging".
+# The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+# You can use the query bar to filter for a specific environment,
+# but by default the environments will be mixed together.
+# Also keep that in mind when creating alerts.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -914,6 +960,23 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # log_file=System.out
 
+# A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+# If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+# You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+# you can index your log files and correlate them with APM traces.
+# With this integration you can get all logs belonging to a particular trace and vice-versa:
+# for a specific log, see in which context it has been logged and which parameters the user provided. 
+# While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+# 
+# NOTE: This is an incubating feature and the MDC key names might change.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# enable_log_correlation=false
+
 ############################################
 # Reporter                                 #
 ############################################
@@ -929,17 +992,19 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # secret_token=
 
-# The URL for your APM Server
+# The URLs for your APM Servers
 #
-# The URL must be fully qualified, including protocol (http or https) and port.
+# The URLs must be fully qualified, including protocol (http or https) and port.
+# 
+# NOTE: Providing multiple URLs only works if intake API v2 is enabled.
 #
-# This setting can be changed at runtime
-# Type: URL
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
 # Default value: http://localhost:8200
 #
-# server_url=http://localhost:8200
+# server_urls=http://localhost:8200
 
-# A timeout in seconds
+# Server timeout
 #
 # If a request to the APM server takes longer than the configured timeout,
 # the request is cancelled and the event (exception or transaction) is discarded.
@@ -948,10 +1013,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
 #
-# server_timeout=5
+# server_timeout=5s
 
 # By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
 # 
@@ -963,7 +1030,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # verify_server_cert=true
 
-# Interval with which transactions should be sent to the APM server, in seconds.
+# Interval with which transactions should be sent to the APM server.
 # 
 # A lower value will increase the load on your APM server,
 # while a higher value can increase the memory pressure on your app.
@@ -971,10 +1038,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 1
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1s.
+# The default unit for this option is s.
+# Default value: 1s
 #
-# flush_interval=1
+# flush_interval=1s
 
 # Maximum queue length of transactions before sending transactions to the APM server.
 # 
@@ -1022,14 +1091,16 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to 0.
 #
 # This setting can be changed at runtime
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5ms.
+# The default unit for this option is ms.
+# Default value: 5ms
 #
-# span_frames_min_duration=5
+# span_frames_min_duration=5ms
 
 ----

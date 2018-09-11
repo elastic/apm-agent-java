@@ -60,7 +60,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
         .key(SERVICE_NAME)
         .configurationCategory(CORE_CATEGORY)
-        .label("The name of your service (required)")
+        .label("The name of your service")
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
@@ -68,7 +68,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .buildRequired();
+        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
@@ -81,7 +81,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
         .key("environment")
         .configurationCategory(CORE_CATEGORY)
-        .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".")
+        .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\"." +
+            "" +
+            "NOTE: The APM UI does not fully support the environment setting yet.\n" +
+            "You can use the query bar to filter for a specific environment,\n" +
+            "but by default the environments will be mixed together.\n" +
+            "Also keep that in mind when creating alerts.")
         .build();
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()

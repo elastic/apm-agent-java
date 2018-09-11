@@ -55,11 +55,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     private static final String LOGGING_CATEGORY = "Logging";
     private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
+    private static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
+    private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
-        .aliasKeys("logging.log_level")
+        .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the logging level for the agent.\n" +
             "\n" +
@@ -76,7 +78,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
         .key(LOG_FILE_KEY)
-        .aliasKeys("logging.log_file")
+        .aliasKeys(DEPRECATED_LOG_FILE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the path of the agent logs.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
@@ -90,10 +92,37 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(DEFAULT_LOG_FILE);
 
+    private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
+        .key("enable_log_correlation")
+        .configurationCategory(LOGGING_CATEGORY)
+        .description("A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.\n" +
+            "If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.\n" +
+            "You can then use the pattern format of your logging implementation to write the MDC values to your log file.\n" +
+            "With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,\n" +
+            "you can index your log files and correlate them with APM traces.\n" +
+            "With this integration you can get all logs belonging to a particular trace and vice-versa:\n" +
+            "for a specific log, see in which context it has been logged and which parameters the user provided. " +
+            "\n" +
+            "While it's allowed to enable this setting at runtime, you can't disable it without a restart.\n" +
+            "\n" +
+            "NOTE: This is an incubating feature and the MDC key names might change.")
+        .dynamic(true)
+        .addValidator(new ConfigurationOption.Validator<Boolean>() {
+            @Override
+            public void assertValid(Boolean value) {
+                if (logCorrelationEnabled != null && isLogCorrelationEnabled() && Boolean.FALSE.equals(value)) {
+                    // the reason is that otherwise the MDC will not be cleared when disabling while a span is currently active
+                    throw new IllegalArgumentException("Disabling the log correlation at runtime is not possible.");
+                }
+            }
+        })
+        .buildWithDefault(false);
 
     public static void init(List<ConfigurationSource> sources) {
-        setLogLevel(getValue(LOG_LEVEL_KEY, sources, Level.INFO.toString()));
-        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, DEFAULT_LOG_FILE));
+        setLogLevel(getValue(LOG_LEVEL_KEY, sources,
+            getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
+        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources,
+            getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
     }
 
     /**
@@ -145,6 +174,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         }
         System.out.println("Writing Elastic APM logs to " + logFile);
         return logFile;
+    }
+
+    public boolean isLogCorrelationEnabled() {
+        return logCorrelationEnabled.get();
     }
 
 }

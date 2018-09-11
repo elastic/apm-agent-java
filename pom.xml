@@ -77,6 +77,7 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
     </properties>
 
     <modules>
@@ -277,7 +278,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
-                <version>1.16</version>
+                <version>${version.plugin.animal-sniffer}</version>
                 <executions>
                     <execution>
                         <id>signature-check</id>
@@ -294,6 +295,8 @@
                         <artifactId>java17</artifactId>
                         <version>1.0</version>
                     </signature>
+                    <!--work around for https://github.com/mojohaus/animal-sniffer/issues/18-->
+                    <ignores>java.lang.invoke.MethodHandle</ignores>
                 </configuration>
             </plugin>
             <plugin>
@@ -425,7 +428,7 @@
         <dependency>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>animal-sniffer-annotations</artifactId>
-            <version>1.16</version>
+            <version>${version.plugin.animal-sniffer}</version>
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
@@ -483,6 +486,12 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
             <version>${version.jetty-server}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>2.18.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

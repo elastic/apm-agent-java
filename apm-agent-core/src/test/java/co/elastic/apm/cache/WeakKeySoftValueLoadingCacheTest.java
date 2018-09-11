@@ -17,20 +17,26 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.cache;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-class ElasticApmTracerBuilderTest {
+class WeakKeySoftValueLoadingCacheTest {
 
     @Test
-    void testMissingDefaultValues() {
-        final ElasticApmTracer noopTracer = new ElasticApmTracerBuilder().build();
-
-        assertThat(noopTracer.getConfig(CoreConfiguration.class).isActive()).isFalse();
-        assertThat(noopTracer.startTransaction().isNoop()).isTrue();
+    void testGet() {
+        WeakKeySoftValueLoadingCache<String, String> cache = new WeakKeySoftValueLoadingCache<>(String::toUpperCase);
+        String value = cache.get("foo");
+        assertThat(value).isEqualTo("FOO");
+        assertThat(cache.get("foo")).isSameAs(value);
     }
+
+    @Test
+    void testGetNull() {
+        WeakKeySoftValueLoadingCache<String, String> cache = new WeakKeySoftValueLoadingCache<>(key -> null);
+        assertThat(cache.get("foo")).isNull();
+    }
+
 }
