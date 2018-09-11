@@ -20,12 +20,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-servlet-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>apm-jdbc-plugin</artifactId>
+            <artifactId>elastic-apm-agent</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

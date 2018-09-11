@@ -65,13 +65,15 @@ public class ElasticApmTracer {
     private final Reporter reporter;
     private final ThreadLocal<AbstractSpan> active = new ThreadLocal<>();
     private final CoreConfiguration coreConfiguration;
+    private final List<SpanListener> spanListeners;
     private Sampler sampler;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<SpanListener> spanListeners) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
+        this.spanListeners = spanListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -105,6 +107,9 @@ public class ElasticApmTracer {
         });
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
+        }
+        for (SpanListener spanListener : spanListeners) {
+            spanListener.init(this);
         }
     }
 
@@ -324,5 +329,13 @@ public class ElasticApmTracer {
 
     public void setActive(@Nullable AbstractSpan<?> span) {
         active.set(span);
+    }
+
+    public void registerSpanListener(SpanListener spanListener) {
+        this.spanListeners.add(spanListener);
+    }
+
+    public List<SpanListener> getSpanListeners() {
+        return spanListeners;
     }
 }

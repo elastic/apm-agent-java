@@ -22,6 +22,7 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
@@ -36,6 +37,8 @@ public class TraceId implements Recyclable {
 
     private static final int SIZE = 16;
     private final byte[] data = new byte[SIZE];
+    @Nullable
+    private String cachedStringRepresentation;
 
     public void setToRandomValue() {
         setToRandomValue(ThreadLocalRandom.current());
@@ -54,6 +57,7 @@ public class TraceId implements Recyclable {
         for (int i = 0; i < data.length; i++) {
             data[i] = 0;
         }
+        cachedStringRepresentation = null;
     }
 
     public void copyFrom(TraceId other) {
@@ -75,7 +79,11 @@ public class TraceId implements Recyclable {
 
     @Override
     public String toString() {
-        return HexUtils.bytesToHex(data);
+        String s = cachedStringRepresentation;
+        if (s == null) {
+            s = cachedStringRepresentation = HexUtils.bytesToHex(data);
+        }
+        return s;
     }
 
     public boolean isEmpty() {

@@ -459,6 +459,35 @@ it's content is deleted when the application starts.
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
+[float]
+[[config-enable-log-correlation]]
+==== `enable_log_correlation`
+
+A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+you can index your log files and correlate them with APM traces.
+With this integration you can get all logs belonging to a particular trace and vice-versa:
+for a specific log, see in which context it has been logged and which parameters the user provided. 
+While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+
+NOTE: This is an incubating feature and the MDC key names might change.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
 [[config-reporter]]
 === Reporter configuration options
 [float]
@@ -930,6 +959,23 @@ The default unit for this option is `ms`
 # Default value: System.out
 #
 # log_file=System.out
+
+# A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
+# If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+# You can then use the pattern format of your logging implementation to write the MDC values to your log file.
+# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+# you can index your log files and correlate them with APM traces.
+# With this integration you can get all logs belonging to a particular trace and vice-versa:
+# for a specific log, see in which context it has been logged and which parameters the user provided. 
+# While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+# 
+# NOTE: This is an incubating feature and the MDC key names might change.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: false
+#
+# enable_log_correlation=false
 
 ############################################
 # Reporter                                 #

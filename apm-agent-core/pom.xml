@@ -85,6 +85,11 @@
             <artifactId>slf4j-simple</artifactId>
             <version>${version.slf4j}</version>
         </dependency>
+        <dependency>
+            <groupId>com.blogspot.mydailyjava</groupId>
+            <artifactId>weak-lock-free</artifactId>
+            <version>0.12</version>
+        </dependency>
 
         <dependency>
             <groupId>org.stagemonitor</groupId>
