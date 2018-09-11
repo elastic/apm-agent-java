@@ -19,12 +19,16 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+
+import java.util.List;
 
 /**
  * Logs system information and configuration on startup.
@@ -54,13 +58,40 @@ public class StartupInfo implements LifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
+        ConfigurationRegistry configurationRegistry = tracer.getConfigurationRegistry();
+        logConfiguration(configurationRegistry, logger);
+    }
+
+    void logConfiguration(ConfigurationRegistry configurationRegistry, Logger logger) {
         logger.info("Starting Elastic APM {} on {}", elasticApmVersion, getJvmAndOsVersionString());
-        for (ConfigurationOption<?> option : tracer.getConfigurationRegistry().getConfigurationOptionsByKey().values()) {
-            if (!option.isDefault()) {
-                logger.debug("{}: '{}' (source: {})", option.getKey(),
-                    option.isSensitive() ? "XXXX" : option.getValueAsSafeString(),
-                    option.getNameOfCurrentConfigurationSource());
+        for (List<ConfigurationOption<?>> options : configurationRegistry.getConfigurationOptionsByCategory().values()) {
+            for (ConfigurationOption<?> option : options) {
+                if (!option.isDefault()) {
+                    logConfigWithNonDefaultValue(logger, option);
+                }
             }
+        }
+    }
+
+    private void logConfigWithNonDefaultValue(Logger logger, ConfigurationOption<?> option) {
+        logger.debug("{}: '{}' (source: {})", option.getKey(),
+            option.isSensitive() ? "XXXX" : option.getValueAsSafeString(),
+            option.getNameOfCurrentConfigurationSource());
+
+        if (option.getTags().contains("deprecated")) {
+            logger.warn("Detected usage of deprecated configuration option '{}'. " +
+                "This option might be removed in the future. " +
+                "Please refer to the documentation about alternatives.", option.getKey());
+        }
+        if (!option.getKey().equals(option.getUsedKey())) {
+            logger.warn("Detected usage of an old configuration key: '{}'. Please use '{}' instead.",
+                option.getUsedKey(), option.getKey());
+        }
+        if (option.getValue() instanceof TimeDuration && !TimeDuration.DURATION_PATTERN.matcher(option.getValueAsString()).matches()) {
+            logger.warn("DEPRECATION WARNING: {}: '{}' (source: {}) is not using a time unit. Please use one of 'ms', 's' or 'm'.",
+                option.getKey(),
+                option.getValueAsString(),
+                option.getNameOfCurrentConfigurationSource());
         }
     }
 

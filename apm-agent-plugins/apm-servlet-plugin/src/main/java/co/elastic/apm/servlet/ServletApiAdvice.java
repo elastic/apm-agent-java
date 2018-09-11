@@ -30,7 +30,6 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
-import javax.servlet.Servlet;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
@@ -126,9 +125,11 @@ public class ServletApiAdvice {
         if (scope != null) {
             scope.close();
         }
-        Transaction currentTransaction = tracer.currentTransaction();
-        if (currentTransaction != null && thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
-            ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), currentTransaction.getName());
+        if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
+            Transaction currentTransaction = tracer.currentTransaction();
+            if (currentTransaction != null) {
+                ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), currentTransaction.getName());
+            }
         }
         if (servletTransactionHelper != null &&
             transaction != null &&

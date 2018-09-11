@@ -19,7 +19,7 @@ Also, please check if your stack is compatible with the currently <<supported-te
 [[trouble-shooting-logging]]
 === Logging
 There are several <<config-logging, logging related configuration options>>.
-The most important one is <<config-logging-log-level>>.
+The most important one is <<config-log-level>>.
 Set the log level to `DEBUG` or even `TRACE` to get more information about the behavior of the agent.
 The `TRACE` log level is even more verbose than `DEBUG` and prints a stack trace every time a transaction or span is started or stopped.
 Also, the JSON documents which are sent to the APM server will be logged on `TRACE` level.
@@ -32,7 +32,7 @@ you should see logs similar to these:
 ----
 [main] INFO co.elastic.apm.configuration.StartupInfo - Starting Elastic APM (unknown version) on Java 10 (Oracle Corporation) Mac OS X 10.13.6
 [main] DEBUG co.elastic.apm.configuration.StartupInfo - service_name: 'elastic-apm-test' (source: Java System Properties)
-[main] DEBUG co.elastic.apm.configuration.StartupInfo - logging.log_level: 'DEBUG' (source: Java System Properties)
+[main] DEBUG co.elastic.apm.configuration.StartupInfo - log_level: 'DEBUG' (source: Java System Properties)
 ----
 
 Make sure to execute some requests to your application before posting your log files.

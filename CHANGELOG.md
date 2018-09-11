@@ -21,6 +21,8 @@
    You can set the `url_groups` option to define a wildcard pattern, like `/user/*`,
    to group those paths together.
    This is especially helpful when using an unsupported Servlet API-based framework. 
+ * Support duration suffixes (`ms`, `s` and `m`) for duration configuration options.
+   Not using the duration suffix logs out a deprecation warning and will not be supported in future versions.
  * Add ability to add multiple APM server URLs, which enables client-side load balancing.
    The configuration option `server_url` has been renamed to `server_urls` to reflect this change.
    However, `server_url` still works for backwards compatibility.

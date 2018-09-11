@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
@@ -92,7 +93,7 @@ class ApmServerReporterIntegrationTest {
         receivedHttpRequests.set(0);
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
+        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1s"));
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         payloadSender = new ApmServerHttpPayloadSender(new OkHttpClient(), new DslJsonSerializer(false, mock(StacktraceConfiguration.class)), reporterConfiguration);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");

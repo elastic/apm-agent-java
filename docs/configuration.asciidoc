@@ -145,7 +145,10 @@ A version string for the currently deployed version of the service. If you donâ€
 [[config-environment]]
 ==== `environment`
 
-The name of the environment this service is deployed in, e.g. "production" or "staging".
+The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+You can use the query bar to filter for a specific environment,
+but by default the environments will be mixed together.
+Also keep that in mind when creating alerts.
 
 
 [options="header"]
@@ -162,8 +165,8 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 |============
 
 [float]
-[[config-sample-rate]]
-==== `sample_rate`
+[[config-transaction-sample-rate]]
+==== `transaction_sample_rate`
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 
@@ -178,7 +181,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.sample_rate` | `sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
+| `elastic.apm.transaction_sample_rate` | `transaction_sample_rate` | `ELASTIC_APM_TRANSACTION_SAMPLE_RATE`
 |============
 
 [float]
@@ -406,8 +409,8 @@ Prepending an element with `(?i)` makes the matching case-insensitive.
 [[config-logging]]
 === Logging configuration options
 [float]
-[[config-logging-log-level]]
-==== `logging.log_level`
+[[config-log-level]]
+==== `log_level`
 
 Sets the logging level for the agent.
 
@@ -425,12 +428,12 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_level` | `logging.log_level` | `ELASTIC_APM_LOGGING_LOG_LEVEL`
+| `elastic.apm.log_level` | `log_level` | `ELASTIC_APM_LOG_LEVEL`
 |============
 
 [float]
-[[config-logging-log-file]]
-==== `logging.log_file`
+[[config-log-file]]
+==== `log_file`
 
 Sets the path of the agent logs.
 The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -453,7 +456,7 @@ it's content is deleted when the application starts.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_file` | `logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
+| `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
 [[config-reporter]]
@@ -511,11 +514,14 @@ Set to 0 to disable timeouts.
 
 WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | false
+| `5s` | TimeDuration | false
 |============
 
 
@@ -551,18 +557,21 @@ Verification can be disabled by changing this setting to false.
 [[config-flush-interval]]
 ==== `flush_interval`
 
-Interval with which transactions should be sent to the APM server, in seconds.
+Interval with which transactions should be sent to the APM server.
 
 A lower value will increase the load on your APM server,
 while a higher value can increase the memory pressure on your app.
 
 A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `1s`.
+The default unit for this option is `s`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `1` | Integer | false
+| `1s` | TimeDuration | false
 |============
 
 
@@ -668,15 +677,18 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to 0.
 
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `5ms`.
+The default unit for this option is `ms`
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5` | Integer | true
+| `5ms` | TimeDuration | true
 |============
 
 
@@ -739,7 +751,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # service_version=
 
-# The name of the environment this service is deployed in, e.g. "production" or "staging".
+# The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+# You can use the query bar to filter for a specific environment,
+# but by default the environments will be mixed together.
+# Also keep that in mind when creating alerts.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -753,7 +768,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: Double
 # Default value: 1.0
 #
-# sample_rate=1.0
+# transaction_sample_rate=1.0
 
 # Limits the amount of spans that are recorded per transaction.
 # 
@@ -896,7 +911,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: Level
 # Default value: INFO
 #
-# logging.log_level=INFO
+# log_level=INFO
 
 # Sets the path of the agent logs.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -912,7 +927,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: String
 # Default value: System.out
 #
-# logging.log_file=System.out
+# log_file=System.out
 
 ############################################
 # Reporter                                 #
@@ -939,7 +954,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # server_url=http://localhost:8200
 
-# A timeout in seconds
+# Server timeout
 #
 # If a request to the APM server takes longer than the configured timeout,
 # the request is cancelled and the event (exception or transaction) is discarded.
@@ -948,10 +963,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5s.
+# The default unit for this option is s.
+# Default value: 5s
 #
-# server_timeout=5
+# server_timeout=5s
 
 # By default, the agent verifies the SSL certificate if you use an HTTPS connection to the APM server.
 # 
@@ -963,7 +980,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # verify_server_cert=true
 
-# Interval with which transactions should be sent to the APM server, in seconds.
+# Interval with which transactions should be sent to the APM server.
 # 
 # A lower value will increase the load on your APM server,
 # while a higher value can increase the memory pressure on your app.
@@ -971,10 +988,12 @@ To disable stack trace collection for spans completely, set the value to 0.
 # A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: Integer
-# Default value: 1
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 1s.
+# The default unit for this option is s.
+# Default value: 1s
 #
-# flush_interval=1
+# flush_interval=1s
 
 # Maximum queue length of transactions before sending transactions to the APM server.
 # 
@@ -1022,14 +1041,16 @@ To disable stack trace collection for spans completely, set the value to 0.
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5`, will limit stack trace collection to spans with durations equal or longer than the given value in milliseconds, e.g. 5 milliseconds.
+# When setting this option to `-1`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to 0.
 #
 # This setting can be changed at runtime
-# Type: Integer
-# Default value: 5
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 5ms.
+# The default unit for this option is ms.
+# Default value: 5ms
 #
-# span_frames_min_duration=5
+# span_frames_min_duration=5ms
 
 ----

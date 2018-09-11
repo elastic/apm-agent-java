@@ -201,17 +201,17 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             connection.setRequestProperty("Content-Encoding", "deflate");
             connection.setRequestProperty("Content-Type", "application/x-ndjson");
             connection.setUseCaches(false);
-            connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(reporterConfiguration.getServerTimeout()));
-            connection.setReadTimeout((int) TimeUnit.SECONDS.toMillis(reporterConfiguration.getServerTimeout()));
+            connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+            connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
             connection.connect();
             os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
             payloadSerializer.setOutputStream(os);
             if (reporter != null) {
                 timeoutTask = new FlushOnTimeoutTimerTask(reporter);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Scheduling request timeout in {}s", reporterConfiguration.getApiRequestTime());
+                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
                 }
-                timeoutTimer.schedule(timeoutTask, TimeUnit.SECONDS.toMillis(reporterConfiguration.getApiRequestTime()));
+                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
             }
             return connection;
         } catch (IOException e) {
