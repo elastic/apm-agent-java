@@ -18,9 +18,18 @@
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!--
+        we can't add elastic-apm-agent as it causes shading problems:
+        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.web.WebConfiguration not a subtype
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>elastic-apm-agent</artifactId>
+            <artifactId>apm-jdbc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-web-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
