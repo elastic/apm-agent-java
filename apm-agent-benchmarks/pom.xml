@@ -29,7 +29,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-web-plugin</artifactId>
+            <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
