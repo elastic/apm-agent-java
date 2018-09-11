@@ -22,16 +22,19 @@ package co.elastic.apm.configuration;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class ServiceNameUtil {
-    private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)(-.*)?$";
+class ServiceNameUtil {
+    private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(-.*)?$";
 
-    @Nullable
-    public static String getDefaultServiceName() {
-        String command = System.getProperty("sun.java.command");
-        if (command != null) {
-            return parseSunJavaCommand(command);
+    static String getDefaultServiceName() {
+        String serviceName = null;
+        String sunJavaCommand = System.getProperty("sun.java.command");
+        if (sunJavaCommand != null) {
+            serviceName = parseSunJavaCommand(sunJavaCommand);
         }
-        return null;
+        if (serviceName == null) {
+            serviceName = "my-service";
+        }
+        return serviceName;
     }
 
     @Nullable

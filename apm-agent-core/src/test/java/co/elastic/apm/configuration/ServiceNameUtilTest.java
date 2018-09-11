@@ -33,7 +33,11 @@ class ServiceNameUtilTest {
             softly.assertThat(parseSunJavaCommand("foo.bar.Baz$Qux")).isEqualTo("Baz-Qux");
             softly.assertThat(parseSunJavaCommand("foo.bar.Baz foo")).isEqualTo("Baz");
             softly.assertThat(parseSunJavaCommand("my-app.jar bar")).isEqualTo("my-app");
+            softly.assertThat(parseSunJavaCommand("my-app-4-j.jar bar")).isEqualTo("my-app-4-j");
+            softly.assertThat(parseSunJavaCommand("my-app-2.jar bar")).isEqualTo("my-app-2");
+            softly.assertThat(parseSunJavaCommand("my-app-1.0.jar bar")).isEqualTo("my-app");
             softly.assertThat(parseSunJavaCommand("my-app-1.0.0.jar bar")).isEqualTo("my-app");
+            softly.assertThat(parseSunJavaCommand("my-app-1.0.0.0.jar bar")).isEqualTo("my-app");
             softly.assertThat(parseSunJavaCommand("my-app-1.0.0-SNAPSHOT.jar bar")).isEqualTo("my-app");
             softly.assertThat(parseSunJavaCommand("my-app-1.0.0-BUILD-SNAPSHOT.jar bar")).isEqualTo("my-app");
             softly.assertThat(parseSunJavaCommand("my-app-1.0.0-RC1.jar bar")).isEqualTo("my-app");

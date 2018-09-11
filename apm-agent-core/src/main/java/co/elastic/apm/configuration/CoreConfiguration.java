@@ -68,8 +68,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
-        .defaultValue(ServiceNameUtil.getDefaultServiceName())
-        .buildRequired();
+        .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
 
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
