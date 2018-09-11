@@ -138,7 +138,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
                     .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
-                    .add("server_url", "http://localhost:" + port)
+                    .add("server_urls", "http://localhost:" + port)
                     .add("enable_intake_v2", "false")
                     .add("distributed_tracing", "false"))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
