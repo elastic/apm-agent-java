@@ -85,7 +85,7 @@
             "type": ["object", "null"],
             "properties": {
                 "dropped": {
-                    "type": ["object", "null"],
+                    "type": ["object", "integer", "null"],
                     "properties": {
                         "total": {
                             "type": ["integer","null"],

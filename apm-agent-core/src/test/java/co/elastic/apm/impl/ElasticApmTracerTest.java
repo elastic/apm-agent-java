@@ -196,8 +196,8 @@ class ElasticApmTracerTest {
             transaction.end();
         }
         assertThat(reporter.getFirstTransaction().isSampled()).isTrue();
-        assertThat(reporter.getFirstTransaction().getSpanCount().getDropped().getTotal()).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getSpanCount().getTotal()).isEqualTo(2);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getDropped().get()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getSpanCount().getStarted().get()).isEqualTo(1);
         assertThat(reporter.getSpans()).hasSize(1);
     }
 

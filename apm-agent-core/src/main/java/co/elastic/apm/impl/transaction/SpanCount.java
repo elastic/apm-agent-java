@@ -26,24 +26,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SpanCount implements Recyclable {
 
-    private final Dropped dropped = new Dropped();
-    private final AtomicInteger total = new AtomicInteger(0);
+    private final AtomicInteger dropped = new AtomicInteger(0);
+    private final AtomicInteger started = new AtomicInteger(0);
 
-    public Dropped getDropped() {
+    public AtomicInteger getDropped() {
         return dropped;
     }
 
-    public void increment() {
-        total.incrementAndGet();
-    }
-
-    public int getTotal() {
-        return total.get();
+    public AtomicInteger getStarted() {
+        return started;
     }
 
     @Override
     public void resetState() {
-        dropped.resetState();
-        total.set(0);
+        dropped.set(0);
+        started.set(0);
     }
 }
