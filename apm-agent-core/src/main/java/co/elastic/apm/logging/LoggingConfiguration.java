@@ -55,11 +55,13 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     private static final String LOGGING_CATEGORY = "Logging";
     private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
+    private static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
+    private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
     @SuppressWarnings("unused")
     public ConfigurationOption<Level> logLevel = ConfigurationOption.enumOption(Level.class)
         .key(LOG_LEVEL_KEY)
-        .aliasKeys("logging.log_level")
+        .aliasKeys(DEPRECATED_LOG_LEVEL_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the logging level for the agent.\n" +
             "\n" +
@@ -76,7 +78,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     @SuppressWarnings("unused")
     public ConfigurationOption<String> logFile = ConfigurationOption.stringOption()
         .key(LOG_FILE_KEY)
-        .aliasKeys("logging.log_file")
+        .aliasKeys(DEPRECATED_LOG_FILE_KEY)
         .configurationCategory(LOGGING_CATEGORY)
         .description("Sets the path of the agent logs.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
@@ -92,8 +94,10 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
 
     public static void init(List<ConfigurationSource> sources) {
-        setLogLevel(getValue(LOG_LEVEL_KEY, sources, Level.INFO.toString()));
-        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources, DEFAULT_LOG_FILE));
+        setLogLevel(getValue(LOG_LEVEL_KEY, sources,
+            getValue(DEPRECATED_LOG_LEVEL_KEY, sources, Level.INFO.toString())));
+        setLogFileLocation(ElasticApmAgent.getAgentHome(), getValue(LOG_FILE_KEY, sources,
+            getValue(DEPRECATED_LOG_FILE_KEY, sources, DEFAULT_LOG_FILE)));
     }
 
     /**
