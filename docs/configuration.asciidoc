@@ -145,7 +145,10 @@ A version string for the currently deployed version of the service. If you donâ€
 [[config-environment]]
 ==== `environment`
 
-The name of the environment this service is deployed in, e.g. "production" or "staging".
+The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+You can use the query bar to filter for a specific environment,
+but by default the environments will be mixed together.
+Also keep that in mind when creating alerts.
 
 
 [options="header"]
@@ -162,8 +165,8 @@ The name of the environment this service is deployed in, e.g. "production" or "s
 |============
 
 [float]
-[[config-sample-rate]]
-==== `sample_rate`
+[[config-transaction-sample-rate]]
+==== `transaction_sample_rate`
 
 By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 
@@ -178,7 +181,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.sample_rate` | `sample_rate` | `ELASTIC_APM_SAMPLE_RATE`
+| `elastic.apm.transaction_sample_rate` | `transaction_sample_rate` | `ELASTIC_APM_TRANSACTION_SAMPLE_RATE`
 |============
 
 [float]
@@ -215,7 +218,8 @@ e.g. remove sensitive data.
 Configure a list of wildcard patterns of field names which should be sanitized.
 These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 
-Entries can have a wildcard at the beginning and at the end.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: Data in the query string is considered non-sensitive,
@@ -302,7 +306,8 @@ Used to restrict requests to certain URLs from being instrumented.
 
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-Entries can have a wildcard at the beginning and at the end.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
@@ -329,9 +334,10 @@ Used to restrict requests from certain User-Agents from being instrumented.
 
 When an incoming HTTP request is detected,
 the User-Agent from the request headers will be tested against each element in this list.
-Entries can have a wildcard at the beginning and at the end.
-Prepending an element with `(?i)` makes the matching case-insensitive.
 Example: `curl/*, (?i)*pingdom*`
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+Prepending an element with `(?i)` makes the matching case-insensitive.
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
@@ -349,11 +355,62 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 | `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
+[float]
+[[config-use-path-as-transaction-name]]
+==== `use_path_as_transaction_name`
+
+If set to `true`,
+transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+
+WARNING: If your URLs contain path parameters like `/user/$userId`,
+you should be very careful when enabling this flag,
+as it can lead to an explosion of transaction groups.
+Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_path_as_transaction_name` | `use_path_as_transaction_name` | `ELASTIC_APM_USE_PATH_AS_TRANSACTION_NAME`
+|============
+
+[float]
+[[config-url-groups]]
+==== `url_groups`
+
+This option is only considered, when `use_path_as_transaction_name` is active.
+
+With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
+
+NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+Prepending an element with `(?i)` makes the matching case-insensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
+|============
+
 [[config-logging]]
 === Logging configuration options
 [float]
-[[config-logging-log-level]]
-==== `logging.log_level`
+[[config-log-level]]
+==== `log_level`
 
 Sets the logging level for the agent.
 
@@ -371,12 +428,12 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_level` | `logging.log_level` | `ELASTIC_APM_LOGGING_LOG_LEVEL`
+| `elastic.apm.log_level` | `log_level` | `ELASTIC_APM_LOG_LEVEL`
 |============
 
 [float]
-[[config-logging-log-file]]
-==== `logging.log_file`
+[[config-log-file]]
+==== `log_file`
 
 Sets the path of the agent logs.
 The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -399,7 +456,7 @@ it's content is deleted when the application starts.
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.logging.log_file` | `logging.log_file` | `ELASTIC_APM_LOGGING_LOG_FILE`
+| `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
 [float]
@@ -714,7 +771,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 #
 # service_version=
 
-# The name of the environment this service is deployed in, e.g. "production" or "staging".
+# The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+# You can use the query bar to filter for a specific environment,
+# but by default the environments will be mixed together.
+# Also keep that in mind when creating alerts.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -728,7 +788,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: Double
 # Default value: 1.0
 #
-# sample_rate=1.0
+# transaction_sample_rate=1.0
 
 # Limits the amount of spans that are recorded per transaction.
 # 
@@ -748,7 +808,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Configure a list of wildcard patterns of field names which should be sanitized.
 # These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 # 
-# Entries can have a wildcard at the beginning and at the end.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 # Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: Data in the query string is considered non-sensitive,
@@ -801,7 +862,8 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # This property should be set to an array containing one or more strings.
 # When an incoming HTTP request is detected, its URL will be tested against each element in this list.
-# Entries can have a wildcard at the beginning and at the end.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
 # Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
@@ -816,9 +878,10 @@ To disable stack trace collection for spans completely, set the value to 0.
 # 
 # When an incoming HTTP request is detected,
 # the User-Agent from the request headers will be tested against each element in this list.
-# Entries can have a wildcard at the beginning and at the end.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
 # Example: `curl/*, (?i)*pingdom*`
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+# Prepending an element with `(?i)` makes the matching case-insensitive.
 # 
 # NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 #
@@ -827,6 +890,33 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Default value: 
 #
 # ignore_user_agents=
+
+# If set to `true`,
+# transaction names of unsupported Servlet API-based frameworks will be in the form of `$method $path` instead of just `$method`.
+# 
+# WARNING: If your URLs contain path parameters like `/user/$userId`,
+# you should be very careful when enabling this flag,
+# as it can lead to an explosion of transaction groups.
+# Take a look at the `url_groups` option on how to mitigate this problem by grouping URLs together.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# use_path_as_transaction_name=false
+
+# This option is only considered, when `use_path_as_transaction_name` is active.
+# 
+# With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
+# 
+# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
+# Prepending an element with `(?i)` makes the matching case-insensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# url_groups=
 
 ############################################
 # Logging                                  #
@@ -841,7 +931,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: Level
 # Default value: INFO
 #
-# logging.log_level=INFO
+# log_level=INFO
 
 # Sets the path of the agent logs.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -857,7 +947,7 @@ To disable stack trace collection for spans completely, set the value to 0.
 # Type: String
 # Default value: System.out
 #
-# logging.log_file=System.out
+# log_file=System.out
 
 # A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
 # If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.

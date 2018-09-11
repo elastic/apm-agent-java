@@ -33,6 +33,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
@@ -116,9 +117,19 @@ public class ServletApiAdvice {
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Local("transaction") @Nullable Transaction transaction,
                                             @Advice.Local("scope") @Nullable Scope scope,
-                                            @Advice.Thrown @Nullable Throwable t) {
+                                            @Advice.Thrown @Nullable Throwable t,
+                                            @Advice.This Object thiz) {
+        if (tracer == null) {
+            return;
+        }
         if (scope != null) {
             scope.close();
+        }
+        if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
+            Transaction currentTransaction = tracer.currentTransaction();
+            if (currentTransaction != null) {
+                ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), currentTransaction.getName());
+            }
         }
         if (servletTransactionHelper != null &&
             transaction != null &&
@@ -138,7 +149,7 @@ public class ServletApiAdvice {
                 }
 
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    request.getParameterMap());
+                    request.getParameterMap(), request.getServletPath(), request.getPathInfo());
             }
         }
     }
