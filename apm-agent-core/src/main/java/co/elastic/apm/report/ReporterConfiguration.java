@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.configuration.converter.ByteValue;
+import co.elastic.apm.configuration.converter.ByteValueConverter;
 import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -126,14 +128,16 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("Maximum time to keep an HTTP request to the APM Server open for.")
         .buildWithDefault(TimeDuration.of("10s"));
 
-    private final ConfigurationOption<Integer> apiRequestSize = ConfigurationOption.integerOption()
+    private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
         .key("api_request_size")
         .configurationCategory(REPORTER_CATEGORY)
         .tags("internal", "incubating", "intake-v2")
-        .description("The maximum total compressed size in bytes of the request body which is sent to the APM server intake api via a " +
+        .description("The maximum total compressed size of the request body which is sent to the APM server intake api via a " +
             "chunked encoding (HTTP streaming).\n" +
-            "Note that a small overshoot is possible.")
-        .buildWithDefault(768 * 1024);
+            "Note that a small overshoot is possible.\n" +
+            "\n" +
+            "Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.")
+        .buildWithDefault(ByteValue.of("768kb"));
 
     @Nullable
     public String getSecretToken() {
@@ -176,7 +180,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return apiRequestTime.get();
     }
 
-    public int getApiRequestSize() {
-        return apiRequestSize.get();
+    public long getApiRequestSize() {
+        return apiRequestSize.get().getBytes();
     }
 }
