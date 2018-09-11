@@ -22,6 +22,7 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -33,6 +34,8 @@ public class SpanId implements Recyclable {
 
     private static final int LENGTH = 8;
     private final byte[] data = new byte[LENGTH];
+    @Nullable
+    private String cachedStringRepresentation;
 
     public void setToRandomValue() {
         setToRandomValue(ThreadLocalRandom.current());
@@ -54,6 +57,7 @@ public class SpanId implements Recyclable {
         for (int i = 0; i < data.length; i++) {
             data[i] = 0;
         }
+        cachedStringRepresentation = null;
     }
 
     /**
@@ -92,6 +96,10 @@ public class SpanId implements Recyclable {
 
     @Override
     public String toString() {
-        return HexUtils.bytesToHex(data);
+        String s = cachedStringRepresentation;
+        if (s == null) {
+            s = cachedStringRepresentation = HexUtils.bytesToHex(data);
+        }
+        return s;
     }
 }

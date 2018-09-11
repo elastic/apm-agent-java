@@ -21,11 +21,16 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.Scope;
+import co.elastic.apm.impl.SpanListener;
 import co.elastic.apm.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected final TraceContext traceContext = new TraceContext();
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
@@ -89,6 +94,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * This method helps to avoid the memory allocations of string concatenations
      * as the underlying {@link StringBuilder} instance will be reused.
      * </p>
+     *
      * @param s the string to append to the name
      * @return {@code this}, for chaining
      */
@@ -138,12 +144,32 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         final ElasticApmTracer tracer = this.tracer;
         previouslyActive = tracer.getActive();
         tracer.setActive(this);
+        List<SpanListener> spanListeners = tracer.getSpanListeners();
+        for (int i = 0; i < spanListeners.size(); i++) {
+            try {
+                spanListeners.get(i).onActivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#onActivate", spanListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
         return (T) this;
     }
 
     public T deactivate() {
         final ElasticApmTracer tracer = this.tracer;
         tracer.setActive(previouslyActive);
+        List<SpanListener> spanListeners = tracer.getSpanListeners();
+        for (int i = 0; i < spanListeners.size(); i++) {
+            try {
+                spanListeners.get(i).onDeactivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#onDeactivate", spanListeners.get(i).getClass().getSimpleName(), t);
+            }
+        }
         return (T) this;
     }
 

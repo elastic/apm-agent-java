@@ -55,11 +55,15 @@ public class ElasticApmTracerBuilder {
     @Nullable
     private Iterable<LifecycleListener> lifecycleListeners;
     private Map<String, String> inlineConfig = new HashMap<>();
+    private List<SpanListener> spanListeners = new ArrayList<>();
 
     public ElasticApmTracerBuilder() {
         final List<ConfigurationSource> configSources = getConfigSources();
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
+        for (SpanListener spanListener : ServiceLoader.load(SpanListener.class, ElasticApmTracerBuilder.class.getClassLoader())) {
+            spanListeners.add(spanListener);
+        }
     }
 
     public ElasticApmTracerBuilder configurationRegistry(ConfigurationRegistry configurationRegistry) {
@@ -93,7 +97,7 @@ public class ElasticApmTracerBuilder {
         if (lifecycleListeners == null) {
             lifecycleListeners = ServiceLoader.load(LifecycleListener.class, getClass().getClassLoader());
         }
-        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
+        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners, spanListeners);
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {

@@ -77,6 +77,10 @@
                                     <pattern>java.util.logging.Logger</pattern>
                                     <shadedPattern>co.elastic.apm.logging.JulBridgeLogger</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.weaklockfree</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
@@ -161,6 +165,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
