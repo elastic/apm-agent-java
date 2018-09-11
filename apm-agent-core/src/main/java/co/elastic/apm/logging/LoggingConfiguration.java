@@ -98,7 +98,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .description("A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.\n" +
             "If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.\n" +
             "You can then use the pattern format of your logging implementation to write the MDC values to your log file.\n" +
-            "With the help of Filebeat and Logstash or an Elasticsearch ingest node,\n" +
+            "With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,\n" +
             "you can index your log files and correlate them with APM traces.\n" +
             "With this integration you can get all logs belonging to a particular trace and vice-versa:\n" +
             "for a specific log, see in which context it has been logged and which parameters the user provided. " +
