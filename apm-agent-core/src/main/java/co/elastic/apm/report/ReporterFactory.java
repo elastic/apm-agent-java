@@ -99,7 +99,7 @@ public class ReporterFactory {
     @Nonnull
     OkHttpClient getOkHttpClient(ReporterConfiguration reporterConfiguration) {
         final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .connectTimeout(reporterConfiguration.getServerTimeout(), TimeUnit.SECONDS);
+            .connectTimeout(reporterConfiguration.getServerTimeout().getMillis(), TimeUnit.MILLISECONDS);
         if (!reporterConfiguration.isVerifyServerCert()) {
             disableCertificateValidation(builder);
         }

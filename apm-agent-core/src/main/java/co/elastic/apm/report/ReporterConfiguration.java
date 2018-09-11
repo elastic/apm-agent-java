@@ -21,12 +21,16 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.converter.ByteValue;
 import co.elastic.apm.configuration.converter.ByteValueConverter;
+import co.elastic.apm.configuration.converter.TimeDuration;
+import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 
 public class ReporterConfiguration extends ConfigurationOptionProvider {
     public static final String REPORTER_CATEGORY = "Reporter";
@@ -40,25 +44,28 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .sensitive()
         .build();
 
-    private final ConfigurationOption<URL> serverUrl = ConfigurationOption.urlOption()
-        .key("server_url")
+    private final ConfigurationOption<List<URL>> serverUrl = ConfigurationOption.urlsOption()
+        .key("server_urls")
+        .aliasKeys("server_url")
         .configurationCategory(REPORTER_CATEGORY)
-        .label("The URL for your APM Server")
-        .description("The URL must be fully qualified, including protocol (http or https) and port.")
-        .dynamic(true)
-        .buildWithDefault(UrlValueConverter.INSTANCE.convert("http://localhost:8200"));
+        .label("The URLs for your APM Servers")
+        .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
+            "\n" +
+            "NOTE: Providing multiple URLs only works if intake API v2 is enabled.")
+        .dynamic(false)
+        .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
-    private final ConfigurationOption<Integer> serverTimeout = ConfigurationOption.integerOption()
+    private final ConfigurationOption<TimeDuration> serverTimeout = TimeDurationValueConverter.durationOption("s")
         .key("server_timeout")
         .configurationCategory(REPORTER_CATEGORY)
-        .label("A timeout in seconds")
+        .label("Server timeout")
         .description("If a request to the APM server takes longer than the configured timeout,\n" +
             "the request is cancelled and the event (exception or transaction) is discarded.\n" +
             "Set to 0 to disable timeouts.\n" +
             "\n" +
             "WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times " +
             "out.")
-        .buildWithDefault(5);
+        .buildWithDefault(TimeDuration.of("5s"));
 
     private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
         .key("verify_server_cert")
@@ -68,16 +75,16 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
 
-    private final ConfigurationOption<Integer> flushInterval = ConfigurationOption.integerOption()
+    private final ConfigurationOption<TimeDuration> flushInterval = TimeDurationValueConverter.durationOption("s")
         .key("flush_interval")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Interval with which transactions should be sent to the APM server, in seconds.\n" +
+        .description("Interval with which transactions should be sent to the APM server.\n" +
             "\n" +
             "A lower value will increase the load on your APM server,\n" +
             "while a higher value can increase the memory pressure on your app.\n" +
             "\n" +
             "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
-        .buildWithDefault(1);
+        .buildWithDefault(TimeDuration.of("1s"));
 
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
@@ -114,12 +121,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("Enables the nd-json-based intake v2 protocol")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Integer> apiRequestTime = ConfigurationOption.integerOption()
+    private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
         .tags("internal", "incubating", "intake-v2")
-        .description("Maximum number of seconds to keep an HTTP request to the APM Server open for.")
-        .buildWithDefault(10);
+        .description("Maximum time to keep an HTTP request to the APM Server open for.")
+        .buildWithDefault(TimeDuration.of("10s"));
 
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
         .key("api_request_size")
@@ -137,11 +144,11 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return secretToken.get();
     }
 
-    public String getServerUrl() {
-        return serverUrl.getValueAsString();
+    public List<URL> getServerUrls() {
+        return serverUrl.get();
     }
 
-    public int getServerTimeout() {
+    public TimeDuration getServerTimeout() {
         return serverTimeout.get();
     }
 
@@ -149,7 +156,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return verifyServerCert.get();
     }
 
-    public int getFlushInterval() {
+    public TimeDuration getFlushInterval() {
         return flushInterval.get();
     }
 
@@ -169,7 +176,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return enableIntakeV2.get();
     }
 
-    public int getApiRequestTime() {
+    public TimeDuration getApiRequestTime() {
         return apiRequestTime.get();
     }
 

@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
+import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
@@ -47,7 +48,7 @@ class ApmServerReporterTest {
     void setUp() {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(-1);
+        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1ms"));
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
