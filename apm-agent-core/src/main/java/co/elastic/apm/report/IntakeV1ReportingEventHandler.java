@@ -63,14 +63,14 @@ public class IntakeV1ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public void init(final ApmServerReporter reporter) {
-        if (reporterConfiguration.getFlushInterval() > 0) {
+        if (reporterConfiguration.getFlushInterval().getMillis() > 0) {
             flushScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("elastic-apm-transaction-flusher", 1);
             flushScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     reporter.flush();
                 }
-            }, reporterConfiguration.getFlushInterval(), reporterConfiguration.getFlushInterval(), TimeUnit.SECONDS);
+            }, reporterConfiguration.getFlushInterval().getMillis(), reporterConfiguration.getFlushInterval().getMillis(), TimeUnit.MILLISECONDS);
         }
     }
 

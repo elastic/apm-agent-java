@@ -21,5 +21,7 @@
    You can set the `url_groups` option to define a wildcard pattern, like `/user/*`,
    to group those paths together.
    This is especially helpful when using an unsupported Servlet API-based framework. 
+ * Support duration suffixes (`ms`, `s` and `m`) for duration configuration options.
+   Not using the duration suffix logs out a deprecation warning and will not be supported in future versions.
 
 ## Bug Fixes
