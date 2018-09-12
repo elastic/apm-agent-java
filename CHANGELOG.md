@@ -1,5 +1,12 @@
 # next version
 
+## Breaking changes
+
+## Features
+
+## Bug Fixes
+
+# 0.7.0
 
 ## Breaking changes
  * Removed `ElasticApm.startSpan`. Spans can now only be created from their transactions via `Transaction#createSpan`.
