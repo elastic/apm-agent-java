@@ -42,7 +42,7 @@ public class JdbcHelperImpl implements JdbcHelper {
     @Override
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
-        if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
+        if (sql == null || parent == null || isAlreadyMonitored(parent) || !parent.isSampled()) {
             return null;
         }
         Span span = parent.createSpan().activate();

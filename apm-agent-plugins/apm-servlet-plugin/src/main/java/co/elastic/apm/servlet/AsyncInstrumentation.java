@@ -73,7 +73,7 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(nameContains("Request"))
+            // TODO: add a pre-filter to reduce number of classes being examined through the hasSuperType
             .and(hasSuperType(named("javax.servlet.http.HttpServletRequest")));
     }
 

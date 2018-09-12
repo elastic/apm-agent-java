@@ -86,8 +86,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // pre-select candidates for the more expensive hasSuperType matcher
-            .and(nameContains("Statement"))
+            // TODO: add a pre-filter to reduce number of classes being examined through the hasSuperType
             .and(hasSuperType(named("java.sql.PreparedStatement")));
     }
 
