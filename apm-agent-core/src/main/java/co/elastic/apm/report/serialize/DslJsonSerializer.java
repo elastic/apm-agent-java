@@ -568,11 +568,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        boolean dbContextWritten = serializeDbContext(context.getDb());
+        // Assuming either DB or HTTP data can be related to a span
+        boolean spanContextWritten = serializeDbContext(context.getDb());
+        if(!spanContextWritten) {
+            spanContextWritten = serializeHttpContext(context.getHttp());
+        }
 
         Map<String, String> tags = context.getTags();
         if (!tags.isEmpty()) {
-            if (dbContextWritten) {
+            if (spanContextWritten) {
                 jw.writeByte(COMMA);
             }
             writeFieldName("tags");
@@ -595,6 +599,17 @@ public class DslJsonSerializer implements PayloadSerializer {
             jw.writeByte(OBJECT_END);
         }
         return writeDbElement;
+    }
+
+    private boolean serializeHttpContext(final Http http) {
+        boolean writeHttpElement = http.hasContent();
+        if (writeHttpElement) {
+            writeFieldName("http");
+            jw.writeByte(OBJECT_START);
+            writeLastField("url", http.getUrl());
+            jw.writeByte(OBJECT_END);
+        }
+        return writeHttpElement;
     }
 
     private void serializeSpanCountV1(final SpanCount spanCount) {

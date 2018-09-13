@@ -31,15 +31,18 @@ public class HttpClientHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, String hostName, String spanType) {
+    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, String url, String hostName, String spanType) {
+        Span span = null;
         if (!isAlreadyMonitored(parent)) {
-            return parent
+            span = parent
                 .createSpan()
                 .withType(spanType)
                 .appendToName(method).appendToName(" ").appendToName(hostName)
                 .activate();
+            span.getContext().getHttp()
+                .withUrl(url);
         }
-        return null;
+        return span;
     }
 
     /*
