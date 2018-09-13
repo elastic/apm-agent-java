@@ -431,7 +431,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext());
-        serializeSpanCount(transaction.getSpanCount());
+        if (distributedTracing) {
+            serializeSpanCountV2(transaction.getSpanCount());
+        } else {
+            serializeSpanCountV1(transaction.getSpanCount());
+        }
         serializeSpans(transaction.getSpans());
         // TODO marks
         writeLastField("sampled", transaction.isSampled());
@@ -574,14 +578,23 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void serializeSpanCount(final SpanCount spanCount) {
+    private void serializeSpanCountV1(final SpanCount spanCount) {
         writeFieldName("span_count");
         jw.writeByte(OBJECT_START);
         writeFieldName("dropped");
         jw.writeByte(OBJECT_START);
         writeFieldName("total");
-        NumberConverter.serialize(spanCount.getDropped().getTotal(), jw);
+        NumberConverter.serialize(spanCount.getDropped().get(), jw);
         jw.writeByte(OBJECT_END);
+        jw.writeByte(OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeSpanCountV2(final SpanCount spanCount) {
+        writeFieldName("span_count");
+        jw.writeByte(OBJECT_START);
+        writeField("dropped", spanCount.getDropped().get());
+        writeLastField("started", spanCount.getStarted().get());
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
@@ -818,6 +831,17 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName(fieldName);
         NumberConverter.serialize(value, jw);
         jw.writeByte(COMMA);
+    }
+
+    private void writeField(final String fieldName, final int value) {
+        writeFieldName(fieldName);
+        NumberConverter.serialize(value, jw);
+        jw.writeByte(COMMA);
+    }
+
+    private void writeLastField(final String fieldName, final int value) {
+        writeFieldName(fieldName);
+        NumberConverter.serialize(value, jw);
     }
 
     private void writeField(final String fieldName, final boolean value) {

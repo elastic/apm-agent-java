@@ -5,7 +5,7 @@
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
     <organization>
@@ -73,7 +73,7 @@
         <version.plugin.jar>3.1.0</version.plugin.jar>
         <version.plugin.javadoc>3.0.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
-        <version.byte-buddy>1.8.14</version.byte-buddy>
+        <version.byte-buddy>1.8.22</version.byte-buddy>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

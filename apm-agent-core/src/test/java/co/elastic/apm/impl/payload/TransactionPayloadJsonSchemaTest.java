@@ -118,6 +118,7 @@ class TransactionPayloadJsonSchemaTest {
         DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
 
         final String content = serializer.toJsonString(payload);
+        System.out.println(content);
         Set<ValidationMessage> errors = schema.validate(objectMapper.readTree(content));
         assertThat(errors).isEmpty();
 
@@ -125,6 +126,7 @@ class TransactionPayloadJsonSchemaTest {
         serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
         transformForDistributedTracing(payload);
         final String contentInDistributedTracingFormat = serializer.toJsonString(payload);
+        System.out.println(contentInDistributedTracingFormat);
         Set<ValidationMessage> distributedTracingFormatErrors = schema.validate(objectMapper.readTree(contentInDistributedTracingFormat));
         assertThat(distributedTracingFormatErrors).isEmpty();
     }

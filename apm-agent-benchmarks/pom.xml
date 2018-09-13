@@ -4,7 +4,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>0.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
@@ -18,9 +18,23 @@
             <artifactId>apm-agent-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!--
+        we can't add elastic-apm-agent as it causes shading problems:
+        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.web.WebConfiguration not a subtype
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>elastic-apm-agent</artifactId>
+            <artifactId>apm-jdbc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-servlet-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-slf4j-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

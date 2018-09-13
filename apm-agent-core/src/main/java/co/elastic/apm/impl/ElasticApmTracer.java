@@ -209,17 +209,17 @@ public class ElasticApmTracer {
         if (isTransactionSpanLimitReached(transaction)) {
             // TODO only drop leaf spans
             dropped = true;
-            transaction.getSpanCount().getDropped().increment();
+            transaction.getSpanCount().getDropped().incrementAndGet();
         } else {
             dropped = false;
+            transaction.getSpanCount().getStarted().incrementAndGet();
         }
-        transaction.getSpanCount().increment();
         span.start(transaction, parentSpan, nanoTime, dropped);
         return span;
     }
 
     private boolean isTransactionSpanLimitReached(Transaction transaction) {
-        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getTotal();
+        return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getStarted().get();
     }
 
     public void captureException(@Nullable Throwable e) {
