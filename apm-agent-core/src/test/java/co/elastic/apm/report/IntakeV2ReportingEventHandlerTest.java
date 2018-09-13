@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.InflaterInputStream;
 
+import static co.elastic.apm.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -81,7 +82,7 @@ class IntakeV2ReportingEventHandlerTest {
     void setUp() throws Exception {
         List.of(mockApmServer1, mockApmServer2).forEach(apmServer -> {
             apmServer.start();
-            apmServer.stubFor(post("/v2/intake").willReturn(ok()));
+            apmServer.stubFor(post(INTAKE_V2_URL).willReturn(ok()));
         });
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
@@ -118,20 +119,20 @@ class IntakeV2ReportingEventHandlerTest {
 
     @Test
     void testReportRoundRobinOnServerError() {
-        mockApmServer1.stubFor(post("/v2/intake").willReturn(serviceUnavailable()));
+        mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
         reportTransaction();
         reportingEventHandler.flush();
-        mockApmServer1.verify(postRequestedFor(urlEqualTo("/v2/intake")));
-        mockApmServer2.verify(0, postRequestedFor(urlEqualTo("/v2/intake")));
+        mockApmServer1.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
+        mockApmServer2.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
 
         mockApmServer1.resetRequests();
         mockApmServer2.resetRequests();
 
         reportTransaction();
         reportingEventHandler.flush();
-        mockApmServer1.verify(0, postRequestedFor(urlEqualTo("/v2/intake")));
-        mockApmServer2.verify(postRequestedFor(urlEqualTo("/v2/intake")));
+        mockApmServer1.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
+        mockApmServer2.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
     }
 
     @Test
@@ -169,13 +170,13 @@ class IntakeV2ReportingEventHandlerTest {
 
     private List<JsonNode> getNdJsonNodes() {
         return Stream.of(mockApmServer1, mockApmServer2)
-            .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo("/v2/intake"))).stream())
+            .flatMap(apmServer -> apmServer.findAll(postRequestedFor(urlEqualTo(INTAKE_V2_URL))).stream())
             .findFirst()
             .map(request -> new BufferedReader(new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(request.getBody()))))
                 .lines()
                 .map(IntakeV2ReportingEventHandlerTest::getReadTree)
                 .collect(Collectors.toList()))
-            .orElseThrow(() -> new IllegalStateException("No matching requests for POST /v2/intake"));
+            .orElseThrow(() -> new IllegalStateException("No matching requests for POST " + INTAKE_V2_URL));
     }
 
 }
