@@ -41,4 +41,8 @@ public abstract class AbstractContext implements Recyclable {
     public void resetState() {
         tags.clear();
     }
+
+    public boolean hasContent() {
+        return !tags.isEmpty();
+    }
 }

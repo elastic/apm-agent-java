@@ -27,6 +27,7 @@ import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -111,6 +112,55 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonAllValues() throws IOException {
         validate(createPayloadWithAllValues());
+    }
+
+    @Test
+    void testJsonStructure() throws IOException {
+        TransactionPayload payload = createPayloadWithAllValues();
+
+        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
+        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
+
+        validateDbSpanSchema(payload, serializer, true);
+
+        for(Span span: payload.getTransactions().get(0).getSpans()) {
+            if(span.getType().equals("db.postgresql.query")) {
+                span.getContext().getTags().clear();
+                validateDbSpanSchema(payload, serializer, false);
+                break;
+            }
+        }
+    }
+
+    private void validateDbSpanSchema(TransactionPayload payload, DslJsonSerializer serializer, boolean shouldContainTags) throws IOException {
+        final String content = serializer.toJsonString(payload);
+        JsonNode node = objectMapper.readTree(content);
+
+        boolean contextOfDbSpanFound = false;
+        for (JsonNode child: node.get("transactions").get(0).get("spans")) {
+            if(child.get("type").textValue().startsWith("db.")) {
+                contextOfDbSpanFound = true;
+                JsonNode context = child.get("context");
+                JsonNode db = context.get("db");
+                assertThat(db).isNotNull();
+                assertThat(db.get("instance").textValue()).isEqualTo("customers");
+                assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM product_types WHERE user_id=?");
+                assertThat(db.get("type").textValue()).isEqualTo("sql");
+                assertThat(db.get("user").textValue()).isEqualTo("readonly_user");
+                JsonNode tags = context.get("tags");
+                if (shouldContainTags) {
+                    assertThat(tags).isNotNull();
+                    assertThat(tags).hasSize(2);
+                    assertThat(tags.get("monitored_by").textValue()).isEqualTo("ACME");
+                    assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
+                }
+                else
+                {
+                    assertThat(tags).isNull();
+                }
+            }
+        }
+        assertThat(contextOfDbSpanFound).isTrue();
     }
 
     private void validate(TransactionPayload payload) throws IOException {

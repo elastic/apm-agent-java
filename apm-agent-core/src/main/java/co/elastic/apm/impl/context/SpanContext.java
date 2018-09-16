@@ -47,6 +47,6 @@ public class SpanContext extends AbstractContext {
     }
 
     public boolean hasContent() {
-        return db.hasContent();
+        return super.hasContent() || db.hasContent();
     }
 }
