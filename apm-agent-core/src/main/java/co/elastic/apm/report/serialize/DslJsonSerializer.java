@@ -234,6 +234,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             serializeTransactionReference(errorCapture);
         }
         serializeContext(errorCapture.getContext());
+        writeField("culprit", errorCapture.getCulprit());
         serializeException(errorCapture.getException());
 
         jw.writeByte(JsonWriter.OBJECT_END);

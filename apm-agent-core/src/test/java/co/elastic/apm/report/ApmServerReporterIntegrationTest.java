@@ -147,7 +147,7 @@ class ApmServerReporterIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"v1", "v2"})
     void testReportErrorCapture(String version) throws ExecutionException, InterruptedException {
-        getReporter(version).report(new ErrorCapture());
+        getReporter(version).report(new ErrorCapture(mock(ElasticApmTracer.class)));
         getReporter(version).flush().get();
         assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

@@ -124,7 +124,7 @@ class BodyProcessorTest {
     }
 
     private ErrorCapture processError() {
-        final ErrorCapture error = new ErrorCapture();
+        final ErrorCapture error = new ErrorCapture(mock(ElasticApmTracer.class));
         error.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(error);
         return error;

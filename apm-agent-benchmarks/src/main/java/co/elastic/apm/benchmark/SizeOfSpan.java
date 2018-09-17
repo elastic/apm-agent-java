@@ -35,7 +35,7 @@ public class SizeOfSpan {
         ElasticApmTracer tracer = new ElasticApmTracerBuilder().build();
         final long sizeOfSpan = sizeOf.deepSizeOf(new Span(tracer));
         final long sizeOfTransaction = sizeOf.deepSizeOf(new Transaction(tracer));
-        final long sizeOfError = sizeOf.deepSizeOf(new ErrorCapture());
+        final long sizeOfError = sizeOf.deepSizeOf(new ErrorCapture(tracer));
 
         System.out.println("sizeof span: " + sizeOfSpan);
         System.out.println("sizeof transaction: " + sizeOfTransaction);

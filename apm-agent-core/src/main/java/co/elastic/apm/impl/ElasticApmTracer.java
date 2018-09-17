@@ -95,7 +95,7 @@ public class ElasticApmTracer {
             new RecyclableObjectFactory<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {
-                    return new ErrorCapture();
+                    return new ErrorCapture(ElasticApmTracer.this);
                 }
             });
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
@@ -217,7 +217,7 @@ public class ElasticApmTracer {
 
     public void captureException(long epochTimestampMillis, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
         if (e != null) {
-            ErrorCapture error = new ErrorCapture();
+            ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochTimestampMillis);
             error.setException(e);
             if (active != null) {

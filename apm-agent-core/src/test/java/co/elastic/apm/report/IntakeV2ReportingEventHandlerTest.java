@@ -163,7 +163,7 @@ class IntakeV2ReportingEventHandlerTest {
 
     private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setError(new ErrorCapture());
+        reportingEvent.setError(new ErrorCapture(mock(ElasticApmTracer.class)));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

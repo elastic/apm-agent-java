@@ -71,7 +71,7 @@ class ApmServerReporterTest {
     @Test
     void testErrorProcessor() throws ExecutionException, InterruptedException {
         final int errorCount = TestProcessor.getErrorCount();
-        reporter.report(new ErrorCapture());
+        reporter.report(new ErrorCapture(mock(ElasticApmTracer.class)));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
