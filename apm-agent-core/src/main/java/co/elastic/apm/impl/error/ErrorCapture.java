@@ -109,7 +109,6 @@ public class ErrorCapture implements Recyclable {
         context.resetState();
         transaction.resetState();
         timestamp = 0;
-        tracer = null;
         traceContext.resetState();
         culprit.setLength(0);
     }
@@ -137,7 +136,6 @@ public class ErrorCapture implements Recyclable {
         this.exception = e;
     }
 
-    @Nullable
     public StringBuilder getCulprit() {
         // lazily resolve culprit so that java.lang.Throwable.getStackTrace is called outside the application thread
         final Collection<String> applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
