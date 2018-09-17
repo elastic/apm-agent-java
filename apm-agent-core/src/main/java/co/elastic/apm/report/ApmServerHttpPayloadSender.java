@@ -87,7 +87,6 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
                         payloadSerializer.serializePayload(os, payload);
                     } finally {
                         os.close();
-                        payload.recycle();
                     }
                 }
             })
@@ -109,6 +108,8 @@ public class ApmServerHttpPayloadSender implements PayloadSender {
         } catch (IOException e) {
             logger.debug("Sending payload to APM server failed", e);
             dropped += payload.getPayloadObjects().size();
+        } finally {
+            payload.recycle();
         }
     }
 
