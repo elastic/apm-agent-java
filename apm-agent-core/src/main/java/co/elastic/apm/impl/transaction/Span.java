@@ -71,8 +71,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             traceContext.setRecorded(false);
         }
         if (traceContext.isSampled()) {
-            start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
-            duration = nanoTime;
+            start = (nanoTime - transaction.startTimestampNanos) / MS_IN_NANOS;
+            startTimestampNanos = nanoTime;
             timestamp = System.currentTimeMillis();
         }
         return this;
@@ -131,7 +131,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public void end(long nanoTime) {
         if (isSampled()) {
-            this.duration = (nanoTime - duration) / MS_IN_NANOS;
+            this.duration = (nanoTime - startTimestampNanos) / MS_IN_NANOS;
         }
         this.tracer.endSpan(this);
     }
@@ -145,7 +145,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         stacktrace = null;
         start = 0;
         transaction = null;
-        traceContext.resetState();
     }
 
     @Nullable

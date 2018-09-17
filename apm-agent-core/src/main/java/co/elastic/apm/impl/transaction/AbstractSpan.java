@@ -47,6 +47,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * (Required)
      */
     protected double duration;
+    protected volatile long startTimestampNanos;
     @Nullable
     private volatile AbstractSpan<?> previouslyActive;
     /**
@@ -130,6 +131,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         timestamp = 0;
         duration = 0;
         type = null;
+        traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
 

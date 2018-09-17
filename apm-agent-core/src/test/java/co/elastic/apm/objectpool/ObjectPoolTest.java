@@ -24,6 +24,8 @@ import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.ArrayBlockingQueue;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
@@ -98,6 +100,20 @@ public class ObjectPoolTest {
         });
 
         assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
+    }
+
+    @Test
+    void testNoPreAllocation() {
+        objectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(MAX_SIZE), false, TestRecyclable::new);
+        assertThat(objectPool.getSize()).isZero();
+        final TestRecyclable instance1 = objectPool.createInstance();
+        final TestRecyclable instance2 = objectPool.createInstance();
+        assertThat(objectPool.getSize()).isZero();
+        objectPool.recycle(instance1);
+        assertThat(objectPool.getSize()).isOne();
+        objectPool.recycle(instance2);
+        assertThat(objectPool.getSize()).isEqualTo(2);
+        assertThat(objectPool.createInstance()).isSameAs(instance1);
     }
 
     private static class TestRecyclable implements Recyclable {

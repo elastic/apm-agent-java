@@ -32,6 +32,8 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.PhasedBackoffWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
@@ -46,6 +48,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * </p>
  */
 public class ApmServerReporter implements Reporter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ApmServerReporter.class);
 
     private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
         @Override
@@ -227,6 +231,7 @@ public class ApmServerReporter implements Reporter {
             boolean queueFull = !disruptor.getRingBuffer().tryPublishEvent(eventTranslator, event);
             if (queueFull) {
                 dropped.incrementAndGet();
+                logger.debug("Dropping event {} because ring buffer is full", event);
                 return false;
             }
         } else {

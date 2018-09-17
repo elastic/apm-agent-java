@@ -33,7 +33,6 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -42,9 +41,8 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 /**
  * This is the tracer implementation which provides access to lower level agent functionality.
@@ -76,14 +74,14 @@ public class ElasticApmTracer {
         this.spanListeners = spanListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
+        transactionPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<Transaction>(maxPooledElements), false,
             new RecyclableObjectFactory<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction(ElasticApmTracer.this);
                 }
             });
-        spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
+        spanPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<Span>(maxPooledElements), false,
             new RecyclableObjectFactory<Span>() {
                 @Override
                 public Span createInstance() {
@@ -91,7 +89,7 @@ public class ElasticApmTracer {
                 }
             });
         // we are assuming that we don't need as many errors as spans or transactions
-        errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements / 2)), false,
+        errorPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<ErrorCapture>(maxPooledElements / 2), false,
             new RecyclableObjectFactory<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {
@@ -126,7 +124,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(traceContextHeader, nanoTime, sampler);
+            transaction = createTransaction().start(traceContextHeader, nanoTime, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -139,7 +137,20 @@ public class ElasticApmTracer {
     }
 
     public Transaction noopTransaction() {
-        return transactionPool.createInstance().startNoop();
+        return createTransaction().startNoop();
+    }
+
+    private Transaction createTransaction() {
+        Transaction transaction;
+        do {
+            transaction = transactionPool.createInstance();
+            if (transaction.isStarted()) {
+                String message = "This transaction has already been started: %s";
+                logger.warn(String.format(message, transaction));
+                assert false : String.format(message, transaction);
+            }
+        } while (transaction.isStarted());
+        return transaction;
     }
 
     @Nullable
