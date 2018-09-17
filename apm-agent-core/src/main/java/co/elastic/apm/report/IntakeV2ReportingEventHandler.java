@@ -51,10 +51,11 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 /**
- * This reporter supports the nd-json HTTP streaming based /v2/intake protocol
+ * This reporter supports the nd-json HTTP streaming based intake v2 protocol
  */
 public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
+    public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
 
@@ -180,8 +181,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private HttpURLConnection startRequest() {
         try {
-            URL url = null;
-            url = new URL(serverUrlIterator.get(), "/v2/intake");
+            URL url = new URL(serverUrlIterator.get(), INTAKE_V2_URL);
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting new request to {}", url);
             }
