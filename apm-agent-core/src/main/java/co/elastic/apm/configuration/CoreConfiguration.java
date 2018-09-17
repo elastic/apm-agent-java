@@ -148,20 +148,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("security")
         .buildWithDefault(Arrays.asList(
-            WildcardMatcher.valueOf("(?i)password"),
-            WildcardMatcher.valueOf("(?i)passwd"),
-            WildcardMatcher.valueOf("(?i)pwd"),
-            WildcardMatcher.valueOf("(?i)secret"),
-            WildcardMatcher.valueOf("(?i)token"),
-            WildcardMatcher.valueOf("(?i)*key"),
-            WildcardMatcher.valueOf("(?i)*token"),
-            WildcardMatcher.valueOf("(?i)*session*"),
-            WildcardMatcher.valueOf("(?i)*credit*"),
-            WildcardMatcher.valueOf("(?i)*card*"),
+            WildcardMatcher.valueOf("password"),
+            WildcardMatcher.valueOf("passwd"),
+            WildcardMatcher.valueOf("pwd"),
+            WildcardMatcher.valueOf("secret"),
+            WildcardMatcher.valueOf("*key"),
+            WildcardMatcher.valueOf("*token*"),
+            WildcardMatcher.valueOf("*session*"),
+            WildcardMatcher.valueOf("*credit*"),
+            WildcardMatcher.valueOf("*card*"),
             // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("(?i)authorization"),
+            WildcardMatcher.valueOf("authorization"),
             // HTTP response header which can contain session ids
-            WildcardMatcher.valueOf("(?i)set-cookie")
+            WildcardMatcher.valueOf("set-cookie")
         ));
 
     private final ConfigurationOption<Boolean> distributedTracing = ConfigurationOption.booleanOption()

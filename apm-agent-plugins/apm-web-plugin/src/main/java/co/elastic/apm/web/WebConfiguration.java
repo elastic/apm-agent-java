@@ -58,6 +58,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This property should be set to an array containing one or more strings.\n" +
             "When an incoming HTTP request is detected, its URL will be tested against each element in this list.\n" +
+            "\n" +
             WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of " +
@@ -65,13 +66,14 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("/VAADIN/*"),
-            WildcardMatcher.valueOf("(?i)/heartbeat/*"),
+            WildcardMatcher.valueOf("/heartbeat*"),
             WildcardMatcher.valueOf("/favicon.ico"),
             WildcardMatcher.valueOf("*.js"),
             WildcardMatcher.valueOf("*.css"),
             WildcardMatcher.valueOf("*.jpg"),
             WildcardMatcher.valueOf("*.jpeg"),
             WildcardMatcher.valueOf("*.png"),
+            WildcardMatcher.valueOf("*.gif"),
             WildcardMatcher.valueOf("*.webp"),
             WildcardMatcher.valueOf("*.svg"),
             WildcardMatcher.valueOf("*.woff"),
@@ -85,7 +87,8 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "When an incoming HTTP request is detected,\n" +
             "the User-Agent from the request headers will be tested against each element in this list.\n" +
-            "Example: `curl/*, (?i)*pingdom*`\n" +
+            "Example: `curl/*`, `*pingdom*`\n" +
+            "\n" +
             WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
             "NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server " +
@@ -113,6 +116,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .description("This option is only considered, when `use_path_as_transaction_name` is active.\n" +
             "\n" +
             "With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.\n" +
+            "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());

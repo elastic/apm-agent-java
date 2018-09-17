@@ -19,28 +19,12 @@
  */
 package co.elastic.apm.matcher;
 
-import javax.annotation.Nonnull;
+import org.stagemonitor.util.StringUtils;
+
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * This matcher is used in for example to disable tracing for certain URLs.
- * <p>
- * The advantage of this class is that it does not instantiate objects when calling {@link #matches(String)}.
- * The syntax should be very familiar to any developer.
- * The only thing that might be surprising is that it does not support wildcards in between like {@code foo*bar}.
- * However, this provides support for the most common use cases -
- * ignoring URLs paths starting with a specific string like {@code /resources/*} or <code>/heartbeat/*</code>
- * and ignoring URLs by file ending like {@code *.js}.
- * It also allows to have a single configuration option which,
- * depending on the input string,
- * allows for prefix, postfix and infix matching.
- * This implementation is also very fast,
- * as it just resorts to {@link String#startsWith(String)},
- * {@link String#endsWith(String)} and {@link String#contains(CharSequence)}.
- * </p>
- */
 /*
  * Alternatives:
  *
@@ -55,30 +39,54 @@ import java.util.List;
  * it allocates objects on each invocation and has a higher latency.
  *
  * Elasticsearch's Regex#simpleMatch method:
- * It works quite similar to this class but also supports wildcards in the middle.
- * However, it also allocates objects while performing the match by calling {@link String#substring(int)},
+ * Allocates objects while performing the match by calling {@link String#substring(int)},
  * which is something we want to avoid in the agent.
  * See https://github.com/elastic/elasticsearch/blob/v6.2.3/server/src/main/java/org/elasticsearch/common/regex/Regex.java#L87
+ */
+
+/**
+ * This matcher is used in for example to disable tracing for certain URLs.
+ * The advantage of this class compared to alternatives is is that {@linkplain #matches(String) matching} strings is completely allocation free.
+ * <p>
+ * The wildcard matcher supports the {@code *} wildcard which matches zero or more characters.
+ * By default, matches are a case insensitive.
+ * Single character wildcards like {@code f?o} are not supported.
+ * </p>
+ * <p>
+ * The syntax should be very familiar to any developer.
+ * The most common use cases are ignoring URLs paths starting with a specific string like {@code /resources/*} or <code>/heartbeat/*</code>
+ * and ignoring URLs by file ending like {@code *.js}.
+ * It also allows to have a single configuration option which,
+ * depending on the input string,
+ * allows for prefix, postfix and infix matching.
+ * This implementation is also very fast,
+ * as it just resorts to {@link String#startsWith(String)},
+ * {@link String#endsWith(String)} and {@link String#contains(CharSequence)}.
+ * </p>
  */
 // don't use for-each as it allocates memory by instantiating an iterator
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public abstract class WildcardMatcher {
+    public static final String DOCUMENTATION = "This option supports the wildcard `*`, which matches zero or more characters.\n" +
+        "Examples: `/foo/*/bar/*/baz*`, `*foo*`.\n" +
+        "Matching is case insensitive by default.\n" +
+        "Prepending an element with `(?-i)` makes the matching case sensitive.";
     private static final String CASE_INSENSITIVE_PREFIX = "(?i)";
+    private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";
-    private static final String INVALID_WILDCARD_MESSAGE = "A wildcard expression may either contain a single wildcard in the middle " +
-        "or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.";
-
-    public static final String DOCUMENTATION = "\nNOTE: " + INVALID_WILDCARD_MESSAGE + "\n" +
-        "Prepending an element with `(?i)` makes the matching case-insensitive.";
 
     /**
      * Constructs a new {@link WildcardMatcher} via a wildcard string.
      * <p>
-     * Note that only wildcards at the beginning and at the end of the string are supported.
+     * It supports the {@code *} wildcard which matches zero or more characters.
      * </p>
      * <p>
-     * If you don't provide any wildcards,
-     * {@link #matches(String)} has the same semantics as {@link String#equals(Object)}.
+     * By default, matches are a case insensitive.
+     * Prepend {@code (?-i)} to your pattern to make it case sensitive.
+     * Example: {@code (?-i)foo*} matches the string {@code foobar} but does not match {@code FOOBAR}.
+     * </p>
+     * <p>
+     * It does NOT support single character wildcards like {@code f?o}
      * </p>
      *
      * @param wildcardString The wildcard string.
@@ -86,40 +94,30 @@ public abstract class WildcardMatcher {
      */
     public static WildcardMatcher valueOf(final String wildcardString) {
         String matcher = wildcardString;
-        boolean ignoreCase = false;
-        if (matcher.startsWith(CASE_INSENSITIVE_PREFIX)) {
-            ignoreCase = true;
-            matcher = matcher.substring(CASE_INSENSITIVE_PREFIX.length(), matcher.length());
+        boolean ignoreCase = true;
+        if (matcher.startsWith(CASE_SENSITIVE_PREFIX)) {
+            ignoreCase = false;
+            matcher = matcher.substring(CASE_SENSITIVE_PREFIX.length());
+        } else if (matcher.startsWith(CASE_INSENSITIVE_PREFIX)) {
+            matcher = matcher.substring(CASE_INSENSITIVE_PREFIX.length());
         }
-        if (matcher.startsWith(WILDCARD) || matcher.endsWith(WILDCARD) || !matcher.contains(WILDCARD)) {
-            return parseSimpleWildcardMatcher(wildcardString, matcher, ignoreCase);
-        } else {
-            String[] split = matcher.split("\\*");
-            if (split.length != 2) {
-                throw new IllegalArgumentException(INVALID_WILDCARD_MESSAGE);
-            }
-            return new CompoundWildcardMatcher(wildcardString, Arrays.asList(valueOf(split[0] + WILDCARD), valueOf(WILDCARD + split[1])));
-        }
-    }
 
-    @Nonnull
-    private static WildcardMatcher parseSimpleWildcardMatcher(String wildcardString, String matcher, boolean ignoreCase) {
-        boolean startsWith = false;
-        boolean endsWith = false;
-        if (matcher.startsWith(WILDCARD)) {
-            endsWith = true;
-            matcher = matcher.substring(1, matcher.length());
+        String[] split = StringUtils.split(matcher, '*');
+        if (split.length == 1) {
+            return new SimpleWildcardMatcher(split[0], matcher.startsWith(WILDCARD), matcher.endsWith(WILDCARD), ignoreCase);
         }
-        if (matcher.endsWith(WILDCARD)) {
-            startsWith = true;
-            matcher = matcher.substring(0, matcher.length() - 1);
-        }
-        if (matcher.contains(WILDCARD)) {
-            throw new IllegalArgumentException(INVALID_WILDCARD_MESSAGE);
-        }
-        return new SimpleWildcardMatcher(matcher, wildcardString, startsWith, endsWith, ignoreCase);
-    }
 
+        List<SimpleWildcardMatcher> matchers = new ArrayList<>(split.length);
+        for (int i = 0; i < split.length; i++) {
+            boolean isFirst = i == 0;
+            boolean isLast = i == split.length - 1;
+            matchers.add(new SimpleWildcardMatcher(split[i],
+                !isFirst || matcher.startsWith(WILDCARD),
+                !isLast || matcher.endsWith(WILDCARD),
+                ignoreCase));
+        }
+        return new CompoundWildcardMatcher(wildcardString, matchers);
+    }
 
     /**
      * Returns {@code true}, if any of the matchers match the provided string.
@@ -143,7 +141,6 @@ public abstract class WildcardMatcher {
      * @see #matches(String, String)
      */
     @Nullable
-
     public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, String firstPart, @Nullable String secondPart) {
         for (int i = 0; i < matchers.size(); i++) {
             if (matchers.get(i).matches(firstPart, secondPart)) {
@@ -153,35 +150,114 @@ public abstract class WildcardMatcher {
         return null;
     }
 
+    /*
+     * Based on https://stackoverflow.com/a/29809553/1125055
+     * Thx to Zach Vorhies
+     */
+    public static int indexOfIgnoreCase(final String haystack1, final String haystack2, final String needle, final boolean ignoreCase, final int start, final int end) {
+        if (start < 0) {
+            return -1;
+        }
+        int totalHaystackLength = haystack1.length() + haystack2.length();
+        if (needle.isEmpty() || totalHaystackLength == 0) {
+            // Fallback to legacy behavior.
+            return haystack1.indexOf(needle);
+        }
+
+        final int haystack1Length = haystack1.length();
+        final int needleLength = needle.length();
+        for (int i = start; i < end; i++) {
+            // Early out, if possible.
+            if (i + needleLength > totalHaystackLength) {
+                return -1;
+            }
+
+            // Attempt to match substring starting at position i of haystack.
+            int j = 0;
+            int ii = i;
+            while (ii < totalHaystackLength && j < needleLength) {
+                char c = ignoreCase ? Character.toLowerCase(charAt(ii, haystack1, haystack2, haystack1Length)) : charAt(ii, haystack1, haystack2, haystack1Length);
+                char c2 = ignoreCase ? Character.toLowerCase(needle.charAt(j)) : needle.charAt(j);
+                if (c != c2) {
+                    break;
+                }
+                j++;
+                ii++;
+            }
+            // Walked all the way to the end of the needle, return the start
+            // position that this was found.
+            if (j == needleLength) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    static char charAt(int i, String firstPart, String secondPart, int firstPartLength) {
+        return i < firstPartLength ? firstPart.charAt(i) : secondPart.charAt(i - firstPartLength);
+    }
+
+
+    /**
+     * Checks if the given string matches the wildcard pattern.
+     *
+     * @param s the String to match
+     * @return whether the String matches the given pattern
+     */
     abstract boolean matches(String s);
 
+    /**
+     * This is a different version of {@link #matches(String)} which has the same semantics as calling
+     * {@code matcher.matches(firstPart + secondPart);}.
+     * <p>
+     * The difference is that this method does not allocate memory.
+     * </p>
+     *
+     * @param firstPart  The first part of the string to match against.
+     * @param secondPart The second part of the string to match against.
+     * @return {@code true},
+     * when the wildcard pattern matches the partitioned string,
+     * {@code false} otherwise.
+     */
     abstract boolean matches(String firstPart, @Nullable String secondPart);
 
-    private static class CompoundWildcardMatcher extends WildcardMatcher {
+    /**
+     * This {@link WildcardMatcher} supports wildcards in the middle of the matcher by decomposing the matcher into several
+     * {@link SimpleWildcardMatcher}s.
+     */
+    static class CompoundWildcardMatcher extends WildcardMatcher {
         private final String wildcardString;
-        private final List<WildcardMatcher> wildcardMatchers;
+        private final List<SimpleWildcardMatcher> wildcardMatchers;
 
-        CompoundWildcardMatcher(String wildcardString, List<WildcardMatcher> wildcardMatchers) {
+        CompoundWildcardMatcher(String wildcardString, List<SimpleWildcardMatcher> wildcardMatchers) {
             this.wildcardString = wildcardString;
             this.wildcardMatchers = wildcardMatchers;
         }
 
         @Override
         boolean matches(String s) {
+            int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
-                if (!wildcardMatchers.get(i).matches(s)) {
+                final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
+                offset = matcher.indexOf(s, offset);
+                if (offset == -1) {
                     return false;
                 }
+                offset += matcher.matcher.length();
             }
             return true;
         }
 
         @Override
         boolean matches(String firstPart, @Nullable String secondPart) {
+            int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
-                if (!wildcardMatchers.get(i).matches(firstPart, secondPart)) {
+                final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
+                offset = matcher.indexOf(firstPart, secondPart, offset);
+                if (offset == -1) {
                     return false;
                 }
+                offset += matcher.matcher.length();
             }
             return true;
         }
@@ -192,42 +268,28 @@ public abstract class WildcardMatcher {
         }
     }
 
-    private static class SimpleWildcardMatcher extends WildcardMatcher {
+    /**
+     * This {@link} does not support wildcards in the middle of a matcher.
+     */
+    static class SimpleWildcardMatcher extends WildcardMatcher {
 
         private final String matcher;
         private final String stringRepresentation;
-        private final boolean startsWith;
-        private final boolean endsWith;
+        private final boolean wildcardAtEnd;
+        private final boolean wildcardAtBeginning;
         private final boolean ignoreCase;
 
-        private SimpleWildcardMatcher(String matcher, String stringRepresentation, boolean startsWith, boolean endsWith, boolean ignoreCase) {
+        SimpleWildcardMatcher(String matcher, boolean wildcardAtBeginning, boolean wildcardAtEnd, boolean ignoreCase) {
             this.matcher = matcher;
-            this.stringRepresentation = stringRepresentation;
-            this.startsWith = startsWith;
-            this.endsWith = endsWith;
+            this.wildcardAtEnd = wildcardAtEnd;
+            this.wildcardAtBeginning = wildcardAtBeginning;
             this.ignoreCase = ignoreCase;
-        }
-
-
-        private static boolean containsIgnoreCase(String src, String what) {
-            final int length = what.length();
-            if (length == 0)
-                return true; // Empty string is contained
-
-            final char firstLo = Character.toLowerCase(what.charAt(0));
-            final char firstUp = Character.toUpperCase(what.charAt(0));
-
-            for (int i = src.length() - length; i >= 0; i--) {
-                // Quick check before calling the more expensive regionMatches() method:
-                final char ch = src.charAt(i);
-                if (ch != firstLo && ch != firstUp)
-                    continue;
-
-                if (src.regionMatches(true, i, what, 0, length))
-                    return true;
-            }
-
-            return false;
+            this.stringRepresentation = new StringBuilder(matcher.length() + CASE_SENSITIVE_PREFIX.length() + WILDCARD.length() + WILDCARD.length())
+                .append(ignoreCase ? "" : CASE_SENSITIVE_PREFIX)
+                .append(wildcardAtBeginning ? WILDCARD : "")
+                .append(matcher)
+                .append(wildcardAtEnd ? WILDCARD : "")
+                .toString();
         }
 
         @Override
@@ -235,91 +297,36 @@ public abstract class WildcardMatcher {
             return stringRepresentation;
         }
 
-        /**
-         * Checks if the given string matches the wildcard pattern.
-         * <p>
-         * It supports these pattern styles:
-         * {@code foo*, *foo, *foo*}
-         * </p>
-         * <p>
-         * To perform a case-insensitive match,
-         * prepend {@code (?i)} to your pattern.
-         * Example: {@code (?i)foo*} matches the string <code>FOOBAR</code>
-         * </p>
-         * <p>
-         * It does NOT support wildcards in between like {@code f*o}
-         * or single character wildcards like {@code f?o}
-         * </p>
-         *
-         * @param s the String to match
-         * @return whether the String matches the given pattern
-         */
         @Override
         public boolean matches(String s) {
-            if (startsWith && endsWith) {
-                return contains(s, matcher);
-            } else if (startsWith) {
-                return startsWith(s, matcher);
-            } else if (endsWith) {
-                return endsWith(s, matcher);
-            } else {
-                return equals(s, matcher);
-            }
+            return indexOf(s, 0) != -1;
         }
 
-        /**
-         * This is a different version of {@link #matches(String)} which has the same semantics as calling
-         * {@code matcher.matches(firstPart + secondPart);}.
-         * <p>
-         * The difference is that this method does not allocate a new string unless necessary.
-         * </p>
-         *
-         * @param firstPart  The first part of the string to match against.
-         * @param secondPart The second part of the string to match against.
-         * @return {@code true},
-         * when the wildcard pattern matches the partitioned string,
-         * {@code false} otherwise.
-         */
         @Override
         public boolean matches(String firstPart, @Nullable String secondPart) {
+            return indexOf(firstPart, secondPart, 0) != -1;
+        }
+
+        int indexOf(final String s, final int offset) {
+            return indexOf(s, "", offset);
+        }
+
+        int indexOf(String firstPart, @Nullable String secondPart, int offset) {
             if (secondPart == null) {
-                return matches(firstPart);
+                secondPart = "";
             }
-            if (startsWith && endsWith) {
-                return contains(firstPart, matcher) ||
-                    contains(secondPart, matcher) ||
-                    matches(firstPart.concat(secondPart));
-            } else if (startsWith) {
-                if (firstPart.length() >= matcher.length()) {
-                    return startsWith(firstPart, matcher);
-                } else {
-                    return startsWith(matcher, firstPart) && matches(firstPart.concat(secondPart));
-                }
-            } else if (endsWith) {
-                if (secondPart.length() >= matcher.length()) {
-                    return endsWith(secondPart, matcher);
-                } else {
-                    return endsWith(matcher, secondPart) && matches(firstPart.concat(secondPart));
-                }
+            int totalLength = firstPart.length() + secondPart.length();
+            if (wildcardAtEnd && wildcardAtBeginning) {
+                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, offset, totalLength);
+            } else if (wildcardAtEnd) {
+                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, 0, matcher.length());
+            } else if (wildcardAtBeginning) {
+                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, totalLength - matcher.length(), totalLength);
+            } else if (totalLength == matcher.length()) {
+                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, 0, totalLength);
             } else {
-                return startsWith(matcher, firstPart) && endsWith(matcher, secondPart) && equals(firstPart.concat(secondPart), matcher);
+                return -1;
             }
-        }
-
-        private boolean startsWith(String s, String matcher) {
-            return s.regionMatches(ignoreCase, 0, matcher, 0, matcher.length());
-        }
-
-        private boolean endsWith(String s, String matcher) {
-            return s.regionMatches(ignoreCase, s.length() - matcher.length(), matcher, 0, matcher.length());
-        }
-
-        private boolean equals(String concat, String matcher) {
-            return ignoreCase ? matcher.equalsIgnoreCase(concat) : matcher.equals(concat);
-        }
-
-        private boolean contains(String s, String matcher) {
-            return ignoreCase ? containsIgnoreCase(s, matcher) : s.contains(matcher);
         }
     }
 }

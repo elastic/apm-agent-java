@@ -1,8 +1,11 @@
 # next version
 
 ## Breaking changes
+ * Wildcard patterns are case insensitive by default. Prepend `(?-i)` to make the matching case sensitive.
 
 ## Features
+ * Wildcard patterns are now not limited to only one wildcard in the middle and can be arbitrarily complex now.
+   Example: `*foo*bar*baz`.
 
 ## Bug Fixes
 
