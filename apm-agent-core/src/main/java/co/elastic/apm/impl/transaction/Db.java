@@ -82,7 +82,7 @@ public class Db implements Recyclable {
         this.statement = statement;
         return this;
     }
- 
+
     /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */

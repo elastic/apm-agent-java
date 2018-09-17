@@ -36,6 +36,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -117,27 +119,51 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonStructure() throws IOException {
         TransactionPayload payload = createPayloadWithAllValues();
+        validateJsonStructure(payload, false);
 
+        // create payload again because tags were removed from the former
+        payload = createPayloadWithAllValues();
+        Iterator<Span> transactionSpansIt = payload.getTransactions().get(0).getSpans().iterator();
+        List<Span> directSpansList = payload.getSpans();
+
+        while (transactionSpansIt.hasNext()) {
+            directSpansList.add(transactionSpansIt.next());
+            transactionSpansIt.remove();
+        }
+        validateJsonStructure(payload, true);
+    }
+
+    private void validateJsonStructure(TransactionPayload payload, boolean useIntakeV2) throws IOException {
         when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
         DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
 
-        validateDbSpanSchema(payload, serializer, true);
+        List<Span> v1Spans = payload.getTransactions().get(0).getSpans();
+        List<Span> v2Spans = payload.getSpans();
+        List<Span> spansForUse = (useIntakeV2)? v2Spans: v1Spans;
+        assertThat((useIntakeV2)? v1Spans: v2Spans).isEmpty();
 
-        for(Span span: payload.getTransactions().get(0).getSpans()) {
-            if(span.getType().equals("db.postgresql.query")) {
+        validateDbSpanSchema(payload, serializer, true, useIntakeV2);
+
+        for (Span span: spansForUse) {
+            if (span.getType() != null && span.getType().equals("db.postgresql.query")) {
                 span.getContext().getTags().clear();
-                validateDbSpanSchema(payload, serializer, false);
+                validateDbSpanSchema(payload, serializer, false, useIntakeV2);
                 break;
             }
         }
     }
 
-    private void validateDbSpanSchema(TransactionPayload payload, DslJsonSerializer serializer, boolean shouldContainTags) throws IOException {
+    private void validateDbSpanSchema(TransactionPayload payload, DslJsonSerializer serializer, boolean shouldContainTags, boolean useIntakeV2) throws IOException {
         final String content = serializer.toJsonString(payload);
         JsonNode node = objectMapper.readTree(content);
 
+        JsonNode v1Spans = node.get("transactions").get(0).get("spans");
+        JsonNode v2Spans = node.get("spans");
+        assertThat((useIntakeV2)? v1Spans: v2Spans).isNull();
+
         boolean contextOfDbSpanFound = false;
-        for (JsonNode child: node.get("transactions").get(0).get("spans")) {
+        JsonNode spansForUse = (useIntakeV2)? v2Spans: v1Spans;
+        for (JsonNode child: spansForUse) {
             if(child.get("type").textValue().startsWith("db.")) {
                 contextOfDbSpanFound = true;
                 JsonNode context = child.get("context");
@@ -154,8 +180,7 @@ class TransactionPayloadJsonSchemaTest {
                     assertThat(tags.get("monitored_by").textValue()).isEqualTo("ACME");
                     assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
                 }
-                else
-                {
+                else {
                     assertThat(tags).isNull();
                 }
             }
