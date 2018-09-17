@@ -268,6 +268,34 @@ set the value to an empty string.
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
 |============
 
+[float]
+[[config-unnest-exceptions]]
+==== `unnest_exceptions`
+
+When reporting exceptions,
+un-nests the exceptions matching the wildcard pattern.
+This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,
+for example.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `(?-i)*Nested*Exception` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 [float]
@@ -855,6 +883,22 @@ The default unit for this option is `ms`
 # Default value: incubating
 #
 # disable_instrumentations=incubating
+
+# When reporting exceptions,
+# un-nests the exceptions matching the wildcard pattern.
+# This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,
+# for example.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: (?-i)*Nested*Exception
+#
+# unnest_exceptions=(?-i)*Nested*Exception
 
 ############################################
 # HTTP                                     #
