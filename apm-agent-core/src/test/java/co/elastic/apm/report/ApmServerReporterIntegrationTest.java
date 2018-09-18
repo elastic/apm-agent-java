@@ -19,10 +19,10 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.payload.ProcessInfo;
 import co.elastic.apm.impl.payload.Service;
@@ -113,7 +113,7 @@ class ApmServerReporterIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"v1", "v2"})
     void testReportTransaction(String version) throws ExecutionException, InterruptedException {
-        getReporter(version).report(new Transaction(mock(ElasticApmTracer.class)));
+        getReporter(version).report(new Transaction(MockTracer.create()));
         getReporter(version).flush().get();
         assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -123,7 +123,7 @@ class ApmServerReporterIntegrationTest {
     // testing v1 without dt makes no sense as spans can't be reported on their own
     @ValueSource(strings = {"v2"})
     void testReportSpan(String version) throws ExecutionException, InterruptedException {
-        getReporter(version).report(new Span(mock(ElasticApmTracer.class)));
+        getReporter(version).report(new Span(MockTracer.create()));
         getReporter(version).flush().get();
         assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -138,7 +138,7 @@ class ApmServerReporterIntegrationTest {
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        getReporter(version).report(new Transaction(mock(ElasticApmTracer.class)));
+        getReporter(version).report(new Transaction(MockTracer.create()));
         getReporter(version).flush().get();
         assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -147,7 +147,7 @@ class ApmServerReporterIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"v1", "v2"})
     void testReportErrorCapture(String version) throws ExecutionException, InterruptedException {
-        getReporter(version).report(new ErrorCapture());
+        getReporter(version).report(new ErrorCapture(MockTracer.create()));
         getReporter(version).flush().get();
         assertThat(getReporter(version).getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

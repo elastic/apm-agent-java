@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.configuration.converter.TimeDuration;
@@ -71,7 +72,7 @@ class ApmServerReporterTest {
     @Test
     void testErrorProcessor() throws ExecutionException, InterruptedException {
         final int errorCount = TestProcessor.getErrorCount();
-        reporter.report(new ErrorCapture());
+        reporter.report(new ErrorCapture(MockTracer.create()));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);

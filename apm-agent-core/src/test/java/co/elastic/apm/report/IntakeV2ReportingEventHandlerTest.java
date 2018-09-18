@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -163,7 +164,7 @@ class IntakeV2ReportingEventHandlerTest {
 
     private void reportError() {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setError(new ErrorCapture());
+        reportingEvent.setError(new ErrorCapture(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

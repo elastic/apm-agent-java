@@ -21,11 +21,13 @@ package co.elastic.apm.impl.error;
 
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.TransactionContext;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 
 
 /**
@@ -56,8 +58,12 @@ public class ErrorCapture implements Recyclable {
      * (Required)
      */
     private long timestamp;
-    @Nullable
-    private transient ElasticApmTracer tracer;
+    private ElasticApmTracer tracer;
+    private final StringBuilder culprit = new StringBuilder();
+
+    public ErrorCapture(ElasticApmTracer tracer) {
+        this.tracer = tracer;
+    }
 
     /**
      * Context
@@ -103,14 +109,12 @@ public class ErrorCapture implements Recyclable {
         context.resetState();
         transaction.resetState();
         timestamp = 0;
-        tracer = null;
         traceContext.resetState();
+        culprit.setLength(0);
     }
 
     public void recycle() {
-        if (tracer != null) {
-            tracer.recycle(this);
-        }
+        tracer.recycle(this);
     }
 
     /**
@@ -130,5 +134,49 @@ public class ErrorCapture implements Recyclable {
 
     public void setException(Throwable e) {
         this.exception = e;
+    }
+
+    public StringBuilder getCulprit() {
+        // lazily resolve culprit so that java.lang.Throwable.getStackTrace is called outside the application thread
+        final Collection<String> applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        if (exception != null && culprit.length() == 0 && !applicationPackages.isEmpty()) {
+            computeCulprit(exception, applicationPackages);
+        }
+        return culprit;
+    }
+
+    private void computeCulprit(Throwable exception, Collection<String> applicationPackages) {
+        if (exception.getCause() != null) {
+            computeCulprit(exception.getCause(), applicationPackages);
+        }
+        if (culprit.length() > 0) {
+            return;
+        }
+        for (StackTraceElement stackTraceElement : exception.getStackTrace()) {
+            for (String applicationPackage : applicationPackages) {
+                if (stackTraceElement.getClassName().startsWith(applicationPackage)) {
+                    setCulprit(stackTraceElement);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void setCulprit(StackTraceElement stackTraceElement) {
+        final int lineNumber = stackTraceElement.getLineNumber();
+        final String fileName = stackTraceElement.getFileName();
+        culprit.append(stackTraceElement.getClassName())
+            .append('.')
+            .append(stackTraceElement.getMethodName())
+            .append('(');
+        if (stackTraceElement.isNativeMethod()) {
+            culprit.append("Native Method");
+        } else {
+            culprit.append(fileName != null ? fileName : "Unknown Source");
+            if (lineNumber > 0) {
+                culprit.append(':').append(lineNumber);
+            }
+        }
+        culprit.append(')');
     }
 }
