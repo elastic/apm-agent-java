@@ -163,13 +163,20 @@ public class ErrorCapture implements Recyclable {
     }
 
     private void setCulprit(StackTraceElement stackTraceElement) {
+        final int lineNumber = stackTraceElement.getLineNumber();
+        final String fileName = stackTraceElement.getFileName();
         culprit.append(stackTraceElement.getClassName())
             .append('.')
             .append(stackTraceElement.getMethodName())
-            .append('(')
-            .append(stackTraceElement.getFileName())
-            .append(':')
-            .append(stackTraceElement.getLineNumber())
-            .append(')');
+            .append('(');
+        if (stackTraceElement.isNativeMethod()) {
+            culprit.append("Native Method");
+        } else {
+            culprit.append(fileName != null ? fileName : "Unknown Source");
+            if (lineNumber > 0) {
+                culprit.append(':').append(lineNumber);
+            }
+        }
+        culprit.append(')');
     }
 }
