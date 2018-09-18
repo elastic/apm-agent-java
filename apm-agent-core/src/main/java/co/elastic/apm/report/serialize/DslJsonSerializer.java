@@ -564,18 +564,35 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSpanContext(SpanContext context) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
-        writeFieldName("db");
-        jw.writeByte(OBJECT_START);
-        final Db db = context.getDb();
-        writeField("instance", db.getInstance());
-        writeLongStringField("statement", db.getStatement());
-        writeField("type", db.getType());
-        writeField("user", db.getUser());
-        writeFieldName("tags");
-        serializeTags(context.getTags());
-        jw.writeByte(OBJECT_END);
+
+        boolean dbContextWritten = serializeDbContext(context.getDb());
+
+        Map<String, String> tags = context.getTags();
+        if (!tags.isEmpty()) {
+            if(dbContextWritten)
+            {
+                jw.writeByte(COMMA);
+            }
+            writeFieldName("tags");
+            serializeTags(tags);
+        }
+
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
+    }
+
+    private boolean serializeDbContext(final Db db) {
+        boolean writeDbElement = db.hasContent();
+        if (writeDbElement) {
+            writeFieldName("db");
+            jw.writeByte(OBJECT_START);
+            writeField("instance", db.getInstance());
+            writeLongStringField("statement", db.getStatement());
+            writeField("type", db.getType());
+            writeLastField("user", db.getUser());
+            jw.writeByte(OBJECT_END);
+        }
+        return writeDbElement;
     }
 
     private void serializeSpanCountV1(final SpanCount spanCount) {

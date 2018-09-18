@@ -27,6 +27,7 @@ import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -35,6 +36,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,6 +114,78 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonAllValues() throws IOException {
         validate(createPayloadWithAllValues());
+    }
+
+    @Test
+    void testJsonStructure() throws IOException {
+        TransactionPayload payload = createPayloadWithAllValues();
+        validateJsonStructure(payload, false);
+
+        // create payload again because tags were removed from the former
+        payload = createPayloadWithAllValues();
+        Iterator<Span> transactionSpansIt = payload.getTransactions().get(0).getSpans().iterator();
+        List<Span> directSpansList = payload.getSpans();
+
+        while (transactionSpansIt.hasNext()) {
+            directSpansList.add(transactionSpansIt.next());
+            transactionSpansIt.remove();
+        }
+        validateJsonStructure(payload, true);
+    }
+
+    private void validateJsonStructure(TransactionPayload payload, boolean useIntakeV2) throws IOException {
+        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
+        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
+
+        List<Span> v1Spans = payload.getTransactions().get(0).getSpans();
+        List<Span> v2Spans = payload.getSpans();
+        List<Span> spansForUse = (useIntakeV2)? v2Spans: v1Spans;
+        assertThat((useIntakeV2)? v1Spans: v2Spans).isEmpty();
+
+        validateDbSpanSchema(payload, serializer, true, useIntakeV2);
+
+        for (Span span: spansForUse) {
+            if (span.getType() != null && span.getType().equals("db.postgresql.query")) {
+                span.getContext().getTags().clear();
+                validateDbSpanSchema(payload, serializer, false, useIntakeV2);
+                break;
+            }
+        }
+    }
+
+    private void validateDbSpanSchema(TransactionPayload payload, DslJsonSerializer serializer, boolean shouldContainTags, boolean useIntakeV2) throws IOException {
+        final String content = serializer.toJsonString(payload);
+        JsonNode node = objectMapper.readTree(content);
+
+        JsonNode v1Spans = node.get("transactions").get(0).get("spans");
+        JsonNode v2Spans = node.get("spans");
+        assertThat((useIntakeV2)? v1Spans: v2Spans).isNull();
+
+        boolean contextOfDbSpanFound = false;
+        JsonNode spansForUse = (useIntakeV2)? v2Spans: v1Spans;
+        for (JsonNode child: spansForUse) {
+            if(child.get("type").textValue().startsWith("db.")) {
+                contextOfDbSpanFound = true;
+                JsonNode context = child.get("context");
+                JsonNode db = context.get("db");
+                assertThat(db).isNotNull();
+                assertThat(db.get("instance").textValue()).isEqualTo("customers");
+                assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM product_types WHERE user_id=?");
+                assertThat(db.get("type").textValue()).isEqualTo("sql");
+                assertThat(db.get("user").textValue()).isEqualTo("readonly_user");
+                JsonNode tags = context.get("tags");
+                if (shouldContainTags) {
+                    assertThat(tags).isNotNull();
+                    assertThat(tags).hasSize(2);
+                    assertThat(tags.get("monitored_by").textValue()).isEqualTo("ACME");
+                    assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
+                }
+                else {
+                    assertThat(tags).isNull();
+                }
+            }
+        }
+        assertThat(contextOfDbSpanFound).isTrue();
     }
 
     private void validate(TransactionPayload payload) throws IOException {
