@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Future;
@@ -108,8 +109,20 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     private static long calculateEndOfGracePeriod(long errorCount) {
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount);
-        logger.info("Backing off for {} seconds", backoffTimeSeconds);
-        return System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        return System.currentTimeMillis() + backoffTimeMillis + getRandomJitter(backoffTimeMillis);
+    }
+
+    /*
+     * We add ±10% jitter to the calculated grace period in case multiple agents entered the grace period simultaneously.
+     * This can happen if the APM server queue is full which leads to sending an error response to all connected agents.
+     * The random jitter makes sure the agents will not all try to reconnect at the same time,
+     * which would overwhelm the APM server again.
+     */
+    static long getRandomJitter(long backoffTimeMillis) {
+        final long tenPercentOfBackoffTimeMillis = (long) (backoffTimeMillis * 0.1);
+        return (long) (tenPercentOfBackoffTimeMillis * 2 * Math.random()) - tenPercentOfBackoffTimeMillis;
     }
 
     static long getBackoffTimeSeconds(long errorCount) {
