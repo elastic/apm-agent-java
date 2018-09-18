@@ -181,6 +181,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
 
+    private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("unnest_exceptions")
+        .configurationCategory(CORE_CATEGORY)
+        .description("When reporting exceptions,\n" +
+            "un-nests the exceptions matching the wildcard pattern.\n" +
+            "This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,\n" +
+            "for example.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
+
     public boolean isActive() {
         return active.get();
     }
@@ -219,5 +232,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public Collection<String> getDisabledInstrumentations() {
         return disabledInstrumentations.get();
+    }
+
+    public List<WildcardMatcher> getUnnestExceptions() {
+        return unnestExceptions.get();
     }
 }

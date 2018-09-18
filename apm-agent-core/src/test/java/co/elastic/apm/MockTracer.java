@@ -21,6 +21,8 @@ package co.elastic.apm;
 
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.report.Reporter;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +30,25 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockTracer {
+
+    /**
+     * Creates a real tracer with a noop reporter and a mock configuration which returns default values which can be customized by mocking
+     * the configuration.
+     */
+    public static ElasticApmTracer createRealTracer() {
+        return createRealTracer(mock(Reporter.class));
+    }
+
+    /**
+     * Creates a real tracer with a given reporter and a mock configuration which returns default values which can be customized by mocking
+     * the configuration.
+     */
+    public static ElasticApmTracer createRealTracer(Reporter reporter) {
+        return new ElasticApmTracerBuilder()
+            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .reporter(reporter)
+            .build();
+    }
 
     /**
      * Like {@link #create(ConfigurationRegistry)} but with a {@link SpyConfiguration#createSpyConfig() mocked ConfigurationRegistry}.

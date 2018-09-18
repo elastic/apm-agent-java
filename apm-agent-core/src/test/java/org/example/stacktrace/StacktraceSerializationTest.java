@@ -19,9 +19,11 @@
  */
 package org.example.stacktrace;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,8 +39,6 @@ import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
@@ -50,10 +50,14 @@ class StacktraceSerializationTest {
     private StacktraceConfiguration stacktraceConfiguration;
     private DslJsonSerializer serializer;
     private ObjectMapper objectMapper;
+    private ElasticApmTracer tracer;
 
     @BeforeEach
     void setUp() throws IOException {
-        stacktraceConfiguration = spy(new StacktraceConfiguration());
+        tracer = MockTracer.createRealTracer();
+        stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
+        // always enable
+        when(stacktraceConfiguration.getSpanFramesMinDurationMs()).thenReturn(-1L);
         serializer = new DslJsonSerializer(true, stacktraceConfiguration);
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
@@ -62,8 +66,9 @@ class StacktraceSerializationTest {
     @Test
     void fillStackTrace() {
         assertThat(stacktrace).isNotEmpty();
+        // even though the stacktrace is captured within our tracer class, the first method should be getStackTrace
         assertThat(stacktrace.get(0).get("abs_path").textValue()).doesNotStartWith("co.elastic");
-        assertThat(stacktrace.get(0).get("function").textValue()).isNotEqualTo("getStackTrace");
+        assertThat(stacktrace.get(0).get("function").textValue()).isEqualTo("getStackTrace");
         assertThat(stacktrace.stream().filter(st -> st.get("abs_path").textValue().endsWith("StacktraceSerializationTest"))).isNotEmpty();
     }
 
@@ -101,8 +106,12 @@ class StacktraceSerializationTest {
     }
 
     private List<JsonNode> getStackTrace() throws IOException {
+        final Transaction transaction = tracer.startTransaction();
+        final Span span = transaction.createSpan();
+        span.end();
+        transaction.end();
         return StreamSupport.stream(objectMapper
-            .readTree(serializer.toJsonString(new Span(mock(ElasticApmTracer.class)).withStacktrace(new Throwable())))
+            .readTree(serializer.toJsonString(span))
             .get("stacktrace")
             .spliterator(), false)
             .collect(Collectors.toList());

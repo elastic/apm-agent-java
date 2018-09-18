@@ -63,4 +63,18 @@ class ErrorCaptureTest {
         assertThat(errorCapture.getCulprit()).endsWith(":" + nestedException.getStackTrace()[0].getLineNumber() + ")");
     }
 
+    @Test
+    void testUnnestNestedExceptions() {
+        final ErrorCapture errorCapture = new ErrorCapture(tracer);
+        final NestedException nestedException = new NestedException(new Exception());
+        errorCapture.setException(nestedException);
+        assertThat(errorCapture.getException()).isNotInstanceOf(NestedException.class);
+    }
+
+    private static class NestedException extends Exception {
+        public NestedException(Throwable cause) {
+            super(cause);
+        }
+    }
+
 }

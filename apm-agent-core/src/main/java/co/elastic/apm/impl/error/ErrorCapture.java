@@ -19,11 +19,13 @@
  */
 package co.elastic.apm.impl.error;
 
+import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.TraceContext;
+import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
@@ -133,7 +135,11 @@ public class ErrorCapture implements Recyclable {
     }
 
     public void setException(Throwable e) {
-        this.exception = e;
+        if (WildcardMatcher.anyMatch(tracer.getConfig(CoreConfiguration.class).getUnnestExceptions(), e.getClass().getName()) != null) {
+            this.exception = e.getCause();
+        } else {
+            this.exception = e;
+        }
     }
 
     public StringBuilder getCulprit() {
