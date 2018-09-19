@@ -92,6 +92,9 @@ public interface Span {
      *     span.end();
      * }
      * </pre>
+     * <p>
+     * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
+     * </p>
      *
      * @return the started span, never {@code null}
      */

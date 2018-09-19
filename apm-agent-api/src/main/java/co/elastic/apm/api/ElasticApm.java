@@ -65,6 +65,9 @@ public class ElasticApm {
      *     transaction.end();
      * }
      * </pre>
+     * <p>
+     * NOTE: Spans created via this method can not be retrieved by calling {@link #currentSpan()} or {@link #currentTransaction()}.
+     * </p>
      *
      * @return the started transaction.
      */
@@ -84,6 +87,9 @@ public class ElasticApm {
      * <p>
      * If there is no current transaction, this method will return a noop transaction,
      * which means that you never have to check for {@code null} values.
+     * </p>
+     * <p>
+     * NOTE: Transactions created via {@link #startTransaction()} can not be retrieved by calling this method.
      * </p>
      *
      * @return The currently running transaction, or a noop transaction (never {@code null}).
@@ -110,7 +116,9 @@ public class ElasticApm {
      * you can still {@link Span#captureException(Throwable) capture exceptions} on it.
      * These exceptions will not have a link to a Span or a Transaction.
      * </p>
-     *
+     * <p>
+     * NOTE: Transactions created via {@link Span#createSpan()} can not be retrieved by calling this method.
+     * </p>
      * @return The currently active span, or transaction, or a noop span (never {@code null}).
      */
     @Nonnull
