@@ -21,6 +21,7 @@ package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
+import com.dslplatform.json.JsonWriter;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
@@ -31,14 +32,23 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * A 128 bit globally unique ID of the whole trace forest
  */
-public class TraceId implements Recyclable {
+public class Id implements Recyclable {
 
-    private final static TraceId EMPTY = new TraceId();
-
-    private static final int SIZE = 16;
-    private final byte[] data = new byte[SIZE];
+    private final byte[] data;
     @Nullable
     private String cachedStringRepresentation;
+
+    public static Id new128BitId() {
+        return new Id(16);
+    }
+
+    public static Id new64BitId() {
+        return new Id(8);
+    }
+
+    public Id(int idLengthBytes) {
+        data = new byte[idLengthBytes];
+    }
 
     public void setToRandomValue() {
         setToRandomValue(ThreadLocalRandom.current());
@@ -49,8 +59,19 @@ public class TraceId implements Recyclable {
         cachedStringRepresentation = null;
     }
 
-    public void setValue(long mostSignificantBits, long leastSignificantBits) {
-        ByteBuffer.wrap(data).putLong(mostSignificantBits).putLong(leastSignificantBits);
+    public void fromHexString(String hexEncodedString, int offset) {
+        HexUtils.nextBytes(hexEncodedString, offset, data);
+        cachedStringRepresentation = null;
+    }
+
+    public void fromLongs(long... values) {
+        if (values.length * Long.BYTES != data.length) {
+            throw new IllegalArgumentException("Invalid number of long values");
+        }
+        final ByteBuffer buffer = ByteBuffer.wrap(data);
+        for (long value : values) {
+            buffer.putLong(value);
+        }
         cachedStringRepresentation = null;
     }
 
@@ -62,15 +83,15 @@ public class TraceId implements Recyclable {
         cachedStringRepresentation = null;
     }
 
-    public void copyFrom(TraceId other) {
-        System.arraycopy(other.data, 0, data, 0, SIZE);
+    public void copyFrom(Id other) {
+        System.arraycopy(other.data, 0, data, 0, data.length);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        TraceId that = (TraceId) o;
+        Id that = (Id) o;
         return Arrays.equals(data, that.data);
     }
 
@@ -89,34 +110,44 @@ public class TraceId implements Recyclable {
     }
 
     public boolean isEmpty() {
-        return EMPTY.equals(this);
-    }
-
-    /**
-     * Returns the mutable underlying byte array
-     *
-     * @return the mutable underlying byte array
-     */
-    public byte[] getBytes() {
-        return data;
-    }
-
-    /**
-     * Returns the first 8 bytes of this transaction id as a {@code long}
-     *
-     * @return the first 8 bytes of this transaction id as a {@code long}
-     */
-    public long getMostSignificantBits() {
-        long msb = 0;
-        for (int i = 0; i < 8; i++) {
-            msb = (msb << 8) | (data[i] & 0xff);
+        for (byte b : data) {
+            if (b != 0) {
+                return false;
+            }
         }
-        return msb;
+        return true;
     }
 
+    public void writeAsHex(JsonWriter jw) {
+        HexUtils.writeBytesAsHex(data, jw);
+    }
+
+    public void writeAsHex(StringBuilder sb) {
+        HexUtils.writeBytesAsHex(data, sb);
+    }
+
+    /**
+     * Returns the last 8 bytes of this id as a {@code long}.
+     * <p>
+     * The least significant bits (the right part) of an id is preferred to be used for making random sampling decisions.
+     * </p>
+     * <p>
+     * "There are systems that make random sampling decisions based on the value of trace-id.
+     * So to increase interoperability it is recommended to keep the random part on the right side of trace-id value."
+     * </p>
+     * @see <a href="https://github.com/w3c/distributed-tracing/blob/master/trace_context/HTTP_HEADER_FORMAT.md#trace-id">W3C trace context spec</a>
+     * @return the last 8 bytes of this id as a {@code long}
+     */
     public long getLeastSignificantBits() {
+        return readLong(data.length - 8);
+    }
+
+    /**
+     * Converts the next 8 bytes, starting from the offset, to a {@code long}
+     */
+    public long readLong(int offset) {
         long lsb = 0;
-        for (int i = 8; i < 16; i++) {
+        for (int i = offset; i < offset + 8; i++) {
             lsb = (lsb << 8) | (data[i] & 0xff);
         }
         return lsb;

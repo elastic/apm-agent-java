@@ -30,6 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * A 64 bit random id which is used as a unique id for {@link Span}s within a {@link Transaction}
  */
+@Deprecated
 public class SpanId implements Recyclable {
 
     private static final int LENGTH = 8;

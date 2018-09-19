@@ -51,11 +51,35 @@ public class TraceContext implements Recyclable {
     // ??????1? -> maybe recorded
     // ??????0? -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0010;
-    private final TraceId traceId = new TraceId();
-    private final SpanId id = new SpanId();
-    private final SpanId parentId = new SpanId();
+    private final Id traceId = Id.new128BitId();
+    private final Id id;
+    private final Id parentId = Id.new64BitId();
+    private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
+
+    /**
+     * Creates a new {@code traceparent}-compliant {@link TraceContext} with a 64 bit {@link #id}.
+     * <p>
+     * Note: the {@link #traceId} will still be 128 bit
+     * </p>
+     */
+    public static TraceContext with64BitId() {
+        return new TraceContext(Id.new64BitId());
+    }
+
+    /**
+     * Creates a new {@link TraceContext} with a 128 bit {@link #id},
+     * suitable for errors,
+     * as those might not have a trace reference and therefore require a larger id in order to be globally unique.
+     */
+    public static TraceContext with128BitId() {
+        return new TraceContext(Id.new128BitId());
+    }
+
+    private TraceContext(Id id) {
+        this.id = id;
+    }
 
     public boolean asChildOf(String traceParentHeader) {
         try {
@@ -72,10 +96,11 @@ public class TraceContext implements Recyclable {
                 return false;
             }
             parseParentId(traceParentHeader);
-            if (parentId.asLong() == 0) {
+            if (parentId.isEmpty()) {
                 return false;
             }
             id.setToRandomValue();
+            transactionId.copyFrom(id);
             flags = getTraceOptions(traceParentHeader);
             // TODO don't blindly trust the flags from the caller
             // consider implement rate limiting and/or having a list of trusted sources
@@ -93,24 +118,26 @@ public class TraceContext implements Recyclable {
     public void asRootSpan(Sampler sampler) {
         traceId.setToRandomValue();
         id.setToRandomValue();
+        transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
             this.flags = FLAG_RECORDED | FLAG_REQUESTED;
         }
     }
 
-    public void asChildOf(TraceContext traceContext) {
-        traceId.copyFrom(traceContext.traceId);
-        parentId.copyFrom(traceContext.id);
-        flags = traceContext.flags;
+    public void asChildOf(TraceContext parent) {
+        traceId.copyFrom(parent.traceId);
+        parentId.copyFrom(parent.id);
+        transactionId.copyFrom(parent.transactionId);
+        flags = parent.flags;
         id.setToRandomValue();
     }
 
     private void parseTraceId(String traceParent) {
-        HexUtils.nextBytes(traceParent, 3, traceId.getBytes());
+        traceId.fromHexString(traceParent, 3);
     }
 
     private void parseParentId(String traceParent) {
-        HexUtils.nextBytes(traceParent, 36, parentId.getBytes());
+        parentId.fromHexString(traceParent, 36);
     }
 
     private byte getTraceOptions(String traceParent) {
@@ -131,11 +158,11 @@ public class TraceContext implements Recyclable {
      *
      * @return the trace id
      */
-    public TraceId getTraceId() {
+    public Id getTraceId() {
         return traceId;
     }
 
-    public SpanId getId() {
+    public Id getId() {
         return id;
     }
 
@@ -144,8 +171,12 @@ public class TraceContext implements Recyclable {
      *
      * @return the parent id
      */
-    public SpanId getParentId() {
+    public Id getParentId() {
         return parentId;
+    }
+
+    public Id getTransactionId() {
+        return transactionId;
     }
 
     public boolean isSampled() {
@@ -204,11 +235,11 @@ public class TraceContext implements Recyclable {
         return outgoingHeader;
     }
 
-    private void fillTraceParentHeader(StringBuilder sb, SpanId spanId) {
+    private void fillTraceParentHeader(StringBuilder sb, Id spanId) {
         sb.append("00-");
-        HexUtils.writeBytesAsHex(traceId.getBytes(), sb);
+        traceId.writeAsHex(sb);
         sb.append('-');
-        HexUtils.writeBytesAsHex(spanId.getBytes(), sb);
+        spanId.writeAsHex(sb);
         sb.append('-');
         HexUtils.writeByteAsHex(flags, sb);
     }
@@ -218,6 +249,6 @@ public class TraceContext implements Recyclable {
     }
 
     public boolean hasContent() {
-        return !traceId.isEmpty() && parentId.asLong() != 0 && id.asLong() != 0;
+        return !traceId.isEmpty() && !parentId.isEmpty() && !id.isEmpty();
     }
 }

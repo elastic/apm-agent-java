@@ -20,7 +20,7 @@
 package co.elastic.apm.impl.sampling;
 
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceId;
+import co.elastic.apm.impl.transaction.Id;
 import co.elastic.apm.impl.transaction.Transaction;
 
 /**
@@ -45,5 +45,5 @@ public interface Sampler {
      * @param traceId The id of the transaction.
      * @return The sampling decision.
      */
-    boolean isSampled(TraceId traceId);
+    boolean isSampled(Id traceId);
 }

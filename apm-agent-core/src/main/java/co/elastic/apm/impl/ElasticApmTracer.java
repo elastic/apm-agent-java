@@ -229,6 +229,8 @@ public class ElasticApmTracer {
                     error.getTransaction().getTransactionId().copyFrom(transaction.getId());
                 }
                 error.asChildOf(active);
+            } else {
+                error.getTraceContext().getId().setToRandomValue();
             }
             reporter.report(error);
         }

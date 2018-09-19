@@ -246,7 +246,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
-        final TraceContext injectedContext = new TraceContext();
+        final TraceContext injectedContext = TraceContext.with64BitId();
         assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER))).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());

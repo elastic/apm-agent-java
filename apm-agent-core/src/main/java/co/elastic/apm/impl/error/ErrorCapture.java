@@ -37,7 +37,7 @@ import java.util.Collection;
  */
 public class ErrorCapture implements Recyclable {
 
-    private final TraceContext traceContext = new TraceContext();
+    private final TraceContext traceContext = TraceContext.with128BitId();
 
     /**
      * Context
