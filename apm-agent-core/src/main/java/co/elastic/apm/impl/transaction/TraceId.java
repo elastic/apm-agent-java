@@ -46,10 +46,12 @@ public class TraceId implements Recyclable {
 
     public void setToRandomValue(Random random) {
         random.nextBytes(data);
+        cachedStringRepresentation = null;
     }
 
     public void setValue(long mostSignificantBits, long leastSignificantBits) {
         ByteBuffer.wrap(data).putLong(mostSignificantBits).putLong(leastSignificantBits);
+        cachedStringRepresentation = null;
     }
 
     @Override

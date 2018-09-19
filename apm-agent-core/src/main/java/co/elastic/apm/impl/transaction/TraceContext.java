@@ -57,24 +57,35 @@ public class TraceContext implements Recyclable {
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
 
-    public void asChildOf(String traceParentHeader) {
-        if (traceParentHeader.length() != 55) {
-            logger.warn("The traceparent header has to be exactly 55 chars long, but was '{}'", traceParentHeader);
-            return;
-        }
-        if (!traceParentHeader.startsWith("00-")) {
-            logger.warn("Only version 00 of the traceparent header is supported, but was '{}'", traceParentHeader);
-            return;
-        }
-        parseTraceId(traceParentHeader);
-        parseParentId(traceParentHeader);
-        id.setToRandomValue();
-        flags = getTraceOptions(traceParentHeader);
-        // TODO don't blindly trust the flags from the caller
-        // consider implement rate limiting and/or having a list of trusted sources
-        // trace the request if it's either requested or if the parent has recorded it
-        if (isRequested()) {
-            setRecorded(true);
+    public void asChildOf(String traceParentHeader, Sampler sampler) {
+        try {
+            if (traceParentHeader.length() != 55) {
+                logger.warn("The traceparent header has to be exactly 55 chars long, but was '{}'", traceParentHeader);
+                asRootSpan(sampler);
+                return;
+            }
+            if (!traceParentHeader.startsWith("00-")) {
+                logger.warn("Only version 00 of the traceparent header is supported, but was '{}'", traceParentHeader);
+                asRootSpan(sampler);
+                return;
+            }
+            parseTraceId(traceParentHeader);
+            if (traceId.isEmpty()) {
+                asRootSpan(sampler);
+                return;
+            }
+            parseParentId(traceParentHeader);
+            id.setToRandomValue();
+            flags = getTraceOptions(traceParentHeader);
+            // TODO don't blindly trust the flags from the caller
+            // consider implement rate limiting and/or having a list of trusted sources
+            // trace the request if it's either requested or if the parent has recorded it
+            if (isRequested()) {
+                setRecorded(true);
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn(e.getMessage());
+            asRootSpan(sampler);
         }
     }
 

@@ -83,7 +83,7 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public Transaction start(@Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
         if (traceParentHeader != null) {
-            traceContext.asChildOf(traceParentHeader);
+            traceContext.asChildOf(traceParentHeader, sampler);
         } else {
             traceContext.asRootSpan(sampler);
         }

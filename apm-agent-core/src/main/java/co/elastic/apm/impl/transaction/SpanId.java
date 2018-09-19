@@ -43,6 +43,7 @@ public class SpanId implements Recyclable {
 
     public void setToRandomValue(Random random) {
         random.nextBytes(data);
+        cachedStringRepresentation = null;
     }
 
     public void setLong(long l) {
@@ -50,6 +51,7 @@ public class SpanId implements Recyclable {
             data[i] = (byte) (l & 0xFF);
             l >>= 8;
         }
+        cachedStringRepresentation = null;
     }
 
     @Override
