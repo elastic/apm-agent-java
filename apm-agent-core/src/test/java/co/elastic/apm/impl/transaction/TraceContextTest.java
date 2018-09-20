@@ -118,7 +118,7 @@ class TraceContextTest {
 
     @Test
     void testResetState() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         traceContext.asChildOf("00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00");
         traceContext.resetState();
         assertThat(traceContext.getIncomingTraceParentHeader()).isEqualTo("00-00000000000000000000000000000000-0000000000000000-00");
@@ -182,7 +182,7 @@ class TraceContextTest {
     }
 
     private void assertInvalid(String s) {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         assertThat(traceContext.asChildOf(s)).isFalse();
     }
 }
