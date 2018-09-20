@@ -20,6 +20,7 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.AbstractInstrumentationTest;
+import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.mock;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
@@ -245,7 +247,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
         final TraceContext injectedContext = new TraceContext();
-        injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER));
+        assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER))).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();

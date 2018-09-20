@@ -20,17 +20,27 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.impl.sampling.ConstantSampler;
+import co.elastic.apm.impl.sampling.Sampler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class TraceContextTest {
+
+    private Sampler sampler;
+
+    @BeforeEach
+    void setUp() {
+        sampler = mock(Sampler.class);
+    }
 
     @Test
     void parseFromTraceParentHeader_notRecorded_notRequested() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isFalse();
         // if the parent did not record and tracing this request was not requested,
         // we should not record this request and
@@ -43,7 +53,7 @@ class TraceContextTest {
     void parseFromTraceParentHeader_recorded_notRequested() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-02";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
         // if the parent recorded, but tracing this request was not requested,
         // we should also record this request (deferred tracing decision) and
@@ -56,7 +66,7 @@ class TraceContextTest {
     void parseFromTraceParentHeader_notRecorded_requested() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
         // if the parent did not record, but tracing the request is requested (maybe due to rate limiting),
         // we should trace this request and
@@ -70,7 +80,7 @@ class TraceContextTest {
     void parseFromTraceParentHeader_recorded_requested() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
         // if the parent recorded, and tracing the request is requested,
         // we should just sample and
@@ -83,9 +93,9 @@ class TraceContextTest {
     void outgoingHeader() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.getOutgoingTraceParentHeader().toString())
-            .isEqualTo("00-0af7651916cd43dd8448eb211c80319c-"+ traceContext.getId().toString() + "-03");
+            .isEqualTo("00-0af7651916cd43dd8448eb211c80319c-" + traceContext.getId().toString() + "-03");
     }
 
     @Test
@@ -101,7 +111,7 @@ class TraceContextTest {
     void parseFromTraceParentHeader_notSampled() {
         final TraceContext traceContext = new TraceContext();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
-        traceContext.asChildOf(header);
+        assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isFalse();
         assertThat(traceContext.getIncomingTraceParentHeader()).isEqualTo(header);
     }
@@ -118,10 +128,7 @@ class TraceContextTest {
     void testRandomValue() {
         final TraceContext traceContext = new TraceContext();
         traceContext.asRootSpan(ConstantSampler.of(true));
-        assertThat(traceContext.getTraceId().isEmpty()).isFalse();
-        assertThat(traceContext.getParentId().asLong()).isZero();
-        assertThat(traceContext.getId().asLong()).isNotZero();
-        assertThat(traceContext.isSampled()).isTrue();
+        assertIsRoot(traceContext);
     }
 
     @Test
@@ -135,13 +142,51 @@ class TraceContextTest {
         assertThat(traceContext.isSampled()).isFalse();
     }
 
+    // If a traceparent header is invalid, ignore it and create a new root context
+
     @Test
-    void testInvalidHeader() {
+    void testInvalidHeader_version() {
+        assertInvalid("01-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03");
+    }
+
+    @Test
+    void testInvalidHeader_traceIdAllZeroes() {
+        assertInvalid("00-00000000000000000000000000000000-b9c7c989f97918e1-00");
+    }
+
+    @Test
+    void testInvalidHeader_spanIdAllZeroes() {
+        assertInvalid("00-0af7651916cd43dd8448eb211c80319-0000000000000000-00");
+    }
+
+    @Test
+    void testInvalidHeader_nonHexChars() {
+        assertInvalid("00-$af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03");
+    }
+
+    @Test
+    void testInvalidHeader_traceIdTooLong() {
+        assertInvalid("00-00af7651916cd43dd8448eb211c80319c-9c7c989f97918e1-03");
+    }
+
+    @Test
+    void testInvalidHeader_traceIdTooShort() {
+        assertInvalid("00-af7651916cd43dd8448eb211c80319c-0b9c7c989f97918e1-03");
+    }
+
+    @Test
+    void testInvalidHeader_invalidTotalLength() {
+        assertInvalid("00-0af7651916cd43dd8448eb211c80319-b9c7c989f97918e1-00");
+    }
+
+    private void assertInvalid(String s) {
         final TraceContext traceContext = new TraceContext();
-        traceContext.asChildOf("01-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03");
-        assertThat(traceContext.getTraceId().isEmpty()).isTrue();
+        assertThat(traceContext.asChildOf(s)).isFalse();
+    }
+
+    private void assertIsRoot(TraceContext traceContext) {
+        assertThat(traceContext.getTraceId().isEmpty()).isFalse();
         assertThat(traceContext.getParentId().asLong()).isZero();
-        assertThat(traceContext.getId().asLong()).isZero();
-        assertThat(traceContext.isSampled()).isFalse();
+        assertThat(traceContext.getId().asLong()).isNotZero();
     }
 }
