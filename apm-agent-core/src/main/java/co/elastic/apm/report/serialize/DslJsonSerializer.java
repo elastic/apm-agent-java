@@ -40,6 +40,7 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
+import co.elastic.apm.impl.transaction.Http;
 import co.elastic.apm.impl.transaction.Id;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanCount;

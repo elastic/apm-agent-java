@@ -135,35 +135,39 @@ class TransactionPayloadJsonSchemaTest {
 
     private void validateJsonStructure(TransactionPayload payload, boolean useIntakeV2) throws IOException {
         when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
-        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
 
         List<Span> v1Spans = payload.getTransactions().get(0).getSpans();
         List<Span> v2Spans = payload.getSpans();
         List<Span> spansForUse = (useIntakeV2)? v2Spans: v1Spans;
         assertThat((useIntakeV2)? v1Spans: v2Spans).isEmpty();
 
-        validateDbSpanSchema(payload, serializer, true, useIntakeV2);
+        JsonNode serializedSpans = getSerializedSpans(payload, useIntakeV2);
+        validateDbSpanSchema(serializedSpans, true);
+        validateHttpSpanSchema(serializedSpans);
 
         for (Span span: spansForUse) {
             if (span.getType() != null && span.getType().equals("db.postgresql.query")) {
                 span.getContext().getTags().clear();
-                validateDbSpanSchema(payload, serializer, false, useIntakeV2);
+                validateDbSpanSchema(getSerializedSpans(payload, useIntakeV2), false);
                 break;
             }
         }
     }
 
-    private void validateDbSpanSchema(TransactionPayload payload, DslJsonSerializer serializer, boolean shouldContainTags, boolean useIntakeV2) throws IOException {
+    private JsonNode getSerializedSpans(TransactionPayload payload, boolean useIntakeV2) throws IOException {
+        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         JsonNode node = objectMapper.readTree(content);
 
-        JsonNode v1Spans = node.get("transactions").get(0).get("spans");
-        JsonNode v2Spans = node.get("spans");
-        assertThat((useIntakeV2)? v1Spans: v2Spans).isNull();
+        JsonNode v1SerializedSpans = node.get("transactions").get(0).get("spans");
+        JsonNode v2SerializedSpans = node.get("spans");
+        assertThat((useIntakeV2)? v1SerializedSpans: v2SerializedSpans).isNull();
+        return (useIntakeV2)? v2SerializedSpans: v1SerializedSpans;
+    }
 
+    private void validateDbSpanSchema(JsonNode serializedSpans, boolean shouldContainTags) throws IOException {
         boolean contextOfDbSpanFound = false;
-        JsonNode spansForUse = (useIntakeV2)? v2Spans: v1Spans;
-        for (JsonNode child: spansForUse) {
+        for (JsonNode child: serializedSpans) {
             if(child.get("type").textValue().startsWith("db.")) {
                 contextOfDbSpanFound = true;
                 JsonNode context = child.get("context");
@@ -186,6 +190,22 @@ class TransactionPayloadJsonSchemaTest {
             }
         }
         assertThat(contextOfDbSpanFound).isTrue();
+    }
+
+    private void validateHttpSpanSchema(JsonNode serializedSpans)  {
+        boolean contextOfHttpSpanFound = false;
+        for (JsonNode child: serializedSpans) {
+            if(child.get("type").textValue().startsWith("ext.http.")) {
+                assertThat(child.get("name").textValue()).isEqualTo("GET test.elastic.co");
+                JsonNode context = child.get("context");
+                assertThat(context.get("db")).isNull();
+                contextOfHttpSpanFound = true;
+                JsonNode http = context.get("http");
+                assertThat(http).isNotNull();
+                assertThat(http.get("url").textValue()).isEqualTo("http://test.elastic.co/test-service");
+            }
+        }
+        assertThat(contextOfHttpSpanFound).isTrue();
     }
 
     private void validate(TransactionPayload payload) throws IOException {
