@@ -148,6 +148,13 @@ class IntakeV2ReportingEventHandlerTest {
         assertThat(IntakeV2ReportingEventHandler.getBackoffTimeSeconds(7)).isEqualTo(36);
     }
 
+    @Test
+    void testRandomJitter() {
+        assertThat(IntakeV2ReportingEventHandler.getRandomJitter(0)).isZero();
+        assertThat(IntakeV2ReportingEventHandler.getRandomJitter(1)).isZero();
+        assertThat(IntakeV2ReportingEventHandler.getRandomJitter(100)).isBetween(-10L, 10L);
+    }
+
     private void reportTransaction() {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
