@@ -35,6 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Id implements Recyclable {
 
     private final byte[] data;
+    private boolean empty = true;
     @Nullable
     private String cachedStringRepresentation;
 
@@ -46,7 +47,7 @@ public class Id implements Recyclable {
         return new Id(8);
     }
 
-    public Id(int idLengthBytes) {
+    private Id(int idLengthBytes) {
         data = new byte[idLengthBytes];
     }
 
@@ -56,12 +57,12 @@ public class Id implements Recyclable {
 
     public void setToRandomValue(Random random) {
         random.nextBytes(data);
-        cachedStringRepresentation = null;
+        onMutation(false);
     }
 
     public void fromHexString(String hexEncodedString, int offset) {
         HexUtils.nextBytes(hexEncodedString, offset, data);
-        cachedStringRepresentation = null;
+        onMutation();
     }
 
     public void fromLongs(long... values) {
@@ -72,7 +73,7 @@ public class Id implements Recyclable {
         for (long value : values) {
             buffer.putLong(value);
         }
-        cachedStringRepresentation = null;
+        onMutation();
     }
 
     @Override
@@ -80,11 +81,21 @@ public class Id implements Recyclable {
         for (int i = 0; i < data.length; i++) {
             data[i] = 0;
         }
-        cachedStringRepresentation = null;
+        onMutation(true);
     }
 
     public void copyFrom(Id other) {
         System.arraycopy(other.data, 0, data, 0, data.length);
+        onMutation(other.empty);
+    }
+
+    private void onMutation() {
+        onMutation(isAllZeros(data));
+    }
+
+    private void onMutation(boolean empty) {
+        cachedStringRepresentation = null;
+        this.empty = empty;
     }
 
     @Override
@@ -110,7 +121,11 @@ public class Id implements Recyclable {
     }
 
     public boolean isEmpty() {
-        for (byte b : data) {
+        return empty;
+    }
+
+    private static boolean isAllZeros(byte[] bytes) {
+        for (byte b : bytes) {
             if (b != 0) {
                 return false;
             }
