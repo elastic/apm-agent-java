@@ -40,12 +40,12 @@ import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Db;
+import co.elastic.apm.impl.transaction.Id;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanCount;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.impl.transaction.TransactionId;
-import co.elastic.apm.util.HexUtils;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -82,20 +82,20 @@ public class DslJsonSerializer implements PayloadSerializer {
      * so that {@link #getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
-    private static final byte NEW_LINE = (byte) '\n';
-    private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     static final int MAX_VALUE_LENGTH = 1024;
     static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
+    private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
+    private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final DateSerializer dateSerializer;
     private final boolean distributedTracing;
+    private final StacktraceConfiguration stacktraceConfiguration;
     @Nullable
     private OutputStream os;
-    private final StacktraceConfiguration stacktraceConfiguration;
 
     public DslJsonSerializer(boolean distributedTracingEnabled, StacktraceConfiguration stacktraceConfiguration) {
         this.stacktraceConfiguration = stacktraceConfiguration;
@@ -228,7 +228,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         if (distributedTracing) {
             if (errorCapture.getTraceContext().hasContent()) {
-                serializeTraceContext(errorCapture.getTraceContext());
+                serializeTraceContext(errorCapture.getTraceContext(), true);
             }
         } else {
             serializeTransactionReference(errorCapture);
@@ -424,7 +424,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeDateField("timestamp", transaction.getTimestamp());
         writeField("name", transaction.getName());
         if (distributedTracing) {
-            serializeTraceContext(transaction.getTraceContext());
+            serializeTraceContext(transaction.getTraceContext(), false);
         } else {
             writeField("id", transaction.getId());
         }
@@ -443,11 +443,17 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeTraceContext(TraceContext traceContext) {
-        writeHexField("trace_id", traceContext.getTraceId().getBytes());
-        writeHexField("id", traceContext.getId().getBytes());
-        if (traceContext.getParentId().asLong() != 0) {
-            writeHexField("parent_id", traceContext.getParentId().getBytes());
+    private void serializeTraceContext(TraceContext traceContext, boolean serializeTransactionId) {
+        // errors might only have an id
+        writeHexField("id", traceContext.getId());
+        if (!traceContext.getTraceId().isEmpty()) {
+            writeHexField("trace_id", traceContext.getTraceId());
+        }
+        if (serializeTransactionId && !traceContext.getTransactionId().isEmpty()) {
+            writeHexField("transaction_id", traceContext.getTransactionId());
+        }
+        if (!traceContext.getParentId().isEmpty()) {
+            writeHexField("parent_id", traceContext.getParentId());
         }
     }
 
@@ -470,11 +476,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("name", span.getName());
         writeDateField("timestamp", span.getTimestamp());
         if (distributedTracing) {
-            serializeTraceContext(span.getTraceContext());
-            final Transaction transaction = span.getTransaction();
-            if (transaction != null) {
-                writeHexField("transaction_id", transaction.getTraceContext().getId().getBytes());
-            }
+            serializeTraceContext(span.getTraceContext(), true);
         } else {
             writeField("id", span.getId().asLong());
             final long parent = span.getParent().asLong();
@@ -570,8 +572,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
         Map<String, String> tags = context.getTags();
         if (!tags.isEmpty()) {
-            if(dbContextWritten)
-            {
+            if (dbContextWritten) {
                 jw.writeByte(COMMA);
             }
             writeFieldName("tags");
@@ -915,10 +916,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeHexField(String fieldName, byte[] value) {
+    private void writeHexField(String fieldName, Id traceId) {
         writeFieldName(fieldName);
         jw.writeByte(JsonWriter.QUOTE);
-        HexUtils.writeBytesAsHex(value, jw);
+        traceId.writeAsHex(jw);
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(COMMA);
     }

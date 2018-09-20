@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.impl.sampling;
 
-import co.elastic.apm.impl.transaction.TraceId;
+import co.elastic.apm.impl.transaction.Id;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +40,7 @@ class ProbabilitySamplerTest {
     @Test
     void isSampledEmpiricalTest() {
         int sampledTransactions = 0;
-        TraceId id = new TraceId();
+        Id id = Id.new128BitId();
         for (int i = 0; i < ITERATIONS; i++) {
             id.setToRandomValue();
             if (sampler.isSampled(id)) {
@@ -53,30 +53,30 @@ class ProbabilitySamplerTest {
     @Test
     void testSamplingUpperBoundary() {
         long upperBound = Long.MAX_VALUE / 2;
-        final TraceId transactionId = new TraceId();
+        final Id transactionId = Id.new128BitId();
 
-        transactionId.setValue(upperBound - 1, 0);
+        transactionId.fromLongs((long) 0, upperBound - 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
 
-        transactionId.setValue(upperBound, 0);
+        transactionId.fromLongs((long) 0, upperBound);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
 
-        transactionId.setValue(upperBound + 1, 0);
+        transactionId.fromLongs((long) 0, upperBound + 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isFalse();
     }
 
     @Test
     void testSamplingLowerBoundary() {
         long lowerBound = -Long.MAX_VALUE / 2;
-        final TraceId transactionId = new TraceId();
+        final Id transactionId = Id.new128BitId();
 
-        transactionId.setValue(lowerBound + 1, 0);
+        transactionId.fromLongs((long) 0, lowerBound + 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
 
-        transactionId.setValue(lowerBound, 0);
+        transactionId.fromLongs((long) 0, lowerBound);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isTrue();
 
-        transactionId.setValue(lowerBound - 1, 0);
+        transactionId.fromLongs((long) 0, lowerBound - 1);
         assertThat(ProbabilitySampler.of(0.5).isSampled(transactionId)).isFalse();
     }
 

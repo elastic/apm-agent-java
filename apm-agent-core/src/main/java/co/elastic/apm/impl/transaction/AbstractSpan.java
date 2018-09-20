@@ -31,7 +31,7 @@ import java.util.List;
 
 public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
-    protected final TraceContext traceContext = new TraceContext();
+    protected final TraceContext traceContext = TraceContext.with64BitId();
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */

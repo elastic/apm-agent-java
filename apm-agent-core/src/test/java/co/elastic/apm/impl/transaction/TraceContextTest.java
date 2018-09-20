@@ -38,7 +38,7 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeader_notRecorded_notRequested() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isFalse();
@@ -51,7 +51,7 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeader_recorded_notRequested() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-02";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
@@ -64,7 +64,7 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeader_notRecorded_requested() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
@@ -78,7 +78,7 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeader_recorded_requested() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isTrue();
@@ -91,7 +91,7 @@ class TraceContextTest {
 
     @Test
     void outgoingHeader() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.getOutgoingTraceParentHeader().toString())
@@ -100,7 +100,7 @@ class TraceContextTest {
 
     @Test
     void outgoingHeaderRootSpan() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         traceContext.asRootSpan(ConstantSampler.of(true));
         assertThat(traceContext.getOutgoingTraceParentHeader().toString()).hasSize(55);
         assertThat(traceContext.getOutgoingTraceParentHeader().toString()).startsWith("00-");
@@ -109,7 +109,7 @@ class TraceContextTest {
 
     @Test
     void parseFromTraceParentHeader_notSampled() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
         assertThat(traceContext.asChildOf(header)).isTrue();
         assertThat(traceContext.isSampled()).isFalse();
@@ -118,7 +118,7 @@ class TraceContextTest {
 
     @Test
     void testResetState() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         traceContext.asChildOf("00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00");
         traceContext.resetState();
         assertThat(traceContext.getIncomingTraceParentHeader()).isEqualTo("00-00000000000000000000000000000000-0000000000000000-00");
@@ -126,14 +126,16 @@ class TraceContextTest {
 
     @Test
     void testRandomValue() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         traceContext.asRootSpan(ConstantSampler.of(true));
-        assertIsRoot(traceContext);
+        assertThat(traceContext.getTraceId().isEmpty()).isFalse();
+        assertThat(traceContext.getParentId().isEmpty()).isTrue();
+        assertThat(traceContext.getId().isEmpty()).isFalse();
     }
 
     @Test
     void testSetSampled() {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         traceContext.asRootSpan(ConstantSampler.of(false));
         assertThat(traceContext.isSampled()).isFalse();
         traceContext.setRecorded(true);
@@ -180,13 +182,7 @@ class TraceContextTest {
     }
 
     private void assertInvalid(String s) {
-        final TraceContext traceContext = new TraceContext();
+        final TraceContext traceContext = TraceContext.with64BitId();
         assertThat(traceContext.asChildOf(s)).isFalse();
-    }
-
-    private void assertIsRoot(TraceContext traceContext) {
-        assertThat(traceContext.getTraceId().isEmpty()).isFalse();
-        assertThat(traceContext.getParentId().asLong()).isZero();
-        assertThat(traceContext.getId().asLong()).isNotZero();
     }
 }
