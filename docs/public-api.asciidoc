@@ -58,6 +58,9 @@ import co.elastic.apm.api.Transaction;
 Transaction transaction = ElasticApm.currentTransaction();
 ----
 
+NOTE: Transactions created via <<api-start-transaction, `ElasticApm.startTransaction()`>>
+can not be retrieved by calling this method.
+
 [float]
 [[api-current-span]]
 ==== `Span currentSpan()`
@@ -79,6 +82,9 @@ import co.elastic.apm.api.Span;
 
 Span span = ElasticApm.currentSpan();
 ----
+
+NOTE: Spans created via <<api-span-start-span, `createSpan()`>>
+can not be retrieved by calling this method.
 
 [float]
 [[api-start-transaction]]
@@ -108,6 +114,8 @@ try {
 }
 ----
 
+NOTE: Spans created via this method can not be retrieved by calling <<api-current-span, `ElasticApm.currentSpan()`>>
+or <<api-current-transaction, `ElasticApm.currentTransaction()`>>.
 
 //----------------------------
 [float]
@@ -232,6 +240,7 @@ try {
 }
 ----
 
+NOTE: Spans created via this method can not be retrieved by calling <<api-current-span, `ElasticApm.currentSpan()`>>.
 
 [float]
 [[api-transaction-end]]
@@ -348,3 +357,5 @@ try {
     span.end();
 }
 ----
+
+NOTE: Spans created via this method can not be retrieved by calling <<api-current-span, `ElasticApm.currentSpan()`>>.
