@@ -56,7 +56,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
             return;
         }
         final AbstractSpan<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), String.valueOf(request.getURI()), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
+        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
