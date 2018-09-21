@@ -24,6 +24,7 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 
 public class HttpClientHelper {
 
@@ -31,15 +32,20 @@ public class HttpClientHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, String hostName, String spanType) {
+    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, String hostName, String spanType) {
+        Span span = null;
         if (!isAlreadyMonitored(parent)) {
-            return parent
+            span = parent
                 .createSpan()
                 .withType(spanType)
                 .appendToName(method).appendToName(" ").appendToName(hostName)
                 .activate();
+
+            if (uri != null) {
+                span.getContext().getHttp().withUrl(uri.toString());
+            }
         }
-        return null;
+        return span;
     }
 
     /*

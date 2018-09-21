@@ -57,8 +57,8 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
             return;
         }
         final AbstractSpan<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI().getHost(),
-            SPAN_TYPE_SPRING_REST_TEMPLATE);
+        span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
+            request.getURI().getHost(), SPAN_TYPE_SPRING_REST_TEMPLATE);
         if (span != null) {
             request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }

@@ -89,9 +89,10 @@ public class TransactionUtils {
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
             .withUser("readonly_user");
-        span.getContext().getTags().put("monitored_by", "ACME");
-        span.getContext().getTags().put("framework", "some-framework");
+        span.addTag("monitored_by", "ACME");
+        span.addTag("framework", "some-framework");
         t.addSpan(span);
+
         t.addSpan(new Span(mock(ElasticApmTracer.class))
             .start(t, null, 0, false)
             .withName("GET /api/types")
@@ -104,6 +105,14 @@ public class TransactionUtils {
             .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
+
+        span = new Span(mock(ElasticApmTracer.class))
+            .start(t, null, 0, false)
+            .appendToName("GET ")
+            .appendToName("test.elastic.co")
+            .withType("ext.http.apache-httpclient");
+        span.getContext().getHttp().withUrl("http://test.elastic.co/test-service");
+        t.addSpan(span);
     }
 
 }

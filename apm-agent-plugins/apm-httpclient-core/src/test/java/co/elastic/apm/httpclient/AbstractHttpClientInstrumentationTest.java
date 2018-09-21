@@ -25,7 +25,6 @@ import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import org.assertj.core.api.Java6Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,10 +57,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCall() {
-        performGetWithinTransaction("/");
+        String path = "/";
+        performGetWithinTransaction(path);
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/"))
@@ -70,10 +71,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallRedirect() {
-        performGetWithinTransaction("/redirect");
+        String path = "/redirect";
+        performGetWithinTransaction(path);
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/redirect"))
@@ -84,13 +87,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallCircularRedirect() {
-        performGetWithinTransaction("/circular-redirect");
+        String path = "/circular-redirect";
+        performGetWithinTransaction(path);
 
-        Java6Assertions.assertThat(reporter.getTransactions()).hasSize(1);
-        Java6Assertions.assertThat(reporter.getSpans()).hasSize(1);
-        Java6Assertions.assertThat(reporter.getErrors()).hasSize(1);
-        Java6Assertions.assertThat(reporter.getFirstError().getException()).isNotNull();
-        Java6Assertions.assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException()).isNotNull();
+        assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/circular-redirect"))
