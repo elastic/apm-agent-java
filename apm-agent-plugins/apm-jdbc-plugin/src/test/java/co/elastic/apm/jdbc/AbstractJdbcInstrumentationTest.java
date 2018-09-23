@@ -24,12 +24,18 @@ import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,23 +43,41 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Uses plain connections without a connection pool
  */
 public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrumentationTest {
-    protected final String expectedSpanType;
-    protected Connection connection;
-    protected Transaction transaction;
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
+    private static final String PREPARED_STATEMENT_SQL = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
+    private static final long PREPARED_STMT_TIMEOUT = 10000;
 
-    public AbstractJdbcInstrumentationTest(Connection connection, String expectedSpanType) throws Exception {
+    private final String expectedSpanType;
+    private Connection connection;
+    @Nullable
+    private PreparedStatement preparedStatement;
+
+    AbstractJdbcInstrumentationTest(Connection connection, String expectedSpanType) throws Exception {
         this.connection = connection;
         this.expectedSpanType = expectedSpanType;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        transaction = tracer.startTransaction().activate();
+        Transaction transaction = tracer.startTransaction().activate();
         transaction.setName("transaction");
         transaction.withType("request");
         transaction.withResult("success");
     }
 
+    @Before
+    public void setUp() throws Exception {
+        preparedStatement = EXECUTOR_SERVICE.submit(new Callable<PreparedStatement>() {
+            public PreparedStatement call() throws Exception {
+                return connection.prepareStatement(PREPARED_STATEMENT_SQL);
+            }
+        }).get(PREPARED_STMT_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
     @After
     public void tearDown() throws SQLException {
+        if (preparedStatement != null) {
+            preparedStatement.close();
+        }
+        preparedStatement = null;
         connection.createStatement().execute("DROP TABLE ELASTIC_APM");
         connection.close();
     }
@@ -73,11 +97,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     private void testPreparedStatement() throws SQLException {
-        final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setInt(1, 1);
-        ResultSet resultSet = preparedStatement.executeQuery();
-        assertSpanRecorded(resultSet, sql);
+        if (preparedStatement != null) {
+            preparedStatement.setInt(1, 1);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
+        }
     }
 
     private void assertSpanRecorded(ResultSet resultSet, String sql) throws SQLException {
