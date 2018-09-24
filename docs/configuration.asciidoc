@@ -250,7 +250,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
+Valid options are `apache-httpclient`, `http-client`, `incubating`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -874,7 +874,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
+# Valid options are `apache-httpclient`, `http-client`, `incubating`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #

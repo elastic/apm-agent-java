@@ -28,6 +28,8 @@ import net.bytebuddy.matcher.ElementMatchers;
 import javax.annotation.Nullable;
 import java.util.Collection;
 
+import static net.bytebuddy.matcher.ElementMatchers.any;
+
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
  * (see {@link #getTypeMatcher()}).
@@ -71,6 +73,10 @@ public abstract class ElasticApmInstrumentation {
      * @return the type matcher
      */
     public abstract ElementMatcher<? super TypeDescription> getTypeMatcher();
+
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return any();
+    }
 
     /**
      * The method matcher selects methods of types matching {@link #getTypeMatcher()},

@@ -20,12 +20,14 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
@@ -126,6 +128,9 @@ public class ElasticApmAgent {
             .type(new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
+                    if (!advice.getClassLoaderMatcher().matches(classLoader)) {
+                        return false;
+                    }
                     boolean typeMatches;
                     try {
                         typeMatches = advice.getTypeMatcher().matches(typeDescription);
@@ -143,7 +148,9 @@ public class ElasticApmAgent {
                     return typeMatches;
                 }
             })
-            .transform(new AgentBuilder.Transformer.ForAdvice()
+            .transform(new AgentBuilder.Transformer.ForAdvice(Advice
+                .withCustomMapping()
+                .bind(new SimpleMethodSignatureOffsetMappingFactory()))
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {
