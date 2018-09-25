@@ -1,3 +1,22 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 Elastic and contributors
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
 package co.elastic.apm.jaxrs;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
@@ -9,6 +28,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,7 +36,6 @@ import java.util.Collections;
 
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -43,7 +62,8 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return isInAnyPackage(applicationPackages, any())
+        // setting application_packages makes this matcher more performant but is not required
+        return isInAnyPackage(applicationPackages, ElementMatchers.<TypeDescription>any())
             .and(isAnnotatedWith(named("javax.ws.rs.Path")));
     }
 

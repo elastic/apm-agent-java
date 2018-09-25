@@ -33,7 +33,8 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Collection<String>> applicationPackages = ConfigurationOption.stringsOption()
         .key("application_packages")
         .configurationCategory(STACKTRACE_CATEGORY)
-        .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.")
+        .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
+            "Setting this option can also improve the startup time.")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
 
