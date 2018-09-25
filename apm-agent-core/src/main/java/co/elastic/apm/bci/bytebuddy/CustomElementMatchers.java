@@ -46,7 +46,7 @@ public class CustomElementMatchers {
     public static ElementMatcher.Junction<ClassLoader> classLoaderCanLoadClass(final String className) {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
-            private final boolean loadableByBootstrapClassLoader = canLoadClass(ClassLoader.getSystemClassLoader().getParent(), className);
+            private final boolean loadableByBootstrapClassLoader = canLoadClass(null, className);
             private WeakConcurrentMap<ClassLoader, Boolean> cache = new WeakConcurrentMap.WithInlinedExpunction<>();
 
             @Override
@@ -65,12 +65,12 @@ public class CustomElementMatchers {
         };
     }
 
-    private static boolean canLoadClass(ClassLoader target, String className) {
+    private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
         boolean result;
         try {
-            target.loadClass(className);
+            Class.forName(className, false, target);
             result = true;
-        } catch (ClassNotFoundException ignore) {
+        } catch (Exception ignore) {
             result = false;
         }
         return result;

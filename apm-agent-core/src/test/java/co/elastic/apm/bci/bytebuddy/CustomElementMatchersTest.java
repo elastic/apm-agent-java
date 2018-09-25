@@ -42,6 +42,7 @@ class CustomElementMatchersTest {
     @Test
     void testClassLoaderCanLoadClass() {
         assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(ClassLoader.getSystemClassLoader())).isTrue();
+        assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(null)).isTrue();
         assertThat(classLoaderCanLoadClass("not.Here").matches(ClassLoader.getSystemClassLoader())).isFalse();
     }
 }
