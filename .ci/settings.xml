@@ -24,6 +24,7 @@
             </activation>
             <properties>
                 <gpg.passphrase>${env.KEYPASS}</gpg.passphrase>
+                <gpg.executable>gpg2</gpg.executable>
             </properties>
         </profile>
     </profiles>
