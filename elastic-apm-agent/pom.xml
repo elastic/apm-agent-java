@@ -81,6 +81,10 @@
                                     <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.weaklockfree</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.googlecode.concurrentlinkedhashmap</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.concurrentlinkedhashmap</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />

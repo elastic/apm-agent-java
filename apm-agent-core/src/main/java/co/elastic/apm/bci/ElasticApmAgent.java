@@ -20,7 +20,9 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.bci.bytebuddy.SizeLimitedLruTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.configuration.converter.ByteValue;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.ByteBuddy;
@@ -31,6 +33,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,6 +199,8 @@ public class ElasticApmAgent {
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(new ErrorLoggingListener())
+            // ReaderMode.FAST as we don't need to read method parameter names
+            .with(new SizeLimitedLruTypePoolCache(getMaxTypePoolCacheSizeBytes(), TypePool.Default.ReaderMode.FAST))
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("java."))
@@ -208,6 +213,15 @@ public class ElasticApmAgent {
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .disableClassFormatChanges();
+    }
+
+    // Max memory | Cache size | Max Cached TypeDescriptions
+    // 100MB      |   1MB      |   256
+    //   1GB      |  10MB      |  2560
+    //  10GB      | 100MB      | 25600
+    // 100GB      | 100MB      | 25600
+    private static long getMaxTypePoolCacheSizeBytes() {
+        return (long) (Math.min(Runtime.getRuntime().maxMemory(), ByteValue.of("10gb").getBytes()) * 0.01);
     }
 
     /**
