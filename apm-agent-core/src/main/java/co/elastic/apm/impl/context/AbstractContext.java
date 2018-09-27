@@ -45,4 +45,8 @@ public abstract class AbstractContext implements Recyclable {
     public boolean hasContent() {
         return !tags.isEmpty();
     }
+
+    public void copyFrom(AbstractContext other) {
+        tags.putAll(other.tags);
+    }
 }

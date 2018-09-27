@@ -19,6 +19,7 @@
         <module>apm-spring-resttemplate-plugin</module>
         <module>apm-httpclient-core</module>
         <module>apm-slf4j-plugin</module>
+        <module>apm-es-restclient-plugin</module>
     </modules>
 
     <properties>
