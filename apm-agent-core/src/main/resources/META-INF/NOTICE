@@ -3,3 +3,4 @@ under the Apache License 2.0. See:
  - co.elastic.apm.configuration.source.PropertyFileConfigurationSource
  - co.elastic.apm.configuration.source.SystemPropertyConfigurationSource
  - co.elastic.apm.configuration.StartupInfo
+ - co.elastic.apm.bci.bytebuddy.MethodHierarchyMatcher

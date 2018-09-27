@@ -21,32 +21,68 @@ package co.elastic.apm.jaxrs;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.transaction.Transaction;
-import org.junit.jupiter.api.Test;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.test.JerseyTest;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.Application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JaxRsTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
+public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
+
+    @BeforeClass
+    public static void beforeClass() {
+        AbstractInstrumentationTest.beforeAll();
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        AbstractInstrumentationTest.afterAll();
+    }
+
+    public Application configure() {
+        return new ResourceConfig(TestResource.class);
+    }
+
+    @Before
+    public void before() {
+        AbstractInstrumentationTest.reset();
+    }
 
     @Test
-    void testJaxRsTransactionName() {
-        final Transaction request = tracer.startTransaction().withType("request").activate();
+    public void testJaxRsTransactionName() {
+        final Transaction request = AbstractInstrumentationTest.getTracer().startTransaction().withType("request").activate();
         try {
-            new TestResource().testMethod();
+            assertThat(getClient().target(getBaseUri()).path("test").request().buildGet().invoke(String.class)).isEqualTo("ok");
         } finally {
             request.deactivate().end();
         }
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("JaxRsTransactionNameInstrumentationTest$TestResource#testMethod");
+        assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getName().toString())
+            .isEqualTo("JaxRsTransactionNameInstrumentationTest$TestResource#testMethod");
+    }
+
+    public interface SuperResourceInterface {
+        @GET
+        String testMethod();
+    }
+
+    public interface TestResourceInterface extends SuperResourceInterface {
+        String testMethod();
+    }
+
+    static abstract class AbstractResourceClass implements TestResourceInterface {
     }
 
     @Path("test")
-    public static class TestResource {
-
-        @GET
+    public static class TestResource extends AbstractResourceClass {
         public String testMethod() {
-            return "";
+            return "ok";
         }
     }
 }

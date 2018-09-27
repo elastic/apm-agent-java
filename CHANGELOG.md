@@ -6,6 +6,8 @@
 ## Features
  * Wildcard patterns are now not limited to only one wildcard in the middle and can be arbitrarily complex now.
    Example: `*foo*bar*baz`.
+ * Support for JAX-RS annotations.
+   Transactions are named based on your resources (`ResourceClass#resourceMethod`).
 
 ## Bug Fixes
 

@@ -20,6 +20,7 @@
 package co.elastic.apm.bci.bytebuddy;
 
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -74,5 +75,17 @@ public class CustomElementMatchers {
             result = false;
         }
         return result;
+    }
+
+    /**
+     * Matches overridden methods of a super class or implemented methods of an interface.
+     * Recursively traverses the superclasses and interfaces.
+     * The the superclasses and interfaces to examine can be limited via {@link MethodHierarchyMatcher#onSuperClassesThat(ElementMatcher)}.
+     *
+     * @param methodElementMatcher The matcher which is applied on the method hierarchy
+     * @return a matcher which is applied on the method hierarchy
+     */
+    public static MethodHierarchyMatcher overridesOrImplementsMethodThat(ElementMatcher<? super MethodDescription> methodElementMatcher) {
+        return new MethodHierarchyMatcher(methodElementMatcher);
     }
 }

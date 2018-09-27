@@ -36,6 +36,8 @@ import java.util.Collections;
 
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -64,6 +66,11 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // setting application_packages makes this matcher more performant but is not required
         return isInAnyPackage(applicationPackages, ElementMatchers.<TypeDescription>any())
+            // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
+            // "Note that inheritance of class or interface annotations is not supported."
+            // However, at least Jersey also supports the @Path to be at a parent class/interface
+            // we don't to support that at the moment because of performance concerns
+            // (matching on the class hierarchy vs matching one class)
             .and(isAnnotatedWith(named("javax.ws.rs.Path")));
     }
 
@@ -75,12 +82,18 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isAnnotatedWith(named("javax.ws.rs.GET"))
-            .or(isAnnotatedWith(named("javax.ws.rs.POST")))
-            .or(isAnnotatedWith(named("javax.ws.rs.PUT")))
-            .or(isAnnotatedWith(named("javax.ws.rs.DELETE")))
-            .or(isAnnotatedWith(named("javax.ws.rs.HEAD")))
-            .or(isAnnotatedWith(named("javax.ws.rs.OPTIONS")));
+        // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
+        // "JAX-RS annotations may be used on the methods and method parameters of a super-class or an implemented interface."
+        return overridesOrImplementsMethodThat(
+            isAnnotatedWith(
+                named("javax.ws.rs.GET")
+                    .or(named("javax.ws.rs.POST"))
+                    .or(named("javax.ws.rs.PUT"))
+                    .or(named("javax.ws.rs.DELETE"))
+                    .or(named("javax.ws.rs.HEAD"))
+                    .or(named("javax.ws.rs.OPTIONS"))
+                    .or(named("javax.ws.rs.HttpMethod"))))
+            .onSuperClassesThat(isInAnyPackage(applicationPackages, any()));
     }
 
     @Override

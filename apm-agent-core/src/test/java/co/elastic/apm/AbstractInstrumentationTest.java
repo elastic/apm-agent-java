@@ -55,10 +55,26 @@ public abstract class AbstractInstrumentationTest {
         ElasticApmAgent.reset();
     }
 
+    public static void reset() {
+        SpyConfiguration.reset(config);
+        reporter.reset();
+    }
+
+    public static ElasticApmTracer getTracer() {
+        return tracer;
+    }
+
+    public static MockReporter getReporter() {
+        return reporter;
+    }
+
+    public static ConfigurationRegistry getConfig() {
+        return config;
+    }
+
     @Before
     @BeforeEach
     public final void resetReporter() {
-        SpyConfiguration.reset(config);
-        reporter.reset();
+        reset();
     }
 }
