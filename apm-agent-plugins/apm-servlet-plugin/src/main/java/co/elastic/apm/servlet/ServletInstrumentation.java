@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.impl.ElasticApmTracer;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -55,12 +56,13 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Servlet").or(nameContainsIgnoreCase("jsp"));
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // the hasSuperType matcher is quite costly,
-            // as the inheritance hierarchy of each class would have to be examined
-            // this pre-selects candidates and hopefully does not cause lots of false negatives
-            .and(nameContains("Servlet").or(nameContainsIgnoreCase("jsp")))
             .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
     }
 

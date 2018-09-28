@@ -63,9 +63,9 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
      */
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface())
-            .and(nameStartsWith("org.springframework.web.servlet"))
-            .and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter")));
+        return nameStartsWith("org.springframework.web.servlet")
+            .and(hasSuperType(named("org.springframework.web.servlet.HandlerAdapter")))
+            .and(not(isInterface()));
     }
 
     @Override

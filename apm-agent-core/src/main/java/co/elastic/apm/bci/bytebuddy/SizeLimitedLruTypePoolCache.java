@@ -32,11 +32,11 @@ import java.util.concurrent.ConcurrentMap;
  * Caches {@link TypeDescription}s which speeds up type matching -
  * especially when the matching requires lookup of other {@link TypeDescription}s.
  * Such as when in order to match a type, it's superclass has to be determined.
- * Without a type pool cache those types would have to be re-loaded from the file system if their {@link Class} file has not been loaded yet.
+ * Without a type pool cache those types would have to be re-loaded from the file system if their {@link Class} has not been loaded yet.
  * <p>
  * In order to avoid {@link OutOfMemoryError}s because of this cache,
  * a maximum size in bytes can be configured.
- * If the cache size is exceeded, the least frequently used element will be discarded.
+ * If the cache size is exceeded, the least frequently used element will be evicted.
  * Note that the cache size calculation is only a rough estimation (see {@link ResolutionWeigher}).
  * </p>
  */
