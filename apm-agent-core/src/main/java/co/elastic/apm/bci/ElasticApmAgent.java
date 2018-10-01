@@ -21,9 +21,8 @@ package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.bci.bytebuddy.MatcherTimer;
-import co.elastic.apm.bci.bytebuddy.SizeLimitedLruTypePoolCache;
+import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.converter.ByteValue;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.ByteBuddy;
@@ -250,8 +249,7 @@ public class ElasticApmAgent {
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(coreConfiguration.isTypePoolCacheEnabled()
-                ? new SizeLimitedLruTypePoolCache(getMaxTypePoolCacheSizeBytes(),
-                TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
+                ? new SoftlyReferencingTypePoolCache(TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
@@ -265,24 +263,6 @@ public class ElasticApmAgent {
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .disableClassFormatChanges();
-    }
-
-    /*
-     * Per class loader:
-     * Max memory | Cache size  | Max Cached TypeDescriptions
-     * 100MB      |   ~2MB      |    512
-     *   1GB      |  ~20MB      |  5,120
-     *   5GB      | ~100MB      | 10,240
-     *  10GB      | ~200MB      | 51,200
-     * 100GB      | ~200MB      | 51,200
-     *
-     * TotalLoadedClassCount
-     * JMC:                10,798
-     * Spring PetClinic:   14,828
-     * IntelliJ:          104,533
-     */
-    private static long getMaxTypePoolCacheSizeBytes() {
-        return (long) (Math.min(Runtime.getRuntime().maxMemory(), ByteValue.of("10gb").getBytes()) * 0.02);
     }
 
     /**

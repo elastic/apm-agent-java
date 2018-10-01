@@ -21,15 +21,12 @@ package co.elastic.apm.bci.bytebuddy;
 
 import co.elastic.apm.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.googlecode.concurrentlinkedhashmap.Weigher;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
 
 import java.lang.ref.SoftReference;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -40,12 +37,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * Without a type pool cache those types would have to be re-loaded from the file system if their {@link Class} has not been loaded yet.
  * <p>
  * In order to avoid {@link OutOfMemoryError}s because of this cache,
- * a maximum size in bytes can be configured.
- * If the cache size is exceeded, the least frequently used element will be evicted.
- * Note that the cache size calculation is only a rough estimation (see {@link ResolutionWeigher}).
+ * the {@link TypePool.CacheProvider}s are wrapped in a {@link SoftReference}
  * </p>
  */
-public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
+public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
 
     /*
      * Weakly referencing ClassLoaders to avoid class loader leaks
@@ -53,14 +48,12 @@ public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithT
      */
     private final WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>> cacheProviders =
         new WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>>(false);
-    private final long maxCacheSizeBytes;
     private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
-    public SizeLimitedLruTypePoolCache(final long maxCacheSizeBytes, final TypePool.Default.ReaderMode readerMode,
-                                       final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
+    public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
+                                          final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
-        this.maxCacheSizeBytes = maxCacheSizeBytes;
         ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner", 1)
             .scheduleWithFixedDelay(new Runnable() {
                 @Override
@@ -79,24 +72,17 @@ public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithT
         }
         lastAccess.set(System.currentTimeMillis());
         classLoader = classLoader == null ? ClassLoader.getSystemClassLoader() : classLoader;
-        SoftReference<TypePool.CacheProvider> cacheProvider = cacheProviders.get(classLoader);
-        while (cacheProvider == null || cacheProvider.get() == null) {
-            cacheProvider = new SoftReference<>(createSizeLimitedCacheProvider());
-            SoftReference<TypePool.CacheProvider> previous = cacheProviders.put(classLoader, cacheProvider);
+        SoftReference<TypePool.CacheProvider> cacheProviderRef = cacheProviders.get(classLoader);
+        while (cacheProviderRef == null || cacheProviderRef.get() == null) {
+            cacheProviderRef = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
+            SoftReference<TypePool.CacheProvider> previous = cacheProviders.put(classLoader, cacheProviderRef);
             if (previous != null) {
-                cacheProvider = previous;
+                cacheProviderRef = previous;
             }
         }
-        return cacheProvider.get();
-    }
-
-    private TypePool.CacheProvider createSizeLimitedCacheProvider() {
-        TypePool.CacheProvider cacheProvider = new SizeLimitedTypePool(new ConcurrentLinkedHashMap.Builder<String, TypePool.Resolution>()
-            .weigher(new ResolutionWeigher())
-            .maximumWeightedCapacity(maxCacheSizeBytes)
-            .build());
-        cacheProvider.register(Object.class.getName(), new TypePool.Resolution.Simple(TypeDescription.OBJECT));
-        return cacheProvider;
+        final TypePool.CacheProvider cacheProvider = cacheProviderRef.get();
+        // guard against edge case when the soft reference has already been cleared since evaluating the loop condition
+        return cacheProvider != null ? cacheProvider : TypePool.CacheProvider.Simple.withObjectType();
     }
 
     /**
@@ -119,54 +105,6 @@ public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithT
     private void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
         if (System.currentTimeMillis() > lastAccess.get() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
             cacheProviders.clear();
-        }
-    }
-
-    /**
-     * Duplicates some code from {@link net.bytebuddy.pool.TypePool.CacheProvider.Simple},
-     * because it does not take a {@link ConcurrentMap} as a constructor argument.
-     */
-    private static class SizeLimitedTypePool implements TypePool.CacheProvider {
-
-        /**
-         * A map containing all cached resolutions by their names.
-         */
-        private final ConcurrentMap<String, TypePool.Resolution> storage;
-
-        private SizeLimitedTypePool(ConcurrentLinkedHashMap<String, TypePool.Resolution> storage) {
-            this.storage = storage;
-        }
-
-        @Override
-        public TypePool.Resolution find(String name) {
-            return storage.get(name);
-        }
-
-        @Override
-        public TypePool.Resolution register(String name, TypePool.Resolution resolution) {
-            TypePool.Resolution cached = storage.putIfAbsent(name, resolution);
-            return cached == null ? resolution : cached;
-        }
-
-        @Override
-        public void clear() {
-            storage.clear();
-        }
-    }
-
-    private static class ResolutionWeigher implements Weigher<TypePool.Resolution> {
-        /**
-         * A quick
-         * <pre>ls -al ./**{@literal /}*.class | awk '{sum += $5; n++;} END {print sum/n;}'</pre>
-         * of the unzipped agent jar + dependencies yields ~3.7kb/class file.
-         */
-        private static final int AVG_CLASS_FILE_SIZE = 4 * 1024;
-
-        @Override
-        public int weightOf(TypePool.Resolution value) {
-            // getting the actual size of the type description is difficult
-            // so just returning a avg size estimate, this is probably good enough
-            return AVG_CLASS_FILE_SIZE;
         }
     }
 }
