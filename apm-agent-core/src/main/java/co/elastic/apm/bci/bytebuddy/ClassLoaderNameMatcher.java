@@ -34,8 +34,9 @@ public class ClassLoaderNameMatcher extends ElementMatcher.Junction.AbstractBase
 
 	}
 
-	public static ElementMatcher.Junction.AbstractBase<ClassLoader> isReflectionClassLoader() {
-		return new ClassLoaderNameMatcher("sun.reflect.DelegatingClassLoader");
+    public static ElementMatcher.Junction<ClassLoader> isReflectionClassLoader() {
+        return classLoaderWithName("sun.reflect.DelegatingClassLoader")
+            .or(classLoaderWithName("jdk.internal.reflect.DelegatingClassLoader"));
 	}
 
 	@Override

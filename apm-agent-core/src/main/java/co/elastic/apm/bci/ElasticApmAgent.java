@@ -57,7 +57,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public class ElasticApmAgent {
 
-    private static ConcurrentMap<Class<? extends ElasticApmInstrumentation>, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Class<? extends ElasticApmInstrumentation>, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
@@ -87,9 +87,10 @@ public class ElasticApmAgent {
             @Override
             public void run() {
                 tracer.stop();
+                matcherTimers.clear();
             }
         });
-        matcherTimers = new ConcurrentHashMap<>();
+        matcherTimers.clear();
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
@@ -249,7 +250,8 @@ public class ElasticApmAgent {
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(coreConfiguration.isTypePoolCacheEnabled()
-                ? new SizeLimitedLruTypePoolCache(getMaxTypePoolCacheSizeBytes(), TypePool.Default.ReaderMode.FAST)
+                ? new SizeLimitedLruTypePoolCache(getMaxTypePoolCacheSizeBytes(),
+                TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
@@ -265,13 +267,22 @@ public class ElasticApmAgent {
             .disableClassFormatChanges();
     }
 
-    // Max memory | Cache size | Max Cached TypeDescriptions
-    // 100MB      |   1MB      |   256
-    //   1GB      |  10MB      |  2560
-    //  10GB      | 100MB      | 25600
-    // 100GB      | 100MB      | 25600
+    /*
+     * Per class loader:
+     * Max memory | Cache size  | Max Cached TypeDescriptions
+     * 100MB      |   ~2MB      |    512
+     *   1GB      |  ~20MB      |  5,120
+     *   5GB      | ~100MB      | 10,240
+     *  10GB      | ~200MB      | 51,200
+     * 100GB      | ~200MB      | 51,200
+     *
+     * TotalLoadedClassCount
+     * JMC:                10,798
+     * Spring PetClinic:   14,828
+     * IntelliJ:          104,533
+     */
     private static long getMaxTypePoolCacheSizeBytes() {
-        return (long) (Math.min(Runtime.getRuntime().maxMemory(), ByteValue.of("10gb").getBytes()) * 0.01);
+        return (long) (Math.min(Runtime.getRuntime().maxMemory(), ByteValue.of("10gb").getBytes()) * 0.02);
     }
 
     /**

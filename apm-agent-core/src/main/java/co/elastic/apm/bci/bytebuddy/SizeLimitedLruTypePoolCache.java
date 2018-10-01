@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,14 +19,19 @@
  */
 package co.elastic.apm.bci.bytebuddy;
 
+import co.elastic.apm.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.googlecode.concurrentlinkedhashmap.Weigher;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
 
+import java.lang.ref.SoftReference;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Caches {@link TypeDescription}s which speeds up type matching -
@@ -42,27 +47,47 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithTypePoolCache {
 
-    private final WeakConcurrentMap<ClassLoader, TypePool.CacheProvider> cacheProviders = new WeakConcurrentMap
-        .WithInlinedExpunction<ClassLoader, TypePool.CacheProvider>();
+    /*
+     * Weakly referencing ClassLoaders to avoid class loader leaks
+     * Softly referencing the type pool cache so that it does not cause OOMEs
+     */
+    private final WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>> cacheProviders =
+        new WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>>(false);
     private final long maxCacheSizeBytes;
+    private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
+    private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
-    public SizeLimitedLruTypePoolCache(long maxCacheSizeBytes, TypePool.Default.ReaderMode readerMode) {
+    public SizeLimitedLruTypePoolCache(final long maxCacheSizeBytes, final TypePool.Default.ReaderMode readerMode,
+                                       final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
         this.maxCacheSizeBytes = maxCacheSizeBytes;
+        ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner", 1)
+            .scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    clearIfNotAccessedSince(clearIfNotAccessedSinceMinutes);
+                    cacheProviders.expungeStaleEntries();
+                }
+            }, 1, 1, TimeUnit.MINUTES);
+        this.ignoredClassLoaders = ignoredClassLoaders;
     }
 
     @Override
     protected TypePool.CacheProvider locate(ClassLoader classLoader) {
+        if (ignoredClassLoaders.matches(classLoader)) {
+            return TypePool.CacheProvider.Simple.withObjectType();
+        }
+        lastAccess.set(System.currentTimeMillis());
         classLoader = classLoader == null ? ClassLoader.getSystemClassLoader() : classLoader;
-        TypePool.CacheProvider cacheProvider = cacheProviders.get(classLoader);
-        while (cacheProvider == null) {
-            cacheProvider = createSizeLimitedCacheProvider();
-            TypePool.CacheProvider previous = cacheProviders.put(classLoader, cacheProvider);
+        SoftReference<TypePool.CacheProvider> cacheProvider = cacheProviders.get(classLoader);
+        while (cacheProvider == null || cacheProvider.get() == null) {
+            cacheProvider = new SoftReference<>(createSizeLimitedCacheProvider());
+            SoftReference<TypePool.CacheProvider> previous = cacheProviders.put(classLoader, cacheProvider);
             if (previous != null) {
                 cacheProvider = previous;
             }
         }
-        return cacheProvider;
+        return cacheProvider.get();
     }
 
     private TypePool.CacheProvider createSizeLimitedCacheProvider() {
@@ -75,6 +100,29 @@ public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithT
     }
 
     /**
+     * Clears the type pool cache if it has not been accessed for the specified amount of time.
+     * <p>
+     * This cache is mostly useful while the application starts and warms up.
+     * After a certain point, all classes are loaded and this cache is not needed anymore
+     * </p>
+     * <p>
+     * Evicting the whole cache at once has advantages over evicting on an entry-based level:
+     * A resolution never gets stale or outdated, which is the main use case for having a max age for an entry.
+     * Also, this model only works when the cache is frequently accessed,
+     * as most caches only evict stale entries when interacting with the cache.
+     * In our scenario,
+     * the cache is not accessed at all once all classes have been loaded which means it would never get cleared.
+     * </p>
+     *
+     * @param clearIfNotAccessedSinceMinutes the time in minutes after which the cache should be cleared
+     */
+    private void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
+        if (System.currentTimeMillis() > lastAccess.get() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
+            cacheProviders.clear();
+        }
+    }
+
+    /**
      * Duplicates some code from {@link net.bytebuddy.pool.TypePool.CacheProvider.Simple},
      * because it does not take a {@link ConcurrentMap} as a constructor argument.
      */
@@ -83,27 +131,26 @@ public class SizeLimitedLruTypePoolCache extends AgentBuilder.PoolStrategy.WithT
         /**
          * A map containing all cached resolutions by their names.
          */
-        private final ConcurrentMap<String, TypePool.Resolution> cache;
+        private final ConcurrentMap<String, TypePool.Resolution> storage;
 
-
-        private SizeLimitedTypePool(ConcurrentLinkedHashMap<String, TypePool.Resolution> cache) {
-            this.cache = cache;
+        private SizeLimitedTypePool(ConcurrentLinkedHashMap<String, TypePool.Resolution> storage) {
+            this.storage = storage;
         }
 
         @Override
         public TypePool.Resolution find(String name) {
-            return cache.get(name);
+            return storage.get(name);
         }
 
         @Override
         public TypePool.Resolution register(String name, TypePool.Resolution resolution) {
-            TypePool.Resolution cached = cache.putIfAbsent(name, resolution);
+            TypePool.Resolution cached = storage.putIfAbsent(name, resolution);
             return cached == null ? resolution : cached;
         }
 
         @Override
         public void clear() {
-            cache.clear();
+            storage.clear();
         }
     }
 
