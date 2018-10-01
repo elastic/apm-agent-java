@@ -211,6 +211,27 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "for example when a javax.servlet.Servlet does not contain the word 'Servlet' in the class name.")
         .buildWithDefault(true);
 
+
+    private final ConfigurationOption<List<WildcardMatcher>> excludedFromInstrumentation = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("excluded_from_instrumentation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("(?-i)org.infinispan*"),
+            WildcardMatcher.valueOf("(?-i)org.apache.xerces*"),
+            WildcardMatcher.valueOf("(?-i)org.jboss.as.*"),
+            WildcardMatcher.valueOf("(?-i)io.undertow.core*"),
+            WildcardMatcher.valueOf("(?-i)org.eclipse.jdt.ecj*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.extension.*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.security*")
+        ));
+
+
     public boolean isActive() {
         return active.get();
     }
@@ -261,5 +282,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypeMatchingWithNamePreFilter() {
         return typeMatchingWithNamePreFilter.get();
+    }
+
+    public List<WildcardMatcher> getExcludedFromInstrumentation() {
+        return excludedFromInstrumentation.get();
     }
 }

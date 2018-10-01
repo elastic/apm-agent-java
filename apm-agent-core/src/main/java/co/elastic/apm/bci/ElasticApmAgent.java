@@ -25,6 +25,7 @@ import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.matcher.WildcardMatcher;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -243,7 +244,7 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(ByteBuddy byteBuddy, CoreConfiguration coreConfiguration) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(new ErrorLoggingListener())
@@ -262,6 +263,12 @@ public class ElasticApmAgent {
             .or(nameStartsWith("net.bytebuddy."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
+            .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
+                @Override
+                public boolean matches(TypeDescription target) {
+                    return WildcardMatcher.anyMatch(coreConfiguration.getExcludedFromInstrumentation(), target.getName()) != null;
+                }
+            })
             .disableClassFormatChanges();
     }
 
