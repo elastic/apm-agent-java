@@ -44,6 +44,7 @@ import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -186,8 +187,7 @@ public class ElasticApmAgent {
                     }
                 }, advice.getAdviceClass().getName())
                 .include(advice.getAdviceClass().getClassLoader())
-                .withExceptionHandler(PRINTING))
-            .asDecorator();
+                .withExceptionHandler(PRINTING));
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
@@ -245,6 +245,7 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
+        final List<WildcardMatcher> excludedFromInstrumentation = coreConfiguration.getExcludedFromInstrumentation();
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(new ErrorLoggingListener())
@@ -261,12 +262,13 @@ public class ElasticApmAgent {
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
+            .or(nameStartsWith("org.stagemonitor."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(coreConfiguration.getExcludedFromInstrumentation(), target.getName()) != null;
+                    return WildcardMatcher.anyMatch(excludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();
