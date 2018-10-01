@@ -44,6 +44,17 @@ public class CustomElementMatchers {
         return matcher;
     }
 
+    /**
+     * Matches only class loaders which can load a certain class.
+     * <p>
+     * <b>Warning:</b> the class will be tried to load by each class loader.
+     * You should choose a class which does not have optional dependencies (imports classes which are not on the class path).
+     * Ideally, choose an interface or annotation without dependencies.
+     * </p>
+     *
+     * @param className the name of the class to check
+     * @return a matcher which only matches class loaders which can load a certain class.
+     */
     public static ElementMatcher.Junction<ClassLoader> classLoaderCanLoadClass(final String className) {
         return new ElementMatcher.Junction.AbstractBase<ClassLoader>() {
 
