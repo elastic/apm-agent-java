@@ -187,7 +187,8 @@ public class ElasticApmAgent {
                     }
                 }, advice.getAdviceClass().getName())
                 .include(advice.getAdviceClass().getClassLoader())
-                .withExceptionHandler(PRINTING));
+                .withExceptionHandler(PRINTING))
+            .asDecorator();
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
