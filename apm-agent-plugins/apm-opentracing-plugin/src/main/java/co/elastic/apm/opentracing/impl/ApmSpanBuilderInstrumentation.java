@@ -53,10 +53,6 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         this.methodMatcher = methodMatcher;
     }
 
-    private static long getStartTime(long microseconds) {
-        return microseconds >= 0 ? microseconds * 1000 : System.nanoTime();
-    }
-
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.apm.opentracing.ApmSpanBuilder");
@@ -108,7 +104,11 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
                     if (apmParent != null) {
-                        return apmParent.createSpan(getStartTime(microseconds));
+                        if (microseconds >= 0) {
+                            return apmParent.createSpan(microseconds);
+                        } else {
+                            return apmParent.createSpan();
+                        }
                     }
                 }
             }
@@ -130,7 +130,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(getTraceContextHeader(baggage), sampler, getStartTime(microseconds));
+                return tracer.startTransaction(getTraceContextHeader(baggage), sampler, microseconds);
             }
         }
 

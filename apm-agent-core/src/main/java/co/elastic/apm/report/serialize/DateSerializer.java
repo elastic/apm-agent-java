@@ -81,16 +81,16 @@ class DateSerializer {
         return atStartOfDay(epochTimestamp) + MILLIS_PER_DAY - 1;
     }
 
-    void serializeEpochTimestampAsIsoDateTime(JsonWriter jw, long epochTimestamp) {
-        if (!isDateCached(epochTimestamp)) {
-            cacheDate(epochTimestamp);
+    void serializeEpochTimestampAsIsoDateTime(JsonWriter jw, long epochMillis) {
+        if (!isDateCached(epochMillis)) {
+            cacheDate(epochMillis);
         }
         jw.writeAscii(cachedDateIso);
 
         jw.writeByte(TIME_SEPARATOR);
 
         // hours
-        long remainder = epochTimestamp % MILLIS_PER_DAY;
+        long remainder = epochMillis % MILLIS_PER_DAY;
         serializeWithLeadingZero(jw, remainder / MILLIS_PER_HOUR, 2);
         jw.writeByte(COLON);
 
