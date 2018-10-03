@@ -105,7 +105,6 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     }
 
     private void assertSpanRecorded(ResultSet resultSet, String sql) throws SQLException {
-        System.out.println(reporter.generateTransactionPayloadJson());
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");

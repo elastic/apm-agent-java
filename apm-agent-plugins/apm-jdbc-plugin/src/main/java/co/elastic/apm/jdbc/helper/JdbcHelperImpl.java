@@ -41,6 +41,8 @@ public class JdbcHelperImpl implements JdbcHelper {
     private static final Map<Connection, ConnectionMetaData> metaDataMap =
         Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
 
+    private static final String UNKNOWN_SPAN_TYPE = computeJdbcSpanTypeName("unknown");
+
     @Override
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
@@ -53,7 +55,7 @@ public class JdbcHelperImpl implements JdbcHelper {
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError
         // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
-        span.withType(computeJdbcSpanTypeName("unknown"));
+        span.withType(UNKNOWN_SPAN_TYPE);
         try {
             final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
             span.withType(connectionMetaData.type);
