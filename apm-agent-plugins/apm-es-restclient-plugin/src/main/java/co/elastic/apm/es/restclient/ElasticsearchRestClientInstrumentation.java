@@ -20,20 +20,21 @@
 package co.elastic.apm.es.restclient;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -44,45 +45,52 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * All sync operations go through org.elasticsearch.client.RestClient#performRequest(org.elasticsearch.client.Request)
  */
 public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrumentation {
-    private static final String ES_REST_CLIENT_INSTRUMENTATION_GROUP = "elasticsearch-restclient";
-    private static final String SPAN_TYPE = "es-restclient";
+    @VisibleForAdvice
+    public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
 
-    private static final String REST_CLIENT_CLASS_NAME = "org.elasticsearch.client.RestClient";
-    private static final String REQUEST_CLASS_NAME = "org.elasticsearch.client.Request";
-    private static final String PERFORM_REQUEST_METHOD_NAME = "performRequest";
+    @VisibleForAdvice
+    static final String SPAN_TYPE = "db.elasticsearch.request";
+    @VisibleForAdvice
+    static final String DB_CONTEXT_TYPE = "elasticsearch";
 
+    @VisibleForAdvice
     static final String ELASTICSEARCH_NODE_KEY = "Elasticsearch-node";
+    @VisibleForAdvice
     static final String QUERY_STATUS_CODE_KEY = "Query-status-code";
+    @VisibleForAdvice
     static final String ERROR_REASON_KEY = "Error-reason";
 
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) Request request,
-                                        @Advice.Local("span") Span span,
-                                        @Advice.Local("esre") ResponseException esre) {
+                                        @Advice.Local("span") Span span) {
         if (tracer == null || tracer.getActive() == null) {
             return;
         }
         span = tracer.getActive().createSpan()
             .withType(SPAN_TYPE)
-            .appendToName(request.getEndpoint()).appendToName(" ").appendToName(request.getMethod())
+            .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint())
             .activate();
 
-
-        // Add request parameters to query info
-        for (Map.Entry<String, String> param: request.getParameters().entrySet()) {
-            span.addTag(param.getKey(), param.getValue());
-        }
-
-        // Add request options to query info
-        for (Header header: request.getOptions().getHeaders()) {
-            span.addTag(header.getName(), header.getValue());
+        if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+            HttpEntity entity = request.getEntity();
+            if (entity != null && entity.isRepeatable()) {
+                try {
+                    String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), request.getEndpoint());
+                    if (body != null && !body.isEmpty()) {
+                        span.getContext().getDb()
+                            .withType(DB_CONTEXT_TYPE)
+                            .withStatement(body);
+                    }
+                } catch (IOException e) {
+                    // We can't log from here
+                }
+            }
         }
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                       @Advice.Local("span") @Nullable Span span,
-                                      @Advice.Local("esre") ResponseException esre,
                                       @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
             if(response != null) {
@@ -91,7 +99,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
             }
             else if(t instanceof ResponseException)
             {
-                esre = (ResponseException) t;
+                ResponseException esre = (ResponseException) t;
                 span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(esre.getResponse().getStatusLine().getStatusCode()));
                 span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
                 span.addTag(ELASTICSEARCH_NODE_KEY, esre.getResponse().getHost().toHostString());
@@ -104,18 +112,18 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named(REST_CLIENT_CLASS_NAME);
+        return named("org.elasticsearch.client.RestClient");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named(PERFORM_REQUEST_METHOD_NAME)
+        return named("performRequest")
             .and(takesArguments(1)
-            .and(takesArgument(0, named(REQUEST_CLASS_NAME))));
+                .and(takesArgument(0, named("org.elasticsearch.client.Request"))));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(ES_REST_CLIENT_INSTRUMENTATION_GROUP);
+        return Collections.singleton("elasticsearch-restclient");
     }
 }

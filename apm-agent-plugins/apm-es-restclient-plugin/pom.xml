@@ -13,7 +13,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <elasticsearch.version>6.4.1</elasticsearch.version>
+        <version.elasticsearch>6.4.1</version.elasticsearch>
     </properties>
 
     <dependencies>
@@ -21,12 +21,14 @@
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${version.elasticsearch}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>${elasticsearch.version}</version>
+            <version>${version.elasticsearch}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Elasticsearch testcontainer -->
@@ -34,6 +36,7 @@
             <groupId>fr.pilato.elasticsearch.testcontainers</groupId>
             <artifactId>testcontainers-elasticsearch</artifactId>
             <version>0.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

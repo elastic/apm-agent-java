@@ -81,7 +81,7 @@ public class DslJsonSerializer implements PayloadSerializer {
      */
     public static final int BUFFER_SIZE = 16384;
     static final int MAX_VALUE_LENGTH = 1024;
-    static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
+    public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
