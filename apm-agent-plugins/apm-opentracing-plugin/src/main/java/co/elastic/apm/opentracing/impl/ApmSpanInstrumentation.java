@@ -96,7 +96,12 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                     span.withType("unknown");
                 }
             }
-            span.end(finishMicros * 1000);
+
+            if (finishMicros >= 0) {
+                span.end(finishMicros);
+            } else {
+                span.end();
+            }
         }
     }
 

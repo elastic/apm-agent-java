@@ -25,6 +25,8 @@ import org.junit.runners.Parameterized;
 import java.sql.DriverManager;
 import java.util.Arrays;
 
+import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+
 @RunWith(Parameterized.class)
 public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
 
@@ -39,12 +41,12 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
     @Parameterized.Parameters(name = "{index}: {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"jdbc:tc:mysql:5://hostname/databasename", "db.mysql.sql"},
-            {"jdbc:tc:postgresql:9://hostname/databasename", "db.postgresql.sql"},
-            {"jdbc:tc:postgresql:10://hostname/databasename", "db.postgresql.sql"},
-            {"jdbc:tc:mariadb:10://hostname/databasename", "db.mariadb.sql"},
-            {"jdbc:tc:mssqlserver:2017-CU9://hostname/databasename", "db.sqlserver.sql"},
-            {"jdbc:tc:oracle://hostname/databasename", "db.oracle.sql"},
+            {"jdbc:tc:mysql:5://hostname/databasename", computeJdbcSpanTypeName("mysql")},
+            {"jdbc:tc:postgresql:9://hostname/databasename", computeJdbcSpanTypeName("postgresql")},
+            {"jdbc:tc:postgresql:10://hostname/databasename", computeJdbcSpanTypeName("postgresql")},
+            {"jdbc:tc:mariadb:10://hostname/databasename", computeJdbcSpanTypeName("mariadb")},
+            {"jdbc:tc:mssqlserver:2017-CU9://hostname/databasename", computeJdbcSpanTypeName("sqlserver")},
+            {"jdbc:tc:oracle://hostname/databasename", computeJdbcSpanTypeName("oracle")},
         });
     }
 

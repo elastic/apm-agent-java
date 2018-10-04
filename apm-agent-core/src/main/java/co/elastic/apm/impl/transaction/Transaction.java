@@ -81,13 +81,16 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public Transaction start(@Nullable String traceParentHeader, long startTimestampNanos, Sampler sampler) {
+    public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
         if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
             traceContext.asRootSpan(sampler);
         }
-
-        this.duration = startTimestampNanos;
-        this.timestamp = System.currentTimeMillis();
+        clock.init();
+        if (epochMicros >= 0) {
+            this.timestamp = epochMicros;
+        } else {
+            this.timestamp = clock.getEpochMicros();
+        }
         this.id.setToRandomValue();
         this.noop = false;
         return this;
@@ -197,12 +200,12 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public void end() {
-        end(System.nanoTime());
+        end(clock.getEpochMicros());
     }
 
     @Override
-    public void end(long nanoTime) {
-        this.duration = (nanoTime - duration) / ElasticApmTracer.MS_IN_NANOS;
+    public void end(long epochMicros) {
+        this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
         if (!isSampled()) {
             context.resetState();
         }

@@ -38,8 +38,8 @@ public class ClassLoaderNameMatcher extends ElementMatcher.Junction.AbstractBase
             .or(classLoaderWithName("jdk.internal.reflect.DelegatingClassLoader"));
     }
 
-    @Override
-    public boolean matches(ClassLoader target) {
-        return target != null && name.equals(target.getClass().getName());
-    }
+	  @Override
+	  public boolean matches(ClassLoader target) {
+	      return target != null && name.equals(target.getClass().getName());
+	  }
 }

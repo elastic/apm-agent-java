@@ -24,6 +24,7 @@ import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -71,9 +72,13 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Request");
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(nameContains("Request"))
             .and(hasSuperType(named("javax.servlet.http.HttpServletRequest")));
     }
 

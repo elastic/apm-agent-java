@@ -23,11 +23,9 @@ import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 
 class ApmSpan implements Span, SpanContext {
 
@@ -70,7 +68,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public void finish() {
-        finishInternal(System.nanoTime() / 1000);
+        finishInternal(-1);
     }
 
     @Override
@@ -89,7 +87,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan log(Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
+        if ("error" .equals(fields.get(Fields.EVENT))) {
             createError(System.currentTimeMillis(), fields);
         }
         return this;
@@ -97,7 +95,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
+        if ("error" .equals(fields.get(Fields.EVENT))) {
             createError(timestampMicroseconds / 1000, fields);
         }
         return this;

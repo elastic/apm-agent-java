@@ -42,7 +42,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -53,7 +52,6 @@ import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
  * </p>
  */
 public class ElasticApmTracer {
-    public static final double MS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
     private final ConfigurationRegistry configurationRegistry;
@@ -118,15 +116,15 @@ public class ElasticApmTracer {
     }
 
     public Transaction startTransaction(@Nullable String traceContextHeader) {
-        return startTransaction(traceContextHeader, sampler, System.nanoTime());
+        return startTransaction(traceContextHeader, sampler, -1);
     }
 
-    public Transaction startTransaction(@Nullable String traceContextHeader, Sampler sampler, long nanoTime) {
+    public Transaction startTransaction(@Nullable String traceContextHeader, Sampler sampler, long epochMicros) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(traceContextHeader, nanoTime, sampler);
+            transaction = transactionPool.createInstance().start(traceContextHeader, epochMicros, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -160,22 +158,22 @@ public class ElasticApmTracer {
         return null;
     }
 
-    public Span startSpan(AbstractSpan<?> parent, long startTimeNanos) {
+    public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
         Span parentSpan = null;
         if (parent instanceof Span) {
             parentSpan = (Span) parent;
         }
-        return startSpan(parent.getTransaction(), parentSpan, startTimeNanos);
+        return startSpan(parent.getTransaction(), parentSpan, epochMicros);
     }
 
-    private Span startSpan(@Nullable Transaction transaction, @Nullable Span parentSpan, long startTimeNanos) {
+    private Span startSpan(@Nullable Transaction transaction, @Nullable Span parentSpan, long epochMicros) {
         final Span span;
         // makes sure that the active setting is consistent during a transaction
         // even when setting active=false mid-transaction
         if (transaction == null || transaction.isNoop()) {
             return createNoopSpan();
         } else {
-            span = createRealSpan(transaction, parentSpan, startTimeNanos);
+            span = createRealSpan(transaction, parentSpan, epochMicros);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", span);
@@ -191,7 +189,7 @@ public class ElasticApmTracer {
         return spanPool.createInstance().startNoop();
     }
 
-    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long nanoTime) {
+    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long epochMicros) {
         Span span;
         span = spanPool.createInstance();
         final boolean dropped;
@@ -203,7 +201,7 @@ public class ElasticApmTracer {
             dropped = false;
             transaction.getSpanCount().getStarted().incrementAndGet();
         }
-        span.start(transaction, parentSpan, nanoTime, dropped);
+        span.start(transaction, parentSpan, epochMicros, dropped);
         return span;
     }
 

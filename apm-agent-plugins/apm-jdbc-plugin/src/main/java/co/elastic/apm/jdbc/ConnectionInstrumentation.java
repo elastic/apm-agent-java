@@ -22,6 +22,7 @@ package co.elastic.apm.jdbc;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -50,9 +51,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
-    static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
     @VisibleForAdvice
     public static final Map<Object, String> statementSqlMap = Collections.synchronizedMap(new WeakHashMap<Object, String>());
+    static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
 
     @VisibleForAdvice
     @Advice.OnMethodExit
@@ -79,10 +80,13 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Connection");
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // pre-select candidates for the more expensive hasSuperType matcher
-            .and(nameContains("Connection"))
             .and(hasSuperType(named("java.sql.Connection")));
     }
 

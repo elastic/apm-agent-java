@@ -940,10 +940,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeDateField(final String fieldName, final long timestamp) {
+    private void writeDateField(final String fieldName, final long epochMicros) {
         writeFieldName(fieldName);
         jw.writeByte(QUOTE);
-        dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, timestamp);
+        dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, epochMicros / 1000);
         jw.writeByte(QUOTE);
         jw.writeByte(COMMA);
     }
