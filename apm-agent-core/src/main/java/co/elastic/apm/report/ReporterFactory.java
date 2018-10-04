@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 public class ReporterFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(ReporterFactory.class);
+    private final String userAgent = getUserAgent();
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
@@ -113,7 +114,7 @@ public class ReporterFactory {
             public Response intercept(Chain chain) throws IOException {
                 Request originalRequest = chain.request();
                 Request requestWithUserAgent = originalRequest.newBuilder()
-                    .header("User-Agent", getUserAgent())
+                    .header("User-Agent", userAgent)
                     .build();
                 return chain.proceed(chain.request());
             }
