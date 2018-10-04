@@ -194,6 +194,44 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
+        .key("enable_type_pool_cache")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When enabled," +
+            "configures Byte Buddy to use a type pool cache whose max size is approximately 1% of the max heap size per class loader.")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()
+        .key("enable_type_matching_name_pre_filtering")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When enabled, applies cheap name-based matchers to types before checking the type hierarchy.\n" +
+            "This speeds up matching but can lead to false negatives,\n" +
+            "for example when a javax.servlet.Servlet does not contain the word 'Servlet' in the class name.")
+        .buildWithDefault(true);
+
+
+    private final ConfigurationOption<List<WildcardMatcher>> excludedFromInstrumentation = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("excluded_from_instrumentation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("(?-i)org.infinispan*"),
+            WildcardMatcher.valueOf("(?-i)org.apache.xerces*"),
+            WildcardMatcher.valueOf("(?-i)org.jboss.as.*"),
+            WildcardMatcher.valueOf("(?-i)io.undertow.core*"),
+            WildcardMatcher.valueOf("(?-i)org.eclipse.jdt.ecj*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.extension.*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.security*")
+        ));
+
+
     public boolean isActive() {
         return active.get();
     }
@@ -236,5 +274,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUnnestExceptions() {
         return unnestExceptions.get();
+    }
+
+    public boolean isTypePoolCacheEnabled() {
+        return typePoolCache.get();
+    }
+
+    public boolean isTypeMatchingWithNamePreFilter() {
+        return typeMatchingWithNamePreFilter.get();
+    }
+
+    public List<WildcardMatcher> getExcludedFromInstrumentation() {
+        return excludedFromInstrumentation.get();
     }
 }

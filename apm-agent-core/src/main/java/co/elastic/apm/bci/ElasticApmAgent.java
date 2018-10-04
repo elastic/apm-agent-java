@@ -20,9 +20,12 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.matcher.WildcardMatcher;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -31,6 +34,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +44,10 @@ import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
 import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
@@ -51,6 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public class ElasticApmAgent {
 
+    private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
@@ -74,22 +82,31 @@ public class ElasticApmAgent {
         initInstrumentation(tracer, instrumentation, ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader()));
     }
 
-    public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation,
+    public static void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,
                                            Iterable<ElasticApmInstrumentation> instrumentations) {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                tracer.stop();
+                matcherTimers.clear();
+            }
+        });
+        matcherTimers.clear();
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         if (ElasticApmAgent.instrumentation != null) {
             logger.warn("Instrumentation has already been initialized");
             return;
         }
         ElasticApmInstrumentation.staticInit(tracer);
+        final CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
-            if (isIncluded(advice, tracer.getConfig(CoreConfiguration.class))) {
+            if (isIncluded(advice, coreConfiguration)) {
                 numberOfAdvices++;
                 agentBuilder = applyAdvice(tracer, agentBuilder, advice);
             }
@@ -122,42 +139,79 @@ public class ElasticApmAgent {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying advice {}", advice.getClass().getName());
         advice.init(tracer);
+        final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
-                    boolean typeMatches;
+                    long start = System.nanoTime();
                     try {
-                        typeMatches = advice.getTypeMatcher().matches(typeDescription);
-                    } catch (Exception ignored) {
-                        // happens for example on WebSphere, not sure why ¯\_(ツ)_/¯
-                        typeMatches = false;
-                    }
-                    if (typeMatches) {
-                        logger.debug("Type match for advice {}: {} matches {}",
-                            advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
-                        if (logger.isTraceEnabled()) {
-                            logClassLoaderHierarchy(classLoader, logger, advice);
+                        if (typeMatchingWithNamePreFilter && !advice.getTypeMatcherPreFilter().matches(typeDescription)) {
+                            return false;
                         }
+                        boolean typeMatches;
+                        try {
+                            typeMatches = advice.getTypeMatcher().matches(typeDescription);
+                        } catch (Exception ignored) {
+                            // happens for example on WebSphere, not sure why ¯\_(ツ)_/¯
+                            typeMatches = false;
+                        }
+                        if (typeMatches) {
+                            logger.debug("Type match for advice {}: {} matches {}",
+                                advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
+                            if (logger.isTraceEnabled()) {
+                                logClassLoaderHierarchy(classLoader, logger, advice);
+                            }
+                        }
+                        return typeMatches;
+                    } finally {
+                        getOrCreateTimer(advice.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                     }
-                    return typeMatches;
                 }
             })
             .transform(new AgentBuilder.Transformer.ForAdvice()
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {
-                        final boolean matches = advice.getMethodMatcher().matches(target);
-                        if (matches) {
-                            logger.debug("Method match for advice {}: {} matches {}",
-                                advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);
+                        long start = System.nanoTime();
+                        try {
+                            final boolean matches = advice.getMethodMatcher().matches(target);
+                            if (matches) {
+                                logger.debug("Method match for advice {}: {} matches {}",
+                                    advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);
+                            }
+                            return matches;
+                        } finally {
+                            getOrCreateTimer(advice.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                         }
-                        return matches;
                     }
                 }, advice.getAdviceClass().getName())
                 .include(advice.getAdviceClass().getClassLoader())
                 .withExceptionHandler(PRINTING))
             .asDecorator();
+    }
+
+    private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
+        final String name = adviceClass.getName();
+        MatcherTimer timer = matcherTimers.get(name);
+        if (timer == null) {
+            matcherTimers.putIfAbsent(name, new MatcherTimer(name));
+            return matcherTimers.get(name);
+        } else {
+            return timer;
+        }
+    }
+
+    static long getTotalMatcherTime() {
+        long totalTime = 0;
+        for (MatcherTimer value : matcherTimers.values()) {
+            totalTime += value.getTotalTime();
+        }
+        return totalTime;
+    }
+
+    static Collection<MatcherTimer> getMatcherTimers() {
+        return matcherTimers.values();
     }
 
     // may help to debug classloading problems
@@ -192,10 +246,15 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(ByteBuddy byteBuddy) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
+        final List<WildcardMatcher> excludedFromInstrumentation = coreConfiguration.getExcludedFromInstrumentation();
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(new ErrorLoggingListener())
+            // ReaderMode.FAST as we don't need to read method parameter names
+            .with(coreConfiguration.isTypePoolCacheEnabled()
+                ? new SoftlyReferencingTypePoolCache(TypePool.Default.ReaderMode.FAST, 1, isReflectionClassLoader())
+                : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("java."))
@@ -205,8 +264,15 @@ public class ElasticApmAgent {
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("net.bytebuddy."))
+            .or(nameStartsWith("org.stagemonitor."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
+            .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
+                @Override
+                public boolean matches(TypeDescription target) {
+                    return WildcardMatcher.anyMatch(excludedFromInstrumentation, target.getName()) != null;
+                }
+            })
             .disableClassFormatChanges();
     }
 

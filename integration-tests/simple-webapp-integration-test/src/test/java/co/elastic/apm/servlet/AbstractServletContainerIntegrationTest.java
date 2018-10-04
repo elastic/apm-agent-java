@@ -166,6 +166,9 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @After
     public final void stopServer() {
+        servletContainer.getDockerClient()
+            .stopContainerCmd(servletContainer.getContainerId())
+            .exec();
         servletContainer.stop();
         if (debugProxy != null) {
             debugProxy.stop();
