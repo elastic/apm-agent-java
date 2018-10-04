@@ -27,6 +27,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
 
 import java.lang.ref.SoftReference;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -71,14 +72,13 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
             return TypePool.CacheProvider.Simple.withObjectType();
         }
         lastAccess.set(System.currentTimeMillis());
-        classLoader = classLoader == null ? ClassLoader.getSystemClassLoader() : classLoader;
+        classLoader = classLoader == null ? getBootstrapMarkerLoader() : classLoader;
         SoftReference<TypePool.CacheProvider> cacheProviderRef = cacheProviders.get(classLoader);
-        while (cacheProviderRef == null || cacheProviderRef.get() == null) {
+        if (cacheProviderRef == null || cacheProviderRef.get() == null) {
             cacheProviderRef = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
-            SoftReference<TypePool.CacheProvider> previous = cacheProviders.put(classLoader, cacheProviderRef);
-            if (previous != null) {
-                cacheProviderRef = previous;
-            }
+            cacheProviders.put(classLoader, cacheProviderRef);
+            // accommodate for race condition
+            cacheProviderRef = cacheProviders.get(classLoader);
         }
         final TypePool.CacheProvider cacheProvider = cacheProviderRef.get();
         // guard against edge case when the soft reference has already been cleared since evaluating the loop condition
@@ -106,5 +106,24 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         if (System.currentTimeMillis() > lastAccess.get() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
             cacheProviders.clear();
         }
+    }
+
+    /**
+     * Copied from {@link Simple#getBootstrapMarkerLoader()}
+     * <p>
+     * Returns the class loader to serve as a cache key if a cache provider for the bootstrap class loader is requested.
+     * This class loader is represented by {@code null} in the JVM which is an invalid value for many {@link ConcurrentMap}
+     * implementations.
+     * </p>
+     * <p>
+     * By default, {@link ClassLoader#getSystemClassLoader()} is used as such a key as any resource location for the
+     * bootstrap class loader is performed via the system class loader within Byte Buddy as {@code null} cannot be queried
+     * for resources via method calls such that this does not make a difference.
+     * </p>
+     *
+     * @return A class loader to represent the bootstrap class loader.
+     */
+    private ClassLoader getBootstrapMarkerLoader() {
+        return ClassLoader.getSystemClassLoader();
     }
 }
