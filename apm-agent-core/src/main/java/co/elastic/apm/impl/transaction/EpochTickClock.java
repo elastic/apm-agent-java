@@ -18,19 +18,34 @@ public class EpochTickClock implements Recyclable {
 
     private long nanoTimeOffsetToEpoch;
 
+    /**
+     * Initializes the clock by aligning the {@link #nanoTimeOffsetToEpoch offset} with the offset of another clock.
+     *
+     * @param other the other clock, which has already been initialized
+     */
     public void init(EpochTickClock other) {
         this.nanoTimeOffsetToEpoch = other.nanoTimeOffsetToEpoch;
     }
 
     /**
      * Initializes and calibrates the clock based on wall clock time
+     *
+     * @return the epoch microsecond timestamp at initialization time
      */
-    public void init() {
-        init(System.currentTimeMillis(), System.nanoTime());
+    public long init() {
+        return init(System.currentTimeMillis(), System.nanoTime());
     }
 
-    public void init(long epochMillis, long nanoTime) {
+    /**
+     * Initializes and calibrates the clock based on wall clock time
+     *
+     * @param epochMillis the current timestamp in milliseconds since epoch (mostly {@link System#currentTimeMillis()})
+     * @param nanoTime    the current nanosecond precision timestamp (mostly {@link System#nanoTime()}
+     * @return the epoch microsecond timestamp at initialization time
+     */
+    public long init(long epochMillis, long nanoTime) {
         nanoTimeOffsetToEpoch = TimeUnit.MILLISECONDS.toNanos(epochMillis) - nanoTime;
+        return TimeUnit.MILLISECONDS.toMicros(epochMillis);
     }
 
     public long getEpochMicros() {

@@ -85,11 +85,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
             traceContext.asRootSpan(sampler);
         }
-        clock.init();
+        this.timestamp = clock.init();
         if (epochMicros >= 0) {
             this.timestamp = epochMicros;
-        } else {
-            this.timestamp = clock.getEpochMicros();
         }
         this.id.setToRandomValue();
         this.noop = false;
