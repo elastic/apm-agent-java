@@ -30,7 +30,7 @@ public class EpochTickClock implements Recyclable {
     }
 
     public void init(long epochMillis, long nanoTime) {
-        nanoTimeOffsetToEpoch = nanoTime - TimeUnit.MILLISECONDS.toNanos(epochMillis);
+        nanoTimeOffsetToEpoch = TimeUnit.MILLISECONDS.toNanos(epochMillis) - nanoTime;
     }
 
     public long getEpochMicros() {
@@ -38,7 +38,7 @@ public class EpochTickClock implements Recyclable {
     }
 
     public long getEpochMicros(final long nanoTime) {
-        return (nanoTime - nanoTimeOffsetToEpoch) / 1000;
+        return (nanoTime + nanoTimeOffsetToEpoch) / 1000;
     }
 
     @Override
