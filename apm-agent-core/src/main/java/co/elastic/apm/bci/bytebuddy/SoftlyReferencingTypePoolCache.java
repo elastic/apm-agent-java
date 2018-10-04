@@ -26,7 +26,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
 
+import javax.annotation.Nullable;
 import java.lang.ref.SoftReference;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,9 +49,8 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      * Weakly referencing ClassLoaders to avoid class loader leaks
      * Softly referencing the type pool cache so that it does not cause OOMEs
      */
-    private final WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>> cacheProviders =
-        new WeakConcurrentMap<ClassLoader, SoftReference<TypePool.CacheProvider>>(false);
-    private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
+    private final WeakConcurrentMap<ClassLoader, CacheProviderWrapper> cacheProviders =
+        new WeakConcurrentMap<ClassLoader, CacheProviderWrapper>(false);
     private final ElementMatcher<ClassLoader> ignoredClassLoaders;
 
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
@@ -71,11 +72,10 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
         if (ignoredClassLoaders.matches(classLoader)) {
             return TypePool.CacheProvider.Simple.withObjectType();
         }
-        lastAccess.set(System.currentTimeMillis());
         classLoader = classLoader == null ? getBootstrapMarkerLoader() : classLoader;
-        SoftReference<TypePool.CacheProvider> cacheProviderRef = cacheProviders.get(classLoader);
+        CacheProviderWrapper cacheProviderRef = cacheProviders.get(classLoader);
         if (cacheProviderRef == null || cacheProviderRef.get() == null) {
-            cacheProviderRef = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
+            cacheProviderRef = new CacheProviderWrapper();
             cacheProviders.put(classLoader, cacheProviderRef);
             // accommodate for race condition
             cacheProviderRef = cacheProviders.get(classLoader);
@@ -99,12 +99,40 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
      * In our scenario,
      * the cache is not accessed at all once all classes have been loaded which means it would never get cleared.
      * </p>
+     * <p>
+     * Two exceptions of that norm are (re-)deploying a web application at runtime and dynamically loading of classes,
+     * which cause interactions after the initial startup.
+     * </p>
      *
      * @param clearIfNotAccessedSinceMinutes the time in minutes after which the cache should be cleared
      */
-    private void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
-        if (System.currentTimeMillis() > lastAccess.get() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
-            cacheProviders.clear();
+    void clearIfNotAccessedSince(long clearIfNotAccessedSinceMinutes) {
+        for (Map.Entry<ClassLoader, CacheProviderWrapper> entry : cacheProviders) {
+            if (System.currentTimeMillis() >= entry.getValue().getLastAccess() + TimeUnit.MINUTES.toMillis(clearIfNotAccessedSinceMinutes)) {
+                cacheProviders.remove(entry.getKey());
+            }
+        }
+    }
+
+    WeakConcurrentMap<ClassLoader, CacheProviderWrapper> getCacheProviders() {
+        return cacheProviders;
+    }
+
+    private static class CacheProviderWrapper {
+        private final AtomicLong lastAccess = new AtomicLong(System.currentTimeMillis());
+        private final SoftReference<TypePool.CacheProvider> delegate;
+
+        private CacheProviderWrapper() {
+            this.delegate = new SoftReference<TypePool.CacheProvider>(new TypePool.CacheProvider.Simple());
+        }
+
+        long getLastAccess() {
+            return lastAccess.get();
+        }
+
+        @Nullable
+        TypePool.CacheProvider get() {
+            return delegate.get();
         }
     }
 
