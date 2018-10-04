@@ -58,7 +58,7 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public class ElasticApmAgent {
 
-    private static final ConcurrentMap<Class<? extends ElasticApmInstrumentation>, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
@@ -192,10 +192,11 @@ public class ElasticApmAgent {
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
-        MatcherTimer timer = matcherTimers.get(adviceClass);
+        final String name = adviceClass.getName();
+        MatcherTimer timer = matcherTimers.get(name);
         if (timer == null) {
-            matcherTimers.putIfAbsent(adviceClass, new MatcherTimer(adviceClass));
-            return matcherTimers.get(adviceClass);
+            matcherTimers.putIfAbsent(name, new MatcherTimer(name));
+            return matcherTimers.get(name);
         } else {
             return timer;
         }

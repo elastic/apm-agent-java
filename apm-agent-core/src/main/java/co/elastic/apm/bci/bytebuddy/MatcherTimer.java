@@ -19,18 +19,16 @@
  */
 package co.elastic.apm.bci.bytebuddy;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MatcherTimer implements Comparable<MatcherTimer> {
 
-    private final Class<? extends ElasticApmInstrumentation> adviceClass;
+    private final String adviceClass;
     private final AtomicLong totalTypeMatchingDuration = new AtomicLong();
     private final AtomicLong totalMethodMatchingDuration = new AtomicLong();
 
-    public MatcherTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
-        this.adviceClass = adviceClass;
+    public MatcherTimer(String adviceClassName) {
+        this.adviceClass = adviceClassName;
     }
 
     public void addTypeMatchingDuration(long typeMatchingDuration) {
@@ -56,11 +54,8 @@ public class MatcherTimer implements Comparable<MatcherTimer> {
 
     @Override
     public String toString() {
-        return String.format("| %-40s | %,15d | %,15d |", adviceClass.getSimpleName(), totalTypeMatchingDuration.get(), totalMethodMatchingDuration.get());
+        return String.format("| %-40s | %,15d | %,15d |", adviceClass.substring(adviceClass.lastIndexOf('.') + 1),
+            totalTypeMatchingDuration.get(), totalMethodMatchingDuration.get());
     }
 
-    public static void main(String[] args) {
-        System.out.println(MatcherTimer.getTableHeader());
-        System.out.println(new MatcherTimer(ElasticApmInstrumentation.class).toString());
-    }
 }
