@@ -28,19 +28,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
+    protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext = TraceContext.with64BitId();
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
     protected final ElasticApmTracer tracer;
-    /**
-     * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
-     * (Required)
-     */
     protected long timestamp;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
@@ -57,6 +55,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      */
     @Nullable
     private volatile String type;
+
+    protected final EpochTickClock clock = new EpochTickClock();
 
     public AbstractSpan(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -104,8 +104,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     /**
-     * Recorded time of the transaction, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
-     * (Required)
+     * Recorded time of the span or transaction in microseconds since epoch
      */
     public long getTimestamp() {
         return timestamp;
@@ -130,6 +129,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         timestamp = 0;
         duration = 0;
         type = null;
+        clock.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
 
@@ -189,11 +189,11 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Span createSpan() {
-        return createSpan(System.nanoTime());
+        return createSpan(clock.getEpochMicros());
     }
 
-    public Span createSpan(long startTimeNanos) {
-        return tracer.startSpan(this, startTimeNanos);
+    public Span createSpan(long epochMicros) {
+        return tracer.startSpan(this, epochMicros);
     }
 
     public abstract void addTag(String key, String value);

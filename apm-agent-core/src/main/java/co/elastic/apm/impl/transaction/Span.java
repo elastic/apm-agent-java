@@ -25,8 +25,6 @@ import co.elastic.apm.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
-
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
     /**
@@ -49,6 +47,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
      * (Required)
      */
+    // TODO remove after https://github.com/elastic/apm-server/issues/1340 has been implemented in APM Server
+    @Deprecated
     private volatile double start;
 
     @Nullable
@@ -58,22 +58,27 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
-    public Span start(Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
+    public Span start(Transaction transaction, @Nullable Span parentSpan, long epochMicros, boolean dropped) {
         this.transaction = transaction;
+        this.clock.init(transaction.clock);
         this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
-            this.traceContext.asChildOf(parentSpan.getTraceContext());
+            start(parentSpan.getTraceContext(), epochMicros, dropped);
         } else {
-            this.traceContext.asChildOf(transaction.getTraceContext());
+            start(transaction.getTraceContext(), epochMicros, dropped);
         }
+        start = timestamp - transaction.timestamp;
+        return this;
+    }
+
+    private Span start(TraceContext parent, long epochMicros, boolean dropped) {
+        this.traceContext.asChildOf(parent);
         if (dropped) {
             traceContext.setRecorded(false);
         }
         if (traceContext.isSampled()) {
-            start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
-            duration = nanoTime;
-            timestamp = System.currentTimeMillis();
+            timestamp = epochMicros;
         }
         return this;
     }
@@ -125,13 +130,13 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void end() {
-        end(System.nanoTime());
+        end(clock.getEpochMicros());
     }
 
     @Override
-    public void end(long nanoTime) {
+    public void end(long epochMicros) {
         if (isSampled()) {
-            this.duration = (nanoTime - duration) / MS_IN_NANOS;
+            this.duration = (epochMicros - timestamp) / MS_IN_MICROS;
         }
         this.tracer.endSpan(this);
     }
