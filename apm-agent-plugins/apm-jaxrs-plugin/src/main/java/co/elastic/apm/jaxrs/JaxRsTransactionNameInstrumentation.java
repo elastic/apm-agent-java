@@ -25,6 +25,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -37,7 +38,6 @@ import java.util.Collections;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
-import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -63,15 +63,20 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     }
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         // setting application_packages makes this matcher more performant but is not required
-        return isInAnyPackage(applicationPackages, ElementMatchers.<TypeDescription>any())
-            // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
-            // "Note that inheritance of class or interface annotations is not supported."
-            // However, at least Jersey also supports the @Path to be at a parent class/interface
-            // we don't to support that at the moment because of performance concerns
-            // (matching on the class hierarchy vs matching one class)
-            .and(isAnnotatedWith(named("javax.ws.rs.Path")));
+        // could lead to false negative matches when importing a 3rd party library whose JAX-RS resources are exposed
+        return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any());
+    }
+
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
+        // "Note that inheritance of class or interface annotations is not supported."
+        // However, at least Jersey also supports the @Path to be at a parent class/interface
+        // we don't to support that at the moment because of performance concerns
+        // (matching on the class hierarchy vs matching one class)
+        return isAnnotatedWith(named("javax.ws.rs.Path"));
     }
 
     @Override
@@ -93,7 +98,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     .or(named("javax.ws.rs.HEAD"))
                     .or(named("javax.ws.rs.OPTIONS"))
                     .or(named("javax.ws.rs.HttpMethod"))))
-            .onSuperClassesThat(isInAnyPackage(applicationPackages, any()));
+            .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
     @Override

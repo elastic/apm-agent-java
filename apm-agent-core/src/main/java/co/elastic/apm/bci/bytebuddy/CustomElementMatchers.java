@@ -20,8 +20,8 @@
 package co.elastic.apm.bci.bytebuddy;
 
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -32,12 +32,12 @@ import static net.bytebuddy.matcher.ElementMatchers.none;
 
 public class CustomElementMatchers {
 
-    public static ElementMatcher.Junction<TypeDescription> isInAnyPackage(Collection<String> includedPackages,
-                                                                          ElementMatcher.Junction<TypeDescription> defaultIfEmpty) {
+    public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
+                                                                       ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
         if (includedPackages.isEmpty()) {
             return defaultIfEmpty;
         }
-        ElementMatcher.Junction<TypeDescription> matcher = none();
+        ElementMatcher.Junction<NamedElement> matcher = none();
         for (String applicationPackage : includedPackages) {
             matcher = matcher.or(nameStartsWith(applicationPackage));
         }

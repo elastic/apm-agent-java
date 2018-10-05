@@ -20,8 +20,8 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
-import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
@@ -151,7 +151,6 @@ public class ElasticApmAgent {
                         if (!advice.getClassLoaderMatcher().matches(classLoader)) {
                             return false;
                         }
-                        boolean typeMatches;
                         if (typeMatchingWithNamePreFilter && !advice.getTypeMatcherPreFilter().matches(typeDescription)) {
                             return false;
                         }
