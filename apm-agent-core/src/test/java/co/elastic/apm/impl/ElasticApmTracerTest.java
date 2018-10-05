@@ -308,4 +308,19 @@ class ElasticApmTracerTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(0);
     }
+
+    @Test
+    void testTimestamps() {
+        final Transaction transaction = tracerImpl.startTransaction(null, ConstantSampler.of(true), 0);
+
+        final Span span = transaction.createSpan(10);
+        span.end(20);
+        transaction.end(30);
+
+        assertThat(transaction.getTimestamp()).isEqualTo(0);
+        assertThat(transaction.getDuration()).isEqualTo(0.03);
+        assertThat(span.getTimestamp()).isEqualTo(10);
+        assertThat(span.getDuration()).isEqualTo(0.01);
+        assertThat(span.getStart()).isEqualTo(0.01);
+    }
 }

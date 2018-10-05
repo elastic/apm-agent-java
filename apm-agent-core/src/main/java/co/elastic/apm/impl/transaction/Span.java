@@ -68,7 +68,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         } else {
             start(transaction.getTraceContext(), epochMicros, dropped);
         }
-        start = timestamp - transaction.timestamp;
+        start = (timestamp - transaction.timestamp) / MS_IN_MICROS;
         return this;
     }
 

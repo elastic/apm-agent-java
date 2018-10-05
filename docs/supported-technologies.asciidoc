@@ -9,8 +9,11 @@ you can vote for it by participating in our
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey].
 We will use the results to add support for the most requested technologies.
 
-Another option is to get involved in the development of the agent.
-See the https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[contributing guide] for more details.
+Another option is to add a dependency to the agent's <<public-api, public API>>
+in order to programmatically create custom transactions and spans.
+
+If you want to extend the auto-instrumentation capabilities of the agent,
+the https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[contributing guide] should get you started.
 
 NOTE: If, for example,
 the HTTP client library of your choice is not listed,
