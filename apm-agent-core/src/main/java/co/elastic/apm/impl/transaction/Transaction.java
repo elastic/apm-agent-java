@@ -82,6 +82,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
+        this.finished = false;
         if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
             traceContext.asRootSpan(sampler);
         }
@@ -197,18 +198,11 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void end() {
-        end(clock.getEpochMicros());
-    }
-
-    @Override
-    public void end(long epochMicros) {
-        this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+    public void doEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
         }
-        final ElasticApmTracer tracer = this.tracer;
-        tracer.endTransaction(this);
+        this.tracer.endTransaction(this);
     }
 
     public Transaction withType(@Nullable String type) {

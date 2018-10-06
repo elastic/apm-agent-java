@@ -55,6 +55,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      */
     @Nullable
     private volatile String type;
+    protected volatile boolean finished = true;
 
     protected final EpochTickClock clock = new EpochTickClock();
 
@@ -125,6 +126,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     @Override
     public void resetState() {
+        finished = true;
         name.setLength(0);
         timestamp = 0;
         duration = 0;
@@ -198,9 +200,22 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public abstract void addTag(String key, String value);
 
-    public abstract void end();
+    public void end() {
+        end(clock.getEpochMicros());
+    }
 
-    public abstract void end(long nanoTime);
+    public final void end(long epochMicros) {
+        if (!finished) {
+            this.finished = true;
+            this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+            doEnd(epochMicros);
+        } else {
+            logger.warn("End has already been called: {}" + this);
+            assert false;
+        }
+    }
+
+    protected abstract void doEnd(long epochMicros);
 
     /**
      * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)

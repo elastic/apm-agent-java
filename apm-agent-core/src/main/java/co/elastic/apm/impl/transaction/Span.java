@@ -59,6 +59,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span start(Transaction transaction, @Nullable Span parentSpan, long epochMicros, boolean dropped) {
+        this.finished = false;
         this.transaction = transaction;
         this.clock.init(transaction.clock);
         this.id.setLong(transaction.getNextSpanId());
@@ -129,15 +130,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void end() {
-        end(clock.getEpochMicros());
-    }
-
-    @Override
-    public void end(long epochMicros) {
-        if (isSampled()) {
-            this.duration = (epochMicros - timestamp) / MS_IN_MICROS;
-        }
+    public void doEnd(long epochMicros) {
         this.tracer.endSpan(this);
     }
 
