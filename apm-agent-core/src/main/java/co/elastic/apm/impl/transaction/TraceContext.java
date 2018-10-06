@@ -44,7 +44,8 @@ public class TraceContext implements Recyclable {
 
     public static final String TRACE_PARENT_HEADER = "elastic-apm-traceparent";
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
-    private static final int TRACE_PARENT_LENGTH = 55;
+    public static final int EXPECTED_LENGTH = 55;
+    private static final int TRACE_PARENT_LENGTH = EXPECTED_LENGTH;
     // ???????1 -> maybe recorded
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
@@ -82,8 +83,9 @@ public class TraceContext implements Recyclable {
     }
 
     public boolean asChildOf(String traceParentHeader) {
+        traceParentHeader = traceParentHeader.trim();
         try {
-            if (traceParentHeader.length() < 55) {
+            if (traceParentHeader.length() < EXPECTED_LENGTH) {
                 logger.warn("The traceparent header has to be at least 55 chars long, but was '{}'", traceParentHeader);
                 return false;
             }
@@ -91,6 +93,20 @@ public class TraceContext implements Recyclable {
                 || !hasDashAtPosition(traceParentHeader, PARENT_ID_OFFSET - 1)
                 || !hasDashAtPosition(traceParentHeader, FLAGS_OFFSET - 1)) {
                 logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
+                return false;
+            }
+            if (traceParentHeader.length() > EXPECTED_LENGTH
+                && !hasDashAtPosition(traceParentHeader, EXPECTED_LENGTH)) {
+                logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
+                return false;
+            }
+            if (traceParentHeader.startsWith("ff")) {
+                logger.warn("Version ff is not supported", traceParentHeader);
+                return false;
+            }
+            byte version = HexUtils.getNextByte(traceParentHeader, 0);
+            if (version == 0 && traceParentHeader.length() > EXPECTED_LENGTH) {
+                logger.warn("The traceparent header has to be exactly 55 chars long for version 00, but was '{}'", traceParentHeader);
                 return false;
             }
             traceId.fromHexString(traceParentHeader, TRACE_ID_OFFSET);
