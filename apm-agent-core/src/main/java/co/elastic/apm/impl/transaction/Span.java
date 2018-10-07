@@ -85,6 +85,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span startNoop() {
+        finished = false;
         return this;
     }
 

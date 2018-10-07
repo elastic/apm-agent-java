@@ -96,6 +96,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction startNoop() {
+        this.finished = false;
         this.name.append("noop");
         this.noop = true;
         return this;

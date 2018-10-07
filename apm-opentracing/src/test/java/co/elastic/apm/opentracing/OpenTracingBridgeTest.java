@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
@@ -68,7 +69,12 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final Span span = apmTracer.buildSpan("test").withStartTimestamp(0).start();
 
         span.finish();
-        span.finish();
+
+        try {
+            span.finish();
+            fail("Expected an assertion error. Make sure to enable assertions (-ea) when executing the tests.");
+        } catch (AssertionError ignore) {
+        }
 
         assertThat(reporter.getTransactions()).hasSize(1);
     }
