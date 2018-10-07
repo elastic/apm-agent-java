@@ -227,7 +227,7 @@ Example:
 
 [source,java]
 ----
-Span span = parent.startSpan();
+Span span = parent.createSpan();
 try {
     span.setName("SELECT FROM customer");
     span.setType("db.mysql.query");
@@ -345,7 +345,7 @@ Example:
 
 [source,java]
 ----
-Span span = parent.startSpan();
+Span span = parent.createSpan();
 try {
     span.setName("SELECT FROM customer");
     span.setType("db.mysql.query");
