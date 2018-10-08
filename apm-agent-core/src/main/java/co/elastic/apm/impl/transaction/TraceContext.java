@@ -251,4 +251,12 @@ public class TraceContext implements Recyclable {
     public boolean hasContent() {
         return !traceId.isEmpty() && !parentId.isEmpty() && !id.isEmpty();
     }
+
+    public void copyFrom(TraceContext other) {
+        traceId.copyFrom(other.traceId);
+        id.copyFrom(other.id);
+        parentId.copyFrom(other.parentId);
+        outgoingHeader.append(other.outgoingHeader);
+        flags = other.flags;
+    }
 }

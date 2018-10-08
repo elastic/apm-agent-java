@@ -27,6 +27,7 @@ import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.RecyclableObjectFactory;
@@ -156,6 +157,33 @@ public class ElasticApmTracer {
             return (Span) abstractSpan;
         }
         return null;
+    }
+
+    /**
+     * Starts a span with a given parent context.
+     * <p>
+     * This method makes it possible to start a span after the parent has already ended.
+     * </p>
+     * <p>
+     * Note: both, {@link Span#getTransaction()} and {@link #currentTransaction()},
+     * will return {@code null} when starting the span this way.
+     * </p>
+     *
+     * @param parentContext the trace context of the parent
+     * @return a new started span
+     */
+    public Span startSpan(TraceContext parentContext) {
+        return spanPool.createInstance().start(parentContext);
+    }
+
+    /**
+     * @param parentContext the trace context of the parent
+     * @param epochMicros   the start timestamp of the span in microseconds after epoch
+     * @return a new started span
+     * @see #startSpan(TraceContext)
+     */
+    public Span startSpan(TraceContext parentContext, long epochMicros) {
+        return spanPool.createInstance().start(parentContext, epochMicros);
     }
 
     public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
