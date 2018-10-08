@@ -208,6 +208,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         if (!finished) {
             this.finished = true;
             this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+            if (type == null) {
+                type = "custom";
+            }
+            if (name.length() == 0) {
+                name.append("unnamed");
+            }
             doEnd(epochMicros);
         } else {
             logger.warn("End has already been called: {}" + this);
@@ -218,8 +224,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     protected abstract void doEnd(long epochMicros);
 
     /**
-     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
-     * (Required)
+     * @return Keyword of specific relevance in the service's domain
+     * (eg:  'request', 'backgroundjob' for transactions and
+     * 'db.postgresql.query', 'template.erb', etc for spans)
      */
     @Nullable
     public String getType() {
@@ -230,7 +237,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * Keyword of specific relevance in the service's domain
      * (eg:  'request', 'backgroundjob' for transactions and
      * 'db.postgresql.query', 'template.erb', etc for spans)
-     * (Required)
      */
     public T withType(@Nullable String type) {
         if (!isSampled()) {

@@ -47,7 +47,7 @@ class ElasticApmTracerTest {
 
     @BeforeEach
     void setUp() {
-        reporter = new MockReporter(false);
+        reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
         tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
@@ -168,7 +168,11 @@ class ElasticApmTracerTest {
     void testRecordExceptionWithTrace() {
         Transaction transaction = tracerImpl.startTransaction();
         try (Scope scope = transaction.activateInScope()) {
-            transaction.getContext().getRequest().addHeader("foo", "bar");
+            transaction.getContext().getRequest()
+                .addHeader("foo", "bar")
+                .withMethod("GET")
+                .getUrl()
+                .withPathname("/foo");
             tracerImpl.currentTransaction().captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
