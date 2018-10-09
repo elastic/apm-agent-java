@@ -19,7 +19,6 @@
  */
 package co.elastic.apm;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
@@ -65,8 +64,7 @@ public class MockReporter implements Reporter {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
         spanSchema = getSchema("/schema/transactions/span.json");
         errorSchema = getSchema("/schema/errors/error.json");
-        final CoreConfiguration config = new CoreConfiguration();
-        dslJsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
+        dslJsonSerializer = new DslJsonSerializer(true, mock(StacktraceConfiguration.class));
         objectMapper = new ObjectMapper();
     }
 
@@ -78,7 +76,6 @@ public class MockReporter implements Reporter {
     public void report(Transaction transaction) {
         verifyJsonSchema(transaction);
         transactions.add(transaction);
-        spans.addAll(transaction.getSpans());
     }
 
     @Override

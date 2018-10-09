@@ -437,9 +437,8 @@ public class DslJsonSerializer implements PayloadSerializer {
             serializeSpanCountV2(transaction.getSpanCount());
         } else {
             serializeSpanCountV1(transaction.getSpanCount());
+            serializeSpans(transaction.getSpans());
         }
-        serializeSpans(transaction.getSpans());
-        // TODO marks
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
