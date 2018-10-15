@@ -119,8 +119,6 @@ public class ApmServerReporter implements Reporter {
             if (syncReport) {
                 waitForFlush();
             }
-        } else if (span.getTransaction() != null) {
-            span.getTransaction().addSpan(span);
         }
     }
 

@@ -59,6 +59,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span start(Transaction transaction, @Nullable Span parentSpan, long epochMicros, boolean dropped) {
+        transaction.addSpan(this);
         this.transaction = transaction;
         this.clock.init(transaction.clock);
         if (parentSpan != null) {
@@ -170,6 +171,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     public Transaction getTransaction() {
         return transaction;
+    }
+
+    void onTransactionEnd() {
+        // this avoids that the getTransaction returns a recycled transaction
+        transaction = null;
     }
 
     @Override

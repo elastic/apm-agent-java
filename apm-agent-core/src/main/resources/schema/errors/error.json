@@ -62,7 +62,7 @@
               {
                   "description": "Unique within the corresponding trace, hex encoded 64 random bits",
                   "type": "string",
-                  "pattern": "^[a-fA-F0-9]{16}$"
+                "pattern": "^[a-fA-F0-9]{32}$"
               }
           ]
         },

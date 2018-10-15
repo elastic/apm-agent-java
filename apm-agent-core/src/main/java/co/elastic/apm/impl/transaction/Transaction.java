@@ -153,16 +153,14 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    @Deprecated
     public List<Span> getSpans() {
-        return spans;
+        // ensures visibility; lock is not likely to have contention
+        synchronized (this) {
+            return spans;
+        }
     }
 
-    @Deprecated
     public Transaction addSpan(Span span) {
-        if (!isSampled()) {
-            return this;
-        }
         synchronized (this) {
             spans.add(span);
         }
@@ -188,6 +186,9 @@ public class Transaction extends AbstractSpan<Transaction> {
     public void doEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
+        }
+        for (Span span : spans) {
+            span.onTransactionEnd();
         }
         this.tracer.endTransaction(this);
     }
