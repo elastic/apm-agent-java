@@ -63,7 +63,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) Request request,
                                         @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
+        if (tracer == null || tracer.getActive() == null || !tracer.getActive().isSampled()) {
             return;
         }
         span = tracer.getActive().createSpan()
@@ -71,7 +71,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
             .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint())
             .activate();
 
-        if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+        if (span.isSampled() && request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
             HttpEntity entity = request.getEntity();
             if (entity != null && entity.isRepeatable()) {
                 try {
@@ -93,20 +93,23 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                                       @Advice.Local("span") @Nullable Span span,
                                       @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
-            if(response != null) {
-                span.addTag(ELASTICSEARCH_NODE_KEY, response.getHost().toHostString());
-                span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(response.getStatusLine().getStatusCode()));
-            }
-            else if(t instanceof ResponseException)
-            {
-                ResponseException esre = (ResponseException) t;
-                span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(esre.getResponse().getStatusLine().getStatusCode()));
-                span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
-                span.addTag(ELASTICSEARCH_NODE_KEY, esre.getResponse().getHost().toHostString());
-                span.captureException(t);
+            try {
+                if(response != null) {
+                    span.addTag(ELASTICSEARCH_NODE_KEY, response.getHost().toHostString());
+                    span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(response.getStatusLine().getStatusCode()));
+                }
+                else if(t instanceof ResponseException)
+                {
+                    ResponseException esre = (ResponseException) t;
+                    span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(esre.getResponse().getStatusLine().getStatusCode()));
+                    span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
+                    span.addTag(ELASTICSEARCH_NODE_KEY, esre.getResponse().getHost().toHostString());
+                    span.captureException(t);
+                }
+            } finally {
+                span.deactivate().end();
             }
 
-            span.deactivate().end();
         }
     }
 

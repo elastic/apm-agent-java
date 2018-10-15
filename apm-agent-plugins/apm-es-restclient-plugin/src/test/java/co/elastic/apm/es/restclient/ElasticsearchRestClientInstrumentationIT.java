@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ELASTICSEARCH_NODE_KEY;
@@ -162,6 +163,11 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         Map<String, String> tags = span.getContext().getTags();
         assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
         assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo(expectedStatus);
+        if (expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
+            assertThat(span.getContext().getDb().hasContent()).isTrue();
+        } else {
+            assertThat(span.getContext().getDb().hasContent()).isFalse();
+        }
     }
 
     private void validateDbContextContent(Span span, String statement) {

@@ -41,8 +41,10 @@ public class ESRestClientInstrumentationHelper {
         try {
             byte[] data = bodyReadBuffer.get();
             if (data == null) {
-                bodyReadBuffer.set(new byte[DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH]);
-                data = bodyReadBuffer.get();
+                // The DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH is actually used to count chars and not bytes, but that's not
+                // that important, the most important is that we limit the payload size we read and decode
+                data = new byte[DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH];
+                bodyReadBuffer.set(data);
             }
             int length = bodyIS.read(data, 0, data.length);
 
