@@ -77,7 +77,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
-        this.finished = false;
+        onStart();
         if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
             traceContext.asRootSpan(sampler);
         }
@@ -91,7 +91,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction startNoop() {
-        this.finished = false;
+        onStart();
         this.name.append("noop");
         this.noop = true;
         return this;

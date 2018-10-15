@@ -55,7 +55,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      */
     @Nullable
     private volatile String type;
-    protected volatile boolean finished = true;
+    private volatile boolean finished = true;
 
     protected final EpochTickClock clock = new EpochTickClock();
 
@@ -199,6 +199,10 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public abstract void addTag(String key, String value);
+
+    protected void onStart() {
+        this.finished = false;
+    }
 
     public void end() {
         end(clock.getEpochMicros());

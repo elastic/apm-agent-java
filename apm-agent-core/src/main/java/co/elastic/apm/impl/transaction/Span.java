@@ -59,7 +59,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span start(Transaction transaction, @Nullable Span parentSpan, long epochMicros, boolean dropped) {
-        this.finished = false;
         this.transaction = transaction;
         this.clock.init(transaction.clock);
         if (parentSpan != null) {
@@ -85,6 +84,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private Span start(TraceContext parent, long epochMicros, boolean dropped) {
+        onStart();
         this.traceContext.asChildOf(parent);
         if (dropped) {
             traceContext.setRecorded(false);
@@ -96,7 +96,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span startNoop() {
-        finished = false;
+        onStart();
         return this;
     }
 
