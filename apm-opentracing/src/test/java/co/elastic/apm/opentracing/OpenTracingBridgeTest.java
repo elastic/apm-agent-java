@@ -20,7 +20,6 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
@@ -39,8 +38,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
-import static org.mockito.Mockito.mock;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
@@ -63,6 +62,53 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("test");
+    }
+
+    @Test
+    void testFinishTwice() {
+        final Span span = apmTracer.buildSpan("test").withStartTimestamp(0).start();
+
+        span.finish();
+
+        try {
+            span.finish();
+            fail("Expected an assertion error. Make sure to enable assertions (-ea) when executing the tests.");
+        } catch (AssertionError ignore) {
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testOperationsAfterFinish() {
+        final Span span = apmTracer.buildSpan("test").start();
+
+        span.finish();
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+
+        // subsequent calls have undefined behavior but should not throw exceptions
+        span.setOperationName("");
+        span.setTag("foo", "bar");
+        span.setBaggageItem("foo", "bar");
+        span.getBaggageItem("foo");
+        span.log("foo");
+    }
+
+    @Test
+    void testContextAvailableAfterFinish() {
+        final Span span = apmTracer.buildSpan("transaction").start();
+        span.finish();
+
+
+        final Span childSpan = apmTracer.buildSpan("span")
+            .asChildOf(span.context())
+            .start();
+        childSpan.finish();
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().isChildOf(reporter.getFirstTransaction().getTraceContext())).isTrue();
     }
 
     @Test

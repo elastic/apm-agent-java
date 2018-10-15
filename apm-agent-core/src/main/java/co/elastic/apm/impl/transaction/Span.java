@@ -84,6 +84,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     private Span start(TraceContext parent, long epochMicros, boolean dropped) {
+        onStart();
         this.traceContext.asChildOf(parent);
         if (dropped) {
             traceContext.setRecorded(false);
@@ -95,6 +96,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public Span startNoop() {
+        onStart();
         return this;
     }
 
@@ -140,15 +142,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void end() {
-        end(clock.getEpochMicros());
-    }
-
-    @Override
-    public void end(long epochMicros) {
-        if (isSampled()) {
-            this.duration = (epochMicros - timestamp) / MS_IN_MICROS;
-        }
+    public void doEnd(long epochMicros) {
         this.tracer.endSpan(this);
     }
 

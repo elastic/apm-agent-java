@@ -66,12 +66,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     @Nullable
     private String result;
-    /**
-     * Keyword of specific relevance in the service's domain (eg:, etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
+
     /**
      * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
      */
@@ -82,6 +77,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
+        onStart();
         if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
             traceContext.asRootSpan(sampler);
         }
@@ -95,6 +91,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction startNoop() {
+        onStart();
         this.name.append("noop");
         this.noop = true;
         return this;
@@ -172,15 +169,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
-     * (Required)
-     */
-    @Nullable
-    public String getType() {
-        return type;
-    }
-
     @Override
     public void addTag(String key, String value) {
         if (!isSampled()) {
@@ -197,23 +185,11 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void end() {
-        end(clock.getEpochMicros());
-    }
-
-    @Override
-    public void end(long epochMicros) {
-        this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+    public void doEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
         }
-        final ElasticApmTracer tracer = this.tracer;
-        tracer.endTransaction(this);
-    }
-
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
+        this.tracer.endTransaction(this);
     }
 
     /**
@@ -239,7 +215,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         id.resetState();
         result = null;
         spans.clear();
-        type = null;
         marks.clear();
         spanCount.resetState();
         spanIdCounter.set(0);
