@@ -167,7 +167,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     /**
      * Returns the {@link Transaction} which this span belongs to.
      * <p>
-     * Can can return {@code null} in case the span has been started via
+     * Can return {@code null} in case the span has been started via
      * {@link Span#start(TraceContext)} or {@link Span#start(TraceContext, long)}
      * or in case the span has not been {@linkplain Span#start(Transaction, Span, long, boolean) started} yet.
      * </p>
