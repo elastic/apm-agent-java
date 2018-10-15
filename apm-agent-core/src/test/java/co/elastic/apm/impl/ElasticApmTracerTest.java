@@ -27,6 +27,7 @@ import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ class ElasticApmTracerTest {
 
     @BeforeEach
     void setUp() {
-        reporter = new MockReporter(false);
+        reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
         tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
@@ -168,7 +169,11 @@ class ElasticApmTracerTest {
     void testRecordExceptionWithTrace() {
         Transaction transaction = tracerImpl.startTransaction();
         try (Scope scope = transaction.activateInScope()) {
-            transaction.getContext().getRequest().addHeader("foo", "bar");
+            transaction.getContext().getRequest()
+                .addHeader("foo", "bar")
+                .withMethod("GET")
+                .getUrl()
+                .withPathname("/foo");
             tracerImpl.currentTransaction().captureException(new Exception("test"));
             assertThat(reporter.getErrors()).hasSize(1);
             ErrorCapture error = reporter.getFirstError();
@@ -322,5 +327,25 @@ class ElasticApmTracerTest {
         assertThat(span.getTimestamp()).isEqualTo(10);
         assertThat(span.getDuration()).isEqualTo(0.01);
         assertThat(span.getStart()).isEqualTo(0.01);
+    }
+
+    @Test
+    void testStartSpanAfterTransactionHasEnded() {
+        final Transaction transaction = tracerImpl.startTransaction(null);
+        final TraceContext transactionContext = TraceContext.with64BitId();
+        transactionContext.copyFrom(transaction.getTraceContext());
+        transaction.end();
+        transaction.resetState();
+
+        final Span span = tracerImpl.startSpan(transactionContext);
+        try (Scope scope = span.activateInScope()) {
+            assertThat(tracerImpl.currentTransaction()).isNull();
+            assertThat(tracerImpl.currentSpan()).isSameAs(span);
+        } finally {
+            span.end();
+        }
+
+        assertThat(span.getTraceContext().isChildOf(transactionContext)).isTrue();
+        assertThat(span.getTransaction()).isNull();
     }
 }

@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * <pre>
- * Elastic-Apm-Traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+ * elastic-apm-traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
  * (_____________________)  () (______________________________) (______________) ()
  *            v             v                 v                        v         v
  *       Header name     Version           Trace-Id                Span-Id     Flags
@@ -42,15 +42,16 @@ import org.slf4j.LoggerFactory;
  */
 public class TraceContext implements Recyclable {
 
-    public static final String TRACE_PARENT_HEADER = "Elastic-Apm-Traceparent";
+    public static final String TRACE_PARENT_HEADER = "elastic-apm-traceparent";
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
-    private static final int TRACE_PARENT_LENGTH = 55;
-    // ???????1 -> requested
-    // ???????0 -> not requested
-    private static final byte FLAG_REQUESTED = 0b0000_0001;
-    // ??????1? -> maybe recorded
-    // ??????0? -> not recorded
-    private static final byte FLAG_RECORDED = 0b0000_0010;
+    public static final int EXPECTED_LENGTH = 55;
+    private static final int TRACE_PARENT_LENGTH = EXPECTED_LENGTH;
+    // ???????1 -> maybe recorded
+    // ???????0 -> not recorded
+    private static final byte FLAG_RECORDED = 0b0000_0001;
+    public static final int TRACE_ID_OFFSET = 3;
+    public static final int PARENT_ID_OFFSET = 36;
+    public static final int FLAGS_OFFSET = 53;
     private final Id traceId = Id.new128BitId();
     private final Id id;
     private final Id parentId = Id.new64BitId();
@@ -82,32 +83,46 @@ public class TraceContext implements Recyclable {
     }
 
     public boolean asChildOf(String traceParentHeader) {
+        traceParentHeader = traceParentHeader.trim();
         try {
-            if (traceParentHeader.length() != 55) {
-                logger.warn("The traceparent header has to be exactly 55 chars long, but was '{}'", traceParentHeader);
+            if (traceParentHeader.length() < EXPECTED_LENGTH) {
+                logger.warn("The traceparent header has to be at least 55 chars long, but was '{}'", traceParentHeader);
                 return false;
             }
-            if (!traceParentHeader.startsWith("00-")) {
-                logger.warn("Only version 00 of the traceparent header is supported, but was '{}'", traceParentHeader);
+            if (!hasDashAtPosition(traceParentHeader, TRACE_ID_OFFSET - 1)
+                || !hasDashAtPosition(traceParentHeader, PARENT_ID_OFFSET - 1)
+                || !hasDashAtPosition(traceParentHeader, FLAGS_OFFSET - 1)) {
+                logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
                 return false;
             }
-            parseTraceId(traceParentHeader);
+            if (traceParentHeader.length() > EXPECTED_LENGTH
+                && !hasDashAtPosition(traceParentHeader, EXPECTED_LENGTH)) {
+                logger.warn("The traceparent header has an invalid format: '{}'", traceParentHeader);
+                return false;
+            }
+            if (traceParentHeader.startsWith("ff")) {
+                logger.warn("Version ff is not supported", traceParentHeader);
+                return false;
+            }
+            byte version = HexUtils.getNextByte(traceParentHeader, 0);
+            if (version == 0 && traceParentHeader.length() > EXPECTED_LENGTH) {
+                logger.warn("The traceparent header has to be exactly 55 chars long for version 00, but was '{}'", traceParentHeader);
+                return false;
+            }
+            traceId.fromHexString(traceParentHeader, TRACE_ID_OFFSET);
             if (traceId.isEmpty()) {
                 return false;
             }
-            parseParentId(traceParentHeader);
+            parentId.fromHexString(traceParentHeader, PARENT_ID_OFFSET);
             if (parentId.isEmpty()) {
                 return false;
             }
             id.setToRandomValue();
             transactionId.copyFrom(id);
-            flags = getTraceOptions(traceParentHeader);
             // TODO don't blindly trust the flags from the caller
             // consider implement rate limiting and/or having a list of trusted sources
             // trace the request if it's either requested or if the parent has recorded it
-            if (isRequested()) {
-                setRecorded(true);
-            }
+            flags = getTraceOptions(traceParentHeader);
             return true;
         } catch (IllegalArgumentException e) {
             logger.warn(e.getMessage());
@@ -115,12 +130,16 @@ public class TraceContext implements Recyclable {
         }
     }
 
+    private boolean hasDashAtPosition(String traceParentHeader, int index) {
+        return traceParentHeader.charAt(index) == '-';
+    }
+
     public void asRootSpan(Sampler sampler) {
         traceId.setToRandomValue();
         id.setToRandomValue();
         transactionId.copyFrom(id);
         if (sampler.isSampled(traceId)) {
-            this.flags = FLAG_RECORDED | FLAG_REQUESTED;
+            this.flags = FLAG_RECORDED;
         }
     }
 
@@ -132,16 +151,8 @@ public class TraceContext implements Recyclable {
         id.setToRandomValue();
     }
 
-    private void parseTraceId(String traceParent) {
-        traceId.fromHexString(traceParent, 3);
-    }
-
-    private void parseParentId(String traceParent) {
-        parentId.fromHexString(traceParent, 36);
-    }
-
     private byte getTraceOptions(String traceParent) {
-        return HexUtils.getNextByte(traceParent, 53);
+        return HexUtils.getNextByte(traceParent, FLAGS_OFFSET);
     }
 
     @Override
@@ -179,22 +190,19 @@ public class TraceContext implements Recyclable {
         return transactionId;
     }
 
+    /**
+     * An alias for {@link #isRecorded()}
+     *
+     * @return {@code true} when this span should be sampled, {@code false} otherwise
+     */
     public boolean isSampled() {
         return isRecorded();
     }
 
     /**
-     * When {@code true}, recommends the request should be traced.
-     * A caller who defers a tracing decision leaves this
-     * flag unset.
-     */
-    boolean isRequested() {
-        return (flags & FLAG_REQUESTED) == FLAG_REQUESTED;
-    }
-
-    /**
-     * When {@code true}, documents that the caller may have recorded trace data.
-     * A caller who does not record trace data out-of-band leaves this flag unset.
+     * When {@code true}, this span should be recorded aka. sampled.
+     *
+     * @return {@code true} when this span should be recorded, {@code false} otherwise
      */
     boolean isRecorded() {
         return (flags & FLAG_RECORDED) == FLAG_RECORDED;
@@ -205,14 +213,6 @@ public class TraceContext implements Recyclable {
             flags |= FLAG_RECORDED;
         } else {
             flags &= ~FLAG_RECORDED;
-        }
-    }
-
-    void setRequested(boolean requested) {
-        if (requested) {
-            flags |= FLAG_REQUESTED;
-        } else {
-            flags &= ~FLAG_REQUESTED;
         }
     }
 
@@ -250,5 +250,13 @@ public class TraceContext implements Recyclable {
 
     public boolean hasContent() {
         return !traceId.isEmpty() && !parentId.isEmpty() && !id.isEmpty();
+    }
+
+    public void copyFrom(TraceContext other) {
+        traceId.copyFrom(other.traceId);
+        id.copyFrom(other.id);
+        parentId.copyFrom(other.parentId);
+        outgoingHeader.append(other.outgoingHeader);
+        flags = other.flags;
     }
 }

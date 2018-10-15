@@ -193,9 +193,8 @@ public class ElasticApmAgent {
                         }
                     }
                 }, advice.getAdviceClass().getName())
-                .include(advice.getAdviceClass().getClassLoader())
-                .withExceptionHandler(PRINTING))
-            .asDecorator();
+                .include(ClassLoader.getSystemClassLoader())
+                .withExceptionHandler(PRINTING));
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
