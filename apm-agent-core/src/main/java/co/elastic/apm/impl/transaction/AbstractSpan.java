@@ -132,6 +132,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         duration = 0;
         type = null;
         clock.resetState();
+        traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
 

@@ -219,7 +219,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanCount.resetState();
         spanIdCounter.set(0);
         noop = false;
-        traceContext.resetState();
     }
 
     @Override

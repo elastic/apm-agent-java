@@ -155,7 +155,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         stacktrace = null;
         start = 0;
         transaction = null;
-        traceContext.resetState();
     }
 
     /**
