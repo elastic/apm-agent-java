@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.bci.bytebuddy;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MatcherTimer implements Comparable<MatcherTimer> {
@@ -54,8 +55,14 @@ public class MatcherTimer implements Comparable<MatcherTimer> {
 
     @Override
     public String toString() {
-        return String.format("| %-40s | %,15d | %,15d |", adviceClass.substring(adviceClass.lastIndexOf('.') + 1),
+        return String.format("| %-40s | %,15d | %,15d |", getSimpleClassName(adviceClass),
             totalTypeMatchingDuration.get(), totalMethodMatchingDuration.get());
+    }
+
+    @Nonnull
+    private String getSimpleClassName(String className) {
+        final String simpleClassName = className.substring(adviceClass.lastIndexOf('$') + 1);
+        return simpleClassName.substring(simpleClassName.lastIndexOf('.') + 1);
     }
 
 }

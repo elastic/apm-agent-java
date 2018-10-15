@@ -62,15 +62,26 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         this.finished = false;
         this.transaction = transaction;
         this.clock.init(transaction.clock);
-        this.id.setLong(transaction.getNextSpanId());
         if (parentSpan != null) {
             this.parent.copyFrom(parentSpan.getId());
             start(parentSpan.getTraceContext(), epochMicros, dropped);
         } else {
             start(transaction.getTraceContext(), epochMicros, dropped);
         }
-        start = (timestamp - transaction.timestamp) / MS_IN_MICROS;
+        // TODO remove after dropping support for intake v1
+        this.id.setLong(transaction.getNextSpanId());
+        this.start = (timestamp - transaction.timestamp) / MS_IN_MICROS;
         return this;
+    }
+
+    public Span start(TraceContext parent) {
+        final long epochMicros = this.clock.init();
+        return start(parent, epochMicros, false);
+    }
+
+    public Span start(TraceContext parent, long epochMicros) {
+        this.clock.init();
+        return start(parent, epochMicros, false);
     }
 
     private Span start(TraceContext parent, long epochMicros, boolean dropped) {
@@ -147,6 +158,16 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         traceContext.resetState();
     }
 
+    /**
+     * Returns the {@link Transaction} which this span belongs to.
+     * <p>
+     * Can return {@code null} in case the span has been started via
+     * {@link Span#start(TraceContext)} or {@link Span#start(TraceContext, long)}
+     * or in case the span has not been {@linkplain Span#start(Transaction, Span, long, boolean) started} yet.
+     * </p>
+     *
+     * @return the transaction which belongs to this span
+     */
     @Nullable
     public Transaction getTransaction() {
         return transaction;
