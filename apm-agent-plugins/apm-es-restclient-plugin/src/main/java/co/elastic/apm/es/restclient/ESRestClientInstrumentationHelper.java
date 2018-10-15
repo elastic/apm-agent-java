@@ -21,6 +21,7 @@ package co.elastic.apm.es.restclient;
 
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public class ESRestClientInstrumentationHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static String readRequestBody(InputStream bodyIS, String endpoint) throws IOException {
+    public static String readRequestBody(InputStream bodyIS, long contentLength, String endpoint) throws IOException {
         String body = null;
         try {
             byte[] data = bodyReadBuffer.get();
@@ -46,16 +47,47 @@ public class ESRestClientInstrumentationHelper {
                 data = new byte[DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH];
                 bodyReadBuffer.set(data);
             }
-            int length = bodyIS.read(data, 0, data.length);
 
-            // Using platform's default charset for decoding
-            body = new String(data, 0, length);
-        } catch (IOException e) {
-            LOGGER.info("Failed to read request body for " + endpoint);
-        } finally {
+            try {
+                body = new InputStreamStreamInputWrapper(bodyIS, contentLength).readString();
+            } catch (Exception e) {
+                LOGGER.info("Failed to read request body for " + endpoint);
+            }
+
+        }
+        finally {
             bodyIS.close();
         }
 
         return body;
+    }
+
+    private static class InputStreamStreamInputWrapper extends InputStreamStreamInput {
+        private byte[] contentLengthBytes = new byte[5];
+        private int contentLengthValidReadIndex = 0;
+        private int contentLengthByteReadIndex;
+
+        InputStreamStreamInputWrapper(InputStream is, long contentLength) {
+            super(is);
+            // Encoding the content length into bytes. This size must be returned from the InputStream before the content is returned.
+            for (int i=0; i<contentLengthBytes.length; i++) {
+                contentLengthValidReadIndex++;
+                contentLengthBytes[i] = (byte)(contentLength & 0x7F);
+                contentLength >>>= 7;
+                if (contentLength == 0) {
+                    break;
+                }
+                contentLengthBytes[i] |= 0x80;
+            }
+            contentLengthByteReadIndex = 0;
+        }
+
+        @Override
+        public byte readByte() throws IOException {
+            if(contentLengthByteReadIndex < contentLengthValidReadIndex) {
+                return contentLengthBytes[contentLengthByteReadIndex++];
+            }
+            return super.readByte();
+        }
     }
 }
