@@ -225,7 +225,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeError(ErrorCapture errorCapture) {
         jw.writeByte(JsonWriter.OBJECT_START);
 
-        writeDateField("timestamp", errorCapture.getTimestamp());
+        writeTimestamp(errorCapture.getTimestamp());
 
         if (distributedTracing) {
             if (errorCapture.getTraceContext().hasContent()) {
@@ -422,7 +422,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
-        writeDateField("timestamp", transaction.getTimestamp());
+        writeTimestamp(transaction.getTimestamp());
         writeField("name", transaction.getName());
         if (distributedTracing) {
             serializeTraceContext(transaction.getTraceContext(), false);
@@ -474,7 +474,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSpan(final Span span) {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getName());
-        writeDateField("timestamp", span.getTimestamp());
+        writeTimestamp(span.getTimestamp());
         if (distributedTracing) {
             serializeTraceContext(span.getTraceContext(), true);
         } else {
@@ -483,9 +483,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             if (parent != 0) {
                 writeField("parent", parent);
             }
+            writeField("start", span.getStart());
         }
         writeField("duration", span.getDuration());
-        writeField("start", span.getStart());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
@@ -939,11 +939,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeDateField(final String fieldName, final long epochMicros) {
-        writeFieldName(fieldName);
-        jw.writeByte(QUOTE);
-        dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, epochMicros / 1000);
-        jw.writeByte(QUOTE);
+    private void writeTimestamp(final long epochMicros) {
+        writeFieldName("timestamp");
+        if (distributedTracing) {
+            NumberConverter.serialize(epochMicros, jw);
+        } else {
+            jw.writeByte(QUOTE);
+            dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, epochMicros / 1000);
+            jw.writeByte(QUOTE);
+        }
         jw.writeByte(COMMA);
     }
 }
