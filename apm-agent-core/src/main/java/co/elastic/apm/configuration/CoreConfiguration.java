@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.configuration.validation.RegexValidator;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.matcher.WildcardMatcherValueConverter;
@@ -29,7 +30,11 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
@@ -175,8 +180,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
-            "Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`," +
-            "`spring-resttemplate` and `incubating`.\n" +
+            "Valid options are " + getAllInstrumentationGroupNames() + ".\n" +
             "If you want to try out incubating features,\n" +
             "set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
@@ -193,6 +197,22 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
+
+    public static String getAllInstrumentationGroupNames() {
+        Set<String> instrumentationGroupNames = new TreeSet<>();
+        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class)) {
+            instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
+        }
+
+        StringBuilder allGroups = new StringBuilder();
+        for (Iterator<String> iterator = instrumentationGroupNames.iterator(); iterator.hasNext(); ) {
+            allGroups.append('`').append(iterator.next()).append('`');
+            if (iterator.hasNext()) {
+                allGroups.append(", ");
+            }
+        }
+        return allGroups.toString();
+    }
 
     private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
         .key("enable_type_pool_cache")
@@ -230,7 +250,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("(?-i)org.wildfly.extension.*"),
             WildcardMatcher.valueOf("(?-i)org.wildfly.security*")
         ));
-
 
     public boolean isActive() {
         return active.get();

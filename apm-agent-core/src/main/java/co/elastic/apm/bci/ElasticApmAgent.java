@@ -21,6 +21,7 @@ package co.elastic.apm.bci;
 
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
@@ -29,6 +30,7 @@ import co.elastic.apm.matcher.WildcardMatcher;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
@@ -146,6 +148,9 @@ public class ElasticApmAgent {
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
                     long start = System.nanoTime();
                     try {
+                        if (!advice.getClassLoaderMatcher().matches(classLoader)) {
+                            return false;
+                        }
                         if (typeMatchingWithNamePreFilter && !advice.getTypeMatcherPreFilter().matches(typeDescription)) {
                             return false;
                         }
@@ -169,7 +174,9 @@ public class ElasticApmAgent {
                     }
                 }
             })
-            .transform(new AgentBuilder.Transformer.ForAdvice()
+            .transform(new AgentBuilder.Transformer.ForAdvice(Advice
+                .withCustomMapping()
+                .bind(new SimpleMethodSignatureOffsetMappingFactory()))
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {

@@ -91,6 +91,10 @@ public abstract class ElasticApmInstrumentation {
      */
     public abstract ElementMatcher<? super TypeDescription> getTypeMatcher();
 
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return any();
+    }
+
     /**
      * The method matcher selects methods of types matching {@link #getTypeMatcher()},
      * which should be instrumented
