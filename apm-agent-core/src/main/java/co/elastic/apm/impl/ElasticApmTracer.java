@@ -62,6 +62,7 @@ public class ElasticApmTracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
+    private final ThreadLocal<Transaction> activeTransaction = new ThreadLocal<>();
     private final ThreadLocal<AbstractSpan> active = new ThreadLocal<>();
     private final CoreConfiguration coreConfiguration;
     private final List<SpanListener> spanListeners;
@@ -143,11 +144,7 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        final AbstractSpan<?> activeSpan = active.get();
-        if (activeSpan != null) {
-            return activeSpan.getTransaction();
-        }
-        return null;
+        return activeTransaction.get();
     }
 
     @Nullable
@@ -163,10 +160,6 @@ public class ElasticApmTracer {
      * Starts a span with a given parent context.
      * <p>
      * This method makes it possible to start a span after the parent has already ended.
-     * </p>
-     * <p>
-     * Note: both, {@link Span#getTransaction()} and {@link #currentTransaction()},
-     * will return {@code null} when starting the span this way.
      * </p>
      *
      * @param parentContext the trace context of the parent
@@ -360,5 +353,13 @@ public class ElasticApmTracer {
 
     public List<SpanListener> getSpanListeners() {
         return spanListeners;
+    }
+
+    public void activateTransaction(Transaction transaction) {
+        activeTransaction.set(transaction);
+    }
+
+    public void deactivateTransaction() {
+        activeTransaction.set(null);
     }
 }

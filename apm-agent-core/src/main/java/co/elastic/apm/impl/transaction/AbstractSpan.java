@@ -140,11 +140,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return traceContext.isChildOf(parent.traceContext);
     }
 
+    /**
+     * The span having a reference to its transaction is problematic as in multi-threaded scenarios,
+     * the transaction may have already been {@linkplain #end() ended} and
+     * {@linkplain co.elastic.apm.objectpool.ObjectPool#recycle(Recyclable) recycled}.
+     * Only returning non-ended transactions does also not work,
+     * as a transaction can be ended on a different thread right after that check.
+     */
+    @Deprecated
     @Nullable
     public abstract Transaction getTransaction();
 
     public T activate() {
-        final ElasticApmTracer tracer = this.tracer;
         previouslyActive = tracer.getActive();
         tracer.setActive(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
@@ -161,7 +168,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public T deactivate() {
-        final ElasticApmTracer tracer = this.tracer;
         tracer.setActive(previouslyActive);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
@@ -177,7 +183,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Scope activateInScope() {
-        final ElasticApmTracer tracer = this.tracer;
         // already in scope
         if (tracer.currentTransaction() == this) {
             return Scope.NoopScope.INSTANCE;
