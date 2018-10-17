@@ -74,38 +74,38 @@ public class MockReporter implements Reporter {
 
     @Override
     public void report(Transaction transaction) {
-        verifyJsonSchema(transaction);
+        verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
     }
 
     @Override
     public void report(Span span) {
-        verifyJsonSchema(span);
+        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         spans.add(span);
     }
 
-    private void verifyJsonSchema(Transaction transaction) {
-        final String content = dslJsonSerializer.toJsonString(transaction);
-        verifyJsonSchema(content, transactionSchema);
+    public void verifyTransactionSchema(JsonNode jsonNode) {
+        verifyJsonSchema(transactionSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(Span span) {
-        final String content = dslJsonSerializer.toJsonString(span);
-        verifyJsonSchema(content, spanSchema);
+    public void verifySpanSchema(JsonNode jsonNode) {
+        verifyJsonSchema(spanSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(ErrorCapture error) {
-        final String content = dslJsonSerializer.toJsonString(error);
-        verifyJsonSchema(content, errorSchema);
+    public void verifyErrorSchema(JsonNode jsonNode) {
+        verifyJsonSchema(errorSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(String jsonContent, JsonSchema schema) {
+    private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
+        if (verifyJsonSchema) {
+            Set<ValidationMessage> errors = schema.validate(jsonNode);
+            assertThat(errors).isEmpty();
+        }
+    }
+
+    private JsonNode asJson(String jsonContent) {
         try {
-            final JsonNode node = objectMapper.readTree(jsonContent);
-            if (verifyJsonSchema) {
-                Set<ValidationMessage> errors = schema.validate(node);
-                assertThat(errors).isEmpty();
-            }
+            return objectMapper.readTree(jsonContent);
         } catch (IOException e) {
             System.out.println(jsonContent);
             throw new RuntimeException(e);
@@ -133,7 +133,7 @@ public class MockReporter implements Reporter {
 
     @Override
     public void report(ErrorCapture error) {
-        verifyJsonSchema(error);
+        verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
         errors.add(error);
     }
 
