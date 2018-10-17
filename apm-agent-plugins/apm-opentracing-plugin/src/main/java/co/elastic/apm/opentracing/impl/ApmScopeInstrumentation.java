@@ -25,7 +25,6 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -37,12 +36,15 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
 
-
     @VisibleForAdvice
     @Advice.OnMethodEnter(inline = false)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
-        if (span != null) {
-            span.deactivate();
+    public static void release(@Advice.Argument(value = 0) @Nullable Object dispatcher) {
+        if (dispatcher instanceof AbstractSpan) {
+            ((AbstractSpan) dispatcher).deactivate();
+        } else if (dispatcher instanceof byte[]) {
+            if (tracer != null) {
+                tracer.deactivate((byte[]) dispatcher);
+            }
         }
     }
 

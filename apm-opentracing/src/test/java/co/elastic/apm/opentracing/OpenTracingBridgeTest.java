@@ -22,6 +22,7 @@ package co.elastic.apm.opentracing;
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
+import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -99,16 +100,37 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testContextAvailableAfterFinish() {
         final Span span = apmTracer.buildSpan("transaction").start();
         span.finish();
-
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
             .start();
         childSpan.finish();
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getTraceContext().isChildOf(reporter.getFirstTransaction().getTraceContext())).isTrue();
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
+    }
+
+    @Test
+    void testScopeAfterFinish() {
+        final Span span = apmTracer.buildSpan("transaction").start();
+        span.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
+
+        try (Scope scope = apmTracer.scopeManager().activate(span, false)) {
+            final Span childSpan = apmTracer.buildSpan("span")
+                .start();
+            childSpan.finish();
+        }
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
     }
 
     @Test

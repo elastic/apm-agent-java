@@ -24,6 +24,7 @@ import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class TransactionUtils {
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.withType("request");
         t.withResult("success");
@@ -85,7 +86,7 @@ public class TransactionUtils {
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
         Span span = new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -98,20 +99,20 @@ public class TransactionUtils {
         spans.add(span);
 
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext.http.apache-httpclient");

@@ -29,7 +29,6 @@ import co.elastic.apm.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +81,8 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         public static void createSpan(@Advice.Argument(value = 0)
                                       @Nullable Object parent,
-                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC)
-                                      @Nullable AbstractSpan<?> apmParent,
+                                      @Advice.Argument(value = 1)
+                                      @Nullable Object apmParent,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
@@ -95,7 +94,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         @Nullable
         @VisibleForAdvice
         public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable Object parent,
-                                                                @Nullable AbstractSpan<?> apmParent,
+                                                                @Nullable Object dispatcher,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage) {
@@ -103,11 +102,17 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                 if (parent == null) {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
-                    if (apmParent != null) {
+                    if (dispatcher instanceof AbstractSpan) {
                         if (microseconds >= 0) {
-                            return apmParent.createSpan(microseconds);
+                            return ((AbstractSpan) dispatcher).createSpan(microseconds);
                         } else {
-                            return apmParent.createSpan();
+                            return ((AbstractSpan) dispatcher).createSpan();
+                        }
+                    } else if (dispatcher instanceof byte[]) {
+                        if (microseconds >= 0) {
+                            return tracer.startSpan(TraceContext.fromSerialized(), (byte[]) dispatcher, microseconds);
+                        } else {
+                            return tracer.startSpan(TraceContext.fromSerialized(), (byte[]) dispatcher);
                         }
                     }
                 }
@@ -130,7 +135,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(getTraceContextHeader(baggage), sampler, microseconds);
+                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds);
             }
         }
 

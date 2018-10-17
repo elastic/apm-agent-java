@@ -65,6 +65,15 @@ public class Id implements Recyclable {
         onMutation();
     }
 
+    public void fromBytes(byte[] bytes, int offset) {
+        System.arraycopy(bytes, offset, data, 0, data.length);
+        onMutation();
+    }
+
+    public void toBytes(byte[] bytes, int offset) {
+        System.arraycopy(data, 0, bytes, offset, data.length);
+    }
+
     public void fromLongs(long... values) {
         if (values.length * Long.BYTES != data.length) {
             throw new IllegalArgumentException("Invalid number of long values");
@@ -166,5 +175,9 @@ public class Id implements Recyclable {
             lsb = (lsb << 8) | (data[i] & 0xff);
         }
         return lsb;
+    }
+
+    int getLength() {
+        return data.length;
     }
 }

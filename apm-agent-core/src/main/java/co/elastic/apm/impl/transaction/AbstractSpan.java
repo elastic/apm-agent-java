@@ -181,7 +181,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public Scope activateInScope() {
         // already in scope
-        if (tracer.getActive() == this) {
+        if (tracer.activeSpan() == this) {
             return Scope.NoopScope.INSTANCE;
         }
         activate();

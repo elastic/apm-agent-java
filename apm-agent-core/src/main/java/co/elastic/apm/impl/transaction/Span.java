@@ -22,10 +22,14 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
+
+    private static final Logger logger = LoggerFactory.getLogger(Span.class);
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
@@ -41,35 +45,39 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
-    public Span start(Transaction transaction, @Nullable Span parentSpan, long epochMicros, boolean dropped) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
+        final long epochMicros = this.clock.init();
+        return start(childContextCreator, parentContext, epochMicros, false);
+    }
+
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
+        this.clock.init();
+        return start(childContextCreator, parentContext, epochMicros, false);
+    }
+
+    public <T> Span start(Transaction transaction, TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         this.transaction = transaction;
+        // TODO move clock to TraceContext and remove transaction argument
         this.clock.init(transaction.clock);
-        if (parentSpan != null) {
-            start(parentSpan.getTraceContext(), epochMicros, dropped);
-        } else {
-            start(transaction.getTraceContext(), epochMicros, dropped);
-        }
+        start(childContextCreator, parentContext, epochMicros, dropped);
         return this;
     }
 
-    public Span start(TraceContext parent) {
-        final long epochMicros = this.clock.init();
-        return start(parent, epochMicros, false);
-    }
-
-    public Span start(TraceContext parent, long epochMicros) {
-        this.clock.init();
-        return start(parent, epochMicros, false);
-    }
-
-    private Span start(TraceContext parent, long epochMicros, boolean dropped) {
+    private <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         onStart();
-        this.traceContext.asChildOf(parent);
+        childContextCreator.asChildOf(traceContext, parentContext);
         if (dropped) {
             traceContext.setRecorded(false);
         }
         if (traceContext.isSampled()) {
             timestamp = epochMicros;
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("startSpan {} {", this);
+            if (logger.isTraceEnabled()) {
+                logger.trace("starting span at",
+                    new RuntimeException("this exception is just used to record where the span has been started from"));
+            }
         }
         return this;
     }
@@ -98,6 +106,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void doEnd(long epochMicros) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("} endSpan {}", this);
+            if (logger.isTraceEnabled()) {
+                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
+            }
+        }
         this.tracer.endSpan(this);
     }
 
@@ -109,16 +123,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         transaction = null;
     }
 
-    /**
-     * Returns the {@link Transaction} which this span belongs to.
-     * <p>
-     * Can return {@code null} in case the span has been started via
-     * {@link Span#start(TraceContext)} or {@link Span#start(TraceContext, long)}
-     * or in case the span has not been {@linkplain Span#start(Transaction, Span, long, boolean) started} yet.
-     * </p>
-     *
-     * @return the transaction which belongs to this span
-     */
+    @Deprecated
     @Nullable
     public Transaction getTransaction() {
         return transaction;

@@ -24,6 +24,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,7 +57,7 @@ class TransactionPayloadJsonSchemaTest {
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
         Span span = new Span(mock(ElasticApmTracer.class));
-        span.start(transaction, null, 0, false)
+        span.start(TraceContext.fromParentSpan(), transaction)
             .withType("type")
             .withName("name");
         payload.getSpans().add(span);
@@ -65,7 +66,7 @@ class TransactionPayloadJsonSchemaTest {
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction(mock(ElasticApmTracer.class));
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");

@@ -55,9 +55,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         onStart();
-        if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
+        if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
             traceContext.asRootSpan(sampler);
         }
         this.timestamp = clock.init();

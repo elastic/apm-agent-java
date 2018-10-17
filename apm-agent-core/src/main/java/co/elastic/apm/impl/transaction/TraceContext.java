@@ -19,11 +19,14 @@
  */
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.sampling.Sampler;
 import co.elastic.apm.objectpool.Recyclable;
 import co.elastic.apm.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 /**
  * This is an implementation of the
@@ -43,21 +46,72 @@ import org.slf4j.LoggerFactory;
 public class TraceContext implements Recyclable {
 
     public static final String TRACE_PARENT_HEADER = "elastic-apm-traceparent";
+    private static final int EXPECTED_LENGTH = 55;
+    private static final int TRACE_ID_OFFSET = 3;
+    private static final int PARENT_ID_OFFSET = 36;
+    private static final int FLAGS_OFFSET = 53;
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
-    public static final int EXPECTED_LENGTH = 55;
+    private static final ChildContextCreator<AbstractSpan<?>> FROM_PARENT_SPAN = new ChildContextCreator<AbstractSpan<?>>() {
+        @Override
+        public boolean asChildOf(TraceContext child, AbstractSpan<?> parent) {
+            child.asChildOf(parent.getTraceContext());
+            return true;
+        }
+    };
+    private static final ChildContextCreator<TraceContext> FROM_TRACE_CONTEXT = new ChildContextCreator<TraceContext>() {
+        @Override
+        public boolean asChildOf(TraceContext child, TraceContext parent) {
+            child.asChildOf(parent);
+            return true;
+        }
+    };
+    private static final ChildContextCreator<byte[]> FROM_SERIALIZED = new ChildContextCreator<byte[]>() {
+        @Override
+        public boolean asChildOf(TraceContext child, byte[] serializedParent) {
+            return child.asChildOf(serializedParent);
+        }
+    };
+    private static final ChildContextCreator<String> FROM_TRACEPARENT_HEADER = new ChildContextCreator<String>() {
+        @Override
+        public boolean asChildOf(TraceContext child, String traceparent) {
+            if (traceparent != null) {
+                return child.asChildOf(traceparent);
+            }
+            return false;
+        }
+    };
+    private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
+        @Override
+        public boolean asChildOf(TraceContext child, ElasticApmTracer tracer) {
+            final Object active = tracer.getActive();
+            if (active instanceof TraceContext) {
+                return fromTraceContext().asChildOf(child, (TraceContext) active);
+            } else if (active instanceof byte[]) {
+                return fromSerialized().asChildOf(child, (byte[]) active);
+            }
+            return false;
+        }
+    };
+    private static final ChildContextCreator<Object> AS_ROOT = new ChildContextCreator<Object>() {
+        @Override
+        public boolean asChildOf(TraceContext child, Object ignore) {
+            return false;
+        }
+    };
     private static final int TRACE_PARENT_LENGTH = EXPECTED_LENGTH;
     // ???????1 -> maybe recorded
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
-    public static final int TRACE_ID_OFFSET = 3;
-    public static final int PARENT_ID_OFFSET = 36;
-    public static final int FLAGS_OFFSET = 53;
     private final Id traceId = Id.new128BitId();
     private final Id id;
     private final Id parentId = Id.new64BitId();
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
+
+    private TraceContext(Id id) {
+        this.id = id;
+    }
 
     /**
      * Creates a new {@code traceparent}-compliant {@link TraceContext} with a 64 bit {@link #id}.
@@ -78,8 +132,28 @@ public class TraceContext implements Recyclable {
         return new TraceContext(Id.new128BitId());
     }
 
-    private TraceContext(Id id) {
-        this.id = id;
+    public static ChildContextCreator<TraceContext> fromTraceContext() {
+        return FROM_TRACE_CONTEXT;
+    }
+
+    public static ChildContextCreator<String> fromTraceparentHeader() {
+        return FROM_TRACEPARENT_HEADER;
+    }
+
+    public static ChildContextCreator<byte[]> fromSerialized() {
+        return FROM_SERIALIZED;
+    }
+
+    public static ChildContextCreator<ElasticApmTracer> fromActiveSpan() {
+        return FROM_ACTIVE;
+    }
+
+    public static ChildContextCreator<AbstractSpan<?>> fromParentSpan() {
+        return FROM_PARENT_SPAN;
+    }
+
+    public static ChildContextCreator<?> asRoot() {
+        return AS_ROOT;
     }
 
     public boolean asChildOf(String traceParentHeader) {
@@ -141,6 +215,7 @@ public class TraceContext implements Recyclable {
         if (sampler.isSampled(traceId)) {
             this.flags = FLAG_RECORDED;
         }
+        onMutation();
     }
 
     public void asChildOf(TraceContext parent) {
@@ -149,6 +224,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(parent.transactionId);
         flags = parent.flags;
         id.setToRandomValue();
+        onMutation();
     }
 
     private byte getTraceOptions(String traceParent) {
@@ -258,10 +334,42 @@ public class TraceContext implements Recyclable {
         parentId.copyFrom(other.parentId);
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
+        onMutation();
     }
 
     @Override
     public String toString() {
         return getOutgoingTraceParentHeader().toString();
     }
+
+    public byte[] serialize() {
+        final byte[] bytes = new byte[33];
+        traceId.toBytes(bytes, 0);
+        id.toBytes(bytes, 16);
+        transactionId.toBytes(bytes, 24);
+        bytes[bytes.length - 1] = flags;
+        return bytes;
+    }
+
+    private boolean asChildOf(byte[] bytes) {
+        if (bytes.length != 33) {
+            return false;
+        }
+        traceId.fromBytes(bytes, 0);
+        parentId.fromBytes(bytes, 16);
+        transactionId.fromBytes(bytes, 24);
+        flags = bytes[bytes.length - 1];
+        id.setToRandomValue();
+        onMutation();
+        return true;
+    }
+
+    private void onMutation() {
+        outgoingHeader.setLength(0);
+    }
+
+    public interface ChildContextCreator<T> {
+        boolean asChildOf(TraceContext child, T parent);
+    }
+
 }

@@ -34,6 +34,7 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
+import co.elastic.apm.util.HexUtils;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,10 +68,10 @@ public class ElasticApmTracer {
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<AbstractSpan<?>>> activeStack = new ThreadLocal<Deque<AbstractSpan<?>>>() {
+    private final ThreadLocal<Deque<Object>> activeStack = new ThreadLocal<Deque<Object>>() {
         @Override
-        protected Deque<AbstractSpan<?>> initialValue() {
-            return new ArrayDeque<AbstractSpan<?>>();
+        protected Deque<Object> initialValue() {
+            return new ArrayDeque<Object>();
         }
     };
     private final CoreConfiguration coreConfiguration;
@@ -123,19 +124,19 @@ public class ElasticApmTracer {
     }
 
     public Transaction startTransaction() {
-        return startTransaction(null);
+        return startTransaction(TraceContext.asRoot(), null);
     }
 
-    public Transaction startTransaction(@Nullable String traceContextHeader) {
-        return startTransaction(traceContextHeader, sampler, -1);
+    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent) {
+        return startTransaction(childContextCreator, parent, sampler, -1);
     }
 
-    public Transaction startTransaction(@Nullable String traceContextHeader, Sampler sampler, long epochMicros) {
+    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler, long epochMicros) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(traceContextHeader, epochMicros, sampler);
+            transaction = transactionPool.createInstance().start(childContextCreator, parent, epochMicros, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -153,7 +154,7 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        final AbstractSpan<?> bottomOfStack = activeStack.get().peekFirst();
+        final Object bottomOfStack = activeStack.get().peekFirst();
         if (bottomOfStack instanceof Transaction) {
             return (Transaction) bottomOfStack;
         }
@@ -162,7 +163,7 @@ public class ElasticApmTracer {
 
     @Nullable
     public Span currentSpan() {
-        final AbstractSpan<?> abstractSpan = getActive();
+        final AbstractSpan<?> abstractSpan = activeSpan();
         if (abstractSpan instanceof Span) {
             return (Span) abstractSpan;
         }
@@ -178,18 +179,18 @@ public class ElasticApmTracer {
      * @param parentContext the trace context of the parent
      * @return a new started span
      */
-    public Span startSpan(TraceContext parentContext) {
-        return spanPool.createInstance().start(parentContext);
+    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
+        return spanPool.createInstance().start(childContextCreator, parentContext);
     }
 
     /**
      * @param parentContext the trace context of the parent
      * @param epochMicros   the start timestamp of the span in microseconds after epoch
      * @return a new started span
-     * @see #startSpan(TraceContext)
+     * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
-    public Span startSpan(TraceContext parentContext, long epochMicros) {
-        return spanPool.createInstance().start(parentContext, epochMicros);
+    public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
+        return spanPool.createInstance().start(childContextCreator, parentContext, epochMicros);
     }
 
     public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
@@ -208,13 +209,6 @@ public class ElasticApmTracer {
             return createNoopSpan();
         } else {
             span = createRealSpan(transaction, parentSpan, epochMicros);
-        }
-        if (logger.isDebugEnabled()) {
-            logger.debug("startSpan {} {", span);
-            if (logger.isTraceEnabled()) {
-                logger.trace("starting span at",
-                    new RuntimeException("this exception is just used to record where the span has been started from"));
-            }
         }
         return span;
     }
@@ -235,7 +229,7 @@ public class ElasticApmTracer {
             dropped = false;
             transaction.getSpanCount().getStarted().incrementAndGet();
         }
-        span.start(transaction, parentSpan, epochMicros, dropped);
+        span.start(transaction, TraceContext.fromParentSpan(), parentSpan != null ? parentSpan : transaction, epochMicros, dropped);
         return span;
     }
 
@@ -244,7 +238,7 @@ public class ElasticApmTracer {
     }
 
     public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis(), e, getActive());
+        captureException(System.currentTimeMillis(), e, activeSpan());
     }
 
     public void captureException(long epochTimestampMillis, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
@@ -293,19 +287,13 @@ public class ElasticApmTracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("} endSpan {}", span.toString());
-            if (logger.isTraceEnabled()) {
-                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
-            }
-        }
-        long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
-        if (spanFramesMinDurationMs != 0 && span.isSampled()) {
-            if (span.getDuration() >= spanFramesMinDurationMs) {
-                span.withStacktrace(new Throwable());
-            }
-        }
         if (span.isSampled()) {
+            long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
+            if (spanFramesMinDurationMs != 0 && span.isSampled()) {
+                if (span.getDuration() >= spanFramesMinDurationMs) {
+                    span.withStacktrace(new Throwable());
+                }
+            }
             reporter.report(span);
         } else {
             span.recycle();
@@ -352,7 +340,16 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public AbstractSpan<?> getActive() {
+    public AbstractSpan<?> activeSpan() {
+        final Object active = getActive();
+        if (active instanceof AbstractSpan) {
+            return (AbstractSpan<?>) active;
+        }
+        return null;
+    }
+
+    @Nullable
+    public Object getActive() {
         return activeStack.get().peek();
     }
 
@@ -371,16 +368,35 @@ public class ElasticApmTracer {
         activeStack.get().push(span);
     }
 
+    public void activate(byte[] serializedTraceContext) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Activating serialized trace context on thread {}",
+                HexUtils.bytesToHex(serializedTraceContext), Thread.currentThread().getId());
+        }
+        activeStack.get().push(serializedTraceContext);
+    }
+
     public void deactivate(AbstractSpan<?> span) {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
         }
-        final AbstractSpan<?> currentlyActive = activeStack.get().poll();
+        assertIsActive(span, activeStack.get().poll());
         if (span instanceof Transaction) {
             // a transaction is always the bottom of this stack
             // clearing to avoid potential leaks in case of wrong api usage
             activeStack.get().clear();
         }
+    }
+
+    public void deactivate(byte[] serializedTraceContext) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Deactivating serialized trace context on thread {}",
+                HexUtils.bytesToHex(serializedTraceContext), Thread.currentThread().getId());
+        }
+        assertIsActive(serializedTraceContext, activeStack.get().poll());
+    }
+
+    private void assertIsActive(Object span, @Nullable Object currentlyActive) {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);

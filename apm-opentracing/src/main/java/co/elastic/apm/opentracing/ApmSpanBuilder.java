@@ -128,8 +128,8 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
             }
         }
         final Iterable<Map.Entry<String, String>> baggage = parentContext != null ? parentContext.baggageItems() : null;
-        final Object span = createSpan(parent, parent != null ? parent.getSpan() : null, baggage);
-        final ApmSpan apmSpan = new ApmSpan(span).setOperationName(operationName);
+        final Object dispatcher = createSpan(parent, parent != null ? parent.getSpan() : null, baggage);
+        final ApmSpan apmSpan = new ApmSpan(dispatcher).setOperationName(operationName);
         addTags(apmSpan);
         return apmSpan;
     }

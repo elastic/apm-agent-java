@@ -110,6 +110,25 @@ class TraceContextTest {
     }
 
     @Test
+    void testSerialization() {
+        final TraceContext traceContext = TraceContext.with64BitId();
+        traceContext.asRootSpan(ConstantSampler.of(true));
+
+        final byte[] serializedContext = traceContext.serialize();
+        final TraceContext traceContextCopy = TraceContext.with64BitId();
+        assertThat(TraceContext.fromSerialized().asChildOf(traceContextCopy, serializedContext)).isTrue();
+
+        assertThat(traceContextCopy.isChildOf(traceContext)).isTrue();
+        assertThat(traceContextCopy.isSampled()).isTrue();
+    }
+
+    @Test
+    void testSerializationLengthMismatch() {
+        final TraceContext traceContextCopy = TraceContext.with64BitId();
+        assertThat(TraceContext.fromSerialized().asChildOf(traceContextCopy, new byte[5])).isFalse();
+    }
+
+    @Test
     void testUnknownVersion() {
         assertValid("42-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
     }

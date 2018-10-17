@@ -30,11 +30,12 @@ import java.util.Map;
 class ApmSpan implements Span, SpanContext {
 
     @Nullable
-    // co.elastic.apm.impl.transaction.AbstractSpan
-    private final Object span;
+    // co.elastic.apm.impl.transaction.AbstractSpan in case of unfinished spans
+    // byte[] in case of finished spans, holding a serialized TraceContext
+    private Object dispatcher;
 
-    ApmSpan(@Nullable Object span) {
-        this.span = span;
+    ApmSpan(@Nullable Object dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     @Override
@@ -82,7 +83,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Nullable
     Object getSpan() {
-        return span;
+        return dispatcher;
     }
 
     @Override
@@ -144,7 +145,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public String toString() {
-        return String.valueOf(span);
+        return String.valueOf(dispatcher);
     }
 
 }
