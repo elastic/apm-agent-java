@@ -252,7 +252,6 @@ public class ElasticApmTracer {
                     // The error might have occurred in a different thread than the one the transaction was recorded
                     // That's why we have to ensure the visibility of the transaction properties
                     error.getContext().copyFrom(transaction.getContextEnsureVisibility());
-                    error.getTransaction().getTransactionId().copyFrom(transaction.getId());
                 }
                 error.asChildOf(active);
             } else {
@@ -308,10 +307,6 @@ public class ElasticApmTracer {
     }
 
     public void recycle(Transaction transaction) {
-        List<Span> spans = transaction.getSpans();
-        for (int i = 0; i < spans.size(); i++) {
-            recycle(spans.get(i));
-        }
         transactionPool.recycle(transaction);
     }
 

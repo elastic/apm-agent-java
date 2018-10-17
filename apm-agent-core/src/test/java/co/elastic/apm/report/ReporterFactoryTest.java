@@ -102,9 +102,8 @@ class ReporterFactoryTest {
     }
 
     @Test
-    void testNotValidatingSslCertificate_intakeV1() throws Exception {
+    void testNotValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(false);
         final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
 
         reporter.report(new Transaction(mock(ElasticApmTracer.class)));
@@ -113,34 +112,10 @@ class ReporterFactoryTest {
         assertThat(requestHandled).isTrue();
     }
 
-    @Test
-    void testNotValidatingSslCertificate_intakeV2() throws Exception {
-        when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(true);
-        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
-
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
-        reporter.flush().get();
-
-        assertThat(requestHandled).isTrue();
-    }
 
     @Test
-    void testValidatingSslCertificate_intakeV1() throws Exception {
+    void testValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(false);
-        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
-
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
-        reporter.flush().get();
-
-        assertThat(requestHandled).isFalse();
-    }
-
-    @Test
-    void testValidatingSslCertificate_intakeV2() throws Exception {
-        when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        when(reporterConfiguration.isIntakeV2Enabled()).thenReturn(true);
         final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
 
         reporter.report(new Transaction(mock(ElasticApmTracer.class)));

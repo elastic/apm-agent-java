@@ -51,11 +51,6 @@ public class ErrorCapture implements Recyclable {
     @Nullable
     private Throwable exception;
     /**
-     * Data for correlating errors with transactions
-     */
-    @Deprecated
-    private final TransactionReference transaction = new TransactionReference();
-    /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
      */
@@ -97,19 +92,10 @@ public class ErrorCapture implements Recyclable {
         return this;
     }
 
-    /**
-     * Data for correlating errors with transactions
-     */
-    @Deprecated
-    public TransactionReference getTransaction() {
-        return transaction;
-    }
-
     @Override
     public void resetState() {
         exception = null;
         context.resetState();
-        transaction.resetState();
         timestamp = 0;
         traceContext.resetState();
         culprit.setLength(0);

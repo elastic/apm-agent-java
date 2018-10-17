@@ -31,25 +31,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
-    /**
-     * The locally unique ID of the span.
-     */
-    @Deprecated
-    private final SpanId id = new SpanId();
-    /**
-     * The locally unique ID of the parent of the span.
-     */
-    @Deprecated
-    private final SpanId parent = new SpanId();
     @Nullable
     private Throwable stacktrace;
-    /**
-     * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
-     * (Required)
-     */
-    // TODO remove after https://github.com/elastic/apm-server/issues/1340 has been implemented in APM Server
-    @Deprecated
-    private volatile double start;
 
     @Nullable
     private volatile Transaction transaction;
@@ -62,14 +45,10 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         this.transaction = transaction;
         this.clock.init(transaction.clock);
         if (parentSpan != null) {
-            this.parent.copyFrom(parentSpan.getId());
             start(parentSpan.getTraceContext(), epochMicros, dropped);
         } else {
             start(transaction.getTraceContext(), epochMicros, dropped);
         }
-        // TODO remove after dropping support for intake v1
-        this.id.setLong(transaction.getNextSpanId());
-        this.start = (timestamp - transaction.timestamp) / MS_IN_MICROS;
         return this;
     }
 
@@ -101,14 +80,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     /**
-     * The locally unique ID of the span.
-     */
-    @Deprecated
-    public SpanId getId() {
-        return id;
-    }
-
-    /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     public SpanContext getContext() {
@@ -120,25 +91,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    /**
-     * The locally unique ID of the parent of the span.
-     */
-    @Deprecated
-    public SpanId getParent() {
-        return parent;
-    }
-
     @Nullable
     public Throwable getStacktrace() {
         return stacktrace;
-    }
-
-    /**
-     * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
-     * (Required)
-     */
-    public double getStart() {
-        return start;
     }
 
     @Override
@@ -149,11 +104,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public void resetState() {
         super.resetState();
-        id.resetState();
         context.resetState();
-        parent.resetState();
         stacktrace = null;
-        start = 0;
         transaction = null;
     }
 
@@ -183,7 +135,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
+        return String.format("'%s' %s", name, traceContext);
     }
 
     public Span withStacktrace(Throwable stacktrace) {

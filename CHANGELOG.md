@@ -1,4 +1,13 @@
-# next version
+# 0.9.0
+
+## Breaking changes
+ * Remove intake v1 support. This version requires an APM Server which supports the intake api v2.
+
+## Features
+
+## Bug Fixes
+
+# 0.8.0
 
 ## Breaking changes
  * Wildcard patterns are case insensitive by default. Prepend `(?-i)` to make the matching case sensitive.

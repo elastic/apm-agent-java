@@ -20,12 +20,13 @@
 package co.elastic.apm;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -79,7 +80,10 @@ public class TransactionUtils {
         context.getCustom().put("my_key", 1);
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);
+    }
 
+    public static List<Span> getSpans(Transaction t) {
+        List<Span> spans = new ArrayList<>();
         Span span = new Span(mock(ElasticApmTracer.class))
             .start(t, null, 0, false)
             .withName("SELECT FROM product_types")
@@ -91,17 +95,17 @@ public class TransactionUtils {
             .withUser("readonly_user");
         span.addTag("monitored_by", "ACME");
         span.addTag("framework", "some-framework");
-        t.addSpan(span);
+        spans.add(span);
 
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(mock(ElasticApmTracer.class))
             .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(mock(ElasticApmTracer.class))
             .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(mock(ElasticApmTracer.class))
             .start(t, null, 0, false)
             .withName("GET /api/types")
             .withType("request"));
@@ -112,7 +116,8 @@ public class TransactionUtils {
             .appendToName("test.elastic.co")
             .withType("ext.http.apache-httpclient");
         span.getContext().getHttp().withUrl("http://test.elastic.co/test-service");
-        t.addSpan(span);
+        spans.add(span);
+        return spans;
     }
 
 }

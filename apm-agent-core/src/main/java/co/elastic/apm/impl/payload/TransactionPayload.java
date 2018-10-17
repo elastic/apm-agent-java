@@ -70,11 +70,7 @@ public class TransactionPayload extends Payload {
 
     @Override
     public int getPayloadSize() {
-        int size = transactions.size() + spans.size();
-        for (Transaction transaction : transactions) {
-            size += transaction.getSpans().size();
-        }
-        return size;
+        return transactions.size() + spans.size();
     }
 
     @Override

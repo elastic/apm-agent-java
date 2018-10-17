@@ -32,8 +32,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 import static co.elastic.apm.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
+import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 
 public class JdbcHelperImpl implements JdbcHelper {
 
@@ -118,10 +118,10 @@ public class JdbcHelperImpl implements JdbcHelper {
     private String getDbVendor(String url) {
         // jdbc:h2:mem:test
         //     ^
-        int indexOfJdbc = url.indexOf("jdbc:") + 5;
+        int indexOfJdbc = url.indexOf("jdbc:");
         if (indexOfJdbc != -1) {
             // h2:mem:test
-            String urlWithoutJdbc = url.substring(indexOfJdbc);
+            String urlWithoutJdbc = url.substring(indexOfJdbc + 5);
             int indexOfColonAfterVendor = urlWithoutJdbc.indexOf(":");
             if (indexOfColonAfterVendor != -1) {
                 // h2

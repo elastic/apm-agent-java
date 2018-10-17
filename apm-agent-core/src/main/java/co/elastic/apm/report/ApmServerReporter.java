@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.report;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -73,14 +72,13 @@ public class ApmServerReporter implements Reporter {
     };
 
     private final Disruptor<ReportingEvent> disruptor;
-    private final CoreConfiguration coreConfiguration;
     private final AtomicLong dropped = new AtomicLong();
     private final boolean dropTransactionIfQueueFull;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
+                             ReportingEventHandler reportingEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -92,7 +90,6 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
-        this.coreConfiguration = coreConfiguration;
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
@@ -112,15 +109,11 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void report(Span span) {
-        if (coreConfiguration.isDistributedTracingEnabled()) {
-            if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR)) {
-                span.recycle();
-            }
-            if (syncReport) {
-                waitForFlush();
-            }
-        } else if (span.getTransaction() != null) {
-            span.getTransaction().addSpan(span);
+        if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR)) {
+            span.recycle();
+        }
+        if (syncReport) {
+            waitForFlush();
         }
     }
 

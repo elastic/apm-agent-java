@@ -4,19 +4,9 @@
     "type": "object",
     "properties": {
         "id": {
-            "description": "ID for the span",
-            "anyOf": [
-                {
-                    "deprecated": true,
-                    "description": "UUID",
-                    "type": ["integer", "null"]
-                },
-                {
-                    "description": "Unique within the corresponding trace, hex encoded 64 random bits",
-                    "type": "string",
-                    "pattern": "^[a-fA-F0-9]{16}$"
-                }
-            ]
+          "description": "Unique within the corresponding trace, hex encoded 64 random bits",
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{16}$"
         },
         "trace_id": {
             "type": "string",

@@ -36,8 +36,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -202,7 +200,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getContext().getRequest().getUrl().getPathname()).isEqualTo("/foo");
-        assertThat(reporter.getFirstError().getTransaction().getTransactionId()).isEqualTo(reporter.getFirstTransaction().getId());
+        assertThat(reporter.getFirstError().getTraceContext().isChildOf(reporter.getFirstTransaction().getTraceContext())).isTrue();
     }
 
     @Test
