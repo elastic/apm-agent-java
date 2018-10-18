@@ -42,6 +42,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
@@ -62,8 +64,15 @@ public class ElasticApmTracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final Reporter reporter;
-    private final ThreadLocal<Transaction> activeTransaction = new ThreadLocal<>();
-    private final ThreadLocal<AbstractSpan> active = new ThreadLocal<>();
+    // Maintains a stack of all the activated spans
+    // This way its easy to retrieve the bottom of the stack (the transaction)
+    // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
+    private final ThreadLocal<Deque<AbstractSpan<?>>> activeStack = new ThreadLocal<Deque<AbstractSpan<?>>>() {
+        @Override
+        protected Deque<AbstractSpan<?>> initialValue() {
+            return new ArrayDeque<AbstractSpan<?>>();
+        }
+    };
     private final CoreConfiguration coreConfiguration;
     private final List<SpanListener> spanListeners;
     private Sampler sampler;
@@ -144,12 +153,16 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        return activeTransaction.get();
+        final AbstractSpan<?> bottomOfStack = activeStack.get().peekFirst();
+        if (bottomOfStack instanceof Transaction) {
+            return (Transaction) bottomOfStack;
+        }
+        return null;
     }
 
     @Nullable
     public Span currentSpan() {
-        final AbstractSpan<?> abstractSpan = active.get();
+        final AbstractSpan<?> abstractSpan = getActive();
         if (abstractSpan instanceof Span) {
             return (Span) abstractSpan;
         }
@@ -340,11 +353,7 @@ public class ElasticApmTracer {
 
     @Nullable
     public AbstractSpan<?> getActive() {
-        return active.get();
-    }
-
-    public void setActive(@Nullable AbstractSpan<?> span) {
-        active.set(span);
+        return activeStack.get().peek();
     }
 
     public void registerSpanListener(SpanListener spanListener) {
@@ -355,11 +364,27 @@ public class ElasticApmTracer {
         return spanListeners;
     }
 
-    public void activateTransaction(Transaction transaction) {
-        activeTransaction.set(transaction);
+    public void activate(AbstractSpan<?> span) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Activating {} on thread {}", span, Thread.currentThread().getId());
+        }
+        activeStack.get().push(span);
     }
 
-    public void deactivateTransaction() {
-        activeTransaction.set(null);
+    public void deactivate(AbstractSpan<?> span) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
+        }
+        final AbstractSpan<?> currentlyActive = activeStack.get().poll();
+        if (span instanceof Transaction) {
+            // a transaction is always the bottom of this stack
+            // clearing to avoid potential leaks in case of wrong api usage
+            activeStack.get().clear();
+        }
+        if (span != currentlyActive) {
+            logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
+                "This can happen when not properly deactivating a previous span.", span, currentlyActive);
+        }
+        assert span == currentlyActive;
     }
 }

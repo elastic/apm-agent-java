@@ -176,19 +176,4 @@ public class Transaction extends AbstractSpan<Transaction> {
     public String toString() {
         return String.format("'%s' %s", name, traceContext);
     }
-
-    @Override
-    public Transaction activate() {
-        tracer.activateTransaction(this);
-        return super.activate();
-    }
-
-    @Override
-    public Transaction deactivate() {
-        try {
-            return super.deactivate();
-        } finally {
-            tracer.deactivateTransaction();
-        }
-    }
 }

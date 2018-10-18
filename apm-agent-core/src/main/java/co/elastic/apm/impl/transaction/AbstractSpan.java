@@ -45,8 +45,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * (Required)
      */
     protected double duration;
-    @Nullable
-    private volatile AbstractSpan<?> previouslyActive;
     /**
      * Keyword of specific relevance in the service's domain
      * (eg:  'request', 'backgroundjob' for transactions and
@@ -152,8 +150,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     public abstract Transaction getTransaction();
 
     public T activate() {
-        previouslyActive = tracer.getActive();
-        tracer.setActive(this);
+        tracer.activate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -168,7 +165,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public T deactivate() {
-        tracer.setActive(previouslyActive);
+        tracer.deactivate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -184,7 +181,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public Scope activateInScope() {
         // already in scope
-        if (tracer.currentTransaction() == this) {
+        if (tracer.getActive() == this) {
             return Scope.NoopScope.INSTANCE;
         }
         activate();
