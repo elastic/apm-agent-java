@@ -45,8 +45,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * (Required)
      */
     protected double duration;
-    @Nullable
-    private volatile AbstractSpan<?> previouslyActive;
     /**
      * Keyword of specific relevance in the service's domain
      * (eg:  'request', 'backgroundjob' for transactions and
@@ -140,13 +138,19 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return traceContext.isChildOf(parent.traceContext);
     }
 
+    /**
+     * The span having a reference to its transaction is problematic as in multi-threaded scenarios,
+     * the transaction may have already been {@linkplain #end() ended} and
+     * {@linkplain co.elastic.apm.objectpool.ObjectPool#recycle(Recyclable) recycled}.
+     * Only returning non-ended transactions does also not work,
+     * as a transaction can be ended on a different thread right after that check.
+     */
+    @Deprecated
     @Nullable
     public abstract Transaction getTransaction();
 
     public T activate() {
-        final ElasticApmTracer tracer = this.tracer;
-        previouslyActive = tracer.getActive();
-        tracer.setActive(this);
+        tracer.activate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -161,8 +165,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public T deactivate() {
-        final ElasticApmTracer tracer = this.tracer;
-        tracer.setActive(previouslyActive);
+        tracer.deactivate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -177,9 +180,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Scope activateInScope() {
-        final ElasticApmTracer tracer = this.tracer;
         // already in scope
-        if (tracer.currentTransaction() == this) {
+        if (tracer.getActive() == this) {
             return Scope.NoopScope.INSTANCE;
         }
         activate();
