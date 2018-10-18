@@ -64,6 +64,10 @@
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.jctools</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.guava</shadedPattern>
+                                </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
                                 Although this is not a package but a string constant, it does work

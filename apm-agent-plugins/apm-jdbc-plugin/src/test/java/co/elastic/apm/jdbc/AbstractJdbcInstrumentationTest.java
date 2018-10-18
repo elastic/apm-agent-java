@@ -101,6 +101,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
             assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
+
+            // test a second recording with the same statement object
+            reporter.reset();
+            resultSet = preparedStatement.executeQuery();
+            assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
         }
     }
 
