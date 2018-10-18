@@ -262,6 +262,6 @@ public class TraceContext implements Recyclable {
 
     @Override
     public String toString() {
-        return getOutgoingTraceParentHeader();
+        return getOutgoingTraceParentHeader().toString();
     }
 }
