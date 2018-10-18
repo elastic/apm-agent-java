@@ -19,11 +19,11 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.MockReporter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.ValidationMessage;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -52,10 +52,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import static co.elastic.apm.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 
@@ -85,8 +85,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     static {
         mockServerContainer.start();
-        mockServerContainer.getClient().when(request("/v1/transactions")).respond(HttpResponse.response().withStatusCode(200));
-        mockServerContainer.getClient().when(request("/v1/errors")).respond(HttpResponse.response().withStatusCode(200));
+        mockServerContainer.getClient().when(request(INTAKE_V2_URL)).respond(HttpResponse.response().withStatusCode(200));
         mockServerContainer.getClient().when(request("/healthcheck")).respond(HttpResponse.response().withStatusCode(200));
         schema = JsonSchemaFactory.getInstance().getSchema(
             AbstractServletContainerIntegrationTest.class.getResourceAsStream("/schema/transactions/payload.json"));
@@ -102,6 +101,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         checkFilePresent(pathToJavaagent);
     }
 
+    private final MockReporter mockReporter = new MockReporter();
     private final GenericContainer servletContainer;
     private final int webPort;
     private final String contextPath;
@@ -175,11 +175,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    private void validateJsonSchema(JsonNode payload) {
-        Set<ValidationMessage> errors = schema.validate(payload);
-        assertThat(errors).isEmpty();
-    }
-
     @Test
     public void testTransactionReporting() throws Exception {
         for (String pathToTest : getPathsToTest()) {
@@ -243,36 +238,30 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private List<JsonNode> getReportedTransactions() {
-        try {
-            final List<JsonNode> transactions = new ArrayList<>();
-            final ObjectMapper objectMapper = new ObjectMapper();
-            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request("/v1/transactions"))) {
-                final JsonNode payload = objectMapper.readTree(httpRequest.getBodyAsString());
-                validateJsonSchema(payload);
-                for (JsonNode transaction : payload.get("transactions")) {
-                    transactions.add(transaction);
-                }
-            }
-            return transactions;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        final List<JsonNode> transactions = getEvents("transaction");
+        transactions.forEach(mockReporter::verifyTransactionSchema);
+        return transactions;
     }
 
     private List<JsonNode> getReportedSpans() {
+        final List<JsonNode> transactions = getEvents("span");
+        transactions.forEach(mockReporter::verifySpanSchema);
+        return transactions;
+    }
+
+    private List<JsonNode> getEvents(String eventType) {
         try {
-            final List<JsonNode> spans = new ArrayList<>();
+            final List<JsonNode> transactions = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
-            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request("/v1/transactions"))) {
-                final JsonNode payload;
-                payload = objectMapper.readTree(httpRequest.getBodyAsString());
-                validateJsonSchema(payload);
-                addSpans(spans, payload);
-                for (JsonNode transaction : payload.get("transactions")) {
-                    addSpans(spans, transaction);
+            for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
+                for (String ndJsonLine : httpRequest.getBodyAsString().split("\n")) {
+                    final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
+                    if (ndJson.get(eventType) != null) {
+                        transactions.add(ndJson.get(eventType));
+                    }
                 }
             }
-            return spans;
+            return transactions;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -284,8 +273,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             final JsonNode payload;
             payload = objectMapper
                 .readTree(mockServerContainer.getClient()
-                    .retrieveRecordedRequests(request("/v1/transactions"))[0].getBodyAsString());
-            return payload.get("service").get("name").textValue();
+                    .retrieveRecordedRequests(request(INTAKE_V2_URL))[0].getBodyAsString().split("\n")[0]);
+            return payload.get("metadata").get("service").get("name").textValue();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -295,6 +284,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         final JsonNode jsonSpans = payload.get("spans");
         if (jsonSpans != null) {
             for (JsonNode jsonSpan : jsonSpans) {
+                mockReporter.verifyTransactionSchema(jsonSpan);
                 spans.add(jsonSpan);
             }
         }

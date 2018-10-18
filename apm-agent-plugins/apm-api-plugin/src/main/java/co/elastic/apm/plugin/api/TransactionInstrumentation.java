@@ -21,9 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.impl.transaction.TransactionId;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,7 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.UUID;
 
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -169,11 +166,7 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                         @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
-                if (tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()) {
-                    id = transaction.getTraceContext().getId().toString();
-                } else {
-                    id = transaction.getId().toUUID().toString();
-                }
+                id = transaction.getTraceContext().getId().toString();
             }
         }
     }

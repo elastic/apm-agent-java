@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Future;
@@ -81,9 +80,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private int errorCount;
     private long gracePeriodEnd;
 
-    IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
-                                  ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                  PayloadSerializer payloadSerializer) {
+    public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
+                                         ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
+                                         PayloadSerializer payloadSerializer) {
         this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration));
     }
 

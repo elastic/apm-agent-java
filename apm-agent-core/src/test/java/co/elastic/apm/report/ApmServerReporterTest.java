@@ -20,30 +20,30 @@
 package co.elastic.apm.report;
 
 import co.elastic.apm.MockTracer;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.util.Collections;
-import java.util.concurrent.ExecutionException;
+import java.util.Objects;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ApmServerReporterTest {
 
     private ApmServerReporter reporter;
+    private ReportingEventHandler reportingEventHandler;
 
     @BeforeEach
     void setUp() {
@@ -51,31 +51,29 @@ class ApmServerReporterTest {
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1ms"));
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
-        SystemInfo system = new SystemInfo("x64", "localhost", "platform");
-        final Service service = new Service();
-        final ProcessInfo title = new ProcessInfo("title");
-        final ProcessorEventHandler processorEventHandler = new ProcessorEventHandler(Collections.singletonList(new TestProcessor()));
-        reporter = new ApmServerReporter(true, reporterConfiguration,
-            configurationRegistry.getConfig(CoreConfiguration.class), new IntakeV1ReportingEventHandler(service, title, system, mock(PayloadSender.class), reporterConfiguration, processorEventHandler));
+        reportingEventHandler = mock(ReportingEventHandler.class);
+        reporter = new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
     }
 
     @Test
-    void testTransactionProcessor() throws ExecutionException, InterruptedException {
-        final int transactionCount = TestProcessor.getTransactionCount();
+    void testTransactionProcessor() throws Exception {
         reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(TestProcessor.getTransactionCount()).isEqualTo(transactionCount + 1);
+        verify(reportingEventHandler).onEvent(notNull(ReportingEvent::getTransaction), anyLong(), anyBoolean());
     }
 
     @Test
-    void testErrorProcessor() throws ExecutionException, InterruptedException {
-        final int errorCount = TestProcessor.getErrorCount();
+    void testErrorProcessor() throws Exception {
         reporter.report(new ErrorCapture(MockTracer.create()));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(TestProcessor.getErrorCount()).isEqualTo(errorCount + 1);
+        verify(reportingEventHandler).onEvent(notNull(ReportingEvent::getError), anyLong(), anyBoolean());
+    }
+
+    private <T> T notNull(Function<T, ?> function) {
+        return argThat(arg -> Objects.nonNull(function.apply(arg)));
     }
 }

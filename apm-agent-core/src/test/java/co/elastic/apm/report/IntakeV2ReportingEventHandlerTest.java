@@ -91,7 +91,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(true, mock(StacktraceConfiguration.class)),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
             List.of(
                 new URL("http://localhost:" + mockApmServer1.port()),
                 new URL("http://localhost:" + mockApmServer2.port())

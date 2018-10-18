@@ -259,4 +259,9 @@ public class TraceContext implements Recyclable {
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
     }
+
+    @Override
+    public String toString() {
+        return getOutgoingTraceParentHeader();
+    }
 }

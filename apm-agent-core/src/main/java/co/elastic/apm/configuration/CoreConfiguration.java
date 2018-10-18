@@ -168,13 +168,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("set-cookie")
         ));
 
-    private final ConfigurationOption<Boolean> distributedTracing = ConfigurationOption.booleanOption()
-        .key("distributed_tracing")
-        .configurationCategory(CORE_CATEGORY)
-        .tags("internal")
-        .description("Enables distributed tracing and uses the updated json schema to serialize payloads, transactions and spans")
-        .buildWithDefault(false);
-
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
@@ -281,10 +274,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getSanitizeFieldNames() {
         return sanitizeFieldNames.get();
-    }
-
-    public boolean isDistributedTracingEnabled() {
-        return distributedTracing.get();
     }
 
     public Collection<String> getDisabledInstrumentations() {

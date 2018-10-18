@@ -21,10 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -144,15 +141,7 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
-                if (tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()) {
-                    id = span.getTraceContext().getId().toString();
-                } else {
-                    if (span instanceof Span) {
-                        id = Long.toString(((Span) span).getId().asLong());
-                    } else if (span instanceof Transaction) {
-                        id = ((Transaction) span).getId().toUUID().toString();
-                    }
-                }
+                id = span.getTraceContext().getId().toString();
             }
         }
     }

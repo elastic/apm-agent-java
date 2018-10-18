@@ -67,34 +67,24 @@ public class ReporterFactory {
         healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
         healthCheckExecutorService.shutdown();
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
-            frameworkVersion, reporterConfiguration, httpClient);
-        return new ApmServerReporter(
-            true, reporterConfiguration,
-            configurationRegistry.getConfig(CoreConfiguration.class), reportingEventHandler);
+            frameworkVersion, reporterConfiguration);
+        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
     }
 
     @Nonnull
     private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
-                                                           @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration,
-                                                           OkHttpClient httpClient) {
+                                                           @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration) {
 
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            configurationRegistry.getConfig(CoreConfiguration.class).isDistributedTracingEnabled(),
             configurationRegistry.getConfig(StacktraceConfiguration.class));
         final co.elastic.apm.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
-        final ApmServerHttpPayloadSender payloadSender = new ApmServerHttpPayloadSender(httpClient, payloadSerializer, reporterConfiguration);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         if (!reporterConfiguration.isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        if (reporterConfiguration.isIntakeV2Enabled()) {
-            return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
-                processorEventHandler, payloadSerializer);
-        } else {
-            return new IntakeV1ReportingEventHandler(service, processInformation, SystemInfo.create(), payloadSender, reporterConfiguration,
-                processorEventHandler);
-        }
+        return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
+            processorEventHandler, payloadSerializer);
     }
 
     @Nonnull

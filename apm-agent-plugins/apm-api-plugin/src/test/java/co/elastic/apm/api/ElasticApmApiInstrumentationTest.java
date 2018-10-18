@@ -20,12 +20,10 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.Scope;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -100,28 +98,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testGetId_distributedTracingDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(false);
-
-        co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getId().toUUID().toString());
-            assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getId().toUUID().toString());
-            co.elastic.apm.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
-            try (Scope spanScope = span.activateInScope()) {
-                assertThat(ElasticApm.currentSpan().getId()).isEqualTo(Long.toString(span.getId().asLong()));
-            } finally {
-                span.end();
-            }
-        } finally {
-            transaction.end();
-        }
-    }
-
-    @Test
     void testGetId_distributedTracingEnabled() {
-        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(true);
-
         co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());

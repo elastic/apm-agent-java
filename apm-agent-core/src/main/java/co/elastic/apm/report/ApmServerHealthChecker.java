@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+// TODO use UrlConnection and remove OkHttp dependency
 class ApmServerHealthChecker implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
     private final OkHttpClient httpClient;

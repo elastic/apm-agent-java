@@ -114,13 +114,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Disabled by default to save disk space.")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<Boolean> enableIntakeV2 = ConfigurationOption.booleanOption()
-        .key("enable_intake_v2")
-        .configurationCategory(REPORTER_CATEGORY)
-        .tags("internal", "incubating", "intake-v2")
-        .description("Enables the nd-json-based intake v2 protocol")
-        .buildWithDefault(false);
-
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
@@ -170,10 +163,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isIncludeProcessArguments() {
         return includeProcessArguments.get();
-    }
-
-    public boolean isIntakeV2Enabled() {
-        return enableIntakeV2.get();
     }
 
     public TimeDuration getApiRequestTime() {

@@ -302,7 +302,6 @@ class ElasticApmTracerTest {
 
     @Test
     void testTransactionWithParentReference() {
-        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(true);
         final String traceContextHeader = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
         final Transaction transaction = tracerImpl.startTransaction(traceContextHeader, ConstantSampler.of(false), 0);
         // the traced flag in the header overrides the sampler
@@ -326,7 +325,6 @@ class ElasticApmTracerTest {
         assertThat(transaction.getDuration()).isEqualTo(0.03);
         assertThat(span.getTimestamp()).isEqualTo(10);
         assertThat(span.getDuration()).isEqualTo(0.01);
-        assertThat(span.getStart()).isEqualTo(0.01);
     }
 
     @Test
