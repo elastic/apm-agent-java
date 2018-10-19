@@ -245,8 +245,9 @@ NOTE: Spans created via this method can not be retrieved by calling <<api-curren
 [float]
 [[api-transaction-end]]
 ==== `void end()`
-End tracking the transaction.
-Should be called e.g. at the end of a request or when ending a background task.
+Ends the transaction and schedules it to be reported to the APM Server.
+It is illegal to call any methods on a span instance which has already ended.
+This also includes this method and {@link #createSpan()}.
 Example:
 
 [source,java]
@@ -330,9 +331,9 @@ this method returns an empty string.
 [float]
 [[api-span-end]]
 ==== `void end()`
-Ends the span.
-If the span has already ended, nothing happens.
-
+Ends the span and schedules it to be reported to the APM Server.
+It is illegal to call any methods on a span instance which has already ended.
+This also includes this method and {@link #createSpan()}.
 
 [float]
 [[api-span-start-span]]
