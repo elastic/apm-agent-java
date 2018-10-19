@@ -26,8 +26,6 @@ import co.elastic.apm.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-
 /**
  * This is an implementation of the
  * <a href="https://w3c.github.io/distributed-tracing/report-trace-context.html#traceparent-field">w3c traceparent header draft</a>.
@@ -108,6 +106,12 @@ public class TraceContext implements Recyclable {
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
+    /**
+     * Avoids clock drifts within a transaction.
+     *
+     * @see EpochTickClock
+     */
+    private EpochTickClock clock = new EpochTickClock();
 
     private TraceContext(Id id) {
         this.id = id;
@@ -197,6 +201,7 @@ public class TraceContext implements Recyclable {
             // consider implement rate limiting and/or having a list of trusted sources
             // trace the request if it's either requested or if the parent has recorded it
             flags = getTraceOptions(traceParentHeader);
+            clock.init();
             return true;
         } catch (IllegalArgumentException e) {
             logger.warn(e.getMessage());
@@ -215,6 +220,7 @@ public class TraceContext implements Recyclable {
         if (sampler.isSampled(traceId)) {
             this.flags = FLAG_RECORDED;
         }
+        clock.init();
         onMutation();
     }
 
@@ -224,6 +230,7 @@ public class TraceContext implements Recyclable {
         transactionId.copyFrom(parent.transactionId);
         flags = parent.flags;
         id.setToRandomValue();
+        clock.init(parent.clock);
         onMutation();
     }
 
@@ -238,6 +245,7 @@ public class TraceContext implements Recyclable {
         parentId.resetState();
         outgoingHeader.setLength(0);
         flags = 0;
+        clock.resetState();
     }
 
     /**
@@ -264,6 +272,10 @@ public class TraceContext implements Recyclable {
 
     public Id getTransactionId() {
         return transactionId;
+    }
+
+    public EpochTickClock getClock() {
+        return clock;
     }
 
     /**
@@ -334,6 +346,7 @@ public class TraceContext implements Recyclable {
         parentId.copyFrom(other.parentId);
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
+        clock.init(other.clock);
         onMutation();
     }
 
@@ -343,23 +356,34 @@ public class TraceContext implements Recyclable {
     }
 
     public byte[] serialize() {
-        final byte[] bytes = new byte[33];
+        final byte[] bytes = new byte[41];
         traceId.toBytes(bytes, 0);
         id.toBytes(bytes, 16);
         transactionId.toBytes(bytes, 24);
-        bytes[bytes.length - 1] = flags;
+        bytes[32] = flags;
+        long clockOffset = clock.getOffset();
+        for (int i = 7; i >= 0; i--) {
+            bytes[33 + i] = (byte) (clockOffset & 0xFF);
+            clockOffset >>= Byte.SIZE;
+        }
         return bytes;
     }
 
     private boolean asChildOf(byte[] bytes) {
-        if (bytes.length != 33) {
+        if (bytes.length != 41) {
             return false;
         }
         traceId.fromBytes(bytes, 0);
         parentId.fromBytes(bytes, 16);
         transactionId.fromBytes(bytes, 24);
-        flags = bytes[bytes.length - 1];
+        flags = bytes[32];
         id.setToRandomValue();
+        long clockOffset = 0;
+        for (int i = 0; i < 8; i++) {
+            clockOffset <<= Byte.SIZE;
+            clockOffset |= (bytes[33 + i] & 0xFF);
+        }
+        clock.init(clockOffset);
         onMutation();
         return true;
     }

@@ -38,40 +38,25 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     private Throwable stacktrace;
 
-    @Nullable
-    private volatile Transaction transaction;
-
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        final long epochMicros = this.clock.init();
-        return start(childContextCreator, parentContext, epochMicros, false);
+        return start(childContextCreator, parentContext, getTraceContext().getClock().getEpochMicros());
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        this.clock.init();
         return start(childContextCreator, parentContext, epochMicros, false);
     }
 
-    public <T> Span start(Transaction transaction, TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
-        this.transaction = transaction;
-        // TODO move clock to TraceContext and remove transaction argument
-        this.clock.init(transaction.clock);
-        start(childContextCreator, parentContext, epochMicros, dropped);
-        return this;
-    }
-
-    private <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         onStart();
         childContextCreator.asChildOf(traceContext, parentContext);
         if (dropped) {
             traceContext.setRecorded(false);
         }
-        if (traceContext.isSampled()) {
-            timestamp = epochMicros;
-        }
+        timestamp = epochMicros;
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", this);
             if (logger.isTraceEnabled()) {
@@ -79,11 +64,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     new RuntimeException("this exception is just used to record where the span has been started from"));
             }
         }
-        return this;
-    }
-
-    public Span startNoop() {
-        onStart();
         return this;
     }
 
@@ -120,13 +100,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
-        transaction = null;
-    }
-
-    @Deprecated
-    @Nullable
-    public Transaction getTransaction() {
-        return transaction;
     }
 
     @Override

@@ -269,6 +269,7 @@ class ElasticApmTracerTest {
             }
             transaction.end();
         }
+        // we do report non-sampled transactions (without the context)
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();

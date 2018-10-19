@@ -55,8 +55,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     private volatile String type;
     private volatile boolean finished = true;
 
-    protected final EpochTickClock clock = new EpochTickClock();
-
     public AbstractSpan(ElasticApmTracer tracer) {
         this.tracer = tracer;
     }
@@ -129,7 +127,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         timestamp = 0;
         duration = 0;
         type = null;
-        clock.resetState();
         traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
@@ -137,17 +134,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     public boolean isChildOf(AbstractSpan<?> parent) {
         return traceContext.isChildOf(parent.traceContext);
     }
-
-    /**
-     * The span having a reference to its transaction is problematic as in multi-threaded scenarios,
-     * the transaction may have already been {@linkplain #end() ended} and
-     * {@linkplain co.elastic.apm.objectpool.ObjectPool#recycle(Recyclable) recycled}.
-     * Only returning non-ended transactions does also not work,
-     * as a transaction can be ended on a different thread right after that check.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Transaction getTransaction();
 
     public T activate() {
         tracer.activate(this);
@@ -194,7 +180,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Span createSpan() {
-        return createSpan(clock.getEpochMicros());
+        return createSpan(traceContext.getClock().getEpochMicros());
     }
 
     public Span createSpan(long epochMicros) {
@@ -208,7 +194,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public void end() {
-        end(clock.getEpochMicros());
+        end(traceContext.getClock().getEpochMicros());
     }
 
     public final void end(long epochMicros) {

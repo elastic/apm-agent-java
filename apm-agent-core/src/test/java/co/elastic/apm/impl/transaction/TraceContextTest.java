@@ -120,6 +120,7 @@ class TraceContextTest {
 
         assertThat(traceContextCopy.isChildOf(traceContext)).isTrue();
         assertThat(traceContextCopy.isSampled()).isTrue();
+        assertThat(traceContextCopy.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
     }
 
     @Test

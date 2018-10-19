@@ -60,7 +60,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
         span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-        } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
+        } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
             // re-adds the header on redirects
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, parent.getTraceContext().getOutgoingTraceParentHeader().toString());
         }

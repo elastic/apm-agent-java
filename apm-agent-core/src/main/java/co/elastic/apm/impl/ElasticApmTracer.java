@@ -194,42 +194,22 @@ public class ElasticApmTracer {
     }
 
     public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
-        Span parentSpan = null;
-        if (parent instanceof Span) {
-            parentSpan = (Span) parent;
-        }
-        return startSpan(parent.getTransaction(), parentSpan, epochMicros);
-    }
-
-    private Span startSpan(@Nullable Transaction transaction, @Nullable Span parentSpan, long epochMicros) {
-        final Span span;
-        // makes sure that the active setting is consistent during a transaction
-        // even when setting active=false mid-transaction
-        if (transaction == null || transaction.isNoop()) {
-            return createNoopSpan();
-        } else {
-            span = createRealSpan(transaction, parentSpan, epochMicros);
-        }
-        return span;
-    }
-
-    private Span createNoopSpan() {
-        return spanPool.createInstance().startNoop();
-    }
-
-    private Span createRealSpan(Transaction transaction, @Nullable Span parentSpan, long epochMicros) {
         Span span;
         span = spanPool.createInstance();
         final boolean dropped;
-        if (isTransactionSpanLimitReached(transaction)) {
-            // TODO only drop leaf spans
-            dropped = true;
-            transaction.getSpanCount().getDropped().incrementAndGet();
+        Transaction transaction = currentTransaction();
+        if (transaction != null) {
+            if (isTransactionSpanLimitReached(transaction)) {
+                dropped = true;
+                transaction.getSpanCount().getDropped().incrementAndGet();
+            } else {
+                dropped = false;
+                transaction.getSpanCount().getStarted().incrementAndGet();
+            }
         } else {
             dropped = false;
-            transaction.getSpanCount().getStarted().incrementAndGet();
         }
-        span.start(transaction, TraceContext.fromParentSpan(), parentSpan != null ? parentSpan : transaction, epochMicros, dropped);
+        span.start(TraceContext.fromParentSpan(), parent, epochMicros, dropped);
         return span;
     }
 
@@ -279,6 +259,7 @@ public class ElasticApmTracer {
             }
         }
         if (!transaction.isNoop()) {
+            // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
             transaction.recycle();
