@@ -68,6 +68,11 @@
                                     <pattern>com.google</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.guava</shadedPattern>
                                 </relocation>
+                                <!--A guava dependency-->
+                                <relocation>
+                                    <pattern>org.checkerframework</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.checkerframework</shadedPattern>
+                                </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
                                 Although this is not a package but a string constant, it does work
