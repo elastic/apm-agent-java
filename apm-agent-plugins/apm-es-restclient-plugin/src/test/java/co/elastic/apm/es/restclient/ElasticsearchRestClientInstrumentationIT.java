@@ -93,7 +93,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer();
+        // TODO: the env setting is to pass the bootstrap check of "vm.max_map_count" which fails on the CI env.
+        // TODO: Can be removed after changing to the official testcontainer
+        container = (ElasticsearchContainer) new ElasticsearchContainer().withEnv("discovery.type", "single-node");
         container.start();
 
         // Create the client
