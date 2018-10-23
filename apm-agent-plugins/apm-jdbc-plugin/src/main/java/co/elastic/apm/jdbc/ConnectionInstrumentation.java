@@ -52,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final Map<Object, String> statementSqlMap = new MapMaker().weakKeys().makeMap();
+    public static final Map<Object, String> statementSqlMap = new MapMaker().concurrencyLevel(16).weakKeys().makeMap();
     static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
 
     @VisibleForAdvice
