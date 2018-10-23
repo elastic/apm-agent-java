@@ -22,6 +22,7 @@ package co.elastic.apm.es.restclient;
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.error.ErrorCapture;
 import co.elastic.apm.impl.transaction.Db;
+import co.elastic.apm.impl.transaction.Http;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
 import fr.pilato.elasticsearch.containers.ElasticsearchContainer;
@@ -62,7 +63,7 @@ import java.util.Map;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ELASTICSEARCH_NODE_KEY;
+import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ELASTICSEARCH_NODE_URL_KEY;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ERROR_REASON_KEY;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.QUERY_STATUS_CODE_KEY;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -155,21 +156,27 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
         assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo("404");
         assertThat(tags).containsKey(ERROR_REASON_KEY);
-        assertThat(tags).containsKey(ELASTICSEARCH_NODE_KEY);
-        assertThat(tags.get(ELASTICSEARCH_NODE_KEY)).isEqualTo(container.getHost().toHostString());
+        assertThat(tags).containsKey(ELASTICSEARCH_NODE_URL_KEY);
+        assertThat(tags.get(ELASTICSEARCH_NODE_URL_KEY)).isEqualTo(container.getHost().toURI().toString());
     }
 
-    private void validateSpanContent(Span span, String expectedName, String expectedStatus) {
+    private void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         assertThat(span.getType()).isEqualTo(SPAN_TYPE);
         assertThat(span.getName().toString()).isEqualTo(expectedName);
-        Map<String, String> tags = span.getContext().getTags();
-        assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
-        assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo(expectedStatus);
+        validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
+
         if (expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
             assertThat(span.getContext().getDb().hasContent()).isTrue();
         } else {
             assertThat(span.getContext().getDb().hasContent()).isFalse();
         }
+    }
+
+    private void validateHttpContextContent(Http http, int statusCode, String method) {
+        assertThat(http).isNotNull();
+        assertThat(http.getMethod()).isEqualTo(method);
+        assertThat(http.getStatusCode()).isEqualTo(statusCode);
+        assertThat(http.getUrl()).isEqualTo(container.getHost().toURI().toString());
     }
 
     private void validateDbContextContent(Span span, String statement) {
@@ -187,7 +194,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), "200");
+        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT");
 
         // Delete the index
         reporter.reset();
@@ -198,7 +205,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), "200");
+        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
     }
 
     @Test
@@ -216,7 +223,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), "201");
+        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
 
         // Search the index
         reporter.reset();
@@ -236,7 +243,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), "200");
+        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
         validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
 
         // Now update and re-search
@@ -267,7 +274,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         reporter.reset();
         DeleteResponse dr = client.delete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID), RequestOptions.DEFAULT);
         assertThat(dr.status().getStatus()).isEqualTo(200);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), "200");
+        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
 
         System.out.println(reporter.generateTransactionPayloadJson());
     }

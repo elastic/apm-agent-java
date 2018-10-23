@@ -54,7 +54,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     static final String DB_CONTEXT_TYPE = "elasticsearch";
 
     @VisibleForAdvice
-    static final String ELASTICSEARCH_NODE_KEY = "Elasticsearch-node";
+    static final String ELASTICSEARCH_NODE_URL_KEY = "Elasticsearch-node-url";
     @VisibleForAdvice
     static final String QUERY_STATUS_CODE_KEY = "Query-status-code";
     @VisibleForAdvice
@@ -71,18 +71,21 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
             .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint())
             .activate();
 
-        if (span.isSampled() && request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
-            HttpEntity entity = request.getEntity();
-            if (entity != null && entity.isRepeatable()) {
-                try {
-                    String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), entity.getContentLength(), request.getEndpoint());
-                    if (body != null && !body.isEmpty()) {
-                        span.getContext().getDb()
-                            .withType(DB_CONTEXT_TYPE)
-                            .withStatement(body);
+        if (span.isSampled()) {
+            span.getContext().getHttp().withMethod(request.getMethod());
+            if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+                HttpEntity entity = request.getEntity();
+                if (entity != null && entity.isRepeatable()) {
+                    try {
+                        String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), request.getEndpoint());
+                        if (body != null && !body.isEmpty()) {
+                            span.getContext().getDb()
+                                .withType(DB_CONTEXT_TYPE)
+                                .withStatement(body);
+                        }
+                    } catch (IOException e) {
+                        // We can't log from here
                     }
-                } catch (IOException e) {
-                    // We can't log from here
                 }
             }
         }
@@ -94,17 +97,30 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                                       @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
             try {
+                String url = null;
+                int statusCode = -1;
                 if(response != null) {
-                    span.addTag(ELASTICSEARCH_NODE_KEY, response.getHost().toHostString());
-                    span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(response.getStatusLine().getStatusCode()));
-                }
-                else if(t instanceof ResponseException)
-                {
-                    ResponseException esre = (ResponseException) t;
-                    span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(esre.getResponse().getStatusLine().getStatusCode()));
-                    span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
-                    span.addTag(ELASTICSEARCH_NODE_KEY, esre.getResponse().getHost().toHostString());
+                    url = response.getHost().toURI().toString();
+                    statusCode = response.getStatusLine().getStatusCode();
+                } else if(t != null) {
+                    if (t instanceof ResponseException) {
+                        ResponseException esre = (ResponseException) t;
+                        url = esre.getResponse().getHost().toURI().toString();
+                        statusCode = esre.getResponse().getStatusLine().getStatusCode();
+
+                        // Add tags so that they will be copied to error capture
+                        span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(statusCode));
+                        span.addTag(ELASTICSEARCH_NODE_URL_KEY, url);
+                        span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
+                    }
                     span.captureException(t);
+                }
+
+                if(url != null && !url.isEmpty()) {
+                    span.getContext().getHttp().withUrl(url);
+                }
+                if(statusCode > 0) {
+                    span.getContext().getHttp().withStatusCode(statusCode);
                 }
             } finally {
                 span.deactivate().end();
