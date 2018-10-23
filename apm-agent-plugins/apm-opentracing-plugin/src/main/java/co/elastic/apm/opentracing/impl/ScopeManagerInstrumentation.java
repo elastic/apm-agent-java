@@ -25,6 +25,7 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
@@ -70,12 +71,13 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void doActivate(@Advice.Argument(value = 0) @Nullable Object dispatcher) {
-            if (dispatcher instanceof AbstractSpan) {
-                ((AbstractSpan) dispatcher).activate();
-            } else if (dispatcher instanceof byte[]) {
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable byte[] traceContext) {
+            if (span != null) {
+                span.activate();
+            } else if (traceContext != null) {
                 if (tracer != null) {
-                    tracer.activate((byte[]) dispatcher);
+                    tracer.activate(traceContext);
                 }
             }
         }
@@ -91,7 +93,23 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.getActive();
+                span = tracer.activeSpan();
+            }
+        }
+
+    }
+
+    public static class CurrentTraceContextInstrumentation extends ScopeManagerInstrumentation {
+
+        public CurrentTraceContextInstrumentation() {
+            super(named("getCurrentTraceContext"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
+            if (tracer != null) {
+                traceContext = tracer.activeTraceContext();
             }
         }
 

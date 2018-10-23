@@ -241,7 +241,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            captureException(clock.getEpochMicros(), t);
+            captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
     }

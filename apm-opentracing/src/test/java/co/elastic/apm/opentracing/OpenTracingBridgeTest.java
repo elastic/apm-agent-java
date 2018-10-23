@@ -22,7 +22,6 @@ package co.elastic.apm.opentracing;
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
-import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -346,7 +345,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testGetBaggageItem() {
         final ApmSpan span = apmTracer.buildSpan("span")
             .start();
-        assertThat(span.getBaggageItem(TraceContext.TRACE_PARENT_HEADER)).isNotNull();
 
         // baggage is not supported yet
         span.setBaggageItem("foo", "bar");

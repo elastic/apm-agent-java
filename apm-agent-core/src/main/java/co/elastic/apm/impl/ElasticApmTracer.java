@@ -330,6 +330,15 @@ public class ElasticApmTracer {
     }
 
     @Nullable
+    public byte[] activeTraceContext() {
+        final Object active = getActive();
+        if (active instanceof byte[]) {
+            return (byte[]) active;
+        }
+        return null;
+    }
+
+    @Nullable
     public Object getActive() {
         return activeStack.get().peek();
     }
@@ -371,7 +380,7 @@ public class ElasticApmTracer {
 
     public void deactivate(byte[] serializedTraceContext) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating serialized trace context on thread {}",
+            logger.debug("Deactivating serialized trace context {} on thread {}",
                 HexUtils.bytesToHex(serializedTraceContext), Thread.currentThread().getId());
         }
         assertIsActive(serializedTraceContext, activeStack.get().poll());

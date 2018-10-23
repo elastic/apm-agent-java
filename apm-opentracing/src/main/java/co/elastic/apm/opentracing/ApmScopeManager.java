@@ -30,11 +30,11 @@ class ApmScopeManager implements ScopeManager {
     @Override
     public ApmScope activate(@Nonnull Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
-        doActivate(apmSpan.getSpan());
+        doActivate(apmSpan.getSpan(), apmSpan.context().getTraceContext());
         return new ApmScope(finishSpanOnClose, apmSpan);
     }
 
-    private void doActivate(@Nullable Object span) {
+    private void doActivate(@Nullable Object span, Object traceContext) {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
     }
 
@@ -42,15 +42,25 @@ class ApmScopeManager implements ScopeManager {
     @Nullable
     public ApmScope active() {
         final Object span = getCurrentSpan();
-        if (span == null) {
-            return null;
-        } else {
+        if (span != null) {
             return new ApmScope(false, new ApmSpan(span));
+        } else {
+            final Object traceContext = getCurrentTraceContext();
+            if (traceContext != null) {
+                return new ApmScope(false, new ApmSpan(new TraceContextSpanContext(traceContext)));
+            }
         }
+        return null;
     }
 
     @Nullable
     private Object getCurrentSpan() {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
+        return null;
+    }
+
+    @Nullable
+    private Object getCurrentTraceContext() {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
         return null;
     }

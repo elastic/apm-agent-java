@@ -396,4 +396,18 @@ public class TraceContext implements Recyclable {
         boolean asChildOf(TraceContext child, T parent);
     }
 
+    public TraceContext copy() {
+        final TraceContext copy;
+        final int idLength = id.getLength();
+        if (idLength == 8) {
+            copy = TraceContext.with64BitId();
+        } else if (idLength == 16) {
+            copy = TraceContext.with128BitId();
+        } else {
+            throw new IllegalStateException("Id has invalid length: " + idLength);
+        }
+        copy.copyFrom(this);
+        return copy;
+    }
+
 }

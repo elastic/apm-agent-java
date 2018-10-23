@@ -20,27 +20,36 @@
 package co.elastic.apm.opentracing;
 
 import io.opentracing.Span;
-import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-class ApmSpan implements Span, SpanContext {
+class ApmSpan implements Span {
 
+    private final TraceContextSpanContext spanContext;
     @Nullable
     // co.elastic.apm.impl.transaction.AbstractSpan in case of unfinished spans
-    // byte[] in case of finished spans, holding a serialized TraceContext
     private Object dispatcher;
 
     ApmSpan(@Nullable Object dispatcher) {
         this.dispatcher = dispatcher;
+        this.spanContext = new TraceContextSpanContext(getTraceContext(dispatcher));
+    }
+
+    ApmSpan(TraceContextSpanContext spanContext) {
+        this.spanContext = spanContext;
+    }
+
+    private Object getTraceContext(@Nullable Object dispatcher) {
+        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
+        return null;
     }
 
     @Override
-    public SpanContext context() {
-        return this;
+    public TraceContextSpanContext context() {
+        return spanContext;
     }
 
     @Override
@@ -88,7 +97,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan log(Map<String, ?> fields) {
-        if ("error" .equals(fields.get(Fields.EVENT))) {
+        if ("error".equals(fields.get(Fields.EVENT))) {
             createError(System.currentTimeMillis(), fields);
         }
         return this;
@@ -96,7 +105,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
-        if ("error" .equals(fields.get(Fields.EVENT))) {
+        if ("error".equals(fields.get(Fields.EVENT))) {
             createError(timestampMicroseconds / 1000, fields);
         }
         return this;
@@ -125,18 +134,12 @@ class ApmSpan implements Span, SpanContext {
     @Override
     @Nullable
     public String getBaggageItem(String key) {
-        for (Map.Entry<String, String> baggage : baggageItems()) {
+        for (Map.Entry<String, String> baggage : context().baggageItems()) {
             if (baggage.getKey().equals(key)) {
                 return baggage.getValue();
             }
         }
         return null;
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> baggageItems() {
-        // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.BaggageItemsInstrumentation.baggageItems
-        return Collections.emptyList();
     }
 
     private void handleTag(String key, @Nullable Object value) {
