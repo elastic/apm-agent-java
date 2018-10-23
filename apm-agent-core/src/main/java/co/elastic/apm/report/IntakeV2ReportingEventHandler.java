@@ -138,6 +138,15 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (logger.isDebugEnabled()) {
             logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
+        try {
+            handleEvent(event, sequence, endOfBatch);
+        } finally {
+            event.resetState();
+        }
+    }
+
+    private void handleEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+
         if (event.getType() == null) {
             return;
         } else if (event.getType() == ReportingEvent.ReportingEventType.FLUSH) {
@@ -159,7 +168,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         } catch (Exception e) {
             onConnectionError(null, currentlyTransmitting, 0);
         }
-        event.resetState();
         if (shouldFlush()) {
             flush();
         }
