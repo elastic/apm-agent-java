@@ -8,7 +8,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>0.7.1-SNAPSHOT</version>
+        <version>0.7.1</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
