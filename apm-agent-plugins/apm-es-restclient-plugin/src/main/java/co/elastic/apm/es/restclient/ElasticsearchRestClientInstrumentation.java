@@ -68,8 +68,9 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         }
         span = tracer.getActive().createSpan()
             .withType(SPAN_TYPE)
-            .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint())
-            .activate();
+            .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
+        span.getContext().getDb().withType(DB_CONTEXT_TYPE);
+        span.activate();
 
         if (span.isSampled()) {
             span.getContext().getHttp().withMethod(request.getMethod());
@@ -79,9 +80,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                     try {
                         String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), request.getEndpoint());
                         if (body != null && !body.isEmpty()) {
-                            span.getContext().getDb()
-                                .withType(DB_CONTEXT_TYPE)
-                                .withStatement(body);
+                            span.getContext().getDb().withStatement(body);
                         }
                     } catch (IOException e) {
                         // We can't log from here

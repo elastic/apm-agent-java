@@ -121,7 +121,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     @Before
     public void startTransaction() {
         Transaction transaction = tracer.startTransaction().activate();
-        transaction.setName("transaction");
+        transaction.setName("ES Transaction");
         transaction.withType("request");
         transaction.withResult("success");
     }
@@ -130,7 +130,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
-            tracer.endTransaction(currentTransaction);
+            currentTransaction.end();
         }
         reporter.reset();
     }
@@ -165,10 +165,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(span.getName().toString()).isEqualTo(expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
 
+        assertThat(span.getContext().getDb().getType()).isEqualTo(DB_CONTEXT_TYPE);
+
         if (expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
             assertThat(span.getContext().getDb().hasContent()).isTrue();
-        } else {
-            assertThat(span.getContext().getDb().hasContent()).isFalse();
         }
     }
 
