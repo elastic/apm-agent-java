@@ -5,7 +5,7 @@
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <version>0.7.1</version>
+    <version>0.7.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
     <organization>
@@ -27,7 +27,7 @@
         <connection>scm:git:git@github.com:elastic/apm-agent-java.git</connection>
         <developerConnection>scm:git:git@github.com:elastic/apm-agent-java.git</developerConnection>
         <url>https://github.com/elastic/apm-agent-java</url>
-        <tag>v0.7.1</tag>
+        <tag>v0.7.1-SNAPSHOT</tag>
     </scm>
 
     <developers>

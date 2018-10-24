@@ -4,7 +4,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>0.7.1</version>
+        <version>0.7.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
