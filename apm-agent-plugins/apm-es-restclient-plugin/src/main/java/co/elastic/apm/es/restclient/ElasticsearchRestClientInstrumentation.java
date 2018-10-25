@@ -107,10 +107,12 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                         url = esre.getResponse().getHost().toURI().toString();
                         statusCode = esre.getResponse().getStatusLine().getStatusCode();
 
+                        /*
                         // Add tags so that they will be copied to error capture
                         span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(statusCode));
                         span.addTag(ELASTICSEARCH_NODE_URL_KEY, url);
                         span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
+                        */
                     }
                     span.captureException(t);
                 }
