@@ -123,6 +123,10 @@ public class ServletTransactionHelper {
                         Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo) {
         try {
             fillRequestParameters(transaction, method, parameterMap);
+            if(exception != null && status == 200) {
+                // Probably shouldn't be 200 but 5XX, but we are going to miss this...
+                status = 500;
+            }
             fillResponse(transaction.getContext().getResponse(), committed, status);
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
