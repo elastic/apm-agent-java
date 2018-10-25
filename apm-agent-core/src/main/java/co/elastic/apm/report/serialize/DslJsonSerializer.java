@@ -81,7 +81,7 @@ public class DslJsonSerializer implements PayloadSerializer {
      */
     public static final int BUFFER_SIZE = 16384;
     static final int MAX_VALUE_LENGTH = 1024;
-    static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
+    public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
@@ -527,10 +527,19 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        // Assuming either DB or HTTP data can be related to a span
-        boolean spanContextWritten = serializeDbContext(context.getDb());
-        if(!spanContextWritten) {
-            spanContextWritten = serializeHttpContext(context.getHttp());
+        boolean spanContextWritten = false;
+        Db db = context.getDb();
+        if (db.hasContent()) {
+            serializeDbContext(db);
+            spanContextWritten = true;
+        }
+        Http http = context.getHttp();
+        if (http.hasContent()) {
+            if (spanContextWritten) {
+                jw.writeByte(COMMA);
+            }
+            serializeHttpContext(http);
+            spanContextWritten = true;
         }
 
         Map<String, String> tags = context.getTags();
@@ -546,29 +555,26 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private boolean serializeDbContext(final Db db) {
-        boolean writeDbElement = db.hasContent();
-        if (writeDbElement) {
-            writeFieldName("db");
-            jw.writeByte(OBJECT_START);
-            writeField("instance", db.getInstance());
-            writeLongStringField("statement", db.getStatement());
-            writeField("type", db.getType());
-            writeLastField("user", db.getUser());
-            jw.writeByte(OBJECT_END);
-        }
-        return writeDbElement;
+    private void serializeDbContext(final Db db) {
+        writeFieldName("db");
+        jw.writeByte(OBJECT_START);
+        writeField("instance", db.getInstance());
+        writeLongStringField("statement", db.getStatement());
+        writeField("type", db.getType());
+        writeLastField("user", db.getUser());
+        jw.writeByte(OBJECT_END);
     }
 
-    private boolean serializeHttpContext(final Http http) {
-        boolean writeHttpElement = http.hasContent();
-        if (writeHttpElement) {
-            writeFieldName("http");
-            jw.writeByte(OBJECT_START);
-            writeLastField("url", http.getUrl());
-            jw.writeByte(OBJECT_END);
+    private void serializeHttpContext(final Http http) {
+        writeFieldName("http");
+        jw.writeByte(OBJECT_START);
+        writeField("method", http.getMethod());
+        int statusCode = http.getStatusCode();
+        if (statusCode > 0) {
+            writeField("status_code", http.getStatusCode());
         }
-        return writeHttpElement;
+        writeLastField("url", http.getUrl());
+        jw.writeByte(OBJECT_END);
     }
 
     private void serializeSpanCount(final SpanCount spanCount) {

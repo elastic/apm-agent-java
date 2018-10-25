@@ -20,6 +20,9 @@
 package co.elastic.apm;
 
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.error.ErrorPayload;
+import co.elastic.apm.impl.payload.PayloadUtils;
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -152,6 +155,19 @@ public class MockReporter implements Reporter {
 
     public ErrorCapture getFirstError() {
         return errors.iterator().next();
+    }
+
+    public String generateTransactionPayloadJson() {
+        TransactionPayload payload = PayloadUtils.createTransactionPayload();
+        payload.getTransactions().addAll(transactions);
+        payload.getSpans().addAll(spans);
+        return dslJsonSerializer.toJsonString(payload);
+    }
+
+    public String generateErrorPayloadJson() {
+        ErrorPayload errorPayload = PayloadUtils.createErrorPayload();
+        errorPayload.getErrors().addAll(errors);
+        return dslJsonSerializer.toJsonString(errorPayload);
     }
 
     @Override

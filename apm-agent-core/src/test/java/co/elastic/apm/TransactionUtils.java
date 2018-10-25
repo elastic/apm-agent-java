@@ -115,7 +115,10 @@ public class TransactionUtils {
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext.http.apache-httpclient");
-        span.getContext().getHttp().withUrl("http://test.elastic.co/test-service");
+        span.getContext().getHttp()
+            .withUrl("http://test.elastic.co/test-service")
+            .withMethod("POST")
+            .withStatusCode(201);
         spans.add(span);
         return spans;
     }

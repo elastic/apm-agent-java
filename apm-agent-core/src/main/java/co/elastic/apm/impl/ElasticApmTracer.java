@@ -259,6 +259,10 @@ public class ElasticApmTracer {
                     // That's why we have to ensure the visibility of the transaction properties
                     error.getContext().copyFrom(transaction.getContextEnsureVisibility());
                 }
+                else if (active instanceof Span) {
+                    Span span = (Span) active;
+                    error.getContext().getTags().putAll(span.getContext().getTags());
+                }
                 error.asChildOf(active);
             } else {
                 error.getTraceContext().getId().setToRandomValue();

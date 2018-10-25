@@ -32,11 +32,31 @@ public class Http implements Recyclable {
     private String url;
 
     /**
+     * HTTP method used by this HTTP outgoing span
+     */
+    @Nullable
+    private String method;
+
+    /**
+     * Status code of the response
+     */
+    private int statusCode;
+
+    /**
      * URL used for the outgoing HTTP call
      */
     @Nullable
     public String getUrl() {
         return url;
+    }
+
+    @Nullable
+    public String getMethod() {
+        return method;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 
     /**
@@ -47,16 +67,32 @@ public class Http implements Recyclable {
         return this;
     }
 
+    public Http withMethod(String method) {
+        this.method = method;
+        return this;
+    }
+
+    public Http withStatusCode(int statusCode) {
+        this.statusCode = statusCode;
+        return this;
+    }
+
     @Override
     public void resetState() {
         url = null;
+        method = null;
+        statusCode = 0;
     }
 
     public boolean hasContent() {
-        return url != null;
+        return url != null ||
+            method != null ||
+            statusCode > 0;
     }
 
     public void copyFrom(Http other) {
         url = other.url;
+        method = other.method;
+        statusCode = other.statusCode;
     }
 }
