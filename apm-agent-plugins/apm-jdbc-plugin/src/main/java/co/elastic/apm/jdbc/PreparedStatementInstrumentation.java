@@ -62,7 +62,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Advice.OnMethodEnter
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
         if (tracer != null && jdbcHelper != null) {
-            final String sql = ConnectionInstrumentation.getSqlForStatement(statement);
+            final @Nullable String sql = ConnectionInstrumentation.getSqlForStatement(statement);
             return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.activeSpan());
         }
         return null;

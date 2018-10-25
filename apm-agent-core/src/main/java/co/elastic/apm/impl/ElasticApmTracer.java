@@ -218,13 +218,13 @@ public class ElasticApmTracer {
     }
 
     public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis(), e, activeSpan());
+        captureException(System.currentTimeMillis() * 1000, e, activeSpan());
     }
 
-    public void captureException(long epochTimestampMillis, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
+    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
         if (e != null) {
             ErrorCapture error = errorPool.createInstance();
-            error.withTimestamp(epochTimestampMillis);
+            error.withTimestamp(epochMicros);
             error.setException(e);
             if (active != null) {
                 if (active instanceof Transaction) {

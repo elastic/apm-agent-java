@@ -241,12 +241,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            captureException(System.currentTimeMillis(), t);
+            captureException(clock.getEpochMicros(), t);
         }
         return (T) this;
     }
 
-    public void captureException(long epochTimestampMillis, Throwable t) {
-        tracer.captureException(epochTimestampMillis, t, this);
+    public void captureException(long epochMicros, Throwable t) {
+        tracer.captureException(epochMicros, t, this);
     }
 }

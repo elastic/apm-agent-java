@@ -37,7 +37,7 @@ public class CaptureExceptionInstrumentation extends ElasticApmInstrumentation {
     @Advice.OnMethodEnter
     public static void captureException(@Advice.Argument(0) Throwable t) {
         if (tracer != null) {
-            tracer.captureException(System.currentTimeMillis(), t, null);
+            tracer.captureException(t);
         }
     }
 

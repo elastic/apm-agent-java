@@ -44,6 +44,7 @@ public class ReportingEvent {
         this.transaction = null;
         this.type = null;
         this.error = null;
+        this.span = null;
     }
 
     @Nullable

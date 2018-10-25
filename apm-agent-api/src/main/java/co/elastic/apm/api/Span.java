@@ -101,8 +101,9 @@ public interface Span {
     Span createSpan();
 
     /**
-     * Ends the span.
-     * If the span has already ended, nothing happens.
+     * Ends the span and schedules it to be reported to the APM Server.
+     * It is illegal to call any methods on a span instance which has already ended.
+     * This also includes this method and {@link #createSpan()}.
      */
     void end();
 
