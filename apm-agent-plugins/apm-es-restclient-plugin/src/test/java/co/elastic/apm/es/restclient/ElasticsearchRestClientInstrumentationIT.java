@@ -169,8 +169,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         assertThat(span.getContext().getDb().getType()).isEqualTo(DB_CONTEXT_TYPE);
 
-        if (expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
-            assertThat(span.getContext().getDb().hasContent()).isTrue();
+        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
+            assertThat(span.getContext().getDb().getStatement()).isNull();
         }
     }
 
