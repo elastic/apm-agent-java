@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 
 @VisibleForAdvice
 public class ESRestClientInstrumentationHelper {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ESRestClientInstrumentationHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(ESRestClientInstrumentationHelper.class);
 
     private static ThreadLocal<byte[]> bodyReadBuffer = new ThreadLocal<>();
     private static final byte CURLY_BRACKET_UTF8 = '{';
@@ -55,7 +55,7 @@ public class ESRestClientInstrumentationHelper {
                 body = new String(data, 0, length, StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
-            LOGGER.info("Failed to read request body for " + endpoint);
+            logger.info("Failed to read request body for " + endpoint);
         } finally {
             bodyIS.close();
         }
