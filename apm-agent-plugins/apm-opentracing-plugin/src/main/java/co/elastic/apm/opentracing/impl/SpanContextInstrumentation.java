@@ -1,3 +1,22 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 Elastic and contributors
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
 package co.elastic.apm.opentracing.impl;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
@@ -34,7 +53,7 @@ public class SpanContextInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Advice.OnMethodExit
-    public static void baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable byte[] traceContext,
+    public static void baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
                                     @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
         if (traceContext != null) {
             baggage = doGetBaggage(traceContext);
@@ -42,10 +61,7 @@ public class SpanContextInstrumentation extends ElasticApmInstrumentation {
     }
 
     @VisibleForAdvice
-    public static Iterable<Map.Entry<String, String>> doGetBaggage(byte[] traceContext) {
-        final TraceContext context = TraceContext.with64BitId();
-        TraceContext.fromSerialized().asChildOf(context, traceContext);
-        String traceParentHeader = context.getIncomingTraceParentHeader();
-        return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceParentHeader).entrySet();
+    public static Iterable<Map.Entry<String, String>> doGetBaggage(TraceContext traceContext) {
+        return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceContext.getOutgoingTraceParentHeader().toString()).entrySet();
     }
 }

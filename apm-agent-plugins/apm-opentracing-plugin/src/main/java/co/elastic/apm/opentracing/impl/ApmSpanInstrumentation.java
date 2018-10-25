@@ -262,7 +262,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
                                            @Advice.Return(readOnly = false) Object traceContext) {
             if (abstractSpan != null) {
-                traceContext = abstractSpan.getTraceContext().serialize();
+                traceContext = abstractSpan.getTraceContext().copy();
             }
         }
     }

@@ -34,7 +34,6 @@ import co.elastic.apm.objectpool.RecyclableObjectFactory;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.util.HexUtils;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -330,10 +329,10 @@ public class ElasticApmTracer {
     }
 
     @Nullable
-    public byte[] activeTraceContext() {
+    public TraceContext activeTraceContext() {
         final Object active = getActive();
-        if (active instanceof byte[]) {
-            return (byte[]) active;
+        if (active instanceof TraceContext) {
+            return (TraceContext) active;
         }
         return null;
     }
@@ -358,12 +357,12 @@ public class ElasticApmTracer {
         activeStack.get().push(span);
     }
 
-    public void activate(byte[] serializedTraceContext) {
+    public void activate(TraceContext traceContext) {
         if (logger.isDebugEnabled()) {
             logger.debug("Activating serialized trace context on thread {}",
-                HexUtils.bytesToHex(serializedTraceContext), Thread.currentThread().getId());
+                traceContext, Thread.currentThread().getId());
         }
-        activeStack.get().push(serializedTraceContext);
+        activeStack.get().push(traceContext);
     }
 
     public void deactivate(AbstractSpan<?> span) {
@@ -378,12 +377,12 @@ public class ElasticApmTracer {
         }
     }
 
-    public void deactivate(byte[] serializedTraceContext) {
+    public void deactivate(TraceContext traceContext) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating serialized trace context {} on thread {}",
-                HexUtils.bytesToHex(serializedTraceContext), Thread.currentThread().getId());
+            logger.debug("Deactivating trace context {} on thread {}",
+                traceContext, Thread.currentThread().getId());
         }
-        assertIsActive(serializedTraceContext, activeStack.get().poll());
+        assertIsActive(traceContext, activeStack.get().poll());
     }
 
     private void assertIsActive(Object span, @Nullable Object currentlyActive) {

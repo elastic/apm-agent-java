@@ -331,11 +331,11 @@ class ElasticApmTracerTest {
     @Test
     void testStartSpanAfterTransactionHasEnded() {
         final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null);
-        final byte[] serializedTraceContext = transaction.getTraceContext().serialize();
+        final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
         transaction.end();
         transaction.resetState();
 
-        tracerImpl.activate(serializedTraceContext);
+        tracerImpl.activate(transactionTraceContext);
         try {
             assertThat(tracerImpl.currentSpan()).isNull();
             final Span span = tracerImpl.startSpan(TraceContext.fromActiveSpan(), tracerImpl);
@@ -347,7 +347,8 @@ class ElasticApmTracerTest {
                 span.end();
             }
         } finally {
-            tracerImpl.deactivate(serializedTraceContext);
+            tracerImpl.deactivate(transactionTraceContext);
         }
+        assertThat(tracerImpl.getActive()).isNull();
     }
 }

@@ -81,7 +81,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodExit
         public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
-                                      @Nullable byte[] parentContext,
+                                      @Nullable TraceContext parentContext,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
@@ -92,7 +92,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
 
         @Nullable
         @VisibleForAdvice
-        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable byte[] parentContext,
+        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage) {
@@ -101,9 +101,9 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
                     if (microseconds >= 0) {
-                        return tracer.startSpan(TraceContext.fromSerialized(), parentContext, microseconds);
+                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext, microseconds);
                     } else {
-                        return tracer.startSpan(TraceContext.fromSerialized(), parentContext);
+                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext);
                     }
                 }
             }
