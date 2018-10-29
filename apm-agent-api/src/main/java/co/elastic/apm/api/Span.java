@@ -141,6 +141,7 @@ public interface Span {
      * </p>
      * <p>
      * This method should always be used within a try-with-resources statement:
+     * </p>
      * <pre>
      * Span span = parent.startSpan();
      * // within the try block the span is available on the current thread via {@link ElasticApm#currentSpan()}
@@ -156,7 +157,6 @@ public interface Span {
      *     span.end();
      * }
      * </pre>
-     * </p>
      * <p>
      * Note: {@link Span#activate()} and {@link Scope#close()} have to be called on the same thread.
      * </p>

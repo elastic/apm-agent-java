@@ -126,6 +126,7 @@ public interface Transaction extends Span {
      * </p>
      * <p>
      * This method should always be used within a try-with-resources statement:
+     * </p>
      * <pre>
      * Transaction transaction = ElasticApm.startTransaction();
      * // within the try block the transaction is available on the current thread via {@link ElasticApm#currentTransaction()}
@@ -141,7 +142,6 @@ public interface Transaction extends Span {
      *     transaction.end();
      * }
      * </pre>
-     * </p>
      * <p>
      * Note: {@link Transaction#activate()} and {@link Scope#close()} have to be called on the same thread.
      * </p>
