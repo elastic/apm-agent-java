@@ -48,15 +48,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class MockReporter implements Reporter {
+    private static final JsonSchema transactionSchema;
+    private static final JsonSchema errorSchema;
+    private static final JsonSchema spanSchema;
+    private static final DslJsonSerializer dslJsonSerializer;
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Span> spans = new ArrayList<>();
     private final List<ErrorCapture> errors = new ArrayList<>();
-    private final JsonSchema transactionSchema;
-    private final JsonSchema errorSchema;
-    private final JsonSchema spanSchema;
-    private final DslJsonSerializer dslJsonSerializer;
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+
+    static {
+        transactionSchema = getSchema("/schema/transactions/transaction.json");
+        spanSchema = getSchema("/schema/transactions/span.json");
+        errorSchema = getSchema("/schema/errors/error.json");
+        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+    }
 
     public MockReporter() {
         this(true);
@@ -64,15 +71,11 @@ public class MockReporter implements Reporter {
 
     public MockReporter(boolean verifyJsonSchema) {
         this.verifyJsonSchema = verifyJsonSchema;
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         objectMapper = new ObjectMapper();
     }
 
-    private JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream(resource));
+    private static JsonSchema getSchema(String resource) {
+        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
     }
 
     @Override
