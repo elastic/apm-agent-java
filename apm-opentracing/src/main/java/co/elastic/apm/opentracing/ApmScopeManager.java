@@ -29,8 +29,11 @@ class ApmScopeManager implements ScopeManager {
 
     @Override
     public ApmScope activate(@Nonnull Span span, boolean finishSpanOnClose) {
+        // prevents other threads from setting ApmSpan.dispatcher to null
         final ApmSpan apmSpan = (ApmSpan) span;
-        doActivate(apmSpan.getSpan(), apmSpan.context().getTraceContext());
+        synchronized (span) {
+            doActivate(apmSpan.getSpan(), apmSpan.context().getTraceContext());
+        }
         return new ApmScope(finishSpanOnClose, apmSpan);
     }
 

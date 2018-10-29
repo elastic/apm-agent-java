@@ -83,7 +83,9 @@ class ApmSpan implements Span {
 
     @Override
     public void finish(long finishMicros) {
-        finishInternal(finishMicros);
+        synchronized (this) {
+            finishInternal(finishMicros);
+        }
     }
 
     private void finishInternal(long finishMicros) {
