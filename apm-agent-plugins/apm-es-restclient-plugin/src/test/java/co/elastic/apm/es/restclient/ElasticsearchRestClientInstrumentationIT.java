@@ -63,9 +63,6 @@ import java.util.Map;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ELASTICSEARCH_NODE_URL_KEY;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.ERROR_REASON_KEY;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.QUERY_STATUS_CODE_KEY;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.assertj.core.api.Assertions.assertThat;
 

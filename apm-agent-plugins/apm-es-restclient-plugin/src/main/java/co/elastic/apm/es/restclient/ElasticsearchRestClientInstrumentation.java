@@ -21,6 +21,7 @@ package co.elastic.apm.es.restclient;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,26 +48,22 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
-
     @VisibleForAdvice
-    static final String SPAN_TYPE = "db.elasticsearch.request";
+    public static final String SPAN_TYPE = "db.elasticsearch.request";
     @VisibleForAdvice
-    static final String DB_CONTEXT_TYPE = "elasticsearch";
-
-    @VisibleForAdvice
-    static final String ELASTICSEARCH_NODE_URL_KEY = "Elasticsearch-node-url";
-    @VisibleForAdvice
-    static final String QUERY_STATUS_CODE_KEY = "Query-status-code";
-    @VisibleForAdvice
-    static final String ERROR_REASON_KEY = "Error-reason";
+    public static final String DB_CONTEXT_TYPE = "elasticsearch";
 
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) Request request,
                                         @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.activeSpan() == null || !tracer.activeSpan().isSampled()) {
+        if (tracer == null) {
             return;
         }
-        span = tracer.activeSpan().createSpan()
+        final AbstractSpan<?> activeSpan = tracer.activeSpan();
+        if (activeSpan == null || !activeSpan.isSampled()) {
+            return;
+        }
+        span = activeSpan.createSpan()
             .withType(SPAN_TYPE)
             .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
         span.getContext().getDb().withType(DB_CONTEXT_TYPE);
@@ -99,12 +96,12 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                 String url = null;
                 int statusCode = -1;
                 if(response != null) {
-                    url = response.getHost().toURI().toString();
+                    url = response.getHost().toURI();
                     statusCode = response.getStatusLine().getStatusCode();
                 } else if(t != null) {
                     if (t instanceof ResponseException) {
                         ResponseException esre = (ResponseException) t;
-                        url = esre.getResponse().getHost().toURI().toString();
+                        url = esre.getResponse().getHost().toURI();
                         statusCode = esre.getResponse().getStatusLine().getStatusCode();
 
                         /*
