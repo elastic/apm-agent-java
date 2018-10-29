@@ -131,6 +131,7 @@ class TransactionPayloadJsonSchemaTest {
     private JsonNode getSerializedSpans(TransactionPayload payload) throws IOException {
         DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
+        System.out.println(content);
         JsonNode node = objectMapper.readTree(content);
 
         assertThat(node.get("transactions").get(0).get("spans")).isNull();
@@ -170,11 +171,12 @@ class TransactionPayloadJsonSchemaTest {
             if(child.get("type").textValue().startsWith("ext.http.")) {
                 assertThat(child.get("name").textValue()).isEqualTo("GET test.elastic.co");
                 JsonNode context = child.get("context");
-                assertThat(context.get("db")).isNull();
                 contextOfHttpSpanFound = true;
                 JsonNode http = context.get("http");
                 assertThat(http).isNotNull();
                 assertThat(http.get("url").textValue()).isEqualTo("http://test.elastic.co/test-service");
+                assertThat(http.get("method").textValue()).isEqualTo("POST");
+                assertThat(http.get("status_code").intValue()).isEqualTo(201);
             }
         }
         assertThat(contextOfHttpSpanFound).isTrue();
