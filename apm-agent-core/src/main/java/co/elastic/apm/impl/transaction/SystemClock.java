@@ -35,9 +35,10 @@ public interface SystemClock {
         ForCurrentVM() {
             SystemClock localDispatcher;
             try {
-                Class.forName("java.time.Instant");
-                localDispatcher = ForJava8CapableVM.INSTANCE;
-            } catch (Exception | NoClassDefFoundError e) {
+                // being cautious to not cause linking of ForJava8CapableVM in case we are not running on Java 8+
+                Class.forName("java.time.Clock");
+                localDispatcher = (SystemClock) Class.forName(SystemClock.class.getName() + "$ForJava8CapableVM").getEnumConstants()[0];
+            } catch (Exception e) {
                 localDispatcher = ForLegacyVM.INSTANCE;
             }
             dispatcher = localDispatcher;
