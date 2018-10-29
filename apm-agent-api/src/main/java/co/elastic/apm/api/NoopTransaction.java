@@ -62,6 +62,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public Scope activate() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
     }

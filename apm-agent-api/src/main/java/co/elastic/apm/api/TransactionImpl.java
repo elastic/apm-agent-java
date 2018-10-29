@@ -77,6 +77,11 @@ class TransactionImpl implements Transaction {
     }
 
     @Override
+    public Scope activate() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
     public Span createSpan() {
         Object span = doCreateSpan();
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;

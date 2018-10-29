@@ -117,4 +117,37 @@ public interface Transaction extends Span {
     @Nonnull
     String getId();
 
+    /**
+     * Makes this transaction the active transaction on the current thread until {@link Scope#close()} has been called.
+     * <p>
+     * Scopes should only be used in try-with-resource statements in order to make sure the {@link Scope#close()} method is called in all
+     * circumstances.
+     * Failing to close a scope can lead to memory leaks and corrupts the parent-child relationships.
+     * </p>
+     * <p>
+     * This method should always be used within a try-with-resources statement:
+     * <pre>
+     * Transaction transaction = ElasticApm.startTransaction();
+     * // within the try block the transaction is available on the current thread via {@link ElasticApm#currentTransaction()}
+     * // this is also true for methods called within the try block
+     * try (final Scope scope = transaction.activate()) {
+     *     transaction.setName("MyController#myAction");
+     *     transaction.setType(Transaction.TYPE_REQUEST);
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     transaction.captureException(e);
+     *     throw e;
+     * } finally {
+     *     transaction.end();
+     * }
+     * </pre>
+     * </p>
+     * <p>
+     * Note: {@link Transaction#activate()} and {@link Scope#close()} have to be called on the same thread.
+     * </p>
+     *
+     * @return a scope which has to be {@link Scope#close()}d
+     */
+    @Override
+    Scope activate();
 }

@@ -32,6 +32,12 @@ import javax.annotation.Nonnull;
  * <p>
  * Call {@link ElasticApm#currentSpan()} to get a reference of the current span.
  * </p>
+ * <p>
+ * Note: Calling any methods after {@link #end()} has been called is illegal.
+ * You may only interact with spans when you have control over its lifecycle.
+ * For example, if a span is ended on another thread you must not add tags if there is a chance for a race between the {@link #end()}
+ * and the {@link #addTag(String, String)} method.
+ * </p>
  */
 public interface Span {
 
@@ -94,6 +100,7 @@ public interface Span {
      * </pre>
      * <p>
      * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
+     * See {@link #activate()} on how to achieve that.
      * </p>
      *
      * @return the started span, never {@code null}
@@ -124,5 +131,38 @@ public interface Span {
      */
     @Nonnull
     String getId();
+
+    /**
+     * Makes this span the active span on the current thread until {@link Scope#close()} has been called.
+     * <p>
+     * Scopes should only be used in try-with-resource statements in order to make sure the {@link Scope#close()} method is called in all
+     * circumstances.
+     * Failing to close a scope can lead to memory leaks and corrupts the parent-child relationships.
+     * </p>
+     * <p>
+     * This method should always be used within a try-with-resources statement:
+     * <pre>
+     * Span span = parent.startSpan();
+     * // within the try block the span is available on the current thread via {@link ElasticApm#currentSpan()}
+     * // this is also true for methods called within the try block
+     * try (final Scope scope = span.activate()) {
+     *     span.setName("SELECT FROM customer");
+     *     span.setType("db.mysql.query");
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     span.captureException(e);
+     *     throw e;
+     * } finally {
+     *     span.end();
+     * }
+     * </pre>
+     * </p>
+     * <p>
+     * Note: {@link Span#activate()} and {@link Scope#close()} have to be called on the same thread.
+     * </p>
+     *
+     * @return a scope which has to be {@link Scope#close()}d
+     */
+    Scope activate();
 
 }
