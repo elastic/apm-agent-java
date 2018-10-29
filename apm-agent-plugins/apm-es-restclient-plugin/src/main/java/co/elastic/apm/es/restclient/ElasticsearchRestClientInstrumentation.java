@@ -63,10 +63,10 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) Request request,
                                         @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null || !tracer.getActive().isSampled()) {
+        if (tracer == null || tracer.activeSpan() == null || !tracer.activeSpan().isSampled()) {
             return;
         }
-        span = tracer.getActive().createSpan()
+        span = tracer.activeSpan().createSpan()
             .withType(SPAN_TYPE)
             .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
         span.getContext().getDb().withType(DB_CONTEXT_TYPE);
