@@ -96,33 +96,25 @@ class ApmSpan implements Span {
     }
 
     @Override
-    public ApmSpan log(Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
-            createError(System.currentTimeMillis(), fields);
-        }
-        return this;
-    }
-
-    @Override
-    public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
-            createError(timestampMicroseconds / 1000, fields);
-        }
-        return this;
-    }
-
-    private void createError(long epochTimestampMillis, Map<String, ?> fields) {
-    }
-
-    @Override
     public ApmSpan log(String event) {
         log(Collections.singletonMap(Fields.EVENT, event));
         return this;
     }
 
     @Override
+    public ApmSpan log(Map<String, ?> fields) {
+        return log(-1, fields);
+    }
+
+    @Override
     public ApmSpan log(long timestampMicroseconds, String event) {
         log(timestampMicroseconds, Collections.singletonMap(Fields.EVENT, event));
+        return this;
+    }
+
+    @Override
+    public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
+        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.LogInstrumentation
         return this;
     }
 
