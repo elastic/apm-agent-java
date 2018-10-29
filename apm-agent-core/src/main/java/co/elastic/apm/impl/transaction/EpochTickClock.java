@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,6 @@
 package co.elastic.apm.impl.transaction;
 
 import co.elastic.apm.objectpool.Recyclable;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * This clock makes sure that each {@link Span} and {@link Transaction} uses a consistent clock
@@ -52,19 +50,19 @@ public class EpochTickClock implements Recyclable {
      * @return the epoch microsecond timestamp at initialization time
      */
     public long init() {
-        return init(System.currentTimeMillis(), System.nanoTime());
+        return init(SystemClock.ForCurrentVM.INSTANCE.getEpochMicros(), System.nanoTime());
     }
 
     /**
      * Initializes and calibrates the clock based on wall clock time
      *
-     * @param epochMillis the current timestamp in milliseconds since epoch (mostly {@link System#currentTimeMillis()})
-     * @param nanoTime    the current nanosecond precision timestamp (mostly {@link System#nanoTime()}
+     * @param epochMicrosWallClock the current timestamp in microseconds since epoch, based on wall clock time
+     * @param nanoTime             the current nanosecond ticks (mostly {@link System#nanoTime()}
      * @return the epoch microsecond timestamp at initialization time
      */
-    public long init(long epochMillis, long nanoTime) {
-        nanoTimeOffsetToEpoch = TimeUnit.MILLISECONDS.toNanos(epochMillis) - nanoTime;
-        return TimeUnit.MILLISECONDS.toMicros(epochMillis);
+    public long init(long epochMicrosWallClock, long nanoTime) {
+        nanoTimeOffsetToEpoch = epochMicrosWallClock * 1_000 - nanoTime;
+        return epochMicrosWallClock;
     }
 
     public long getEpochMicros() {
