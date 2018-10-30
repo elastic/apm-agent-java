@@ -22,12 +22,14 @@ package co.elastic.apm.opentracing;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
 class ApmSpan implements Span {
 
+    @Nullable
     private final TraceContextSpanContext spanContext;
     @Nullable
     // co.elastic.apm.impl.transaction.AbstractSpan in case of unfinished spans
@@ -38,10 +40,11 @@ class ApmSpan implements Span {
         this.spanContext = new TraceContextSpanContext(getTraceContext(dispatcher));
     }
 
-    ApmSpan(TraceContextSpanContext spanContext) {
+    ApmSpan(@Nonnull TraceContextSpanContext spanContext) {
         this.spanContext = spanContext;
     }
 
+    @Nullable
     private Object getTraceContext(@Nullable Object dispatcher) {
         // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
         return null;
@@ -78,13 +81,19 @@ class ApmSpan implements Span {
 
     @Override
     public void finish() {
-        finishInternal(-1);
+        finish(-1);
     }
 
     @Override
     public void finish(long finishMicros) {
-        synchronized (this) {
-            finishInternal(finishMicros);
+        if (spanContext != null) {
+            final Object traceContext = spanContext.getTraceContext();
+            if (traceContext != null) {
+                // prevents race conditions with ScopeManager#activate(Span)
+                synchronized (traceContext) {
+                    finishInternal(finishMicros);
+                }
+            }
         }
     }
 

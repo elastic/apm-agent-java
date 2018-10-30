@@ -25,7 +25,7 @@ import java.util.Map;
 
 public class TraceContextSpanContext implements ApmSpanContext {
 
-    // byte[] (serialized TraceContext)
+    // co.elastic.apm.impl.transaction.TraceContext
     @Nullable
     private final Object traceContext;
 
