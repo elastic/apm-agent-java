@@ -21,6 +21,7 @@ package co.elastic.apm.jdbc.helper;
 
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
+import com.google.common.collect.MapMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +39,7 @@ import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 public class JdbcHelperImpl implements JdbcHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final Map<Connection, ConnectionMetaData> metaDataMap =
-        Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
+    private static final Map<Connection, ConnectionMetaData> metaDataMap = new MapMaker().concurrencyLevel(16).weakKeys().makeMap();
 
     private static final String UNKNOWN_SPAN_TYPE = computeJdbcSpanTypeName("unknown");
 
