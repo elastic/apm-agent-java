@@ -82,4 +82,10 @@ class SpanImpl implements Span {
         return "";
     }
 
+    @Override
+    public Scope activate() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.ActivateInstrumentation
+        return new ScopeImpl(span);
+    }
+
 }
