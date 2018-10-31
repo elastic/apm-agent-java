@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,30 +19,28 @@
  */
 package co.elastic.apm.opentracing;
 
-import io.opentracing.propagation.TextMap;
-
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
 
-class ExternalProcessSpanContext implements ApmSpanContext {
-    private final TextMap textMap;
+public class TraceContextSpanContext implements ApmSpanContext {
 
-    private ExternalProcessSpanContext(TextMap textMap) {
-        this.textMap = textMap;
-    }
+    // co.elastic.apm.impl.transaction.TraceContext
+    @Nullable
+    private final Object traceContext;
 
-    static ExternalProcessSpanContext of(TextMap textMap) {
-        return new ExternalProcessSpanContext(textMap);
+    TraceContextSpanContext(@Nullable Object traceContext) {
+        this.traceContext = traceContext;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> baggageItems() {
-        return textMap;
+        return Collections.emptyList();
     }
 
-    @Nullable
     @Override
+    @Nullable
     public Object getTraceContext() {
-        return null;
+        return traceContext;
     }
 }

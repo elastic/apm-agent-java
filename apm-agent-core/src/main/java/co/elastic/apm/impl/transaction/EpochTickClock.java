@@ -53,6 +53,10 @@ public class EpochTickClock implements Recyclable {
         return init(SystemClock.ForCurrentVM.INSTANCE.getEpochMicros(), System.nanoTime());
     }
 
+    void init(long nanoTimeOffsetToEpoch) {
+        this.nanoTimeOffsetToEpoch = nanoTimeOffsetToEpoch;
+    }
+
     /**
      * Initializes and calibrates the clock based on wall clock time
      *
@@ -76,5 +80,9 @@ public class EpochTickClock implements Recyclable {
     @Override
     public void resetState() {
         nanoTimeOffsetToEpoch = 0;
+    }
+
+    long getOffset() {
+        return nanoTimeOffsetToEpoch;
     }
 }

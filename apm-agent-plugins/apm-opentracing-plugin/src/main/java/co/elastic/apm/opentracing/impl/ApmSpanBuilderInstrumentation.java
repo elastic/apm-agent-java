@@ -80,35 +80,30 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
         }
 
         @Advice.OnMethodExit
-        public static void createSpan(@Advice.Argument(value = 0)
-                                      @Nullable Object parent,
-                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC)
-                                      @Nullable AbstractSpan<?> apmParent,
+        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
+                                      @Nullable TraceContext parentContext,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
-                                      @Advice.Argument(2) @Nullable Iterable<Map.Entry<String, String>> baggage,
+                                      @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage,
                                       @Advice.Return(readOnly = false) Object span) {
-            span = doCreateTransactionOrSpan(parent, apmParent, tags, operationName, microseconds, baggage);
+            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage);
         }
 
         @Nullable
         @VisibleForAdvice
-        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable Object parent,
-                                                                @Nullable AbstractSpan<?> apmParent,
+        public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage) {
             if (tracer != null) {
-                if (parent == null) {
+                if (parentContext == null) {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
-                    if (apmParent != null) {
-                        if (microseconds >= 0) {
-                            return apmParent.createSpan(microseconds);
-                        } else {
-                            return apmParent.createSpan();
-                        }
+                    if (microseconds >= 0) {
+                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext, microseconds);
+                    } else {
+                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext);
                     }
                 }
             }
@@ -130,7 +125,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(getTraceContextHeader(baggage), sampler, microseconds);
+                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds);
             }
         }
 

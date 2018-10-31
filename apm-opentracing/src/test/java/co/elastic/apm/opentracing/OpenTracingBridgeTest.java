@@ -99,16 +99,37 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testContextAvailableAfterFinish() {
         final Span span = apmTracer.buildSpan("transaction").start();
         span.finish();
-
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
             .start();
         childSpan.finish();
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getTraceContext().isChildOf(reporter.getFirstTransaction().getTraceContext())).isTrue();
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
+    }
+
+    @Test
+    void testScopeAfterFinish() {
+        final Span span = apmTracer.buildSpan("transaction").start();
+        span.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
+
+        try (Scope scope = apmTracer.scopeManager().activate(span, false)) {
+            final Span childSpan = apmTracer.buildSpan("span")
+                .start();
+            childSpan.finish();
+        }
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
     }
 
     @Test
@@ -324,7 +345,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testGetBaggageItem() {
         final ApmSpan span = apmTracer.buildSpan("span")
             .start();
-        assertThat(span.getBaggageItem(TraceContext.TRACE_PARENT_HEADER)).isNotNull();
 
         // baggage is not supported yet
         span.setBaggageItem("foo", "bar");
