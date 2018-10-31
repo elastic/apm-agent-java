@@ -5,30 +5,20 @@
 [[faq-how-does-it-work]]
 === How does the agent work?
 The agent auto-instruments known frameworks and libraries and records interesting events,
-like HTTP requests and DB queries.
+like HTTP requests and database queries.
+To do this, it leverages the capability of the JVM to instrument the bytecode of classes.
+This means that for the supported technologies, there are no code changes required.
 
-That works by leveraging the capability of the JVM to instrument the bytecode of classes so that for the supported technologies,
-there are no code changes required.
-The agent automatically injects small pieces of code before and after interesting events to measure their duration and metadata,
-like the DB statement,
-as well as HTTP related information,
-like the URL, parameters, and headers.
+The agent automatically injects small pieces of code before and after interesting events to measure their duration and metadata
+(like the DB statement) as well as HTTP related information
+(like the URL, parameters, and headers).
+
 For example, if the agent detects that a class extending `javax.servlet.HttpServlet` is loaded,
 it injects monitoring code before and after the servlet invocation.
 
-[float]
-[[faq-installation]]
-=== How do I install the agent?
-You just have to download the agent,
-which is a single file and set a few JVM flags before starting the application.
-
-The most important option to set is the `-javaagent` flag which tells the JVM where to find the agent file.
-
-Then there are numerous optional configuration options you can set to customize the agent's behavior.
-The most important ones are <<config-service-name>> (identifier for the service),
-<<config-application-packages>> (what's the namespace of your application) and <<config-server-urls>> (where to send the data).
-More details can be found in the <<get-started, getting started docs>>.
-
+These events, called Transactions and Spans, are sent to the APM Server which converts them to a format suitable for Elasticsearch,
+and sends them to an Elasticsearch cluster.
+You can then use the APM UI in Kibana to gain insight into latency issues and error culprits within your application.
 
 [float]
 [[faq-bytecode-instrumentation]]
@@ -42,7 +32,7 @@ No
 
 [float]
 [[faq-unsupported-technologies]]
-=== What to do when the agent does not support the technologies I'm using?
+=== What if the agent doesn't support the technologies I'm using?
 You can use the <<public-api,public API>> to create custom spans and transactions,
 participate in the
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey]
