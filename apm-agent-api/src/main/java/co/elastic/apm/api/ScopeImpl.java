@@ -19,17 +19,20 @@
  */
 package co.elastic.apm.api;
 
+import javax.annotation.Nonnull;
+
 public class ScopeImpl implements Scope {
 
+    @Nonnull
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private final Object span;
 
-    ScopeImpl(Object span) {
+    ScopeImpl(@Nonnull Object span) {
         this.span = span;
     }
 
     @Override
     public void close() {
-        // co.elastic.apm.opentracing.impl.ApmScopeInstrumentation
+        // co.elastic.apm.plugin.api.ApiScopeInstrumentation
     }
 }

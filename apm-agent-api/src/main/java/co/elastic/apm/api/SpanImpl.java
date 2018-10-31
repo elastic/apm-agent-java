@@ -33,7 +33,7 @@ class SpanImpl implements Span {
 
     @Nonnull
     // co.elastic.apm.impl.transaction.AbstractSpan
-    private final Object span;
+    protected final Object span;
 
     SpanImpl(@Nonnull Object span) {
         this.span = span;

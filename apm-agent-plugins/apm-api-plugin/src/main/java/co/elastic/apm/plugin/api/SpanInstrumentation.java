@@ -138,7 +138,7 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
                 id = span.getTraceContext().getId().toString();

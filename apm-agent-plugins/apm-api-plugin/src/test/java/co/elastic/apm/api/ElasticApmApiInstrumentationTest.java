@@ -21,11 +21,17 @@ package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.Scope;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
+
+    @AfterEach
+    void tearDown() {
+        assertThat(tracer.getActive()).isNull();
+    }
 
     @Test
     void testCreateTransaction() {
@@ -136,5 +142,24 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
         assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("bar", "baz");
+    }
+
+    @Test
+    void testScopes() {
+        Transaction transaction = ElasticApm.startTransaction();
+        try (co.elastic.apm.api.Scope scope = transaction.activate()) {
+            assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getId());
+            Span span = transaction.createSpan();
+            try (co.elastic.apm.api.Scope spanScope = span.activate()) {
+                assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getId());
+            } finally {
+                span.end();
+            }
+            assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getId());
+        } finally {
+            transaction.end();
+        }
+        assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
+
     }
 }
