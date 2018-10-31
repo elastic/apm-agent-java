@@ -133,6 +133,18 @@ public interface Span {
     String getId();
 
     /**
+     * Returns the id of this trace (never {@code null})
+     * <p>
+     * If this span represents a noop,
+     * this method returns an empty string.
+     * </p>
+     *
+     * @return the id of this span (never {@code null})
+     */
+    @Nonnull
+    String getTraceId();
+
+    /**
      * Makes this span the active span on the current thread until {@link Scope#close()} has been called.
      * <p>
      * Scopes should only be used in try-with-resource statements in order to make sure the {@link Scope#close()} method is called in all

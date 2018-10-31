@@ -40,4 +40,11 @@ class TransactionImpl extends SpanImpl implements Transaction {
         // co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
     }
 
+    @Nonnull
+    @Override
+    public String makeChildOfRumTransaction() {
+        // co.elastic.apm.plugin.api.TransactionInstrumentation.MakeChildOfRumTransactionInstrumentation
+        return "";
+    }
+
 }

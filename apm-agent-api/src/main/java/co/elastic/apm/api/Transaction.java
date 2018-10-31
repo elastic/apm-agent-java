@@ -118,6 +118,14 @@ public interface Transaction extends Span {
     String getId();
 
     /**
+     * TODO documentation
+     *
+     * @return
+     */
+    @Nonnull
+    String makeChildOfRumTransaction();
+
+    /**
      * Makes this transaction the active transaction on the current thread until {@link Scope#close()} has been called.
      * <p>
      * Scopes should only be used in try-with-resource statements in order to make sure the {@link Scope#close()} method is called in all
