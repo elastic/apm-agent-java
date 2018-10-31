@@ -2,14 +2,7 @@ co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$StartTransactionInstrumen
 co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.plugin.api.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$SetNameInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$SetTypeInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$EndInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$CaptureExceptionInstrumentation
-co.elastic.apm.plugin.api.TransactionInstrumentation$GetIdInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation
@@ -19,3 +12,4 @@ co.elastic.apm.plugin.api.SpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
+co.elastic.apm.plugin.api.ApiScopeInstrumentation
