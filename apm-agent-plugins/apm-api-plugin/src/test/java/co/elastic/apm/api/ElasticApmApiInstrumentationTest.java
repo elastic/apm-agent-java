@@ -174,6 +174,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
             assertThat(tracer.currentTransaction().getTraceContext().getParentId().isEmpty()).isTrue();
             String rumTransactionId = transaction.makeChildOfRumTransaction();
             assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(rumTransactionId);
+            assertThat(transaction.makeChildOfRumTransaction()).isEqualTo(rumTransactionId);
         }
     }
 }
