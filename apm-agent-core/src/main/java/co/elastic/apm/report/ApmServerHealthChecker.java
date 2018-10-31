@@ -21,6 +21,7 @@ package co.elastic.apm.report;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,14 +43,22 @@ class ApmServerHealthChecker implements Runnable {
         boolean success;
         String message = null;
         try {
-            final int status = httpClient.newCall(new Request.Builder()
-                .url(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck")
+            final Response response = httpClient.newCall(new Request.Builder()
+                .url(reporterConfiguration.getServerUrls().get(0).toString())
                 .build())
-                .execute()
-                .code();
-            success = status == 200;
+                .execute();
+            final int status = response.code();
+            success = status < 300;
             if (!success) {
-                message = Integer.toString(status);
+                if (status == 404) {
+                    message = "It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                        "Please use APM Server 6.5.0 or newer.";
+                } else {
+                    message = Integer.toString(status);
+                }
+            } else if (response.body() != null) {
+                // prints out the version info of the APM Server
+                message = response.body().string();
             }
         } catch (IOException e) {
             message = e.getMessage();
@@ -57,7 +66,7 @@ class ApmServerHealthChecker implements Runnable {
         }
 
         if (success) {
-            logger.info("Elastic APM server is available");
+            logger.info("Elastic APM server is available: {}", message);
         } else {
             logger.warn("Elastic APM server is not available ({})", message);
         }
