@@ -26,6 +26,11 @@ You can then use the APM UI in Kibana to gain insight into latency issues and er
 Yes
 
 [float]
+[[faq-bytecode-instrumentation-safety]]
+=== How safe is bytecode instrumentation?
+TODO
+
+[float]
 [[faq-recompile]]
 === Do I need to re-compile my application?
 No
