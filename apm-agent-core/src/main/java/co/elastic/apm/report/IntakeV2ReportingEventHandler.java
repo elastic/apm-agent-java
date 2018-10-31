@@ -329,6 +329,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
             serverUrlIterator.next();
+        } else if (responseCode == 404) {
+            logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                "Please use APM Server 6.5.0 or newer.");
         }
     }
 

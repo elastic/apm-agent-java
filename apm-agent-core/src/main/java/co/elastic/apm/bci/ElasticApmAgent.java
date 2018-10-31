@@ -256,6 +256,7 @@ public class ElasticApmAgent {
         final List<WildcardMatcher> excludedFromInstrumentation = coreConfiguration.getExcludedFromInstrumentation();
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+            .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(coreConfiguration.isTypePoolCacheEnabled()
