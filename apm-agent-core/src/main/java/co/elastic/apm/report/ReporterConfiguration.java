@@ -94,11 +94,11 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server " +
             "or if the APM server is down.\n" +
             "\n" +
-            "If the queue is full, events are rejected which means you will loose transactions and spans in that case.\n" +
+            "If the queue is full, events are rejected which means you will lose transactions and spans in that case.\n" +
             "This guards the application from crashing in case the APM server is unavailable for a longer period of time.\n" +
             "\n" +
             "A lower value will decrease the heap overhead of the agent,\n" +
-            "while a higher value makes it less likely to loose events in case of a temporary spike in throughput.")
+            "while a higher value makes it less likely to lose events in case of a temporary spike in throughput.")
         .dynamic(true)
         .buildWithDefault(512);
 
