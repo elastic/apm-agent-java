@@ -19,20 +19,22 @@
  */
 package co.elastic.apm.report;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 class ApmServerHealthChecker implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
-    private final OkHttpClient httpClient;
-    private final ReporterConfiguration reporterConfiguration;
 
-    ApmServerHealthChecker(OkHttpClient httpClient, ReporterConfiguration reporterConfiguration) {
-        this.httpClient = httpClient;
+    private final ReporterConfiguration reporterConfiguration;
+    private HttpURLConnection connection;
+
+    ApmServerHealthChecker(ReporterConfiguration reporterConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
     }
 
@@ -41,11 +43,28 @@ class ApmServerHealthChecker implements Runnable {
         boolean success;
         String message = null;
         try {
-            final int status = httpClient.newCall(new Request.Builder()
-                .url(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck")
-                .build())
-                .execute()
-                .code();
+            URL url = null;
+            url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting healthcheck to {}", url);
+            }
+            connection = (HttpURLConnection) url.openConnection();
+            if (!reporterConfiguration.isVerifyServerCert()) {
+                if (connection instanceof HttpsURLConnection) {
+                    trustAll((HttpsURLConnection) connection);
+                }
+            }
+            connection.setRequestMethod("GET");
+            connection.setDoOutput(true);
+            if (reporterConfiguration.getSecretToken() != null) {
+                connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+            }
+            connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+            connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+            connection.connect();
+
+            final int status = connection.getResponseCode();
+
             success = status == 200;
             if (!success) {
                 message = Integer.toString(status);
@@ -53,12 +72,27 @@ class ApmServerHealthChecker implements Runnable {
         } catch (IOException e) {
             message = e.getMessage();
             success = false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+                connection = null;
+            }
         }
+
 
         if (success) {
             logger.info("Elastic APM server is available");
         } else {
             logger.warn("Elastic APM server is not available ({})", message);
+        }
+    }
+
+    private void trustAll(HttpsURLConnection connection) {
+        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
+        if (sf != null) {
+            // using the same instances is important for TCP connection reuse
+            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
+            connection.setSSLSocketFactory(sf);
         }
     }
 }

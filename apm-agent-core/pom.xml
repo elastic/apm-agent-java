@@ -54,16 +54,19 @@
     </build>
 
     <dependencies>
+        <!--http клиент с пулом соединенией, мутльти url-->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>${version.okhttp}</version>
         </dependency>
+        <!--логирование http запросов-->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
             <version>${version.okhttp}</version>
         </dependency>
+        <!--структуру для эффективного хранения между потоками-->
         <dependency>
             <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>

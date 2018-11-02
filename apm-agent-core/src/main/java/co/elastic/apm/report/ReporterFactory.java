@@ -63,7 +63,7 @@ public class ReporterFactory {
                 return thread;
             }
         });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration));
         healthCheckExecutorService.shutdown();
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
             frameworkVersion, reporterConfiguration, httpClient);
