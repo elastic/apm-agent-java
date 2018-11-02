@@ -9,7 +9,7 @@ like HTTP requests and database queries.
 To do this, it leverages the capability of the JVM to instrument the bytecode of classes.
 This means that for the supported technologies, there are no code changes required.
 
-The agent automatically injects small pieces of code before and after interesting events to measure their duration and metadata
+The agent automatically safely injects small pieces of code before and after interesting events to measure their duration and metadata
 (like the DB statement) as well as HTTP related information
 (like the URL, parameters, and headers).
 
@@ -28,7 +28,16 @@ Yes
 [float]
 [[faq-bytecode-instrumentation-safety]]
 === How safe is bytecode instrumentation?
-TODO
+Elastic APM is using the popular bytecode instrumentation library http://bytebuddy.net:[Byte Buddy],
+which takes care of the heavy lifting of dealing with actual bytecode and lets us write the instrumentation in pure Java.
+
+Byte Buddy is widely used in popular Open Source projects,
+for example Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
+It is created by a Java Champion, awarded with the Dukes Choice award and currently downloaded over 75 million times a year.
+
+Unlike other bytecode instrumentation libraries,
+Byte Buddy is designed so that it is impossible to corrupt the bytecode of instrumented classes.
+It also respects other agents attached to your application at the same time.
 
 [float]
 [[faq-recompile]]
