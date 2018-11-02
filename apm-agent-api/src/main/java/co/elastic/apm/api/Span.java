@@ -135,6 +135,10 @@ public interface Span {
     /**
      * Returns the id of this trace (never {@code null})
      * <p>
+     * The trace-ID is consistent across all transactions and spans which belong to the same logical trace,
+     * even for spans which happened in another service (given this service is also monitored by Elastic APM).
+     * </p>
+     * <p>
      * If this span represents a noop,
      * this method returns an empty string.
      * </p>

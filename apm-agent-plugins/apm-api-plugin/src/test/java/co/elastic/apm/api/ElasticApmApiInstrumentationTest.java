@@ -172,9 +172,9 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         try (co.elastic.apm.api.Scope scope = transaction.activate()) {
             assertThat(tracer.currentTransaction()).isNotNull();
             assertThat(tracer.currentTransaction().getTraceContext().getParentId().isEmpty()).isTrue();
-            String rumTransactionId = transaction.makeChildOfRumTransaction();
+            String rumTransactionId = transaction.ensureParentId();
             assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(rumTransactionId);
-            assertThat(transaction.makeChildOfRumTransaction()).isEqualTo(rumTransactionId);
+            assertThat(transaction.ensureParentId()).isEqualTo(rumTransactionId);
         }
     }
 }

@@ -118,12 +118,48 @@ public interface Transaction extends Span {
     String getId();
 
     /**
-     * TODO documentation
+     * <p>
+     * If the transaction does not have a parent-ID yet,
+     * calling this method generates a new ID,
+     * sets it as the parent-ID of this transaction,
+     * and returns it as a `String`.
+     * </p>
+     * <p>
+     * This enables the correlation of the spans the JavaScript Real User Monitoring (RUM) agent creates for the initial page load
+     * with the transaction of the backend service.
+     * If your backend service generates the HTML page dynamically,
+     * initializing the JavaScript RUM agent with the value of this method allows analyzing the time spent in the browser vs in the backend services.
+     * </p>
+     * <p>
+     * To enable the JavaScript RUM agent when using an HTML templating language like Freemarker,
+     * add {@code ElasticApm.currentTransaction()} with the key {@code "transaction"} to the model.
+     * </p>
+     * <p>
+     * Also, add a snippet similar to this to the body of your HTML pages,
+     * preferably before other JS libraries:
+     * </p>
      *
-     * @return
+     * <pre>{@code
+     * <script src="elastic-apm-js-base/dist/bundles/elastic-apm-js-base.umd.min.js"></script>
+     * <script>
+     *   var elasticApm = initApm({
+     *     serviceName: '',
+     *     serverUrl: 'http://localhost:8200',
+     *     pageLoadTraceId: "${transaction.traceId}",
+     *     pageLoadSpanId: "${transaction.ensureParentId()}",
+     *     pageLoadSampled: ${transaction.sampled}
+     *   })
+     * </script>
+     * }</pre>
+     *
+     * <p>
+     * See the JavaScript RUM agent documentation for more information.
+     * </p>
+     *
+     * @return the parent-ID for this transaction. Updates the transaction to use a new parent-ID if it has previously been unset.
      */
     @Nonnull
-    String makeChildOfRumTransaction();
+    String ensureParentId();
 
     /**
      * Makes this transaction the active transaction on the current thread until {@link Scope#close()} has been called.

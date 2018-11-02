@@ -63,7 +63,7 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
-    public String makeChildOfRumTransaction() {
+    public String ensureParentId() {
         return "";
     }
 

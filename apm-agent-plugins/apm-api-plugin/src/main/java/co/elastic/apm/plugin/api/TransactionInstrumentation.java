@@ -81,7 +81,7 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
 
     public static class MakeChildOfRumTransactionInstrumentation extends TransactionInstrumentation {
         public MakeChildOfRumTransactionInstrumentation() {
-            super(named("makeChildOfRumTransaction"));
+            super(named("ensureParentId"));
         }
 
         @VisibleForAdvice
