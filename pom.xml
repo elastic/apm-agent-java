@@ -5,7 +5,7 @@
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <version>0.8.0-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
     <organization>
@@ -57,14 +57,14 @@
 
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
-        <version.jackson>2.9.2</version.jackson>
+        <version.jackson>2.9.6</version.jackson>
         <version.junit-jupiter>5.1.1</version.junit-jupiter>
         <version.junit.vintage>4.12</version.junit.vintage>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>3.9.1</version.okhttp>
         <version.slf4j>1.7.25</version.slf4j>
         <version.spring>5.0.4.RELEASE</version.spring>
-        <version.testcontainers>1.8.3</version.testcontainers>
+        <version.testcontainers>1.9.1</version.testcontainers>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.junit-vintage-engine>5.1.1</version.junit-vintage-engine>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
@@ -73,7 +73,7 @@
         <version.plugin.jar>3.1.0</version.plugin.jar>
         <version.plugin.javadoc>3.0.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
-        <version.byte-buddy>1.8.22</version.byte-buddy>
+        <version.byte-buddy>1.9.3</version.byte-buddy>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -362,7 +362,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.1</version>
+                <version>0.8.2</version>
                 <executions>
                     <execution>
                         <goals>
@@ -461,13 +461,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.10.0</version>
+            <version>3.11.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.19.0</version>
+            <version>2.22.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

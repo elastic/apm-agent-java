@@ -20,6 +20,7 @@
 package co.elastic.apm.bci;
 
 import co.elastic.apm.impl.ElasticApmTracer;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -27,6 +28,8 @@ import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+
+import static net.bytebuddy.matcher.ElementMatchers.any;
 
 /**
  * An advice is responsible for instrumenting methods (see {@link #getMethodMatcher()}) in particular classes
@@ -60,6 +63,22 @@ public abstract class ElasticApmInstrumentation {
     }
 
     /**
+     * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
+     * at the expense of potential false negative matches.
+     * <p>
+     * Any matcher which does not only take the class name into account,
+     * causes the class' bytecode to be parsed.
+     * If the matcher needs information from other classes than the one currently being loaded,
+     * like it's super class,
+     * those classes have to be loaded from the file system,
+     * unless they are cached or already loaded.
+     * </p>
+     */
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return any();
+    }
+
+    /**
      * The type matcher selects types which should be instrumented by this advice
      * <p>
      * To make type matching more efficient,
@@ -71,6 +90,10 @@ public abstract class ElasticApmInstrumentation {
      * @return the type matcher
      */
     public abstract ElementMatcher<? super TypeDescription> getTypeMatcher();
+
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return any();
+    }
 
     /**
      * The method matcher selects methods of types matching {@link #getTypeMatcher()},

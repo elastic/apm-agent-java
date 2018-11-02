@@ -19,8 +19,6 @@
  */
 package co.elastic.apm;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Response;
 import org.eclipse.jetty.server.NetworkConnector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -31,7 +29,8 @@ import org.junit.jupiter.api.BeforeEach;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,7 +38,7 @@ public abstract class AbstractServletTest {
     protected static final MockReporter reporter = new MockReporter();
     @Nullable
     private static Server server;
-    protected OkHttpClient httpClient;
+    protected HttpURLConnection connection;
 
     @AfterAll
     static void stopServer() throws Exception {
@@ -58,18 +57,23 @@ public abstract class AbstractServletTest {
             server.start();
         }
         assertThat(getPort()).isPositive();
-
-        httpClient = new OkHttpClient.Builder()
-            // set to 0 for debugging
-            .readTimeout(10, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(false)
-            .build();
     }
 
-
-    protected Response get(String path) throws IOException {
-        return httpClient.newCall(new okhttp3.Request.Builder().url("http://localhost:" + getPort() + path).build()).execute();
+    protected HttpURLConnection createRequest(String path) {
+        try {
+            URL url = new URL("http://localhost:" + getPort() + path);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setDoOutput(true);
+            // set to 0 for debugging
+            connection.setConnectTimeout(10 * 1000);
+            connection.setReadTimeout(10 * 1000);
+            connection.connect();
+            return connection;
+        } catch (IOException e) {
+            System.out.println("IOException:"+e.getLocalizedMessage());
+        }
+        return null;
     }
 
     protected abstract void setUpHandler(ServletContextHandler handler);
@@ -77,6 +81,11 @@ public abstract class AbstractServletTest {
     @AfterEach
     final void tearDown() {
         reporter.reset();
+
+        if (connection != null) {
+            connection.disconnect();
+            connection = null;
+        }
     }
 
     protected int getPort() {

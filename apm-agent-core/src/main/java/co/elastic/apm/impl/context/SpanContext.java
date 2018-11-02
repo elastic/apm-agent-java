@@ -21,6 +21,7 @@
 package co.elastic.apm.impl.context;
 
 import co.elastic.apm.impl.transaction.Db;
+import co.elastic.apm.impl.transaction.Http;
 
 
 /**
@@ -34,19 +35,32 @@ public class SpanContext extends AbstractContext {
     private final Db db = new Db();
 
     /**
+     * An object containing contextual data for outgoing HTTP spans
+     */
+    private final Http http = new Http();
+
+    /**
      * An object containing contextual data for database spans
      */
     public Db getDb() {
         return db;
     }
 
+    /**
+     * An object containing contextual data for outgoing HTTP spans
+     */
+    public Http getHttp() {
+        return http;
+    }
+
     @Override
     public void resetState() {
         super.resetState();
         db.resetState();
+        http.resetState();
     }
 
     public boolean hasContent() {
-        return db.hasContent();
+        return super.hasContent() || db.hasContent() || http.hasContent();
     }
 }

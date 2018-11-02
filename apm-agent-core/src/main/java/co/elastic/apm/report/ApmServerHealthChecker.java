@@ -43,8 +43,7 @@ class ApmServerHealthChecker implements Runnable {
         boolean success;
         String message = null;
         try {
-            URL url = null;
-            url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck");
+            URL url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck");
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting healthcheck to {}", url);
             }
@@ -65,23 +64,31 @@ class ApmServerHealthChecker implements Runnable {
 
             final int status = connection.getResponseCode();
 
-            success = status == 200;
+            success = status < 300;
+
             if (!success) {
-                message = Integer.toString(status);
+                if (status == 404) {
+                    message = "It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                        "Please use APM Server 6.5.0 or newer.";
+                } else {
+                    message = Integer.toString(status);
+                }
+            } else  {
+                // prints out the version info of the APM Server
+                message = HttpUtils.getBody(connection);
             }
         } catch (IOException e) {
             message = e.getMessage();
             success = false;
         } finally {
-            if (connection != null) {
+            if (connection != null) {logger.info("trying to close connection...");
                 connection.disconnect();
                 connection = null;
             }
         }
 
-
         if (success) {
-            logger.info("Elastic APM server is available");
+            logger.info("Elastic APM server is available: {}", message);
         } else {
             logger.warn("Elastic APM server is not available ({})", message);
         }

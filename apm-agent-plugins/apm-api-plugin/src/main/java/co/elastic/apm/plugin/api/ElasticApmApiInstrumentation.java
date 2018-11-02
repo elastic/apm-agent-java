@@ -101,7 +101,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.getActive();
+                span = tracer.activeSpan();
             }
         }
     }

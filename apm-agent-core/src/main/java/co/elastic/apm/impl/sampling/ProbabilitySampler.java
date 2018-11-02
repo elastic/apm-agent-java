@@ -19,8 +19,7 @@
  */
 package co.elastic.apm.impl.sampling;
 
-import co.elastic.apm.impl.transaction.TraceId;
-import co.elastic.apm.impl.transaction.TransactionId;
+import co.elastic.apm.impl.transaction.Id;
 
 /**
  * This implementation of {@link Sampler} samples based on a sampling probability (or sampling rate) between 0.0 and 1.0.
@@ -30,9 +29,9 @@ import co.elastic.apm.impl.transaction.TransactionId;
  * <p>
  * Implementation notes:
  * </p>
- * We are taking advantage of the fact, that the {@link TransactionId} is randomly generated.
+ * We are taking advantage of the fact, that the {@link Id} is randomly generated.
  * So instead of generating another random number,
- * we just see if the long value returned by {@link TransactionId#getMostSignificantBits()}
+ * we just see if the long value returned by {@link Id#getLeastSignificantBits()}
  * falls into the range between the {@code lowerBound} and the <code>higherBound</code>.
  * This is a visual representation of the mechanism with a sampling rate of 0.5 (=50%):
  * <pre>
@@ -49,6 +48,11 @@ public class ProbabilitySampler implements Sampler {
     private final long lowerBound;
     private final long higherBound;
 
+    private ProbabilitySampler(double samplingRate) {
+        higherBound = (long) (Long.MAX_VALUE * samplingRate);
+        lowerBound = -higherBound;
+    }
+
     public static Sampler of(double samplingRate) {
         if (samplingRate == 1) {
             return ConstantSampler.of(true);
@@ -59,14 +63,9 @@ public class ProbabilitySampler implements Sampler {
         return new ProbabilitySampler(samplingRate);
     }
 
-    private ProbabilitySampler(double samplingRate) {
-        higherBound = (long) (Long.MAX_VALUE * samplingRate);
-        lowerBound = -higherBound;
-    }
-
     @Override
-    public boolean isSampled(TraceId traceId) {
-        final long mostSignificantBits = traceId.getMostSignificantBits();
+    public boolean isSampled(Id traceId) {
+        final long mostSignificantBits = traceId.getLeastSignificantBits();
         return mostSignificantBits > lowerBound && mostSignificantBits < higherBound;
     }
 }

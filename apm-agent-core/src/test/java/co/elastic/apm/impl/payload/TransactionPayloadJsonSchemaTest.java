@@ -20,13 +20,14 @@
 package co.elastic.apm.impl.payload;
 
 import co.elastic.apm.TransactionUtils;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -39,41 +40,36 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 class TransactionPayloadJsonSchemaTest {
 
     private JsonSchema schema;
     private ObjectMapper objectMapper;
-    private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
-        coreConfiguration = spy(new CoreConfiguration());
-
         objectMapper = new ObjectMapper();
     }
 
     private TransactionPayload createPayloadWithRequiredValues() {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(createTransactionWithRequiredValues());
-        transformForDistributedTracing(payload);
+        final Transaction transaction = createTransactionWithRequiredValues();
+        payload.getTransactions().add(transaction);
+        Span span = new Span(mock(ElasticApmTracer.class));
+        span.start(TraceContext.fromParentSpan(), transaction)
+            .withType("type")
+            .withName("name");
+        payload.getSpans().add(span);
         return payload;
     }
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction(mock(ElasticApmTracer.class));
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
-        Span s = new Span(mock(ElasticApmTracer.class));
-        s.start(t, null, 0, false)
-            .withType("type")
-            .withName("name");
-        t.addSpan(s);
         return t;
     }
 
@@ -82,7 +78,7 @@ class TransactionPayloadJsonSchemaTest {
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
-        transformForDistributedTracing(payload);
+        payload.getSpans().addAll(TransactionUtils.getSpans(transaction));
         return payload;
     }
 
@@ -98,7 +94,7 @@ class TransactionPayloadJsonSchemaTest {
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(new Transaction(mock(ElasticApmTracer.class)));
-        final String content = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class)).toJsonString(payload);
+        final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class)).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
     }
@@ -113,30 +109,84 @@ class TransactionPayloadJsonSchemaTest {
         validate(createPayloadWithAllValues());
     }
 
-    private void validate(TransactionPayload payload) throws IOException {
-        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(false);
-        DslJsonSerializer serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
+    @Test
+    void testJsonStructure() throws IOException {
+        validateJsonStructure(createPayloadWithAllValues());
+    }
 
+    private void validateJsonStructure(TransactionPayload payload) throws IOException {
+        JsonNode serializedSpans = getSerializedSpans(payload);
+        validateDbSpanSchema(serializedSpans, true);
+        validateHttpSpanSchema(serializedSpans);
+
+        for (Span span : payload.getSpans()) {
+            if (span.getType() != null && span.getType().equals("db.postgresql.query")) {
+                span.getContext().getTags().clear();
+                validateDbSpanSchema(getSerializedSpans(payload), false);
+                break;
+            }
+        }
+    }
+
+    private JsonNode getSerializedSpans(TransactionPayload payload) throws IOException {
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         System.out.println(content);
-        Set<ValidationMessage> errors = schema.validate(objectMapper.readTree(content));
-        assertThat(errors).isEmpty();
+        JsonNode node = objectMapper.readTree(content);
 
-        when(coreConfiguration.isDistributedTracingEnabled()).thenReturn(true);
-        serializer = new DslJsonSerializer(coreConfiguration.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
-        transformForDistributedTracing(payload);
+        assertThat(node.get("transactions").get(0).get("spans")).isNull();
+        return node.get("spans");
+    }
+
+    private void validateDbSpanSchema(JsonNode serializedSpans, boolean shouldContainTags) throws IOException {
+        boolean contextOfDbSpanFound = false;
+        for (JsonNode child: serializedSpans) {
+            if(child.get("type").textValue().startsWith("db.")) {
+                contextOfDbSpanFound = true;
+                JsonNode context = child.get("context");
+                JsonNode db = context.get("db");
+                assertThat(db).isNotNull();
+                assertThat(db.get("instance").textValue()).isEqualTo("customers");
+                assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM product_types WHERE user_id=?");
+                assertThat(db.get("type").textValue()).isEqualTo("sql");
+                assertThat(db.get("user").textValue()).isEqualTo("readonly_user");
+                JsonNode tags = context.get("tags");
+                if (shouldContainTags) {
+                    assertThat(tags).isNotNull();
+                    assertThat(tags).hasSize(2);
+                    assertThat(tags.get("monitored_by").textValue()).isEqualTo("ACME");
+                    assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
+                }
+                else {
+                    assertThat(tags).isNull();
+                }
+            }
+        }
+        assertThat(contextOfDbSpanFound).isTrue();
+    }
+
+    private void validateHttpSpanSchema(JsonNode serializedSpans)  {
+        boolean contextOfHttpSpanFound = false;
+        for (JsonNode child: serializedSpans) {
+            if(child.get("type").textValue().startsWith("ext.http.")) {
+                assertThat(child.get("name").textValue()).isEqualTo("GET test.elastic.co");
+                JsonNode context = child.get("context");
+                contextOfHttpSpanFound = true;
+                JsonNode http = context.get("http");
+                assertThat(http).isNotNull();
+                assertThat(http.get("url").textValue()).isEqualTo("http://test.elastic.co/test-service");
+                assertThat(http.get("method").textValue()).isEqualTo("POST");
+                assertThat(http.get("status_code").intValue()).isEqualTo(201);
+            }
+        }
+        assertThat(contextOfHttpSpanFound).isTrue();
+    }
+
+    private void validate(TransactionPayload payload) throws IOException {
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String contentInDistributedTracingFormat = serializer.toJsonString(payload);
         System.out.println(contentInDistributedTracingFormat);
         Set<ValidationMessage> distributedTracingFormatErrors = schema.validate(objectMapper.readTree(contentInDistributedTracingFormat));
         assertThat(distributedTracingFormatErrors).isEmpty();
-    }
-
-    private void transformForDistributedTracing(TransactionPayload payload) {
-        if (coreConfiguration.isDistributedTracingEnabled()) {
-            for (Transaction transaction : payload.getTransactions()) {
-                payload.getSpans().addAll(transaction.getSpans());
-                transaction.getSpans().clear();
-            }
-        }
     }
 }

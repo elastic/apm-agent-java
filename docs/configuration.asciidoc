@@ -218,9 +218,10 @@ e.g. remove sensitive data.
 Configure a list of wildcard patterns of field names which should be sanitized.
 These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 
-
-NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-Prepending an element with `(?i)` makes the matching case-insensitive.
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: Data in the query string is considered non-sensitive,
 as sensitive information should not be sent in the query string.
@@ -234,7 +235,7 @@ you should add an additional entry to this list (make sure to also include the d
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `(?i)password, (?i)passwd, (?i)pwd, (?i)secret, (?i)token, (?i)*key, (?i)*token, (?i)*session*, (?i)*credit*, (?i)*card*, (?i)authorization, (?i)set-cookie` | List | true
+| `password, passwd, pwd, secret, *key, *token*, *session*, *credit*, *card*, authorization, set-cookie` | List | true
 |============
 
 
@@ -249,7 +250,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
+Valid options are `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -265,6 +266,34 @@ set the value to an empty string.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
+|============
+
+[float]
+[[config-unnest-exceptions]]
+==== `unnest_exceptions`
+
+When reporting exceptions,
+un-nests the exceptions matching the wildcard pattern.
+This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,
+for example.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `(?-i)*Nested*Exception` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
 |============
 
 [[config-http]]
@@ -307,8 +336,10 @@ Used to restrict requests to certain URLs from being instrumented.
 This property should be set to an array containing one or more strings.
 When an incoming HTTP request is detected, its URL will be tested against each element in this list.
 
-NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-Prepending an element with `(?i)` makes the matching case-insensitive.
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 
@@ -316,7 +347,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `/VAADIN/*, (?i)/heartbeat/*, /favicon.ico, *.js, *.css, *.jpg, *.jpeg, *.png, *.webp, *.svg, *.woff, *.woff2` | List | true
+| `/VAADIN/*, /heartbeat*, /favicon.ico, *.js, *.css, *.jpg, *.jpeg, *.png, *.gif, *.webp, *.svg, *.woff, *.woff2` | List | true
 |============
 
 
@@ -334,10 +365,12 @@ Used to restrict requests from certain User-Agents from being instrumented.
 
 When an incoming HTTP request is detected,
 the User-Agent from the request headers will be tested against each element in this list.
-Example: `curl/*, (?i)*pingdom*`
+Example: `curl/*`, `*pingdom*`
 
-NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-Prepending an element with `(?i)` makes the matching case-insensitive.
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
 
 NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 
@@ -389,8 +422,10 @@ This option is only considered, when `use_path_as_transaction_name` is active.
 
 With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
 
-NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-Prepending an element with `(?i)` makes the matching case-insensitive.
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
 
 
 [options="header"]
@@ -616,20 +651,21 @@ The default unit for this option is `s`
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
-Maximum queue length of transactions before sending transactions to the APM server.
+The maximum size of buffered events.
 
-A lower value will increase the load on your APM server,
-while a higher value can increase the memory pressure of your app.
+Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
 
-A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
+If the queue is full, events are rejected which means you will loose transactions and spans in that case.
+This guards the application from crashing in case the APM server is unavailable for a longer period of time.
 
-This setting is useful to limit memory consumption if you experience a sudden spike of traffic.
+A lower value will decrease the heap overhead of the agent,
+while a higher value makes it less likely to loose events in case of a temporary spike in throughput.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `500` | Integer | true
+| `512` | Integer | true
 |============
 
 
@@ -667,6 +703,7 @@ Disabled by default to save disk space.
 ==== `application_packages`
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+Setting this option can also improve the startup time.
 
 
 [options="header"]
@@ -819,9 +856,10 @@ The default unit for this option is `ms`
 # Configure a list of wildcard patterns of field names which should be sanitized.
 # These apply for example to HTTP headers and `application/x-www-form-urlencoded` data.
 # 
-# 
-# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
 # 
 # NOTE: Data in the query string is considered non-sensitive,
 # as sensitive information should not be sent in the query string.
@@ -833,12 +871,12 @@ The default unit for this option is `ms`
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: (?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie
+# Default value: password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 #
-# sanitize_field_names=(?i)password,(?i)passwd,(?i)pwd,(?i)secret,(?i)token,(?i)*key,(?i)*token,(?i)*session*,(?i)*credit*,(?i)*card*,(?i)authorization,(?i)set-cookie
+# sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`,`spring-resttemplate` and `incubating`.
+# Valid options are `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -847,6 +885,22 @@ The default unit for this option is `ms`
 # Default value: incubating
 #
 # disable_instrumentations=incubating
+
+# When reporting exceptions,
+# un-nests the exceptions matching the wildcard pattern.
+# This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,
+# for example.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: (?-i)*Nested*Exception
+#
+# unnest_exceptions=(?-i)*Nested*Exception
 
 ############################################
 # HTTP                                     #
@@ -874,25 +928,29 @@ The default unit for this option is `ms`
 # This property should be set to an array containing one or more strings.
 # When an incoming HTTP request is detected, its URL will be tested against each element in this list.
 # 
-# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
 # 
 # NOTE: All errors that are captured during a request to an ignored URL are still sent to the APM Server regardless of this setting.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: /VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2
+# Default value: /VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 #
-# ignore_urls=/VAADIN/*,(?i)/heartbeat/*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.webp,*.svg,*.woff,*.woff2
+# ignore_urls=/VAADIN/*,/heartbeat*,/favicon.ico,*.js,*.css,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.woff,*.woff2
 
 # Used to restrict requests from certain User-Agents from being instrumented.
 # 
 # When an incoming HTTP request is detected,
 # the User-Agent from the request headers will be tested against each element in this list.
-# Example: `curl/*, (?i)*pingdom*`
+# Example: `curl/*`, `*pingdom*`
 # 
-# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
 # 
 # NOTE: All errors that are captured during a request by an ignored user agent are still sent to the APM Server regardless of this setting.
 #
@@ -920,8 +978,10 @@ The default unit for this option is `ms`
 # 
 # With this option, you can group several URL paths together by using a wildcard expression like `/user/*`.
 # 
-# NOTE: A wildcard expression may either contain a single wildcard in the middle or have wildcards at the beginning and/or the end. Legal: `*foo*`, `foo*`, `*foo`, `foo*bar*`. Illegal: `foo*bar*`, `foo*bar*baz`.
-# Prepending an element with `(?i)` makes the matching case-insensitive.
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
 #
 # This setting can be changed at runtime
 # Type: comma separated list
@@ -1045,20 +1105,21 @@ The default unit for this option is `ms`
 #
 # flush_interval=1s
 
-# Maximum queue length of transactions before sending transactions to the APM server.
+# The maximum size of buffered events.
 # 
-# A lower value will increase the load on your APM server,
-# while a higher value can increase the memory pressure of your app.
+# Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
 # 
-# A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
+# If the queue is full, events are rejected which means you will loose transactions and spans in that case.
+# This guards the application from crashing in case the APM server is unavailable for a longer period of time.
 # 
-# This setting is useful to limit memory consumption if you experience a sudden spike of traffic.
+# A lower value will decrease the heap overhead of the agent,
+# while a higher value makes it less likely to loose events in case of a temporary spike in throughput.
 #
 # This setting can be changed at runtime
 # Type: Integer
-# Default value: 500
+# Default value: 512
 #
-# max_queue_size=500
+# max_queue_size=512
 
 # Whether each transaction should have the process arguments attached.
 # Disabled by default to save disk space.
@@ -1074,6 +1135,7 @@ The default unit for this option is `ms`
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+# Setting this option can also improve the startup time.
 #
 # This setting can be changed at runtime
 # Type: comma separated list

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class HexUtilsTest {
 
@@ -32,5 +33,27 @@ class HexUtilsTest {
         byte[] bytes = new byte[8];
         HexUtils.nextBytes("09c2572177fdae24", 0, bytes);
         assertThat(HexUtils.bytesToHex(bytes)).isEqualTo("09c2572177fdae24");
+    }
+
+    @Test
+    void testInvalidHex() {
+        assertThatThrownBy(() -> HexUtils.getNextByte("0$", 0))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Not a hex encoded string: 0$ at offset 0");
+    }
+
+    @Test
+    void testStringTooSmall() {
+        assertThatThrownBy(() -> HexUtils.nextBytes("00", 0, new byte[2]))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Can't read 2 bytes from string 00 with offset 0");
+    }
+
+    @Test
+    void testUnevenLength() {
+        final byte[] bytes = new byte[1];
+        // reads the first two chars and converts "0a" to (byte) 10
+        HexUtils.nextBytes("0a0", 0, bytes);
+        assertThat(bytes).isEqualTo(new byte[]{10});
     }
 }

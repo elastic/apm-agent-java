@@ -22,72 +22,49 @@ package co.elastic.apm.impl.transaction;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.context.SpanContext;
 import co.elastic.apm.objectpool.Recyclable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.impl.ElasticApmTracer.MS_IN_NANOS;
-
 public class Span extends AbstractSpan<Span> implements Recyclable {
+
+    private static final Logger logger = LoggerFactory.getLogger(Span.class);
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
-    /**
-     * The locally unique ID of the span.
-     */
-    @Deprecated
-    private final SpanId id = new SpanId();
-    /**
-     * The locally unique ID of the parent of the span.
-     */
-    @Deprecated
-    private final SpanId parent = new SpanId();
     @Nullable
     private Throwable stacktrace;
-    /**
-     * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
-     * (Required)
-     */
-    private volatile double start;
-
-    @Nullable
-    private volatile Transaction transaction;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
-    public Span start(Transaction transaction, @Nullable Span parentSpan, long nanoTime, boolean dropped) {
-        this.transaction = transaction;
-        this.id.setLong(transaction.getNextSpanId());
-        if (parentSpan != null) {
-            this.parent.copyFrom(parentSpan.getId());
-            this.traceContext.asChildOf(parentSpan.getTraceContext());
-        } else {
-            this.traceContext.asChildOf(transaction.getTraceContext());
-        }
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
+        return start(childContextCreator, parentContext, getTraceContext().getClock().getEpochMicros());
+    }
+
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
+        return start(childContextCreator, parentContext, epochMicros, false);
+    }
+
+    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
+        onStart();
+        childContextCreator.asChildOf(traceContext, parentContext);
         if (dropped) {
             traceContext.setRecorded(false);
         }
-        if (traceContext.isSampled()) {
-            start = (nanoTime - transaction.getDuration()) / MS_IN_NANOS;
-            duration = nanoTime;
-            timestamp = System.currentTimeMillis();
+        timestamp = epochMicros;
+        if (logger.isDebugEnabled()) {
+            logger.debug("startSpan {} {", this);
+            if (logger.isTraceEnabled()) {
+                logger.trace("starting span at",
+                    new RuntimeException("this exception is just used to record where the span has been started from"));
+            }
         }
         return this;
-    }
-
-    public Span startNoop() {
-        return this;
-    }
-
-    /**
-     * The locally unique ID of the span.
-     */
-    @Deprecated
-    public SpanId getId() {
-        return id;
     }
 
     /**
@@ -102,36 +79,18 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    /**
-     * The locally unique ID of the parent of the span.
-     */
-    @Deprecated
-    public SpanId getParent() {
-        return parent;
-    }
-
     @Nullable
     public Throwable getStacktrace() {
         return stacktrace;
     }
 
-    /**
-     * Offset relative to the transaction's timestamp identifying the start of the span, in milliseconds
-     * (Required)
-     */
-    public double getStart() {
-        return start;
-    }
-
     @Override
-    public void end() {
-        end(System.nanoTime());
-    }
-
-    @Override
-    public void end(long nanoTime) {
-        if (isSampled()) {
-            this.duration = (nanoTime - duration) / MS_IN_NANOS;
+    public void doEnd(long epochMicros) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("} endSpan {}", this);
+            if (logger.isTraceEnabled()) {
+                logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
+            }
         }
         this.tracer.endSpan(this);
     }
@@ -139,18 +98,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public void resetState() {
         super.resetState();
-        id.resetState();
         context.resetState();
-        parent.resetState();
         stacktrace = null;
-        start = 0;
-        transaction = null;
-        traceContext.resetState();
-    }
-
-    @Nullable
-    public Transaction getTransaction() {
-        return transaction;
     }
 
     @Override
@@ -164,7 +113,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s:%s", name, transaction != null ? transaction.getId() : null, id.asLong());
+        return String.format("'%s' %s", name, traceContext);
     }
 
     public Span withStacktrace(Throwable stacktrace) {

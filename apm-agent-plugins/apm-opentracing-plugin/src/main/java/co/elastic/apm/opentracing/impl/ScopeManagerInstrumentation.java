@@ -22,6 +22,7 @@ package co.elastic.apm.opentracing.impl;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -71,9 +72,14 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
+        public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                                      @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
             if (span != null) {
                 span.activate();
+            } else if (traceContext != null) {
+                if (tracer != null) {
+                    tracer.activate(traceContext);
+                }
             }
         }
     }
@@ -88,7 +94,23 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.getActive();
+                span = tracer.activeSpan();
+            }
+        }
+
+    }
+
+    public static class CurrentTraceContextInstrumentation extends ScopeManagerInstrumentation {
+
+        public CurrentTraceContextInstrumentation() {
+            super(named("getCurrentTraceContext"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
+            if (tracer != null) {
+                traceContext = tracer.activeTraceContext();
             }
         }
 

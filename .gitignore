@@ -7,4 +7,5 @@ dependency-reduced-pom.xml
 .settings
 .idea/
 *.iml
+.DS_Store
 html_docs

@@ -28,7 +28,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.matcher.ElementMatchers;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -41,6 +40,7 @@ import static co.elastic.apm.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
@@ -53,12 +53,12 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodEnter
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                       @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
+        if (tracer == null || tracer.activeSpan() == null) {
             return;
         }
-        final AbstractSpan<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI().getHost(),
-            SPAN_TYPE_SPRING_REST_TEMPLATE);
+        final AbstractSpan<?> parent = tracer.activeSpan();
+        span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
+            request.getURI().getHost(), SPAN_TYPE_SPRING_REST_TEMPLATE);
         if (span != null) {
             request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }
@@ -77,7 +77,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return ElementMatchers.nameStartsWith("org.springframework")
+        return nameStartsWith("org.springframework")
             .and(not(isInterface()))
             // only traverse the object hierarchy if the class declares the method to instrument at all
             .and(declaresMethod(getMethodMatcher()))

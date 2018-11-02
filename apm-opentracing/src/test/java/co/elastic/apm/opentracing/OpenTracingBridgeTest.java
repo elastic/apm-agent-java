@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
@@ -61,6 +62,74 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("test");
+    }
+
+    @Test
+    void testFinishTwice() {
+        final Span span = apmTracer.buildSpan("test").withStartTimestamp(0).start();
+
+        span.finish();
+
+        try {
+            span.finish();
+            fail("Expected an assertion error. Make sure to enable assertions (-ea) when executing the tests.");
+        } catch (AssertionError ignore) {
+        }
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testOperationsAfterFinish() {
+        final Span span = apmTracer.buildSpan("test").start();
+
+        span.finish();
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+
+        // subsequent calls have undefined behavior but should not throw exceptions
+        span.setOperationName("");
+        span.setTag("foo", "bar");
+        span.setBaggageItem("foo", "bar");
+        span.getBaggageItem("foo");
+        span.log("foo");
+    }
+
+    @Test
+    void testContextAvailableAfterFinish() {
+        final Span span = apmTracer.buildSpan("transaction").start();
+        span.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
+
+        final Span childSpan = apmTracer.buildSpan("span")
+            .asChildOf(span.context())
+            .start();
+        childSpan.finish();
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
+    }
+
+    @Test
+    void testScopeAfterFinish() {
+        final Span span = apmTracer.buildSpan("transaction").start();
+        span.finish();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Transaction transaction = reporter.getFirstTransaction();
+        String transactionId = transaction.getTraceContext().getId().toString();
+        transaction.resetState();
+
+        try (Scope scope = apmTracer.scopeManager().activate(span, false)) {
+            final Span childSpan = apmTracer.buildSpan("span")
+                .start();
+            childSpan.finish();
+        }
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getParentId().toString()).isEqualTo(transactionId);
     }
 
     @Test
@@ -244,8 +313,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
-        final TraceContext injectedContext = new TraceContext();
-        injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER));
+        final TraceContext injectedContext = TraceContext.with64BitId();
+        assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER))).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();
@@ -276,7 +345,6 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     void testGetBaggageItem() {
         final ApmSpan span = apmTracer.buildSpan("span")
             .start();
-        assertThat(span.getBaggageItem(TraceContext.TRACE_PARENT_HEADER)).isNotNull();
 
         // baggage is not supported yet
         span.setBaggageItem("foo", "bar");

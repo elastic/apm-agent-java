@@ -25,7 +25,7 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
  * Within a scope, a {@link AbstractSpan} is active on the current thread.
  * Calling {@link #close()} detaches them from the active thread.
  * In a scope, you can get the currently active {@link AbstractSpan} via
- * {@link ElasticApmTracer#getActive()}.
+ * {@link ElasticApmTracer#activeSpan()}.
  * <p>
  * During the duration of a {@link AbstractSpan},
  * it can be active multiple times on multiple threads.
@@ -35,7 +35,7 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
  * These types of application still might find it useful to scope a {@link AbstractSpan} on the currently processing thread.
  * For example, an instrumentation for {@link java.util.concurrent.ExecutorService} might want to propagate the currently
  * active {@link AbstractSpan} to thread which runs {@link java.util.concurrent.ExecutorService#execute(Runnable)},
- * so that {@link ElasticApmTracer#getActive()} returns the expected {@link AbstractSpan}.
+ * so that {@link ElasticApmTracer#activeSpan()} returns the expected {@link AbstractSpan}.
  * </p>
  * <p>
  * Note: {@link #close() closing} a scope does not {@link AbstractSpan#end() end} it's active {@link AbstractSpan}.

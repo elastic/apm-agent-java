@@ -26,6 +26,7 @@ import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -61,8 +62,8 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Advice.OnMethodEnter
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
         if (tracer != null && jdbcHelper != null) {
-            final String sql = ConnectionInstrumentation.getSqlForStatement(statement);
-            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            final @Nullable String sql = ConnectionInstrumentation.getSqlForStatement(statement);
+            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.activeSpan());
         }
         return null;
     }
@@ -84,10 +85,13 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Statement");
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            // pre-select candidates for the more expensive hasSuperType matcher
-            .and(nameContains("Statement"))
             .and(hasSuperType(named("java.sql.PreparedStatement")));
     }
 

@@ -56,6 +56,11 @@ enum NoopSpan implements Span {
     }
 
     @Override
+    public Scope activate() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
     public Span createSpan() {
         return INSTANCE;
     }

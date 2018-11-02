@@ -20,28 +20,39 @@
 package co.elastic.apm.opentracing;
 
 import io.opentracing.Span;
-import io.opentracing.SpanContext;
 import io.opentracing.log.Fields;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 
-class ApmSpan implements Span, SpanContext {
+class ApmSpan implements Span {
 
     @Nullable
-    // co.elastic.apm.impl.transaction.AbstractSpan
-    private final Object span;
+    private final TraceContextSpanContext spanContext;
+    @Nullable
+    // co.elastic.apm.impl.transaction.AbstractSpan in case of unfinished spans
+    private Object dispatcher;
 
-    ApmSpan(@Nullable Object span) {
-        this.span = span;
+    ApmSpan(@Nullable Object dispatcher) {
+        this.dispatcher = dispatcher;
+        this.spanContext = new TraceContextSpanContext(getTraceContext(dispatcher));
+    }
+
+    ApmSpan(@Nonnull TraceContextSpanContext spanContext) {
+        this.spanContext = spanContext;
+    }
+
+    @Nullable
+    private Object getTraceContext(@Nullable Object dispatcher) {
+        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
+        return null;
     }
 
     @Override
-    public SpanContext context() {
-        return this;
+    public TraceContextSpanContext context() {
+        return spanContext;
     }
 
     @Override
@@ -70,12 +81,20 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public void finish() {
-        finishInternal(System.nanoTime() / 1000);
+        finish(-1);
     }
 
     @Override
     public void finish(long finishMicros) {
-        finishInternal(finishMicros);
+        if (spanContext != null) {
+            final Object traceContext = spanContext.getTraceContext();
+            if (traceContext != null) {
+                // prevents race conditions with ScopeManager#activate(Span)
+                synchronized (traceContext) {
+                    finishInternal(finishMicros);
+                }
+            }
+        }
     }
 
     private void finishInternal(long finishMicros) {
@@ -84,26 +103,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Nullable
     Object getSpan() {
-        return span;
-    }
-
-    @Override
-    public ApmSpan log(Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
-            createError(System.currentTimeMillis(), fields);
-        }
-        return this;
-    }
-
-    @Override
-    public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
-        if ("error".equals(fields.get(Fields.EVENT))) {
-            createError(timestampMicroseconds / 1000, fields);
-        }
-        return this;
-    }
-
-    private void createError(long epochTimestampMillis, Map<String, ?> fields) {
+        return dispatcher;
     }
 
     @Override
@@ -113,8 +113,19 @@ class ApmSpan implements Span, SpanContext {
     }
 
     @Override
+    public ApmSpan log(Map<String, ?> fields) {
+        return log(-1, fields);
+    }
+
+    @Override
     public ApmSpan log(long timestampMicroseconds, String event) {
         log(timestampMicroseconds, Collections.singletonMap(Fields.EVENT, event));
+        return this;
+    }
+
+    @Override
+    public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
+        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.LogInstrumentation
         return this;
     }
 
@@ -126,18 +137,12 @@ class ApmSpan implements Span, SpanContext {
     @Override
     @Nullable
     public String getBaggageItem(String key) {
-        for (Map.Entry<String, String> baggage : baggageItems()) {
+        for (Map.Entry<String, String> baggage : context().baggageItems()) {
             if (baggage.getKey().equals(key)) {
                 return baggage.getValue();
             }
         }
         return null;
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> baggageItems() {
-        // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.BaggageItemsInstrumentation.baggageItems
-        return Collections.emptyList();
     }
 
     private void handleTag(String key, @Nullable Object value) {
@@ -146,7 +151,7 @@ class ApmSpan implements Span, SpanContext {
 
     @Override
     public String toString() {
-        return String.valueOf(span);
+        return String.valueOf(dispatcher);
     }
 
 }

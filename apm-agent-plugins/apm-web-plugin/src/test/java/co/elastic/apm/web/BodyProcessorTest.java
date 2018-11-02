@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.web;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -28,13 +29,13 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class BodyProcessorTest {
 
     private BodyProcessor bodyProcessor;
     private WebConfiguration config;
+    private ElasticApmTracer tracer;
 
     @BeforeEach
     void setUp() {
@@ -42,6 +43,7 @@ class BodyProcessorTest {
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         bodyProcessor.init(configurationRegistry);
         config = configurationRegistry.getConfig(WebConfiguration.class);
+        tracer = MockTracer.create(configurationRegistry);
     }
 
     @Test
@@ -117,14 +119,14 @@ class BodyProcessorTest {
     }
 
     private Transaction processTransaction() {
-        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        final Transaction transaction = new Transaction(tracer);
         transaction.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;
     }
 
     private ErrorCapture processError() {
-        final ErrorCapture error = new ErrorCapture();
+        final ErrorCapture error = new ErrorCapture(tracer);
         error.getContext().getRequest().withRawBody("foo");
         bodyProcessor.processBeforeReport(error);
         return error;

@@ -22,6 +22,7 @@ package co.elastic.apm.configuration;
 import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,10 @@ public class StartupInfo implements LifecycleListener {
                     logConfigWithNonDefaultValue(logger, option);
                 }
             }
+        }
+        if (configurationRegistry.getConfig(StacktraceConfiguration.class).getApplicationPackages().isEmpty()) {
+            logger.warn("To enable all features and to increase startup times, please configure {}",
+                StacktraceConfiguration.APPLICATION_PACKAGES);
         }
     }
 

@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.configuration;
 
+import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.configuration.validation.RegexValidator;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.matcher.WildcardMatcherValueConverter;
@@ -29,7 +30,11 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
@@ -148,39 +153,96 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .tags("security")
         .buildWithDefault(Arrays.asList(
-            WildcardMatcher.valueOf("(?i)password"),
-            WildcardMatcher.valueOf("(?i)passwd"),
-            WildcardMatcher.valueOf("(?i)pwd"),
-            WildcardMatcher.valueOf("(?i)secret"),
-            WildcardMatcher.valueOf("(?i)token"),
-            WildcardMatcher.valueOf("(?i)*key"),
-            WildcardMatcher.valueOf("(?i)*token"),
-            WildcardMatcher.valueOf("(?i)*session*"),
-            WildcardMatcher.valueOf("(?i)*credit*"),
-            WildcardMatcher.valueOf("(?i)*card*"),
+            WildcardMatcher.valueOf("password"),
+            WildcardMatcher.valueOf("passwd"),
+            WildcardMatcher.valueOf("pwd"),
+            WildcardMatcher.valueOf("secret"),
+            WildcardMatcher.valueOf("*key"),
+            WildcardMatcher.valueOf("*token*"),
+            WildcardMatcher.valueOf("*session*"),
+            WildcardMatcher.valueOf("*credit*"),
+            WildcardMatcher.valueOf("*card*"),
             // HTTP request header for basic auth, contains passwords
-            WildcardMatcher.valueOf("(?i)authorization"),
+            WildcardMatcher.valueOf("authorization"),
             // HTTP response header which can contain session ids
-            WildcardMatcher.valueOf("(?i)set-cookie")
+            WildcardMatcher.valueOf("set-cookie")
         ));
-
-    private final ConfigurationOption<Boolean> distributedTracing = ConfigurationOption.booleanOption()
-        .key("distributed_tracing")
-        .configurationCategory(CORE_CATEGORY)
-        .tags("internal")
-        .description("Enables distributed tracing and uses the updated json schema to serialize payloads, transactions and spans")
-        .buildWithDefault(false);
 
     private final ConfigurationOption<Collection<String>> disabledInstrumentations = ConfigurationOption.stringsOption()
         .key("disable_instrumentations")
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
-            "Valid options are `jdbc`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `http-client`, `apache-httpclient`," +
-            "`spring-resttemplate` and `incubating`.\n" +
+            "Valid options are " + getAllInstrumentationGroupNames() + ".\n" +
             "If you want to try out incubating features,\n" +
             "set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
+
+    private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("unnest_exceptions")
+        .configurationCategory(CORE_CATEGORY)
+        .description("When reporting exceptions,\n" +
+            "un-nests the exceptions matching the wildcard pattern.\n" +
+            "This can come in handy for Spring's `org.springframework.web.util.NestedServletException`,\n" +
+            "for example.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
+
+    public static String getAllInstrumentationGroupNames() {
+        Set<String> instrumentationGroupNames = new TreeSet<>();
+        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class)) {
+            instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
+        }
+
+        StringBuilder allGroups = new StringBuilder();
+        for (Iterator<String> iterator = instrumentationGroupNames.iterator(); iterator.hasNext(); ) {
+            allGroups.append('`').append(iterator.next()).append('`');
+            if (iterator.hasNext()) {
+                allGroups.append(", ");
+            }
+        }
+        return allGroups.toString();
+    }
+
+    private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
+        .key("enable_type_pool_cache")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When enabled," +
+            "configures Byte Buddy to use a type pool cache whose max size is approximately 1% of the max heap size per class loader.")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()
+        .key("enable_type_matching_name_pre_filtering")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When enabled, applies cheap name-based matchers to types before checking the type hierarchy.\n" +
+            "This speeds up matching but can lead to false negatives,\n" +
+            "for example when a javax.servlet.Servlet does not contain the word 'Servlet' in the class name.")
+        .buildWithDefault(true);
+
+
+    private final ConfigurationOption<List<WildcardMatcher>> excludedFromInstrumentation = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("excluded_from_instrumentation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("(?-i)org.infinispan*"),
+            WildcardMatcher.valueOf("(?-i)org.apache.xerces*"),
+            WildcardMatcher.valueOf("(?-i)org.jboss.as.*"),
+            WildcardMatcher.valueOf("(?-i)io.undertow.core*"),
+            WildcardMatcher.valueOf("(?-i)org.eclipse.jdt.ecj*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.extension.*"),
+            WildcardMatcher.valueOf("(?-i)org.wildfly.security*")
+        ));
 
     public boolean isActive() {
         return active.get();
@@ -214,11 +276,23 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return sanitizeFieldNames.get();
     }
 
-    public boolean isDistributedTracingEnabled() {
-        return distributedTracing.get();
-    }
-
     public Collection<String> getDisabledInstrumentations() {
         return disabledInstrumentations.get();
+    }
+
+    public List<WildcardMatcher> getUnnestExceptions() {
+        return unnestExceptions.get();
+    }
+
+    public boolean isTypePoolCacheEnabled() {
+        return typePoolCache.get();
+    }
+
+    public boolean isTypeMatchingWithNamePreFilter() {
+        return typeMatchingWithNamePreFilter.get();
+    }
+
+    public List<WildcardMatcher> getExcludedFromInstrumentation() {
+        return excludedFromInstrumentation.get();
     }
 }

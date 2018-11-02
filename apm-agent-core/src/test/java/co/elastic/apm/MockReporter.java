@@ -19,8 +19,10 @@
  */
 package co.elastic.apm;
 
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.error.ErrorCapture;
+import co.elastic.apm.impl.error.ErrorPayload;
+import co.elastic.apm.impl.payload.PayloadUtils;
+import co.elastic.apm.impl.payload.TransactionPayload;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
@@ -46,15 +48,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class MockReporter implements Reporter {
+    private static final JsonSchema transactionSchema;
+    private static final JsonSchema errorSchema;
+    private static final JsonSchema spanSchema;
+    private static final DslJsonSerializer dslJsonSerializer;
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Span> spans = new ArrayList<>();
     private final List<ErrorCapture> errors = new ArrayList<>();
-    private final JsonSchema transactionSchema;
-    private final JsonSchema errorSchema;
-    private final JsonSchema spanSchema;
-    private final DslJsonSerializer dslJsonSerializer;
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+
+    static {
+        transactionSchema = getSchema("/schema/transactions/transaction.json");
+        spanSchema = getSchema("/schema/transactions/span.json");
+        errorSchema = getSchema("/schema/errors/error.json");
+        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+    }
 
     public MockReporter() {
         this(true);
@@ -62,53 +71,47 @@ public class MockReporter implements Reporter {
 
     public MockReporter(boolean verifyJsonSchema) {
         this.verifyJsonSchema = verifyJsonSchema;
-        transactionSchema = getSchema("/schema/transactions/transaction.json");
-        spanSchema = getSchema("/schema/transactions/span.json");
-        errorSchema = getSchema("/schema/errors/error.json");
-        final CoreConfiguration config = new CoreConfiguration();
-        dslJsonSerializer = new DslJsonSerializer(config.isDistributedTracingEnabled(), mock(StacktraceConfiguration.class));
         objectMapper = new ObjectMapper();
     }
 
-    private JsonSchema getSchema(String resource) {
-        return JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream(resource));
+    private static JsonSchema getSchema(String resource) {
+        return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
     }
 
     @Override
     public void report(Transaction transaction) {
-        verifyJsonSchema(transaction);
+        verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
-        spans.addAll(transaction.getSpans());
     }
 
     @Override
     public void report(Span span) {
-        verifyJsonSchema(span);
+        verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         spans.add(span);
     }
 
-    private void verifyJsonSchema(Transaction transaction) {
-        final String content = dslJsonSerializer.toJsonString(transaction);
-        verifyJsonSchema(content, transactionSchema);
+    public void verifyTransactionSchema(JsonNode jsonNode) {
+        verifyJsonSchema(transactionSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(Span span) {
-        final String content = dslJsonSerializer.toJsonString(span);
-        verifyJsonSchema(content, spanSchema);
+    public void verifySpanSchema(JsonNode jsonNode) {
+        verifyJsonSchema(spanSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(ErrorCapture error) {
-        final String content = dslJsonSerializer.toJsonString(error);
-        verifyJsonSchema(content, errorSchema);
+    public void verifyErrorSchema(JsonNode jsonNode) {
+        verifyJsonSchema(errorSchema, jsonNode);
     }
 
-    private void verifyJsonSchema(String jsonContent, JsonSchema transactionSchema) {
+    private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
+        if (verifyJsonSchema) {
+            Set<ValidationMessage> errors = schema.validate(jsonNode);
+            assertThat(errors).isEmpty();
+        }
+    }
+
+    private JsonNode asJson(String jsonContent) {
         try {
-            final JsonNode node = objectMapper.readTree(jsonContent);
-            if (verifyJsonSchema) {
-                Set<ValidationMessage> errors = transactionSchema.validate(node);
-                assertThat(errors).isEmpty();
-            }
+            return objectMapper.readTree(jsonContent);
         } catch (IOException e) {
             System.out.println(jsonContent);
             throw new RuntimeException(e);
@@ -136,7 +139,7 @@ public class MockReporter implements Reporter {
 
     @Override
     public void report(ErrorCapture error) {
-        verifyJsonSchema(error);
+        verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
         errors.add(error);
     }
 
@@ -155,6 +158,19 @@ public class MockReporter implements Reporter {
 
     public ErrorCapture getFirstError() {
         return errors.iterator().next();
+    }
+
+    public String generateTransactionPayloadJson() {
+        TransactionPayload payload = PayloadUtils.createTransactionPayload();
+        payload.getTransactions().addAll(transactions);
+        payload.getSpans().addAll(spans);
+        return dslJsonSerializer.toJsonString(payload);
+    }
+
+    public String generateErrorPayloadJson() {
+        ErrorPayload errorPayload = PayloadUtils.createErrorPayload();
+        errorPayload.getErrors().addAll(errors);
+        return dslJsonSerializer.toJsonString(errorPayload);
     }
 
     @Override

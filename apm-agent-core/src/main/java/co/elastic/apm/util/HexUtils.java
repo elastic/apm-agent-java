@@ -64,22 +64,34 @@ public class HexUtils {
         sb.append(hexArray[v & 0x0F]);
     }
 
-    public static void writeLongAsHex(long l, JsonWriter jw) {
-        for (int i = 7; i >= 0; i--) {
-            int v = (int) l & 0xFF;
-            jw.writeByte((byte) hexArray[v >>> 4]);
-            jw.writeByte((byte) hexArray[v & 0x0F]);
-            l >>= 8;
+    public static byte getNextByte(String hexEncodedString, int offset) {
+        final int hi = hexCharToBinary(hexEncodedString.charAt(offset));
+        final int lo = hexCharToBinary(hexEncodedString.charAt(offset + 1));
+        if (hi == -1 || lo == -1) {
+            throw new IllegalArgumentException("Not a hex encoded string: " + hexEncodedString + " at offset " + offset);
         }
+        return (byte) ((hi << 4) + lo);
     }
 
-    public static byte getNextByte(String hexEncodedString, int offset) {
-        return (byte) ((Character.digit(hexEncodedString.charAt(offset), 16) << 4)
-            + Character.digit(hexEncodedString.charAt(offset + 1), 16));
+    private static int hexCharToBinary(char ch) {
+        if ('0' <= ch && ch <= '9') {
+            return ch - '0';
+        }
+        if ('A' <= ch && ch <= 'F') {
+            return ch - 'A' + 10;
+        }
+        if ('a' <= ch && ch <= 'f') {
+            return ch - 'a' + 10;
+        }
+        return -1;
     }
 
     public static void nextBytes(String hexEncodedString, int offset, byte[] bytes) {
-        for (int i = 0; i < bytes.length * 2; i += 2) {
+        final int charsToRead = bytes.length * 2;
+        if (hexEncodedString.length() < offset + charsToRead) {
+            throw new IllegalArgumentException(String.format("Can't read %d bytes from string %s with offset %d", bytes.length, hexEncodedString, offset));
+        }
+        for (int i = 0; i < charsToRead; i += 2) {
             bytes[i / 2] = getNextByte(hexEncodedString, offset + i);
         }
     }

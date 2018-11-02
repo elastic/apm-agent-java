@@ -25,6 +25,7 @@ import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.impl.context.TransactionContext;
+import co.elastic.apm.report.HttpUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterAll;
@@ -43,8 +44,12 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -115,8 +120,10 @@ public class AsyncServletTest extends AbstractServletTest {
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("Testing async servlet error handling");
     }
 
-    private void assertHasOneTransaction(String path, Predicate<String> bodyPredicate, int status) throws IOException, InterruptedException {
-        assertThat(get(path).body().string()).matches(bodyPredicate);
+    private void assertHasOneTransaction(String path, Predicate<String> bodyPredicate, int status) throws InterruptedException {
+        HttpURLConnection connection = createRequest(path);
+        String body = HttpUtils.getBody(connection);
+        assertThat(body).matches(bodyPredicate);
         assertThat(reporter.getFirstTransaction(500)).isNotNull();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).contains("Servlet").contains("#doGet");

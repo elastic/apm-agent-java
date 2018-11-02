@@ -29,29 +29,10 @@ import javax.annotation.Nonnull;
  * Otherwise, this class is a noop.
  * </p>
  */
-class TransactionImpl implements Transaction {
-
-    @Nonnull
-    @SuppressWarnings("unused")
-    private final Object transaction;
+class TransactionImpl extends SpanImpl implements Transaction {
 
     TransactionImpl(@Nonnull Object transaction) {
-        this.transaction = transaction;
-    }
-
-    @Override
-    public void setName(String name) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$SetNameInstrumentation.setName
-    }
-
-    @Override
-    public void setType(String type) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$SetTypeInstrumentation.setType
-    }
-
-    @Override
-    public void addTag(String key, String value) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$AddTagInstrumentation.addTag
+        super(transaction);
     }
 
     @Override
@@ -59,31 +40,4 @@ class TransactionImpl implements Transaction {
         // co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
     }
 
-    @Override
-    public void end() {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$EndInstrumentation.end
-    }
-
-    @Override
-    public void captureException(Throwable throwable) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation.CaptureExceptionInstrumentation
-    }
-
-    @Nonnull
-    @Override
-    public String getId() {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation.GetIdInstrumentation
-        return "";
-    }
-
-    @Override
-    public Span createSpan() {
-        Object span = doCreateSpan();
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
-    }
-
-    private Object doCreateSpan() {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
-        return null;
-    }
 }

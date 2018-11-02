@@ -25,6 +25,7 @@ import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -52,14 +53,14 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
     private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                         @Advice.Argument(1) HttpRequestWrapper request,
                                         @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
+        if (tracer == null || tracer.activeSpan() == null) {
             return;
         }
-        final AbstractSpan<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
+        final AbstractSpan<?> parent = tracer.activeSpan();
+        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-        } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
+        } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
             // re-adds the header on redirects
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, parent.getTraceContext().getOutgoingTraceParentHeader().toString());
         }
@@ -77,10 +78,13 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Exec").or(nameContains("Chain"));
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameContains("Exec")
-            .or(nameContains("Chain"))
-            .and(hasSuperType(named("org.apache.http.impl.execchain.ClientExecChain")));
+        return hasSuperType(named("org.apache.http.impl.execchain.ClientExecChain"));
     }
 
     @Override

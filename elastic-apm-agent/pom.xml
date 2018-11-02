@@ -8,7 +8,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>0.8.0-SNAPSHOT</version>
+        <version>0.9.0-SNAPSHOT</version>
     </parent>
     <packaging>jar</packaging>
 
@@ -63,6 +63,15 @@
                                 <relocation>
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.shaded.jctools</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.guava</shadedPattern>
+                                </relocation>
+                                <!--A guava dependency-->
+                                <relocation>
+                                    <pattern>org.checkerframework</pattern>
+                                    <shadedPattern>co.elastic.apm.shaded.checkerframework</shadedPattern>
                                 </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
@@ -154,7 +163,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jaxrs-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jdbc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

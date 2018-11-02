@@ -24,11 +24,11 @@ import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.report.HttpUtils;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,10 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -94,9 +97,10 @@ class ServletInstrumentationTest extends AbstractServletTest {
     private void testInstrumentation(ElasticApmInstrumentation instrumentation, int expectedTransactions, String path) throws IOException, InterruptedException {
         initInstrumentation(instrumentation);
 
-        final Response response = get(path);
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).isEqualTo("Hello World!");
+        final HttpURLConnection response = createRequest(path);
+        String body = HttpUtils.getBody(response);
+        assertThat(response.getResponseCode()).isEqualTo(200);
+        assertThat(body).isEqualTo("Hello World!");
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }

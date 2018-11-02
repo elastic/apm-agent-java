@@ -21,11 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.impl.transaction.TransactionId;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -34,7 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.UUID;
 
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -143,18 +138,10 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
-                if (tracer.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()) {
-                    id = span.getTraceContext().getId().toString();
-                } else {
-                    if (span instanceof Span) {
-                        id = Long.toString(((Span) span).getId().asLong());
-                    } else if (span instanceof Transaction) {
-                        id = ((Transaction) span).getId().toUUID().toString();
-                    }
-                }
+                id = span.getTraceContext().getId().toString();
             }
         }
     }
@@ -169,6 +156,18 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
             span.addTag(key, value);
+        }
+    }
+
+    public static class ActivateInstrumentation extends SpanInstrumentation {
+        public ActivateInstrumentation() {
+            super(named("activate"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            span.activate();
         }
     }
 }

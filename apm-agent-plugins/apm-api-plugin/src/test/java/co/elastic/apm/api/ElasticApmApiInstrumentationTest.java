@@ -20,14 +20,18 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.impl.Scope;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
+
+    @AfterEach
+    void tearDown() {
+        assertThat(tracer.getActive()).isNull();
+    }
 
     @Test
     void testCreateTransaction() {
@@ -100,28 +104,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testGetId_distributedTracingDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(false);
-
-        co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
-        try (Scope scope = transaction.activateInScope()) {
-            assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getId().toUUID().toString());
-            assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getId().toUUID().toString());
-            co.elastic.apm.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
-            try (Scope spanScope = span.activateInScope()) {
-                assertThat(ElasticApm.currentSpan().getId()).isEqualTo(Long.toString(span.getId().asLong()));
-            } finally {
-                span.end();
-            }
-        } finally {
-            transaction.end();
-        }
-    }
-
-    @Test
     void testGetId_distributedTracingEnabled() {
-        when(config.getConfig(CoreConfiguration.class).isDistributedTracingEnabled()).thenReturn(true);
-
         co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
@@ -159,5 +142,24 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
         assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("bar", "baz");
+    }
+
+    @Test
+    void testScopes() {
+        Transaction transaction = ElasticApm.startTransaction();
+        try (co.elastic.apm.api.Scope scope = transaction.activate()) {
+            assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getId());
+            Span span = transaction.createSpan();
+            try (co.elastic.apm.api.Scope spanScope = span.activate()) {
+                assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getId());
+            } finally {
+                span.end();
+            }
+            assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getId());
+        } finally {
+            transaction.end();
+        }
+        assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
+
     }
 }

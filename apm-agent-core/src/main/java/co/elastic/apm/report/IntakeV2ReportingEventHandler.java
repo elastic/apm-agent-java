@@ -51,10 +51,11 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 /**
- * This reporter supports the nd-json HTTP streaming based /v2/intake protocol
+ * This reporter supports the nd-json HTTP streaming based intake v2 protocol
  */
 public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
+    public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
 
@@ -79,9 +80,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private int errorCount;
     private long gracePeriodEnd;
 
-    IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
-                                  ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                  PayloadSerializer payloadSerializer) {
+    public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
+                                         ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
+                                         PayloadSerializer payloadSerializer) {
         this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration));
     }
 
@@ -107,8 +108,20 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     private static long calculateEndOfGracePeriod(long errorCount) {
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount);
-        logger.info("Backing off for {} seconds", backoffTimeSeconds);
-        return System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        return System.currentTimeMillis() + backoffTimeMillis + getRandomJitter(backoffTimeMillis);
+    }
+
+    /*
+     * We add ±10% jitter to the calculated grace period in case multiple agents entered the grace period simultaneously.
+     * This can happen if the APM server queue is full which leads to sending an error response to all connected agents.
+     * The random jitter makes sure the agents will not all try to reconnect at the same time,
+     * which would overwhelm the APM server again.
+     */
+    static long getRandomJitter(long backoffTimeMillis) {
+        final long tenPercentOfBackoffTimeMillis = (long) (backoffTimeMillis * 0.1);
+        return (long) (tenPercentOfBackoffTimeMillis * 2 * Math.random()) - tenPercentOfBackoffTimeMillis;
     }
 
     static long getBackoffTimeSeconds(long errorCount) {
@@ -125,6 +138,15 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (logger.isDebugEnabled()) {
             logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
+        try {
+            handleEvent(event, sequence, endOfBatch);
+        } finally {
+            event.resetState();
+        }
+    }
+
+    private void handleEvent(ReportingEvent event, long sequence, boolean endOfBatch) {
+
         if (event.getType() == null) {
             return;
         } else if (event.getType() == ReportingEvent.ReportingEventType.FLUSH) {
@@ -146,7 +168,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         } catch (Exception e) {
             onConnectionError(null, currentlyTransmitting, 0);
         }
-        event.resetState();
         if (shouldFlush()) {
             flush();
         }
@@ -180,8 +201,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private HttpURLConnection startRequest() {
         try {
-            URL url = null;
-            url = new URL(serverUrlIterator.get(), "/v2/intake");
+            URL url = new URL(serverUrlIterator.get(), INTAKE_V2_URL);
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting new request to {}", url);
             }
@@ -309,6 +329,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
             serverUrlIterator.next();
+        } else if (responseCode == 404) {
+            logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                "Please use APM Server 6.5.0 or newer.");
         }
     }
 

@@ -1,8 +1,22 @@
-# next version
+# 0.9.0
 
 ## Breaking changes
+ * Remove intake v1 support. This version requires an APM Server which supports the intake api v2.
 
 ## Features
+
+## Bug Fixes
+
+# 0.8.0
+
+## Breaking changes
+ * Wildcard patterns are case insensitive by default. Prepend `(?-i)` to make the matching case sensitive.
+
+## Features
+ * Wildcard patterns are now not limited to only one wildcard in the middle and can be arbitrarily complex now.
+   Example: `*foo*bar*baz`.
+ * Support for JAX-RS annotations.
+   Transactions are named based on your resources (`ResourceClass#resourceMethod`).
 
 ## Bug Fixes
 

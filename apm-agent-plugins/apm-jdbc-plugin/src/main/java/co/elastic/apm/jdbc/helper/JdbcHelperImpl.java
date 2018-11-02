@@ -19,9 +19,9 @@
  */
 package co.elastic.apm.jdbc.helper;
 
-import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
+import com.google.common.collect.MapMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +33,15 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import static co.elastic.apm.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
+import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+
 public class JdbcHelperImpl implements JdbcHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final Map<Connection, ConnectionMetaData> metaDataMap =
-        Collections.synchronizedMap(new WeakHashMap<Connection, ConnectionMetaData>());
+    private static final Map<Connection, ConnectionMetaData> metaDataMap = new MapMaker().concurrencyLevel(16).weakKeys().makeMap();
+
+    private static final String UNKNOWN_SPAN_TYPE = computeJdbcSpanTypeName("unknown");
 
     @Override
     @Nullable
@@ -51,7 +55,7 @@ public class JdbcHelperImpl implements JdbcHelper {
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError
         // to work around that, isAlreadyMonitored checks if the parent span is a db span and ignores them
-        span.withType("db.unknown.sql");
+        span.withType(UNKNOWN_SPAN_TYPE);
         try {
             final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
             span.withType(connectionMetaData.type);
@@ -95,7 +99,7 @@ public class JdbcHelperImpl implements JdbcHelper {
         Span parentSpan = (Span) parent;
         // a db span can't be the child of another db span
         // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().startsWith("db.");
+        return parentSpan.getType() != null && parentSpan.getType().startsWith(DB_SPAN_TYPE_PREFIX);
     }
 
 
@@ -104,7 +108,7 @@ public class JdbcHelperImpl implements JdbcHelper {
         if (connectionMetaData == null) {
             final DatabaseMetaData metaData = connection.getMetaData();
             String dbVendor = getDbVendor(metaData.getURL());
-            connectionMetaData = new ConnectionMetaData("db." + dbVendor + ".sql", metaData.getUserName());
+            connectionMetaData = new ConnectionMetaData(computeJdbcSpanTypeName(dbVendor), metaData.getUserName());
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
@@ -114,10 +118,10 @@ public class JdbcHelperImpl implements JdbcHelper {
     private String getDbVendor(String url) {
         // jdbc:h2:mem:test
         //     ^
-        int indexOfJdbc = url.indexOf("jdbc:") + 5;
+        int indexOfJdbc = url.indexOf("jdbc:");
         if (indexOfJdbc != -1) {
             // h2:mem:test
-            String urlWithoutJdbc = url.substring(indexOfJdbc);
+            String urlWithoutJdbc = url.substring(indexOfJdbc + 5);
             int indexOfColonAfterVendor = urlWithoutJdbc.indexOf(":");
             if (indexOfColonAfterVendor != -1) {
                 // h2

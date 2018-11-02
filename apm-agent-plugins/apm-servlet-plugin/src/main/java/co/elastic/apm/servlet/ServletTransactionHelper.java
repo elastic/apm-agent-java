@@ -26,6 +26,7 @@ import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Url;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -96,7 +97,7 @@ public class ServletTransactionHelper {
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, requestURI, userAgentHeader)) {
-            return tracer.startTransaction(traceContextHeader).activate();
+            return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader).activate();
         } else {
             return null;
         }
@@ -123,6 +124,10 @@ public class ServletTransactionHelper {
                         Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo) {
         try {
             fillRequestParameters(transaction, method, parameterMap);
+            if(exception != null && status == 200) {
+                // Probably shouldn't be 200 but 5XX, but we are going to miss this...
+                status = 500;
+            }
             fillResponse(transaction.getContext().getResponse(), committed, status);
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
@@ -136,7 +141,12 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        transaction.deactivate().end();
+        if (tracer.activeSpan() == transaction) {
+            // when calling javax.servlet.AsyncContext#start, the transaction is not activated,
+            // as neither javax.servlet.Filter.doFilter nor javax.servlet.AsyncListener.onStartAsync will be invoked
+            transaction.deactivate();
+        }
+        transaction.end();
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {

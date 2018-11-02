@@ -33,7 +33,7 @@ class SpanImpl implements Span {
 
     @Nonnull
     // co.elastic.apm.impl.transaction.AbstractSpan
-    private final Object span;
+    protected final Object span;
 
     SpanImpl(@Nonnull Object span) {
         this.span = span;
@@ -80,6 +80,12 @@ class SpanImpl implements Span {
     public String getId() {
         // co.elastic.apm.plugin.api.SpanInstrumentation.GetIdInstrumentation
         return "";
+    }
+
+    @Override
+    public Scope activate() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.ActivateInstrumentation
+        return new ScopeImpl(span);
     }
 
 }
