@@ -24,13 +24,17 @@ import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractInstrumentationTest {
     protected static ElasticApmTracer tracer;
@@ -76,5 +80,11 @@ public abstract class AbstractInstrumentationTest {
     @BeforeEach
     public final void resetReporter() {
         reset();
+    }
+
+    @After
+    @AfterEach
+    public final void cleanUp() {
+        assertThat(tracer.getActive()).isNull();
     }
 }

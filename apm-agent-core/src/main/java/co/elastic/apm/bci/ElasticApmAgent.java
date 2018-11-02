@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.bci;
 
+import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -176,7 +177,8 @@ public class ElasticApmAgent {
             })
             .transform(new AgentBuilder.Transformer.ForAdvice(Advice
                 .withCustomMapping()
-                .bind(new SimpleMethodSignatureOffsetMappingFactory()))
+                .bind(new SimpleMethodSignatureOffsetMappingFactory())
+                .bind(new AnnotationValueOffsetMappingFactory()))
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {

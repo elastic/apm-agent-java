@@ -64,7 +64,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             request.deactivate().end();
         }
         assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getName().toString())
-            .isEqualTo("JaxRsTransactionNameInstrumentationTest$TestResource#testMethod");
+            .isEqualTo("TestResource#testMethod");
     }
 
     public interface SuperResourceInterface {

@@ -28,11 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
-    @AfterEach
-    void tearDown() {
-        assertThat(tracer.getActive()).isNull();
-    }
-
     @Test
     void testCreateTransaction() {
         assertThat(ElasticApm.startTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
