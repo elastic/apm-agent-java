@@ -1,0 +1,55 @@
+[[faq]]
+== Frequently Asked Questions
+
+[float]
+[[faq-how-does-it-work]]
+=== How does the agent work?
+The agent auto-instruments known frameworks and libraries and records interesting events,
+like HTTP requests and database queries.
+To do this, it leverages the capability of the JVM to instrument the bytecode of classes.
+This means that for the supported technologies, there are no code changes required.
+
+The agent automatically safely injects small pieces of code before and after interesting events to measure their duration and metadata
+(like the DB statement) as well as HTTP related information
+(like the URL, parameters, and headers).
+
+For example, if the agent detects that a class extending `javax.servlet.HttpServlet` is loaded,
+it injects monitoring code before and after the servlet invocation.
+
+These events, called Transactions and Spans, are sent to the APM Server which converts them to a format suitable for Elasticsearch,
+and sends them to an Elasticsearch cluster.
+You can then use the APM UI in Kibana to gain insight into latency issues and error culprits within your application.
+
+[float]
+[[faq-bytecode-instrumentation]]
+=== Is the agent doing bytecode instrumentation?
+Yes
+
+[float]
+[[faq-bytecode-instrumentation-safety]]
+=== How safe is bytecode instrumentation?
+Elastic APM is using the popular bytecode instrumentation library http://bytebuddy.net:[Byte Buddy],
+which takes care of the heavy lifting of dealing with actual bytecode and lets us write the instrumentation in pure Java.
+
+Byte Buddy is widely used in popular Open Source projects,
+for example Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
+It is created by a Java Champion, awarded with the Dukes Choice award and currently downloaded over 75 million times a year.
+
+Unlike other bytecode instrumentation libraries,
+Byte Buddy is designed so that it is impossible to corrupt the bytecode of instrumented classes.
+It also respects other agents attached to your application at the same time.
+
+[float]
+[[faq-recompile]]
+=== Do I need to re-compile my application?
+No
+
+[float]
+[[faq-unsupported-technologies]]
+=== What if the agent doesn't support the technologies I'm using?
+You can use the <<public-api,public API>> to create custom spans and transactions,
+participate in the
+https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey]
+to vote for prioritizing adding support for the technologies you are using, or
+https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md[get involved in the agent development]
+and contribute to the auto-instrumentation capabilities of the agent.
