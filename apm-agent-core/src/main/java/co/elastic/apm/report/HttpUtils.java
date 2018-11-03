@@ -36,7 +36,11 @@ public class HttpUtils {
             if (conn == null || conn.getInputStream() == null)
                 return null;
             BufferedReader br;
-            br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            if (200 <= conn.getResponseCode() && conn.getResponseCode() <= 299) {
+                br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            } else {
+                br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+            }
             StringBuilder sb = new StringBuilder();
             String output;
             while ((output = br.readLine()) != null) {

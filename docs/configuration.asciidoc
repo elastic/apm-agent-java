@@ -1109,7 +1109,7 @@ The default unit for this option is `ms`
 # 
 # Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
 # 
-# If the queue is full, events are rejected which means you will  transactions and spans in that case.
+# If the queue is full, events are rejected which means you will lose transactions and spans in that case.
 # This guards the application from crashing in case the APM server is unavailable for a longer period of time.
 # 
 # A lower value will decrease the heap overhead of the agent,
