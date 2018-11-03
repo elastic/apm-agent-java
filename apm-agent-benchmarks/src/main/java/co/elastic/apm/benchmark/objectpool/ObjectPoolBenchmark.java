@@ -60,13 +60,13 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
     @Setup
     public void setUp() {
         tracer = new ElasticApmTracerBuilder().build();
-        blockingQueueObjectPool = new QueueBasedObjectPool<>(new ArrayBlockingQueue<>(256), true, () -> new Transaction(tracer));
-        jctoolsQueueObjectPool = new QueueBasedObjectPool<>(new MpmcArrayQueue<>(256), true, () -> new Transaction(tracer));
-        jctoolsAtomicQueueObjectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(tracer));
-        agronaQueueObjectPool = new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer));
+        blockingQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new ArrayBlockingQueue<>(256), true, () -> new Transaction(tracer));
+        jctoolsQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcArrayQueue<>(256), true, () -> new Transaction(tracer));
+        jctoolsAtomicQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(tracer));
+        agronaQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer));
         mixedObjectPool = new MixedObjectPool<>(() -> new Transaction(tracer),
             new ThreadLocalObjectPool<>(256, true, () -> new Transaction(tracer)),
-            new QueueBasedObjectPool<>(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer)));
+            QueueBasedObjectPool.ofRecyclable(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer)));
         threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, () -> new Transaction(tracer));
     }
 

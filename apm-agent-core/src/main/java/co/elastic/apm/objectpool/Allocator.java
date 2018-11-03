@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.objectpool;
 
-public interface RecyclableObjectFactory<T extends Recyclable> {
+public interface Allocator<T> {
 
     T createInstance();
 }

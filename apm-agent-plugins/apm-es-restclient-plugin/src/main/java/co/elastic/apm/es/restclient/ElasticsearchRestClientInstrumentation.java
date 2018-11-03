@@ -75,10 +75,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                 HttpEntity entity = request.getEntity();
                 if (entity != null && entity.isRepeatable()) {
                     try {
-                        String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), request.getEndpoint());
-                        if (body != null && !body.isEmpty()) {
-                            span.getContext().getDb().withStatement(body);
-                        }
+                        ESRestClientInstrumentationHelper.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
                     } catch (IOException e) {
                         // We can't log from here
                     }
