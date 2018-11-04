@@ -62,7 +62,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         if (tracer == null) {
             return;
         }
-        final AbstractSpan<?> activeSpan = tracer.getActive();
+        final AbstractSpan<?> activeSpan = tracer.activeSpan();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return;
         }
