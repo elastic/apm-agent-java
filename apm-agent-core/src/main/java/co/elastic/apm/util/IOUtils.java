@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient.v6_4;
+package co.elastic.apm.util;
 
 import co.elastic.apm.bci.VisibleForAdvice;
 
@@ -30,7 +30,7 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 
 @VisibleForAdvice
-public class ESRestClientInstrumentationHelper {
+public class IOUtils {
     private static ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {

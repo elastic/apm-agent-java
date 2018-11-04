@@ -23,6 +23,7 @@ import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.util.IOUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -75,7 +76,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                 HttpEntity entity = request.getEntity();
                 if (entity != null && entity.isRepeatable()) {
                     try {
-                        ESRestClientInstrumentationHelper.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
+                        IOUtils.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
                     } catch (IOException e) {
                         // We can't log from here
                     }

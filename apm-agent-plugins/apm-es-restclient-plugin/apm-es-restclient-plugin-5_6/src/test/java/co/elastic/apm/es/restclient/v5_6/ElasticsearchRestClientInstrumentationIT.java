@@ -180,7 +180,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     private void validateDbContextContent(Span span, String statement) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(DB_CONTEXT_TYPE);
-        assertThat(db.getStatement()).isEqualTo(statement);
+        assertThat((Object) db.getStatementBuffer()).isNotNull();
+        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
     }
 
     @Test
