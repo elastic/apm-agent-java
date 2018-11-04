@@ -114,6 +114,10 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent automatically creates DB spans for all your JDBC queries.
  This includes JDBC queries executed by O/R mappers like Hibernate.
 
+|Elasticsearch
+|5.0.2+
+|The agent automatically creates Elasticsearch spans for queries done through the official REST client.
+
 |===
 
 [float]
