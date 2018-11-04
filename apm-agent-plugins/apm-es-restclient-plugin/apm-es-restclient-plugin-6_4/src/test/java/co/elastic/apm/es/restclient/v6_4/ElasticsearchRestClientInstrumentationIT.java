@@ -167,7 +167,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(span.getContext().getDb().getType()).isEqualTo(DB_CONTEXT_TYPE);
 
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
-            assertThat(span.getContext().getDb().getStatement()).isNull();
+            assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
         }
     }
 
@@ -181,7 +181,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     private void validateDbContextContent(Span span, String statement) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(DB_CONTEXT_TYPE);
-        assertThat(db.getStatement()).isEqualTo(statement);
+        assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
+        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
     }
 
     @Test

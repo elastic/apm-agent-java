@@ -20,15 +20,36 @@
 
 package co.elastic.apm.impl.transaction;
 
+import co.elastic.apm.objectpool.Allocator;
+import co.elastic.apm.objectpool.ObjectPool;
 import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.objectpool.impl.Resetter;
+import co.elastic.apm.report.serialize.DslJsonSerializer;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
+import java.nio.CharBuffer;
 
 
 /**
  * An object containing contextual data for database spans
  */
 public class Db implements Recyclable {
+
+    private final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
+        new Allocator<CharBuffer>() {
+            @Override
+            public CharBuffer createInstance() {
+                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+            }
+        },
+        new Resetter<CharBuffer>() {
+            @Override
+            public void recycle(CharBuffer object) {
+                object.clear();
+            }
+        });
 
     /**
      * Database instance name
@@ -40,6 +61,10 @@ public class Db implements Recyclable {
      */
     @Nullable
     private String statement;
+
+    @Nullable
+    private CharBuffer statementBuffer;
+
     /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
@@ -84,6 +109,37 @@ public class Db implements Recyclable {
     }
 
     /**
+     * Gets a pooled {@link CharBuffer} to record the DB statement and associates it with this instance.
+     * <p>
+     * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
+     * </p>
+     * <p>
+     * Note: This method is not thread safe
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement
+     */
+    public CharBuffer withStatementBuffer() {
+        if (this.statementBuffer == null) {
+            this.statementBuffer = charBufferPool.createInstance();
+        }
+        return this.statementBuffer;
+    }
+
+    /**
+     * Returns the associated pooled {@link CharBuffer} to record the DB statement.
+     * <p>
+     * Note: returns {@code null} unless {@link #withStatementBuffer()} has previously been called
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement, or {@code null}
+     */
+    @Nullable
+    public CharBuffer getStatementBuffer() {
+        return statementBuffer;
+    }
+
+    /**
      * Database type. For any SQL database, "sql". For others, the lower-case database category, e.g. "cassandra", "hbase", or "redis"
      */
     @Nullable
@@ -121,13 +177,18 @@ public class Db implements Recyclable {
         statement = null;
         type = null;
         user = null;
+        if (statementBuffer != null) {
+            charBufferPool.recycle(statementBuffer);
+        }
+        statementBuffer = null;
     }
 
     public boolean hasContent() {
         return instance != null ||
             statement != null ||
             type != null ||
-            user != null;
+            user != null ||
+            statementBuffer != null;
     }
 
     public void copyFrom(Db other) {

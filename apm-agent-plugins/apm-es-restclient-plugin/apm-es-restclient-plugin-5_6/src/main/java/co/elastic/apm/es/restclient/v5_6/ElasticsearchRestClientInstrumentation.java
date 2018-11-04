@@ -23,6 +23,7 @@ import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.util.IOUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -57,7 +58,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     @Advice.OnMethodEnter
     private static void onBeforeExecute(@Advice.Argument(0) String method,
                                         @Advice.Argument(1) String endpoint,
-                                        @Advice.Argument(3) HttpEntity entity,
+                                        @Advice.Argument(3) @Nullable HttpEntity entity,
                                         @Advice.Local("span") Span span) {
         if (tracer == null) {
             return;
@@ -77,10 +78,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
             if (endpoint.endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
                 if (entity != null && entity.isRepeatable()) {
                     try {
-                        String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), endpoint);
-                        if (body != null && !body.isEmpty()) {
-                            span.getContext().getDb().withStatement(body);
-                        }
+                        IOUtils.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
                     } catch (IOException e) {
                         // We can't log from here
                     }
