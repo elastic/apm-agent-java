@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient;
+package co.elastic.apm.es.restclient.v6_4;
 
 import co.elastic.apm.bci.ElasticApmAgent;
 import co.elastic.apm.configuration.SpyConfiguration;

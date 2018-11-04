@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient;
+package co.elastic.apm.es.restclient.v5_6;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.impl.error.ErrorCapture;
@@ -30,9 +30,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -43,7 +40,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -60,11 +57,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
-import static co.elastic.apm.es.restclient.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
+import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
+import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrumentationTest {
     private static final String USER_NAME = "elastic-user";
@@ -73,6 +70,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     @SuppressWarnings("NullableProblems")
     private static ElasticsearchContainer container;
     @SuppressWarnings("NullableProblems")
+    private static RestClient lowLevelClient;
     private static RestHighLevelClient client;
 
     private static final String INDEX = "my-index";
@@ -102,17 +100,18 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         RestClientBuilder builder =  RestClient.builder(container.getHost())
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        client = new RestHighLevelClient(builder);
+        lowLevelClient = builder.build();
+        client = new RestHighLevelClient(lowLevelClient);
 
-        client.indices().create(new CreateIndexRequest(INDEX), RequestOptions.DEFAULT);
+        lowLevelClient.performRequest("PUT", "/" + INDEX);
         reporter.reset();
     }
 
     @AfterClass
     public static void stopElasticsearchContainerAndClient() throws IOException {
-        client.indices().delete(new DeleteIndexRequest(INDEX), RequestOptions.DEFAULT);
+        lowLevelClient.performRequest("DELETE", "/" + INDEX);
         container.stop();
-        client.close();
+        lowLevelClient.close();
     }
 
     @Before
@@ -134,14 +133,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
     @Test
     public void testTryToDeleteNonExistingIndex() throws IOException {
-        ElasticsearchStatusException ese = null;
+        ResponseException re = null;
         try {
-            client.indices().delete(new DeleteIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
-        } catch (ElasticsearchStatusException e) {
-            ese = e;
+            lowLevelClient.performRequest("POST", "/non-existing/1/_mapping");
+        } catch (ResponseException e) {
+            re = e;
         }
-        assertThat(ese).isNotNull();
-        assertThat(ese.status().getStatus()).isEqualTo(404);
+        assertThat(re).isNotNull();
+        assertThat(re.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
 
         System.out.println(reporter.generateErrorPayloadJson());
 
@@ -167,7 +166,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(span.getContext().getDb().getType()).isEqualTo(DB_CONTEXT_TYPE);
 
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
-            assertThat((CharSequence) (span.getContext().getDb().getStatementBuffer())).isNull();
+            assertThat(span.getContext().getDb().getStatement()).isNull();
         }
     }
 
@@ -181,14 +180,13 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     private void validateDbContextContent(Span span, String statement) {
         Db db = span.getContext().getDb();
         assertThat(db.getType()).isEqualTo(DB_CONTEXT_TYPE);
-        assertThat((CharSequence) db.getStatementBuffer()).isNotNull();
-        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+        assertThat(db.getStatement()).isEqualTo(statement);
     }
 
     @Test
     public void testCreateAndDeleteIndex() throws IOException {
         // Create an Index
-        client.indices().create(new CreateIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
+        lowLevelClient.performRequest("PUT", "/" + SECOND_INDEX);
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
@@ -199,7 +197,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         // Delete the index
         reporter.reset();
 
-        client.indices().delete(new DeleteIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
+        lowLevelClient.performRequest("DELETE", "/" + SECOND_INDEX);
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
@@ -216,8 +214,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
                 .startObject()
                 .field(FOO, BAR)
                 .endObject()
-        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE), RequestOptions.DEFAULT);
-        assertThat(ir.status().getStatus()).isEqualTo(201);
+        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
+        assertThat(ir.status().getStatus()).isEqualTo(200);
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
@@ -234,7 +232,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         sourceBuilder.from(0);
         sourceBuilder.size(5);
         searchRequest.source(sourceBuilder);
-        SearchResponse sr = client.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse sr = client.search(searchRequest);
         assertThat(sr.getHits().totalHits).isEqualTo(1L);
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAR);
 
@@ -243,7 +241,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span searchSpan = spans.get(0);
-        validateSpanContent(searchSpan, String.format("Elasticsearch: POST /%s/_search", INDEX), 200, "POST");
+        validateSpanContent(searchSpan, String.format("Elasticsearch: GET /%s/_search", INDEX), 200, "GET");
         validateDbContextContent(searchSpan, "{\"from\":0,\"size\":5,\"query\":{\"term\":{\"foo\":{\"value\":\"bar\",\"boost\":1.0}}}}");
 
         // Now update and re-search
@@ -252,9 +250,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
         UpdateResponse ur = client.update(new UpdateRequest(INDEX, DOC_TYPE, DOC_ID).doc(jsonMap)
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE), RequestOptions.DEFAULT);
+            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ur.status().getStatus()).isEqualTo(200);
-        sr = client.search(new SearchRequest(INDEX), RequestOptions.DEFAULT);
+        sr = client.search(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
         System.out.println(reporter.generateTransactionPayloadJson());
@@ -272,8 +270,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         // Finally - delete the document
         reporter.reset();
-        DeleteResponse dr = client.delete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID), RequestOptions.DEFAULT);
-        assertThat(dr.status().getStatus()).isEqualTo(200);
+        DeleteResponse dr = client.delete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
 
         System.out.println(reporter.generateTransactionPayloadJson());
@@ -294,7 +291,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
                     .field(FOO, BAR)
                     .endObject()
             ))
-        , RequestOptions.DEFAULT);
+        );
 
         System.out.println(reporter.generateTransactionPayloadJson());
 

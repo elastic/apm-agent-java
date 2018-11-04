@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient;
+package co.elastic.apm.es.restclient.v5_6;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
@@ -28,7 +28,6 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.http.HttpEntity;
-import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 
@@ -37,7 +36,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -54,7 +55,9 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     public static final String DB_CONTEXT_TYPE = "elasticsearch";
 
     @Advice.OnMethodEnter
-    private static void onBeforeExecute(@Advice.Argument(0) Request request,
+    private static void onBeforeExecute(@Advice.Argument(0) String method,
+                                        @Advice.Argument(1) String endpoint,
+                                        @Advice.Argument(3) HttpEntity entity,
                                         @Advice.Local("span") Span span) {
         if (tracer == null) {
             return;
@@ -65,17 +68,19 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         }
         span = activeSpan.createSpan()
             .withType(SPAN_TYPE)
-            .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
+            .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
         span.getContext().getDb().withType(DB_CONTEXT_TYPE);
         span.activate();
 
         if (span.isSampled()) {
-            span.getContext().getHttp().withMethod(request.getMethod());
-            if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
-                HttpEntity entity = request.getEntity();
+            span.getContext().getHttp().withMethod(method);
+            if (endpoint.endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
                 if (entity != null && entity.isRepeatable()) {
                     try {
-                        ESRestClientInstrumentationHelper.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
+                        String body = ESRestClientInstrumentationHelper.readRequestBody(entity.getContent(), endpoint);
+                        if (body != null && !body.isEmpty()) {
+                            span.getContext().getDb().withStatement(body);
+                        }
                     } catch (IOException e) {
                         // We can't log from here
                     }
@@ -126,14 +131,18 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.elasticsearch.client.RestClient");
+        return named("org.elasticsearch.client.RestClient").
+            and(not(
+                declaresMethod(named("performRequest")
+                    .and(takesArguments(1)
+                        .and(takesArgument(0, named("org.elasticsearch.client.Request")))))));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("performRequest")
-            .and(takesArguments(1)
-                .and(takesArgument(0, named("org.elasticsearch.client.Request"))));
+            .and(takesArguments(6)
+                .and(takesArgument(4, named("org.elasticsearch.client.HttpAsyncResponseConsumerFactory"))));
     }
 
     @Override
