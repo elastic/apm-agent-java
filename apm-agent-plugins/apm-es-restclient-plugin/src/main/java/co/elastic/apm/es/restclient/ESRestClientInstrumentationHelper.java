@@ -20,11 +20,7 @@
 package co.elastic.apm.es.restclient;
 
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -35,48 +31,18 @@ import java.nio.charset.StandardCharsets;
 
 @VisibleForAdvice
 public class ESRestClientInstrumentationHelper {
-    private static final Logger logger = LoggerFactory.getLogger(ESRestClientInstrumentationHelper.class);
-    private static final byte CURLY_BRACKET_UTF8 = '{';
-    private static ThreadLocal<byte[]> bodyReadBuffer = new ThreadLocal<>();
-    private static ThreadLocal<ByteBuffer> bodyBuffer = new ThreadLocal<>() {
+    private static ThreadLocal<ByteBuffer> threadLocalByteBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
         protected ByteBuffer initialValue() {
             return ByteBuffer.allocate(1024);
         }
     };
-    private static ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<>() {
+    private static ThreadLocal<CharsetDecoder> threadLocalCharsetDecoder = new ThreadLocal<CharsetDecoder>() {
         @Override
         protected CharsetDecoder initialValue() {
             return StandardCharsets.UTF_8.newDecoder();
         }
     };
-
-    @Nullable
-    @VisibleForAdvice
-    public static String readRequestBody(InputStream bodyIS, String endpoint) throws IOException {
-        String body = null;
-        try {
-            byte[] data = bodyReadBuffer.get();
-            if (data == null) {
-                // The DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH is actually used to count chars and not bytes, but that's not
-                // that important, the most important is that we limit the payload size we read and decode
-                data = new byte[DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH];
-                bodyReadBuffer.set(data);
-            }
-            int length = bodyIS.read(data, 0, data.length);
-
-            // read only if UTF8-encoded (based on the first byte being UTF8 of curly bracket char)
-            if (data[0] == CURLY_BRACKET_UTF8) {
-                body = new String(data, 0, length, StandardCharsets.UTF_8);
-            }
-        } catch (IOException e) {
-            logger.info("Failed to read request body for " + endpoint);
-        } finally {
-            bodyIS.close();
-        }
-
-        return body;
-    }
 
     /**
      * Reads the provided {@link InputStream} into the {@link CharBuffer} without causing allocations.
@@ -94,27 +60,31 @@ public class ESRestClientInstrumentationHelper {
      * @throws IOException in case of errors reading from the provided {@link InputStream}
      */
     @VisibleForAdvice
-    public static boolean readUtf8Stream(InputStream is, CharBuffer charBuffer) throws IOException {
-        final ByteBuffer buffer = bodyBuffer.get();
+    public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
+        final ByteBuffer buffer = threadLocalByteBuffer.get();
         final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
-        try (is) {
+        try {
             final byte[] bufferArray = buffer.array();
             for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
                 buffer.limit(read);
                 final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
                 buffer.clear();
                 if (coderResult.isError()) {
+                    // this is not UTF-8
+                    charBuffer.clear();
                     return false;
                 } else if (coderResult.isOverflow()) {
-                    return true;
+                    // stream yields more chars than the charBuffer can hold
+                    break;
                 }
             }
+            charsetDecoder.flush(charBuffer);
             return true;
         } finally {
-            charsetDecoder.flush(charBuffer);
             charBuffer.flip();
             buffer.clear();
             charsetDecoder.reset();
+            is.close();
         }
     }
 }

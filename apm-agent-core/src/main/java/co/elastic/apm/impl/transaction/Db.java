@@ -37,7 +37,7 @@ import java.nio.CharBuffer;
  */
 public class Db implements Recyclable {
 
-    private final ObjectPool<CharBuffer> charBufferPool = new QueueBasedObjectPool<CharBuffer>(new MpmcAtomicArrayQueue<>(128), false,
+    private final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {
@@ -108,11 +108,32 @@ public class Db implements Recyclable {
         return this;
     }
 
+    /**
+     * Gets a pooled {@link CharBuffer} to record the DB statement and associates it with this instance.
+     * <p>
+     * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
+     * </p>
+     * <p>
+     * Note: This method is not thread safe
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement
+     */
     public CharBuffer withStatementBuffer() {
-        this.statementBuffer = charBufferPool.createInstance();
+        if (this.statementBuffer == null) {
+            this.statementBuffer = charBufferPool.createInstance();
+        }
         return this.statementBuffer;
     }
 
+    /**
+     * Returns the associated pooled {@link CharBuffer} to record the DB statement.
+     * <p>
+     * Note: returns {@code null} unless {@link #withStatementBuffer()} has previously been called
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement, or {@code null}
+     */
     @Nullable
     public CharBuffer getStatementBuffer() {
         return statementBuffer;
@@ -156,7 +177,9 @@ public class Db implements Recyclable {
         statement = null;
         type = null;
         user = null;
-        charBufferPool.recycle(statementBuffer);
+        if (statementBuffer != null) {
+            charBufferPool.recycle(statementBuffer);
+        }
         statementBuffer = null;
     }
 

@@ -41,10 +41,14 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
      *                                used when there are no objects in the queue and to preallocate the queue.
      */
     public static <T extends Recyclable> QueueBasedObjectPool<T> ofRecyclable(Queue<T> queue, boolean preAllocate, Allocator<T> allocator) {
-        return new QueueBasedObjectPool<T>(queue, preAllocate, allocator, Resetter.ForRecyclable.get());
+        return new QueueBasedObjectPool<>(queue, preAllocate, allocator, Resetter.ForRecyclable.<T>get());
     }
 
-    public QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
+    public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
+        return new QueueBasedObjectPool<>(queue, preAllocate, allocator, resetter);
+    }
+
+    private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
         super(allocator);
         this.queue = queue;
         this.resetter = resetter;
