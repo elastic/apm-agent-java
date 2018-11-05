@@ -146,6 +146,21 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
+    public static class GetTraceIdInstrumentation extends SpanInstrumentation {
+        public GetTraceIdInstrumentation() {
+            super(named("getTraceId").and(takesArguments(0)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                        @Advice.Return(readOnly = false) String traceId) {
+            if (tracer != null) {
+                traceId = span.getTraceContext().getTraceId().toString();
+            }
+        }
+    }
+
     public static class AddTagInstrumentation extends SpanInstrumentation {
         public AddTagInstrumentation() {
             super(named("addTag"));

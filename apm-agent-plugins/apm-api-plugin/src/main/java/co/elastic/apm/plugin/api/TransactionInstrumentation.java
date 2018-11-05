@@ -21,6 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -75,6 +76,25 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             transaction.setUser(id, email, username);
+        }
+    }
+
+    public static class EnsureParentIdInstrumentation extends TransactionInstrumentation {
+        public EnsureParentIdInstrumentation() {
+            super(named("ensureParentId"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                          @Advice.Return(readOnly = false) String spanId) {
+            if (tracer != null) {
+                final TraceContext traceContext = transaction.getTraceContext();
+                if (traceContext.getParentId().isEmpty()) {
+                    traceContext.getParentId().setToRandomValue();
+                }
+                spanId = traceContext.getParentId().toString();
+            }
         }
     }
 }

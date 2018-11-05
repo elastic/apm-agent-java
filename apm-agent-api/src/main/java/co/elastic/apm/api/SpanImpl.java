@@ -82,6 +82,13 @@ class SpanImpl implements Span {
         return "";
     }
 
+    @Nonnull
+    @Override
+    public String getTraceId() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.GetTraceIdInstrumentation
+        return "";
+    }
+
     @Override
     public Scope activate() {
         // co.elastic.apm.plugin.api.SpanInstrumentation.ActivateInstrumentation
