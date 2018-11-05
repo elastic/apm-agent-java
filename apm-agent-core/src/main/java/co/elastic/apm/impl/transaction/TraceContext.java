@@ -344,6 +344,7 @@ public class TraceContext implements Recyclable {
         traceId.copyFrom(other.traceId);
         id.copyFrom(other.id);
         parentId.copyFrom(other.parentId);
+        transactionId.copyFrom(other.transactionId);
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
         clock.init(other.clock);

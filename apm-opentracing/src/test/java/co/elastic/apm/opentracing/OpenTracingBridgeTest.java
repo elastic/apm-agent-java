@@ -148,6 +148,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         transaction.finish();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getTraceContext().getTransactionId().isEmpty()).isFalse();
     }
 
     @Test
