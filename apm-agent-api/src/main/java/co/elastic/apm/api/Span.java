@@ -133,6 +133,22 @@ public interface Span {
     String getId();
 
     /**
+     * Returns the id of this trace (never {@code null})
+     * <p>
+     * The trace-ID is consistent across all transactions and spans which belong to the same logical trace,
+     * even for spans which happened in another service (given this service is also monitored by Elastic APM).
+     * </p>
+     * <p>
+     * If this span represents a noop,
+     * this method returns an empty string.
+     * </p>
+     *
+     * @return the id of this span (never {@code null})
+     */
+    @Nonnull
+    String getTraceId();
+
+    /**
      * Makes this span the active span on the current thread until {@link Scope#close()} has been called.
      * <p>
      * Scopes should only be used in try-with-resource statements in order to make sure the {@link Scope#close()} method is called in all
