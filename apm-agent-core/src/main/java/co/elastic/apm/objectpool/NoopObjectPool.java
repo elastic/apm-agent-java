@@ -24,21 +24,21 @@ import java.io.IOException;
 
 public class NoopObjectPool<T extends Recyclable> implements ObjectPool<T> {
 
-    private final RecyclableObjectFactory<T> recyclableObjectFactory;
+    private final Allocator<T> allocator;
 
-    public NoopObjectPool(RecyclableObjectFactory<T> recyclableObjectFactory) {
-        this.recyclableObjectFactory = recyclableObjectFactory;
+    public NoopObjectPool(Allocator<T> allocator) {
+        this.allocator = allocator;
     }
 
     @Nullable
     @Override
     public T tryCreateInstance() {
-        return recyclableObjectFactory.createInstance();
+        return allocator.createInstance();
     }
 
     @Override
     public T createInstance() {
-        return recyclableObjectFactory.createInstance();
+        return allocator.createInstance();
     }
 
     @Override
