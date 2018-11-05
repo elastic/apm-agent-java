@@ -43,7 +43,7 @@ class TransactionImpl extends SpanImpl implements Transaction {
     @Nonnull
     @Override
     public String ensureParentId() {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation.MakeChildOfRumTransactionInstrumentation
+        // co.elastic.apm.plugin.api.TransactionInstrumentation.EnsureParentIdInstrumentation
         return "";
     }
 
