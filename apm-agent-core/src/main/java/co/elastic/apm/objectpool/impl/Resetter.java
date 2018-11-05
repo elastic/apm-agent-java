@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,24 +17,25 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool;
+package co.elastic.apm.objectpool.impl;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
+import co.elastic.apm.objectpool.Recyclable;
 
-public interface ObjectPool<T> extends Closeable {
-    @Nullable
-    T tryCreateInstance();
+public interface Resetter<T> {
 
-    T createInstance();
+    void recycle(T object);
 
-    void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements);
+    class ForRecyclable<T extends Recyclable> implements Resetter<T> {
+        private static ForRecyclable INSTANCE = new ForRecyclable();
 
-    void recycle(T obj);
+        public static <T extends Recyclable> Resetter<T> get() {
+            return INSTANCE;
+        }
 
-    int getSize();
+        @Override
+        public void recycle(Recyclable object) {
+            object.resetState();
+        }
+    }
 
-    int getObjectsInPool();
-
-    long getGarbageCreated();
 }

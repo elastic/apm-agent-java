@@ -59,6 +59,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
@@ -559,7 +560,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("db");
         jw.writeByte(OBJECT_START);
         writeField("instance", db.getInstance());
-        writeLongStringField("statement", db.getStatement());
+        if (db.getStatement() != null) {
+            writeLongStringField("statement", db.getStatement());
+        } else {
+            final CharBuffer statementBuffer = db.getStatementBuffer();
+            if (statementBuffer != null && statementBuffer.length() > 0) {
+                writeFieldName("statement");
+                jw.writeString(statementBuffer);
+                jw.writeByte(COMMA);
+            }
+        }
         writeField("type", db.getType());
         writeLastField("user", db.getUser());
         jw.writeByte(OBJECT_END);
