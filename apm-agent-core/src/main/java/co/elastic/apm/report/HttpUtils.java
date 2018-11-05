@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
@@ -35,26 +36,34 @@ public class HttpUtils {
 
     }
 
-    public static String getBody(HttpURLConnection conn) {
+    public static String getBody(HttpURLConnection connection) {
+        String body;
         try {
-            if (conn == null || conn.getInputStream() == null)
+            if (connection == null || connection.getInputStream() == null)
                 return null;
-            BufferedReader br;
-            if (200 <= conn.getResponseCode() && conn.getResponseCode() <= 299) {
-                br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            } else {
-                br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+            body = readInputStream(connection.getInputStream());
+            return body;
+        } catch (final IOException e) {
+            logger.error("Reading inputStream: {}", e.getMessage());
+            try {
+                body = readInputStream(connection.getErrorStream());
+                return body;
+            } catch (IOException e1) {
+                logger.error("Reading errorStream: {}", e1.getMessage());
             }
-            StringBuilder sb = new StringBuilder();
-            String output;
-            while ((output = br.readLine()) != null) {
-                sb.append(output);
-            }
-            return sb.toString();
-        } catch (IOException e) {
-            logger.warn("IOException: {}", e.getMessage());
         }
         return null;
+    }
+
+    private static String readInputStream(final InputStream inputStream) throws IOException {
+        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        final StringBuilder bodyString = new StringBuilder();
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            bodyString.append(line);
+        }
+        bufferedReader.close();
+        return bodyString.toString();
     }
 
 }

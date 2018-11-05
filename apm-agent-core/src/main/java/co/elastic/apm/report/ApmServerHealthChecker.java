@@ -32,7 +32,6 @@ class ApmServerHealthChecker implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
     private final ReporterConfiguration reporterConfiguration;
-    private HttpURLConnection connection;
 
     ApmServerHealthChecker(ReporterConfiguration reporterConfiguration) {
         this.reporterConfiguration = reporterConfiguration;
@@ -42,6 +41,7 @@ class ApmServerHealthChecker implements Runnable {
     public void run() {
         boolean success;
         String message = null;
+        HttpURLConnection connection = null;
         try {
             URL url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck");
             if (logger.isDebugEnabled()) {
@@ -53,8 +53,6 @@ class ApmServerHealthChecker implements Runnable {
                     trustAll((HttpsURLConnection) connection);
                 }
             }
-            connection.setRequestMethod("GET");
-            connection.setDoOutput(true);
             if (reporterConfiguration.getSecretToken() != null) {
                 connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
             }
