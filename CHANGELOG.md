@@ -1,9 +1,11 @@
-# 0.9.0
+# next
 
 ## Breaking changes
  * Remove intake v1 support. This version requires an APM Server which supports the intake api v2.
 
 ## Features
+* Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
+  Note that it is required to configure the `application_packages` for this to work.
 
 ## Bug Fixes
 

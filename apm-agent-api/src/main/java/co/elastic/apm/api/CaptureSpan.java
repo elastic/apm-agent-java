@@ -21,10 +21,13 @@ package co.elastic.apm.api;
 
 /**
  * Annotating a method with {@code @}{@link CaptureSpan} creates a {@link Span} as the child of the currently active span or transaction
- * ({@link ElasticApm#currentSpan()}.
+ * ({@link ElasticApm#currentSpan()}).
  * <p>
  * When there is no current span,
  * no span will be created.
+ * </p>
+ * <p>
+ * Note: it is required to configure the {@code application_packages}, otherwise this annotation will be ignored.
  * </p>
  */
 public @interface CaptureSpan {

@@ -705,6 +705,9 @@ Disabled by default to save disk space.
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
 Setting this option can also improve the startup time.
 
+In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
+it is required to set these options.
+
 
 [options="header"]
 |============
@@ -1136,6 +1139,9 @@ The default unit for this option is `ms`
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
 # Setting this option can also improve the startup time.
+# 
+# In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
+# it is required to set these options.
 #
 # This setting can be changed at runtime
 # Type: comma separated list

@@ -24,6 +24,9 @@ package co.elastic.apm.api;
  * <p>
  * Note that this only works when there is no active transaction on the same thread.
  * </p>
+ * <p>
+ * Note: it is required to configure the {@code application_packages}, otherwise this annotation will be ignored.
+ * </p>
  */
 public @interface CaptureTransaction {
 
