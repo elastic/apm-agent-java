@@ -18,6 +18,11 @@
             "description": "ID for the parent (transaction or span), hex encoded 64 random bits",
             "pattern": "^[a-fA-F0-9]{16}$"
         },
+        "transaction_id": {
+            "type": "string",
+            "description": "ID for the transaction this span belongs to, hex encoded 64 random bits",
+            "pattern": "^[a-fA-F0-9]{16}$"
+        },
         "timestamp": {
             "type": ["string", "integer"],
             "description": "Recorded time of the span, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ"
@@ -87,5 +92,5 @@
             "required": ["id"]
         }
     },
-    "required": ["duration", "name", "type", "timestamp"]
+    "required": ["duration", "name", "type", "timestamp", "transaction_id"]
 }
