@@ -15,3 +15,5 @@ co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
 co.elastic.apm.plugin.api.ApiScopeInstrumentation
+co.elastic.apm.plugin.api.CaptureTransactionInstrumentation
+co.elastic.apm.plugin.api.CaptureSpanInstrumentation

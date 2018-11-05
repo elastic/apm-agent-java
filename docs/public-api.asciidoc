@@ -122,6 +122,39 @@ See <<api-transaction-activate, `transaction.activate()`>> on how to achieve tha
 
 //----------------------------
 [float]
+[[api-annotation]]
+=== Annotation API
+//----------------------------
+The API comes with two annotations which make it easier to create custom spans and transactions.
+Just put the annotations on top of your methods and the agent will take care of creating and reporting the corresponding transaction and spans.
+It will also make sure to capture any uncaught exceptions.
+
+NOTE: It is required to configure the <<config-application-packages>>, otherwise these annotations will be ignored.
+
+[float]
+[[api-capture-transaction]]
+==== `@CaptureTransaction`
+Annotating a method with `@CaptureTransaction` creates a transaction for that method.
+
+Note that this only works when there is no active transaction on the same thread.
+
+* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `type`: The type of the transaction. Defaults to `request`
+
+[float]
+[[api-capture-span]]
+==== `@CaptureSpan`
+Annotating a method with `@CaptureSpan` creates a span as the child of the currently active span or transaction
+(<<api-current-span>>).
+
+When there is no current span,
+no span will be created.
+
+* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `type`: The type of the span. Defaults to `app`
+
+//----------------------------
+[float]
 [[api-transaction]]
 === Transaction API
 //----------------------------

@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -32,7 +31,7 @@ import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class CaptureExceptionInstrumentation extends ElasticApmInstrumentation {
+public class CaptureExceptionInstrumentation extends ApiInstrumentation {
 
     @Advice.OnMethodEnter
     public static void captureException(@Advice.Argument(0) Throwable t) {
@@ -52,8 +51,4 @@ public class CaptureExceptionInstrumentation extends ElasticApmInstrumentation {
         return named("captureException").and(takesArguments(Throwable.class));
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
-    }
 }

@@ -60,11 +60,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
 import static co.elastic.apm.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
-import static co.elastic.apm.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrumentationTest {
     private static final String USER_NAME = "elastic-user";
@@ -127,7 +127,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
-            currentTransaction.end();
+            currentTransaction.deactivate().end();
         }
         reporter.reset();
     }

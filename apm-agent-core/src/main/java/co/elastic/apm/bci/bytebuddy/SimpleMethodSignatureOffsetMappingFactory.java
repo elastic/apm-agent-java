@@ -26,6 +26,8 @@ import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
+import javax.annotation.Nullable;
+import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -52,7 +54,8 @@ public class SimpleMethodSignatureOffsetMappingFactory implements Advice.OffsetM
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner,
                                   Advice.ArgumentHandler argumentHandler, Sort sort) {
                 final String className = instrumentedMethod.getDeclaringType().getTypeName();
-                final String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
+                String simpleClassName = className.substring(className.lastIndexOf('$') + 1);
+                simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf('.') + 1);
                 final String signature = String.format("%s#%s", simpleClassName, instrumentedMethod.getName());
                 return Target.ForStackManipulation.of(signature);
             }
@@ -68,5 +71,6 @@ public class SimpleMethodSignatureOffsetMappingFactory implements Advice.OffsetM
     @Target(ElementType.PARAMETER)
     public @interface SimpleMethodSignature {
     }
+
 
 }
