@@ -117,7 +117,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Elasticsearch
 |5.0.2+
 |The agent automatically creates Elasticsearch spans for queries done through the official REST client.
-*Currently, only synchronized operations are supported*
+ *Currently, the `*Async` methods are not supported, only their synchronous counterparts.*
 
 |===
 
