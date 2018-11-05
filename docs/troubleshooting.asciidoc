@@ -31,6 +31,7 @@ you should see logs similar to these:
 
 ----
 [main] INFO co.elastic.apm.configuration.StartupInfo - Starting Elastic APM (unknown version) on Java 10 (Oracle Corporation) Mac OS X 10.13.6
+[apm-server-healthcheck] INFO co.elastic.apm.report.ApmServerHealthChecker - Elastic APM server is available: {"build_date":"2018-11-05T07:58:08Z","build_sha":"dffb98a72a262ca22adad0152f0245ea743ea904","version":"7.0.0-alpha1"}
 [main] DEBUG co.elastic.apm.configuration.StartupInfo - service_name: 'elastic-apm-test' (source: Java System Properties)
 [main] DEBUG co.elastic.apm.configuration.StartupInfo - log_level: 'DEBUG' (source: Java System Properties)
 ----
@@ -39,10 +40,23 @@ Make sure to execute some requests to your application before posting your log f
 Each request should at least add some lines similar to these in the logs:
 
 ----
-[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - startTransaction '' e0d6b9f84cf758a30a303f4fb607a9a6 {
-[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - startSpan '' e0d6b9f84cf758a30a303f4fb607a9a6:1 {
-[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endSpan 'SELECT' e0d6b9f84cf758a30a303f4fb607a9a6:1
-[main] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endTransaction 'GET' e0d6b9f84cf758a30a303f4fb607a9a6
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - startTransaction '' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 {
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Activating '' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.transaction.Span - startSpan '' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01 {
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Activating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.transaction.Span - startSpan '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 {
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Activating '' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Deactivating 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.transaction.Span - } endSpan 'SELECT' 00-2a82cbe3df7a0208f7be6da65be260d1-49b9d805eca42ec6-01
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 23)
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Starting new request to http://localhost:8200/intake/v2/events
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.transaction.Span - } endSpan 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-b2ffa0401105e3d8-01
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Scheduling request timeout in 10s
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Receiving SPAN event (sequence 24)
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 on thread 66
+[http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Receiving TRANSACTION event (sequence 25)
 ----
 
 If you don't see anything in your logs,
@@ -51,14 +65,20 @@ the technology stack you are using is probably not <<supported-technologies-deta
 After that, you should see logs indicating that the agent has successfully sent data to the APM server:
 
 ----
-[apm-reporter] DEBUG co.elastic.apm.report.ApmServerHttpPayloadSender - Sending payload with 1 elements to APM server http://localhost:8200
-[apm-reporter] DEBUG co.elastic.apm.report.ApmServerHttpPayloadSender - APM server responded with status code 202
+[apm-request-timeout-timer] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Request flush because the request timeout occurred
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Receiving FLUSH event (sequence 26)
+[apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Flushing 10912 uncompressed 2667 compressed bytes
 ----
 
 If the APM server responds with a 400,
 it could indicate JSON validation errors.
-In that case,
-please turn on `TRACE` logging and send us the logged JSON payload.
+The log would then contain the actual documents which failed to validate:
+
+----
+[apm-reporter] INFO co.elastic.apm.report.IntakeV2ReportingEventHandler - Backing off for 0 seconds (±10%)
+[apm-reporter] WARN co.elastic.apm.report.IntakeV2ReportingEventHandler - Server returned HTTP response code: 400 for URL: http://localhost:8200/intake/v2/events
+[apm-reporter] WARN co.elastic.apm.report.IntakeV2ReportingEventHandler - {"accepted":13,"errors":[{"message":"Problem validating JSON document against schema: I[#] S[#] doesn't validate with \"span#\"\n  I[#] S[#/allOf/2] allOf failed\n    I[#] S[#/allOf/2/required] missing properties: \"transaction_id\"","document":"{\"span\":{\"name\":\"OpenTracing product span\",\"timestamp\":29352159207,\"id\":\"aeaa7e0ac95acad6\",\"trace_id\":\"d88b5cbfc4536f9a700cd114a53bfeae\",\"parent_id\":\"082fd71ce7e4089a\",\"duration\":17.992,\"context\":{\"tags\":{\"productId\":\"1\"}},\"type\":\"unknown\"}}"}]}
+----
 
 [float]
 [[trouble-shooting-debugging]]
