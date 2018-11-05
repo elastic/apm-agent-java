@@ -79,15 +79,15 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    public static class MakeChildOfRumTransactionInstrumentation extends TransactionInstrumentation {
-        public MakeChildOfRumTransactionInstrumentation() {
+    public static class EnsureParentIdInstrumentation extends TransactionInstrumentation {
+        public EnsureParentIdInstrumentation() {
             super(named("ensureParentId"));
         }
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void makeChildOfRumTransaction(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                                     @Advice.Return(readOnly = false) String spanId) {
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                          @Advice.Return(readOnly = false) String spanId) {
             if (tracer != null) {
                 final TraceContext traceContext = transaction.getTraceContext();
                 if (traceContext.getParentId().isEmpty()) {

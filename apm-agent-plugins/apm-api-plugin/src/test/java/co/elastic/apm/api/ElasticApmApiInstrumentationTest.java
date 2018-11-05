@@ -167,7 +167,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testMakeChildOfRumTransaction() {
+    void testEnsureParentId() {
         final Transaction transaction = ElasticApm.startTransaction();
         try (co.elastic.apm.api.Scope scope = transaction.activate()) {
             assertThat(tracer.currentTransaction()).isNotNull();
