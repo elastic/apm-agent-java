@@ -56,7 +56,7 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     @Nullable
     private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
         for (TypeDescription typeDescription : instrumentedMethod.getDeclaredAnnotations().asTypeList()) {
-            if (named(annotationValueExtractor.annotation()).matches(typeDescription)) {
+            if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
                 for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
                     if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
                         return instrumentedMethod.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
@@ -70,7 +70,7 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     public @interface AnnotationValueExtractor {
-        String annotation();
+        String annotationClassName();
 
         String method();
     }

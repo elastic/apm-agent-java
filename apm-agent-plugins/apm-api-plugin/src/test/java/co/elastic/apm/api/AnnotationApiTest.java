@@ -54,6 +54,18 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("catch me if you can");
     }
 
+    @Test
+    void testType() {
+        AnnotationTestClass.transactionWithType();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("transactionWithType");
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("job");
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("spanWithType");
+        assertThat(reporter.getFirstSpan().getType()).isEqualTo("other");
+    }
+
     public static class AnnotationTestClass {
 
         @CaptureTransaction
@@ -75,6 +87,16 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         @CaptureSpan
         void nestedSpan() {
             ElasticApm.currentSpan().addTag("foo", "bar");
+        }
+
+        @CaptureTransaction(value = "transactionWithType", type = "job")
+        static void transactionWithType() {
+            spanWithType();
+        }
+
+        @CaptureSpan(value = "spanWithType", type = "other")
+        private static void spanWithType() {
+
         }
     }
 }

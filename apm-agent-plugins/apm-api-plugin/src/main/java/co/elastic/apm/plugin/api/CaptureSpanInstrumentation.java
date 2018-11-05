@@ -37,20 +37,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.none;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
@@ -61,14 +56,14 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
     @Advice.OnMethodEnter(inline = true)
     public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-                                     @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotation = "co.elastic.apm.api.CaptureSpan", method = "value") String transactionName,
-                                     @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotation = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
+                                     @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
+                                     @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
                                      @Advice.Local("span") Span span) {
         if (tracer != null) {
             final AbstractSpan<?> parent = tracer.activeSpan();
             if (parent != null) {
                 span = parent.createSpan()
-                    .withName(transactionName.isEmpty() ? signature : transactionName)
+                    .withName(spanName.isEmpty() ? signature : spanName)
                     .withType(type)
                     .activate();
             } else {
@@ -101,7 +96,6 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
-            .<TypeDescription>and(not(nameContains("$MockitoMock$")))
             .and(declaresMethod(getMethodMatcher()));
     }
 

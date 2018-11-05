@@ -21,9 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
-import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.impl.ElasticApmTracer;
 import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
@@ -38,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -47,10 +44,7 @@ import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
-import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.none;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation {
 
@@ -61,8 +55,8 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
 
     @Advice.OnMethodEnter(inline = true)
     public static void onMethodEnter(@SimpleMethodSignature String signature,
-                                     @AnnotationValueExtractor(annotation = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
-                                     @AnnotationValueExtractor(annotation = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
+                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
+                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
                                      @Advice.Local("transaction") Transaction transaction) {
         if (tracer != null) {
             final Object active = tracer.getActive();
@@ -100,7 +94,6 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(config.getApplicationPackages(), ElementMatchers.<NamedElement>none())
-            .<TypeDescription>and(not(nameContains("$MockitoMock$")))
             .and(declaresMethod(getMethodMatcher()));
     }
 
