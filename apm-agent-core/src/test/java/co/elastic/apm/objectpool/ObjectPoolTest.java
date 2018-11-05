@@ -35,7 +35,7 @@ public class ObjectPoolTest {
     @BeforeEach
     void setUp() {
 //        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
-        objectPool = new QueueBasedObjectPool<>(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
+        objectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
     }
 
     @Test

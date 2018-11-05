@@ -28,11 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
-    @AfterEach
-    void tearDown() {
-        assertThat(tracer.getActive()).isNull();
-    }
-
     @Test
     void testCreateTransaction() {
         assertThat(ElasticApm.startTransaction()).isNotSameAs(NoopTransaction.INSTANCE);
@@ -108,10 +103,13 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
+            assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
+            assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             co.elastic.apm.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
             try (Scope spanScope = span.activateInScope()) {
                 assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getTraceContext().getId().toString());
+                assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(span.getTraceContext().getTraceId().toString());
             } finally {
                 span.end();
             }
@@ -161,5 +159,17 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         }
         assertThat(ElasticApm.currentTransaction()).isSameAs(NoopTransaction.INSTANCE);
 
+    }
+
+    @Test
+    void testEnsureParentId() {
+        final Transaction transaction = ElasticApm.startTransaction();
+        try (co.elastic.apm.api.Scope scope = transaction.activate()) {
+            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction().getTraceContext().getParentId().isEmpty()).isTrue();
+            String rumTransactionId = transaction.ensureParentId();
+            assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(rumTransactionId);
+            assertThat(transaction.ensureParentId()).isEqualTo(rumTransactionId);
+        }
     }
 }

@@ -31,6 +31,10 @@ public class HttpUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
 
+    private HttpUtils() {
+
+    }
+
     public static String getBody(HttpURLConnection conn) {
         try {
             if (conn == null || conn.getInputStream() == null)

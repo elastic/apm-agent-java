@@ -122,6 +122,39 @@ See <<api-transaction-activate, `transaction.activate()`>> on how to achieve tha
 
 //----------------------------
 [float]
+[[api-annotation]]
+=== Annotation API
+//----------------------------
+The API comes with two annotations which make it easier to create custom spans and transactions.
+Just put the annotations on top of your methods and the agent will take care of creating and reporting the corresponding transaction and spans.
+It will also make sure to capture any uncaught exceptions.
+
+NOTE: It is required to configure the <<config-application-packages>>, otherwise these annotations will be ignored.
+
+[float]
+[[api-capture-transaction]]
+==== `@CaptureTransaction`
+Annotating a method with `@CaptureTransaction` creates a transaction for that method.
+
+Note that this only works when there is no active transaction on the same thread.
+
+* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `type`: The type of the transaction. Defaults to `request`
+
+[float]
+[[api-capture-span]]
+==== `@CaptureSpan`
+Annotating a method with `@CaptureSpan` creates a span as the child of the currently active span or transaction
+(<<api-current-span>>).
+
+When there is no current span,
+no span will be created.
+
+* `value`: The name of the span. Defaults to `ClassName#methodName`
+* `type`: The type of the span. Defaults to `app`
+
+//----------------------------
+[float]
 [[api-transaction]]
 === Transaction API
 //----------------------------
@@ -223,6 +256,52 @@ Returns the id of this transaction (never `null`)
 
 If this transaction represents a noop,
 this method returns an empty string.
+
+[float]
+[[api-transaction-get-trace-id]]
+==== `String getTraceId()`
+Returns the trace-id of this transaction.
+
+The trace-id is consistent across all transactions and spans which belong to the same logical trace,
+even for transactions and spans which happened in another service (given this service is also monitored by Elastic APM).
+
+If this span represents a noop,
+this method returns an empty string.
+
+[float]
+[[api-ensure-parent-id]]
+==== `String ensureParentId()`
+If the transaction does not have a parent-ID yet,
+calling this method generates a new ID,
+sets it as the parent-ID of this transaction,
+and returns it as a `String`.
+
+This enables the correlation of the spans the JavaScript Real User Monitoring (RUM) agent creates for the initial page load
+with the transaction of the backend service.
+If your backend service generates the HTML page dynamically,
+initializing the JavaScript RUM agent with the value of this method allows analyzing the time spent in the browser vs in the backend services.
+
+To enable the JavaScript RUM agent when using an HTML templating language like Freemarker,
+add `ElasticApm.currentTransaction()` with the key `"transaction"` to the model.
+
+Also, add a snippet similar to this to the body of your HTML page,
+preferably before other JS libraries:
+
+[source,html]
+----
+<script src="elastic-apm-js-base/dist/bundles/elastic-apm-js-base.umd.min.js"></script>
+<script>
+  var elasticApm = initApm({
+    serviceName: '',
+    serverUrl: 'http://localhost:8200',
+    pageLoadTraceId: "${transaction.traceId}",
+    pageLoadSpanId: "${transaction.ensureParentId()}",
+    pageLoadSampled: ${transaction.sampled}
+  })
+</script>
+----
+
+See the {apm-rum-ref}[JavaScript RUM agent documentation] for more information.
 
 [float]
 [[api-transaction-start-span]]
@@ -360,6 +439,17 @@ Captures an exception and reports it to the APM server.
 [[api-span-get-id]]
 ==== `String getId()`
 Returns the id of this span (never `null`)
+
+If this span represents a noop,
+this method returns an empty string.
+
+[float]
+[[api-span-get-trace-id]]
+==== `String getTraceId()`
+Returns the trace-ID of this span.
+
+The trace-ID is consistent across all transactions and spans which belong to the same logical trace,
+even for transactions and spans which happened in another service (given this service is also monitored by Elastic APM).
 
 If this span represents a noop,
 this method returns an empty string.

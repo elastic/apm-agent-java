@@ -30,7 +30,7 @@ import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.objectpool.Allocator;
 import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
@@ -85,23 +85,23 @@ public class ElasticApmTracer {
         this.spanListeners = spanListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        transactionPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
-            new RecyclableObjectFactory<Transaction>() {
+        transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
+            new Allocator<Transaction>() {
                 @Override
                 public Transaction createInstance() {
                     return new Transaction(ElasticApmTracer.this);
                 }
             });
-        spanPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
-            new RecyclableObjectFactory<Span>() {
+        spanPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
+            new Allocator<Span>() {
                 @Override
                 public Span createInstance() {
                     return new Span(ElasticApmTracer.this);
                 }
             });
         // we are assuming that we don't need as many errors as spans or transactions
-        errorPool = new QueueBasedObjectPool<>(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements / 2)), false,
-            new RecyclableObjectFactory<ErrorCapture>() {
+        errorPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements / 2)), false,
+            new Allocator<ErrorCapture>() {
                 @Override
                 public ErrorCapture createInstance() {
                     return new ErrorCapture(ElasticApmTracer.this);

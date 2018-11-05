@@ -61,6 +61,18 @@ enum NoopTransaction implements Transaction {
         return "";
     }
 
+    @Nonnull
+    @Override
+    public String ensureParentId() {
+        return "";
+    }
+
+    @Nonnull
+    @Override
+    public String getTraceId() {
+        return "";
+    }
+
     @Override
     public Scope activate() {
         return NoopScope.INSTANCE;

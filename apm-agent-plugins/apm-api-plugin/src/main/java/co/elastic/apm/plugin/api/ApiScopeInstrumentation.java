@@ -7,9 +7,15 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
+<<<<<<< HEAD
  * 
  *      http://www.apache.org/licenses/LICENSE-2.0
  * 
+=======
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+>>>>>>> master
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +25,6 @@
  */
 package co.elastic.apm.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -27,13 +32,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ApiScopeInstrumentation extends ElasticApmInstrumentation {
+public class ApiScopeInstrumentation extends ApiInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -43,16 +44,6 @@ public class ApiScopeInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("close");
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
     }
 
     @Advice.OnMethodEnter
