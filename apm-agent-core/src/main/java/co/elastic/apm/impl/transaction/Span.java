@@ -43,7 +43,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        return start(childContextCreator, parentContext, getTraceContext().getClock().getEpochMicros());
+        // we can't get the timestamp here as the clock has not yet been initialized
+        return start(childContextCreator, parentContext, -1);
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
@@ -56,7 +57,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (dropped) {
             traceContext.setRecorded(false);
         }
-        timestamp = epochMicros;
+        if (epochMicros >= 0) {
+            timestamp = epochMicros;
+        } else {
+            timestamp = getTraceContext().getClock().getEpochMicros();
+        }
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", this);
             if (logger.isTraceEnabled()) {
