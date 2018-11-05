@@ -57,6 +57,7 @@ Each request should at least add some lines similar to these in the logs:
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - Deactivating 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01 on thread 66
 [http-nio-8080-exec-10] DEBUG co.elastic.apm.impl.ElasticApmTracer - } endTransaction 'APIRestController#products' 00-2a82cbe3df7a0208f7be6da65be260d1-05e72d045206587a-01
 [apm-reporter] DEBUG co.elastic.apm.report.IntakeV2ReportingEventHandler - Receiving TRANSACTION event (sequence 25)
+----
 
 If you don't see anything in your logs,
 the technology stack you are using is probably not <<supported-technologies-details,supported>>.
