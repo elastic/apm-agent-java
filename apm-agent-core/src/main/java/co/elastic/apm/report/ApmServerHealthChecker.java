@@ -79,7 +79,7 @@ class ApmServerHealthChecker implements Runnable {
             message = e.getMessage();
             success = false;
         } finally {
-            if (connection != null) {logger.info("trying to close connection...");
+            if (connection != null) {
                 connection.disconnect();
                 connection = null;
             }
