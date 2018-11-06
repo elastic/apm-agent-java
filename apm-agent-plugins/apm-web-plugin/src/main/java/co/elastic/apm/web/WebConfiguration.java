@@ -66,7 +66,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.valueOf("/VAADIN/*"),
-            WildcardMatcher.valueOf("*X-Atmosphere-Transport=long-polling*"), # Used at least with some VAADIN version
+            WildcardMatcher.valueOf("*X-Atmosphere-Transport=long-polling*"), // Used at least with some VAADIN version
             WildcardMatcher.valueOf("/heartbeat*"),
             WildcardMatcher.valueOf("/favicon.ico"),
             WildcardMatcher.valueOf("*.js"),
