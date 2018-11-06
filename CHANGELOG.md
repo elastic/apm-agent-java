@@ -1,13 +1,32 @@
 # next
 
-## Breaking changes
- * Remove intake v1 support. This version requires an APM Server which supports the intake api v2.
-
 ## Features
-* Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
-  Note that it is required to configure the `application_packages` for this to work.
 
 ## Bug Fixes
+
+# 1.0.0.RC1
+
+## Breaking changes
+ * Remove intake v1 support. This version requires APM Server 6.5.0+ which supports the intake api v2.
+   Until the time the APM Server 6.5.0 is officially released,
+   you can test with docker by pulling the APM Server image via
+   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`. 
+
+## Features
+ * Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
+   Note that it is required to configure the `application_packages` for this to work.
+   See the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation) for more information.
+ * The public API now supports to activate a span on the current thread.
+   This makes the span available via `ElasticApm#currentSpan()`
+   Refer to the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate) for more details.
+ * Capturing of Elasticsearch RestClient 5.0.2+ calls.
+   Currently, the `*Async` methods are not supported, only their synchronous counterparts.
+ * Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
+   More information can be found in the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id).
+ * Microsecond accurate timestamps (#261)
+
+## Bug Fixes
+ * Fix for situations where status code is reported as `200`, even though it actually was `500` (#225)
 
 # 0.8.0
 
