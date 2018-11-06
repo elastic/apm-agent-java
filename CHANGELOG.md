@@ -6,6 +6,7 @@
 ## Features
 * Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
   Note that it is required to configure the `application_packages` for this to work.
+* Added `X-Atmosphere-Transport=long-polling` to ignored URLs
 
 ## Bug Fixes
 
