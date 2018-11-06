@@ -40,10 +40,10 @@ class ApmServerHealthChecker implements Runnable {
     @Override
     public void run() {
         boolean success;
-        String message = null;
+        String message;
         HttpURLConnection connection = null;
         try {
-            URL url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/healthcheck");
+            URL url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/");
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting healthcheck to {}", url);
             }
@@ -81,7 +81,6 @@ class ApmServerHealthChecker implements Runnable {
         } finally {
             if (connection != null) {
                 connection.disconnect();
-                connection = null;
             }
         }
 
