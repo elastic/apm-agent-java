@@ -97,6 +97,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
         final Response response = get(path);
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.body().string()).isEqualTo("Hello World!");
+
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }
