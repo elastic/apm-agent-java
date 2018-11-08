@@ -25,7 +25,8 @@ import co.elastic.apm.impl.transaction.Db;
 import co.elastic.apm.impl.transaction.Http;
 import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.Transaction;
-import fr.pilato.elasticsearch.containers.ElasticsearchContainer;
+import org.apache.http.HttpHost;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -81,24 +82,17 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     private static final String BAR = "bar";
     private static final String BAZ = "baz";
 
-    /**
-     * This Integration testing relies on <a href="https://github.com/dadoonet/testcontainers-java-module-elasticsearch">this
-     * ES testcontainer module</a> (will be replaced with an official version once merged into the
-     * <a href="https://github.com/testcontainers/testcontainers-java">testcontainers repo</a>)
-     */
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        // TODO: the env setting is to pass the bootstrap check of "vm.max_map_count" which fails on the CI env.
-        // TODO: Can be removed after changing to the official testcontainer
-        container = (ElasticsearchContainer) new ElasticsearchContainer().withEnv("discovery.type", "single-node");
+        container = new ElasticsearchContainer();
         container.start();
 
         // Create the client
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(container.getHost())
+        RestClientBuilder builder =  RestClient.builder(new HttpHost(container.getHost().getHostName(), container.getHost().getPort()))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         lowLevelClient = builder.build();
         client = new RestHighLevelClient(lowLevelClient);
