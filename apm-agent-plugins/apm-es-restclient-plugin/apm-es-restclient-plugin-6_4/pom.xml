@@ -32,10 +32,11 @@
 
         <!-- Elasticsearch testcontainer -->
         <dependency>
-            <groupId>fr.pilato.elasticsearch.testcontainers</groupId>
-            <artifactId>testcontainers-elasticsearch</artifactId>
-            <version>0.1</version>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${version.testcontainers}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 </project>

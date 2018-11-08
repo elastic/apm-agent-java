@@ -36,7 +36,7 @@ import co.elastic.apm.report.Reporter;
 import co.elastic.apm.report.ReporterConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
-import fr.pilato.elasticsearch.containers.ElasticsearchContainer;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -107,9 +107,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        // TODO: the env setting is to pass the bootstrap check of "vm.max_map_count" which fails on the CI env.
-        // TODO: Can be removed after changing to the official testcontainer
-        container = (ElasticsearchContainer) new ElasticsearchContainer().withEnv("discovery.type", "single-node");
+        container = new ElasticsearchContainer();
 
         // There is currently no way to change the ES port on the testcontainer, so it will conflict with the IT ES. So we just use the IT ES
         // container.start();
