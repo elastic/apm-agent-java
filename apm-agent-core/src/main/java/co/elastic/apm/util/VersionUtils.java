@@ -26,12 +26,15 @@ import java.util.Properties;
 
 public final class VersionUtils {
 
+    @Nullable
+    private static final String AGENT_VERSION = getVersionFromPomProperties(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+
     private VersionUtils() {
     }
 
     @Nullable
     public static String getAgentVersion() {
-        return getVersionFromPomProperties(VersionUtils.class, "co.elastic.apm", "elastic-apm-agent");
+        return AGENT_VERSION;
     }
 
     @Nullable
