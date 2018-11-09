@@ -153,9 +153,8 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     @TearDown
     public void tearDown() {
-        server.stop();
         tracer.stop();
-        ElasticApmAgent.reset();
+        server.stop();
         System.out.println("Reported: " + tracer.getReporter().getReported());
         System.out.println("Dropped: " + tracer.getReporter().getDropped());
         System.out.println("receivedPayloads = " + receivedPayloads);
