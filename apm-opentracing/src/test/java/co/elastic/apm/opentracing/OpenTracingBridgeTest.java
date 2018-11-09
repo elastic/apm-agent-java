@@ -39,9 +39,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.assertj.core.data.Offset.offset;
 
 class OpenTracingBridgeTest extends AbstractInstrumentationTest {
 
@@ -74,12 +76,12 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final long epochMicros = SystemClock.ForJava8CapableVM.INSTANCE.getEpochMicros();
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getDuration()).isLessThan(TimeUnit.MINUTES.toMillis(1));
-        assertThat(reporter.getFirstTransaction().getTimestamp()).isBetween(epochMicros - TimeUnit.MINUTES.toMicros(1), epochMicros);
+        assertThat(reporter.getFirstTransaction().getDuration()).isLessThan(MINUTES.toMillis(1));
+        assertThat(reporter.getFirstTransaction().getTimestamp()).isCloseTo(epochMicros, offset(MINUTES.toMicros(1)));
 
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getDuration()).isLessThan(TimeUnit.MINUTES.toMillis(1));
-        assertThat(reporter.getFirstSpan().getTimestamp()).isBetween(epochMicros - TimeUnit.MINUTES.toMicros(1), epochMicros);
+        assertThat(reporter.getFirstSpan().getDuration()).isLessThan(MINUTES.toMillis(1));
+        assertThat(reporter.getFirstSpan().getTimestamp()).isCloseTo(epochMicros, offset(MINUTES.toMicros(1)));
     }
 
     @Test
