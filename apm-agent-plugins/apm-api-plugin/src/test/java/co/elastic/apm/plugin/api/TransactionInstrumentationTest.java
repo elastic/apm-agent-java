@@ -69,6 +69,13 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
     }
+
+    @Test
+    void testResult() {
+        transaction.setResult("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+    }
     
     @Test
     public void createSpan() throws Exception {
