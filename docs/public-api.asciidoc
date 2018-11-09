@@ -330,6 +330,15 @@ try {
 NOTE: Spans created via this method can not be retrieved by calling <<api-current-span, `ElasticApm.currentSpan()`>>.
 
 [float]
+[[api-transaction-set-result]]
+==== `void setResult(String result)`
+A string describing the result of the transaction.
+This is typically the HTTP status code, or e.g. "success" for a background task
+
+* `result`: a string describing the result of the transaction
+
+
+[float]
 [[api-transaction-end]]
 ==== `void end()`
 Ends the transaction and schedules it to be reported to the APM Server.
