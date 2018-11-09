@@ -46,7 +46,8 @@ public interface Span {
      *
      * @param name the name of the span
      */
-    void setName(String name);
+    @Nonnull
+    Span setName(String name);
 
     /**
      * Sets the type of span.
@@ -61,7 +62,8 @@ public interface Span {
      *
      * @param type the type of the span
      */
-    void setType(String type);
+    @Nonnull
+    Span setType(String type);
 
     /**
      * A flat mapping of user-defined tags with string values.
@@ -76,7 +78,8 @@ public interface Span {
      * @param key   The tag key.
      * @param value The tag value.
      */
-    void addTag(String key, String value);
+    @Nonnull
+    Span addTag(String key, String value);
 
     /**
      * Start and return a new custom span as a child of this span.
@@ -105,6 +108,7 @@ public interface Span {
      *
      * @return the started span, never {@code null}
      */
+    @Nonnull
     Span createSpan();
 
     /**

@@ -42,7 +42,8 @@ public interface Transaction extends Span {
      *
      * @param name A string describing name of the transaction.
      */
-    void setName(String name);
+    @Nonnull
+    Transaction setName(String name);
 
     /**
      * The type of the transaction.
@@ -54,7 +55,11 @@ public interface Transaction extends Span {
      *
      * @param type The type of the transaction.
      */
-    void setType(String type);
+    @Nonnull
+    Transaction setType(String type);
+
+    @Nonnull
+    Transaction addTag(String key, String value);
 
     /**
      * Call this to enrich collected performance data and errors with information about the user/client.
@@ -70,7 +75,7 @@ public interface Transaction extends Span {
      * @param email    The user's email address or {@code null}, if not applicable.
      * @param username The user's name or {@code null}, if not applicable.
      */
-    void setUser(String id, String email, String username);
+    Transaction setUser(String id, String email, String username);
 
     /**
      * A string describing the result of the transaction.
@@ -78,7 +83,7 @@ public interface Transaction extends Span {
      *
      * @param result a string describing the result of the transaction
      */
-    void setResult(String result);
+    Transaction setResult(String result);
 
     /**
      * End tracking the transaction.
@@ -111,6 +116,7 @@ public interface Transaction extends Span {
      *
      * @return the started span, never {@code null}
      */
+    @Nonnull
     Span createSpan();
 
     /**

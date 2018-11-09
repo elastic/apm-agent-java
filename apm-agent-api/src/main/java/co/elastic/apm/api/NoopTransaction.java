@@ -25,29 +25,37 @@ enum NoopTransaction implements Transaction {
 
     INSTANCE;
 
+    @Nonnull
     @Override
-    public void setName(String name) {
+    public Transaction setName(String name) {
         // noop
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setType(String type) {
+        // noop
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, String value) {
+        // noop
+        return this;
     }
 
     @Override
-    public void setType(String type) {
+    public Transaction setUser(String id, String email, String username) {
         // noop
+        return this;
     }
 
     @Override
-    public void addTag(String key, String value) {
+    public Transaction setResult(String result) {
         // noop
-    }
-
-    @Override
-    public void setUser(String id, String email, String username) {
-        // noop
-    }
-
-    @Override
-    public void setResult(String result) {
-        // noop
+        return this;
     }
 
     @Override
@@ -83,6 +91,7 @@ enum NoopTransaction implements Transaction {
         return NoopScope.INSTANCE;
     }
 
+    @Nonnull
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
