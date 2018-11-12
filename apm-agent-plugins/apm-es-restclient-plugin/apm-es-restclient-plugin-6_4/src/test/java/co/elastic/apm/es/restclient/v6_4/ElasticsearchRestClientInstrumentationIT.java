@@ -58,6 +58,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
-        RestClientBuilder builder =  RestClient.builder(new HttpHost(container.getHost().getHostName(), container.getHost().getPort()))
+        RestClientBuilder builder = RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         client = new RestHighLevelClient(builder);
 
@@ -170,7 +171,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(http).isNotNull();
         assertThat(http.getMethod()).isEqualTo(method);
         assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo(container.getHost().toURI());
+        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
     }
 
     private void validateDbContextContent(Span span, String statement) {
