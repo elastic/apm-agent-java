@@ -53,7 +53,7 @@ set CATALINA_OPTS=%CATALINA_OPTS% -Delastic.apm.server_urls=http://localhost:830
 
 [float]
 [[setup-jetty]]
-==== Jetty
+=== Jetty
 
 Option 1: edit `jetty.sh`
 
