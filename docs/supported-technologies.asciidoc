@@ -26,13 +26,15 @@ the agent does not capture transactions.
 === Java versions
 
 |===
-|Vendor |Supported versions
+|Vendor |Supported versions | Notes
 
 |Oracle JDK
-|7, 8, 9, 10
+|7, 8, 9, 10, 11
+|`--module-path` has not been tested yet
 
 |Open JDK
-|7, 8, 9, 10
+|7, 8, 9, 10, 11
+|`--module-path` has not been tested yet
 
 |IBM J9 VM
 |8
@@ -148,3 +150,4 @@ Distributed tracing will only work if you are using one of the supported network
 * Certain OSGi containers need the following configuration setting in case you see exceptions like
   `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
   `org.osgi.framework.bootdelegation=co.elastic.apm.*`
+* Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
