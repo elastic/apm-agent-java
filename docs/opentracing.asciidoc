@@ -14,7 +14,7 @@ it translates the calls to the OpenTracing API to Elastic APM and thus allows fo
 The first span of a service will be converted to an Elastic APM
 https://www.elastic.co/guide/en/apm/get-started/master/transactions.html[`Transaction`],
 subsequent spans are mapped to Elastic APM
-https://www.elastic.co/guide/en/apm/get-started/master/transaction-span.html[`Span`].
+https://www.elastic.co/guide/en/apm/get-started/master/transaction-spans.html[`Span`].
 
 [float]
 [[operation-modes]]
