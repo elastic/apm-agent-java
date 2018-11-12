@@ -12,9 +12,9 @@ In other words,
 it translates the calls to the OpenTracing API to Elastic APM and thus allows for reusing existing instrumentation.
 
 The first span of a service will be converted to an Elastic APM
-link:{apm-get-started-ref}/transactions.html[Transaction],
+link:{apm-get-started-ref}/transactions.html[`Transaction`],
 subsequent spans are mapped to Elastic APM
-link:{apm-get-started-ref}/transactions-spans.html[Spans].
+link:{apm-get-started-ref}/transactions-spans.html[`Spans`].
 
 [float]
 [[operation-modes]]
@@ -120,7 +120,7 @@ Baggage items are silently dropped.
 ==== Logs
 Only exception logging is supported.
 Logging an Exception on the OpenTracing span will create an Elastic APM
-link:{apm-get-started-ref}/errors.html[Errors].
+link:{apm-get-started-ref}/errors.html[`Error`].
 Example:
 
 [source,java]
