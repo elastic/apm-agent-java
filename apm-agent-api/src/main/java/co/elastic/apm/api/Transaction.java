@@ -73,6 +73,14 @@ public interface Transaction extends Span {
     void setUser(String id, String email, String username);
 
     /**
+     * A string describing the result of the transaction.
+     * This is typically the HTTP status code, or e.g. "success" for a background task
+     *
+     * @param result a string describing the result of the transaction
+     */
+    void setResult(String result);
+
+    /**
      * End tracking the transaction.
      * <p>
      * Should be called e.g. at the end of a request or when ending a background task.

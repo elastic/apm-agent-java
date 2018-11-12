@@ -82,4 +82,16 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             }
         }
     }
+
+    public static class SetResultInstrumentation extends TransactionInstrumentation {
+        public SetResultInstrumentation() {
+            super(named("setResult"));
+        }
+
+        @Advice.OnMethodEnter()
+        private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                           @Advice.Argument(0) String result) {
+            transaction.withResult(result);
+        }
+    }
 }

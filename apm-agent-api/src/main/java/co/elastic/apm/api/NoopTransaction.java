@@ -46,6 +46,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public void setResult(String result) {
+        // noop
+    }
+
+    @Override
     public void end() {
         // noop
     }

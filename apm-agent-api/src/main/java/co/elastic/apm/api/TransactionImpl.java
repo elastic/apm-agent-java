@@ -40,6 +40,11 @@ class TransactionImpl extends SpanImpl implements Transaction {
         // co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
     }
 
+    @Override
+    public void setResult(String result) {
+
+    }
+
     @Nonnull
     @Override
     public String ensureParentId() {
