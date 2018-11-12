@@ -48,29 +48,7 @@ see the <<configuration,configuration guide>> on how to configure Elastic APM.
 === Add `javaagent` flag
 When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
 
-[float]
-[[spring-boot-javaagent]]
-==== Add `javaagent` flag for a Spring Boot application
-
-Start your spring application and add the `-javaagent` JVM flag:
-
-[source,bash]
-----
-java -javaagent:/path/to/elastic-apm-agent-<version>.jar -jar my-spring-boot-application.jar
-----
-
-[float]
-[[tomcat-javaagent]]
-==== Add `javaagent` flag for Apache Tomcat
-Create `$CATALINA_BASE/bin/setenv.sh` (or modify if the file already exists).
-
-Add the following line:
-
-[source,bash]
-.setenv.sh
-----
-export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
-----
+See <<application-server-setup>> for server specific installation instructions.
 
 [float]
 [[supported-technologies]]
