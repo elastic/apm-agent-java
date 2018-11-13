@@ -149,7 +149,7 @@ public class ServletApiAdvice {
                 for (String headerName : response.getHeaderNames()) {
                     resp.addHeader(headerName, response.getHeader(headerName));
                 }
-
+                request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     request.getParameterMap(), request.getServletPath(), request.getPathInfo());
             }
