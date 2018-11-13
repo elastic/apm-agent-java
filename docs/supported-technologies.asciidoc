@@ -151,3 +151,5 @@ Distributed tracing will only work if you are using one of the supported network
   `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
   `org.osgi.framework.bootdelegation=co.elastic.apm.*`
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
+* The agent does currently not support running on JVMs with an enabled `SecurityManager`.
+  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`
