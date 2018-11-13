@@ -75,4 +75,13 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans().get(0).isChildOf(reporter.getSpans().get(1))).isTrue();
         assertThat(reporter.getSpans().get(1).isChildOf(reporter.getFirstTransaction())).isTrue();
     }
+
+    @Test
+    void testSampled() {
+        assertThat(ElasticApm.currentSpan().isSampled()).isFalse();
+        assertThat(ElasticApm.currentTransaction().isSampled()).isFalse();
+        final Transaction transaction = ElasticApm.startTransaction();
+        assertThat(transaction.isSampled()).isTrue();
+        assertThat(transaction.createSpan().isSampled()).isTrue();
+    }
 }

@@ -1,6 +1,7 @@
 # next
 
 ## Features
+* Added `Transaction.isSampled()` and `Span.isSampled()` methods to the public API
 
 ## Bug Fixes
 

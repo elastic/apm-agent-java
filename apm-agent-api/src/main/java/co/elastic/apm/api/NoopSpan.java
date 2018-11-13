@@ -67,6 +67,11 @@ enum NoopSpan implements Span {
     }
 
     @Override
+    public boolean isSampled() {
+        return false;
+    }
+
+    @Override
     public Span createSpan() {
         return INSTANCE;
     }

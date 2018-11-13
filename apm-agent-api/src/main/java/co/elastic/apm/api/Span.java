@@ -181,4 +181,11 @@ public interface Span {
      */
     Scope activate();
 
+    /**
+     * Returns true if this span is recorded and sent to the APM Server
+     *
+     * @return true if this span is recorded and sent to the APM Server
+     */
+    boolean isSampled();
+
 }

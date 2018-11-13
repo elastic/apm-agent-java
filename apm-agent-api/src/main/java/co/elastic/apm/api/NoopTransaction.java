@@ -84,6 +84,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public boolean isSampled() {
+        return false;
+    }
+
+    @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
     }

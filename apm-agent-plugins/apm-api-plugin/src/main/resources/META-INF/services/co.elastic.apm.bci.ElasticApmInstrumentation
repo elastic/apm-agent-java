@@ -14,6 +14,7 @@ co.elastic.apm.plugin.api.SpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$GetTraceIdInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.plugin.api.SpanInstrumentation$ActivateInstrumentation
+co.elastic.apm.plugin.api.SpanInstrumentation$IsSampledInstrumentation
 co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
 co.elastic.apm.plugin.api.ApiScopeInstrumentation
 co.elastic.apm.plugin.api.CaptureTransactionInstrumentation
