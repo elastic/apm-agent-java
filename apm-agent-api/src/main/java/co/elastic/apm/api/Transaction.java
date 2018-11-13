@@ -150,9 +150,9 @@ public interface Transaction extends Span {
      * <pre>{@code
      * <script src="elastic-apm-js-base/dist/bundles/elastic-apm-js-base.umd.min.js"></script>
      * <script>
-     *   var elasticApm = initApm({
-     *     serviceName: '',
-     *     serverUrl: 'http://localhost:8200',
+     *   elasticApm.init({
+     *     serviceName: "service-name",
+     *     serverUrl: "http://localhost:8200",
      *     pageLoadTraceId: "${transaction.traceId}",
      *     pageLoadSpanId: "${transaction.ensureParentId()}",
      *     pageLoadSampled: ${transaction.sampled}
