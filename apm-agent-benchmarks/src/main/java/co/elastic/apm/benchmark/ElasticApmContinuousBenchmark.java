@@ -36,8 +36,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.SimpleSource;
@@ -50,12 +48,8 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -99,8 +93,8 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     private final boolean apmEnabled;
     private final byte[] buffer = new byte[32 * 1024];
-    protected MockHttpServletRequest request;
-    protected MockHttpServletResponse response;
+    protected HttpServletRequest request;
+    protected HttpServletResponse response;
     protected HttpServlet httpServlet;
     private Undertow server;
     private ElasticApmTracer tracer;
@@ -152,8 +146,8 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
     }
 
     @TearDown
-    public void tearDown() {
-        tracer.stop();
+    public void tearDown() throws ExecutionException, InterruptedException {
+        tracer.getReporter().flush().get();
         server.stop();
         System.out.println("Reported: " + tracer.getReporter().getReported());
         System.out.println("Dropped: " + tracer.getReporter().getDropped());
@@ -161,72 +155,25 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         System.out.println("receivedBytes = " + receivedBytes);
     }
 
-    private MockHttpServletRequest createRequest() {
-        final StringBuffer requestURL = new StringBuffer("http://30thh.loc:8480/app/test%3F/a%3F+b;jsessionid=S+ID");
-        final Enumeration<String> headers = Collections.enumeration(Arrays.asList("Authorization",
-            "Accept",
-            "Accept-Encoding",
-            "Accept-Language",
-            "Cache-Control",
-            "Connection"));
-
-        final HashMap<String, String[]> parameterMap = new HashMap<>();
-        parameterMap.put("p 1", new String[]{"c d"});
-        final MockHttpServletRequest req = new MockHttpServletRequest() {
-            @Override
-            public StringBuffer getRequestURL() {
-                return requestURL;
-            }
-
-            // MockHttpServletRequest is quite inefficient around headers; a lot of allocations happening...
-            @Override
-            public Enumeration<String> getHeaderNames() {
-                return headers;
-            }
-
-            @Override
-            public String getHeader(String name) {
-                switch (name) {
-                    case "Authorization":
-                        return "Basic foo:bar";
-                    case "Accept":
-                        return "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
-                    case "Accept-Encoding":
-                        return "gzip, deflate, br";
-                    case "Accept-Language":
-                        return "en-GB,en;q=0.9,en-US;q=0.8,de;q=0.7";
-                    case "Cache-Control":
-                        return "max-age=0";
-                    case "Connection":
-                        return "keep-alive";
-                    default:
-                        return null;
-                }
-            }
-
-            @Override
-            public Map<String, String[]> getParameterMap() {
-                return parameterMap;
-            }
-        };
+    private HttpServletRequest createRequest() {
+        final MockHttpServletRequest req = new MockHttpServletRequest("GET", "http://30thh.loc:8480/app/test%3F/a%3F+b;jsessionid=S+ID");
+        req.setHeader("Authorization", "Basic foo:bar");
+        req.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        req.setHeader("Accept-Encoding", "gzip, deflate, br");
+        req.setHeader("Accept-Language", "en-GB,en;q=0.9,en-US;q=0.8,de;q=0.7");
+        req.setHeader("Cache-Control", "max-age=0");
+        req.setHeader("Connection", "keep-alive");
+        req.setParameter("p 1", "c d");
         req.setContextPath("/app");
-        req.setLocalAddr("127.0.0.1");
-        req.setLocalName("30thh.loc");
-        req.setLocalPort(8480);
-        req.setMethod("GET");
         req.setPathInfo("/a?+b");
-        req.setProtocol("HTTP/1.1");
         req.setQueryString("p+1=c+d&p+2=e+f");
-        req.setRequestedSessionId("S%3F+ID");
         req.setRequestURI("/app/test%3F/a%3F+b;jsessionid=S+ID");
-        req.setScheme("http");
-        req.setServerName("30thh.loc");
-        req.setServerPort(8480);
         req.setServletPath("/test?");
+        req.setServerName("30thh.loc");
         return req;
     }
 
-    private MockHttpServletResponse createResponse() {
+    private HttpServletResponse createResponse() {
         return new MockHttpServletResponse();
     }
 
