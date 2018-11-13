@@ -26,6 +26,7 @@ import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -92,16 +93,18 @@ public class ServletApiAdvice {
                 request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
             }
             final Request req = transaction.getContext().getRequest();
-            if (transaction.isSampled() && request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    req.addCookie(cookie.getName(), cookie.getValue());
+            if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        req.addCookie(cookie.getName(), cookie.getValue());
+                    }
                 }
-            }
-            final Enumeration headerNames = request.getHeaderNames();
-            if (headerNames != null) {
-                while (headerNames.hasMoreElements()) {
-                    final String headerName = (String) headerNames.nextElement();
-                    req.addHeader(headerName, request.getHeader(headerName));
+                final Enumeration headerNames = request.getHeaderNames();
+                if (headerNames != null) {
+                    while (headerNames.hasMoreElements()) {
+                        final String headerName = (String) headerNames.nextElement();
+                        req.addHeader(headerName, request.getHeader(headerName));
+                    }
                 }
             }
 
@@ -144,10 +147,12 @@ public class ServletApiAdvice {
                 transaction.deactivate();
             } else {
                 // this is not an async request, so we can end the transaction immediately
-                final Response resp = transaction.getContext().getResponse();
                 final HttpServletResponse response = (HttpServletResponse) servletResponse;
-                for (String headerName : response.getHeaderNames()) {
-                    resp.addHeader(headerName, response.getHeader(headerName));
+                if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                    final Response resp = transaction.getContext().getResponse();
+                    for (String headerName : response.getHeaderNames()) {
+                        resp.addHeader(headerName, response.getHeader(headerName));
+                    }
                 }
                 request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
