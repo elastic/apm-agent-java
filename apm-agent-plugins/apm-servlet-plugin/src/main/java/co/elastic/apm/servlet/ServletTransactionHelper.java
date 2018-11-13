@@ -104,20 +104,21 @@ public class ServletTransactionHelper {
     }
 
     @VisibleForAdvice
-    public void fillRequestContext(Transaction transaction, @Nullable String userName, String protocol, String method, boolean secure,
+    public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr, StringBuffer requestURL) {
 
-        TransactionContext context = transaction.getContext();
         final Request request = transaction.getContext().getRequest();
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
+    }
 
+    @VisibleForAdvice
+    public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
         // only set username if not manually set
         if (context.getUser().getUsername() == null) {
             context.getUser().withUsername(userName);
         }
     }
-
 
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
