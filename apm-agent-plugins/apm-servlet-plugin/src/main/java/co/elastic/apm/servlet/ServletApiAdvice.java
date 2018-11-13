@@ -107,7 +107,7 @@ public class ServletApiAdvice {
 
             servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                request.getRemoteAddr(), request.getRequestURL());
+                request.getRemoteAddr());
         }
     }
 

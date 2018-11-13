@@ -106,10 +106,10 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                                   String remoteAddr, StringBuffer requestURL) {
+                                   String remoteAddr) {
 
         final Request request = transaction.getContext().getRequest();
-        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
+        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
     }
 
     @VisibleForAdvice
@@ -204,9 +204,9 @@ public class ServletTransactionHelper {
         response.withStatusCode(status);
     }
 
-    private void fillRequest(Request request, String protocol, String method, boolean secure,
-                             String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                             String remoteAddr, StringBuffer requestURL) {
+    private void fillRequest(Request request, String protocol, String method, boolean secure, String scheme, String serverName,
+                             int serverPort, String requestURI, String queryString,
+                             String remoteAddr) {
 
         request.withHttpVersion(getHttpVersion(protocol));
         request.withMethod(method);
@@ -222,7 +222,7 @@ public class ServletTransactionHelper {
             .withPathname(requestURI)
             .withSearch(queryString);
 
-        fillFullUrl(request.getUrl(), queryString, requestURL);
+        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
     }
 
     private boolean hasBody(PotentiallyMultiValuedMap headers, String method) {
@@ -241,15 +241,25 @@ public class ServletTransactionHelper {
         }
     }
 
-    private void fillFullUrl(Url url, @Nullable String queryString, StringBuffer requestURL) {
+    // inspired by org.apache.catalina.connector.Request.getRequestURL
+    private void fillFullUrl(Url url, String scheme, int port, String serverName, String requestURI, @Nullable String queryString) {
         // using a StringBuilder to avoid allocations when constructing the full URL
         final StringBuilder fullUrl = url.getFull();
+        if (port < 0) {
+            port = 80; // Work around java.net.URL bug
+        }
+
+        fullUrl.append(scheme);
+        fullUrl.append("://");
+        fullUrl.append(serverName);
+        if ((scheme.equals("http") && (port != 80))
+            || (scheme.equals("https") && (port != 443))) {
+            fullUrl.append(':');
+            fullUrl.append(port);
+        }
+        fullUrl.append(requestURI);
         if (queryString != null) {
-            fullUrl.ensureCapacity(requestURL.length() + 1 + queryString.length());
-            fullUrl.append(requestURL).append('?').append(queryString);
-        } else {
-            fullUrl.ensureCapacity(requestURL.length());
-            fullUrl.append(requestURL);
+            fullUrl.append('?').append(queryString);
         }
     }
 
