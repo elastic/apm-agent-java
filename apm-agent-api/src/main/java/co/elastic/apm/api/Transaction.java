@@ -202,4 +202,5 @@ public interface Transaction extends Span {
      */
     @Override
     Scope activate();
+
 }

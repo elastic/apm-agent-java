@@ -380,6 +380,11 @@ try (final Scope scope = transaction.activate()) {
 
 NOTE: <<api-transaction-activate>> and `Scope#close()` have to be called on the same thread.
 
+[float]
+[[api-transaction-is-sampled]]
+==== `boolean isSampled()`
+Returns true if this transaction is recorded and sent to the APM Server
+
 //----------------------------
 [float]
 [[api-span]]
@@ -528,3 +533,8 @@ NOTE: Calling any of the span's methods after <<api-span-end>> has been called i
 You may only interact with span when you have control over its lifecycle.
 For example, if a span is ended in another thread you must not add tags if there is a chance for a race between the <<api-span-end>>
 and the <<api-span-add-tag>> method.
+
+[float]
+[[api-span-is-sampled]]
+==== `boolean isSampled()`
+Returns true if this span is recorded and sent to the APM Server

@@ -95,4 +95,10 @@ class SpanImpl implements Span {
         return new ScopeImpl(span);
     }
 
+    @Override
+    public boolean isSampled() {
+        // co.elastic.apm.plugin.api.SpanInstrumentation.IsSampledInstrumentation
+        return false;
+    }
+
 }

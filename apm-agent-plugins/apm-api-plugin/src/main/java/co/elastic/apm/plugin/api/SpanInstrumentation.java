@@ -170,4 +170,17 @@ public class SpanInstrumentation extends ApiInstrumentation {
             span.activate();
         }
     }
+
+    public static class IsSampledInstrumentation extends SpanInstrumentation {
+        public IsSampledInstrumentation() {
+            super(named("isSampled"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                  @Advice.Return(readOnly = false) boolean sampled) {
+            sampled = span.isSampled();
+        }
+    }
 }
