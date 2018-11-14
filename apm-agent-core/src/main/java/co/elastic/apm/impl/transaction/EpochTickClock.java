@@ -50,7 +50,7 @@ public class EpochTickClock implements Recyclable {
      * @return the epoch microsecond timestamp at initialization time
      */
     public long init() {
-        return init(SystemClock.ForCurrentVM.INSTANCE.getEpochMicros(), System.nanoTime());
+        return init(System.currentTimeMillis() * 1000, System.nanoTime());
     }
 
     void init(long nanoTimeOffsetToEpoch) {
