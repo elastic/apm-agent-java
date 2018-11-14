@@ -2,8 +2,10 @@
 
 ## Features
 * Added `Transaction.isSampled()` and `Span.isSampled()` methods to the public API
+* Added `Transaction#setResult` to the public API (#293)
 
 ## Bug Fixes
+* Capturing the username now properly works when using Spring security (#183)
 
 # 1.0.0.RC1
 
