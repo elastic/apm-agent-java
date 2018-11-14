@@ -28,6 +28,7 @@ import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 /**
  * Based on brave.servlet.ServletRuntime$TracingAsyncListener (under Apache license 2.0)
@@ -84,12 +85,22 @@ public class ApmAsyncListener implements AsyncListener {
         HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
         HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
         final Response resp = transaction.getContext().getResponse();
-        for (String headerName : response.getHeaderNames()) {
-            resp.addHeader(headerName, response.getHeader(headerName));
+        if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
+            for (String headerName : response.getHeaderNames()) {
+                resp.addHeader(headerName, response.getHeader(headerName));
+            }
         }
-
+        // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
+        // so only call this method if necessary
+        final String contentTypeHeader = request.getHeader("Content-Type");
+        final Map<String, String[]> parameterMap;
+        if (transaction.isSampled() && servletTransactionHelper.captureParameters(request.getMethod(), contentTypeHeader)) {
+            parameterMap = request.getParameterMap();
+        } else {
+            parameterMap = null;
+        }
         servletTransactionHelper.onAfter(transaction, event.getThrowable(),
-            response.isCommitted(), response.getStatus(), request.getMethod(), request.getParameterMap(),
-            request.getServletPath(), request.getPathInfo());
+            response.isCommitted(), response.getStatus(), request.getMethod(), parameterMap,
+            request.getServletPath(), request.getPathInfo(), contentTypeHeader);
     }
 }

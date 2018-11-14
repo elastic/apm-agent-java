@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.Map;
 
 /**
  * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
@@ -154,9 +155,18 @@ public class ServletApiAdvice {
                         resp.addHeader(headerName, response.getHeader(headerName));
                     }
                 }
+                // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
+                // so only call this method if necessary
+                final String contentTypeHeader = request.getHeader("Content-Type");
+                final Map<String, String[]> parameterMap;
+                if (transaction.isSampled() && servletTransactionHelper.captureParameters(request.getMethod(), contentTypeHeader)) {
+                    parameterMap = request.getParameterMap();
+                } else {
+                    parameterMap = null;
+                }
                 request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    request.getParameterMap(), request.getServletPath(), request.getPathInfo());
+                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader);
             }
         }
     }

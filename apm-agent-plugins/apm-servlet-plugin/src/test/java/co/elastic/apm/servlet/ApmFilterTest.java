@@ -253,6 +253,18 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("CustomName");
     }
 
+    @Test
+    void testTraceparentWithoutHeaderRecording() throws IOException, ServletException {
+        when(webConfiguration.isCaptureHeaders()).thenReturn(false);
+        filterChain = new MockFilterChain(new TestServlet());
+        final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
+        get.addHeader("Elastic-Apm-Traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        filterChain.doFilter(get, new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getParentId().toString()).isEqualTo("b9c7c989f97918e1");
+    }
+
     public static class TestServlet extends HttpServlet {
     }
 
