@@ -25,7 +25,7 @@ see the <<public-api,public api documentation>>.
 The agent is only one of multiple components you need to get started with APM.
 Please also have a look at the documentation for
 
-* {apm-server-ref}/index.html[APM Server]
+* {apm-server-ref-64}/index.html[APM Server]
 * {ref}/index.html[Elasticsearch]
 
 [float]
