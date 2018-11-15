@@ -1,4 +1,4 @@
-= APM Java Agent Reference (Beta)
+= APM Java Agent Reference
 :branch: current
 include::{asciidoc-dir}/../../shared/attributes.asciidoc[]
 
