@@ -2,8 +2,6 @@
 
 set -exuo pipefail
 
-alias sudo='sudo -n'
-
 NOW_ISO_8601=$(date -u "+%Y-%m-%dT%H%M%SZ")
 
 echo $(pwd)
@@ -36,18 +34,18 @@ function setUp() {
     # set all CPUs to the base frequency
     for (( cpu=0; cpu<=${CORE_INDEX}; cpu++ ))
     do
-        sudo cpufreq-set -c ${cpu} --min ${BASE_FREQ} --max ${BASE_FREQ}
+        sudo -n cpufreq-set -c ${cpu} --min ${BASE_FREQ} --max ${BASE_FREQ}
     done
 
     # Build cgroups to isolate microbenchmarks and JVM threads
     echo "Creating groups for OS and microbenchmarks"
     # Isolate the OS to the first core
-    sudo cset set --set=/os --cpu=0-1
-    sudo cset proc --move --fromset=/ --toset=/os
+    sudo -n cset set --set=/os --cpu=0-1
+    sudo -n cset proc --move --fromset=/ --toset=/os
 
     # Isolate the microbenchmarks to all cores except the first two (first physical core)
     # On a 4 core CPU with hyper threading, this would be 6 cores (3 physical cores)
-    sudo cset set --set=/benchmark --cpu=2-${CORE_INDEX}
+    sudo -n cset set --set=/benchmark --cpu=2-${CORE_INDEX}
 }
 
 function benchmark() {
@@ -59,7 +57,7 @@ function benchmark() {
     RESULT_FILE=apm-agent-benchmark-results-${COMMIT_ISO_8601}.json
     BULK_UPLOAD_FILE=apm-agent-bulk-${NOW_ISO_8601}.json
 
-    sudo cset proc --exec /benchmark -- \
+    sudo -n cset proc --exec /benchmark -- \
         $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" \
         -prof gc \
         -prof co.elastic.apm.benchmark.profiler.ReporterProfiler \
@@ -76,13 +74,13 @@ function benchmark() {
 
 function tearDown() {
     echo "Destroying cgroups"
-    sudo cset set --destroy /os
-    sudo cset set --destroy /benchmark
+    sudo -n cset set --destroy /os
+    sudo -n cset set --destroy /benchmark
 
     echo "Setting normal frequency range"
     for (( cpu=0; cpu<=${CORE_INDEX}; cpu++ ))
     do
-        sudo cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ}
+        sudo -n cpufreq-set -c ${cpu} --min ${MIN_FREQ} --max ${MAX_FREQ}
     done
 }
 
