@@ -170,7 +170,7 @@ pipeline {
           steps {
             withEnvWrapper() {
               unstash 'source'
-              dir("${BASE_DIR}"){    
+              dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 ./scripts/jenkins/run-benchmarks.sh
                 """
