@@ -105,10 +105,9 @@ public class ServletApiAdvice {
                 }
             }
 
-            final Principal userPrincipal = request.getUserPrincipal();
-            servletTransactionHelper.fillRequestContext(transaction, userPrincipal != null ? userPrincipal.getName() : null,
-                request.getProtocol(), request.getMethod(), request.isSecure(), request.getScheme(), request.getServerName(),
-                request.getServerPort(), request.getRequestURI(), request.getQueryString(), request.getRemoteAddr(), request.getRequestURL());
+            servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
+                request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
+                request.getRemoteAddr());
         }
     }
 
@@ -128,7 +127,10 @@ public class ServletApiAdvice {
         if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
-                ServletTransactionHelper.setTransactionNameByServletClass(((HttpServletRequest) servletRequest).getMethod(), thiz.getClass(), currentTransaction.getName());
+                final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getName());
+                final Principal userPrincipal = httpServletRequest.getUserPrincipal();
+                ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }
         }
         if (servletTransactionHelper != null &&
@@ -147,7 +149,7 @@ public class ServletApiAdvice {
                 for (String headerName : response.getHeaderNames()) {
                     resp.addHeader(headerName, response.getHeader(headerName));
                 }
-
+                request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     request.getParameterMap(), request.getServletPath(), request.getPathInfo());
             }

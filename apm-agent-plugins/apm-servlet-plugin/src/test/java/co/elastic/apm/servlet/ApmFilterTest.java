@@ -192,7 +192,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-                tracer.getActive().captureException(new RuntimeException("Test exception capturing"));
+                tracer.activeSpan().captureException(new RuntimeException("Test exception capturing"));
             }
         });
 
@@ -209,7 +209,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
                 tracer.currentTransaction().setUser("id", "email", "username");
-                tracer.getActive().captureException(new RuntimeException("Test exception capturing"));
+                tracer.activeSpan().captureException(new RuntimeException("Test exception capturing"));
             }
         });
 
@@ -226,7 +226,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-                tracer.getActive().captureException(new RuntimeException("Test exception capturing"));
+                tracer.activeSpan().captureException(new RuntimeException("Test exception capturing"));
                 tracer.currentTransaction().setUser("id", "email", "username");
             }
         });

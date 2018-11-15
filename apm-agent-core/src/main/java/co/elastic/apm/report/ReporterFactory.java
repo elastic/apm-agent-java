@@ -28,23 +28,15 @@ import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import co.elastic.apm.util.VersionUtils;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 public class ReporterFactory {
 
@@ -54,7 +46,6 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        final OkHttpClient httpClient = getOkHttpClient(reporterConfiguration);
         ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -64,7 +55,7 @@ public class ReporterFactory {
                 return thread;
             }
         });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(httpClient, reporterConfiguration));
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration));
         healthCheckExecutorService.shutdown();
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
             frameworkVersion, reporterConfiguration);
@@ -87,45 +78,11 @@ public class ReporterFactory {
             processorEventHandler, payloadSerializer);
     }
 
-    @Nonnull
-    OkHttpClient getOkHttpClient(ReporterConfiguration reporterConfiguration) {
-        final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .connectTimeout(reporterConfiguration.getServerTimeout().getMillis(), TimeUnit.MILLISECONDS);
-        if (!reporterConfiguration.isVerifyServerCert()) {
-            disableCertificateValidation(builder);
-        }
-        if (logger.isTraceEnabled()) {
-            final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-            builder.addInterceptor(loggingInterceptor);
-        }
-        builder.addInterceptor(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request originalRequest = chain.request();
-                Request requestWithUserAgent = originalRequest.newBuilder()
-                    .header("User-Agent", userAgent)
-                    .build();
-                return chain.proceed(chain.request());
-            }
-        });
-        return builder.build();
-    }
-
     private String getUserAgent() {
         String agentVersion = VersionUtils.getAgentVersion();
         if (agentVersion != null) {
             return "apm-agent-java " + agentVersion;
         }
         return "apm-agent-java";
-    }
-
-    private void disableCertificateValidation(OkHttpClient.Builder builder) {
-        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
-        if (sf != null) {
-            builder
-                .sslSocketFactory(sf, SslUtils.getTrustAllTrustManager())
-                .hostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
-        }
     }
 }

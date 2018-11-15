@@ -47,7 +47,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     private String result;
 
     /**
-     * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
+     * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
      */
     private boolean noop;
 
@@ -55,16 +55,16 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
         onStart();
-        if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
+        if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
             traceContext.asRootSpan(sampler);
         }
-        this.timestamp = clock.init();
         if (epochMicros >= 0) {
             this.timestamp = epochMicros;
+        } else {
+            this.timestamp = traceContext.getClock().getEpochMicros();
         }
-        this.noop = false;
         return this;
     }
 
@@ -157,11 +157,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         result = null;
         spanCount.resetState();
         noop = false;
-    }
-
-    @Override
-    public Transaction getTransaction() {
-        return this;
     }
 
     public void recycle() {

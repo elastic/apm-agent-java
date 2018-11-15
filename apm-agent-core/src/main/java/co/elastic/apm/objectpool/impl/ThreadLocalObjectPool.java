@@ -20,7 +20,7 @@
 package co.elastic.apm.objectpool.impl;
 
 import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.objectpool.Allocator;
 
 import javax.annotation.Nullable;
 
@@ -30,8 +30,8 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     private final int maxNumPooledObjectsPerThread;
     private final boolean preAllocate;
 
-    public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final RecyclableObjectFactory<T> recyclableObjectFactory) {
-        super(recyclableObjectFactory);
+    public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final Allocator<T> allocator) {
+        super(allocator);
         this.maxNumPooledObjectsPerThread = maxNumPooledObjectsPerThread;
         this.preAllocate = preAllocate;
     }
@@ -78,7 +78,7 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
         FixedSizeStack<T> stack = new FixedSizeStack<>(maxNumPooledObjectsPerThread);
         if (preAllocate) {
             for (int i = 0; i < maxNumPooledObjectsPerThread; i++) {
-                stack.push(recyclableObjectFactory.createInstance());
+                stack.push(allocator.createInstance());
             }
         }
         return stack;

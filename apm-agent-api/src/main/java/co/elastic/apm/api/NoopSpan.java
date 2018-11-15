@@ -55,6 +55,22 @@ enum NoopSpan implements Span {
         return "";
     }
 
+    @Nonnull
+    @Override
+    public String getTraceId() {
+        return "";
+    }
+
+    @Override
+    public Scope activate() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
+    public boolean isSampled() {
+        return false;
+    }
+
     @Override
     public Span createSpan() {
         return INSTANCE;

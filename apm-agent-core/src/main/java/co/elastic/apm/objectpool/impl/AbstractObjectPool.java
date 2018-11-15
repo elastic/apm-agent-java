@@ -20,18 +20,17 @@
 package co.elastic.apm.objectpool.impl;
 
 import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.objectpool.Allocator;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractObjectPool<T extends Recyclable> implements ObjectPool<T> {
+public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
 
-    protected final RecyclableObjectFactory<T> recyclableObjectFactory;
+    protected final Allocator<T> allocator;
     private final AtomicInteger garbageCreated = new AtomicInteger();
 
-    protected AbstractObjectPool(RecyclableObjectFactory<T> recyclableObjectFactory) {
-        this.recyclableObjectFactory = recyclableObjectFactory;
+    protected AbstractObjectPool(Allocator<T> allocator) {
+        this.allocator = allocator;
     }
 
     @Override
@@ -40,7 +39,7 @@ public abstract class AbstractObjectPool<T extends Recyclable> implements Object
         if (recyclable == null) {
             // queue is empty, falling back to creating a new instance
             garbageCreated.incrementAndGet();
-            return recyclableObjectFactory.createInstance();
+            return allocator.createInstance();
         } else {
             return recyclable;
         }

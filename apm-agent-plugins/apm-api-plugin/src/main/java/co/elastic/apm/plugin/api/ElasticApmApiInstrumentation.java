@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.ElasticApm.
  */
-public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
+public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
     static final String PUBLIC_API_INSTRUMENTATION_GROUP = "public-api";
     private final ElementMatcher<? super MethodDescription> methodMatcher;
@@ -52,16 +52,6 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return methodMatcher;
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
     }
 
     public static class StartTransactionInstrumentation extends ElasticApmApiInstrumentation {
@@ -101,7 +91,7 @@ public class ElasticApmApiInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit
         private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.getActive();
+                span = tracer.activeSpan();
             }
         }
     }

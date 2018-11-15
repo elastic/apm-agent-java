@@ -58,6 +58,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
+    public static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
 
     private final ReporterConfiguration reporterConfiguration;
     private final ProcessorEventHandler processorEventHandler;
@@ -166,6 +167,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         try {
             writeEvent(event);
         } catch (Exception e) {
+            // end request on error to start backing off
+            flush();
             onConnectionError(null, currentlyTransmitting, 0);
         }
         if (shouldFlush()) {
@@ -217,7 +220,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                 connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
             }
             connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-            connection.setRequestProperty("User-Agent", "java-agent/" + VersionUtils.getAgentVersion());
+            connection.setRequestProperty("User-Agent", USER_AGENT);
             connection.setRequestProperty("Content-Encoding", "deflate");
             connection.setRequestProperty("Content-Type", "application/x-ndjson");
             connection.setUseCaches(false);
@@ -329,6 +332,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
             serverUrlIterator.next();
+        } else if (responseCode == 404) {
+            logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                "Please use APM Server 6.5.0 or newer.");
         }
     }
 

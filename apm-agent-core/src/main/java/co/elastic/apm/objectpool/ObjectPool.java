@@ -22,7 +22,7 @@ package co.elastic.apm.objectpool;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 
-public interface ObjectPool<T extends Recyclable> extends Closeable {
+public interface ObjectPool<T> extends Closeable {
     @Nullable
     T tryCreateInstance();
 

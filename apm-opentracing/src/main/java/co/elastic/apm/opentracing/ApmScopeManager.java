@@ -30,11 +30,21 @@ class ApmScopeManager implements ScopeManager {
     @Override
     public ApmScope activate(@Nonnull Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
-        doActivate(apmSpan.getSpan());
+        final Object traceContext = apmSpan.context().getTraceContext();
+        if (traceContext != null) {
+            // prevents other threads from concurrently setting ApmSpan.dispatcher to null
+            // we can't synchronize on the internal span object, as it might be finished already
+            // we can't synchronize on the ApmSpan, as ApmScopeManager.active() returns a different instance than ApmScopeManager.activate(Span)
+            synchronized (traceContext) {
+                // apmSpan.getSpan() has to be called within the synchronized block to avoid race conditions,
+                // so we can't do the synchronization in ScopeManagerInstrumentation
+                doActivate(apmSpan.getSpan(), traceContext);
+            }
+        }
         return new ApmScope(finishSpanOnClose, apmSpan);
     }
 
-    private void doActivate(@Nullable Object span) {
+    private void doActivate(@Nullable Object span, Object traceContext) {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
     }
 
@@ -42,15 +52,25 @@ class ApmScopeManager implements ScopeManager {
     @Nullable
     public ApmScope active() {
         final Object span = getCurrentSpan();
-        if (span == null) {
-            return null;
-        } else {
+        if (span != null) {
             return new ApmScope(false, new ApmSpan(span));
+        } else {
+            final Object traceContext = getCurrentTraceContext();
+            if (traceContext != null) {
+                return new ApmScope(false, new ApmSpan(new TraceContextSpanContext(traceContext)));
+            }
         }
+        return null;
     }
 
     @Nullable
     private Object getCurrentSpan() {
+        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
+        return null;
+    }
+
+    @Nullable
+    private Object getCurrentTraceContext() {
         // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ScopeManagerInstrumentation
         return null;
     }

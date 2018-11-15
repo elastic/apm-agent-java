@@ -250,7 +250,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
+Valid options are `annotations`, `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -651,20 +651,21 @@ The default unit for this option is `s`
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
-Maximum queue length of transactions before sending transactions to the APM server.
+The maximum size of buffered events.
 
-A lower value will increase the load on your APM server,
-while a higher value can increase the memory pressure of your app.
+Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
 
-A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
+If the queue is full, events are rejected which means you will lose transactions and spans in that case.
+This guards the application from crashing in case the APM server is unavailable for a longer period of time.
 
-This setting is useful to limit memory consumption if you experience a sudden spike of traffic.
+A lower value will decrease the heap overhead of the agent,
+while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `500` | Integer | true
+| `512` | Integer | true
 |============
 
 
@@ -703,6 +704,9 @@ Disabled by default to save disk space.
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
 Setting this option can also improve the startup time.
+
+In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
+it is required to set these options.
 
 
 [options="header"]
@@ -875,7 +879,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
+# Valid options are `annotations`, `apache-httpclient`, `elasticsearch-restclient`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `opentracing`, `public-api`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1104,20 +1108,21 @@ The default unit for this option is `ms`
 #
 # flush_interval=1s
 
-# Maximum queue length of transactions before sending transactions to the APM server.
+# The maximum size of buffered events.
 # 
-# A lower value will increase the load on your APM server,
-# while a higher value can increase the memory pressure of your app.
+# Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server or if the APM server is down.
 # 
-# A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
+# If the queue is full, events are rejected which means you will lose transactions and spans in that case.
+# This guards the application from crashing in case the APM server is unavailable for a longer period of time.
 # 
-# This setting is useful to limit memory consumption if you experience a sudden spike of traffic.
+# A lower value will decrease the heap overhead of the agent,
+# while a higher value makes it less likely to lose events in case of a temporary spike in throughput.
 #
 # This setting can be changed at runtime
 # Type: Integer
-# Default value: 500
+# Default value: 512
 #
-# max_queue_size=500
+# max_queue_size=512
 
 # Whether each transaction should have the process arguments attached.
 # Disabled by default to save disk space.
@@ -1134,6 +1139,9 @@ The default unit for this option is `ms`
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
 # Setting this option can also improve the startup time.
+# 
+# In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
+# it is required to set these options.
 #
 # This setting can be changed at runtime
 # Type: comma separated list

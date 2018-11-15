@@ -20,19 +20,18 @@
 package co.elastic.apm.objectpool.impl;
 
 import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.objectpool.RecyclableObjectFactory;
+import co.elastic.apm.objectpool.Allocator;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-public class MixedObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
+public class MixedObjectPool<T> extends AbstractObjectPool<T> {
 
     private final ObjectPool<T> primaryPool;
     private final ObjectPool<T> secondaryPool;
 
-    public MixedObjectPool(final RecyclableObjectFactory<T> recyclableObjectFactory, ObjectPool<T> primaryPool, ObjectPool<T> secondaryPool) {
-        super(recyclableObjectFactory);
+    public MixedObjectPool(final Allocator<T> allocator, ObjectPool<T> primaryPool, ObjectPool<T> secondaryPool) {
+        super(allocator);
         this.primaryPool = primaryPool;
         this.secondaryPool = secondaryPool;
     }

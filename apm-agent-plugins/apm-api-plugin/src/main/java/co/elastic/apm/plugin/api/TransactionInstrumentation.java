@@ -19,8 +19,8 @@
  */
 package co.elastic.apm.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -28,17 +28,12 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
  */
-public class TransactionInstrumentation extends ElasticApmInstrumentation {
+public class TransactionInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -56,55 +51,6 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    public static class SetNameInstrumentation extends TransactionInstrumentation {
-        public SetNameInstrumentation() {
-            super(named("setName"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setName(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                   @Advice.Argument(0) String name) {
-            transaction.setName(name);
-        }
-    }
-
-    public static class SetTypeInstrumentation extends TransactionInstrumentation {
-        public SetTypeInstrumentation() {
-            super(named("setType"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void setType(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                   @Advice.Argument(0) String type) {
-            transaction.withType(type);
-        }
-    }
-
-    public static class AddTagInstrumentation extends TransactionInstrumentation {
-        public AddTagInstrumentation() {
-            super(named("addTag"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void addTag(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                  @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            transaction.addTag(key, value);
-        }
-    }
-
     public static class SetUserInstrumentation extends TransactionInstrumentation {
         public SetUserInstrumentation() {
             super(named("setUser"));
@@ -112,62 +58,40 @@ public class TransactionInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter
-        public static void setUser(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+        public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             transaction.setUser(id, email, username);
         }
     }
 
-    public static class EndInstrumentation extends TransactionInstrumentation {
-        public EndInstrumentation() {
-            super(named("end"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodEnter
-        public static void end(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction) {
-            transaction.end();
-        }
-    }
-
-    public static class DoCreateSpanInstrumentation extends TransactionInstrumentation {
-        public DoCreateSpanInstrumentation() {
-            super(named("doCreateSpan"));
+    public static class EnsureParentIdInstrumentation extends TransactionInstrumentation {
+        public EnsureParentIdInstrumentation() {
+            super(named("ensureParentId"));
         }
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                        @Advice.Return(readOnly = false) Object span) {
-            span = transaction.createSpan();
-        }
-    }
-
-    public static class CaptureExceptionInstrumentation extends TransactionInstrumentation {
-        public CaptureExceptionInstrumentation() {
-            super(named("captureException").and(takesArguments(Throwable.class)));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                        @Advice.Argument(0) Throwable t) {
-            transaction.captureException(t);
-        }
-    }
-
-    public static class GetIdInstrumentation extends TransactionInstrumentation {
-        public GetIdInstrumentation() {
-            super(named("getId").and(takesArguments(0)));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "transaction", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
-                                        @Advice.Return(readOnly = false) String id) {
+        public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                          @Advice.Return(readOnly = false) String spanId) {
             if (tracer != null) {
-                id = transaction.getTraceContext().getId().toString();
+                final TraceContext traceContext = transaction.getTraceContext();
+                if (traceContext.getParentId().isEmpty()) {
+                    traceContext.getParentId().setToRandomValue();
+                }
+                spanId = traceContext.getParentId().toString();
             }
+        }
+    }
+
+    public static class SetResultInstrumentation extends TransactionInstrumentation {
+        public SetResultInstrumentation() {
+            super(named("setResult"));
+        }
+
+        @Advice.OnMethodEnter()
+        private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
+                                           @Advice.Argument(0) String result) {
+            transaction.withResult(result);
         }
     }
 }

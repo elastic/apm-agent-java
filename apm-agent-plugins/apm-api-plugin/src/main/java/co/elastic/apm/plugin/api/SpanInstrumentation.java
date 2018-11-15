@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import net.bytebuddy.asm.Advice;
@@ -28,17 +27,13 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
  */
-public class SpanInstrumentation extends ElasticApmInstrumentation {
+public class SpanInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -54,16 +49,6 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return methodMatcher;
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(PUBLIC_API_INSTRUMENTATION_GROUP);
     }
 
     public static class SetNameInstrumentation extends SpanInstrumentation {
@@ -138,10 +123,25 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
                 id = span.getTraceContext().getId().toString();
+            }
+        }
+    }
+
+    public static class GetTraceIdInstrumentation extends SpanInstrumentation {
+        public GetTraceIdInstrumentation() {
+            super(named("getTraceId").and(takesArguments(0)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                        @Advice.Return(readOnly = false) String traceId) {
+            if (tracer != null) {
+                traceId = span.getTraceContext().getTraceId().toString();
             }
         }
     }
@@ -156,6 +156,31 @@ public class SpanInstrumentation extends ElasticApmInstrumentation {
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
             span.addTag(key, value);
+        }
+    }
+
+    public static class ActivateInstrumentation extends SpanInstrumentation {
+        public ActivateInstrumentation() {
+            super(named("activate"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
+            span.activate();
+        }
+    }
+
+    public static class IsSampledInstrumentation extends SpanInstrumentation {
+        public IsSampledInstrumentation() {
+            super(named("isSampled"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                  @Advice.Return(readOnly = false) boolean sampled) {
+            sampled = span.isSampled();
         }
     }
 }

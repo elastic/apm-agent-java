@@ -22,6 +22,7 @@ package co.elastic.apm.opentracing.impl;
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -37,12 +38,16 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
 
-
     @VisibleForAdvice
     @Advice.OnMethodEnter(inline = false)
-    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span) {
-        if (span != null) {
-            span.deactivate();
+    public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher,
+                               @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
+        if (dispatcher != null) {
+            dispatcher.deactivate();
+        } else if (traceContext != null) {
+            if (tracer != null) {
+                tracer.deactivate(traceContext);
+            }
         }
     }
 

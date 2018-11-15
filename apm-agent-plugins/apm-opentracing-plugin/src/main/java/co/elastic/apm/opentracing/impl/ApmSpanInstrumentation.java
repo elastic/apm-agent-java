@@ -23,7 +23,6 @@ import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.transaction.AbstractSpan;
 import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
@@ -31,6 +30,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -38,8 +39,12 @@ import java.util.Collections;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(ApmSpanInstrumentation.class);
 
     static final String OPENTRACING_INSTRUMENTATION_GROUP = "opentracing";
 
@@ -74,14 +79,17 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             super(named("finishInternal"));
         }
 
-        @VisibleForAdvice
-        @Advice.OnMethodEnter(inline = false)
-        public static void finishInternal(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                          @Advice.Argument(0) long finishMicros) {
-            if (span == null) {
-                return;
+        @Advice.OnMethodEnter
+        private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                                           @Advice.Argument(0) long finishMicros) {
+            if (span != null) {
+                doFinishInternal(span, finishMicros);
+                span = null;
             }
+        }
 
+        @VisibleForAdvice
+        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros) {
             if (span.getType() == null) {
                 if (span instanceof Transaction) {
                     Transaction transaction = (Transaction) span;
@@ -112,27 +120,40 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void setOperationName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                             @Advice.Argument(0) @Nullable String operationName) {
             if (span != null) {
                 span.setName(operationName);
+            } else {
+                logger.warn("Calling setOperationName on an already finished span");
             }
         }
     }
 
-    public static class CreateErrorInstrumentation extends ApmSpanInstrumentation {
-        public CreateErrorInstrumentation() {
-            super(named("createError"));
+    public static class LogInstrumentation extends ApmSpanInstrumentation {
+        public LogInstrumentation() {
+            super(named("log").and(takesArguments(long.class, Map.class)));
         }
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void createError(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                       @Advice.Argument(0) long epochTimestampMillis,
-                                       @Advice.Argument(1) Map<String, ?> fields) {
-            final Object errorObject = fields.get("error.object");
-            if (span != null && errorObject instanceof Throwable) {
-                span.captureException(epochTimestampMillis, (Throwable) errorObject);
+        public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+                               @Advice.Argument(0) long epochTimestampMicros,
+                               @Advice.Argument(1) Map<String, ?> fields) {
+
+            if (span != null) {
+                if ("error".equals(fields.get("event"))) {
+                    final Object errorObject = fields.get("error.object");
+                    if (errorObject instanceof Throwable) {
+                        if (epochTimestampMicros > 0) {
+                            span.captureException(epochTimestampMicros, (Throwable) errorObject);
+                        } else {
+                            span.captureException((Throwable) errorObject);
+                        }
+                    }
+                }
+            } else {
+                logger.warn("Calling log on an already finished span");
             }
         }
     }
@@ -145,7 +166,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(inline = false)
-        public static void handleTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
+        public static void handleTag(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                      @Advice.Argument(0) String key,
                                      @Advice.Argument(1) @Nullable Object value) {
             if (value == null) {
@@ -155,6 +176,8 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 handleTransactionTag((Transaction) span, key, value);
             } else if (span instanceof Span) {
                 handleSpanTag((Span) span, key, value);
+            } else {
+                logger.warn("Calling setTag on an already finished span");
             }
         }
 
@@ -250,25 +273,17 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    public static class BaggageItemsInstrumentation extends ApmSpanInstrumentation {
+    public static class GetTraceContextInstrumentation extends ApmSpanInstrumentation {
 
-        public BaggageItemsInstrumentation() {
-            super(named("baggageItems"));
+        public GetTraceContextInstrumentation() {
+            super(named("getTraceContext"));
         }
 
         @Advice.OnMethodExit
-        public static void baggageItems(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                        @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
-            baggage = doGetBaggage(span);
-        }
-
-        @VisibleForAdvice
-        public static Iterable<Map.Entry<String, String>> doGetBaggage(@Nullable AbstractSpan<?> span) {
-            if (span != null) {
-                String traceParentHeader = span.getTraceContext().getOutgoingTraceParentHeader().toString();
-                return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceParentHeader).entrySet();
-            } else {
-                return Collections.emptyList();
+        public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
+                                           @Advice.Return(readOnly = false) Object traceContext) {
+            if (abstractSpan != null) {
+                traceContext = abstractSpan.getTraceContext().copy();
             }
         }
     }

@@ -53,10 +53,10 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodEnter
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                       @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
+        if (tracer == null || tracer.activeSpan() == null) {
             return;
         }
-        final AbstractSpan<?> parent = tracer.getActive();
+        final AbstractSpan<?> parent = tracer.activeSpan();
         span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
             request.getURI().getHost(), SPAN_TYPE_SPRING_REST_TEMPLATE);
         if (span != null) {
