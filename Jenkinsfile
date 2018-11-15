@@ -153,7 +153,7 @@ pipeline {
           }
         }
         stage('Benchmarks') {
-          agent { label 'linux && immutable' }
+          agent { label 'metal' }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
