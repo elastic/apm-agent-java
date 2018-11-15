@@ -95,7 +95,7 @@ pipeline {
     Build on a linux environment.
     */
     stage('build') { 
-      agent { label 'linux' }
+      agent { label 'linux && immutable' }
       environment {
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
@@ -120,7 +120,7 @@ pipeline {
       failFast true
       parallel {
         stage('test') {
-          agent { label 'linux' }
+          agent { label 'linux && immutable' }
           environment {
             PATH = "${env.PATH}:${env.HUDSON_HOME}/go/bin/:${env.WORKSPACE}/bin"
             GOPATH = "${env.WORKSPACE}"
@@ -151,7 +151,7 @@ pipeline {
           }
         }
         stage('Benchmarks') {
-          agent { label 'linux' }
+          agent { label 'linux && immutable' }
           environment {
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
@@ -188,7 +188,7 @@ pipeline {
          run Go integration test with the commit version on master branch.
         */
         stage('Integration test master') { 
-          agent { label 'linux' }
+          agent { label 'linux && immutable' }
           when { 
             beforeAgent true
             allOf { 
@@ -215,7 +215,7 @@ pipeline {
          run Go integration test with the commit version on a PR.
         */
         stage('Integration test PR') { 
-          agent { label 'linux' }
+          agent { label 'linux && immutable' }
           when { 
             beforeAgent true
             allOf { 
@@ -244,7 +244,7 @@ pipeline {
     }
         
     stage('Documentation') { 
-      agent { label 'linux' }
+      agent { label 'linux && immutable' }
       environment {
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
