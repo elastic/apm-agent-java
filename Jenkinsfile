@@ -172,10 +172,16 @@ pipeline {
             withEnvWrapper() {
               unstash 'source'
               dir("${BASE_DIR}"){
+                script {
+                  env.COMMIT_ISO_8601 = sh(script: "git log -1 -s --format=%cI", returnStdout: true)
+                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true)
+                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+                }
                 sh """#!/bin/bash
                 ./scripts/jenkins/run-benchmarks.sh
                 """
-                sendBenchmarks(file: 'build/bench.out', index: "benchmark-java")
+                sendBenchmarks(file: "${BULK_UPLOAD_FILE}", index: "benchmark-java", bulk: true)
               }
             }
           } 
@@ -184,10 +190,12 @@ pipeline {
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/build/junit-*.xml")
+              archiveArtifacts(allowEmptyArchive: true, 
+                artifacts: "${RESULT_FILE},${BULK_UPLOAD_FILE}", 
+                onlyIfSuccessful: false)
             }
           }
         }
-        
         /**
          run Go integration test with the commit version on master branch.
         */

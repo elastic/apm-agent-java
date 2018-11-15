@@ -2,7 +2,7 @@
 
 set -exuo pipefail
 
-NOW_ISO_8601=$(date -u "+%Y-%m-%dT%H%M%SZ")
+NOW_ISO_8601=${NOW_ISO_8601:-$(date -u "+%Y-%m-%dT%H%M%SZ")}
 
 echo $(pwd)
 
