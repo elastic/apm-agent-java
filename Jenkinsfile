@@ -110,7 +110,7 @@ pipeline {
           unstash 'source'
           dir("${BASE_DIR}"){    
             sh """#!/bin/bash
-            ./mvnw clean package -DskipTests=true
+            ./mvnw clean package -DskipTests=true  -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
             """
           }
         }
@@ -135,7 +135,7 @@ pipeline {
               unstash 'source'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                ./mvnw clean verify --batch-mode
+                ./mvnw clean verify --batch-mode  -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
                 """
                 codecov('apm-agent-java')
               }
@@ -169,7 +169,7 @@ pipeline {
               unstash 'source'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                .ci/run-benchmarks0.sh
+                ./scripts/jenkins/run-benchmarks.sh
                 """
                 sendBenchmarks(file: 'build/bench.out', index: "benchmark-java")
               }
@@ -219,7 +219,7 @@ pipeline {
           when { 
             beforeAgent true
             allOf { 
-              not { branch 'master' };
+              changeRequest()
               environment name: 'integration_test_pr_ci', value: 'true' 
             }
           }
