@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-set -e
+set -exuo pipefail
+
+alias sudo='sudo -n'
 
 NOW_ISO_8601=$(date -u "+%Y-%m-%dT%H%M%SZ")
 
