@@ -10,7 +10,6 @@ retriever: modernSCM(
 pipeline {
   agent any
   environment {
-    HOME = "${env.HUDSON_HOME}"
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
   }
@@ -44,6 +43,7 @@ pipeline {
     stage('Checkout') {
       agent { label 'master || linux' }
       environment {
+        HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
@@ -97,6 +97,7 @@ pipeline {
     stage('build') { 
       agent { label 'linux && immutable' }
       environment {
+        HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
@@ -122,8 +123,9 @@ pipeline {
         stage('test') {
           agent { label 'linux && immutable' }
           environment {
-            PATH = "${env.PATH}:${env.HUDSON_HOME}/go/bin/:${env.WORKSPACE}/bin"
-            GOPATH = "${env.WORKSPACE}"
+            HOME = "${env.HUDSON_HOME}"
+            JAVA_HOME = "${env.HOME}/.java/java10"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           
           when { 
@@ -153,6 +155,7 @@ pipeline {
         stage('Benchmarks') {
           agent { label 'linux && immutable' }
           environment {
+            HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
@@ -246,6 +249,7 @@ pipeline {
     stage('Documentation') { 
       agent { label 'linux && immutable' }
       environment {
+        HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
