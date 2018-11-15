@@ -4,6 +4,11 @@
 
 ## Bug Fixes
 
+# 1.0.1
+
+## Bug Fixes
+ * Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 (#313)
+
 # 1.0.0
 
 ## Breaking changes
