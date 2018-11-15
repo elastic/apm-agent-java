@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
-library identifier: 'apm@master', 
+library identifier: 'apm@master',
+changelog: false,
 retriever: modernSCM(
   [$class: 'GitSCMSource', 
   credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', 
@@ -15,24 +16,23 @@ pipeline {
   }
   triggers {
     cron('0 0 * * 1-5')
-    githubPush()
   }
   options {
     timeout(time: 1, unit: 'HOURS') 
     buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '2', daysToKeepStr: '30'))
     timestamps()
     preserveStashes()
-    ansiColor('xterm')
+    //see https://issues.jenkins-ci.org/browse/JENKINS-11752, https://issues.jenkins-ci.org/browse/JENKINS-39536, https://issues.jenkins-ci.org/browse/JENKINS-54133 and jenkinsci/ansicolor-plugin#132
+    //ansiColor('xterm')
     disableResume()
     durabilityHint('PERFORMANCE_OPTIMIZED')
   }
   parameters {
-    string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (<branchName>, <tagName>, <commitId>, etc.)")    
+    string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")    
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
-    booleanParam(name: 'integration_test_ci', defaultValue: true, description: 'Enable run integration test')
-    booleanParam(name: 'integration_test_pr_ci', defaultValue: true, description: 'Enable run integration test')
-    booleanParam(name: 'integration_test_master_ci', defaultValue: true, description: 'Enable run integration test')
+    booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
+    booleanParam(name: 'integration_test_master_ci', defaultValue: false, description: 'Enable run integration test')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'doc_ci', defaultValue: true, description: 'Enable build documentation')
   }
@@ -52,7 +52,7 @@ pipeline {
         withEnvWrapper() {
           dir("${BASE_DIR}"){
             script{
-              if(!branch_specifier){
+              if(!env?.branch_specifier){
                 echo "Checkout SCM ${GIT_BRANCH}"
                 checkout scm
               } else {
@@ -84,10 +84,9 @@ pipeline {
               on_pull_request {
                 echo "build cause PR"
               }
-              gitCreateTag()
             }
           }
-          stash allowEmpty: true, name: 'source'
+          stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         }
       }
     }
@@ -144,7 +143,7 @@ pipeline {
           }
           post { 
             always {
-              coverageReport("${BASE_DIR}/build")
+              coverageReport("${BASE_DIR}/build/coverage")
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/**/junit-*.xml")
@@ -172,7 +171,7 @@ pipeline {
                 sh """#!/bin/bash
                 .ci/run-benchmarks0.sh
                 """
-                sendBenchmarks(file: 'build/bench.out')
+                sendBenchmarks(file: 'build/bench.out', index: "benchmark-java")
               }
             }
           } 
@@ -280,22 +279,18 @@ pipeline {
     }
   }
   post {
-    always { 
-      echo 'Post Actions'
-      gitDeleteTag()
+    success {
+      echoColor(text: '[SUCCESS]', colorfg: 'green', colorbg: 'default')
     }
-    success { 
-      echo 'Success Post Actions'
-    }
-    aborted { 
-      echo 'Aborted Post Actions'
+    aborted {
+      echoColor(text: '[ABORTED]', colorfg: 'magenta', colorbg: 'default')
     }
     failure { 
-      echo 'Failure Post Actions'
+      echoColor(text: '[FAILURE]', colorfg: 'red', colorbg: 'default')
       //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${NOTIFY_TO}", sendToIndividuals: false])
     }
     unstable { 
-      echo 'Unstable Post Actions'
+      echoColor(text: '[UNSTABLE]', colorfg: 'yellow', colorbg: 'default')
     }
   }
 }
