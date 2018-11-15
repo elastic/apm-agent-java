@@ -28,6 +28,7 @@ pipeline {
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")    
+    string(name: 'GO_VERSION', defaultValue: "1.10.3", description: "Go version to use.")
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
