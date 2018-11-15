@@ -181,17 +181,14 @@ pipeline {
                 sh """#!/bin/bash
                 ./scripts/jenkins/run-benchmarks.sh
                 """
-                sendBenchmarks(file: "${BULK_UPLOAD_FILE}", index: "benchmark-java", bulk: true)
               }
             }
           } 
           post {
             always {
-              junit(allowEmptyResults: true, 
-                keepLongStdio: true, 
-                testResults: "${BASE_DIR}/build/junit-*.xml")
+              sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java", bulk: true)
               archiveArtifacts(allowEmptyArchive: true, 
-                artifacts: "${RESULT_FILE},${BULK_UPLOAD_FILE}", 
+                artifacts: "${BASE_DIR}/${RESULT_FILE},${BASE_DIR}/${BULK_UPLOAD_FILE}", 
                 onlyIfSuccessful: false)
             }
           }
