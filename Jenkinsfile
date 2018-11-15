@@ -171,7 +171,7 @@ pipeline {
             withEnvWrapper() {
               unstash 'source'
               dir("${BASE_DIR}"){    
-                sh """#!/usr/local/bin/runbld
+                sh """#!/bin/bash
                 ./scripts/jenkins/run-benchmarks.sh
                 """
                 sendBenchmarks(file: 'build/bench.out', index: "benchmark-java")
