@@ -170,7 +170,8 @@ pipeline {
               unstash 'build'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                ./mvnw verify
+                #./mvnw verify
+                ./mvnw failsafe:integration-test
                 """
                 codecov('apm-agent-java')
               }
