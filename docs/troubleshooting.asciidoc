@@ -145,3 +145,21 @@ The server should respond with a 200 status code.
 If the APM server does not respond successfully,
 have a look at the APM server logs to verify that the server is actually running.
 Also make sure to configure your firewalls so that the host the agent runs on can open HTTP connections to the APM server.
+
+[float]
+[[trouble-shooting-old-jdbc-drivers]]
+==== Libraries compiled against old Java versions
+
+If you are seeing exceptions like these in your application,
+it means that you are using a library which has been compiled for a very old version of Java:
+
+----
+java.lang.VerifyError: (class: org/apache/commons/dbcp/DelegatingStatement, method: executeQuery signature: (Ljava/lang/String;)Ljava/sql/ResultSet;) Illegal type in constant pool
+----
+
+----
+java.lang.IllegalStateException: Cannot write type to constant pool for class file version Java 2
+----
+
+That mostly concerns JDBC drivers.
+Updating them to a more recent version should resolve the problem.
