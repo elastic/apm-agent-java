@@ -115,13 +115,45 @@ pipeline {
             ./mvnw clean package -DskipTests=true
             """
           }
+          stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+        }
+      }
+    }
+    stage('Unit Tests') {
+      agent { label 'linux && immutable' }
+      environment {
+        HOME = "${env.HUDSON_HOME}"
+        JAVA_HOME = "${env.HOME}/.java/java10"
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+      }
+      
+      when { 
+        beforeAgent true
+        environment name: 'test_ci', value: 'true' 
+      }
+      steps {
+        withEnvWrapper() {
+          unstash 'build'
+          dir("${BASE_DIR}"){    
+            sh """#!/bin/bash
+            ./mvnw test
+            """
+            codecov('apm-agent-java')
+          }
+        }
+      }
+      post { 
+        always {
+          junit(allowEmptyResults: true, 
+            keepLongStdio: true, 
+            testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
         }
       }
     }
     stage('Parallel stages') {
       failFast true
       parallel {
-        stage('test') {
+        stage('Smoke Tests') {
           agent { label 'linux && immutable' }
           environment {
             HOME = "${env.HUDSON_HOME}"
@@ -149,7 +181,7 @@ pipeline {
               coverageReport("${BASE_DIR}/build/coverage")
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
-                testResults: "${BASE_DIR}/**/junit-*.xml")
+                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
             }
           }
         }
@@ -186,9 +218,6 @@ pipeline {
           } 
           post {
             always {
-              archiveArtifacts(allowEmptyArchive: true, 
-                artifacts: "${BASE_DIR}/${RESULT_FILE},${BASE_DIR}/${BULK_UPLOAD_FILE}", 
-                onlyIfSuccessful: false)
               sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
             }
           }
@@ -196,7 +225,7 @@ pipeline {
         /**
          run Java integration test with the commit version on master branch.
         */
-        stage('Integration test master') { 
+        stage('Integration Tests master') { 
           agent { label 'linux && immutable' }
           when { 
             beforeAgent true
@@ -223,7 +252,7 @@ pipeline {
         /**
          run Java integration test with the commit version on a PR.
         */
-        stage('Integration test PR') { 
+        stage('Integration Tests PR') { 
           agent { label 'linux && immutable' }
           when { 
             beforeAgent true
