@@ -48,7 +48,6 @@ pipeline {
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
-      
       steps {
         withEnvWrapper() {
           dir("${BASE_DIR}"){
@@ -91,7 +90,6 @@ pipeline {
         }
       }
     }
-    
     /**
     Build on a linux environment.
     */
@@ -102,7 +100,6 @@ pipeline {
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
-      
       when { 
         beforeAgent true
         environment name: 'linux_ci', value: 'true' 
@@ -119,6 +116,9 @@ pipeline {
         }
       }
     }
+    /**
+      Run only unit test.
+    */
     stage('Unit Tests') {
       agent { label 'linux && immutable' }
       environment {
@@ -126,7 +126,6 @@ pipeline {
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
-      
       when { 
         beforeAgent true
         environment name: 'test_ci', value: 'true' 
@@ -138,7 +137,6 @@ pipeline {
             sh """#!/bin/bash
             ./mvnw test
             """
-            codecov('apm-agent-java')
           }
         }
       }
@@ -153,6 +151,9 @@ pipeline {
     stage('Parallel stages') {
       failFast true
       parallel {
+        /**
+          Run smoke tests for different servers and databases.
+        */
         stage('Smoke Tests') {
           agent { label 'linux && immutable' }
           environment {
@@ -160,7 +161,6 @@ pipeline {
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          
           when { 
             beforeAgent true
             environment name: 'test_ci', value: 'true' 
@@ -185,6 +185,10 @@ pipeline {
             }
           }
         }
+        /**
+          Run the benchmarks and store the results on ES. 
+          The result JSON files are also archive into Jenkins.
+        */
         stage('Benchmarks') {
           agent { label 'metal' }
           environment {
@@ -192,11 +196,19 @@ pipeline {
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          
           when { 
             beforeAgent true
             allOf { 
-              //branch 'master';
+              anyOf {
+                not {
+                  changeRequest()
+                }
+                branch 'master'
+                branch "\\d+\\.\\d+"
+                branch "v\\d?"
+                tag "v\\d+\\.\\d+\\.\\d+*"
+                environment name: 'Run_As_Master_Branch', value: 'true'
+              }
               environment name: 'bench_ci', value: 'true' 
             }
           }
@@ -233,7 +245,7 @@ pipeline {
           when { 
             beforeAgent true
             allOf { 
-              //branch 'master';
+              branch 'master'
               environment name: 'integration_test_master_ci', value: 'true' 
             }
           }
@@ -296,7 +308,7 @@ pipeline {
       when { 
         beforeAgent true
         allOf { 
-          //branch 'master';
+          branch 'master'
           environment name: 'doc_ci', value: 'true' 
         }
       }
