@@ -194,7 +194,7 @@ pipeline {
           }
         }
         /**
-         run Go integration test with the commit version on master branch.
+         run Java integration test with the commit version on master branch.
         */
         stage('Integration test master') { 
           agent { label 'linux && immutable' }
@@ -221,7 +221,7 @@ pipeline {
         }
         
         /**
-         run Go integration test with the commit version on a PR.
+         run Java integration test with the commit version on a PR.
         */
         stage('Integration test PR') { 
           agent { label 'linux && immutable' }
