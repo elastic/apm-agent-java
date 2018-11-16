@@ -3,6 +3,7 @@
 set -exuo pipefail
 
 NOW_ISO_8601=${NOW_ISO_8601:-$(date -u "+%Y-%m-%dT%H%M%SZ")}
+MAVEN_CONFIG="-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
 
 echo $(pwd)
 
@@ -52,7 +53,7 @@ function benchmark() {
     COMMIT_ISO_8601=$(git log -1 -s --format=%cI)
     COMMIT_UNIX=$(git log -1 -s --format=%ct)
 
-    ./mvnw clean package -DskipTests=true -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    ./mvnw clean package -DskipTests=true
 
     RESULT_FILE=apm-agent-benchmark-results-${COMMIT_ISO_8601}.json
     BULK_UPLOAD_FILE=apm-agent-bulk-${NOW_ISO_8601}.json

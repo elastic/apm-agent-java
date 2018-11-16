@@ -12,6 +12,7 @@ pipeline {
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
+    MAVEN_CONFIG = "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
   }
   triggers {
     cron('0 0 * * 1-5')
@@ -28,7 +29,6 @@ pipeline {
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")    
-    string(name: 'GO_VERSION', defaultValue: "1.10.3", description: "Go version to use.")
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
@@ -112,7 +112,7 @@ pipeline {
           unstash 'source'
           dir("${BASE_DIR}"){    
             sh """#!/bin/bash
-            ./mvnw clean package -DskipTests=true  -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            ./mvnw clean package -DskipTests=true
             """
           }
         }
@@ -138,7 +138,7 @@ pipeline {
               unstash 'source'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                ./mvnw clean verify --batch-mode  -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+                ./mvnw clean verify
                 """
                 codecov('apm-agent-java')
               }
@@ -186,10 +186,10 @@ pipeline {
           } 
           post {
             always {
-              sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java", bulk: true)
               archiveArtifacts(allowEmptyArchive: true, 
                 artifacts: "${BASE_DIR}/${RESULT_FILE},${BASE_DIR}/${BULK_UPLOAD_FILE}", 
                 onlyIfSuccessful: false)
+              sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
             }
           }
         }
