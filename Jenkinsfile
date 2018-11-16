@@ -316,11 +316,23 @@ pipeline {
         withEnvWrapper() {
           unstash 'source'
           dir("${ELASTIC_DOCS}"){
-            git "https://github.com/elastic/docs.git"
+            sh """#!/bin/bash
+            git init
+            git remote add origin https://github.com/elastic/docs.git
+            git config core.sparsecheckout true
+            echo lib >> .git/info/sparse-checkout
+            echo build_docs.pl >> .git/info/sparse-checkout
+            echo .run >> .git/info/sparse-checkout
+            echo conf.yaml >> .git/info/sparse-checkout
+            echo resources >> .git/info/sparse-checkout
+            echo shared >> .git/info/sparse-checkout
+            git checkout master
+            git pull origin master
+            """
           }
           dir("${BASE_DIR}"){    
             sh """#!/bin/bash
-            make docs
+            ./scripts/jenkins/docs.sh
             """
           }
         }
