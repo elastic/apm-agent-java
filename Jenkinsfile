@@ -218,6 +218,9 @@ pipeline {
           } 
           post {
             always {
+              archiveArtifacts(allowEmptyArchive: true, 
+                artifacts: "${BASE_DIR}/${RESULT_FILE}",
+                onlyIfSuccessful: false)
               sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
             }
           }
