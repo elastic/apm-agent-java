@@ -23,6 +23,7 @@ import co.elastic.apm.bci.VisibleForAdvice;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
@@ -61,17 +62,18 @@ public class IOUtils {
      */
     @VisibleForAdvice
     public static boolean readUtf8Stream(final InputStream is, final CharBuffer charBuffer) throws IOException {
+        // to be compatible with Java 8, we have to cast to buffer because of different return types
         final ByteBuffer buffer = threadLocalByteBuffer.get();
         final CharsetDecoder charsetDecoder = threadLocalCharsetDecoder.get();
         try {
             final byte[] bufferArray = buffer.array();
             for (int read = is.read(bufferArray); read != -1; read = is.read(bufferArray)) {
-                buffer.limit(read);
+                ((Buffer) buffer).limit(read);
                 final CoderResult coderResult = charsetDecoder.decode(buffer, charBuffer, true);
-                buffer.clear();
+                ((Buffer) buffer).clear();
                 if (coderResult.isError()) {
                     // this is not UTF-8
-                    charBuffer.clear();
+                    ((Buffer) charBuffer).clear();
                     return false;
                 } else if (coderResult.isOverflow()) {
                     // stream yields more chars than the charBuffer can hold
@@ -81,8 +83,8 @@ public class IOUtils {
             charsetDecoder.flush(charBuffer);
             return true;
         } finally {
-            charBuffer.flip();
-            buffer.clear();
+            ((Buffer) charBuffer).flip();
+            ((Buffer) buffer).clear();
             charsetDecoder.reset();
             is.close();
         }
