@@ -116,41 +116,41 @@ pipeline {
         }
       }
     }
-    /**
-      Run only unit test.
-    */
-    stage('Unit Tests') {
-      agent { label 'linux && immutable' }
-      environment {
-        HOME = "${env.HUDSON_HOME}"
-        JAVA_HOME = "${env.HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-      }
-      when { 
-        beforeAgent true
-        environment name: 'test_ci', value: 'true' 
-      }
-      steps {
-        withEnvWrapper() {
-          unstash 'build'
-          dir("${BASE_DIR}"){    
-            sh """#!/bin/bash
-            ./mvnw test
-            """
-          }
-        }
-      }
-      post { 
-        always {
-          junit(allowEmptyResults: true, 
-            keepLongStdio: true, 
-            testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-        }
-      }
-    }
     stage('Parallel stages') {
       failFast true
       parallel {
+        /**
+          Run only unit test.
+        */
+        stage('Unit Tests') {
+          agent { label 'linux && immutable' }
+          environment {
+            HOME = "${env.HUDSON_HOME}"
+            JAVA_HOME = "${env.HOME}/.java/java10"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          when { 
+            beforeAgent true
+            environment name: 'test_ci', value: 'true' 
+          }
+          steps {
+            withEnvWrapper() {
+              unstash 'build'
+              dir("${BASE_DIR}"){    
+                sh """#!/bin/bash
+                ./mvnw test
+                """
+              }
+            }
+          }
+          post { 
+            always {
+              junit(allowEmptyResults: true, 
+                keepLongStdio: true, 
+                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+            }
+          }
+        }
         /**
           Run smoke tests for different servers and databases.
         */
@@ -167,10 +167,10 @@ pipeline {
           }
           steps {
             withEnvWrapper() {
-              unstash 'source'
+              unstash 'build'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                ./mvnw clean verify
+                ./mvnw verify
                 """
                 codecov('apm-agent-java')
               }
@@ -195,6 +195,7 @@ pipeline {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+            NO_BUILD = "true"
           }
           when { 
             beforeAgent true
@@ -214,7 +215,7 @@ pipeline {
           }
           steps {
             withEnvWrapper() {
-              unstash 'source'
+              unstash 'build'
               dir("${BASE_DIR}"){
                 script {
                   env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()

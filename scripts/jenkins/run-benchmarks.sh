@@ -53,7 +53,7 @@ function benchmark() {
     COMMIT_ISO_8601=$(git log -1 -s --format=%cI)
     COMMIT_UNIX=$(git log -1 -s --format=%ct)
 
-    ./mvnw clean package -DskipTests=true
+    [ -z "${NO_BUILD}" ] && ./mvnw clean package -DskipTests=true
 
     RESULT_FILE=apm-agent-benchmark-results-${COMMIT_ISO_8601}.json
     BULK_UPLOAD_FILE=apm-agent-bulk-${NOW_ISO_8601}.json
