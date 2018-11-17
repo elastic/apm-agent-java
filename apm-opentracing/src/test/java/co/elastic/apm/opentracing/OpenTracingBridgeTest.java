@@ -20,7 +20,6 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.transaction.SystemClock;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import io.opentracing.Scope;
@@ -73,7 +72,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final Span transactionSpan = apmTracer.buildSpan("transactionSpan").start();
         apmTracer.buildSpan("nestedSpan").asChildOf(transactionSpan).start().finish();
         transactionSpan.finish();
-        final long epochMicros = SystemClock.ForJava8CapableVM.INSTANCE.getEpochMicros();
+        final long epochMicros = System.currentTimeMillis() * 1000;
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isLessThan(MINUTES.toMillis(1));

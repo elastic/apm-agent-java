@@ -37,9 +37,8 @@ class EpochTickClockTest {
 
     @Test
     void testEpochMicros() {
-        final long epochMicros = SystemClock.ForJava8CapableVM.INSTANCE.getEpochMicros();
-        epochTickClock.init(epochMicros, 0);
+        epochTickClock.init(0, 0);
         final int nanoTime = 1000;
-        assertThat(epochTickClock.getEpochMicros(nanoTime)).isEqualTo(epochMicros + TimeUnit.NANOSECONDS.toMicros(nanoTime));
+        assertThat(epochTickClock.getEpochMicros(nanoTime)).isEqualTo(TimeUnit.NANOSECONDS.toMicros(nanoTime));
     }
 }
