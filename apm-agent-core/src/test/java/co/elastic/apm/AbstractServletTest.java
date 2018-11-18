@@ -67,7 +67,6 @@ public abstract class AbstractServletTest {
             .build();
     }
 
-
     protected Response get(String path) throws IOException {
         return httpClient.newCall(new okhttp3.Request.Builder().url("http://localhost:" + getPort() + path).build()).execute();
     }

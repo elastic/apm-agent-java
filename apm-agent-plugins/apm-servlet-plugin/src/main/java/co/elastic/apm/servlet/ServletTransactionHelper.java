@@ -26,6 +26,7 @@ import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Response;
 import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Url;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -96,33 +97,38 @@ public class ServletTransactionHelper {
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, requestURI, userAgentHeader)) {
-            return tracer.startTransaction(traceContextHeader).activate();
+            return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader).activate();
         } else {
             return null;
         }
     }
 
     @VisibleForAdvice
-    public void fillRequestContext(Transaction transaction, @Nullable String userName, String protocol, String method, boolean secure,
+    public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                                   String remoteAddr, StringBuffer requestURL) {
+                                   String remoteAddr) {
 
-        TransactionContext context = transaction.getContext();
         final Request request = transaction.getContext().getRequest();
-        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr, requestURL);
+        fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
+    }
 
+    @VisibleForAdvice
+    public static void setUsernameIfUnset(@Nullable String userName, TransactionContext context) {
         // only set username if not manually set
         if (context.getUser().getUsername() == null) {
             context.getUser().withUsername(userName);
         }
     }
 
-
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo) {
         try {
             fillRequestParameters(transaction, method, parameterMap);
+            if(exception != null && status == 200) {
+                // Probably shouldn't be 200 but 5XX, but we are going to miss this...
+                status = 500;
+            }
             fillResponse(transaction.getContext().getResponse(), committed, status);
             transaction.withResult(ResultUtil.getResultByHttpStatus(status));
             transaction.withType("request");
@@ -136,7 +142,12 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        transaction.deactivate().end();
+        if (tracer.activeSpan() == transaction) {
+            // when calling javax.servlet.AsyncContext#start, the transaction is not activated,
+            // as neither javax.servlet.Filter.doFilter nor javax.servlet.AsyncListener.onStartAsync will be invoked
+            transaction.deactivate();
+        }
+        transaction.end();
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
@@ -193,9 +204,9 @@ public class ServletTransactionHelper {
         response.withStatusCode(status);
     }
 
-    private void fillRequest(Request request, String protocol, String method, boolean secure,
-                             String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                             String remoteAddr, StringBuffer requestURL) {
+    private void fillRequest(Request request, String protocol, String method, boolean secure, String scheme, String serverName,
+                             int serverPort, String requestURI, String queryString,
+                             String remoteAddr) {
 
         request.withHttpVersion(getHttpVersion(protocol));
         request.withMethod(method);
@@ -211,7 +222,7 @@ public class ServletTransactionHelper {
             .withPathname(requestURI)
             .withSearch(queryString);
 
-        fillFullUrl(request.getUrl(), queryString, requestURL);
+        fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
     }
 
     private boolean hasBody(PotentiallyMultiValuedMap headers, String method) {
@@ -230,15 +241,25 @@ public class ServletTransactionHelper {
         }
     }
 
-    private void fillFullUrl(Url url, @Nullable String queryString, StringBuffer requestURL) {
+    // inspired by org.apache.catalina.connector.Request.getRequestURL
+    private void fillFullUrl(Url url, String scheme, int port, String serverName, String requestURI, @Nullable String queryString) {
         // using a StringBuilder to avoid allocations when constructing the full URL
         final StringBuilder fullUrl = url.getFull();
+        if (port < 0) {
+            port = 80; // Work around java.net.URL bug
+        }
+
+        fullUrl.append(scheme);
+        fullUrl.append("://");
+        fullUrl.append(serverName);
+        if ((scheme.equals("http") && (port != 80))
+            || (scheme.equals("https") && (port != 443))) {
+            fullUrl.append(':');
+            fullUrl.append(port);
+        }
+        fullUrl.append(requestURI);
         if (queryString != null) {
-            fullUrl.ensureCapacity(requestURL.length() + 1 + queryString.length());
-            fullUrl.append(requestURL).append('?').append(queryString);
-        } else {
-            fullUrl.ensureCapacity(requestURL.length());
-            fullUrl.append(requestURL);
+            fullUrl.append('?').append(queryString);
         }
     }
 

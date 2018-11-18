@@ -45,8 +45,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * (Required)
      */
     protected double duration;
-    @Nullable
-    private volatile AbstractSpan<?> previouslyActive;
     /**
      * Keyword of specific relevance in the service's domain
      * (eg:  'request', 'backgroundjob' for transactions and
@@ -55,8 +53,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      */
     @Nullable
     private volatile String type;
-
-    protected final EpochTickClock clock = new EpochTickClock();
+    private volatile boolean finished = true;
 
     public AbstractSpan(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -125,11 +122,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     @Override
     public void resetState() {
+        finished = true;
         name.setLength(0);
         timestamp = 0;
         duration = 0;
         type = null;
-        clock.resetState();
+        traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
 
@@ -137,13 +135,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return traceContext.isChildOf(parent.traceContext);
     }
 
-    @Nullable
-    public abstract Transaction getTransaction();
-
     public T activate() {
-        final ElasticApmTracer tracer = this.tracer;
-        previouslyActive = tracer.getActive();
-        tracer.setActive(this);
+        tracer.activate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -158,8 +151,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public T deactivate() {
-        final ElasticApmTracer tracer = this.tracer;
-        tracer.setActive(previouslyActive);
+        tracer.deactivate(this);
         List<SpanListener> spanListeners = tracer.getSpanListeners();
         for (int i = 0; i < spanListeners.size(); i++) {
             try {
@@ -174,9 +166,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Scope activateInScope() {
-        final ElasticApmTracer tracer = this.tracer;
         // already in scope
-        if (tracer.currentTransaction() == this) {
+        if (tracer.activeSpan() == this) {
             return Scope.NoopScope.INSTANCE;
         }
         activate();
@@ -189,7 +180,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     }
 
     public Span createSpan() {
-        return createSpan(clock.getEpochMicros());
+        return createSpan(traceContext.getClock().getEpochMicros());
     }
 
     public Span createSpan(long epochMicros) {
@@ -198,13 +189,37 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public abstract void addTag(String key, String value);
 
-    public abstract void end();
+    protected void onStart() {
+        this.finished = false;
+    }
 
-    public abstract void end(long nanoTime);
+    public void end() {
+        end(traceContext.getClock().getEpochMicros());
+    }
+
+    public final void end(long epochMicros) {
+        if (!finished) {
+            this.finished = true;
+            this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+            if (type == null) {
+                type = "custom";
+            }
+            if (name.length() == 0) {
+                name.append("unnamed");
+            }
+            doEnd(epochMicros);
+        } else {
+            logger.warn("End has already been called: {}" + this);
+            assert false;
+        }
+    }
+
+    protected abstract void doEnd(long epochMicros);
 
     /**
-     * Keyword of specific relevance in the service's domain (eg: 'db.postgresql.query', 'template.erb', etc)
-     * (Required)
+     * @return Keyword of specific relevance in the service's domain
+     * (eg:  'request', 'backgroundjob' for transactions and
+     * 'db.postgresql.query', 'template.erb', etc for spans)
      */
     @Nullable
     public String getType() {
@@ -215,7 +230,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
      * Keyword of specific relevance in the service's domain
      * (eg:  'request', 'backgroundjob' for transactions and
      * 'db.postgresql.query', 'template.erb', etc for spans)
-     * (Required)
      */
     public T withType(@Nullable String type) {
         if (!isSampled()) {
@@ -227,12 +241,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
 
     public T captureException(@Nullable Throwable t) {
         if (t != null) {
-            captureException(System.currentTimeMillis(), t);
+            captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
     }
 
-    public void captureException(long epochTimestampMillis, Throwable t) {
-        tracer.captureException(epochTimestampMillis, t, this);
+    public void captureException(long epochMicros, Throwable t) {
+        tracer.captureException(epochMicros, t, this);
     }
 }

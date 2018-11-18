@@ -24,12 +24,6 @@ import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.sampling.Sampler;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -39,41 +33,21 @@ public class Transaction extends AbstractSpan<Transaction> {
     public static final String TYPE_REQUEST = "request";
 
     /**
-     * This counter helps to assign the spans with sequential IDs
-     */
-    private final AtomicInteger spanIdCounter = new AtomicInteger();
-
-    /**
      * Context
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
     private final TransactionContext context = new TransactionContext();
-    private final List<Span> spans = new ArrayList<Span>();
-    /**
-     * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
-     */
-    private final Map<String, Object> marks = new ConcurrentHashMap<>();
     private final SpanCount spanCount = new SpanCount();
-    /**
-     * UUID for the transaction, referred by its spans
-     * (Required)
-     */
-    private final TransactionId id = new TransactionId();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
     private String result;
+
     /**
-     * Keyword of specific relevance in the service's domain (eg:, etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
-    /**
-     * Transactions that are 'sampled' will include all available information. Transactions that are not sampled will not have 'spans' or 'context'. Defaults to true.
+     * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
      */
     private boolean noop;
 
@@ -81,20 +55,21 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public Transaction start(@Nullable String traceParentHeader, long epochMicros, Sampler sampler) {
-        if (traceParentHeader == null || !traceContext.asChildOf(traceParentHeader)) {
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
+        onStart();
+        if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
             traceContext.asRootSpan(sampler);
         }
-        this.timestamp = clock.init();
         if (epochMicros >= 0) {
             this.timestamp = epochMicros;
+        } else {
+            this.timestamp = traceContext.getClock().getEpochMicros();
         }
-        this.id.setToRandomValue();
-        this.noop = false;
         return this;
     }
 
     public Transaction startNoop() {
+        onStart();
         this.name.append("noop");
         this.noop = true;
         return this;
@@ -119,14 +94,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         synchronized (this) {
             return context;
         }
-    }
-
-    /**
-     * UUID for the transaction, referred by its spans
-     * (Required)
-     */
-    public TransactionId getId() {
-        return id;
     }
 
     public Transaction withName(@Nullable String name) {
@@ -156,31 +123,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         return this;
     }
 
-    @Deprecated
-    public List<Span> getSpans() {
-        return spans;
-    }
-
-    @Deprecated
-    public Transaction addSpan(Span span) {
-        if (!isSampled()) {
-            return this;
-        }
-        synchronized (this) {
-            spans.add(span);
-        }
-        return this;
-    }
-
-    /**
-     * Keyword of specific relevance in the service's domain (eg: 'request', 'backgroundjob', etc)
-     * (Required)
-     */
-    @Nullable
-    public String getType() {
-        return type;
-    }
-
     @Override
     public void addTag(String key, String value) {
         if (!isSampled()) {
@@ -197,59 +139,24 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void end() {
-        end(clock.getEpochMicros());
-    }
-
-    @Override
-    public void end(long epochMicros) {
-        this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+    public void doEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
         }
-        final ElasticApmTracer tracer = this.tracer;
-        tracer.endTransaction(this);
-    }
-
-    public Transaction withType(@Nullable String type) {
-        this.type = type;
-        return this;
-    }
-
-    /**
-     * A mark captures the timing of a significant event during the lifetime of a transaction. Marks are organized into groups and can be set by the user or the agent.
-     */
-    public Map<String, Object> getMarks() {
-        return marks;
+        this.tracer.endTransaction(this);
     }
 
     public SpanCount getSpanCount() {
         return spanCount;
     }
 
-
-    int getNextSpanId() {
-        return spanIdCounter.incrementAndGet();
-    }
-
     @Override
     public void resetState() {
         super.resetState();
         context.resetState();
-        id.resetState();
         result = null;
-        spans.clear();
-        type = null;
-        marks.clear();
         spanCount.resetState();
-        spanIdCounter.set(0);
         noop = false;
-        traceContext.resetState();
-    }
-
-    @Override
-    public Transaction getTransaction() {
-        return this;
     }
 
     public void recycle() {
@@ -262,6 +169,6 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, id);
+        return String.format("'%s' %s", name, traceContext);
     }
 }

@@ -20,12 +20,14 @@
 package co.elastic.apm;
 
 import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.context.Request;
+import co.elastic.apm.impl.context.TransactionContext;
 import co.elastic.apm.impl.sampling.ConstantSampler;
 import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,7 +38,7 @@ public class TransactionUtils {
     private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
-        t.start(null, 0, ConstantSampler.of(true));
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
         t.setName("GET /api/types");
         t.withType("request");
         t.withResult("success");
@@ -79,9 +81,12 @@ public class TransactionUtils {
         context.getCustom().put("my_key", 1);
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);
+    }
 
+    public static List<Span> getSpans(Transaction t) {
+        List<Span> spans = new ArrayList<>();
         Span span = new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -91,28 +96,32 @@ public class TransactionUtils {
             .withUser("readonly_user");
         span.addTag("monitored_by", "ACME");
         span.addTag("framework", "some-framework");
-        t.addSpan(span);
+        spans.add(span);
 
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+        spans.add(new Span(mock(ElasticApmTracer.class))
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+        spans.add(new Span(mock(ElasticApmTracer.class))
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
-        t.addSpan(new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+        spans.add(new Span(mock(ElasticApmTracer.class))
+            .start(TraceContext.fromParentSpan(), t)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(mock(ElasticApmTracer.class))
-            .start(t, null, 0, false)
+            .start(TraceContext.fromParentSpan(), t)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext.http.apache-httpclient");
-        span.getContext().getHttp().withUrl("http://test.elastic.co/test-service");
-        t.addSpan(span);
+        span.getContext().getHttp()
+            .withUrl("http://test.elastic.co/test-service")
+            .withMethod("POST")
+            .withStatusCode(201);
+        spans.add(span);
+        return spans;
     }
 
 }

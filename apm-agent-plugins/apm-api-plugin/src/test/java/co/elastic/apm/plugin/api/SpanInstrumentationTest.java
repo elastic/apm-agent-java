@@ -21,6 +21,7 @@ package co.elastic.apm.plugin.api;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,10 +37,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         transaction = ElasticApm.startTransaction();
-        transaction.setType("default");
         span = transaction.createSpan();
-        span.setType("default");
-        span.setName("default");
     }
 
     @Test
@@ -61,5 +59,29 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         transaction.end();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testScope() {
+        assertThat(ElasticApm.currentSpan().getId()).isNotEqualTo(span.getId());
+        try (final Scope scope = span.activate()) {
+            assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getId());
+            ElasticApm.currentSpan().createSpan().end();
+        }
+        span.end();
+        transaction.end();
+        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).isChildOf(reporter.getSpans().get(1))).isTrue();
+        assertThat(reporter.getSpans().get(1).isChildOf(reporter.getFirstTransaction())).isTrue();
+    }
+
+    @Test
+    void testSampled() {
+        assertThat(ElasticApm.currentSpan().isSampled()).isFalse();
+        assertThat(ElasticApm.currentTransaction().isSampled()).isFalse();
+        final Transaction transaction = ElasticApm.startTransaction();
+        assertThat(transaction.isSampled()).isTrue();
+        assertThat(transaction.createSpan().isSampled()).isTrue();
     }
 }

@@ -89,15 +89,18 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Maximum queue length of transactions before sending transactions to the APM server.\n" +
+        .description("The maximum size of buffered events.\n" +
             "\n" +
-            "A lower value will increase the load on your APM server,\n" +
-            "while a higher value can increase the memory pressure of your app.\n" +
+            "Events like transactions and spans are buffered when the agent can't keep up with sending them to the APM Server " +
+            "or if the APM server is down.\n" +
             "\n" +
-            "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.\n\n" +
-            "This setting is useful to limit memory consumption if you experience a sudden spike of traffic.")
+            "If the queue is full, events are rejected which means you will lose transactions and spans in that case.\n" +
+            "This guards the application from crashing in case the APM server is unavailable for a longer period of time.\n" +
+            "\n" +
+            "A lower value will decrease the heap overhead of the agent,\n" +
+            "while a higher value makes it less likely to lose events in case of a temporary spike in throughput.")
         .dynamic(true)
-        .buildWithDefault(500);
+        .buildWithDefault(512);
 
     private final ConfigurationOption<Boolean> reportSynchronously = ConfigurationOption.booleanOption()
         .key("report_sync")
@@ -112,13 +115,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(REPORTER_CATEGORY)
         .description("Whether each transaction should have the process arguments attached.\n" +
             "Disabled by default to save disk space.")
-        .buildWithDefault(false);
-
-    private final ConfigurationOption<Boolean> enableIntakeV2 = ConfigurationOption.booleanOption()
-        .key("enable_intake_v2")
-        .configurationCategory(REPORTER_CATEGORY)
-        .tags("internal", "incubating", "intake-v2")
-        .description("Enables the nd-json-based intake v2 protocol")
         .buildWithDefault(false);
 
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
@@ -170,10 +166,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isIncludeProcessArguments() {
         return includeProcessArguments.get();
-    }
-
-    public boolean isIntakeV2Enabled() {
-        return enableIntakeV2.get();
     }
 
     public TimeDuration getApiRequestTime() {

@@ -66,7 +66,8 @@ public class ElasticApm {
      * }
      * </pre>
      * <p>
-     * NOTE: Spans created via this method can not be retrieved by calling {@link #currentSpan()} or {@link #currentTransaction()}.
+     * Note: Transactions created via this method can not be retrieved by calling {@link #currentSpan()} or {@link #currentTransaction()}.
+     * See {@link Transaction#activate()} on how to achieve that.
      * </p>
      *
      * @return the started transaction.
@@ -90,6 +91,7 @@ public class ElasticApm {
      * </p>
      * <p>
      * NOTE: Transactions created via {@link #startTransaction()} can not be retrieved by calling this method.
+     * See {@link Transaction#activate()} on how to achieve that.
      * </p>
      *
      * @return The currently running transaction, or a noop transaction (never {@code null}).
@@ -118,6 +120,7 @@ public class ElasticApm {
      * </p>
      * <p>
      * NOTE: Transactions created via {@link Span#createSpan()} can not be retrieved by calling this method.
+     * See {@link Span#activate()} on how to achieve that.
      * </p>
      * @return The currently active span, or transaction, or a noop span (never {@code null}).
      */

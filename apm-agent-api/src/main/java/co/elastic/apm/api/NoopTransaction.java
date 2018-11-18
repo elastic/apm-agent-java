@@ -46,6 +46,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public void setResult(String result) {
+        // noop
+    }
+
+    @Override
     public void end() {
         // noop
     }
@@ -59,6 +64,28 @@ enum NoopTransaction implements Transaction {
     @Override
     public String getId() {
         return "";
+    }
+
+    @Nonnull
+    @Override
+    public String ensureParentId() {
+        return "";
+    }
+
+    @Nonnull
+    @Override
+    public String getTraceId() {
+        return "";
+    }
+
+    @Override
+    public Scope activate() {
+        return NoopScope.INSTANCE;
+    }
+
+    @Override
+    public boolean isSampled() {
+        return false;
     }
 
     @Override

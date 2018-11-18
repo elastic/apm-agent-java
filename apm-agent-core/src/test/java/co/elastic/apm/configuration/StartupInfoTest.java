@@ -21,6 +21,7 @@ package co.elastic.apm.configuration;
 
 import co.elastic.apm.configuration.converter.TimeDuration;
 import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ class StartupInfoTest {
         this.configurationRegistry = ConfigurationRegistry.builder()
             .addOptionProvider(config)
             .addOptionProvider(new CoreConfiguration())
+            .addOptionProvider(new StacktraceConfiguration())
             .addConfigSource(new SimpleSource().add("duration", "1"))
             .build();
         startupInfo = new StartupInfo();

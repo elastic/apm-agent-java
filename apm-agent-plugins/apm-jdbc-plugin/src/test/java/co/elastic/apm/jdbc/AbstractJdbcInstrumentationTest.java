@@ -51,13 +51,14 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private Connection connection;
     @Nullable
     private PreparedStatement preparedStatement;
+    private final Transaction transaction;
 
     AbstractJdbcInstrumentationTest(Connection connection, String expectedSpanType) throws Exception {
         this.connection = connection;
         this.expectedSpanType = expectedSpanType;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        Transaction transaction = tracer.startTransaction().activate();
+        transaction = tracer.startTransaction().activate();
         transaction.setName("transaction");
         transaction.withType("request");
         transaction.withResult("success");
@@ -80,6 +81,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         preparedStatement = null;
         connection.createStatement().execute("DROP TABLE ELASTIC_APM");
         connection.close();
+        transaction.deactivate().end();
     }
 
     // execute in a single test because creating a new connection is expensive,
@@ -100,6 +102,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         if (preparedStatement != null) {
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
+            assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
+
+            // test a second recording with the same statement object
+            reporter.reset();
+            resultSet = preparedStatement.executeQuery();
             assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
         }
     }

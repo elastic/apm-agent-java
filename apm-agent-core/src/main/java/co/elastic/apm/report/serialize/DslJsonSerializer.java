@@ -46,14 +46,12 @@ import co.elastic.apm.impl.transaction.Span;
 import co.elastic.apm.impl.transaction.SpanCount;
 import co.elastic.apm.impl.transaction.TraceContext;
 import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.impl.transaction.TransactionId;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 import com.dslplatform.json.StringConverter;
-import com.dslplatform.json.UUIDConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +59,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
@@ -73,18 +72,17 @@ import static com.dslplatform.json.JsonWriter.ARRAY_START;
 import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
-import static com.dslplatform.json.JsonWriter.QUOTE;
 
 public class DslJsonSerializer implements PayloadSerializer {
 
     /**
-     * Matches default ZLIB buffer size; twice the size of {@link okio.Segment#SIZE}.
+     * Matches default ZLIB buffer size.
      * Lets us assume the ZLIB buffer is always empty,
      * so that {@link #getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
     static final int MAX_VALUE_LENGTH = 1024;
-    static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
+    public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
@@ -92,17 +90,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     final JsonWriter jw;
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
-    private final DateSerializer dateSerializer;
-    private final boolean distributedTracing;
     private final StacktraceConfiguration stacktraceConfiguration;
     @Nullable
     private OutputStream os;
 
-    public DslJsonSerializer(boolean distributedTracingEnabled, StacktraceConfiguration stacktraceConfiguration) {
+    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration) {
         this.stacktraceConfiguration = stacktraceConfiguration;
         jw = new DslJson<>().newWriter(BUFFER_SIZE);
-        dateSerializer = new DateSerializer();
-        distributedTracing = distributedTracingEnabled;
     }
 
     @Override
@@ -225,32 +219,16 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeError(ErrorCapture errorCapture) {
         jw.writeByte(JsonWriter.OBJECT_START);
 
-        writeDateField("timestamp", errorCapture.getTimestamp());
+        writeTimestamp(errorCapture.getTimestamp());
 
-        if (distributedTracing) {
-            if (errorCapture.getTraceContext().hasContent()) {
-                serializeTraceContext(errorCapture.getTraceContext(), true);
-            }
-        } else {
-            serializeTransactionReference(errorCapture);
+        if (errorCapture.getTraceContext().hasContent()) {
+            serializeTraceContext(errorCapture.getTraceContext(), true);
         }
         serializeContext(errorCapture.getContext());
         writeField("culprit", errorCapture.getCulprit());
         serializeException(errorCapture.getException());
 
         jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
-    private void serializeTransactionReference(ErrorCapture errorCapture) {
-        if (errorCapture.getTransaction().hasContent()) {
-            writeFieldName("transaction");
-            jw.writeByte(JsonWriter.OBJECT_START);
-            TransactionId transactionId = errorCapture.getTransaction().getTransactionId();
-            writeFieldName("id");
-            UUIDConverter.serialize(transactionId.getMostSignificantBits(), transactionId.getLeastSignificantBits(), jw);
-            jw.writeByte(JsonWriter.OBJECT_END);
-            jw.writeByte(COMMA);
-        }
     }
 
     private void serializeException(@Nullable Throwable exception) {
@@ -422,24 +400,14 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
-        writeDateField("timestamp", transaction.getTimestamp());
+        writeTimestamp(transaction.getTimestamp());
         writeField("name", transaction.getName());
-        if (distributedTracing) {
-            serializeTraceContext(transaction.getTraceContext(), false);
-        } else {
-            writeField("id", transaction.getId());
-        }
+        serializeTraceContext(transaction.getTraceContext(), false);
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext());
-        if (distributedTracing) {
-            serializeSpanCountV2(transaction.getSpanCount());
-        } else {
-            serializeSpanCountV1(transaction.getSpanCount());
-        }
-        serializeSpans(transaction.getSpans());
-        // TODO marks
+        serializeSpanCount(transaction.getSpanCount());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
     }
@@ -475,18 +443,9 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSpan(final Span span) {
         jw.writeByte(OBJECT_START);
         writeField("name", span.getName());
-        writeDateField("timestamp", span.getTimestamp());
-        if (distributedTracing) {
-            serializeTraceContext(span.getTraceContext(), true);
-        } else {
-            writeField("id", span.getId().asLong());
-            final long parent = span.getParent().asLong();
-            if (parent != 0) {
-                writeField("parent", parent);
-            }
-        }
+        writeTimestamp(span.getTimestamp());
+        serializeTraceContext(span.getTraceContext(), true);
         writeField("duration", span.getDuration());
-        writeField("start", span.getStart());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
@@ -569,10 +528,19 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        // Assuming either DB or HTTP data can be related to a span
-        boolean spanContextWritten = serializeDbContext(context.getDb());
-        if(!spanContextWritten) {
-            spanContextWritten = serializeHttpContext(context.getHttp());
+        boolean spanContextWritten = false;
+        Db db = context.getDb();
+        if (db.hasContent()) {
+            serializeDbContext(db);
+            spanContextWritten = true;
+        }
+        Http http = context.getHttp();
+        if (http.hasContent()) {
+            if (spanContextWritten) {
+                jw.writeByte(COMMA);
+            }
+            serializeHttpContext(http);
+            spanContextWritten = true;
         }
 
         Map<String, String> tags = context.getTags();
@@ -588,44 +556,38 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private boolean serializeDbContext(final Db db) {
-        boolean writeDbElement = db.hasContent();
-        if (writeDbElement) {
-            writeFieldName("db");
-            jw.writeByte(OBJECT_START);
-            writeField("instance", db.getInstance());
+    private void serializeDbContext(final Db db) {
+        writeFieldName("db");
+        jw.writeByte(OBJECT_START);
+        writeField("instance", db.getInstance());
+        if (db.getStatement() != null) {
             writeLongStringField("statement", db.getStatement());
-            writeField("type", db.getType());
-            writeLastField("user", db.getUser());
-            jw.writeByte(OBJECT_END);
+        } else {
+            final CharBuffer statementBuffer = db.getStatementBuffer();
+            if (statementBuffer != null && statementBuffer.length() > 0) {
+                writeFieldName("statement");
+                jw.writeString(statementBuffer);
+                jw.writeByte(COMMA);
+            }
         }
-        return writeDbElement;
+        writeField("type", db.getType());
+        writeLastField("user", db.getUser());
+        jw.writeByte(OBJECT_END);
     }
 
-    private boolean serializeHttpContext(final Http http) {
-        boolean writeHttpElement = http.hasContent();
-        if (writeHttpElement) {
-            writeFieldName("http");
-            jw.writeByte(OBJECT_START);
-            writeLastField("url", http.getUrl());
-            jw.writeByte(OBJECT_END);
+    private void serializeHttpContext(final Http http) {
+        writeFieldName("http");
+        jw.writeByte(OBJECT_START);
+        writeField("method", http.getMethod());
+        int statusCode = http.getStatusCode();
+        if (statusCode > 0) {
+            writeField("status_code", http.getStatusCode());
         }
-        return writeHttpElement;
+        writeLastField("url", http.getUrl());
+        jw.writeByte(OBJECT_END);
     }
 
-    private void serializeSpanCountV1(final SpanCount spanCount) {
-        writeFieldName("span_count");
-        jw.writeByte(OBJECT_START);
-        writeFieldName("dropped");
-        jw.writeByte(OBJECT_START);
-        writeFieldName("total");
-        NumberConverter.serialize(spanCount.getDropped().get(), jw);
-        jw.writeByte(OBJECT_END);
-        jw.writeByte(OBJECT_END);
-        jw.writeByte(COMMA);
-    }
-
-    private void serializeSpanCountV2(final SpanCount spanCount) {
+    private void serializeSpanCount(final SpanCount spanCount) {
         writeFieldName("span_count");
         jw.writeByte(OBJECT_START);
         writeField("dropped", spanCount.getDropped().get());
@@ -926,12 +888,6 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void writeField(String fieldName, TransactionId id) {
-        writeFieldName(fieldName);
-        UUIDConverter.serialize(id.getMostSignificantBits(), id.getLeastSignificantBits(), jw);
-        jw.writeByte(COMMA);
-    }
-
     private void writeHexField(String fieldName, Id traceId) {
         writeFieldName(fieldName);
         jw.writeByte(JsonWriter.QUOTE);
@@ -940,11 +896,9 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void writeDateField(final String fieldName, final long epochMicros) {
-        writeFieldName(fieldName);
-        jw.writeByte(QUOTE);
-        dateSerializer.serializeEpochTimestampAsIsoDateTime(jw, epochMicros / 1000);
-        jw.writeByte(QUOTE);
+    private void writeTimestamp(final long epochMicros) {
+        writeFieldName("timestamp");
+        NumberConverter.serialize(epochMicros, jw);
         jw.writeByte(COMMA);
     }
 }

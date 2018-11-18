@@ -30,10 +30,15 @@ import java.util.Collections;
 public class StacktraceConfiguration extends ConfigurationOptionProvider {
 
     private static final String STACKTRACE_CATEGORY = "Stacktrace";
+    public static final String APPLICATION_PACKAGES = "application_packages";
     private final ConfigurationOption<Collection<String>> applicationPackages = ConfigurationOption.stringsOption()
-        .key("application_packages")
+        .key(APPLICATION_PACKAGES)
         .configurationCategory(STACKTRACE_CATEGORY)
-        .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.")
+        .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
+            "Setting this option can also improve the startup time.\n" +
+            "\n" +
+            "In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,\n" +
+            "it is required to set these options.")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
 

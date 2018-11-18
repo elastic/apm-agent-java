@@ -49,7 +49,7 @@ public class ElasticApmTracer implements io.opentracing.Tracer {
     }
 
     @Override
-    public ApmSpanBuilder buildSpan(String operationName) {
+    public SpanBuilder buildSpan(String operationName) {
         return new ApmSpanBuilder(operationName, scopeManager());
     }
 

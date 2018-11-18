@@ -41,7 +41,6 @@ import org.openjdk.jmh.runner.options.TimeValue;
     "-Xms1g"/*,
     "-XX:+UnlockDiagnosticVMOptions",
     "-XX:+DebugNonSafepoints",
-    "-XX:+UnlockCommercialFeatures",
     "-XX:+FlightRecorder",
     "-XX:StartFlightRecording=disk=true," +
         "dumponexit=true," +
