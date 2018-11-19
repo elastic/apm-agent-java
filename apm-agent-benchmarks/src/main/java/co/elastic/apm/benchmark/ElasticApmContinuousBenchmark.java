@@ -88,13 +88,11 @@ import java.util.concurrent.TimeUnit;
  */
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@State(Scope.Thread)
+@State(Scope.Benchmark)
 public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     private final boolean apmEnabled;
     private final byte[] buffer = new byte[32 * 1024];
-    protected HttpServletRequest request;
-    protected HttpServletResponse response;
     protected HttpServlet httpServlet;
     private Undertow server;
     private ElasticApmTracer tracer;
@@ -132,13 +130,12 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     .add(CoreConfiguration.SERVICE_NAME, "benchmark")
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
                     .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
+                    .add("api_request_size", "10mb")
                     .add("server_urls", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-        request = createRequest();
-        response = createResponse();
         final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
         blackholeConnection.init(blackhole);
         httpServlet = new BenchmarkingServlet(blackholeConnection, tracer, blackhole);
@@ -155,26 +152,39 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
         System.out.println("receivedBytes = " + receivedBytes);
     }
 
-    private HttpServletRequest createRequest() {
-        final MockHttpServletRequest req = new MockHttpServletRequest("GET", "http://30thh.loc:8480/app/test%3F/a%3F+b;jsessionid=S+ID");
-        req.setHeader("Authorization", "Basic foo:bar");
-        req.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        req.setHeader("Accept-Encoding", "gzip, deflate, br");
-        req.setHeader("Accept-Language", "en-GB,en;q=0.9,en-US;q=0.8,de;q=0.7");
-        req.setHeader("Cache-Control", "max-age=0");
-        req.setHeader("Connection", "keep-alive");
-        req.setParameter("p 1", "c d");
-        req.setContextPath("/app");
-        req.setPathInfo("/a?+b");
-        req.setQueryString("p+1=c+d&p+2=e+f");
-        req.setRequestURI("/app/test%3F/a%3F+b;jsessionid=S+ID");
-        req.setServletPath("/test?");
-        req.setServerName("30thh.loc");
-        return req;
-    }
+    @State(Scope.Thread)
+    public static class RequestState {
 
-    private HttpServletResponse createResponse() {
-        return new MockHttpServletResponse();
+        HttpServletRequest request;
+        HttpServletResponse response;
+
+        @Setup
+        public void setUp() {
+            request = createRequest();
+            response = createResponse();
+        }
+
+        private HttpServletRequest createRequest() {
+            final MockHttpServletRequest req = new MockHttpServletRequest("GET", "http://30thh.loc:8480/app/test%3F/a%3F+b;jsessionid=S+ID");
+            req.setHeader("Authorization", "Basic foo:bar");
+            req.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+            req.setHeader("Accept-Encoding", "gzip, deflate, br");
+            req.setHeader("Accept-Language", "en-GB,en;q=0.9,en-US;q=0.8,de;q=0.7");
+            req.setHeader("Cache-Control", "max-age=0");
+            req.setHeader("Connection", "keep-alive");
+            req.setParameter("p 1", "c d");
+            req.setContextPath("/app");
+            req.setPathInfo("/a?+b");
+            req.setQueryString("p+1=c+d&p+2=e+f");
+            req.setRequestURI("/app/test%3F/a%3F+b;jsessionid=S+ID");
+            req.setServletPath("/test?");
+            req.setServerName("30thh.loc");
+            return req;
+        }
+
+        private HttpServletResponse createResponse() {
+            return new MockHttpServletResponse();
+        }
     }
 
     private static class BenchmarkingServlet extends HttpServlet {
