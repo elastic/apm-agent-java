@@ -3,6 +3,7 @@
 ## Features
 
 ## Bug Fixes
+ * Avoid `VerifyError`s by non instrumenting classes compiled for Java 4 or earlier
 
 # 1.0.1
 
