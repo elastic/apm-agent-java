@@ -1,11 +1,13 @@
 #!/usr/bin/env groovy
 
+/*
 library identifier: 'apm@master',
 changelog: false,
 retriever: modernSCM(
-  [$class: 'GitSCMSource', 
-  credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba', 
+  [$class: 'GitSCMSource',
+  credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
   remote: 'git@github.com:elastic/apm-pipeline-library.git'])
+*/
 
 pipeline {
   agent any
@@ -17,7 +19,7 @@ pipeline {
     cron('0 0 * * 1-5')
   }
   options {
-    timeout(time: 1, unit: 'HOURS') 
+    timeout(time: 1, unit: 'HOURS')
     buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '2', daysToKeepStr: '30'))
     timestamps()
     preserveStashes()
@@ -27,8 +29,8 @@ pipeline {
     durabilityHint('PERFORMANCE_OPTIMIZED')
   }
   parameters {
-    string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")    
-    string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")    
+    string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")
+    string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")
 
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
@@ -37,7 +39,7 @@ pipeline {
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'doc_ci', defaultValue: true, description: 'Enable build documentation')
   }
-  
+
   stages {
     /**
      Checkout the code and stash it, to use it on other stages.
@@ -58,16 +60,15 @@ pipeline {
                 checkout scm
               } else {
                 echo "Checkout ${branch_specifier}"
-                checkout([$class: 'GitSCM', branches: [[name: "${branch_specifier}"]], 
-                  doGenerateSubmoduleConfigurations: false, 
+                checkout([$class: 'GitSCM', branches: [[name: "${branch_specifier}"]],
+                  doGenerateSubmoduleConfigurations: false,
                   extensions: [],
                   submoduleCfg: [],
-                  userRemoteConfigs: [[credentialsId: "${JOB_GIT_CREDENTIALS}", 
+                  userRemoteConfigs: [[credentialsId: "${JOB_GIT_CREDENTIALS}",
                   url: "${GIT_URL}"]]])
               }
               env.JOB_GIT_COMMIT = getGitCommitSha()
               env.JOB_GIT_URL = "${GIT_URL}"
-              
               github_enterprise_constructor()
             }
           }
@@ -78,21 +79,21 @@ pipeline {
     /**
     Build on a linux environment.
     */
-    stage('build') { 
+    stage('build') {
       agent { label 'linux && immutable' }
       environment {
         HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
-      when { 
+      when {
         beforeAgent true
-        environment name: 'linux_ci', value: 'true' 
+        environment name: 'linux_ci', value: 'true'
       }
       steps {
         withEnvWrapper() {
           unstash 'source'
-          dir("${BASE_DIR}"){    
+          dir("${BASE_DIR}"){
             sh """#!/bin/bash
             set -euxo pipefail
             ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
@@ -115,25 +116,25 @@ pipeline {
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          when { 
+          when {
             beforeAgent true
-            environment name: 'test_ci', value: 'true' 
+            environment name: 'test_ci', value: 'true'
           }
           steps {
             withEnvWrapper() {
               unstash 'build'
-              dir("${BASE_DIR}"){    
+              dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw test -pl '!integration-tests'
+                ./mvnw test
                 """
               }
             }
           }
-          post { 
+          post {
             always {
-              junit(allowEmptyResults: true, 
-                keepLongStdio: true, 
+              junit(allowEmptyResults: true,
+                keepLongStdio: true,
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
               //codecov('apm-agent-java')
             }
@@ -142,40 +143,82 @@ pipeline {
         /**
           Run smoke tests for different servers and databases.
         */
-        stage('Smoke Tests') {
+        stage('Smoke Tests 01') {
           agent { label 'linux && immutable' }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          when { 
+          when {
             beforeAgent true
-            environment name: 'test_ci', value: 'true' 
+            environment name: 'test_ci', value: 'true'
           }
           steps {
             withEnvWrapper() {
               unstash 'build'
-              dir("${BASE_DIR}"){    
+              dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw verify -pl integration-tests
+                ./mvnw verify -pl '!integration-tests'
                 """
               }
             }
           }
-          post { 
+          post {
             always {
               //coverageReport("${BASE_DIR}/build/coverage")
-              junit(allowEmptyResults: true, 
-                keepLongStdio: true, 
+              junit(allowEmptyResults: true,
+                keepLongStdio: true,
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
               //codecov('apm-agent-java')
             }
           }
         }
         /**
-          Run the benchmarks and store the results on ES. 
+          Run smoke tests for different servers and databases.
+        */
+        stage('Smoke Tests 02') {
+          agent { label 'linux && immutable' }
+          environment {
+            HOME = "${env.HUDSON_HOME}"
+            JAVA_HOME = "${env.HOME}/.java/java10"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          when {
+            beforeAgent true
+            environment name: 'test_ci', value: 'true'
+          }
+          steps {
+            withEnvWrapper() {
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw -Dmaven.javadoc.skip=true\
+                  -pl integration-tests/.,\
+                    apm-agent-core,\
+                    integration-tests/simple-webapp,\
+                    integration-tests/simple-webapp-integration-test,\
+                    integration-tests/spring-boot-1-5,\
+                    integration-tests/spring-boot-2\
+                    verify
+                """
+              }
+            }
+          }
+          post {
+            always {
+              //coverageReport("${BASE_DIR}/build/coverage")
+              junit(allowEmptyResults: true,
+                keepLongStdio: true,
+                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+              //codecov('apm-agent-java')
+            }
+          }
+        }
+        /**
+          Run the benchmarks and store the results on ES.
           The result JSON files are also archive into Jenkins.
         */
         stage('Benchmarks') {
@@ -186,9 +229,9 @@ pipeline {
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
-          when { 
+          when {
             beforeAgent true
-            allOf { 
+            allOf {
               anyOf {
                 not {
                   changeRequest()
@@ -199,7 +242,7 @@ pipeline {
                 tag "v\\d+\\.\\d+\\.\\d+*"
                 environment name: 'Run_As_Master_Branch', value: 'true'
               }
-              environment name: 'bench_ci', value: 'true' 
+              environment name: 'bench_ci', value: 'true'
             }
           }
           steps {
@@ -217,10 +260,10 @@ pipeline {
                 """
               }
             }
-          } 
+          }
           post {
             always {
-              archiveArtifacts(allowEmptyArchive: true, 
+              archiveArtifacts(allowEmptyArchive: true,
                 artifacts: "${BASE_DIR}/${RESULT_FILE}",
                 onlyIfSuccessful: false)
               sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
@@ -237,17 +280,17 @@ pipeline {
             JAVA_HOME = "${env.HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
-          when { 
+          when {
             beforeAgent true
-            environment name: 'doc_ci', value: 'true' 
+            environment name: 'doc_ci', value: 'true'
           }
           steps {
             withEnvWrapper() {
               unstash 'build'
-              dir("${BASE_DIR}"){    
+              dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw javadoc:javadoc 
+                ./mvnw javadoc:javadoc
                 """
               }
             }
@@ -256,18 +299,18 @@ pipeline {
         /**
          run Java integration test with the commit version on master branch.
         */
-        stage('Integration Tests master') { 
+        stage('Integration Tests master') {
           agent { label 'linux && immutable' }
-          when { 
+          when {
             beforeAgent true
-            allOf { 
+            allOf {
               branch 'master'
-              environment name: 'integration_test_master_ci', value: 'true' 
+              environment name: 'integration_test_master_ci', value: 'true'
             }
           }
           steps {
             build(
-              job: 'apm-server-ci/apm-integration-test-axis-pipeline', 
+              job: 'apm-server-ci/apm-integration-test-axis-pipeline',
               parameters: [
                 string(name: 'BUILD_DESCRIPTION', value: "${BUILD_TAG}-INTEST"),
                 booleanParam(name: "go_Test", value: false),
@@ -279,22 +322,21 @@ pipeline {
               propagate: true)
           }
         }
-        
         /**
          run Java integration test with the commit version on a PR.
         */
-        stage('Integration Tests PR') { 
+        stage('Integration Tests PR') {
           agent { label 'linux && immutable' }
-          when { 
+          when {
             beforeAgent true
-            allOf { 
+            allOf {
               changeRequest()
-              environment name: 'integration_test_pr_ci', value: 'true' 
+              environment name: 'integration_test_pr_ci', value: 'true'
             }
           }
           steps {
             build(
-              job: 'apm-server-ci/apm-integration-test-pipeline', 
+              job: 'apm-server-ci/apm-integration-test-pipeline',
               parameters: [
                 string(name: 'BUILD_DESCRIPTION', value: "${BUILD_TAG}-INTEST"),
                 string(name: 'APM_AGENT_JAVA_PKG', value: "${BUILD_TAG}"),
@@ -311,8 +353,10 @@ pipeline {
         }
       }
     }
-        
-    stage('Documentation') { 
+    /**
+      Build documentation.
+    */
+    stage('Documentation') {
       agent { label 'linux && immutable' }
       environment {
         HOME = "${env.HUDSON_HOME}"
@@ -320,12 +364,11 @@ pipeline {
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
       }
-      
-      when { 
+      when {
         beforeAgent true
-        allOf { 
+        allOf {
           branch 'master'
-          environment name: 'doc_ci', value: 'true' 
+          environment name: 'doc_ci', value: 'true'
         }
       }
       steps {
@@ -347,7 +390,7 @@ pipeline {
             git pull origin master
             """
           }
-          dir("${BASE_DIR}"){    
+          dir("${BASE_DIR}"){
             sh """#!/bin/bash
             ./scripts/jenkins/docs.sh
             """
@@ -368,11 +411,11 @@ pipeline {
     aborted {
       echoColor(text: '[ABORTED]', colorfg: 'magenta', colorbg: 'default')
     }
-    failure { 
+    failure {
       echoColor(text: '[FAILURE]', colorfg: 'red', colorbg: 'default')
       //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${NOTIFY_TO}", sendToIndividuals: false])
     }
-    unstable { 
+    unstable {
       echoColor(text: '[UNSTABLE]', colorfg: 'yellow', colorbg: 'default')
     }
   }
