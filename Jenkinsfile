@@ -283,7 +283,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw javadoc:javadoc
+                ./mvnw compile javadoc:javadoc
                 """
               }
             }
