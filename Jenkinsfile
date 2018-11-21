@@ -191,7 +191,7 @@ pipeline {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
+                sh '''#!/bin/bash
                 set -euxo pipefail
                 export MOD="integration-tests" 
                 for i in $(find ${MOD} -maxdepth 1 -mindepth 1 -type d|grep -v target)
@@ -199,7 +199,7 @@ pipeline {
                   export MOD="${MOD},${i}"
                 done
                 ./mvnw -Dmaven.javadoc.skip=true -pl ${MOD} -am compile verify
-                """
+                '''
               }
             }
           }
