@@ -194,13 +194,8 @@ pipeline {
                 sh """#!/bin/bash
                 set -euxo pipefail
                 ./mvnw -Dmaven.javadoc.skip=true\
-                  -pl integration-tests/.,\
-                    apm-agent-core,\
-                    integration-tests/simple-webapp,\
-                    integration-tests/simple-webapp-integration-test,\
-                    integration-tests/spring-boot-1-5,\
-                    integration-tests/spring-boot-2\
-                    verify
+                  -pl integration-tests/.,apm-agent-core,integration-tests/simple-webapp,integration-tests/simple-webapp-integration-test,integration-tests/spring-boot-1-5,integration-tests/spring-boot-2\
+                  verify
                 """
               }
             }
