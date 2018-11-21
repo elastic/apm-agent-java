@@ -12,7 +12,7 @@ pipeline {
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
-    MAVEN_CONFIG = "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+    MAVEN_CONFIG = "-q -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
   }
   triggers {
     cron('0 0 * * 1-5')
@@ -68,22 +68,6 @@ pipeline {
               env.JOB_GIT_URL = "${GIT_URL}"
               
               github_enterprise_constructor()
-              
-              on_change{
-                echo "build cause a change (commit or PR)"
-              }
-              
-              on_commit {
-                echo "build cause a commit"
-              }
-              
-              on_merge {
-                echo "build cause a merge"
-              }
-              
-              on_pull_request {
-                echo "build cause PR"
-              }
             }
           }
           stash allowEmpty: true, name: 'source', useDefaultExcludes: false
@@ -109,7 +93,8 @@ pipeline {
           unstash 'source'
           dir("${BASE_DIR}"){    
             sh """#!/bin/bash
-            ./mvnw clean package -DskipTests=true
+            set -euxo pipefail
+            ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
             """
           }
           stash allowEmpty: true, name: 'build', useDefaultExcludes: false
@@ -138,7 +123,8 @@ pipeline {
               unstash 'build'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                ./mvnw test
+                set -euxo pipefail
+                ./mvnw test -pl '!integration-tests'
                 """
               }
             }
@@ -148,6 +134,7 @@ pipeline {
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+              codecov('apm-agent-java')
             }
           }
         }
@@ -170,19 +157,19 @@ pipeline {
               unstash 'build'
               dir("${BASE_DIR}"){    
                 sh """#!/bin/bash
-                #./mvnw verify
-                ./mvnw failsafe:integration-test
+                set -euxo pipefail
+                ./mvnw verify -pl integration-tests
                 """
-                codecov('apm-agent-java')
               }
             }
           }
           post { 
             always {
-              coverageReport("${BASE_DIR}/build/coverage")
+              //coverageReport("${BASE_DIR}/build/coverage")
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+              codecov('apm-agent-java')
             }
           }
         }
@@ -236,6 +223,32 @@ pipeline {
                 artifacts: "${BASE_DIR}/${RESULT_FILE}",
                 onlyIfSuccessful: false)
               sendBenchmarks(file: "${BASE_DIR}/${BULK_UPLOAD_FILE}", index: "benchmark-java")
+            }
+          }
+        }
+        /**
+          Build javadoc files.
+        */
+        stage('Javadoc') {
+          agent { label 'linux && immutable' }
+          environment {
+            HOME = "${env.HUDSON_HOME}"
+            JAVA_HOME = "${env.HOME}/.java/java10"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          when { 
+            beforeAgent true
+            environment name: 'doc_ci', value: 'true' 
+          }
+          steps {
+            withEnvWrapper() {
+              unstash 'build'
+              dir("${BASE_DIR}"){    
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw javadoc:javadoc 
+                """
+              }
             }
           }
         }
@@ -319,6 +332,7 @@ pipeline {
           unstash 'source'
           dir("${ELASTIC_DOCS}"){
             sh """#!/bin/bash
+            set -euxo pipefail
             git init
             git remote add origin https://github.com/elastic/docs.git
             git config core.sparsecheckout true
