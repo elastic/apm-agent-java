@@ -12,7 +12,6 @@ pipeline {
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
-    MAVEN_CONFIG = "-q -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
   }
   triggers {
     cron('0 0 * * 1-5')
@@ -29,6 +28,8 @@ pipeline {
   }
   parameters {
     string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")    
+    string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")    
+
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
@@ -134,7 +135,7 @@ pipeline {
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov('apm-agent-java')
+              //codecov('apm-agent-java')
             }
           }
         }
@@ -169,7 +170,7 @@ pipeline {
               junit(allowEmptyResults: true, 
                 keepLongStdio: true, 
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov('apm-agent-java')
+              //codecov('apm-agent-java')
             }
           }
         }
