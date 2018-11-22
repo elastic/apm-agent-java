@@ -8,7 +8,7 @@ retriever: modernSCM(
   remote: 'git@github.com:elastic/apm-pipeline-library.git'])
 
 pipeline {
-  agent any
+  agent { label 'linux && immutable' }
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
@@ -41,7 +41,6 @@ pipeline {
 
   stages {
     stage('Initializing'){
-      agent { label 'linux && immutable' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.HUDSON_HOME}"
@@ -105,7 +104,6 @@ pipeline {
           Run only unit test.
         */
         stage('Unit Tests') {
-          agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
@@ -348,7 +346,6 @@ pipeline {
       Build documentation.
     */
     stage('Documentation') {
-      agent { label 'linux && immutable' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.HUDSON_HOME}"
