@@ -157,7 +157,7 @@ pipeline {
               unstash 'build'
               dir("${BASE_DIR}"){
                 script {
-                  def mods = sh(script: 'find . -maxdepth 1 -mindepth 1 -type d|grep -v "target\\|integration-tests\\|docs\\|\\.mvn\\|\\.git\\|\\.ci\\|\\.github"|tr "\\n" "," ',
+                  def mods = sh(script: 'find . -maxdepth 1 -mindepth 1 -type d|grep -v "target\\|integration-tests\\|docs\\|\\.mvn\\|\\.git\\|\\.ci\\|\\.github\\|scripts"|tr "\\n" "," ',
                     returnStdout: true
                   )
                   mods.split(",").each{ mod ->
