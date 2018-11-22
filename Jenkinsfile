@@ -156,10 +156,16 @@ pipeline {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw verify -pl '!integration-tests'
-                """
+                script {
+                  def mods = sh(script: 'find . -maxdepth 1 -mindepth 1 -type d|grep -v "target\\|integration-tests\\|docs\\|\\.mvn\\|\\.git\\|\\.ci\\|\\.github"|tr "\\n" "," ',
+                    returnStdout: true
+                  )
+                  mods.split(",").each{ mod ->
+                     sh """#!/bin/bash
+                     ./scripts/jenkins/smoketests-01.sh ${mod}
+                     """
+                  }
+                }
               }
             }
           }
@@ -191,15 +197,9 @@ pipeline {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh '''#!/bin/bash
-                set -euxo pipefail
-                export MOD="integration-tests" 
-                for i in $(find ${MOD} -maxdepth 1 -mindepth 1 -type d|grep -v target)
-                do 
-                  export MOD="${MOD},${i}"
-                done
-                ./mvnw -Dmaven.javadoc.skip=true -pl ${MOD} -am compile verify
-                '''
+                sh """#!/bin/bash
+                ./scripts/jenkins/smoketests-02.sh
+                """
               }
             }
           }
