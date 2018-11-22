@@ -128,7 +128,9 @@ pipeline {
               junit(allowEmptyResults: true,
                 keepLongStdio: true,
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov('apm-agent-java')
+              dir("${BASE_DIR}"){
+                codecov('apm-agent-java')
+              }
             }
           }
         }
@@ -162,7 +164,9 @@ pipeline {
               junit(allowEmptyResults: true,
                 keepLongStdio: true,
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov('apm-agent-java')
+              dir("${BASE_DIR}"){
+                codecov('apm-agent-java')
+              }
             }
           }
         }
@@ -196,7 +200,9 @@ pipeline {
               junit(allowEmptyResults: true,
                 keepLongStdio: true,
                 testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov('apm-agent-java')
+              dir("${BASE_DIR}"){
+                codecov('apm-agent-java')
+              }
             }
           }
         }
