@@ -2,4 +2,6 @@
 
 set -euxo pipefail
 
-./mvnw -q -Dmaven.javadoc.skip=true -am -amd -pl integration-tests,apm-agent-core,apm-agent-api -P integration-test-only clean compile verify
+MOD=$(find integration-tests -maxdepth 1 -mindepth 1 -type d|grep -v "target"|tr "\n" ",")
+
+./mvnw -q -Dmaven.javadoc.skip=true -am -amd -pl ${MOD} -P integration-test-only verify
