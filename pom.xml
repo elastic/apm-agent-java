@@ -142,7 +142,7 @@
                       <skipTests>${skip.integration.test}</skipTests>
                   </configuration>
               </plugin>
-            </plugin>
+            </plugins>
           </build>
         </profile>
         <profile>
