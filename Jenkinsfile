@@ -40,65 +40,61 @@ pipeline {
   }
 
   stages {
-    /**
-     Checkout the code and stash it, to use it on other stages.
-    */
-    stage('Checkout') {
-      agent { label 'master || linux' }
+    stage('Initializing'){
+      agent { label 'linux && immutable' }
+      options { skipDefaultCheckout() }
       environment {
         HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
-      steps {
-        withEnvWrapper() {
-          dir("${BASE_DIR}"){
-            script{
-              if(!env?.branch_specifier){
-                echo "Checkout SCM ${GIT_BRANCH}"
-                checkout scm
-              } else {
-                echo "Checkout ${branch_specifier}"
-                checkout([$class: 'GitSCM', branches: [[name: "${branch_specifier}"]],
-                  doGenerateSubmoduleConfigurations: false,
-                  extensions: [],
-                  submoduleCfg: [],
-                  userRemoteConfigs: [[credentialsId: "${JOB_GIT_CREDENTIALS}",
-                  url: "${GIT_URL}"]]])
+      stages(){
+        /**
+         Checkout the code and stash it, to use it on other stages.
+        */
+        stage('Checkout') {
+          steps {
+            withEnvWrapper() {
+              dir("${BASE_DIR}"){
+                script{
+                  sh 'ls -la'
+                  if(!env?.branch_specifier){
+                    echo "Checkout SCM ${GIT_BRANCH}"
+                    checkout scm
+                  } else {
+                    echo "Checkout ${branch_specifier}"
+                    checkout([$class: 'GitSCM', branches: [[name: "${branch_specifier}"]],
+                      doGenerateSubmoduleConfigurations: false,
+                      extensions: [],
+                      submoduleCfg: [],
+                      userRemoteConfigs: [[credentialsId: "${JOB_GIT_CREDENTIALS}",
+                      url: "${GIT_URL}"]]])
+                  }
+                  env.JOB_GIT_COMMIT = getGitCommitSha()
+                  env.JOB_GIT_URL = "${GIT_URL}"
+                  github_enterprise_constructor()
+                }
               }
-              env.JOB_GIT_COMMIT = getGitCommitSha()
-              env.JOB_GIT_URL = "${GIT_URL}"
-              github_enterprise_constructor()
+              stash allowEmpty: true, name: 'source', useDefaultExcludes: false
             }
           }
-          stash allowEmpty: true, name: 'source', useDefaultExcludes: false
         }
-      }
-    }
-    /**
-    Build on a linux environment.
-    */
-    stage('build') {
-      agent { label 'linux && immutable' }
-      environment {
-        HOME = "${env.HUDSON_HOME}"
-        JAVA_HOME = "${env.HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-      }
-      when {
-        beforeAgent true
-        environment name: 'linux_ci', value: 'true'
-      }
-      steps {
-        withEnvWrapper() {
-          unstash 'source'
-          dir("${BASE_DIR}"){
-            sh """#!/bin/bash
-            set -euxo pipefail
-            ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
-            """
+        /**
+        Build on a linux environment.
+        */
+        stage('build') {
+          steps {
+            withEnvWrapper() {
+              unstash 'source'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
+                """
+              }
+              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+            }
           }
-          stash allowEmpty: true, name: 'build', useDefaultExcludes: false
         }
       }
     }
@@ -110,6 +106,7 @@ pipeline {
         */
         stage('Unit Tests') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
@@ -144,6 +141,7 @@ pipeline {
         */
         stage('Smoke Tests 01') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
@@ -177,6 +175,7 @@ pipeline {
         */
         stage('Smoke Tests 02') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
@@ -211,6 +210,7 @@ pipeline {
         */
         stage('Benchmarks') {
           agent { label 'metal' }
+          options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
@@ -263,6 +263,7 @@ pipeline {
         */
         stage('Javadoc') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
             JAVA_HOME = "${env.HOME}/.java/java10"
@@ -289,6 +290,7 @@ pipeline {
         */
         stage('Integration Tests master') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           when {
             beforeAgent true
             allOf {
@@ -315,6 +317,7 @@ pipeline {
         */
         stage('Integration Tests PR') {
           agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
           when {
             beforeAgent true
             allOf {
@@ -346,6 +349,7 @@ pipeline {
     */
     stage('Documentation') {
       agent { label 'linux && immutable' }
+      options { skipDefaultCheckout() }
       environment {
         HOME = "${env.HUDSON_HOME}"
         JAVA_HOME = "${env.HOME}/.java/java10"
