@@ -50,7 +50,7 @@ public class SystemInfo {
         return new SystemInfo(System.getProperty("os.arch"), getNameOfLocalHost(), System.getProperty("os.name"));
     }
 
-    private static String getNameOfLocalHost() {
+    static String getNameOfLocalHost() {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
