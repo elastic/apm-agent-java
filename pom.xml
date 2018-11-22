@@ -130,7 +130,7 @@
                   <artifactId>maven-failsafe-plugin</artifactId>
                   <version>${version.plugin.surefire}</version>
                   <configuration>
-                    <skipTests>${skip.unit.test}</skipTests>
+                    <skipTests>${skip.integration.test}</skipTests>
                   </configuration>
               </plugin>
               <plugin>
@@ -139,7 +139,7 @@
                   <configuration>
                       <enableAssertions>true</enableAssertions>
                       <trimStackTrace>false</trimStackTrace>
-                      <skipTests>${skip.integration.test}</skipTests>
+                      <skipTests>${skip.unit.test}</skipTests>
                   </configuration>
               </plugin>
             </plugins>
