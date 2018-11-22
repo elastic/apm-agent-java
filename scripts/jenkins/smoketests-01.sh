@@ -2,4 +2,4 @@
 
 set -euxo pipefail
 
-./mvnw -q -Dmaven.javadoc.skip=true -am -amd -pl apm-agent-plugins,apm-agent-api compile integration-test
+./mvnw -q -Dmaven.javadoc.skip=true -am -amd -pl apm-agent-plugins -P integration-test-only verify
