@@ -2,5 +2,4 @@
 
 set -euxo pipefail
 
-MOD=${1}
-./mvnw -Dmaven.javadoc.skip=true -pl "${MOD}" -am compile verify
+./mvnw -q -Dmaven.javadoc.skip=true -am -amd -pl apm-agent-plugins integration-test

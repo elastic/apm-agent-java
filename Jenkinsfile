@@ -32,6 +32,7 @@ pipeline {
 
     booleanParam(name: 'linux_ci', defaultValue: true, description: 'Enable Linux build')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
+    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
     booleanParam(name: 'integration_test_master_ci', defaultValue: false, description: 'Enable run integration test')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
@@ -101,7 +102,7 @@ pipeline {
         }
       }
     }
-    stage('Parallel stages') {
+    stage('Tests') {
       failFast true
       parallel {
         /**
@@ -150,22 +151,15 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'test_ci', value: 'true'
+            environment name: 'smoketests_ci', value: 'true'
           }
           steps {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                script {
-                  def mods = sh(script: 'find . -maxdepth 1 -mindepth 1 -type d|grep -v "target\\|integration-tests\\|docs\\|\\.mvn\\|\\.git\\|\\.ci\\|\\.github\\|scripts"|tr "\\n" "," ',
-                    returnStdout: true
-                  )
-                  mods.split(",").each{ mod ->
-                     sh """#!/bin/bash
-                     ./scripts/jenkins/smoketests-01.sh ${mod}
-                     """
-                  }
-                }
+                sh """#!/bin/bash
+                ./scripts/jenkins/smoketests-01.sh
+                """
               }
             }
           }
@@ -191,7 +185,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'test_ci', value: 'true'
+            environment name: 'smoketests_ci', value: 'true'
           }
           steps {
             withEnvWrapper() {
