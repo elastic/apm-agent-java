@@ -130,6 +130,18 @@ class TraceContextTest {
     }
 
     @Test
+    void testPropagateTransactionIdForUnsampledSpan() {
+        final TraceContext rootContext = TraceContext.with64BitId();
+        rootContext.asRootSpan(ConstantSampler.of(false));
+
+        final TraceContext childContext = TraceContext.with64BitId();
+        childContext.asChildOf(rootContext);
+
+        assertThat(childContext.getOutgoingTraceParentHeader().toString()).doesNotContain(childContext.getId().toString());
+        assertThat(childContext.getOutgoingTraceParentHeader().toString()).contains(rootContext.getId().toString());
+    }
+
+    @Test
     void testUnknownVersion() {
         assertValid("42-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
     }

@@ -318,7 +318,10 @@ public class TraceContext implements Recyclable {
      */
     public StringBuilder getOutgoingTraceParentHeader() {
         if (outgoingHeader.length() == 0) {
-            fillTraceParentHeader(outgoingHeader, id);
+            // for unsampled traces, propagate the ID of the transaction in calls to downstream services
+            // such that the parentID of those transactions point to a transaction that exists
+            // remember that we do report unsampled transactions
+            fillTraceParentHeader(outgoingHeader, isSampled() ? id : transactionId);
         }
         return outgoingHeader;
     }
