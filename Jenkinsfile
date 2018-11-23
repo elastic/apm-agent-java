@@ -102,6 +102,7 @@ pipeline {
           Run only unit test.
         */
         stage('Unit Tests') {
+          agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.HUDSON_HOME}"
