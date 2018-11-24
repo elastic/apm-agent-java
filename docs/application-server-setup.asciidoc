@@ -13,7 +13,7 @@ Use the `-D` prefix to configure the agent using system properties.
 
 [source,bash]
 ----
-java -javaagent:/path/to/elastic-apm-agent-<version>.jar -Delastic.apm.service_name=my-cool-service -Delastic.apm.application_packages=org.example -Delastic.apm.server_urls=http://localhost:8300 -jar my-application.jar
+java -javaagent:/path/to/elastic-apm-agent-<version>.jar -Delastic.apm.service_name=my-cool-service -Delastic.apm.application_packages=org.example -Delastic.apm.server_urls=http://localhost:8200 -jar my-application.jar
 ----
 
 [float]
@@ -34,7 +34,7 @@ Add the following line:
 export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
 export CATALINA_OPTS="$CATALINA_OPTS -Delastic.apm.service_name=my-cool-service"
 export CATALINA_OPTS="$CATALINA_OPTS -Delastic.apm.application_packages=org.example"
-export CATALINA_OPTS="$CATALINA_OPTS -Delastic.apm.server_urls=http://localhost:8300"
+export CATALINA_OPTS="$CATALINA_OPTS -Delastic.apm.server_urls=http://localhost:8200"
 ----
 
 [float]
@@ -48,7 +48,7 @@ Create `bin\setenv.bat` (or modify if the file already exists).
 set CATALINA_OPTS=%CATALINA_OPTS% -javaagent:C:/path/to/elastic-apm-agent-<version>.jar
 set CATALINA_OPTS=%CATALINA_OPTS% -Delastic.apm.service_name=my-cool-service
 set CATALINA_OPTS=%CATALINA_OPTS% -Delastic.apm.application_packages=org.example
-set CATALINA_OPTS=%CATALINA_OPTS% -Delastic.apm.server_urls=http://localhost:8300
+set CATALINA_OPTS=%CATALINA_OPTS% -Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [float]
@@ -63,7 +63,7 @@ Option 1: edit `jetty.sh`
 export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/elastic-apm-agent-<version>.jar"
 export JAVA_OPTIONS="${JAVA_OPTIONS} -Delastic.apm.service_name=my-cool-service"
 export JAVA_OPTIONS="${JAVA_OPTIONS} -Delastic.apm.application_packages=org.example"
-export JAVA_OPTIONS="${JAVA_OPTIONS} -Delastic.apm.server_urls=http://localhost:8300"
+export JAVA_OPTIONS="${JAVA_OPTIONS} -Delastic.apm.server_urls=http://localhost:8200"
 ----
 
 Option 2: edit `start.ini`
@@ -75,7 +75,7 @@ Option 2: edit `start.ini`
 -javaagent:/path/to/elastic-apm-agent-<version>.jar
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_urls=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8200
 ----
 
 Option 3: If you are using embedded Jetty, see <<setup-generic>>.
@@ -99,7 +99,7 @@ Add the agent configuration at the bottom of the `standalone.conf` file:
 export JAVA_OPTS="$JAVA_OPTS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
 export JAVA_OPTS="$JAVA_OPTS -Delastic.apm.service_name=my-cool-service"
 export JAVA_OPTS="$JAVA_OPTS -Delastic.apm.application_packages=org.example"
-export JAVA_OPTS="$JAVA_OPTS -Delastic.apm.server_urls=http://localhost:8300"
+export JAVA_OPTS="$JAVA_OPTS -Delastic.apm.server_urls=http://localhost:8200"
 ----
 
 [float]
@@ -112,7 +112,7 @@ export JAVA_OPTS="$JAVA_OPTS -Delastic.apm.server_urls=http://localhost:8300"
 set JAVA_OPTS=%JAVA_OPTS% -javaagent:C:/path/to/elastic-apm-agent-<version>.jar
 set JAVA_OPTS=%JAVA_OPTS% -Delastic.apm.service_name=my-cool-service
 set JAVA_OPTS=%JAVA_OPTS% -Delastic.apm.application_packages=org.example
-set JAVA_OPTS=%JAVA_OPTS% -Delastic.apm.server_urls=http://localhost:8300
+set JAVA_OPTS=%JAVA_OPTS% -Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [float]
@@ -138,7 +138,7 @@ as well as some system properties for the configuration.
 <system-properties>
   <property name="elastic.apm.service_name"         value="my-cool-service"/>
   <property name="elastic.apm.application_packages" value="org.example"/>
-  <property name="elastic.apm.server_urls"          value="http://localhost:8300"/>
+  <property name="elastic.apm.server_urls"          value="http://localhost:8200"/>
 </system-properties>
 ...
 ----
@@ -154,7 +154,7 @@ Add the following lines to the `jvm.options` file.
 -javaagent:/path/to/elastic-apm-agent-<version>.jar
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_urls=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [float]
@@ -170,6 +170,6 @@ Update the `domain.xml` file to add the `-javaagent` flag and system properties.
   <jvm-options>-javaagent:/path/to/elastic-apm-agent-<version>.jar</jvm-options>
   <jvm-options>-Delastic.apm.service_name=my-cool-service</jvm-options>
   <jvm-options>-Delastic.apm.application_packages=org.example</jvm-options>
-  <jvm-options>-Delastic.apm.server_urls=http://localhost:8300</jvm-options>
+  <jvm-options>-Delastic.apm.server_urls=http://localhost:8200</jvm-options>
 </java-config>
 ----
