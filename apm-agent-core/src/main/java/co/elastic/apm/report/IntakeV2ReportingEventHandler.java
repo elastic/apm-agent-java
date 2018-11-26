@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -204,7 +206,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private HttpURLConnection startRequest() {
         try {
-            URL url = new URL(serverUrlIterator.get(), INTAKE_V2_URL);
+            URL url = getUrl();
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting new request to {}", url);
             }
@@ -241,6 +243,20 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             onConnectionError(null, currentlyTransmitting, 0);
             return null;
         }
+    }
+
+    @Nonnull
+    URL getUrl() throws MalformedURLException {
+        URL serverUrl = serverUrlIterator.get();
+        String path = serverUrl.getPath();
+        if(path.endsWith("/")) {
+            path = path.substring(0, path.length()-1);
+        }
+        return new URL(serverUrl, path + INTAKE_V2_URL);
+    }
+
+    void switchToNextServerUrl() {
+        serverUrlIterator.next();
     }
 
     private void trustAll(HttpsURLConnection connection) {
@@ -331,7 +347,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
-            serverUrlIterator.next();
+            switchToNextServerUrl();
         } else if (responseCode == 404) {
             logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
                 "Please use APM Server 6.5.0 or newer.");

@@ -120,14 +120,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
-        .tags("internal", "incubating", "intake-v2")
         .description("Maximum time to keep an HTTP request to the APM Server open for.")
         .buildWithDefault(TimeDuration.of("10s"));
 
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
         .key("api_request_size")
         .configurationCategory(REPORTER_CATEGORY)
-        .tags("internal", "incubating", "intake-v2")
         .description("The maximum total compressed size of the request body which is sent to the APM server intake api via a " +
             "chunked encoding (HTTP streaming).\n" +
             "Note that a small overshoot is possible.\n" +

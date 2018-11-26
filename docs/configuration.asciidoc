@@ -696,6 +696,52 @@ Disabled by default to save disk space.
 | `elastic.apm.include_process_args` | `include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
 |============
 
+[float]
+[[config-api-request-time]]
+==== `api_request_time`
+
+Maximum time to keep an HTTP request to the APM Server open for.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `10s`.
+The default unit for this option is `s`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `10s` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_request_time` | `api_request_time` | `ELASTIC_APM_API_REQUEST_TIME`
+|============
+
+[float]
+[[config-api-request-size]]
+==== `api_request_size`
+
+The maximum total compressed size of the request body which is sent to the APM server intake api via a chunked encoding (HTTP streaming).
+Note that a small overshoot is possible.
+
+Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `768kb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE`
+|============
+
 [[config-stacktrace]]
 === Stacktrace configuration options
 [float]
@@ -1132,6 +1178,27 @@ The default unit for this option is `ms`
 # Default value: false
 #
 # include_process_args=false
+
+# Maximum time to keep an HTTP request to the APM Server open for.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 10s.
+# The default unit for this option is s.
+# Default value: 10s
+#
+# api_request_time=10s
+
+# The maximum total compressed size of the request body which is sent to the APM server intake api via a chunked encoding (HTTP streaming).
+# Note that a small overshoot is possible.
+# 
+# Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: ByteValue
+# Default value: 768kb
+#
+# api_request_size=768kb
 
 ############################################
 # Stacktrace                               #

@@ -21,7 +21,6 @@ package co.elastic.apm.jdbc;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.VisibleForAdvice;
-import com.google.common.collect.MapMaker;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -34,6 +33,7 @@ import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -52,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final Map<Object, String> statementSqlMap = new MapMaker().concurrencyLevel(16).weakKeys().makeMap();
+    public static final Map<Object, String> statementSqlMap = Collections.synchronizedMap(new WeakHashMap<Object, String>());
     static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
 
     @VisibleForAdvice
