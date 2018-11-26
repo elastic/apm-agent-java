@@ -60,7 +60,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "NOTE: Setting this to true can increase the network and disk requirements and increases allocations.")
         .dynamic(true)
-        .buildWithDefault(false);
+        .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)

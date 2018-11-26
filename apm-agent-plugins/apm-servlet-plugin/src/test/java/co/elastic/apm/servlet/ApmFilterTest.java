@@ -21,6 +21,7 @@ package co.elastic.apm.servlet;
 
 import co.elastic.apm.AbstractInstrumentationTest;
 import co.elastic.apm.configuration.CoreConfiguration;
+import co.elastic.apm.impl.context.Request;
 import co.elastic.apm.impl.context.Url;
 import co.elastic.apm.matcher.WildcardMatcher;
 import co.elastic.apm.util.PotentiallyMultiValuedMap;
@@ -39,6 +40,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -259,10 +261,28 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("Elastic-Apm-Traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
+        get.setCookies(new Cookie("foo", "bar"));
         filterChain.doFilter(get, new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getHeaders().isEmpty()).isTrue();
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getCookies().isEmpty()).isTrue();
         assertThat(reporter.getFirstTransaction().getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
         assertThat(reporter.getFirstTransaction().getTraceContext().getParentId().toString()).isEqualTo("b9c7c989f97918e1");
+    }
+
+    @Test
+    void testHeaderRecording() throws IOException, ServletException {
+        when(webConfiguration.isCaptureHeaders()).thenReturn(true);
+        filterChain = new MockFilterChain(new TestServlet());
+        final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
+        get.addHeader("foo", "bar");
+        get.setCookies(new Cookie("foo", "bar"));
+        filterChain.doFilter(get, new MockHttpServletResponse());
+        assertThat(reporter.getTransactions()).hasSize(1);
+        final Request request = reporter.getFirstTransaction().getContext().getRequest();
+        assertThat(request.getHeaders().isEmpty()).isFalse();
+        assertThat(request.getHeaders().get("foo")).isEqualTo("bar");
+        assertThat(request.getCookies().get("foo")).isEqualTo("bar");
     }
 
     public static class TestServlet extends HttpServlet {
