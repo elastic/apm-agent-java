@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +85,7 @@ class TransactionPayloadJsonSchemaTest {
 
     private TransactionPayload createPayload() {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
-        SystemInfo system = new SystemInfo("", "", "");
+        SystemInfo system = SystemInfo.create();
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
         return new TransactionPayload(processInfo, service, system);
@@ -97,6 +98,22 @@ class TransactionPayloadJsonSchemaTest {
         final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class)).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
+    }
+
+    @Test
+    void testSystemInfo() throws IOException {
+        String arc = System.getProperty("os.arch");
+        String platform = System.getProperty("os.name");
+        String hostname = SystemInfo.getNameOfLocalHost();
+        TransactionPayload payload = createPayload();
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        final String content = serializer.toJsonString(payload);
+        System.out.println(content);
+        JsonNode node = objectMapper.readTree(content);
+        JsonNode system = node.get("system");
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(hostname).isEqualTo(system.get("hostname").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
     }
 
     @Test

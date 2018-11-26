@@ -33,6 +33,7 @@ import co.elastic.apm.report.processor.ProcessorEventHandler;
 import co.elastic.apm.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Rule;
@@ -46,6 +47,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -63,6 +65,8 @@ import static org.mockito.Mockito.mock;
 
 class IntakeV2ReportingEventHandlerTest {
 
+    private static final String HTTP_LOCALHOST = "http://localhost:";
+    private static final String APM_SERVER_PATH = "/apm-server";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     @Rule
     public WireMockRule mockApmServer1 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -81,10 +85,9 @@ class IntakeV2ReportingEventHandlerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        List.of(mockApmServer1, mockApmServer2).forEach(apmServer -> {
-            apmServer.start();
-            apmServer.stubFor(post(INTAKE_V2_URL).willReturn(ok()));
-        });
+        List.of(mockApmServer1, mockApmServer2).forEach(WireMockServer::start);
+        mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(ok()));
+        mockApmServer2.stubFor(post(APM_SERVER_PATH + INTAKE_V2_URL).willReturn(ok()));
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
@@ -93,14 +96,26 @@ class IntakeV2ReportingEventHandlerTest {
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
             List.of(
-                new URL("http://localhost:" + mockApmServer1.port()),
-                new URL("http://localhost:" + mockApmServer2.port())
+                new URL(HTTP_LOCALHOST + mockApmServer1.port()),
+                // testing ability to configure a server url with additional path (ending with "/" in this case)
+                new URL(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + "/")
             ));
     }
 
     @AfterEach
     void tearDown() {
         List.of(mockApmServer1, mockApmServer2).forEach(WireMockRule::stop);
+    }
+
+    @Test
+    void testUrls() throws MalformedURLException {
+        URL server1url = reportingEventHandler.getUrl();
+        assertThat(server1url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer1.port() + INTAKE_V2_URL);
+        reportingEventHandler.switchToNextServerUrl();
+        URL server2url = reportingEventHandler.getUrl();
+        assertThat(server2url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + INTAKE_V2_URL);
+        // just to restore
+        reportingEventHandler.switchToNextServerUrl();
     }
 
     @Test
@@ -133,7 +148,7 @@ class IntakeV2ReportingEventHandlerTest {
         reportTransaction();
         reportingEventHandler.flush();
         mockApmServer1.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
-        mockApmServer2.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
+        mockApmServer2.verify(postRequestedFor(urlEqualTo(APM_SERVER_PATH + INTAKE_V2_URL)));
     }
 
     @Test

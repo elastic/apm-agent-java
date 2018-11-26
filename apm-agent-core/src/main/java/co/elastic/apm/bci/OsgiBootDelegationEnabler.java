@@ -22,6 +22,9 @@ package co.elastic.apm.bci;
 import co.elastic.apm.context.LifecycleListener;
 import co.elastic.apm.impl.ElasticApmTracer;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Required in OSGi environments like Equinox, which is used in WebSphere.
  * By adding the base package of the APM agent,
@@ -34,16 +37,18 @@ import co.elastic.apm.impl.ElasticApmTracer;
  * </p>
  */
 public class OsgiBootDelegationEnabler implements LifecycleListener {
-    private static final String OSGI_BOOTDELEGATION = "org.osgi.framework.bootdelegation";
+    private static final List<String> bootdelegationNames = Arrays.asList("org.osgi.framework.bootdelegation", "atlassian.org.osgi.framework.bootdelegation");
     private static final String APM_BASE_PACKAGE = "co.elastic.apm.*";
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        final String systemPackages = System.getProperty(OSGI_BOOTDELEGATION);
-        if (systemPackages != null) {
-            System.setProperty(OSGI_BOOTDELEGATION, systemPackages + "," + APM_BASE_PACKAGE);
-        } else {
-            System.setProperty(OSGI_BOOTDELEGATION, APM_BASE_PACKAGE);
+        for (String bootdelegationName : bootdelegationNames) {
+            final String systemPackages = System.getProperty(bootdelegationName);
+            if (systemPackages != null) {
+                System.setProperty(bootdelegationName, systemPackages + "," + APM_BASE_PACKAGE);
+            } else {
+                System.setProperty(bootdelegationName, APM_BASE_PACKAGE);
+            }
         }
     }
 

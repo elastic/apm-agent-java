@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.bci;
 
+import co.elastic.apm.MockTracer;
 import co.elastic.apm.configuration.CoreConfiguration;
 import co.elastic.apm.configuration.SpyConfiguration;
 import co.elastic.apm.impl.ElasticApmTracerBuilder;
@@ -28,6 +29,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.apache.commons.math.util.MathUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -57,6 +59,17 @@ class InstrumentationTest {
         when(config.getConfig(CoreConfiguration.class).getDisabledInstrumentations()).thenReturn(Collections.singletonList("test"));
         init(config);
         assertThat(interceptMe()).isEmpty();
+    }
+
+    @Test
+    void testDontInstrumentOldClassFileVersions() {
+        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new MathInstrumentation()));
+        // if the instrumentation applied, it would return 42
+        // but instrumenting old class file versions could lead to VerifyErrors in some cases and possibly some more shenanigans
+        // so we we are better off not touching Java 1.4 code at all
+        assertThat(MathUtils.sign(-42)).isEqualTo(-1);
     }
 
     private void init(ConfigurationRegistry config) {
@@ -90,6 +103,28 @@ class InstrumentationTest {
         @Override
         public Collection<String> getInstrumentationGroupNames() {
             return Collections.singleton("test");
+        }
+    }
+
+    public static class MathInstrumentation extends ElasticApmInstrumentation {
+        @Advice.OnMethodExit
+        public static void onMethodExit(@Advice.Return(readOnly = false) int returnValue) {
+            returnValue = 42;
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named("org.apache.commons.math.util.MathUtils");
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("sign").and(ElementMatchers.takesArguments(int.class));
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.emptyList();
         }
     }
 }
