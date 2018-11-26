@@ -3,6 +3,8 @@
 ## Features
 
 ## Bug Fixes
+ * Update dsl-json which fixes a memory leak.
+ See [ngs-doo/dsl-json#102](https://github.com/ngs-doo/dsl-json/pull/102) for details.
 
 # 1.0.1
 
