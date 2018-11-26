@@ -227,21 +227,11 @@ If you have access to make releases, the process is as follows:
 
 1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
 1. Execute the release Jenkins job on the internal ci server
-1. If this was a major or minor release,
-   create a bugfix branch for that version and set the next development version in master to the next minor version.
-  
-   For example:
- 
-    ```bash
-    git fetch origin
-    git checkout v0.7.0
-    git checkout -b 0.7
-    git push -u origin
-    git checkout master
-    # increment the version to the next minor version
-    # the following command works under Mac OS and zsh
-    sed -i '' -e 's/0.7.1-SNAPSHOT/0.8.0-SNAPSHOT/g' **/pom.xml
-    git commit -am 'Update next development version'
-    git push
-    ```
-1. If this was a bugfix release, there is nothing more to do
+1. Fetch and checkout the latest tag e.g. `git fetch && git checkout v1.0.1` 
+1. If this was a major release,
+   create a new branch for the major
+   1. For example `git checkout -b 2.x && git push -u origin`
+   1. Add the new branch to the `conf.yaml` in the docs repo
+1. If this was a minor release,
+   reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x master`
+   1. Update the branch on upstream with `git push origin 1.x`
