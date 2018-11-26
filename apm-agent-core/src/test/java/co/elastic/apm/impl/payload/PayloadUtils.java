@@ -34,7 +34,7 @@ public class PayloadUtils {
 
     static {
         SERVICE = new Service().withAgent(new Agent("name", "version")).withName("name");
-        SYSTEM = new SystemInfo("", "", "");
+        SYSTEM = SystemInfo.create();
         PROCESS_INFO = new ProcessInfo("title");
         PROCESS_INFO.getArgv().add("test");
     }

@@ -89,7 +89,7 @@ public class ApmServerReporter implements Reporter {
                 thread.setName("apm-reporter");
                 return thread;
             }
-        }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLock(1, 10, TimeUnit.MILLISECONDS));
+        }, ProducerType.MULTI, PhasedBackoffWaitStrategy.withLiteLock(1, 10, TimeUnit.MILLISECONDS));
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);

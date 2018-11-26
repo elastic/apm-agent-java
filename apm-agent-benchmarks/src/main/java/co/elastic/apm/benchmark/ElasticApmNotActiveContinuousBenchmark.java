@@ -35,8 +35,8 @@ public class ElasticApmNotActiveContinuousBenchmark extends ElasticApmContinuous
     }
 
     @Benchmark
-    public int benchmarkWithoutApm() throws IOException, ServletException {
-        httpServlet.service(request, response);
-        return response.getStatus();
+    public int benchmarkWithoutApm(RequestState requestState) throws IOException, ServletException {
+        httpServlet.service(requestState.request, requestState.response);
+        return requestState.response.getStatus();
     }
 }

@@ -116,7 +116,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent automatically creates DB spans for all your JDBC queries.
  This includes JDBC queries executed by O/R mappers like Hibernate.
 
- *Note:* Make sure that your JDBC driver is at least compiled for Java 1.6.
+ *Note:* Make sure that your JDBC driver is at least compiled for Java 1.5.
  For example, commons dbcp versions before 1.4 are not supported.
  IBM DB2 db2jcc drivers are also not supported.
  Please update to db2jcc4.
