@@ -150,15 +150,12 @@ Also make sure to configure your firewalls so that the host the agent runs on ca
 [[trouble-shooting-old-jdbc-drivers]]
 ==== Libraries compiled against old Java versions
 
-If you are seeing exceptions like these in your application,
+If you are seeing warning like these in your application,
 it means that you are using a library which has been compiled for a very old version of Java:
 
 ----
-java.lang.VerifyError: (class: org/apache/commons/dbcp/DelegatingStatement, method: executeQuery signature: (Ljava/lang/String;)Ljava/sql/ResultSet;) Illegal type in constant pool
-----
-
-----
-java.lang.IllegalStateException: Cannot write type to constant pool for class file version Java 2
+org.apache.commons.dbcp.DelegatingStatement uses an unsupported class file version (pre Java 5) and can't be instrumented.
+Consider updating to a newer version of that library.
 ----
 
 That mostly concerns JDBC drivers.

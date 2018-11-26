@@ -22,6 +22,7 @@ package co.elastic.apm.bci;
 import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.configuration.CoreConfiguration;
@@ -34,6 +35,7 @@ import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -196,7 +198,14 @@ public class ElasticApmAgent {
                     }
                 }, advice.getAdviceClass().getName())
                 .include(ClassLoader.getSystemClassLoader())
-                .withExceptionHandler(PRINTING));
+                .withExceptionHandler(PRINTING))
+            .transform(new AgentBuilder.Transformer() {
+                @Override
+                public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
+                                                        ClassLoader classLoader, JavaModule module) {
+                    return builder.visit(MinimumClassFileVersionValidator.INSTANCE);
+                }
+            });
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {

@@ -132,5 +132,12 @@
             <artifactId>guava</artifactId>
             <version>27.0-android</version>
         </dependency>
+        <!--Used to test excluding old class file versions-->
+        <dependency>
+            <groupId>commons-math</groupId>
+            <artifactId>commons-math</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
