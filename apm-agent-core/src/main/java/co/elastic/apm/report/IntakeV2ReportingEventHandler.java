@@ -249,7 +249,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     URL getUrl() throws MalformedURLException {
         URL serverUrl = serverUrlIterator.get();
         String path = serverUrl.getPath();
-        if(path.endsWith("/")) {
+        if (path.endsWith("/")) {
             path = path.substring(0, path.length()-1);
         }
         return new URL(serverUrl, path + INTAKE_V2_URL);
