@@ -56,7 +56,7 @@ public class ServletApiAdvice {
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
     @VisibleForAdvice
-    public static ThreadLocal<Boolean> excluded = new ThreadLocal<>() {
+    public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return Boolean.FALSE;
