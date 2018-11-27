@@ -49,6 +49,8 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ApmFilterTest extends AbstractInstrumentationTest {
@@ -145,11 +147,14 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testIgnoreUrlEndWith() throws IOException, ServletException {
+        filterChain = new MockFilterChain(new HttpServlet() {
+        });
         when(webConfiguration.getIgnoreUrls()).thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*.js")));
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/resources");
         request.setPathInfo("test.js");
         filterChain.doFilter(request, new MockHttpServletResponse());
+        verify(webConfiguration, times(1)).getIgnoreUrls();
         assertThat(reporter.getTransactions()).hasSize(0);
     }
 
