@@ -22,13 +22,14 @@ you can use custom spans.
 For information about custom spans,
 see the <<public-api,public api documentation>>.
 
-The agent is only one of multiple components you need to get started with APM.
-Please also have a look at the documentation for
-
-* {apm-server-ref}/index.html[APM Server]
-* {ref}/index.html[Elasticsearch]
-
 NOTE: The minimum required version of the APM Server is 6.5.0
+
+[float]
+[[additional-components]]
+=== Additional Components
+
+APM Agents work in conjunction with the {apm-server-ref}/index.html[APM Server], {ref}/index.html[Elasticsearch], and {kibana-ref}/index.html[Kibana].
+Please view the {apm-get-started-ref}/index.html[APM Overview] for details on how these components work together. 
 
 [float]
 [[get-started]]
