@@ -226,6 +226,7 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 If you have access to make releases, the process is as follows:
 
 1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
+   1. In case you want to adjust the version, execute `mvn release:update-versions`
 1. Execute the release Jenkins job on the internal ci server
 1. Fetch and checkout the latest tag e.g. `git fetch && git checkout v1.0.1` 
 1. If this was a major release,
