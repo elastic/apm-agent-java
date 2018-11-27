@@ -55,6 +55,13 @@ public class ServletApiAdvice {
     @Nullable
     @VisibleForAdvice
     public static ElasticApmTracer tracer;
+    @VisibleForAdvice
+    public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.FALSE;
+        }
+    };
 
     static void init(ElasticApmTracer tracer) {
         ServletApiAdvice.tracer = tracer;
@@ -77,7 +84,7 @@ public class ServletApiAdvice {
         if (servletTransactionHelper != null &&
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
-            !Boolean.TRUE.equals(servletRequest.getAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST))) {
+            !Boolean.TRUE.equals(excluded.get())) {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
@@ -86,10 +93,8 @@ public class ServletApiAdvice {
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
-                request.setAttribute(FilterChainInstrumentation.EXCLUDE_REQUEST, Boolean.TRUE);
+                excluded.set(Boolean.TRUE);
                 return;
-            } else {
-                request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
             }
             final Request req = transaction.getContext().getRequest();
             if (transaction.isSampled() && request.getCookies() != null) {
@@ -121,6 +126,7 @@ public class ServletApiAdvice {
         if (tracer == null) {
             return;
         }
+        excluded.set(Boolean.FALSE);
         if (scope != null) {
             scope.close();
         }

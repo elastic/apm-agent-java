@@ -23,6 +23,7 @@ import co.elastic.apm.bci.ElasticApmInstrumentation;
 import co.elastic.apm.bci.HelperClassManager;
 import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -37,6 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.servlet.ServletApiAdvice.TRANSACTION_ATTRIBUTE;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -54,7 +56,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * See https://github.com/raphw/byte-buddy/issues/465 for more information.
  * However, the helper class {@link StartAsyncAdviceHelper} has access to the Servlet API,
  * as it is loaded by the child classloader of {@link AsyncContext}
- * (see {@link StartAsyncAdvice#onExitStartAsync(AsyncContext)}).
+ * (see {@link StartAsyncAdvice#onExitStartAsync(HttpServletRequest, AsyncContext)}).
  */
 public class AsyncInstrumentation extends ElasticApmInstrumentation {
 
@@ -122,9 +124,15 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     public static class StartAsyncAdvice {
 
         @Advice.OnMethodExit
-        private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
-            if (asyncHelper != null) {
-                asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
+        private static void onExitStartAsync(@Advice.This HttpServletRequest request, @Advice.Return AsyncContext asyncContext) {
+            if (tracer != null) {
+                final Transaction transaction = tracer.currentTransaction();
+                if (transaction != null) {
+                    request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
+                    if (asyncHelper != null) {
+                        asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
+                    }
+                }
             }
         }
     }

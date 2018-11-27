@@ -20,7 +20,6 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
 import co.elastic.apm.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -42,9 +41,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * Instruments {@link javax.servlet.FilterChain}s to create transactions.
  */
 public class FilterChainInstrumentation extends ElasticApmInstrumentation {
-
-    @VisibleForAdvice
-    public static final String EXCLUDE_REQUEST = "elastic.apm.servlet.request.exclude";
 
     @Override
     public void init(ElasticApmTracer tracer) {

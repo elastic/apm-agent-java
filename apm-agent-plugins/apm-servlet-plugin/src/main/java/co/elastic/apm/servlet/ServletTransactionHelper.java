@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -185,15 +186,17 @@ public class ServletTransactionHelper {
     }
 
     private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
-        boolean excludeUrl = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo) != null;
+        final List<WildcardMatcher> ignoreUrls = webConfiguration.getIgnoreUrls();
+        boolean excludeUrl = WildcardMatcher.anyMatch(ignoreUrls, servletPath, pathInfo) != null;
         if (excludeUrl) {
             logger.debug("Not tracing this request as the URL {} is ignored by one of the matchers",
-                requestURI, webConfiguration.getIgnoreUrls());
+                requestURI, ignoreUrls);
         }
-        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) != null;
+        final List<WildcardMatcher> ignoreUserAgents = webConfiguration.getIgnoreUserAgents();
+        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(ignoreUserAgents, userAgentHeader) != null;
         if (excludeAgent) {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by one of the matchers",
-                userAgentHeader, webConfiguration.getIgnoreUserAgents());
+                userAgentHeader, ignoreUserAgents);
         }
         return excludeUrl || excludeAgent;
     }
