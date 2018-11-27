@@ -228,6 +228,7 @@ If you have access to make releases, the process is as follows:
 1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
    1. In case you want to adjust the version, execute `mvn release:update-versions`
 1. Execute the release Jenkins job on the internal ci server
+1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
 1. Fetch and checkout the latest tag e.g. `git fetch && git checkout v1.0.1` 
 1. If this was a major release,
    create a new branch for the major
@@ -236,3 +237,5 @@ If you have access to make releases, the process is as follows:
 1. If this was a minor release,
    reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x master`
    1. Update the branch on upstream with `git push origin 1.x`
+1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
+   Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
