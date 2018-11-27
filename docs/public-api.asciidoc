@@ -141,6 +141,11 @@ Note that this only works when there is no active transaction on the same thread
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the transaction. Defaults to `request`
 
+NOTE: Using this annotation implicitly creates a Transaction and activates it when entering the annotated
+method, as well as implicitly ending it and deactivating it before exiting the annotated method.
+See <<api-start-transaction, `ElasticApm.startTransaction()`>>, <<api-transaction-activate, `transaction.activate()`>>
+and <<api-transaction-end, `transaction.end()`>>
+
 [float]
 [[api-capture-span]]
 ==== `@CaptureSpan`
@@ -152,6 +157,11 @@ no span will be created.
 
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the span. Defaults to `app`
+
+NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
+method, as well as implicitly ending it and deactivating it before exiting the annotated method.
+See <<api-span-start-span, `createSpan()`>>, <<api-transaction-activate, `span.activate()`>>
+and <<api-span-end, `span.end()`>>
 
 //----------------------------
 [float]
