@@ -229,7 +229,7 @@ If you have access to make releases, the process is as follows:
    1. In case you want to update the version, execute `mvn release:update-versions`
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
    1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
-   1. Tags the commit in #1 with the version name, e.g. v1.1.0
+   1. Tags this new commit with the version name, e.g. `v1.1.0`
    1. Advances the version for next development iteration and makes a commit
    1. Uploads artifacts to maven central
 1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
