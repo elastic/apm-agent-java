@@ -100,6 +100,6 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("incubating", "http-client", "apache-httpclient");
+        return Arrays.asList("http-client", "apache-httpclient");
     }
 }
