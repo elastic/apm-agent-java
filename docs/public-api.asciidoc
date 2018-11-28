@@ -142,7 +142,7 @@ Note that this only works when there is no active transaction on the same thread
 * `type`: The type of the transaction. Defaults to `request`
 
 NOTE: Using this annotation implicitly creates a Transaction and activates it when entering the annotated
-method, as well as implicitly ending it and deactivating it before exiting the annotated method.
+method. It also implicitly ends it and deactivates it before exiting the annotated method.
 See <<api-start-transaction, `ElasticApm.startTransaction()`>>, <<api-transaction-activate, `transaction.activate()`>>
 and <<api-transaction-end, `transaction.end()`>>
 
@@ -159,7 +159,7 @@ no span will be created.
 * `type`: The type of the span. Defaults to `app`
 
 NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
-method, as well as implicitly ending it and deactivating it before exiting the annotated method.
+method. It also implicitly ends it and deactivates it before exiting the annotated method.
 See <<api-span-start-span, `createSpan()`>>, <<api-transaction-activate, `span.activate()`>>
 and <<api-span-end, `span.end()`>>
 
