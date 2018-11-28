@@ -3,9 +3,19 @@
 ## Features
 
 ## Bug Fixes
+
+# 1.1.0
+
+## Features
+ * Some memory allocation improvements
+ * Enabling bootdelegation for agent classes in Atlassian OSGI systems
+
+## Bug Fixes
  * Update dsl-json which fixes a memory leak.
  See [ngs-doo/dsl-json#102](https://github.com/ngs-doo/dsl-json/pull/102) for details. 
  * Avoid `VerifyError`s by non instrumenting classes compiled for Java 4 or earlier
+ * Enable APM Server URL configuration with path (fixing https://github.com/elastic/apm-agent-java/issues/339)
+ * Reverse `system.hostname` and `system.platform` order sent to APM server
 
 # 1.0.1
 
