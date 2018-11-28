@@ -226,16 +226,21 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 If you have access to make releases, the process is as follows:
 
 1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
-   1. In case you want to adjust the version, execute `mvn release:update-versions`
-1. Execute the release Jenkins job on the internal ci server
+   1. In case you want to update the version, execute `mvn release:update-versions`
+1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
+   1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
+   1. Tags the commit in #1 with the version name, e.g. v1.1.0
+   1. Advances the version for next development iteration and makes a commit
+   1. Uploads artifacts to maven central
 1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
-1. Fetch and checkout the latest tag e.g. `git fetch && git checkout v1.0.1` 
+1. Fetch and checkout the latest tag e.g. `git fetch origin` 
 1. If this was a major release,
    create a new branch for the major
    1. For example `git checkout -b 2.x && git push -u origin`
    1. Add the new branch to the `conf.yaml` in the docs repo
 1. If this was a minor release,
-   reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x master`
+   reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x v1.1.0`
    1. Update the branch on upstream with `git push origin 1.x`
+1. Update [`CHANGELOG.md`](CHANGELOG.md) to reflect version release. Go over PRs or git log and add bug fixes and features.
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
