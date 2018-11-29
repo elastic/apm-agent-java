@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This is an implementation of the
- * <a href="https://w3c.github.io/distributed-tracing/report-trace-context.html#traceparent-field">w3c traceparent header draft</a>.
+ * <a href="https://w3c.github.io/trace-context/#traceparent-field">w3c traceparent header draft</a>.
  * <p>
  * As this is just a draft at the moment,
  * we don't use the official header name but prepend the custom prefix {@code Elastic-Apm-}.
