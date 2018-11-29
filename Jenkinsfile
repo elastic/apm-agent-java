@@ -1,28 +1,17 @@
 #!/usr/bin/env groovy
 
-library identifier: 'apm@master',
-changelog: false,
-retriever: modernSCM(
-  [$class: 'GitSCMSource',
-  credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
-  remote: 'git@github.com:elastic/apm-pipeline-library.git'])
-
 pipeline {
   agent { label 'linux && immutable' }
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
   }
-  triggers {
-    cron('0 0 * * 1-5')
-  }
   options {
     timeout(time: 1, unit: 'HOURS')
     buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '2', daysToKeepStr: '30'))
     timestamps()
     preserveStashes()
-    //see https://issues.jenkins-ci.org/browse/JENKINS-11752, https://issues.jenkins-ci.org/browse/JENKINS-39536, https://issues.jenkins-ci.org/browse/JENKINS-54133 and jenkinsci/ansicolor-plugin#132
-    //ansiColor('xterm')
+    ansiColor('xterm')
     disableResume()
     durabilityHint('PERFORMANCE_OPTIMIZED')
   }
@@ -363,22 +352,7 @@ pipeline {
       steps {
         withEnvWrapper() {
           unstash 'source'
-          dir("${ELASTIC_DOCS}"){
-            sh """#!/bin/bash
-            set -euxo pipefail
-            git init
-            git remote add origin https://github.com/elastic/docs.git
-            git config core.sparsecheckout true
-            echo lib >> .git/info/sparse-checkout
-            echo build_docs.pl >> .git/info/sparse-checkout
-            echo .run >> .git/info/sparse-checkout
-            echo conf.yaml >> .git/info/sparse-checkout
-            echo resources >> .git/info/sparse-checkout
-            echo shared >> .git/info/sparse-checkout
-            git checkout master
-            git pull origin master
-            """
-          }
+          checkoutElasticDocsTools(basedir: "${ELASTIC_DOCS}")
           dir("${BASE_DIR}"){
             sh """#!/bin/bash
             ./scripts/jenkins/docs.sh
