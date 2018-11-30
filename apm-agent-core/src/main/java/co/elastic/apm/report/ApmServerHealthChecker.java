@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.report;
 
+import co.elastic.apm.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,7 @@ class ApmServerHealthChecker implements Runnable {
             if (reporterConfiguration.getSecretToken() != null) {
                 connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
             }
+            connection.setRequestProperty("User-Agent", "java-agent/" + VersionUtils.getAgentVersion());
             connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
             connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
             connection.connect();
