@@ -34,7 +34,11 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
             logger.warn("{} uses an unsupported class file version (pre Java 5) and can't be instrumented. " +
                 "Consider updating to a newer version of that library.", typeName);
         } else {
-            logger.warn("ERROR on transformation " + typeName, throwable);
+            if (throwable.getMessage().contains("Cannot resolve type description")) {
+                logger.info(typeName + "refers to a missing class", throwable);
+            } else {
+                logger.warn("Error on transformation " + typeName, throwable);
+            }
         }
     }
 }

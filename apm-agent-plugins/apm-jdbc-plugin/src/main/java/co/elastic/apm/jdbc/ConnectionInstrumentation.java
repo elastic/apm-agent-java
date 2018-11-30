@@ -89,9 +89,9 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return nameStartsWith("prepare")
-            .and(isPublic())
             .and(returns(hasSuperType(named("java.sql.PreparedStatement"))))
-            .and(takesArgument(0, String.class));
+            .and(takesArgument(0, String.class))
+            .and(isPublic());
     }
 
     @Override

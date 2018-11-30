@@ -98,8 +98,8 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return nameStartsWith("execute")
-            .and(isPublic())
-            .and(takesArguments(0));
+            .and(takesArguments(0))
+            .and(isPublic());
     }
 
     @Override

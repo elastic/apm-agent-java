@@ -97,8 +97,8 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return nameStartsWith("execute")
-            .and(isPublic())
-            .and(takesArgument(0, String.class));
+            .and(takesArgument(0, String.class))
+            .and(isPublic());
     }
 
     @Override
