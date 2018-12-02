@@ -35,7 +35,7 @@ public class ErrorLoggingListener extends AgentBuilder.Listener.Adapter {
                 "Consider updating to a newer version of that library.", typeName);
         } else {
             if (throwable.getMessage().contains("Cannot resolve type description")) {
-                logger.info(typeName + "refers to a missing class", throwable);
+                logger.info(typeName + " refers to a missing class", throwable);
             } else {
                 logger.warn("Error on transformation " + typeName, throwable);
             }
