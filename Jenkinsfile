@@ -1,39 +1,34 @@
 #!/usr/bin/env groovy
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent none
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
-    JOB_GIT_CREDENTIALS = "f6c7695a-671e-4f4f-a331-acdce44ff9ba"
   }
   options {
     timeout(time: 1, unit: 'HOURS')
-    buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '2', daysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20', daysToKeepStr: '30'))
     timestamps()
-    preserveStashes()
     ansiColor('xterm')
     disableResume()
     durabilityHint('PERFORMANCE_OPTIMIZED')
   }
   parameters {
-    string(name: 'branch_specifier', defaultValue: "", description: "the Git branch specifier to build (branchName, tagName, commitId, etc.)")
     string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")
-
     booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
-    booleanParam(name: 'integration_test_pr_ci', defaultValue: false, description: 'Enable run integration test')
-    booleanParam(name: 'integration_test_master_ci', defaultValue: false, description: 'Enable run integration test')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
     booleanParam(name: 'doc_ci', defaultValue: true, description: 'Enable build documentation')
   }
 
   stages {
     stage('Initializing'){
+      agent { label 'linux && immutable' }
       options { skipDefaultCheckout() }
       environment {
-        HOME = "${env.HUDSON_HOME}"
-        JAVA_HOME = "${env.HOME}/.java/java10"
+        HOME = "${env.WORKSPACE}"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
       }
       stages(){
@@ -42,28 +37,8 @@ pipeline {
         */
         stage('Checkout') {
           steps {
-            withEnvWrapper() {
-              dir("${BASE_DIR}"){
-                script{
-                  if(!env?.branch_specifier){
-                    echo "Checkout SCM ${GIT_BRANCH}"
-                    checkout scm
-                  } else {
-                    echo "Checkout ${branch_specifier}"
-                    checkout([$class: 'GitSCM', branches: [[name: "${branch_specifier}"]],
-                      doGenerateSubmoduleConfigurations: false,
-                      extensions: [],
-                      submoduleCfg: [],
-                      userRemoteConfigs: [[credentialsId: "${JOB_GIT_CREDENTIALS}",
-                      url: "${GIT_URL}"]]])
-                  }
-                  env.JOB_GIT_COMMIT = getGitCommitSha()
-                  env.JOB_GIT_URL = "${GIT_URL}"
-                  github_enterprise_constructor()
-                }
-              }
-              stash allowEmpty: true, name: 'source', useDefaultExcludes: false
-            }
+            gitCheckout(basedir: "${BASE_DIR}")
+            stash allowEmpty: true, name: 'source', useDefaultExcludes: false
           }
         }
         /**
@@ -95,8 +70,8 @@ pipeline {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
-            HOME = "${env.HUDSON_HOME}"
-            JAVA_HOME = "${env.HOME}/.java/java10"
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -130,8 +105,8 @@ pipeline {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
-            HOME = "${env.HUDSON_HOME}"
-            JAVA_HOME = "${env.HOME}/.java/java10"
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -142,9 +117,7 @@ pipeline {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                ./scripts/jenkins/smoketests-01.sh
-                """
+                sh './scripts/jenkins/smoketests-01.sh'
               }
             }
           }
@@ -164,8 +137,8 @@ pipeline {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
-            HOME = "${env.HUDSON_HOME}"
-            JAVA_HOME = "${env.HOME}/.java/java10"
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -176,9 +149,7 @@ pipeline {
             withEnvWrapper() {
               unstash 'build'
               dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                ./scripts/jenkins/smoketests-02.sh
-                """
+                sh './scripts/jenkins/smoketests-02.sh'
               }
             }
           }
@@ -199,8 +170,8 @@ pipeline {
           agent { label 'metal' }
           options { skipDefaultCheckout() }
           environment {
-            HOME = "${env.HUDSON_HOME}"
-            JAVA_HOME = "${env.HOME}/.java/java10"
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
             NO_BUILD = "true"
           }
@@ -230,9 +201,7 @@ pipeline {
                   env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
                   env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
                 }
-                sh """#!/bin/bash
-                ./scripts/jenkins/run-benchmarks.sh
-                """
+                sh './scripts/jenkins/run-benchmarks.sh'
               }
             }
           }
@@ -252,8 +221,8 @@ pipeline {
           agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
-            HOME = "${env.HUDSON_HOME}"
-            JAVA_HOME = "${env.HOME}/.java/java10"
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
             PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
           }
           when {
@@ -272,73 +241,16 @@ pipeline {
             }
           }
         }
-        /**
-         run Java integration test with the commit version on master branch.
-        */
-        stage('Integration Tests master') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          when {
-            beforeAgent true
-            allOf {
-              branch 'master'
-              environment name: 'integration_test_master_ci', value: 'true'
-            }
-          }
-          steps {
-            build(
-              job: 'apm-server-ci/apm-integration-test-axis-pipeline',
-              parameters: [
-                string(name: 'BUILD_DESCRIPTION', value: "${BUILD_TAG}-INTEST"),
-                booleanParam(name: "go_Test", value: false),
-                booleanParam(name: "java_Test", value: true),
-                booleanParam(name: "ruby_Test", value: false),
-                booleanParam(name: "python_Test", value: false),
-                booleanParam(name: "nodejs_Test", value: false)],
-              wait: true,
-              propagate: true)
-          }
-        }
-        /**
-         run Java integration test with the commit version on a PR.
-        */
-        stage('Integration Tests PR') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          when {
-            beforeAgent true
-            allOf {
-              changeRequest()
-              environment name: 'integration_test_pr_ci', value: 'true'
-            }
-          }
-          steps {
-            build(
-              job: 'apm-server-ci/apm-integration-test-pipeline',
-              parameters: [
-                string(name: 'BUILD_DESCRIPTION', value: "${BUILD_TAG}-INTEST"),
-                string(name: 'APM_AGENT_JAVA_PKG', value: "${BUILD_TAG}"),
-                booleanParam(name: "go_Test", value: false),
-                booleanParam(name: "java_Test", value: true),
-                booleanParam(name: "ruby_Test", value: false),
-                booleanParam(name: "python_Test", value: false),
-                booleanParam(name: "nodejs_Test", value: false),
-                booleanParam(name: "kibana_Test", value: false),
-                booleanParam(name: "server_Test", value: false)],
-              wait: true,
-              propagate: true)
-          }
-        }
       }
     }
     /**
-      Build documentation.
+      Build the documentation.
     */
     stage('Documentation') {
       options { skipDefaultCheckout() }
       environment {
-        HOME = "${env.HUDSON_HOME}"
-        JAVA_HOME = "${env.HOME}/.java/java10"
+        HOME = "${env.WORKSPACE}"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
       }
@@ -354,9 +266,7 @@ pipeline {
           unstash 'source'
           checkoutElasticDocsTools(basedir: "${ELASTIC_DOCS}")
           dir("${BASE_DIR}"){
-            sh """#!/bin/bash
-            ./scripts/jenkins/docs.sh
-            """
+            sh './scripts/jenkins/docs.sh'
           }
         }
       }
