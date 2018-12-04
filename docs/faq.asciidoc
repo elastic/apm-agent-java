@@ -45,9 +45,9 @@ It also respects other agents attached to your application at the same time.
 No
 
 [float]
-[[recommended-sampling-rate]]
-=== What is the recommended sampling rate?
-There is no one-size-fits-all answer to an ideal sampling rate.
+[[recommended-sample-rate]]
+=== What is the recommended sample rate?
+There is no one-size-fits-all answer to an ideal sample rate.
 Sampling comes down to your preferences and your application.
 The more you want to sample, the more network bandwidth and disk space you'll need.
 
@@ -55,6 +55,9 @@ It's important to note that the latency of an application won't be affected much
 even if you sample at 100%.
 However, the background reporter thread has some work to do for serializing and gzipping events.
 If your application is not CPU bound, this shouldn't matter much.
+Note that if the APM Server can't handle all the events,
+the agent will drop data to not crash your application.
+It will then also not serialize and gzip the events.
 
 Sample rate can be changed by altering the <<config-transaction-sample-rate>> configuration. 
 
