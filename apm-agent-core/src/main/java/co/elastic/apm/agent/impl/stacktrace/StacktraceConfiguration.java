@@ -35,6 +35,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .key(APPLICATION_PACKAGES)
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
+            "Multiple packages can be set as a comma-separated list.\n" +
             "Setting this option can also improve the startup time.\n" +
             "\n" +
             "In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,\n" +
