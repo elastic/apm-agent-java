@@ -9,7 +9,7 @@ Something isn't quite working as expected?
 Here are some guidelines how to find out what's going wrong.
 
 Don't worry if you can't figure out what the problem is.
-Open a topic in the https://discuss.elastic.co/c/apm:[APM discuss forum]
+Open a topic in the https://discuss.elastic.co/c/apm[APM discuss forum]
 and we will help you out.
 If you do so, please attach your debug logs so that we can analyze the problem.
 
