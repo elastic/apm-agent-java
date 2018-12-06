@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;

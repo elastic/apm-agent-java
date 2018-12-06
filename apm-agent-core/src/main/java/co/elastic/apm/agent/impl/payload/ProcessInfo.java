@@ -18,7 +18,7 @@
  * #L%
  */
 
-package co.elastic.apm.impl.payload;
+package co.elastic.apm.agent.impl.payload;
 
 
 import javax.annotation.Nullable;

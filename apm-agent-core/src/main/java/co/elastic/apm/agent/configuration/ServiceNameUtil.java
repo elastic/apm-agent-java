@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.agent.configuration;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
-import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 
 import java.sql.DriverManager;
 

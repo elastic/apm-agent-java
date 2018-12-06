@@ -18,9 +18,9 @@
  * #L%
  */
 
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

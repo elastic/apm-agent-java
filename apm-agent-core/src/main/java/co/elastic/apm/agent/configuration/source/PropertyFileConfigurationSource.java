@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration.source;
+package co.elastic.apm.agent.configuration.source;
 
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;

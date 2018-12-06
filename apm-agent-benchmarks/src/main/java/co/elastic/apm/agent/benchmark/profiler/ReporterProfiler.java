@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark.profiler;
+package co.elastic.apm.agent.benchmark.profiler;
 
-import co.elastic.apm.report.Reporter;
+import co.elastic.apm.agent.report.Reporter;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.profile.InternalProfiler;

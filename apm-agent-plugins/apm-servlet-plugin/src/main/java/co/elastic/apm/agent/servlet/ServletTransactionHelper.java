@@ -17,22 +17,22 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.context.Response;
-import co.elastic.apm.impl.context.TransactionContext;
-import co.elastic.apm.impl.context.Url;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.matcher.WildcardMatcher;
-import co.elastic.apm.util.PotentiallyMultiValuedMap;
-import co.elastic.apm.web.ClientIpUtils;
-import co.elastic.apm.web.ResultUtil;
-import co.elastic.apm.web.WebConfiguration;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.web.ClientIpUtils;
+import co.elastic.apm.agent.web.ResultUtil;
+import co.elastic.apm.agent.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static co.elastic.apm.web.WebConfiguration.EventType.OFF;
+import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.

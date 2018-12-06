@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration.converter;
+package co.elastic.apm.agent.configuration.converter;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

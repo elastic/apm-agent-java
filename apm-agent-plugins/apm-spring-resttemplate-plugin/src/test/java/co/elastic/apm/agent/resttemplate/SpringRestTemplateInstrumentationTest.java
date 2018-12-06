@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.resttemplate;
+package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.springframework.http.client.ClientHttpRequestFactory;

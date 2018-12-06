@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -31,7 +31,7 @@ import org.vibur.dbcp.ViburDBCPDataSource;
 import javax.sql.DataSource;
 import java.util.function.Supplier;
 
-import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 import static java.util.Arrays.asList;
 
 // inspired by https://github.com/testcontainers/testcontainers-java/blob/master/modules/jdbc-test/src/test/java/org/testcontainers/jdbc/JDBCDriverWithPoolTest.java

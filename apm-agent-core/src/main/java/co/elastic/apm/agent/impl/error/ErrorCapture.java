@@ -17,16 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.error;
+package co.elastic.apm.agent.impl.error;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.TransactionContext;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.matcher.WildcardMatcher;
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -106,7 +106,7 @@ public class ErrorCapture implements Recyclable {
     }
 
     /**
-     * Creates a reference to a {@link co.elastic.apm.impl.transaction.Span} or {@link co.elastic.apm.impl.transaction.Transaction}
+     * Creates a reference to a {@link co.elastic.apm.agent.impl.transaction.Span} or {@link co.elastic.apm.agent.impl.transaction.Transaction}
      *
      * @param parent
      * @return {@code this}, for chaining

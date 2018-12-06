@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.slf4j;
+package co.elastic.apm.agent.slf4j;
 
-import co.elastic.apm.cache.WeakKeySoftValueLoadingCache;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.SpanListener;
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.logging.LoggingConfiguration;
+import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.SpanListener;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;

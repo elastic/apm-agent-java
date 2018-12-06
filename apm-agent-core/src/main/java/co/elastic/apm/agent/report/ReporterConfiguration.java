@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.configuration.converter.ByteValue;
-import co.elastic.apm.configuration.converter.ByteValueConverter;
-import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.configuration.converter.ByteValue;
+import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.UrlValueConverter;

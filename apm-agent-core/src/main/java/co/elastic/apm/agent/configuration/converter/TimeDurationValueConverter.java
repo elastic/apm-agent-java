@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration.converter;
+package co.elastic.apm.agent.configuration.converter;
 
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.converter.AbstractValueConverter;

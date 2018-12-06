@@ -1,1 +1,1 @@
-co.elastic.apm.benchmark.profiler.ReporterProfiler
+co.elastic.apm.agent.benchmark.profiler.ReporterProfiler

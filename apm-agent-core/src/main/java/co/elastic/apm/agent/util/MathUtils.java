@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.util;
+package co.elastic.apm.agent.util;
 
 public class MathUtils {
     public static int getNextPowerOf2(int i) {

@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool.impl;
+package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Allocator;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

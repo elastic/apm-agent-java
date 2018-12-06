@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration.validation;
+package co.elastic.apm.agent.configuration.validation;
 
 import org.stagemonitor.configuration.ConfigurationOption;
 

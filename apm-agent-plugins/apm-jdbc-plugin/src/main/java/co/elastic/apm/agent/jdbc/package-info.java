@@ -23,6 +23,6 @@
  * but has to inject a helper class in order to do so.
  */
 @NonnullApi
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

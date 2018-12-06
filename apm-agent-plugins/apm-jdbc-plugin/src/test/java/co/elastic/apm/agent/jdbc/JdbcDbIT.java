@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized;
 import java.sql.DriverManager;
 import java.util.Arrays;
 
-import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 
 @RunWith(Parameterized.class)
 public class JdbcDbIT extends AbstractJdbcInstrumentationTest {

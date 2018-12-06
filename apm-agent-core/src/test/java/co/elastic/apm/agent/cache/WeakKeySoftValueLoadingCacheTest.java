@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.cache;
+package co.elastic.apm.agent.cache;
 
 import org.junit.jupiter.api.Test;
 

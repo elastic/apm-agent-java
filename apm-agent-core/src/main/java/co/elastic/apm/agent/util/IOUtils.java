@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.util;
+package co.elastic.apm.agent.util;
 
-import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 
 import java.io.IOException;
 import java.io.InputStream;

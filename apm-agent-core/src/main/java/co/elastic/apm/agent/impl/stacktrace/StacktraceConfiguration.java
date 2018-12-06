@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.stacktrace;
+package co.elastic.apm.agent.impl.stacktrace;
 
-import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 

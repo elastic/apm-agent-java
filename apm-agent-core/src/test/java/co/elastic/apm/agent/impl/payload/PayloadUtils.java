@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.payload;
+package co.elastic.apm.agent.impl.payload;
 
-import co.elastic.apm.TransactionUtils;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.error.ErrorPayload;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorPayload;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import static org.mockito.Mockito.mock;
 

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool;
+package co.elastic.apm.agent.objectpool;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;

@@ -17,17 +17,17 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm;
+package co.elastic.apm.agent;
 
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.error.ErrorPayload;
-import co.elastic.apm.impl.payload.PayloadUtils;
-import co.elastic.apm.impl.payload.TransactionPayload;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.Reporter;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorPayload;
+import co.elastic.apm.agent.impl.payload.PayloadUtils;
+import co.elastic.apm.agent.impl.payload.TransactionPayload;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;

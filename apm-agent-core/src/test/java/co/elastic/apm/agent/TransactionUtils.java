@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm;
+package co.elastic.apm.agent;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.context.TransactionContext;
-import co.elastic.apm.impl.sampling.ConstantSampler;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import java.util.ArrayList;
 import java.util.Arrays;

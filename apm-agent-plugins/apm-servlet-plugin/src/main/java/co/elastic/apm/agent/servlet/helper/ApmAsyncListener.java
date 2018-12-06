@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet.helper;
+package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.impl.context.Response;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.servlet.ServletTransactionHelper;
+import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;

@@ -18,13 +18,13 @@
  * #L%
  */
 
-package co.elastic.apm.impl.error;
+package co.elastic.apm.agent.impl.error;
 
-import co.elastic.apm.impl.payload.Payload;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.impl.payload.Payload;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import java.util.ArrayList;
 import java.util.List;

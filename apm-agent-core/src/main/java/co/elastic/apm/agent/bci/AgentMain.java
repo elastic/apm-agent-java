@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -65,7 +65,7 @@ public class AgentMain {
             instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(agentJarFile));
             // invoking via reflection to make sure the class is not loaded by the system classloader,
             // but only from the bootstrap classloader
-            Class.forName("co.elastic.apm.bci.ElasticApmAgent", true, null)
+            Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, null)
                 .getMethod("initialize", Instrumentation.class, File.class)
                 .invoke(null, instrumentation, agentJarFile);
         } catch (Exception e) {

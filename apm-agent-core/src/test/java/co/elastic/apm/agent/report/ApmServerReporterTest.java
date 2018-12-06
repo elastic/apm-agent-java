@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.MockTracer;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;

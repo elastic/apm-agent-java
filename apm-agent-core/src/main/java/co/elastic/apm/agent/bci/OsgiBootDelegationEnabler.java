@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 import java.util.Arrays;
 import java.util.List;

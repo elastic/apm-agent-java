@@ -17,25 +17,25 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient.v6_4;
+package co.elastic.apm.agent.es.restclient.v6_4;
 
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.configuration.converter.TimeDuration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.payload.Agent;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.ApmServerReporter;
-import co.elastic.apm.report.IntakeV2ReportingEventHandler;
-import co.elastic.apm.report.Reporter;
-import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerReporter;
+import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.http.HttpHost;

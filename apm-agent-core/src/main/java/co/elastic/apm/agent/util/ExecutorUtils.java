@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.util;
+package co.elastic.apm.agent.util;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;

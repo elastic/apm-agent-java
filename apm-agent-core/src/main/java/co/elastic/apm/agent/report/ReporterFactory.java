@@ -17,17 +17,17 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.payload.ProcessFactory;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.ServiceFactory;
-import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
-import co.elastic.apm.util.VersionUtils;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.payload.ProcessFactory;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.ServiceFactory;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -68,7 +68,7 @@ public class ReporterFactory {
 
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(
             configurationRegistry.getConfig(StacktraceConfiguration.class));
-        final co.elastic.apm.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
+        final co.elastic.apm.agent.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         if (!reporterConfiguration.isIncludeProcessArguments()) {

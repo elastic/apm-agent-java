@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 
 public interface SpanListener {
 

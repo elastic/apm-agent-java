@@ -1,1 +1,1 @@
-co.elastic.apm.web.WebConfiguration
+co.elastic.apm.agent.web.WebConfiguration

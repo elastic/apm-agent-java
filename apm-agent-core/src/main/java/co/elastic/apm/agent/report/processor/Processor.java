@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report.processor;
+package co.elastic.apm.agent.report.processor;
 
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 /**

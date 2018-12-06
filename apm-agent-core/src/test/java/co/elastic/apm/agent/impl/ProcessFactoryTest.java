@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.impl.payload.ProcessFactory;
-import co.elastic.apm.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.ProcessFactory;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.SoftAssertions.assertSoftly;

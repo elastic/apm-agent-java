@@ -17,16 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.web;
+package co.elastic.apm.agent.web;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.context.TransactionContext;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.matcher.WildcardMatcher;
-import co.elastic.apm.report.processor.Processor;
-import co.elastic.apm.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.report.processor.Processor;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;

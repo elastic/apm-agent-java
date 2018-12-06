@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.logging;
+package co.elastic.apm.agent.logging;
 
-import co.elastic.apm.bci.ElasticApmAgent;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import org.slf4j.event.Level;
 import org.slf4j.impl.SimpleLogger;
 import org.stagemonitor.configuration.ConfigurationOption;

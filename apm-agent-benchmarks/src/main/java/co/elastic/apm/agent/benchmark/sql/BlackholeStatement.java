@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark.sql;
+package co.elastic.apm.agent.benchmark.sql;
 
 import org.openjdk.jmh.infra.Blackhole;
 

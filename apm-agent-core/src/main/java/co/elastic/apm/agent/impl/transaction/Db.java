@@ -18,14 +18,14 @@
  * #L%
  */
 
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.objectpool.Allocator;
-import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.objectpool.impl.Resetter;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.impl.Resetter;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;

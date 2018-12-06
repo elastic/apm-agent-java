@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.sampling;
+package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Id;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 /**
  * A sampler is responsible for determining whether a {@link Transaction} should be sampled.

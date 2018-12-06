@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.context;
+package co.elastic.apm.agent.impl.context;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

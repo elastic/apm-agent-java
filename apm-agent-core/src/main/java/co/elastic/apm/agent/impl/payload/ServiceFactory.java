@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.payload;
+package co.elastic.apm.agent.impl.payload;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.util.VersionUtils;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.util.VersionUtils;
 
 import javax.annotation.Nullable;
 

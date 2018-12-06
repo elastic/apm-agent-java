@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc.helper;
+package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import com.google.common.collect.MapMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +33,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import static co.elastic.apm.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
-import static co.elastic.apm.jdbc.JdbcUtils.computeJdbcSpanTypeName;
+import static co.elastic.apm.agent.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
+import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 
 public class JdbcHelperImpl implements JdbcHelper {
 

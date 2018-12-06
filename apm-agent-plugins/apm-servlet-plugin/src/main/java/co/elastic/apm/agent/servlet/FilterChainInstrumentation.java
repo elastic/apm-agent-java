@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -29,7 +29,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.servlet.ServletInstrumentation.SERVLET_API;
+import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;

@@ -18,10 +18,10 @@
  * #L%
  */
 
-package co.elastic.apm.impl.context;
+package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.impl.transaction.Db;
-import co.elastic.apm.impl.transaction.Http;
+import co.elastic.apm.agent.impl.transaction.Db;
+import co.elastic.apm.agent.impl.transaction.Http;
 
 
 /**

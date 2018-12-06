@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool;
+package co.elastic.apm.agent.objectpool;
 
 public interface Allocator<T> {
 

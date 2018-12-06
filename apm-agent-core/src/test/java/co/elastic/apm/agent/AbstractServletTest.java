@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm;
+package co.elastic.apm.agent;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Response;

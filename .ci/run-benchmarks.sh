@@ -69,7 +69,7 @@ function benchmark() {
     sudo cset proc --exec /benchmark -- \
         $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" \
         -prof gc \
-        -prof co.elastic.apm.benchmark.profiler.ReporterProfiler \
+        -prof co.elastic.apm.agent.benchmark.profiler.ReporterProfiler \
         -rf json \
         -rff ${RESULT_FILE}
 
@@ -78,7 +78,7 @@ function benchmark() {
     rm -f ${RESULT_FILE}
     mv "${RESULT_FILE}.clean" ${RESULT_FILE}
 
-    $JAVA_HOME/bin/java -cp apm-agent-benchmarks/target/benchmarks.jar co.elastic.apm.benchmark.PostProcessBenchmarkResults ${RESULT_FILE} ${BULK_UPLOAD_FILE} ${COMMIT_UNIX}
+    $JAVA_HOME/bin/java -cp apm-agent-benchmarks/target/benchmarks.jar co.elastic.apm.agent.benchmark.PostProcessBenchmarkResults ${RESULT_FILE} ${BULK_UPLOAD_FILE} ${COMMIT_UNIX}
     setCloudCredentials
     curl --user ${CLOUD_USERNAME}:${CLOUD_PASSWORD} -XPOST 'https://1ec92c339f616ca43771bff669cc419c.europe-west3.gcp.cloud.es.io:9243/_bulk' -H 'Content-Type: application/json'  --data-binary @${BULK_UPLOAD_FILE}
     unset CLOUD_USERNAME

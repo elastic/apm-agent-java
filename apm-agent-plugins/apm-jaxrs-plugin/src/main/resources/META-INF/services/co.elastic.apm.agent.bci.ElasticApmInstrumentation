@@ -1,1 +1,1 @@
-co.elastic.apm.jaxrs.JaxRsTransactionNameInstrumentation
+co.elastic.apm.agent.jaxrs.JaxRsTransactionNameInstrumentation
