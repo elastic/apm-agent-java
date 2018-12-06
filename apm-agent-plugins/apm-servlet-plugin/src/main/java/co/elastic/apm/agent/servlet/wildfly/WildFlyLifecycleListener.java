@@ -28,7 +28,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 public class WildFlyLifecycleListener implements LifecycleListener {
 
     private static final String JBOSS_MODULES_SYSTEM_PKGS = "jboss.modules.system.pkgs";
-    private static final String APM_BASE_PACKAGE = "co.elastic.apm";
+    private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent";
 
     @Override
     public void start(ElasticApmTracer tracer) {
