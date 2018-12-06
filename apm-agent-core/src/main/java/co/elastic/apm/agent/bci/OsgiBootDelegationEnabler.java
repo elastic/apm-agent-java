@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class OsgiBootDelegationEnabler implements LifecycleListener {
     private static final List<String> bootdelegationNames = Arrays.asList("org.osgi.framework.bootdelegation", "atlassian.org.osgi.framework.bootdelegation");
-    private static final String APM_BASE_PACKAGE = "co.elastic.apm.*";
+    private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent.*";
 
     @Override
     public void start(ElasticApmTracer tracer) {
