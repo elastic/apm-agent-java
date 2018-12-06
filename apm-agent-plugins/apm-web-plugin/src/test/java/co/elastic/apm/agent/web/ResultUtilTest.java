@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.web;
+package co.elastic.apm.agent.web;
 
 import org.junit.jupiter.api.Test;
 

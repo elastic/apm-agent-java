@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.payload;
+package co.elastic.apm.agent.impl.payload;
 
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 

@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc.helper;
+package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;

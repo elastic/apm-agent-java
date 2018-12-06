@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.context;
+package co.elastic.apm.agent.impl.context;
 
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.JsonUtils.toJson;
+import static co.elastic.apm.agent.JsonUtils.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UrlTest {

@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark.objectpool;
+package co.elastic.apm.agent.benchmark.objectpool;
 
-import co.elastic.apm.benchmark.AbstractBenchmark;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.objectpool.impl.MixedObjectPool;
-import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.objectpool.impl.ThreadLocalObjectPool;
+import co.elastic.apm.agent.benchmark.AbstractBenchmark;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.impl.MixedObjectPool;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.impl.ThreadLocalObjectPool;
 import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.jctools.queues.MpmcArrayQueue;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;

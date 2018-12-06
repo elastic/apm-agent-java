@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.httpclient;
+package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.Scope;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;

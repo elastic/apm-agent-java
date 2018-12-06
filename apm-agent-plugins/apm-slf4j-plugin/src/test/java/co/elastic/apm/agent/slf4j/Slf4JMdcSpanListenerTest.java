@@ -17,13 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.slf4j;
+package co.elastic.apm.agent.slf4j;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.Scope;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.logging.LoggingConfiguration;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;

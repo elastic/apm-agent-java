@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.configuration.validation;
+package co.elastic.apm.agent.configuration.validation;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet.wildfly;
+package co.elastic.apm.agent.servlet.wildfly;
 
-import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 /**
  * Makes the {@code co.elastic.apm} package visible from all modules

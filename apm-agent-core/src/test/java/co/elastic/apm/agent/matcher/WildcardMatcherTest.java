@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.matcher;
+package co.elastic.apm.agent.matcher;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static co.elastic.apm.matcher.WildcardMatcher.indexOfIgnoreCase;
+import static co.elastic.apm.agent.matcher.WildcardMatcher.indexOfIgnoreCase;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class WildcardMatcherTest {

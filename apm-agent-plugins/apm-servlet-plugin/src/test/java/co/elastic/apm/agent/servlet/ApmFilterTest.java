@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.context.Url;
-import co.elastic.apm.matcher.WildcardMatcher;
-import co.elastic.apm.util.PotentiallyMultiValuedMap;
-import co.elastic.apm.web.WebConfiguration;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.context.Url;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import co.elastic.apm.agent.web.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;

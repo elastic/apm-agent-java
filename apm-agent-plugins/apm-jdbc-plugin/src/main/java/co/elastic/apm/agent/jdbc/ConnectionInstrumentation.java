@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;

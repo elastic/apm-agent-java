@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool.impl;
+package co.elastic.apm.agent.objectpool.impl;
 
-import co.elastic.apm.objectpool.Recyclable;
-import co.elastic.apm.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Allocator;
 
 import javax.annotation.Nullable;
 

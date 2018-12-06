@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient.v5_6;
+package co.elastic.apm.agent.es.restclient.v5_6;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Db;
-import co.elastic.apm.impl.transaction.Http;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Db;
+import co.elastic.apm.agent.impl.transaction.Http;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.apache.http.auth.AuthScope;
@@ -58,9 +58,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
-import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
-import static co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 

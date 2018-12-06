@@ -17,18 +17,18 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
-import co.elastic.apm.bci.bytebuddy.ErrorLoggingListener;
-import co.elastic.apm.bci.bytebuddy.MatcherTimer;
-import co.elastic.apm.bci.bytebuddy.MinimumClassFileVersionValidator;
-import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
-import co.elastic.apm.bci.bytebuddy.SoftlyReferencingTypePoolCache;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.matcher.WildcardMatcher;
+import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -54,8 +54,8 @@ import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
-import static co.elastic.apm.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoaderWithName;
+import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;

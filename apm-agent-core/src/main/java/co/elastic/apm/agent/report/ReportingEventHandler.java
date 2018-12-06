@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
 import com.lmax.disruptor.EventHandler;
 

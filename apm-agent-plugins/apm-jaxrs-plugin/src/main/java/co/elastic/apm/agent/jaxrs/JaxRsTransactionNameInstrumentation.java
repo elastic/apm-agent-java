@@ -17,13 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jaxrs;
+package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,9 +35,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;

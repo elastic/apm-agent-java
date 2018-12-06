@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
 public class JdbcUtils {
     public static final String DB_SPAN_TYPE_PREFIX = "db.";

@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

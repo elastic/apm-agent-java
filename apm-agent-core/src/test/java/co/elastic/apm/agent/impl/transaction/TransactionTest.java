@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.TransactionUtils;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.TransactionUtils;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.agent.configuration;
 
 import org.junit.jupiter.api.Test;
 
-import static co.elastic.apm.configuration.ServiceNameUtil.parseSunJavaCommand;
+import static co.elastic.apm.agent.configuration.ServiceNameUtil.parseSunJavaCommand;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ServiceNameUtilTest {

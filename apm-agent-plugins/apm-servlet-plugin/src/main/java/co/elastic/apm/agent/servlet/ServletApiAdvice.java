@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Scope;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.context.Response;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Response;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;

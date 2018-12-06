@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.logging;
+package co.elastic.apm.agent.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

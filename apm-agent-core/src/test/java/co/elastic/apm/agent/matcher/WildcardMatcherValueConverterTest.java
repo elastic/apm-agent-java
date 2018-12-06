@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.matcher;
+package co.elastic.apm.agent.matcher;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

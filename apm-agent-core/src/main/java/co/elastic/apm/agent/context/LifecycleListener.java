@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.context;
+package co.elastic.apm.agent.context;
 
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
  * Implement this interface and register it as a {@linkplain java.util.ServiceLoader service} under
- * {@code src/main/resources/META-INF/services/co.elastic.apm.context.LifecycleListener}.
+ * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener}.
  * </p>
  */
 public interface LifecycleListener {

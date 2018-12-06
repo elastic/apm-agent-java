@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.report.processor;
+package co.elastic.apm.agent.report.processor;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.plugin.api;
+package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
-import co.elastic.apm.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -39,9 +39,9 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;

@@ -17,17 +17,17 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.PrefixingConfigurationSourceWrapper;
-import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
-import co.elastic.apm.configuration.source.SystemPropertyConfigurationSource;
-import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.logging.LoggingConfiguration;
-import co.elastic.apm.report.Reporter;
-import co.elastic.apm.report.ReporterFactory;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;

@@ -17,13 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.es.restclient.v5_6;
+package co.elastic.apm.agent.es.restclient.v5_6;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.util.IOUtils;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.util.IOUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

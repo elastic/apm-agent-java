@@ -17,9 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.objectpool;
+package co.elastic.apm.agent.objectpool;
 
-import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

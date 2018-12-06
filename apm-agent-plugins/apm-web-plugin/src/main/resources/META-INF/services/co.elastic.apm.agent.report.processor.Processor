@@ -1,2 +1,2 @@
-co.elastic.apm.web.BodyProcessor
-co.elastic.apm.web.SanitizingWebProcessor
+co.elastic.apm.agent.web.BodyProcessor
+co.elastic.apm.agent.web.SanitizingWebProcessor

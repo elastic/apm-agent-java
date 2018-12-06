@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.configuration.validation.RegexValidator;
-import co.elastic.apm.matcher.WildcardMatcher;
-import co.elastic.apm.matcher.WildcardMatcherValueConverter;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.configuration.validation.RegexValidator;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;

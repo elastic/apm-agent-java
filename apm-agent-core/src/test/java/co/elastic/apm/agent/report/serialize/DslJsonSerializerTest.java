@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report.serialize;
+package co.elastic.apm.agent.report.serialize;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

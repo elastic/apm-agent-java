@@ -43,7 +43,7 @@
  * instead of loading them itself so that the helper classes can access the Servlet API.
  * </p>
  * <p>
- * Advices have to manually add their required helper classes to {@link co.elastic.apm.bci.HelperClassManager},
+ * Advices have to manually add their required helper classes to {@link co.elastic.apm.agent.bci.HelperClassManager},
  * which takes care of creating the helper class loaders.
  * </p>
  *
@@ -58,6 +58,6 @@
  * </pre>
  */
 @NonnullApi
-package co.elastic.apm.servlet.helper;
+package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

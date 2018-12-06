@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.httpclient;
+package co.elastic.apm.agent.httpclient;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;

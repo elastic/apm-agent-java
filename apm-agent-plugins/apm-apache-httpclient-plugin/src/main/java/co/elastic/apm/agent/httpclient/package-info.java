@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.httpclient;
+package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

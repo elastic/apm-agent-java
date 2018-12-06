@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.util;
+package co.elastic.apm.agent.util;
 
-import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 

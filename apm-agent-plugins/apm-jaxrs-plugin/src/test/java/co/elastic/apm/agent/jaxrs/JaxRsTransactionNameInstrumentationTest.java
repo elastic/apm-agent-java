@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jaxrs;
+package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.AfterClass;

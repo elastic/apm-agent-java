@@ -1,1 +1,1 @@
-co.elastic.apm.slf4j.Slf4jMdcSpanListener
+co.elastic.apm.agent.slf4j.Slf4jMdcSpanListener

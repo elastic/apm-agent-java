@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.processor.Processor;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.processor.Processor;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.concurrent.atomic.AtomicInteger;

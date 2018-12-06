@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.plugin.api;
+package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import static co.elastic.apm.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 
 public abstract class ApiInstrumentation extends ElasticApmInstrumentation {
     @Override

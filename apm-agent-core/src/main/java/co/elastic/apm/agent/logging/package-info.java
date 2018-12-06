@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.logging;
+package co.elastic.apm.agent.logging;
 
-import co.elastic.apm.annotation.NonnullApi;
+import co.elastic.apm.agent.annotation.NonnullApi;

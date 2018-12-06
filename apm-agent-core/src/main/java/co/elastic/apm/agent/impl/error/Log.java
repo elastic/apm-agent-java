@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.error;
+package co.elastic.apm.agent.impl.error;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 

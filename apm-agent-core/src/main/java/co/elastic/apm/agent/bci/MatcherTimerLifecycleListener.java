@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.bci.bytebuddy.MatcherTimer;
-import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

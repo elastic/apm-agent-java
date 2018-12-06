@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.opentracing.impl;
+package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.transaction.TraceContext;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import static co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.OPENTRACING_INSTRUMENTATION_GROUP;
+import static co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.OPENTRACING_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class SpanContextInstrumentation extends ElasticApmInstrumentation {

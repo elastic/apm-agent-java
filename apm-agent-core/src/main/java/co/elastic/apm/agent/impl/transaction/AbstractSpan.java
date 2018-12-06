@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.Scope;
-import co.elastic.apm.impl.SpanListener;
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.SpanListener;
+import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

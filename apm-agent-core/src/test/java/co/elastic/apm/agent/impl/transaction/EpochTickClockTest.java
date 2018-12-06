@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

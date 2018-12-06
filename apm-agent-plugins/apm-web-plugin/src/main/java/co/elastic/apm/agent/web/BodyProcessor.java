@@ -17,20 +17,20 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.web;
+package co.elastic.apm.agent.web;
 
-import co.elastic.apm.impl.context.TransactionContext;
-import co.elastic.apm.impl.context.Request;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.processor.Processor;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.processor.Processor;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.web.WebConfiguration.EventType.ALL;
-import static co.elastic.apm.web.WebConfiguration.EventType.ERRORS;
-import static co.elastic.apm.web.WebConfiguration.EventType.TRANSACTIONS;
+import static co.elastic.apm.agent.web.WebConfiguration.EventType.ALL;
+import static co.elastic.apm.agent.web.WebConfiguration.EventType.ERRORS;
+import static co.elastic.apm.agent.web.WebConfiguration.EventType.TRANSACTIONS;
 
 /**
  * This processor redacts the body according to the {@link WebConfiguration#captureBody} configuration option

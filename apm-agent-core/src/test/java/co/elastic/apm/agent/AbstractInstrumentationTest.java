@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm;
+package co.elastic.apm.agent;
 
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.AfterClass;

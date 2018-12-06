@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark;
+package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.benchmark.profiler.CpuProfiler;
-import co.elastic.apm.benchmark.profiler.ReporterProfiler;
+import co.elastic.apm.agent.benchmark.profiler.CpuProfiler;
+import co.elastic.apm.agent.benchmark.profiler.ReporterProfiler;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;

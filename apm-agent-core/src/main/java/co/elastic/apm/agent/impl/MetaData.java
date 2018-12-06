@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
 
 public class MetaData {
 

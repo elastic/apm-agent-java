@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.transaction;
+package co.elastic.apm.agent.impl.transaction;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 /**
  * This clock makes sure that each {@link Span} and {@link Transaction} uses a consistent clock

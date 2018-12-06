@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.configuration;
+package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.configuration.source.PropertyFileConfigurationSource;
+import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;

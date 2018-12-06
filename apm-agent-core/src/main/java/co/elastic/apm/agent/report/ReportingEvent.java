@@ -17,18 +17,18 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
 
-import static co.elastic.apm.report.ReportingEvent.ReportingEventType.ERROR;
-import static co.elastic.apm.report.ReportingEvent.ReportingEventType.FLUSH;
-import static co.elastic.apm.report.ReportingEvent.ReportingEventType.SPAN;
-import static co.elastic.apm.report.ReportingEvent.ReportingEventType.TRANSACTION;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
 
 public class ReportingEvent {
     @Nullable

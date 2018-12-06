@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark;
+package co.elastic.apm.agent.benchmark;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;

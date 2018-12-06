@@ -17,23 +17,23 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl;
+package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.context.LifecycleListener;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.sampling.ProbabilitySampler;
-import co.elastic.apm.impl.sampling.Sampler;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.objectpool.ObjectPool;
-import co.elastic.apm.objectpool.Allocator;
-import co.elastic.apm.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.report.Reporter;
-import co.elastic.apm.report.ReporterConfiguration;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

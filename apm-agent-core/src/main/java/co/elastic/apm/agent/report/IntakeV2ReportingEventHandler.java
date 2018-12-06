@@ -17,16 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.impl.MetaData;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
-import co.elastic.apm.report.serialize.PayloadSerializer;
-import co.elastic.apm.util.VersionUtils;
+import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;

@@ -1,1 +1,1 @@
-co.elastic.apm.servlet.wildfly.WildFlyLifecycleListener
+co.elastic.apm.agent.servlet.wildfly.WildFlyLifecycleListener

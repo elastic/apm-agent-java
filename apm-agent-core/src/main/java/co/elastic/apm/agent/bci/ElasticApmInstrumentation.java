@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -48,8 +48,8 @@ public abstract class ElasticApmInstrumentation {
     /**
      * Initializes the advice with the {@link ElasticApmTracer}
      * <p>
-     * This enables tests to register a custom instance with a {@link co.elastic.apm.impl.ElasticApmTracerBuilder#configurationRegistry}
-     * and {@link co.elastic.apm.impl.ElasticApmTracerBuilder#reporter} which is specific to a particular test or test class.
+     * This enables tests to register a custom instance with a {@link co.elastic.apm.agent.impl.ElasticApmTracerBuilder#configurationRegistry}
+     * and {@link co.elastic.apm.agent.impl.ElasticApmTracerBuilder#reporter} which is specific to a particular test or test class.
      * </p>
      *
      * @param tracer the tracer to use for this advice.
@@ -111,7 +111,7 @@ public abstract class ElasticApmInstrumentation {
     /**
      * Return {@code true},
      * if this instrumentation should even be applied when
-     * {@link co.elastic.apm.configuration.CoreConfiguration#instrument} is set to {@code false}.
+     * {@link co.elastic.apm.agent.configuration.CoreConfiguration#instrument} is set to {@code false}.
      */
     public boolean includeWhenInstrumentationIsDisabled() {
         return false;
@@ -120,7 +120,7 @@ public abstract class ElasticApmInstrumentation {
     /**
      * Returns a name which groups several instrumentations into a logical group.
      * <p>
-     * This name is used in {@link co.elastic.apm.configuration.CoreConfiguration#disabledInstrumentations} to exclude a logical group
+     * This name is used in {@link co.elastic.apm.agent.configuration.CoreConfiguration#disabledInstrumentations} to exclude a logical group
      * of instrumentations.
      * </p>
      *

@@ -1,1 +1,1 @@
-co.elastic.apm.spring.webmvc.SpringTransactionNameInstrumentation
+co.elastic.apm.agent.spring.webmvc.SpringTransactionNameInstrumentation

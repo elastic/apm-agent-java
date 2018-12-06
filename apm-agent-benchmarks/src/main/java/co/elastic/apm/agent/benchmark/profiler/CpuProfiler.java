@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark.profiler;
+package co.elastic.apm.agent.benchmark.profiler;
 
 import com.sun.management.OperatingSystemMXBean;
 import org.openjdk.jmh.infra.BenchmarkParams;

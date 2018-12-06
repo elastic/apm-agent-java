@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,8 +30,8 @@ class HelperClassManagerTest {
     @Test
     void testLoadHelperClass() {
         final HelperClassManager<HelperClassInterface> helperClassManager = HelperClassManager.ForSingleClassLoader.of(mock(ElasticApmTracer.class),
-            "co.elastic.apm.bci.HelperClassManagerTest$HelperClassImpl",
-            "co.elastic.apm.bci.HelperClassManagerTest$AdditionalHelper");
+            "co.elastic.apm.agent.bci.HelperClassManagerTest$HelperClassImpl",
+            "co.elastic.apm.agent.bci.HelperClassManagerTest$AdditionalHelper");
 
         final HelperClassInterface helper = helperClassManager.getForClassLoaderOfClass(HelperClassManagerTest.class);
         assertThat(helper.helpMe()).isTrue();

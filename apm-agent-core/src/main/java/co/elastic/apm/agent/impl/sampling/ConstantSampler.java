@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.sampling;
+package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Id;
 
 /**
  * This is a implementation of {@link Sampler} which always returns the same sampling decision.

@@ -17,13 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.resttemplate;
+package co.elastic.apm.agent.resttemplate;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.http.client.HttpClientHelper;
-import co.elastic.apm.impl.transaction.AbstractSpan;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.TraceContext;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
-import static co.elastic.apm.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
+import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;

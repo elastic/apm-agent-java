@@ -17,10 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

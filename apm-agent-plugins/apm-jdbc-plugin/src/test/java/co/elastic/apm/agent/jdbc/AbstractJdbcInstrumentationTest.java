@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.jdbc;
+package co.elastic.apm.agent.jdbc;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.transaction.Db;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Db;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

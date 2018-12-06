@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <properties>
-        <elastic.apm.agent>co.elastic.apm.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
     </properties>
 
     <parent>
@@ -73,10 +73,10 @@
                                     <pattern>simplelogger.properties</pattern>
                                     <shadedPattern>elasticapmlogger.properties</shadedPattern>
                                 </relocation>
-                                <!-- See javadoc of co.elastic.apm.logging.JulBridgeLogger -->
+                                <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>
                                     <pattern>java.util.logging.Logger</pattern>
-                                    <shadedPattern>co.elastic.apm.logging.JulBridgeLogger</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>

@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.payload;
+package co.elastic.apm.agent.impl.payload;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import java.util.List;
 

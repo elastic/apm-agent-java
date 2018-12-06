@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.impl.payload.Payload;
+import co.elastic.apm.agent.impl.payload.Payload;
 
 public interface PayloadSender {
     void sendPayload(Payload payload);

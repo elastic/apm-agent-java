@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci.bytebuddy;
+package co.elastic.apm.agent.bci.bytebuddy;
 
-import co.elastic.apm.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.type.TypeDescription;

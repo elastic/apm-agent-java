@@ -1,1 +1,1 @@
-co.elastic.apm.es.restclient.v5_6.ElasticsearchRestClientInstrumentation
+co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation

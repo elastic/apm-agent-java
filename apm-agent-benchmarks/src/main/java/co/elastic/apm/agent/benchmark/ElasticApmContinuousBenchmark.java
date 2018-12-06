@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark;
+package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.benchmark.sql.BlackholeConnection;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.report.Reporter;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.benchmark.sql.BlackholeConnection;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.report.Reporter;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.BlockingHandler;
 import net.bytebuddy.agent.ByteBuddyAgent;

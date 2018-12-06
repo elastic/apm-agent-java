@@ -17,11 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.plugin.api;
+package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.transaction.TraceContext;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;

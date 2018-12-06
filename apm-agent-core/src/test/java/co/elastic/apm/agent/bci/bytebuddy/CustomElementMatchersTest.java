@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci.bytebuddy;
+package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.description.type.TypeDescription;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static co.elastic.apm.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 

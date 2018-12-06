@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.sampling;
+package co.elastic.apm.agent.impl.sampling;
 
-import co.elastic.apm.impl.transaction.Id;
+import co.elastic.apm.agent.impl.transaction.Id;
 
 /**
  * This implementation of {@link Sampler} samples based on a sampling probability (or sampling rate) between 0.0 and 1.0.

@@ -17,15 +17,15 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.benchmark;
+package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.util.MathUtils;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.MathUtils;
 import org.ehcache.sizeof.SizeOf;
 
 public class SizeOfSpan {

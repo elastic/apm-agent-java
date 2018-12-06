@@ -17,20 +17,20 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report;
+package co.elastic.apm.agent.report;
 
-import co.elastic.apm.MockTracer;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.payload.ProcessInfo;
-import co.elastic.apm.impl.payload.Service;
-import co.elastic.apm.impl.payload.SystemInfo;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.impl.transaction.Span;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.processor.ProcessorEventHandler;
-import co.elastic.apm.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.InflaterInputStream;
 
-import static co.elastic.apm.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
+import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;

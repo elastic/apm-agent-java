@@ -17,13 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.servlet;
 
-import co.elastic.apm.bci.ElasticApmInstrumentation;
-import co.elastic.apm.bci.HelperClassManager;
-import co.elastic.apm.bci.VisibleForAdvice;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.transaction.Transaction;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.HelperClassManager;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.servlet.ServletApiAdvice.TRANSACTION_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.ServletApiAdvice.TRANSACTION_ATTRIBUTE;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -69,8 +69,8 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     @Override
     public void init(ElasticApmTracer tracer) {
         asyncHelper = HelperClassManager.ForSingleClassLoader.of(tracer,
-            "co.elastic.apm.servlet.helper.StartAsyncAdviceHelperImpl",
-            "co.elastic.apm.servlet.helper.ApmAsyncListener");
+            "co.elastic.apm.agent.servlet.helper.StartAsyncAdviceHelperImpl",
+            "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
     }
 
     @Override

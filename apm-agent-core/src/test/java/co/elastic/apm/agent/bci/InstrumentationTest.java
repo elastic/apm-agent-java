@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.bci;
+package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.MockTracer;
-import co.elastic.apm.configuration.CoreConfiguration;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -92,7 +92,7 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return ElementMatchers.named("co.elastic.apm.bci.InstrumentationTest");
+            return ElementMatchers.named("co.elastic.apm.agent.bci.InstrumentationTest");
         }
 
         @Override

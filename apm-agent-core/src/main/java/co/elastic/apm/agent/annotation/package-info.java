@@ -18,4 +18,4 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.annotation;
+package co.elastic.apm.agent.annotation;

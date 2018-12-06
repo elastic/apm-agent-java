@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.report.processor;
+package co.elastic.apm.agent.report.processor;
 
-import co.elastic.apm.report.ReportingEvent;
+import co.elastic.apm.agent.report.ReportingEvent;
 import com.lmax.disruptor.EventHandler;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -29,7 +29,7 @@ import java.util.ServiceLoader;
 
 /**
  * Invokes all registered {@link Processor}s before a {@link ReportingEvent} is processed by
- * the {@link co.elastic.apm.report.ReportingEventHandler}.
+ * the {@link co.elastic.apm.agent.report.ReportingEventHandler}.
  */
 public class ProcessorEventHandler implements EventHandler<ReportingEvent> {
 

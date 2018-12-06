@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.impl.context;
+package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
