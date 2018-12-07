@@ -141,7 +141,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
 
     private static void setLogLevel(@Nullable String level) {
         System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm", level != null ? level : Level.INFO.toString());
-        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.shaded", Level.WARN.toString());
+        System.setProperty(SimpleLogger.LOG_KEY_PREFIX + "co.elastic.apm.agent.shaded", Level.WARN.toString());
         System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, Boolean.TRUE.toString());
         System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "yyyy-MM-dd HH:mm:ss.SSS");
     }
