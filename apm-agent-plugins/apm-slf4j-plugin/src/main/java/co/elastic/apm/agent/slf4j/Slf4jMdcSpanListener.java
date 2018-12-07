@@ -34,7 +34,7 @@ import java.lang.invoke.MethodType;
 
 public class Slf4jMdcSpanListener implements SpanListener {
 
-    // the string concatenation prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.shaded.slf4j.MDC
+    // the string concatenation prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.agent.shaded.slf4j.MDC
     // the toString prevents constant folding, which would also make the shade plugin relocate
     private static final String ORG_SLF4J_MDC = "org." + "slf4j.MDC".toString();
     private static final String TRACE_ID = "trace.id";
