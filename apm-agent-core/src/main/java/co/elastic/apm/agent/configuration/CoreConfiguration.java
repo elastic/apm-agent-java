@@ -193,6 +193,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public static String getAllInstrumentationGroupNames() {
         Set<String> instrumentationGroupNames = new TreeSet<>();
+        instrumentationGroupNames.add("incubating");
         for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class)) {
             instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
         }

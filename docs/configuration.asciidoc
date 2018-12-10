@@ -872,7 +872,7 @@ The default unit for this option is `ms`
 # service_version=
 
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
-#
+# 
 # NOTE: The APM UI does not fully support the environment setting yet.
 # You can use the query bar to filter for a specific environment,
 # but by default the environments will be mixed together.
@@ -965,7 +965,7 @@ The default unit for this option is `ms`
 # If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
 # This option is case-insensitive.
-#
+# 
 # NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
 # Forms which include a file upload (`multipart/form-data`) are not supported.
 # 
