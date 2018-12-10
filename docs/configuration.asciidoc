@@ -752,6 +752,7 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 ==== `application_packages`
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+Multiple packages can be set as a comma-separated list.
 Setting this option can also improve the startup time.
 
 In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
@@ -1211,6 +1212,7 @@ The default unit for this option is `ms`
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+# Multiple packages can be set as a comma-separated list.
 # Setting this option can also improve the startup time.
 # 
 # In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
