@@ -83,7 +83,7 @@ class InstrumentationTest {
         ElasticApmAgent.initInstrumentation(MockTracer.create(),
             ByteBuddyAgent.install(),
             Collections.singletonList(new SuppressExceptionInstrumentation()));
-        assertThatCode(this::noExceptionPlease).doesNotThrowAnyException();
+        assertThat(noExceptionPlease("foo")).isEqualTo("foo_no_exception");
     }
 
     @Test
@@ -91,10 +91,11 @@ class InstrumentationTest {
         ElasticApmAgent.initInstrumentation(MockTracer.create(),
             ByteBuddyAgent.install(),
             Collections.singletonList(new ExceptionInstrumentation()));
-        assertThatThrownBy(this::noExceptionPlease).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> noExceptionPlease("foo")).isInstanceOf(RuntimeException.class);
     }
 
-    void noExceptionPlease() {
+    String noExceptionPlease(String s) {
+        return s + "_no_exception";
     }
 
     private void init(ConfigurationRegistry config) {
@@ -177,7 +178,8 @@ class InstrumentationTest {
 
     public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void onMethodExit() {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onMethodEnterAndExit() {
             throw new RuntimeException("This exception should be suppressed");
         }
 
