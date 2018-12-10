@@ -29,3 +29,4 @@ co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$GetTraceIdInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$ActivateInstrumentation
+co.elastic.apm.agent.plugin.api.LegacySpanInstrumentation$IsSampledInstrumentation

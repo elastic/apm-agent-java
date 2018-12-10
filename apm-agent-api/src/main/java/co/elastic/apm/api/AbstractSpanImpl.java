@@ -67,6 +67,7 @@ public abstract class AbstractSpanImpl implements Span {
 
     @Override
     public boolean isSampled() {
+        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;
     }
 }
