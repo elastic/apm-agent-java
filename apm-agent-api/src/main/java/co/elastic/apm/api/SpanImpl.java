@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 
 /**
  * If the agent is active, it injects the implementation from
- * co.elastic.apm.plugin.api.SpanInstrumentation
+ * co.elastic.apm.agent.plugin.api.SpanInstrumentation
  * into this class.
  * <p>
  * Otherwise, this class is a noop.
@@ -32,7 +32,7 @@ import javax.annotation.Nonnull;
 class SpanImpl implements Span {
 
     @Nonnull
-    // co.elastic.apm.impl.transaction.AbstractSpan
+    // co.elastic.apm.agent.impl.transaction.AbstractSpan
     protected final Object span;
 
     SpanImpl(@Nonnull Object span) {
@@ -41,17 +41,17 @@ class SpanImpl implements Span {
 
     @Override
     public void setName(String name) {
-        // co.elastic.apm.plugin.api.SpanInstrumentation$SetNameInstrumentation.setName
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$SetNameInstrumentation.setName
     }
 
     @Override
     public void setType(String type) {
-        // co.elastic.apm.plugin.api.SpanInstrumentation$SetTypeInstrumentation.setType
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$SetTypeInstrumentation.setType
     }
 
     @Override
     public void addTag(String key, String value) {
-        // co.elastic.apm.plugin.api.SpanInstrumentation$AddTagInstrumentation.addTag
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$AddTagInstrumentation.addTag
     }
 
     @Override
@@ -61,43 +61,43 @@ class SpanImpl implements Span {
     }
 
     private Object doCreateSpan() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
     }
 
     @Override
     public void end() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation$EndInstrumentation.end
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$EndInstrumentation.end
     }
 
     @Override
     public void captureException(Throwable throwable) {
-        // co.elastic.apm.plugin.api.SpanInstrumentation.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.CaptureExceptionInstrumentation
     }
 
     @Nonnull
     @Override
     public String getId() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation.GetIdInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.GetIdInstrumentation
         return "";
     }
 
     @Nonnull
     @Override
     public String getTraceId() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation.GetTraceIdInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.GetTraceIdInstrumentation
         return "";
     }
 
     @Override
     public Scope activate() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation.ActivateInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.ActivateInstrumentation
         return new ScopeImpl(span);
     }
 
     @Override
     public boolean isSampled() {
-        // co.elastic.apm.plugin.api.SpanInstrumentation.IsSampledInstrumentation
+        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.IsSampledInstrumentation
         return false;
     }
 

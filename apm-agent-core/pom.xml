@@ -8,7 +8,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.1.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -22,7 +22,7 @@
                 <version>0.5.1</version>
                 <configuration>
                     <sourceDirectory>${basedir}/src/main/resources/schema</sourceDirectory>
-                    <targetPackage>co.elastic.apm.impl.intake</targetPackage>
+                    <targetPackage>co.elastic.apm.agent.impl.intake</targetPackage>
                     <usePrimitives>true</usePrimitives>
                     <useLongIntegers>true</useLongIntegers>
                     <includeAdditionalProperties>false</includeAdditionalProperties>
@@ -131,6 +131,13 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0-android</version>
+        </dependency>
+        <!--Used to test excluding old class file versions-->
+        <dependency>
+            <groupId>commons-math</groupId>
+            <artifactId>commons-math</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

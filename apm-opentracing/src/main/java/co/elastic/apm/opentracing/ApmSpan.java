@@ -32,7 +32,7 @@ class ApmSpan implements Span {
     @Nullable
     private final TraceContextSpanContext spanContext;
     @Nullable
-    // co.elastic.apm.impl.transaction.AbstractSpan in case of unfinished spans
+    // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
     private Object dispatcher;
 
     ApmSpan(@Nullable Object dispatcher) {
@@ -46,7 +46,7 @@ class ApmSpan implements Span {
 
     @Nullable
     private Object getTraceContext(@Nullable Object dispatcher) {
-        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
         return null;
     }
 
@@ -75,7 +75,7 @@ class ApmSpan implements Span {
 
     @Override
     public ApmSpan setOperationName(String operationName) {
-        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation$SetOperationName
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation$SetOperationName
         return this;
     }
 
@@ -98,7 +98,7 @@ class ApmSpan implements Span {
     }
 
     private void finishInternal(long finishMicros) {
-        // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.FinishInstrumentation.finishInternal
+        // implementation injected at runtime by co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.FinishInstrumentation.finishInternal
     }
 
     @Nullable
@@ -125,7 +125,7 @@ class ApmSpan implements Span {
 
     @Override
     public ApmSpan log(long timestampMicroseconds, Map<String, ?> fields) {
-        // co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.LogInstrumentation
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.LogInstrumentation
         return this;
     }
 
@@ -146,7 +146,7 @@ class ApmSpan implements Span {
     }
 
     private void handleTag(String key, @Nullable Object value) {
-        // implementation injected at runtime by co.elastic.apm.opentracing.impl.ApmSpanInstrumentation.TagInstrumentation.handleTag
+        // implementation injected at runtime by co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.TagInstrumentation.handleTag
     }
 
     @Override

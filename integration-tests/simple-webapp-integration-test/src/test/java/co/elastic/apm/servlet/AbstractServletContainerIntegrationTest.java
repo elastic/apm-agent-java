@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.servlet;
 
-import co.elastic.apm.MockReporter;
+import co.elastic.apm.agent.MockReporter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -55,7 +55,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import static co.elastic.apm.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
+import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 

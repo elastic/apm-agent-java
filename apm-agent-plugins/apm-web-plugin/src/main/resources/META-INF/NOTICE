@@ -1,2 +1,2 @@
 This product includes software from stagemonitor,
-under the Apache License 2.0 (see: co.elastic.apm.web.ClientIpUtils)
+under the Apache License 2.0 (see: co.elastic.apm.agent.web.ClientIpUtils)
