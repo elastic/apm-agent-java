@@ -29,7 +29,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_urls=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [source,properties]
@@ -37,7 +37,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_urls=http://localhost:8300
+server_urls=http://localhost:8200
 ----
 
 [source,bash]
@@ -45,7 +45,7 @@ server_urls=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
 
 <#list config as category, options>
