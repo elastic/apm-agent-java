@@ -1,6 +1,7 @@
 # next
 
 ## Features
+ * Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained. 
 
 ## Bug Fixes
 
