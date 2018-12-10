@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,12 +87,14 @@ class DslJsonSerializerTest {
     @Test
     void testNullHeaders() throws IOException {
         Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
-        transaction.getContext().getRequest().addHeader("foo", null);
+        transaction.getContext().getRequest().addHeader("foo", (String) null);
+        transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
         JsonNode jsonNode = objectMapper.readTree(serializer.toJsonString(transaction));
         System.out.println(jsonNode);
         // calling addHeader with a null value ignores the header
         assertThat(jsonNode.get("context").get("request").get("headers").get("foo")).isNull();
+        assertThat(jsonNode.get("context").get("request").get("headers").get("baz")).isNull();
         // should a null value sneak in, it should not break
         assertThat(jsonNode.get("context").get("request").get("headers").get("bar").isNull()).isTrue();
     }

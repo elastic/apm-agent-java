@@ -331,6 +331,31 @@ Valid options: `off`, `errors`, `transactions`, `all`
 |============
 
 [float]
+[[config-capture-headers]]
+==== `capture_headers`
+
+A list of headers to record.
+If it is empty the agent doesn’t capture request and response headers, as well as cookies.
+Otherwise, it looks for the headers by the names from the list (case-insensitively).
+Setting the value to `*` means that all headers are captured.
+
+NOTE: Setting this to `*` can increase the network and disk requirements and increases allocations.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
+|============
+
+[float]
 [[config-ignore-urls]]
 ==== `ignore_urls`
 
@@ -977,6 +1002,19 @@ The default unit for this option is `ms`
 # Default value: OFF
 #
 # capture_body=OFF
+
+# A list of headers to record.
+# If it is empty the agent doesn’t capture request and response headers, as well as cookies.
+# Otherwise, it looks for the headers by the names from the list (case-insensitively).
+# Setting the value to `*` means that all headers are captured.
+# 
+# NOTE: Setting this to `*` can increase the network and disk requirements and increases allocations.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# capture_headers=
 
 # Used to restrict requests to certain URLs from being instrumented.
 # 

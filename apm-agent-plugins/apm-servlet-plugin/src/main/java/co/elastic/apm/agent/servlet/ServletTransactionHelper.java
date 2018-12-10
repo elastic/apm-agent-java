@@ -321,7 +321,7 @@ public class ServletTransactionHelper {
         }
     }
 
-    public boolean isCaptureHeaders() {
-        return webConfiguration.isCaptureHeaders();
+    public List<String> getCaptureHeaders() {
+        return webConfiguration.getCaptureHeaders();
     }
 }

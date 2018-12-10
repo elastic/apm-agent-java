@@ -23,6 +23,7 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 
 import javax.annotation.Nullable;
+import java.util.Enumeration;
 
 
 /**
@@ -115,6 +116,15 @@ public class Request implements Recyclable {
     public Request addHeader(String headerName, @Nullable String headerValue) {
         if (headerValue != null) {
             headers.add(headerName, headerValue);
+        }
+        return this;
+    }
+
+    public Request addHeader(String headerName, @Nullable Enumeration<String> headerValues) {
+        if (headerValues != null) {
+            while (headerValues.hasMoreElements()) {
+                headers.add(headerName, headerValues.nextElement());
+            }
         }
         return this;
     }

@@ -51,16 +51,18 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(EventType.OFF);
 
-    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
+    private final ConfigurationOption<List<String>> captureHeaders = ConfigurationOption.<List<String>>builder(ListValueConverter.LOWER_STRINGS_VALUE_CONVERTER, List.class)
         .key("capture_headers")
         .configurationCategory(HTTP_CATEGORY)
         .tags("performance")
-        .description("If set to `true`,\n" +
-            "the agent will capture request and response headers, including cookies.\n" +
+        .description("A list of headers to record.\n" +
+            "If it is empty the agent doesn’t capture request and response headers, as well as cookies.\n" +
+            "Otherwise, it looks for the headers by the names from the list (case-insensitively).\n" +
+            "Setting the value to `*` means that all headers are captured.\n" +
             "\n" +
-            "NOTE: Setting this to true can increase the network and disk requirements and increases allocations.")
+            "NOTE: Setting this to `*` can increase the network and disk requirements and increases allocations.")
         .dynamic(true)
-        .buildWithDefault(true);
+        .buildWithDefault(Collections.<String>emptyList());
 
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -153,7 +155,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         return urlGroups.get();
     }
 
-    public boolean isCaptureHeaders() {
+    public List<String> getCaptureHeaders() {
         return captureHeaders.get();
     }
 
