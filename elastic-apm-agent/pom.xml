@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <properties>
-        <elastic.apm.agent>co.elastic.apm.bci.AgentMain</elastic.apm.agent>
+        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
     </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.1-SNAPSHOT</version>
     </parent>
     <packaging>jar</packaging>
 
@@ -31,39 +31,47 @@
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <relocations>
                                 <relocation>
                                     <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.bytebuddy</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.dslplatform</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.dslplatform</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.lmax</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.lmax</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.lmax</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.slf4j</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.slf4j</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.stagemonitor</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.stagemonitor</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.jctools</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.jctools</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.google</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.guava</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.guava</shadedPattern>
                                 </relocation>
                                 <!--A guava dependency-->
                                 <relocation>
                                     <pattern>org.checkerframework</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.checkerframework</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.checkerframework</shadedPattern>
                                 </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
@@ -73,14 +81,14 @@
                                     <pattern>simplelogger.properties</pattern>
                                     <shadedPattern>elasticapmlogger.properties</shadedPattern>
                                 </relocation>
-                                <!-- See javadoc of co.elastic.apm.logging.JulBridgeLogger -->
+                                <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
                                 <relocation>
                                     <pattern>java.util.logging.Logger</pattern>
-                                    <shadedPattern>co.elastic.apm.logging.JulBridgeLogger</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
-                                    <shadedPattern>co.elastic.apm.shaded.weaklockfree</shadedPattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

@@ -1,5 +1,6 @@
-= APM Java Agent Reference (Beta)
+= APM Java Agent Reference
 :branch: current
+:server-branch: 6.5
 include::{asciidoc-dir}/../../shared/attributes.asciidoc[]
 
 ifdef::env-github[]
@@ -9,6 +10,7 @@ endif::[]
 
 ifndef::env-github[]
 include::./intro.asciidoc[Introduction]
+include::./application-server-setup.asciidoc[Setup the agent with Application Servers]
 include::./supported-technologies.asciidoc[Supported Technologies]
 include::./configuration.asciidoc[Configuration]
 include::./faq.asciidoc[Frequently Asked Questions]

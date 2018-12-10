@@ -64,4 +64,9 @@ public abstract class AbstractSpanImpl implements Span {
         // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.ActivateInstrumentation
         return new ScopeImpl(span);
     }
+
+    @Override
+    public boolean isSampled() {
+        return false;
+    }
 }

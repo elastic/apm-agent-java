@@ -65,7 +65,7 @@ enum NoopTransaction implements Transaction {
 
     @Override
     public void captureException(Throwable throwable) {
-        // co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
     }
 
     @Nonnull
@@ -92,6 +92,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Nonnull
+    @Override
+    public boolean isSampled() {
+        return false;
+    }
+
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;

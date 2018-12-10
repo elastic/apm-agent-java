@@ -26,13 +26,15 @@ the agent does not capture transactions.
 === Java versions
 
 |===
-|Vendor |Supported versions
+|Vendor |Supported versions | Notes
 
 |Oracle JDK
-|7, 8, 9, 10
+|7, 8, 9, 10, 11
+|`--module-path` has not been tested yet
 
 |Open JDK
-|7, 8, 9, 10
+|7, 8, 9, 10, 11
+|`--module-path` has not been tested yet
 
 |IBM J9 VM
 |8
@@ -83,29 +85,29 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |===
 |Server |Supported versions
 
-|Tomcat
+|<<setup-tomcat,Tomcat>>
 |7.x, 8.5.x, 9.x
 
-|WildFly
+|<<setup-wildfly,WildFly>>
 |8-13
 
-|Jetty (only the `ServletContextHandler` is supported)
+|<<setup-jetty,Jetty>> (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
 
-|WebSphere Liberty
+|<<setup-websphere-liberty,WebSphere Liberty>>
 |8.5.5, 18.0.x
 
-|Undertow Servlet
+|<<setup-generic,Undertow Servlet>>
 |1.4
 
-|Payara
+|<<setup-payara,Payara>>
 |4.x, 5.x
 
 |===
 
 [float]
 [[supported-databases]]
-=== Databases
+=== Data Stores
 |===
 |Database |Supported versions | Description
 
@@ -113,6 +115,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |4.1+
 |The agent automatically creates DB spans for all your JDBC queries.
  This includes JDBC queries executed by O/R mappers like Hibernate.
+
+ *Note:* Make sure that your JDBC driver is at least compiled for Java 1.5.
+ For example, commons dbcp versions before 1.4 are not supported.
+ IBM DB2 db2jcc drivers are also not supported.
+ Please update to db2jcc4.
 
 |Elasticsearch
 |5.0.2+
@@ -124,6 +131,8 @@ Other Servlet 3+ compliant servers will most likely work as well.
 [float]
 [[supported-networking-frameworks]]
 === Networking frameworks
+Distributed tracing will only work if you are using one of the supported networking frameworks.
+
 |===
 |Framework |Supported versions | Description
 
@@ -138,3 +147,14 @@ Other Servlet 3+ compliant servers will most likely work as well.
  The spans are named after the schema `<method> <host>`.
 
 |===
+
+[float]
+[[supported-technologies-caveats]]
+=== Caveats
+* Tracing of asynchronous invocations (for example `java.util.concurrent.ExecutorService`) is currently not supported.
+* Certain OSGi containers need the following configuration setting in case you see exceptions like
+  `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
+  `org.osgi.framework.bootdelegation=co.elastic.apm.agent.*`
+* Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
+* The agent does currently not support running on JVMs with an enabled `SecurityManager`.
+  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`

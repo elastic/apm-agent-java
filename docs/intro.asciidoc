@@ -22,11 +22,14 @@ you can use custom spans.
 For information about custom spans,
 see the <<public-api,public api documentation>>.
 
-The agent is only one of multiple components you need to get started with APM.
-Please also have a look at the documentation for
+NOTE: The minimum required version of the APM Server is 6.5.0
 
-* {apm-server-ref}/index.html[APM Server]
-* {ref}/index.html[Elasticsearch]
+[float]
+[[additional-components]]
+=== Additional Components
+
+APM Agents work in conjunction with the {apm-server-ref-v}/index.html[APM Server], {ref}/index.html[Elasticsearch], and {kibana-ref}/index.html[Kibana].
+Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how these components work together. 
 
 [float]
 [[get-started]]
@@ -48,29 +51,7 @@ see the <<configuration,configuration guide>> on how to configure Elastic APM.
 === Add `javaagent` flag
 When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
 
-[float]
-[[spring-boot-javaagent]]
-==== Add `javaagent` flag for a Spring Boot application
-
-Start your spring application and add the `-javaagent` JVM flag:
-
-[source,bash]
-----
-java -javaagent:/path/to/elastic-apm-agent-<version>.jar -jar my-spring-boot-application.jar
-----
-
-[float]
-[[tomcat-javaagent]]
-==== Add `javaagent` flag for Apache Tomcat
-Create `$CATALINA_BASE/bin/setenv.sh` (or modify if the file already exists).
-
-Add the following line:
-
-[source,bash]
-.setenv.sh
-----
-export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
-----
+See <<application-server-setup>> for server specific installation instructions.
 
 [float]
 [[supported-technologies]]

@@ -19,15 +19,15 @@
  */
 package co.elastic.apm.spring.boot;
 
-import co.elastic.apm.MockReporter;
+import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.impl.transaction.Transaction;
-import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.web.WebConfiguration;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.Before;
@@ -39,6 +39,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,7 +78,10 @@ public abstract class AbstractSpringBootTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
-        restTemplate = new TestRestTemplate(new RestTemplateBuilder().setConnectTimeout(0).setReadTimeout(0));
+        restTemplate = new TestRestTemplate(new RestTemplateBuilder()
+            .setConnectTimeout(0)
+            .setReadTimeout(0)
+            .basicAuthorization("username", "password"));
         reporter.reset();
     }
 
@@ -100,6 +111,7 @@ public abstract class AbstractSpringBootTest {
             .contains("// empty test script");
 
         assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("ResourceHttpRequestHandler");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
     }
 
     @RestController
@@ -114,6 +126,28 @@ public abstract class AbstractSpringBootTest {
         public String greeting() {
             ElasticApm.currentTransaction().setUser("id", "email", "username");
             return "Hello World";
+        }
+
+        @Configuration
+        @EnableWebSecurity
+        public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+            @Override
+            protected void configure(HttpSecurity http) throws Exception {
+                http.authorizeRequests()
+                    .anyRequest().authenticated()
+                    .and()
+                    .httpBasic();
+            }
+
+            @Bean
+            @Override
+            public UserDetailsService userDetailsService() {
+                return new InMemoryUserDetailsManager(User.withDefaultPasswordEncoder()
+                    .username("username")
+                    .password("password")
+                    .roles("USER")
+                    .build());
+            }
         }
 
     }

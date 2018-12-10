@@ -141,6 +141,11 @@ Note that this only works when there is no active transaction on the same thread
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the transaction. Defaults to `request`
 
+NOTE: Using this annotation implicitly creates a Transaction and activates it when entering the annotated
+method. It also implicitly ends it and deactivates it before exiting the annotated method.
+See <<api-start-transaction, `ElasticApm.startTransaction()`>>, <<api-transaction-activate, `transaction.activate()`>>
+and <<api-transaction-end, `transaction.end()`>>
+
 [float]
 [[api-capture-span]]
 ==== `@CaptureSpan`
@@ -152,6 +157,11 @@ no span will be created.
 
 * `value`: The name of the span. Defaults to `ClassName#methodName`
 * `type`: The type of the span. Defaults to `app`
+
+NOTE: Using this annotation implicitly creates a Span and activates it when entering the annotated
+method. It also implicitly ends it and deactivates it before exiting the annotated method.
+See <<api-span-start-span, `createSpan()`>>, <<api-transaction-activate, `span.activate()`>>
+and <<api-span-end, `span.end()`>>
 
 //----------------------------
 [float]
@@ -291,9 +301,9 @@ preferably before other JS libraries:
 ----
 <script src="elastic-apm-js-base/dist/bundles/elastic-apm-js-base.umd.min.js"></script>
 <script>
-  var elasticApm = initApm({
-    serviceName: '',
-    serverUrl: 'http://localhost:8200',
+  elasticApm.init({
+    serviceName: "service-name",
+    serverUrl: "http://localhost:8200",
     pageLoadTraceId: "${transaction.traceId}",
     pageLoadSpanId: "${transaction.ensureParentId()}",
     pageLoadSampled: ${transaction.sampled}
@@ -379,6 +389,11 @@ try (final Scope scope = transaction.activate()) {
 ----
 
 NOTE: <<api-transaction-activate>> and `Scope#close()` have to be called on the same thread.
+
+[float]
+[[api-transaction-is-sampled]]
+==== `boolean isSampled()`
+Returns true if this transaction is recorded and sent to the APM Server
 
 //----------------------------
 [float]
@@ -528,3 +543,8 @@ NOTE: Calling any of the span's methods after <<api-span-end>> has been called i
 You may only interact with span when you have control over its lifecycle.
 For example, if a span is ended in another thread you must not add tags if there is a chance for a race between the <<api-span-end>>
 and the <<api-span-add-tag>> method.
+
+[float]
+[[api-span-is-sampled]]
+==== `boolean isSampled()`
+Returns true if this span is recorded and sent to the APM Server

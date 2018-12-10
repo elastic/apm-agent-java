@@ -19,6 +19,8 @@
  */
 package co.elastic.webapp;
 
+import co.elastic.apm.api.ElasticApm;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -46,6 +48,9 @@ public class TestServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        if (!ElasticApm.currentTransaction().isSampled()) {
+            throw new IllegalStateException("Current transaction is not sampled: " + ElasticApm.currentTransaction());
+        }
         try {
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ELASTIC_APM WHERE FOO=$1");
             preparedStatement.setInt(1, 1);

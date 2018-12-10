@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.api;
 
-import co.elastic.apm.AbstractInstrumentationTest;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

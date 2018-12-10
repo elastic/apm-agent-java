@@ -32,7 +32,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Nullable
     private final String operationName;
-    // co.elastic.apm.impl.ElasticApmTracer
+    // co.elastic.apm.agent.impl.ElasticApmTracer
     private final Map<String, Object> tags = new HashMap<>();
     private final ApmScopeManager scopeManager;
 
@@ -132,7 +132,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
 
     @Nullable
     private Object createSpan(Object apmParent, Iterable<Map.Entry<String, String>> baggage) {
-        // co.elastic.apm.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.createSpan
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanBuilderInstrumentation.CreateSpanInstrumentation.createSpan
         return null;
     }
 

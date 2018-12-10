@@ -4,6 +4,50 @@
 
 ## Bug Fixes
 
+# 1.1.0
+
+## Features
+ * Some memory allocation improvements
+ * Enabling bootdelegation for agent classes in Atlassian OSGI systems
+
+## Bug Fixes
+ * Update dsl-json which fixes a memory leak.
+ See [ngs-doo/dsl-json#102](https://github.com/ngs-doo/dsl-json/pull/102) for details. 
+ * Avoid `VerifyError`s by non instrumenting classes compiled for Java 4 or earlier
+ * Enable APM Server URL configuration with path (fixes #339)
+ * Reverse `system.hostname` and `system.platform` order sent to APM server
+
+# 1.0.1
+
+## Bug Fixes
+ * Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 (#313)
+
+# 1.0.0
+
+## Breaking changes
+ * Remove intake v1 support. This version requires APM Server 6.5.0+ which supports the intake api v2.
+   Until the time the APM Server 6.5.0 is officially released,
+   you can test with docker by pulling the APM Server image via
+   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`. 
+
+## Features
+ * Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
+   Note that it is required to configure the `application_packages` for this to work.
+   See the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation) for more information.
+ * The public API now supports to activate a span on the current thread.
+   This makes the span available via `ElasticApm#currentSpan()`
+   Refer to the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate) for more details.
+ * Capturing of Elasticsearch RestClient 5.0.2+ calls.
+   Currently, the `*Async` methods are not supported, only their synchronous counterparts.
+ * Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
+   More information can be found in the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id).
+ * Added `Transaction.isSampled()` and `Span.isSampled()` methods to the public API
+ * Added `Transaction#setResult` to the public API (#293)
+
+## Bug Fixes
+ * Fix for situations where status code is reported as `200`, even though it actually was `500` (#225)
+ * Capturing the username now properly works when using Spring security (#183)
+
 # 1.0.0.RC1
 
 ## Breaking changes

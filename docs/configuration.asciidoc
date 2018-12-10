@@ -33,7 +33,7 @@ So a minimal version of a configuration might look like this:
 ----
 -Delastic.apm.service_name=my-cool-service
 -Delastic.apm.application_packages=org.example
--Delastic.apm.server_urls=http://localhost:8300
+-Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [source,properties]
@@ -41,7 +41,7 @@ So a minimal version of a configuration might look like this:
 ----
 service_name=my-cool-service
 application_packages=org.example
-server_urls=http://localhost:8300
+server_urls=http://localhost:8200
 ----
 
 [source,bash]
@@ -49,7 +49,7 @@ server_urls=http://localhost:8300
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8300
+ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
 
 [[config-core]]
@@ -145,7 +145,9 @@ A version string for the currently deployed version of the service. If you donâ€
 [[config-environment]]
 ==== `environment`
 
-The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+The name of the environment this service is deployed in, e.g. "production" or "staging".
+
+NOTE: The APM UI does not fully support the environment setting yet.
 You can use the query bar to filter for a specific environment,
 but by default the environments will be mixed together.
 Also keep that in mind when creating alerts.
@@ -307,6 +309,7 @@ For transactions that are HTTP requests, the Java agent can optionally capture t
 If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 
 This option is case-insensitive.
+
 NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
 Forms which include a file upload (`multipart/form-data`) are not supported.
 
@@ -696,6 +699,52 @@ Disabled by default to save disk space.
 | `elastic.apm.include_process_args` | `include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
 |============
 
+[float]
+[[config-api-request-time]]
+==== `api_request_time`
+
+Maximum time to keep an HTTP request to the APM Server open for.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `10s`.
+The default unit for this option is `s`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `10s` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_request_time` | `api_request_time` | `ELASTIC_APM_API_REQUEST_TIME`
+|============
+
+[float]
+[[config-api-request-size]]
+==== `api_request_size`
+
+The maximum total compressed size of the request body which is sent to the APM server intake api via a chunked encoding (HTTP streaming).
+Note that a small overshoot is possible.
+
+Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `768kb` | ByteValue | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE`
+|============
+
 [[config-stacktrace]]
 === Stacktrace configuration options
 [float]
@@ -703,6 +752,7 @@ Disabled by default to save disk space.
 ==== `application_packages`
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+Multiple packages can be set as a comma-separated list.
 Setting this option can also improve the startup time.
 
 In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
@@ -822,7 +872,9 @@ The default unit for this option is `ms`
 #
 # service_version=
 
-# The name of the environment this service is deployed in, e.g. "production" or "staging".NOTE: The APM UI does not fully support the environment setting yet.
+# The name of the environment this service is deployed in, e.g. "production" or "staging".
+# 
+# NOTE: The APM UI does not fully support the environment setting yet.
 # You can use the query bar to filter for a specific environment,
 # but by default the environments will be mixed together.
 # Also keep that in mind when creating alerts.
@@ -914,6 +966,7 @@ The default unit for this option is `ms`
 # If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
 # 
 # This option is case-insensitive.
+# 
 # NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
 # Forms which include a file upload (`multipart/form-data`) are not supported.
 # 
@@ -1133,11 +1186,33 @@ The default unit for this option is `ms`
 #
 # include_process_args=false
 
+# Maximum time to keep an HTTP request to the APM Server open for.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 10s.
+# The default unit for this option is s.
+# Default value: 10s
+#
+# api_request_time=10s
+
+# The maximum total compressed size of the request body which is sent to the APM server intake api via a chunked encoding (HTTP streaming).
+# Note that a small overshoot is possible.
+# 
+# Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: ByteValue
+# Default value: 768kb
+#
+# api_request_size=768kb
+
 ############################################
 # Stacktrace                               #
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
+# Multiple packages can be set as a comma-separated list.
 # Setting this option can also improve the startup time.
 # 
 # In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,

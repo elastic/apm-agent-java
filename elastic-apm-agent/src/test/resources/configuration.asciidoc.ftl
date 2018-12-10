@@ -28,24 +28,24 @@ So a minimal version of a configuration might look like this:
 .System properties
 ----
 -Delastic.apm.service_name=my-cool-service
--Delastic.apm.application_packages=org.example
--Delastic.apm.server_urls=http://localhost:8300
+-Delastic.apm.application_packages=org.example,org.another.example
+-Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [source,properties]
 .elasticapm.properties
 ----
 service_name=my-cool-service
-application_packages=org.example
-server_urls=http://localhost:8300
+application_packages=org.example,org.another.example
+server_urls=http://localhost:8200
 ----
 
 [source,bash]
 .Environment variables
 ----
 ELASTIC_APM_SERVICE_NAME=my-cool-service
-ELASTIC_APM_APPLICATION_PACKAGES=org.example
-ELASTIC_APM_SERVER_URLS=http://localhost:8300
+ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
+ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
 
 <#list config as category, options>

@@ -1,3 +1,0 @@
-co.elastic.apm.configuration.StartupInfo
-co.elastic.apm.bci.OsgiBootDelegationEnabler
-co.elastic.apm.bci.MatcherTimerLifecycleListener

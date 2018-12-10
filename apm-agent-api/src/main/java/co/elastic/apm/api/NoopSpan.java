@@ -52,7 +52,7 @@ enum NoopSpan implements Span {
 
     @Override
     public void captureException(Throwable throwable) {
-        // co.elastic.apm.plugin.api.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
     }
 
     @Nonnull
@@ -73,6 +73,11 @@ enum NoopSpan implements Span {
     }
 
     @Nonnull
+    @Override
+    public boolean isSampled() {
+        return false;
+    }
+
     @Override
     public Span createSpan() {
         return INSTANCE;
