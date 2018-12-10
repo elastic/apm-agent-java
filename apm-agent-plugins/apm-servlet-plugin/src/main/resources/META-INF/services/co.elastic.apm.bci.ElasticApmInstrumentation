@@ -1,3 +1,0 @@
-co.elastic.apm.servlet.ServletInstrumentation
-co.elastic.apm.servlet.FilterChainInstrumentation
-co.elastic.apm.servlet.AsyncInstrumentation

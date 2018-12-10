@@ -19,11 +19,11 @@
  */
 package org.example.stacktrace;
 
-import co.elastic.apm.MockTracer;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.error.ErrorCapture;
-import co.elastic.apm.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;

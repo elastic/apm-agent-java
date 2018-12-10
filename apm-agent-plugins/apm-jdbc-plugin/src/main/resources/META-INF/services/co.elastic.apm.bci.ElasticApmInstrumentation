@@ -1,3 +1,0 @@
-co.elastic.apm.jdbc.ConnectionInstrumentation
-co.elastic.apm.jdbc.StatementInstrumentation
-co.elastic.apm.jdbc.PreparedStatementInstrumentation

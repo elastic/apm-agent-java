@@ -19,13 +19,13 @@
  */
 package co.elastic.apm.spring.boot;
 
-import co.elastic.apm.MockReporter;
-import co.elastic.apm.bci.ElasticApmAgent;
-import co.elastic.apm.configuration.SpyConfiguration;
-import co.elastic.apm.impl.ElasticApmTracer;
-import co.elastic.apm.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.report.ReporterConfiguration;
-import co.elastic.apm.web.WebConfiguration;
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.Before;

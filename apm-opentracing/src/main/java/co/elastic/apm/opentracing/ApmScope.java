@@ -40,7 +40,7 @@ class ApmScope implements Scope {
     }
 
     private void release(Object span, Object traceContext) {
-        // implementation is injected at runtime via co.elastic.apm.opentracing.impl.ApmScopeInstrumentation
+        // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ApmScopeInstrumentation
     }
 
     @Override

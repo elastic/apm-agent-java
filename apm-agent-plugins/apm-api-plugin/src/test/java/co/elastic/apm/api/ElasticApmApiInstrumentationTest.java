@@ -19,9 +19,9 @@
  */
 package co.elastic.apm.api;
 
-import co.elastic.apm.AbstractInstrumentationTest;
-import co.elastic.apm.impl.Scope;
-import org.junit.jupiter.api.AfterEach;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.Scope;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,7 +75,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testCreateChildSpanOfCurrentTransaction() {
-        final co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
         final Span span = ElasticApm.currentSpan().createSpan();
         span.setName("span");
         span.setType("db");
@@ -89,7 +89,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     // https://github.com/elastic/apm-agent-java/issues/132
     @Test
     void testAutomaticAndManualTransactions() {
-        final co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
         final Transaction manualTransaction = ElasticApm.startTransaction();
         manualTransaction.setName("manual transaction");
         manualTransaction.setType("request");
@@ -100,13 +100,13 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testGetId_distributedTracingEnabled() {
-        co.elastic.apm.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
+        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-            co.elastic.apm.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
+            co.elastic.apm.agent.impl.transaction.Span span = transaction.createSpan().withType("db").withName("SELECT");
             try (Scope spanScope = span.activateInScope()) {
                 assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getTraceContext().getId().toString());
                 assertThat(ElasticApm.currentSpan().getTraceId()).isEqualTo(span.getTraceContext().getTraceId().toString());

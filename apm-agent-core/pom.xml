@@ -22,7 +22,7 @@
                 <version>0.5.1</version>
                 <configuration>
                     <sourceDirectory>${basedir}/src/main/resources/schema</sourceDirectory>
-                    <targetPackage>co.elastic.apm.impl.intake</targetPackage>
+                    <targetPackage>co.elastic.apm.agent.impl.intake</targetPackage>
                     <usePrimitives>true</usePrimitives>
                     <useLongIntegers>true</useLongIntegers>
                     <includeAdditionalProperties>false</includeAdditionalProperties>
