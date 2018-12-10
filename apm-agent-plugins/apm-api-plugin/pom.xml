@@ -14,7 +14,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-agent-api</artifactId>
-            <version>1.1.0</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
