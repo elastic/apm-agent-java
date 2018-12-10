@@ -27,7 +27,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 /**
  * Acts as a mock for the APM-server.
- * It stores the {@link co.elastic.apm.impl.payload.Payload}s sent to it,
+ * It stores the {@link co.elastic.apm.agent.impl.payload.Payload}s sent to it,
  * which can be retrieved via the {@link #client}.
  */
 public class MockServerContainer extends GenericContainer<MockServerContainer> {

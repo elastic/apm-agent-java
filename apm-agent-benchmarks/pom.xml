@@ -20,7 +20,7 @@
         </dependency>
         <!--
         we can't add elastic-apm-agent as it causes shading problems:
-        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.web.WebConfiguration not a subtype
+        java.util.ServiceConfigurationError: org.stagemonitor.configuration.ConfigurationOptionProvider: co.elastic.apm.agent.web.WebConfiguration not a subtype
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
