@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.util.VersionUtils;
+import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
