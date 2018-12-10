@@ -87,6 +87,14 @@ class InstrumentationTest {
     }
 
     @Test
+    void testRetainExceptionInUserCode() {
+        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new SuppressExceptionInstrumentation()));
+        assertThatThrownBy(this::exceptionPlease).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
     void testNonSuppressedException() {
         ElasticApmAgent.initInstrumentation(MockTracer.create(),
             ByteBuddyAgent.install(),
@@ -96,6 +104,10 @@ class InstrumentationTest {
 
     String noExceptionPlease(String s) {
         return s + "_no_exception";
+    }
+
+    String exceptionPlease() {
+        throw null;
     }
 
     private void init(ConfigurationRegistry config) {
@@ -167,7 +179,7 @@ class InstrumentationTest {
 
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-            return ElementMatchers.named("noExceptionPlease");
+            return ElementMatchers.nameEndsWithIgnoreCase("exceptionPlease");
         }
 
         @Override
