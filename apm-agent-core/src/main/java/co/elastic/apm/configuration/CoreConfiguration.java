@@ -86,8 +86,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
         .key("environment")
         .configurationCategory(CORE_CATEGORY)
-        .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\"." +
-            "" +
+        .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".\n" +
+            "\n" +
             "NOTE: The APM UI does not fully support the environment setting yet.\n" +
             "You can use the query bar to filter for a specific environment,\n" +
             "but by default the environments will be mixed together.\n" +
