@@ -621,15 +621,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (size > 0) {
             final Iterator<Map.Entry<String, String>> iterator = value.entrySet().iterator();
             Map.Entry<String, String> kv = iterator.next();
-            jw.writeString(sanitizeTagKey(kv.getKey()));
+            writeStringValue(sanitizeTagKey(kv.getKey()));
             jw.writeByte(JsonWriter.SEMI);
-            StringConverter.serializeNullable(kv.getValue(), jw);
+            writeStringValue(kv.getValue());
             for (int i = 1; i < size; i++) {
                 jw.writeByte(COMMA);
                 kv = iterator.next();
-                jw.writeString(sanitizeTagKey(kv.getKey()));
+                writeStringValue(sanitizeTagKey(kv.getKey()));
                 jw.writeByte(JsonWriter.SEMI);
-                StringConverter.serializeNullable(kv.getValue(), jw);
+                writeStringValue(kv.getValue());
             }
         }
         jw.writeByte(OBJECT_END);
@@ -796,7 +796,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeString(value);
     }
 
-    private void writeStringValue(String value) {
+    private void writeStringValue(CharSequence value) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
