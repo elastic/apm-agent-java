@@ -69,7 +69,7 @@ public class ServletApiAdvice {
     }
 
     @Nullable
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onEnterServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                              @Advice.Local("transaction") Transaction transaction,
                                              @Advice.Local("scope") Scope scope) {
@@ -116,7 +116,7 @@ public class ServletApiAdvice {
         }
     }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExitServletService(@Advice.Argument(0) ServletRequest servletRequest,
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Local("transaction") @Nullable Transaction transaction,

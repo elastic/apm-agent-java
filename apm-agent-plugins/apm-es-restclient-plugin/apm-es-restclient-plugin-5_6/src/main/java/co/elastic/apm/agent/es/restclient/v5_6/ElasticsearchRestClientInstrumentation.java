@@ -55,7 +55,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     @VisibleForAdvice
     public static final String DB_CONTEXT_TYPE = "elasticsearch";
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onBeforeExecute(@Advice.Argument(0) String method,
                                         @Advice.Argument(1) String endpoint,
                                         @Advice.Argument(3) @Nullable HttpEntity entity,
@@ -87,7 +87,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         }
     }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Return @Nullable Response response,
                                       @Advice.Local("span") @Nullable Span span,
                                       @Advice.Thrown @Nullable Throwable t) {

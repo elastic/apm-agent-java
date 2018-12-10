@@ -90,7 +90,7 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
     @VisibleForAdvice
     public static class HandlerAdapterAdvice {
 
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         static void setTransactionName(@Advice.Argument(2) Object handler) {
             if (tracer != null) {
                 final Transaction transaction = tracer.currentTransaction();

@@ -79,7 +79,7 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
             super(named("createSpan"));
         }
 
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
                                       @Nullable TraceContext parentContext,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,

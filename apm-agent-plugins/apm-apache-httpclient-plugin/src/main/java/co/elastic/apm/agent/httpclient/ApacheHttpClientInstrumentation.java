@@ -49,7 +49,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE_APACHE_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "apache-httpclient";
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                         @Advice.Argument(1) HttpRequestWrapper request,
                                         @Advice.Local("span") Span span) {
@@ -66,7 +66,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Return CloseableHttpResponse response,
                                       @Advice.Local("span") @Nullable Span span,
                                       @Advice.Thrown @Nullable Throwable t) {

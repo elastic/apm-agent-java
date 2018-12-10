@@ -50,7 +50,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
 
     private static final String SPAN_TYPE_SPRING_REST_TEMPLATE = HTTP_CLIENT_SPAN_TYPE_PREFIX + "spring-resttemplate";
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                       @Advice.Local("span") Span span) {
         if (tracer == null || tracer.activeSpan() == null) {
@@ -64,7 +64,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
         }
     }
 
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void afterExecute(@Advice.Return ClientHttpResponse clientHttpResponse,
                                      @Advice.Local("span") @Nullable Span span,
                                      @Advice.Thrown @Nullable Throwable t) {

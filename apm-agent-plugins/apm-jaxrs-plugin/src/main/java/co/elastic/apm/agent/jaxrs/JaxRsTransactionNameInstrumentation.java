@@ -47,7 +47,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     private Collection<String> applicationPackages = Collections.emptyList();
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();

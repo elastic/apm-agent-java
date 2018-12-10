@@ -40,7 +40,7 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
         return named("close");
     }
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
         span.deactivate();
     }

@@ -58,7 +58,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     @Nullable
     @VisibleForAdvice
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onBeforeExecute(@Advice.This Statement statement, @Advice.Argument(0) String sql) throws SQLException {
         if (tracer != null && jdbcHelper != null) {
             return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.activeSpan());
@@ -68,7 +68,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
 
     @VisibleForAdvice
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
         if (span != null) {
             span.captureException(t)

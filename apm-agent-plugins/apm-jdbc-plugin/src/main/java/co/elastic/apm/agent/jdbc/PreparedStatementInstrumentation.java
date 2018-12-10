@@ -59,7 +59,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     // another benefit of not inlining is that the advice methods are included in coverage reports
     @Nullable
     @VisibleForAdvice
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
         if (tracer != null && jdbcHelper != null) {
             final @Nullable String sql = ConnectionInstrumentation.getSqlForStatement(statement);
@@ -69,7 +69,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     }
 
     @VisibleForAdvice
-    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
         if (span != null) {
             span.captureException(t)

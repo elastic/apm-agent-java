@@ -33,7 +33,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class CaptureExceptionInstrumentation extends ApiInstrumentation {
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void captureException(@Advice.Argument(0) Throwable t) {
         if (tracer != null) {
             tracer.captureException(t);
