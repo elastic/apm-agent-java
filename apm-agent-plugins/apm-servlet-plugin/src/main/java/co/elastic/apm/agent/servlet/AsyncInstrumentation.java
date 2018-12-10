@@ -95,15 +95,15 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
      */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic()
-            .and(named("startAsync"))
+        return named("startAsync")
             .and(returns(named("javax.servlet.AsyncContext")))
             .and(takesArguments(0)
                 .or(
                     takesArgument(0, named("javax.servlet.ServletRequest"))
                         .and(takesArgument(1, named("javax.servlet.ServletResponse")))
                 )
-            );
+            )
+            .and(isPublic());
     }
 
     @Override
