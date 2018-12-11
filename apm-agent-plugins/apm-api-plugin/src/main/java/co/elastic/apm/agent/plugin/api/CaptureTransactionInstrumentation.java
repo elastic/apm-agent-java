@@ -53,7 +53,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
 
     private StacktraceConfiguration config;
 
-    @Advice.OnMethodEnter(inline = true)
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@SimpleMethodSignature String signature,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
@@ -71,7 +71,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         }
     }
 
-    @Advice.OnMethodExit(inline = true, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onMethodExit(@Nullable @Advice.Local("transaction") Transaction transaction,
                                     @Advice.Thrown Throwable t) {
         if (transaction != null) {

@@ -34,10 +34,16 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Collection;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 class InstrumentationTest {
@@ -70,6 +76,38 @@ class InstrumentationTest {
         // but instrumenting old class file versions could lead to VerifyErrors in some cases and possibly some more shenanigans
         // so we we are better off not touching Java 1.4 code at all
         assertThat(MathUtils.sign(-42)).isEqualTo(-1);
+    }
+
+    @Test
+    void testSuppressException() {
+        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new SuppressExceptionInstrumentation()));
+        assertThat(noExceptionPlease("foo")).isEqualTo("foo_no_exception");
+    }
+
+    @Test
+    void testRetainExceptionInUserCode() {
+        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new SuppressExceptionInstrumentation()));
+        assertThatThrownBy(this::exceptionPlease).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void testNonSuppressedException() {
+        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+            ByteBuddyAgent.install(),
+            Collections.singletonList(new ExceptionInstrumentation()));
+        assertThatThrownBy(() -> noExceptionPlease("foo")).isInstanceOf(RuntimeException.class);
+    }
+
+    String noExceptionPlease(String s) {
+        return s + "_no_exception";
+    }
+
+    String exceptionPlease() {
+        throw null;
     }
 
     private void init(ConfigurationRegistry config) {
@@ -120,6 +158,51 @@ class InstrumentationTest {
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return ElementMatchers.named("sign").and(ElementMatchers.takesArguments(int.class));
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.emptyList();
+        }
+    }
+
+    public static class ExceptionInstrumentation extends ElasticApmInstrumentation {
+        @Advice.OnMethodExit
+        public static void onMethodExit() {
+            throw new RuntimeException("This exception should not be suppressed");
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named(InstrumentationTest.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.nameEndsWithIgnoreCase("exceptionPlease");
+        }
+
+        @Override
+        public Collection<String> getInstrumentationGroupNames() {
+            return Collections.emptyList();
+        }
+    }
+
+    public static class SuppressExceptionInstrumentation extends ElasticApmInstrumentation {
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onMethodEnterAndExit() {
+            throw new RuntimeException("This exception should be suppressed");
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return ElementMatchers.named(InstrumentationTest.class.getName());
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return ElementMatchers.named("noExceptionPlease");
         }
 
         @Override

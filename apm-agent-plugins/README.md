@@ -17,3 +17,7 @@ follow these steps:
 1. Add a line in [`CHANGELOG.md`](../CHANGELOG.md) 
 
 
+NOTE: when adding advices, make sure to add `(suppress = Throwable.class)`
+to the `net.bytebuddy.asm.Advice.OnMethodEnter` and `net.bytebuddy.asm.Advice.OnMethodExit` annotations. 
+Search for the regex `@.*OnMethod(Enter|Exit)(?!\(s)` to find annotations with a missing `suppress` attribute. 
+

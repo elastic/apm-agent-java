@@ -39,7 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    @Advice.OnMethodEnter(inline = false)
+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
     public static void release(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> dispatcher,
                                @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
         if (dispatcher != null) {

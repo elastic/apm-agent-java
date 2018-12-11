@@ -52,7 +52,7 @@ public class SpanContextInstrumentation extends ElasticApmInstrumentation {
         return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
     }
 
-    @Advice.OnMethodExit
+    @Advice.OnMethodExit(suppress = Throwable.class)
     public static void baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
                                     @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
         if (traceContext != null) {
