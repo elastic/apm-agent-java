@@ -30,6 +30,7 @@ pipeline {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        MAVEN_CONFIG = "${params.MAVEN_CONFIG}"
       }
       stages(){
         /**
@@ -76,7 +77,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'test_ci', value: 'true'
+            expression { return params.test_ci }
           }
           steps {
             withEnvWrapper() {
@@ -111,7 +112,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'smoketests_ci', value: 'true'
+            expression { return params.smoketests_ci }
           }
           steps {
             withEnvWrapper() {
@@ -143,7 +144,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'smoketests_ci', value: 'true'
+            expression { return params.smoketests_ci }
           }
           steps {
             withEnvWrapper() {
@@ -186,9 +187,9 @@ pipeline {
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
                 tag "v\\d+\\.\\d+\\.\\d+*"
-                environment name: 'Run_As_Master_Branch', value: 'true'
+                expression { return params.Run_As_Master_Branch }
               }
-              environment name: 'bench_ci', value: 'true'
+              expression { return params.bench_ci }
             }
           }
           steps {
@@ -227,7 +228,7 @@ pipeline {
           }
           when {
             beforeAgent true
-            environment name: 'doc_ci', value: 'true'
+            expression { return params.doc_ci }
           }
           steps {
             withEnvWrapper() {
@@ -258,7 +259,7 @@ pipeline {
         beforeAgent true
         allOf {
           branch 'master'
-          environment name: 'doc_ci', value: 'true'
+          expression { return params.doc_ci }
         }
       }
       steps {
