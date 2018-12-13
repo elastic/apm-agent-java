@@ -29,7 +29,6 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.web.ClientIpUtils;
 import co.elastic.apm.agent.web.ResultUtil;
 import co.elastic.apm.agent.web.WebConfiguration;
@@ -123,9 +122,9 @@ public class ServletTransactionHelper {
 
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo) {
+                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         try {
-            fillRequestParameters(transaction, method, parameterMap);
+            fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
             if(exception != null && status == 200) {
                 // Probably shouldn't be 200 but 5XX, but we are going to miss this...
                 status = 500;
@@ -174,15 +173,23 @@ public class ServletTransactionHelper {
      * for example when the amount of query parameters is longer than the application server allows.
      * In that case, we rather not want that the agent looks like the cause for this.
      */
-    private void fillRequestParameters(Transaction transaction, String method, Map<String, String[]> parameterMap) {
+    private void fillRequestParameters(Transaction transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
-        if (hasBody(request.getHeaders(), method)) {
-            if (webConfiguration.getCaptureBody() != OFF) {
-                captureBody(request, parameterMap);
+        if (hasBody(contentTypeHeader, method)) {
+            if (webConfiguration.getCaptureBody() != OFF && parameterMap != null) {
+                captureBody(request, parameterMap, contentTypeHeader);
             } else {
                 request.redactBody();
             }
         }
+    }
+
+    @VisibleForAdvice
+    public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
+        return contentTypeHeader != null
+            && contentTypeHeader.startsWith("application/x-www-form-urlencoded")
+            && hasBody(contentTypeHeader, method)
+            && webConfiguration.getCaptureBody() != OFF;
     }
 
     private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
@@ -228,12 +235,11 @@ public class ServletTransactionHelper {
         fillFullUrl(request.getUrl(), scheme, serverPort, serverName, requestURI, queryString);
     }
 
-    private boolean hasBody(PotentiallyMultiValuedMap headers, String method) {
-        return METHODS_WITH_BODY.contains(method) && headers.containsIgnoreCase("Content-Type");
+    private boolean hasBody(@Nullable String contentTypeHeader, String method) {
+        return METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
     }
 
-    private void captureBody(Request request, Map<String, String[]> params) {
-        String contentTypeHeader = request.getHeaders().getFirst("Content-Type");
+    private void captureBody(Request request, Map<String, String[]> params, @Nullable String contentTypeHeader) {
         if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
             for (Map.Entry<String, String[]> param : params.entrySet()) {
                 request.addFormUrlEncodedParameters(param.getKey(), param.getValue());
@@ -313,5 +319,9 @@ public class ServletTransactionHelper {
             default:
                 transactionName.append(method);
         }
+    }
+
+    public boolean isCaptureHeaders() {
+        return webConfiguration.isCaptureHeaders();
     }
 }
