@@ -22,6 +22,9 @@ package co.elastic.apm.agent.impl.context;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+
 public class Response implements Recyclable {
 
     /**
@@ -62,6 +65,15 @@ public class Response implements Recyclable {
      */
     public Response addHeader(String headerName, String headerValue) {
         headers.add(headerName, headerValue);
+        return this;
+    }
+
+    public Response addHeader(String headerName, @Nullable Collection<String> headerValues) {
+        if (headerValues != null) {
+            for (String headerValue : headerValues) {
+                headers.add(headerName, headerValue);
+            }
+        }
         return this;
     }
 

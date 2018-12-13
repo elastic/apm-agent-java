@@ -101,7 +101,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        return null;
+        return Collections.enumeration(headers.keySet());
     }
 
     @Override
@@ -277,7 +277,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public Map<String, String[]> getParameterMap() {
-        return null;
+        return parameters;
     }
 
     @Override

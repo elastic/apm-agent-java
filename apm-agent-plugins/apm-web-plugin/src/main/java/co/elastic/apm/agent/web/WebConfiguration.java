@@ -35,6 +35,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
         .key("capture_body")
         .configurationCategory(HTTP_CATEGORY)
+        .tags("performance")
         .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST " +
             "variables).\n" +
             "\n" +
@@ -49,6 +50,17 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "If your service handles data like this, we advise to only enable this feature with care.")
         .dynamic(true)
         .buildWithDefault(EventType.OFF);
+
+    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
+        .key("capture_headers")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("performance")
+        .description("If set to `true`,\n" +
+            "the agent will capture request and response headers, including cookies.\n" +
+            "\n" +
+            "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
+        .dynamic(true)
+        .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -139,6 +151,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUrlGroups() {
         return urlGroups.get();
+    }
+
+    public boolean isCaptureHeaders() {
+        return captureHeaders.get();
     }
 
     public enum EventType {

@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -38,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.Map;
 
 /**
  * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
@@ -97,16 +99,18 @@ public class ServletApiAdvice {
                 return;
             }
             final Request req = transaction.getContext().getRequest();
-            if (transaction.isSampled() && request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    req.addCookie(cookie.getName(), cookie.getValue());
+            if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        req.addCookie(cookie.getName(), cookie.getValue());
+                    }
                 }
-            }
-            final Enumeration headerNames = request.getHeaderNames();
-            if (headerNames != null) {
-                while (headerNames.hasMoreElements()) {
-                    final String headerName = (String) headerNames.nextElement();
-                    req.addHeader(headerName, request.getHeader(headerName));
+                final Enumeration headerNames = request.getHeaderNames();
+                if (headerNames != null) {
+                    while (headerNames.hasMoreElements()) {
+                        final String headerName = (String) headerNames.nextElement();
+                        req.addHeader(headerName, request.getHeaders(headerName));
+                    }
                 }
             }
 
@@ -150,14 +154,25 @@ public class ServletApiAdvice {
                 transaction.deactivate();
             } else {
                 // this is not an async request, so we can end the transaction immediately
-                final Response resp = transaction.getContext().getResponse();
                 final HttpServletResponse response = (HttpServletResponse) servletResponse;
-                for (String headerName : response.getHeaderNames()) {
-                    resp.addHeader(headerName, response.getHeader(headerName));
+                if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                    final Response resp = transaction.getContext().getResponse();
+                    for (String headerName : response.getHeaderNames()) {
+                        resp.addHeader(headerName, response.getHeaders(headerName));
+                    }
+                }
+                // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
+                // so only call this method if necessary
+                final String contentTypeHeader = request.getHeader("Content-Type");
+                final Map<String, String[]> parameterMap;
+                if (transaction.isSampled() && servletTransactionHelper.captureParameters(request.getMethod(), contentTypeHeader)) {
+                    parameterMap = request.getParameterMap();
+                } else {
+                    parameterMap = null;
                 }
                 request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    request.getParameterMap(), request.getServletPath(), request.getPathInfo());
+                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader);
             }
         }
     }
