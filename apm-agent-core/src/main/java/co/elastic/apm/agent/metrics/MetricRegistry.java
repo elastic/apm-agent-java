@@ -23,11 +23,12 @@ import com.dslplatform.json.JsonWriter;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class MetricRegistry {
 
     private static final byte NEW_LINE = '\n';
-    private final Map<Map<String, String>, MetricSet> metricSets = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Map<String, String>, MetricSet> metricSets = new ConcurrentHashMap<>();
 
     public void addUnlessNan(String name, Map<String, String> tags, DoubleSupplier metric) {
         if (!Double.isNaN(metric.get())) {

@@ -26,10 +26,11 @@ import com.dslplatform.json.NumberConverter;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class MetricSet {
     private final Map<String, String> tags;
-    private final Map<String, DoubleSupplier> samples = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, DoubleSupplier> samples = new ConcurrentHashMap<>();
 
     MetricSet(Map<String, String> tags) {
         this.tags = tags;
