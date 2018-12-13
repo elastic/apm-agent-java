@@ -334,18 +334,16 @@ Valid options: `off`, `errors`, `transactions`, `all`
 [[config-capture-headers]]
 ==== `capture_headers`
 
-A list of headers to record.
-If it is empty the agent doesn’t capture request and response headers, as well as cookies.
-Otherwise, it looks for the headers by the names from the list (case-insensitively).
-Setting the value to `*` means that all headers are captured.
+If set to `true`,
+the agent will capture request and response headers, including cookies.
 
-NOTE: Setting this to `*` can increase the network and disk requirements and increases allocations.
+NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | List | true
+| `true` | Boolean | true
 |============
 
 
@@ -1003,18 +1001,16 @@ The default unit for this option is `ms`
 #
 # capture_body=OFF
 
-# A list of headers to record.
-# If it is empty the agent doesn’t capture request and response headers, as well as cookies.
-# Otherwise, it looks for the headers by the names from the list (case-insensitively).
-# Setting the value to `*` means that all headers are captured.
+# If set to `true`,
+# the agent will capture request and response headers, including cookies.
 # 
-# NOTE: Setting this to `*` can increase the network and disk requirements and increases allocations.
+# NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
 # This setting can be changed at runtime
-# Type: comma separated list
-# Default value: 
+# Type: Boolean
+# Default value: true
 #
-# capture_headers=
+# capture_headers=true
 
 # Used to restrict requests to certain URLs from being instrumented.
 # 

@@ -28,7 +28,6 @@ import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -85,18 +84,10 @@ public class ApmAsyncListener implements AsyncListener {
     private void endTransaction(AsyncEvent event) {
         HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
         HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
-        final List<String> captureHeaders = servletTransactionHelper.getCaptureHeaders();
-        if (transaction.isSampled() && !captureHeaders.isEmpty()) {
-            final Response resp = transaction.getContext().getResponse();
-            if (captureHeaders.contains("*")) {
-                for (String headerName : response.getHeaderNames()) {
-                    resp.addHeader(headerName, response.getHeaders(headerName));
-                }
-            } else {
-                for (int i = 0; i < captureHeaders.size(); i++) {
-                    final String headerName = captureHeaders.get(i);
-                    resp.addHeader(headerName, response.getHeaders(headerName));
-                }
+        final Response resp = transaction.getContext().getResponse();
+        if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
+            for (String headerName : response.getHeaderNames()) {
+                resp.addHeader(headerName, response.getHeaders(headerName));
             }
         }
         // request.getParameterMap() may allocate a new map, depending on the servlet container implementation

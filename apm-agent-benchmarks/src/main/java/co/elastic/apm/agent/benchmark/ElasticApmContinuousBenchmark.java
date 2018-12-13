@@ -131,6 +131,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
                     .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
                     .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
                     .add("api_request_size", "10mb")
+                    .add("capture_headers", "false")
                     .add("server_urls", "http://localhost:" + port))
                 .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
                 .build())

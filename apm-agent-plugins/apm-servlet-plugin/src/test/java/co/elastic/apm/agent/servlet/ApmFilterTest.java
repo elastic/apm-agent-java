@@ -263,7 +263,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testNoHeaderRecording() throws IOException, ServletException {
-        when(webConfiguration.getCaptureHeaders()).thenReturn(Collections.emptyList());
+        when(webConfiguration.isCaptureHeaders()).thenReturn(false);
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("Elastic-Apm-Traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
@@ -282,7 +282,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testAllHeaderRecording() throws IOException, ServletException {
-        when(webConfiguration.getCaptureHeaders()).thenReturn(Collections.singletonList("*"));
+        when(webConfiguration.isCaptureHeaders()).thenReturn(true);
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("foo", "bar");
@@ -299,29 +299,6 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         final Response response = reporter.getFirstTransaction().getContext().getResponse();
         assertThat(response.getHeaders().get("foo")).isEqualTo("bar");
         assertThat(response.getHeaders().get("bar")).isEqualTo("baz");
-    }
-
-    @Test
-    void testSpecificHeaderRecording() throws IOException, ServletException {
-        when(webConfiguration.getCaptureHeaders()).thenReturn(Collections.singletonList("foo"));
-        filterChain = new MockFilterChain(new TestServlet());
-        final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
-        get.addHeader("foo", "bar");
-        get.addHeader("bar", "baz");
-        get.setCookies(new Cookie("foo", "bar"));
-        final MockHttpServletResponse mockResponse = new MockHttpServletResponse();
-        mockResponse.addHeader("foo", "bar");
-        mockResponse.addHeader("bar", "baz");
-        filterChain.doFilter(get, mockResponse);
-        assertThat(reporter.getTransactions()).hasSize(1);
-        final Request request = reporter.getFirstTransaction().getContext().getRequest();
-        assertThat(request.getHeaders().isEmpty()).isFalse();
-        assertThat(request.getHeaders().get("foo")).isEqualTo("bar");
-        assertThat(request.getHeaders().get("bar")).isNull();
-        assertThat(request.getCookies().isEmpty()).isTrue();
-        final Response response = reporter.getFirstTransaction().getContext().getResponse();
-        assertThat(response.getHeaders().get("foo")).isEqualTo("bar");
-        assertThat(response.getHeaders().get("bar")).isNull();
     }
 
     public static class TestServlet extends HttpServlet {

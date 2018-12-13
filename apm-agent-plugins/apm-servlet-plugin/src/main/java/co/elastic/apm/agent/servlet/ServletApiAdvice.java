@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -38,7 +39,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -99,25 +99,17 @@ public class ServletApiAdvice {
                 return;
             }
             final Request req = transaction.getContext().getRequest();
-            final List<String> captureHeaders = servletTransactionHelper.getCaptureHeaders();
-            if (transaction.isSampled() && !captureHeaders.isEmpty()) {
-                if (request.getCookies() != null && (captureHeaders.contains("*") || captureHeaders.contains("cookie"))) {
+            if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                if (request.getCookies() != null) {
                     for (Cookie cookie : request.getCookies()) {
                         req.addCookie(cookie.getName(), cookie.getValue());
                     }
                 }
-                if (captureHeaders.contains("*")) {
-                    final Enumeration headerNames = request.getHeaderNames();
-                    if (headerNames != null) {
-                        while (headerNames.hasMoreElements()) {
-                            final String headerName = (String) headerNames.nextElement();
-                            req.addHeader(headerName, request.getHeaders(headerName));
-                        }
-                    }
-                } else {
-                    for (int i = 0; i < captureHeaders.size(); i++) {
-                        String captureHeader = captureHeaders.get(i);
-                        req.addHeader(captureHeader, request.getHeaders(captureHeader));
+                final Enumeration headerNames = request.getHeaderNames();
+                if (headerNames != null) {
+                    while (headerNames.hasMoreElements()) {
+                        final String headerName = (String) headerNames.nextElement();
+                        req.addHeader(headerName, request.getHeaders(headerName));
                     }
                 }
             }
@@ -163,18 +155,10 @@ public class ServletApiAdvice {
             } else {
                 // this is not an async request, so we can end the transaction immediately
                 final HttpServletResponse response = (HttpServletResponse) servletResponse;
-                final List<String> captureHeaders = servletTransactionHelper.getCaptureHeaders();
-                if (transaction.isSampled() && !captureHeaders.isEmpty()) {
+                if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
                     final Response resp = transaction.getContext().getResponse();
-                    if (captureHeaders.contains("*")) {
-                        for (String headerName : response.getHeaderNames()) {
-                            resp.addHeader(headerName, response.getHeaders(headerName));
-                        }
-                    } else {
-                        for (int i = 0; i < captureHeaders.size(); i++) {
-                            final String headerName = captureHeaders.get(i);
-                            resp.addHeader(headerName, response.getHeaders(headerName));
-                        }
+                    for (String headerName : response.getHeaderNames()) {
+                        resp.addHeader(headerName, response.getHeaders(headerName));
                     }
                 }
                 // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
