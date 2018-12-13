@@ -32,6 +32,8 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
+import static co.elastic.apm.agent.configuration.validation.RangeValidator.isNotInRange;
+
 public class ReporterConfiguration extends ConfigurationOptionProvider {
     public static final String REPORTER_CATEGORY = "Reporter";
     private final ConfigurationOption<String> secretToken = ConfigurationOption.stringOption()
@@ -133,6 +135,15 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.")
         .buildWithDefault(ByteValue.of("768kb"));
 
+    private final ConfigurationOption<TimeDuration> metricsInterval = TimeDurationValueConverter.durationOption("s")
+        .key("metrics_interval")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("The interval at which the agent sends metrics to the APM Server.\n" +
+            "Must be at least `1s`.\n" +
+            "Set to `0s` to deactivate.")
+        .addValidator(isNotInRange(TimeDuration.of("1ms"), TimeDuration.of("999ms")))
+        .buildWithDefault(TimeDuration.of("30s"));
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -172,5 +183,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public long getApiRequestSize() {
         return apiRequestSize.get().getBytes();
+    }
+
+    public long getMetricsIntervalMs() {
+        return metricsInterval.get().getMillis();
     }
 }

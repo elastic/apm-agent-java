@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -143,6 +144,10 @@ public class MockReporter implements Reporter {
         errors.add(error);
     }
 
+    @Override
+    public void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs) {
+        // noop
+    }
 
     public Span getFirstSpan() {
         return spans.get(0);

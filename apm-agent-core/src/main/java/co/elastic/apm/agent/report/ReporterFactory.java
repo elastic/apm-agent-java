@@ -40,9 +40,6 @@ import java.util.concurrent.ThreadFactory;
 
 public class ReporterFactory {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReporterFactory.class);
-    private final String userAgent = getUserAgent();
-
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);

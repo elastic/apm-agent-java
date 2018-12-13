@@ -29,8 +29,9 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
@@ -75,6 +76,7 @@ public class ElasticApmTracer {
     };
     private final CoreConfiguration coreConfiguration;
     private final List<SpanListener> spanListeners;
+    private final MetricRegistry metricRegistry = new MetricRegistry();
     private Sampler sampler;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<SpanListener> spanListeners) {
@@ -120,6 +122,7 @@ public class ElasticApmTracer {
         for (SpanListener spanListener : spanListeners) {
             spanListener.init(this);
         }
+        reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
     }
 
     public Transaction startTransaction() {
@@ -395,5 +398,9 @@ public class ElasticApmTracer {
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);
         }
         assert span == currentlyActive;
+    }
+
+    public MetricRegistry getMetricRegistry() {
+        return metricRegistry;
     }
 }

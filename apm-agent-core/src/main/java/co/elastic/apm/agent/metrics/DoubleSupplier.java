@@ -17,31 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.report;
+package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.metrics.MetricRegistry;
+public interface DoubleSupplier {
 
-import java.io.Closeable;
-import java.util.concurrent.Future;
-
-public interface Reporter extends Closeable {
-    void report(Transaction transaction);
-
-    void report(Span span);
-
-    long getDropped();
-
-    long getReported();
-
-    Future<Void> flush();
-
-    @Override
-    void close();
-
-    void report(ErrorCapture error);
-
-    void scheduleMetricReporting(MetricRegistry metricRegistry, long intervalMs);
+    double get();
 }
