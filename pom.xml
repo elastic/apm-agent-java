@@ -115,6 +115,37 @@
             </properties>
         </profile>
         <profile>
+          <id>integration-test-only</id>
+          <activation>
+              <activeByDefault>false</activeByDefault>
+          </activation>
+          <properties>
+              <skip.unit.test>true</skip.unit.test>
+              <skip.integration.test>false</skip.integration.test>
+          </properties>
+          <build>
+            <plugins>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-failsafe-plugin</artifactId>
+                  <version>${version.plugin.surefire}</version>
+                  <configuration>
+                    <skipTests>${skip.integration.test}</skipTests>
+                  </configuration>
+              </plugin>
+              <plugin>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <version>${version.plugin.surefire}</version>
+                  <configuration>
+                      <enableAssertions>true</enableAssertions>
+                      <trimStackTrace>false</trimStackTrace>
+                      <skipTests>${skip.unit.test}</skipTests>
+                  </configuration>
+              </plugin>
+            </plugins>
+          </build>
+        </profile>
+        <profile>
             <id>no-errorprone</id>
             <activation>
                 <property>

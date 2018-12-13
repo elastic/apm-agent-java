@@ -79,7 +79,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             super(named("finishInternal"));
         }
 
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                            @Advice.Argument(0) long finishMicros) {
             if (span != null) {
@@ -119,7 +119,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                             @Advice.Argument(0) @Nullable String operationName) {
             if (span != null) {
@@ -136,7 +136,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void log(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                @Advice.Argument(0) long epochTimestampMicros,
                                @Advice.Argument(1) Map<String, ?> fields) {
@@ -165,7 +165,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void handleTag(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                      @Advice.Argument(0) String key,
                                      @Advice.Argument(1) @Nullable Object value) {
@@ -279,7 +279,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             super(named("getTraceContext"));
         }
 
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getTraceContext(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> abstractSpan,
                                            @Advice.Return(readOnly = false) Object traceContext) {
             if (abstractSpan != null) {

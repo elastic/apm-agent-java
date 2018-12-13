@@ -54,7 +54,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
     private StacktraceConfiguration config;
 
-    @Advice.OnMethodEnter(inline = true)
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
                                      @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
@@ -73,7 +73,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
 
     }
 
-    @Advice.OnMethodExit(inline = true, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onMethodExit(@Nullable @Advice.Local("span") Span span,
                                     @Advice.Thrown Throwable t) {
         if (span != null) {

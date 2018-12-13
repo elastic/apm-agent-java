@@ -59,7 +59,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setUser(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                    @Advice.Argument(0) String id, @Advice.Argument(1) String email, @Advice.Argument(2) String username) {
             transaction.setUser(id, email, username);
@@ -72,7 +72,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                           @Advice.Return(readOnly = false) String spanId) {
             if (tracer != null) {
@@ -90,7 +90,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
             super(named("setResult"));
         }
 
-        @Advice.OnMethodEnter()
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
             transaction.withResult(result);

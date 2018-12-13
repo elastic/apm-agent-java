@@ -123,7 +123,7 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static class StartAsyncAdvice {
 
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         private static void onExitStartAsync(@Advice.This HttpServletRequest request, @Advice.Return AsyncContext asyncContext) {
             if (tracer != null) {
                 final Transaction transaction = tracer.currentTransaction();

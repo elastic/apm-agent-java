@@ -71,7 +71,7 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(inline = false)
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void doActivate(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                       @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext) {
             if (span != null) {
@@ -91,7 +91,7 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
                 span = tracer.activeSpan();
@@ -107,7 +107,7 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
             if (tracer != null) {
                 traceContext = tracer.activeTraceContext();

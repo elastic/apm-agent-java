@@ -60,7 +60,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.startTransaction();
@@ -74,7 +74,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doGetCurrentTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.currentTransaction();
@@ -88,7 +88,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit
+        @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
                 span = tracer.activeSpan();
@@ -102,7 +102,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void captureException(@Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
                 tracer.captureException(e);
