@@ -19,55 +19,55 @@ public abstract class AbstractSpanImpl implements Span {
     }
 
     private Object doCreateSpan() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
     }
 
     void doSetName(String name) {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentation.doSetName
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentation.doSetName
     }
 
     void doSetType(String type) {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation.doSetType
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation.doSetType
     }
 
     void doAddTag(String key, String value) {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation.doAddTag
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation.doAddTag
     }
 
     @Override
     public void end() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation$EndInstrumentation.end
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation.end
     }
 
     @Override
     public void captureException(Throwable throwable) {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.CaptureExceptionInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.CaptureExceptionInstrumentation
     }
 
     @Nonnull
     @Override
     public String getId() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.GetIdInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.GetIdInstrumentation
         return "";
     }
 
     @Nonnull
     @Override
     public String getTraceId() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.GetTraceIdInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.GetTraceIdInstrumentation
         return "";
     }
 
     @Override
     public Scope activate() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.ActivateInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.ActivateInstrumentation
         return new ScopeImpl(span);
     }
 
     @Override
     public boolean isSampled() {
-        // co.elastic.apm.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;
     }
 }

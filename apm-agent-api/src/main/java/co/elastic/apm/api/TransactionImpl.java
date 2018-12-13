@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 
 /**
  * If the agent is active, it injects the implementation from
- * co.elastic.apm.plugin.api.TransactionInstrumentation
+ * co.elastic.apm.agent.plugin.api.TransactionInstrumentation
  * into this class.
  * <p>
  * Otherwise, this class is a noop.
@@ -58,20 +58,20 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
 
     @Override
     public Transaction setUser(String id, String email, String username) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
         return this;
     }
 
     @Override
     public Transaction setResult(String result) {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation.SetResultInstrumentation
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation.SetResultInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public String ensureParentId() {
-        // co.elastic.apm.plugin.api.TransactionInstrumentation.EnsureParentIdInstrumentation
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation.EnsureParentIdInstrumentation
         return "";
     }
 
