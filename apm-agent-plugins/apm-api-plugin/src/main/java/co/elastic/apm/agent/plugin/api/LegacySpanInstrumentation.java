@@ -27,23 +27,31 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.SpanImpl.
+ * <p>
+ * Used for older versions of the API, for example 1.1.0 where there was no AbstractSpanImpl
+ *
+ * @deprecated can be removed in version 3.0.
+ * Users should be able to update the agent to 2.0, without having to simultaneously update the API.
  */
-public class SpanInstrumentation extends ApiInstrumentation {
+@Deprecated
+public class LegacySpanInstrumentation extends ApiInstrumentation {
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
-    public SpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
+    public LegacySpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
         this.methodMatcher = methodMatcher;
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.SpanImpl");
+        return named("co.elastic.apm.api.SpanImpl").and(not(hasSuperType(named("co.elastic.apm.api.AbstractSpanImpl"))));
     }
 
     @Override
@@ -51,133 +59,133 @@ public class SpanInstrumentation extends ApiInstrumentation {
         return methodMatcher;
     }
 
-    public static class SetNameInstrumentation extends SpanInstrumentation {
+    public static class SetNameInstrumentation extends LegacySpanInstrumentation {
         public SetNameInstrumentation() {
             super(named("setName"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter
         public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String name) {
             span.setName(name);
         }
     }
 
-    public static class SetTypeInstrumentation extends SpanInstrumentation {
+    public static class SetTypeInstrumentation extends LegacySpanInstrumentation {
         public SetTypeInstrumentation() {
             super(named("setType"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String type) {
             span.withType(type);
         }
     }
 
-    public static class DoCreateSpanInstrumentation extends SpanInstrumentation {
+    public static class DoCreateSpanInstrumentation extends LegacySpanInstrumentation {
         public DoCreateSpanInstrumentation() {
             super(named("doCreateSpan"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit
         public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Return(readOnly = false) Object result) {
             result = span.createSpan();
         }
     }
 
-    public static class EndInstrumentation extends SpanInstrumentation {
+    public static class EndInstrumentation extends LegacySpanInstrumentation {
         public EndInstrumentation() {
             super(named("end"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
             span.end();
         }
     }
 
 
-    public static class CaptureExceptionInstrumentation extends SpanInstrumentation {
+    public static class CaptureExceptionInstrumentation extends LegacySpanInstrumentation {
         public CaptureExceptionInstrumentation() {
             super(named("captureException").and(takesArguments(Throwable.class)));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit
         public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                         @Advice.Argument(0) Throwable t) {
             span.captureException(t);
         }
     }
 
-    public static class GetIdInstrumentation extends SpanInstrumentation {
+    public static class GetIdInstrumentation extends LegacySpanInstrumentation {
         public GetIdInstrumentation() {
             super(named("getId").and(takesArguments(0)));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit
         public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                        @Advice.Return(readOnly = false) String id) {
+                                 @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
                 id = span.getTraceContext().getId().toString();
             }
         }
     }
 
-    public static class GetTraceIdInstrumentation extends SpanInstrumentation {
+    public static class GetTraceIdInstrumentation extends LegacySpanInstrumentation {
         public GetTraceIdInstrumentation() {
             super(named("getTraceId").and(takesArguments(0)));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit
         public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                        @Advice.Return(readOnly = false) String traceId) {
+                                      @Advice.Return(readOnly = false) String traceId) {
             if (tracer != null) {
                 traceId = span.getTraceContext().getTraceId().toString();
             }
         }
     }
 
-    public static class AddTagInstrumentation extends SpanInstrumentation {
+    public static class AddTagInstrumentation extends LegacySpanInstrumentation {
         public AddTagInstrumentation() {
             super(named("addTag"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
             span.addTag(key, value);
         }
     }
 
-    public static class ActivateInstrumentation extends SpanInstrumentation {
+    public static class ActivateInstrumentation extends LegacySpanInstrumentation {
         public ActivateInstrumentation() {
             super(named("activate"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodEnter(suppress = Throwable.class)
+        @Advice.OnMethodEnter
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
             span.activate();
         }
     }
 
-    public static class IsSampledInstrumentation extends SpanInstrumentation {
+    public static class IsSampledInstrumentation extends LegacySpanInstrumentation {
         public IsSampledInstrumentation() {
             super(named("isSampled"));
         }
 
         @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
+        @Advice.OnMethodExit
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Return(readOnly = false) boolean sampled) {
             sampled = span.isSampled();

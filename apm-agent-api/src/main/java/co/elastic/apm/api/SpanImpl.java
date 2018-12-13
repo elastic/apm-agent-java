@@ -22,83 +22,36 @@ package co.elastic.apm.api;
 import javax.annotation.Nonnull;
 
 /**
- * If the agent is active, it injects the implementation from
- * co.elastic.apm.agent.plugin.api.SpanInstrumentation
- * into this class.
+ * If the agent is active, it injects the implementation into this class.
  * <p>
  * Otherwise, this class is a noop.
  * </p>
  */
-class SpanImpl implements Span {
-
-    @Nonnull
-    // co.elastic.apm.agent.impl.transaction.AbstractSpan
-    protected final Object span;
+class SpanImpl extends AbstractSpanImpl {
 
     SpanImpl(@Nonnull Object span) {
-        this.span = span;
-    }
-
-    @Override
-    public void setName(String name) {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$SetNameInstrumentation.setName
-    }
-
-    @Override
-    public void setType(String type) {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$SetTypeInstrumentation.setType
-    }
-
-    @Override
-    public void addTag(String key, String value) {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$AddTagInstrumentation.addTag
-    }
-
-    @Override
-    public Span createSpan() {
-        Object span = doCreateSpan();
-        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
-    }
-
-    private Object doCreateSpan() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
-        return null;
-    }
-
-    @Override
-    public void end() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation$EndInstrumentation.end
-    }
-
-    @Override
-    public void captureException(Throwable throwable) {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.CaptureExceptionInstrumentation
+        super(span);
     }
 
     @Nonnull
     @Override
-    public String getId() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.GetIdInstrumentation
-        return "";
+    public Span setName(String name) {
+        doSetName(name);
+        return this;
     }
 
     @Nonnull
     @Override
-    public String getTraceId() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.GetTraceIdInstrumentation
-        return "";
+    public Span setType(String type) {
+        doSetType(type);
+        return this;
     }
 
+    @Nonnull
     @Override
-    public Scope activate() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.ActivateInstrumentation
-        return new ScopeImpl(span);
-    }
-
-    @Override
-    public boolean isSampled() {
-        // co.elastic.apm.agent.plugin.api.SpanInstrumentation.IsSampledInstrumentation
-        return false;
+    public Span addTag(String key, String value) {
+        doAddTag(key, value);
+        return this;
     }
 
 }

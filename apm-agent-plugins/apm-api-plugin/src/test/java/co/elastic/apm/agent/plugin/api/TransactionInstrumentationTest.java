@@ -76,7 +76,20 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         endTransaction();
         assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
     }
-    
+
+    @Test
+    void testChaining() {
+        transaction.setType("foo").setName("foo").addTag("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+    }
+
     @Test
     public void createSpan() throws Exception {
         Span span = transaction.createSpan();

@@ -24,19 +24,25 @@ import javax.annotation.Nonnull;
 enum NoopSpan implements Span {
     INSTANCE;
 
+    @Nonnull
     @Override
-    public void setName(String name) {
+    public Span setName(String name) {
         // noop
+        return this;
     }
 
+    @Nonnull
     @Override
-    public void setType(String type) {
+    public Span setType(String type) {
         // noop
+        return this;
     }
 
+    @Nonnull
     @Override
-    public void addTag(String key, String value) {
+    public Span addTag(String key, String value) {
         // noop
+        return this;
     }
 
     @Override
@@ -66,6 +72,7 @@ enum NoopSpan implements Span {
         return NoopScope.INSTANCE;
     }
 
+    @Nonnull
     @Override
     public boolean isSampled() {
         return false;

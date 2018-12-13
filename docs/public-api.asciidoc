@@ -184,7 +184,7 @@ and the <<api-transaction-add-tag>> method.
 
 [float]
 [[api-set-name]]
-==== `void setName(String name)`
+==== `Transaction setName(String name)`
 Override the name of the current transaction.
 For supported frameworks,
 the transaction name is determined automatically,
@@ -202,7 +202,7 @@ transaction.setName("My Transaction");
 
 [float]
 [[api-transaction-set-type]]
-==== `void setType(String type)`
+==== `Transaction setType(String type)`
 Sets the type of the transaction.
 There’s a special type called `request`,
 which is used by the agent for the transactions automatically created when an incoming HTTP request is detected.
@@ -218,7 +218,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `void addTag(String key, String value)`
+==== `Transaction addTag(String key, String value)`
 A flat mapping of user-defined tags with string values.
 Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
 By all means,
@@ -236,7 +236,7 @@ transaction.setTag("foo", "bar");
 
 [float]
 [[api-transaction-set-user]]
-==== `void setUser(String id, String email, String username)`
+==== `Transaction setUser(String id, String email, String username)`
 Call this to enrich collected performance data and errors with information about the user/client.
 This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).
 The given context will be added to the active transaction.
@@ -341,7 +341,7 @@ NOTE: Spans created via this method can not be retrieved by calling <<api-curren
 
 [float]
 [[api-transaction-set-result]]
-==== `void setResult(String result)`
+==== `Transaction setResult(String result)`
 A string describing the result of the transaction.
 This is typically the HTTP status code, or e.g. "success" for a background task
 
@@ -411,7 +411,7 @@ See <<api-current-span>> on how to get a reference of the current span.
 
 [float]
 [[api-span-set-name]]
-==== `void setName(String name)`
+==== `Span setName(String name)`
 Override the name of the current span.
 
 Example:
@@ -425,7 +425,7 @@ span.setName("SELECT FROM customer");
 
 [float]
 [[api-span-set-type]]
-==== `void setType(String type)`
+==== `Span setType(String type)`
 Sets the type of span.
 The type is a hierarchical string used to group similar spans together.
 For instance, all spans of MySQL queries are given the type `db.mysql.query`.
@@ -438,7 +438,7 @@ the following are standardized across all Elastic APM agents: `app`, `db`, `cach
 
 [float]
 [[api-span-add-tag]]
-==== `void addTag(String key, String value)`
+==== `Span addTag(String key, String value)`
 A flat mapping of user-defined tags with string values.
 Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
 By all means,

@@ -29,20 +29,43 @@ import javax.annotation.Nonnull;
  * Otherwise, this class is a noop.
  * </p>
  */
-class TransactionImpl extends SpanImpl implements Transaction {
+class TransactionImpl extends AbstractSpanImpl implements Transaction {
 
     TransactionImpl(@Nonnull Object transaction) {
         super(transaction);
     }
 
+    @Nonnull
     @Override
-    public void setUser(String id, String email, String username) {
-        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
+    public Transaction setName(String name) {
+        doSetName(name);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction setType(String type) {
+        doSetType(type);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, String value) {
+        doAddTag(key, value);
+        return this;
     }
 
     @Override
-    public void setResult(String result) {
+    public Transaction setUser(String id, String email, String username) {
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser
+        return this;
+    }
 
+    @Override
+    public Transaction setResult(String result) {
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation.SetResultInstrumentation
+        return this;
     }
 
     @Nonnull

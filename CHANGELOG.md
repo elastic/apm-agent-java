@@ -4,6 +4,7 @@
  * Added `capture_headers` configuration option.
    Set to `false` to disable capturing request and response headers.
    This will reduce the allocation rate of the agent and can save you network bandwidth and disk space.
+ * Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained. 
 
 ## Bug Fixes
 
