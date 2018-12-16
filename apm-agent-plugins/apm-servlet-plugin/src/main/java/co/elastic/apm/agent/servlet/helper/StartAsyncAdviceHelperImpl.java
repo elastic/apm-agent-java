@@ -28,6 +28,9 @@ import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIBUTE;
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+
 public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsyncAdviceHelper<AsyncContext> {
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
@@ -47,9 +50,7 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
             return;
         }
         final Transaction transaction = tracer.currentTransaction();
-        if (transaction != null &&
-            transaction.isSampled() &&
-            request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
+        if (transaction != null && transaction.isSampled() && request.getAttribute(ASYNC_LISTENER_ADDED) == null) {
             // makes sure that the listener is only added once, even if the request is wrapped
             // which leads to multiple invocations of startAsync for the same underlying request
             request.setAttribute(ASYNC_LISTENER_ADDED, Boolean.TRUE);
@@ -58,6 +59,9 @@ public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsy
             // however, only some application server like WebSphere actually implement it that way
             asyncContext.addListener(new ApmAsyncListener(servletTransactionHelper, transaction),
                 asyncContext.getRequest(), asyncContext.getResponse());
+
+            request.setAttribute(ASYNC_ATTRIBUTE, Boolean.TRUE);
+            request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
         }
     }
 }

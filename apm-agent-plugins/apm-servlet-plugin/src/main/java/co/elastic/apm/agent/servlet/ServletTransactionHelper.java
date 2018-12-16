@@ -51,6 +51,11 @@ import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
 @VisibleForAdvice
 public class ServletTransactionHelper {
 
+    @VisibleForAdvice
+    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
+    @VisibleForAdvice
+    public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));

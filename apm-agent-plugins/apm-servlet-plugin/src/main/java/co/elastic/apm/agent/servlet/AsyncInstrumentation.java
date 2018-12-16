@@ -23,7 +23,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +37,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.servlet.ServletApiAdvice.TRANSACTION_ATTRIBUTE;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -126,12 +124,8 @@ public class AsyncInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void onExitStartAsync(@Advice.This HttpServletRequest request, @Advice.Return AsyncContext asyncContext) {
             if (tracer != null) {
-                final Transaction transaction = tracer.currentTransaction();
-                if (transaction != null) {
-                    request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
-                    if (asyncHelper != null) {
-                        asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
-                    }
+                if (asyncHelper != null) {
+                    asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
                 }
             }
         }

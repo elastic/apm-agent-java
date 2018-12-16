@@ -30,6 +30,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+
 /**
  * Based on brave.servlet.ServletRuntime$TracingAsyncListener (under Apache license 2.0)
  */
@@ -83,6 +85,8 @@ public class ApmAsyncListener implements AsyncListener {
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
         HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
+        request.removeAttribute(TRANSACTION_ATTRIBUTE);
+
         HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
         final Response resp = transaction.getContext().getResponse();
         if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
