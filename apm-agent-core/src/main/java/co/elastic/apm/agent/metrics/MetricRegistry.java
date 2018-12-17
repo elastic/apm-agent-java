@@ -26,23 +26,68 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * A registry for metrics.
+ * <p>
+ * Currently only holds gauges.
+ * There are plans to add support for histogram-based timers.
+ * </p>
+ */
 public class MetricRegistry {
 
     private static final byte NEW_LINE = '\n';
+
+    /**
+     * Groups {@link MetricSet}s by their unique tags.
+     */
     private final ConcurrentMap<Map<String, String>, MetricSet> metricSets = new ConcurrentHashMap<>();
 
+    /**
+     * Same as {@link #add(String, Map, DoubleSupplier)} but only adds the metric
+     * if the {@link DoubleSupplier} does not return {@link Double#NaN}
+     *
+     * @param name   the name of the metric
+     * @param tags   tags for the metric.
+     *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
+     *               Note that there will be a {@link MetricSet} created for each distinct set of tags.
+     * @param metric this supplier will be called for every reporting cycle
+     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     * @see #add(String, Map, DoubleSupplier)
+     */
     public void addUnlessNan(String name, Map<String, String> tags, DoubleSupplier metric) {
         if (!Double.isNaN(metric.get())) {
             add(name, tags, metric);
         }
     }
 
+    /**
+     * Same as {@link #add(String, Map, DoubleSupplier)} but only adds the metric
+     * if the {@link DoubleSupplier} returns a positive number or zero.
+     *
+     * @param name   the name of the metric
+     * @param tags   tags for the metric.
+     *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
+     *               Note that there will be a {@link MetricSet} created for each distinct set of tags.
+     * @param metric this supplier will be called for every reporting cycle
+     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     * @see #add(String, Map, DoubleSupplier)
+     */
     public void addUnlessNegative(String name, Map<String, String> tags, DoubleSupplier metric) {
         if (metric.get() >= 0) {
             add(name, tags, metric);
         }
     }
 
+    /**
+     * Adds a gauge to the metric registry.
+     *
+     * @param name   the name of the metric
+     * @param tags   tags for the metric.
+     *               Tags can be used to create different graphs based for each value of a specific tag name, using a terms aggregation.
+     *               Note that there will be a {@link MetricSet} created for each distinct set of tags.
+     * @param metric this supplier will be called for every reporting cycle
+     *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
+     */
     public void add(String name, Map<String, String> tags, DoubleSupplier metric) {
         MetricSet metricSet = metricSets.get(tags);
         if (metricSet == null) {
