@@ -17,8 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.metrics;
+package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.metrics.MetricSet;
+import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,11 +42,10 @@ class MetricSetSerializationTest {
         final MetricSet metricSet = new MetricSet(Collections.singletonMap("foo.bar", "baz"));
         metricSet.add("foo.bar", () -> 42);
         metricSet.add("bar.baz", () -> 42);
-        metricSet.serialize(System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
         final String metricSetAsString = jw.toString();
         System.out.println(metricSetAsString);
         final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
         assertThat(jsonNode.get("metricset").get("samples").get("foo.bar").get("value").doubleValue()).isEqualTo(42);
-
     }
 }

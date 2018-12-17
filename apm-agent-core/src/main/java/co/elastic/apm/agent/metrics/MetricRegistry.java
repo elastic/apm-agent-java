@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 
@@ -34,8 +35,6 @@ import java.util.concurrent.ConcurrentMap;
  * </p>
  */
 public class MetricRegistry {
-
-    private static final byte NEW_LINE = '\n';
 
     /**
      * Groups {@link MetricSet}s by their unique tags.
@@ -98,11 +97,7 @@ public class MetricRegistry {
     }
 
     public void serialize(JsonWriter jw, StringBuilder replaceBuilder) {
-        final long timestamp = System.currentTimeMillis() * 1000;
-        for (MetricSet metricSet : metricSets.values()) {
-            metricSet.serialize(timestamp, replaceBuilder, jw);
-            jw.writeByte(NEW_LINE);
-        }
+        MetricRegistrySerializer.serialize(this, replaceBuilder, jw);
     }
 
     public double get(String name, Map<String, String> tags) {
@@ -116,7 +111,11 @@ public class MetricRegistry {
     @Override
     public String toString() {
         final JsonWriter jw = new DslJson<>().newWriter();
-        serialize(jw, new StringBuilder());
+        MetricRegistrySerializer.serialize(this, new StringBuilder(), jw);
         return jw.toString();
+    }
+
+    public Map<Map<String, String>, MetricSet> getMetricSets() {
+        return metricSets;
     }
 }

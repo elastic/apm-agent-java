@@ -19,11 +19,6 @@
  */
 package co.elastic.apm.agent.metrics;
 
-import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import com.dslplatform.json.JsonWriter;
-import com.dslplatform.json.NumberConverter;
-
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,7 +41,7 @@ public class MetricSet {
     private final Map<String, String> tags;
     private final ConcurrentMap<String, DoubleSupplier> samples = new ConcurrentHashMap<>();
 
-    MetricSet(Map<String, String> tags) {
+    public MetricSet(Map<String, String> tags) {
         this.tags = tags;
     }
 
@@ -58,54 +53,11 @@ public class MetricSet {
         return samples.get(name);
     }
 
-    public void serialize(long epochMicros, StringBuilder replaceBuilder, JsonWriter jw) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        {
-            DslJsonSerializer.writeFieldName("metricset", jw);
-            jw.writeByte(JsonWriter.OBJECT_START);
-            {
-                DslJsonSerializer.writeFieldName("timestamp", jw);
-                NumberConverter.serialize(epochMicros, jw);
-                jw.writeByte(JsonWriter.COMMA);
-
-                if (!tags.isEmpty()) {
-                    DslJsonSerializer.writeFieldName("tags", jw);
-                    DslJsonSerializer.serializeTags(tags, replaceBuilder, jw);
-                    jw.writeByte(JsonWriter.COMMA);
-                }
-
-                DslJsonSerializer.writeFieldName("samples", jw);
-                serializeSamples(samples, jw);
-            }
-            jw.writeByte(JsonWriter.OBJECT_END);
-        }
-        jw.writeByte(JsonWriter.OBJECT_END);
+    public Map<String, String> getTags() {
+        return tags;
     }
 
-    private void serializeSamples(Map<String, DoubleSupplier> samples, JsonWriter jw) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        final int size = samples.size();
-        if (size > 0) {
-            final Iterator<Map.Entry<String, DoubleSupplier>> iterator = samples.entrySet().iterator();
-            Map.Entry<String, DoubleSupplier> kv = iterator.next();
-            serializeSample(kv.getKey(), kv.getValue().get(), jw);
-            for (int i = 1; i < size; i++) {
-                jw.writeByte(JsonWriter.COMMA);
-                kv = iterator.next();
-                serializeSample(kv.getKey(), kv.getValue().get(), jw);
-            }
-        }
-        jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
-    private void serializeSample(String key, double value, JsonWriter jw) {
-        jw.writeString(key);
-        jw.writeByte(JsonWriter.SEMI);
-        jw.writeByte(JsonWriter.OBJECT_START);
-        {
-            DslJsonSerializer.writeFieldName("value", jw);
-            NumberConverter.serialize(value, jw);
-        }
-        jw.writeByte(JsonWriter.OBJECT_END);
+    public Map<String, DoubleSupplier> getSamples() {
+        return samples;
     }
 }

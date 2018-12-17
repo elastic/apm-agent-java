@@ -193,7 +193,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
-        metricRegistry.serialize(jw, replaceBuilder);
+        MetricRegistrySerializer.serialize(metricRegistry, replaceBuilder, jw);
     }
 
     private void serializeErrorPayload(ErrorPayload payload) {
