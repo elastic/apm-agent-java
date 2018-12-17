@@ -34,10 +34,21 @@ class SystemMetricsTest {
     @Test
     void testSystemMetrics() {
         systemMetrics.bindTo(metricRegistry);
+        // makes sure system.cpu.total.norm.pct does not return NaN
+        consumeCpu();
         assertThat(metricRegistry.get("system.cpu.total.norm.pct", Collections.emptyMap())).isBetween(0.0, 1.0);
         assertThat(metricRegistry.get("system.process.cpu.total.norm.pct", Collections.emptyMap())).isBetween(0.0, 1.0);
         assertThat(metricRegistry.get("system.memory.total", Collections.emptyMap())).isGreaterThan(0.0);
         assertThat(metricRegistry.get("system.memory.actual.free", Collections.emptyMap())).isGreaterThan(0.0);
         assertThat(metricRegistry.get("system.process.memory.size", Collections.emptyMap())).isGreaterThan(0.0);
+    }
+
+    private void consumeCpu() {
+        int result = 1;
+        for (int i = 0; i < 10000; i++) {
+            result += Math.random() * i;
+        }
+        // forces a side-effect so that the JIT can't optimize away this code
+        System.out.println(result);
     }
 }

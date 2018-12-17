@@ -36,9 +36,9 @@ public class JvmMemoryMetrics implements LifecycleListener {
         bindTo(tracer.getMetricRegistry());
     }
 
-    private void bindTo(final MetricRegistry registry) {
-        register(registry, "nonheap", ManagementFactory.getPlatformMXBean(MemoryMXBean.class).getNonHeapMemoryUsage());
-        register(registry, "heap", ManagementFactory.getPlatformMXBean(MemoryMXBean.class).getNonHeapMemoryUsage());
+    void bindTo(final MetricRegistry registry) {
+        register(registry, "non_heap", ManagementFactory.getPlatformMXBean(MemoryMXBean.class).getNonHeapMemoryUsage());
+        register(registry, "heap", ManagementFactory.getPlatformMXBean(MemoryMXBean.class).getHeapMemoryUsage());
     }
 
     private void register(final MetricRegistry registry, final String area, final MemoryUsage memoryUsage) {

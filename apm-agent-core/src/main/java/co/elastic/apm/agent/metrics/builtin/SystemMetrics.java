@@ -92,14 +92,14 @@ public class SystemMetrics implements LifecycleListener {
     }
 
     void bindTo(MetricRegistry metricRegistry) {
-        metricRegistry.addUnlessNan("system.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(systemCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNan("system.process.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(processCpuUsage);
@@ -120,7 +120,7 @@ public class SystemMetrics implements LifecycleListener {
             }
         });
 
-        metricRegistry.addUnlessNan("system.process.memory.size", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.memory.size", Collections.<String, String>emptyMap(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(virtualProcessMemory);

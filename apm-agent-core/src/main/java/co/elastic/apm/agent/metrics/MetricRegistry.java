@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 
 import java.util.Map;
@@ -32,6 +33,12 @@ public class MetricRegistry {
 
     public void addUnlessNan(String name, Map<String, String> tags, DoubleSupplier metric) {
         if (!Double.isNaN(metric.get())) {
+            add(name, tags, metric);
+        }
+    }
+
+    public void addUnlessNegative(String name, Map<String, String> tags, DoubleSupplier metric) {
+        if (metric.get() >= 0) {
             add(name, tags, metric);
         }
     }
@@ -59,5 +66,12 @@ public class MetricRegistry {
             return metricSet.get(name).get();
         }
         return Double.NaN;
+    }
+
+    @Override
+    public String toString() {
+        final JsonWriter jw = new DslJson<>().newWriter();
+        serialize(jw, new StringBuilder());
+        return jw.toString();
     }
 }
