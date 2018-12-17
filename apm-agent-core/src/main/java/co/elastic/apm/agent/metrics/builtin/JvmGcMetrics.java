@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import com.sun.management.ThreadMXBean;
+import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -67,6 +68,7 @@ public class JvmGcMetrics implements LifecycleListener {
         }
     }
 
+    @IgnoreJRERequirement
     enum HotspotAllocationSupplier implements DoubleSupplier {
         INSTANCE;
 
