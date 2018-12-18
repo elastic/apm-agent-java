@@ -12,19 +12,29 @@
         <load-on-startup>0</load-on-startup>
         <async-supported>true</async-supported>
     </servlet>
+    <servlet>
+        <servlet-name>AsyncDispatchServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.AsyncDispatchTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet>
+        <servlet-name>AsyncStartServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.AsyncStartTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+
     <servlet-mapping>
         <servlet-name>TestServlet</servlet-name>
         <url-pattern>/servlet</url-pattern>
     </servlet-mapping>
-
-    <servlet>
-        <servlet-name>AsyncTestServlet</servlet-name>
-        <servlet-class>co.elastic.webapp.AsyncTestServlet</servlet-class>
-        <load-on-startup>1</load-on-startup>
-        <async-supported>true</async-supported>
-    </servlet>
     <servlet-mapping>
-        <servlet-name>AsyncTestServlet</servlet-name>
-        <url-pattern>/async-servlet</url-pattern>
+        <servlet-name>AsyncDispatchServlet</servlet-name>
+        <url-pattern>/async-dispatch-servlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AsyncStartServlet</servlet-name>
+        <url-pattern>/async-start-servlet</url-pattern>
     </servlet-mapping>
 </web-app>

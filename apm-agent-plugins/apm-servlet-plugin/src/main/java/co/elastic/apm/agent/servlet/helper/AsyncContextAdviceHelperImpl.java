@@ -31,14 +31,14 @@ import javax.servlet.ServletRequest;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
-public class StartAsyncAdviceHelperImpl implements AsyncInstrumentation.StartAsyncAdviceHelper<AsyncContext> {
+public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncContextAdviceHelper<AsyncContext> {
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
 
     private final ServletTransactionHelper servletTransactionHelper;
     private final ElasticApmTracer tracer;
 
-    public StartAsyncAdviceHelperImpl(ElasticApmTracer tracer) {
+    public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
     }

@@ -63,6 +63,7 @@ public class ElasticApmTracer {
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
+    private final ObjectPool<InScopeRunnableWrapper> runnableWrapperObjectPool;
     private final Reporter reporter;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
@@ -105,6 +106,13 @@ public class ElasticApmTracer {
                 @Override
                 public ErrorCapture createInstance() {
                     return new ErrorCapture(ElasticApmTracer.this);
+                }
+            });
+        runnableWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<InScopeRunnableWrapper>newQueue(createBoundedMpmc(maxPooledElements)), false,
+            new Allocator<InScopeRunnableWrapper>() {
+                @Override
+                public InScopeRunnableWrapper createInstance() {
+                    return new InScopeRunnableWrapper(ElasticApmTracer.this);
                 }
             });
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
@@ -294,6 +302,14 @@ public class ElasticApmTracer {
 
     public void recycle(ErrorCapture error) {
         errorPool.recycle(error);
+    }
+
+    public Runnable wrapRunnable(Runnable delegate, AbstractSpan<?> span) {
+        return runnableWrapperObjectPool.createInstance().wrap(delegate, span);
+    }
+
+    public void recycle(InScopeRunnableWrapper wrapper) {
+        runnableWrapperObjectPool.recycle(wrapper);
     }
 
     /**
