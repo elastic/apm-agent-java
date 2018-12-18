@@ -34,12 +34,14 @@ class JvmMemoryMetricsTest {
     void testMetrics() {
         final MetricRegistry registry = new MetricRegistry();
         jvmMemoryMetrics.bindTo(registry);
-
+        System.out.println(registry.toString());
         assertThat(registry.get("jvm.memory.heap.used", Collections.emptyMap())).isNotZero();
         assertThat(registry.get("jvm.memory.heap.committed", Collections.emptyMap())).isNotZero();
         assertThat(registry.get("jvm.memory.heap.max", Collections.emptyMap())).isNotZero();
         assertThat(registry.get("jvm.memory.non_heap.used", Collections.emptyMap())).isNotZero();
         assertThat(registry.get("jvm.memory.non_heap.committed", Collections.emptyMap())).isNotZero();
         assertThat(registry.get("jvm.memory.non_heap.max", Collections.emptyMap())).isNotZero();
+        final long[] longs = new long[1000000];
+        System.out.println(registry.toString());
     }
 }
