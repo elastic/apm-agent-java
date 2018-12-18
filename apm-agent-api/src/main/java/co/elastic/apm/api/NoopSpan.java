@@ -78,6 +78,12 @@ enum NoopSpan implements Span {
         return false;
     }
 
+    @Nonnull
+    @Override
+    public String getTraceParentHeader() {
+        return "";
+    }
+
     @Override
     public Span createSpan() {
         return INSTANCE;

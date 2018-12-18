@@ -192,4 +192,11 @@ public interface Span {
      */
     boolean isSampled();
 
+    /**
+     * Returns the value of the {@code traceparent} header for downstream services.
+     * @link  co.elastic.apm.impl.transaction.TraceContext#getOutgoingTraceParentHeader()
+     * @return
+     */
+    @Nonnull
+    String getTraceParentHeader();
 }

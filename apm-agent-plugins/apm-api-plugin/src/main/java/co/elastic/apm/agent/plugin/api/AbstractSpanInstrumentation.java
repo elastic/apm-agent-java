@@ -183,4 +183,20 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             sampled = span.isSampled();
         }
     }
+
+    public static class GetTraceParentHeaderInstrumentation extends AbstractSpanInstrumentation {
+        public GetTraceParentHeaderInstrumentation() {
+            super(named("getTraceParentHeader"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit
+        public static void getTraceParentHeader(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                  @Advice.Return(readOnly = false) String traceParentHeader) {
+            traceParentHeader= span.getTraceContext().getOutgoingTraceParentHeader().toString();
+            System.out.println("1234:"+traceParentHeader);
+
+        }
+    }
+
 }

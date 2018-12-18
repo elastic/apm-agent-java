@@ -97,6 +97,12 @@ enum NoopTransaction implements Transaction {
         return false;
     }
 
+    @Nonnull
+    @Override
+    public String getTraceParentHeader() {
+        return "";
+    }
+
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
