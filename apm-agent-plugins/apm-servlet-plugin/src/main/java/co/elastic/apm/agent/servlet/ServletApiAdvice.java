@@ -41,6 +41,8 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Map;
 
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+
 /**
  * Only the methods annotated with {@link Advice.OnMethodEnter} and {@link Advice.OnMethodExit} may contain references to
  * {@code javax.servlet}, as these are inlined into the matching methods.
@@ -49,8 +51,6 @@ import java.util.Map;
  */
 public class ServletApiAdvice {
 
-    @VisibleForAdvice
-    public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @Nullable
     @VisibleForAdvice
     public static ServletTransactionHelper servletTransactionHelper;
@@ -149,8 +149,9 @@ public class ServletApiAdvice {
             servletResponse instanceof HttpServletResponse) {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
-            if (request.isAsyncStarted()) {
-                // the response is not ready yet; the request is handled asynchronously
+            if (request.getAttribute(ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
+                // HttpServletRequest.startAsync was invoked on this request.
+                // The transaction should be handled from now on by the other thread committing the response
                 transaction.deactivate();
             } else {
                 // this is not an async request, so we can end the transaction immediately
@@ -170,7 +171,6 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
-                request.removeAttribute(TRANSACTION_ATTRIBUTE);
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader);
             }
