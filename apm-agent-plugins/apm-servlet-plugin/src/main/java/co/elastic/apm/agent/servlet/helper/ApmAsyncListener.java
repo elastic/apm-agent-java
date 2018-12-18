@@ -80,7 +80,7 @@ public class ApmAsyncListener implements AsyncListener {
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
         // To ensure transaction is ended only by a single event
-        if(EVENT_COUNTER_UPDATER.getAndIncrement(this) > 0) {
+        if (EVENT_COUNTER_UPDATER.getAndIncrement(this) > 0) {
             return;
         }
 
