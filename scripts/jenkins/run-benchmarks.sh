@@ -61,7 +61,7 @@ function benchmark() {
     sudo -n cset proc --exec /benchmark -- \
         $JAVA_HOME/bin/java -jar apm-agent-benchmarks/target/benchmarks.jar ".*ContinuousBenchmark" \
         -prof gc \
-        -prof co.elastic.apm.benchmark.profiler.ReporterProfiler \
+        -prof co.elastic.apm.agent.benchmark.profiler.ReporterProfiler \
         -rf json \
         -rff ${RESULT_FILE}
 
@@ -70,7 +70,7 @@ function benchmark() {
     rm -f ${RESULT_FILE} ${BULK_UPLOAD_FILE}
     mv "${RESULT_FILE}.clean" ${RESULT_FILE}
 
-    $JAVA_HOME/bin/java -cp apm-agent-benchmarks/target/benchmarks.jar co.elastic.apm.benchmark.PostProcessBenchmarkResults ${RESULT_FILE} ${BULK_UPLOAD_FILE} ${COMMIT_UNIX}
+    $JAVA_HOME/bin/java -cp apm-agent-benchmarks/target/benchmarks.jar co.elastic.apm.agent.benchmark.PostProcessBenchmarkResults ${RESULT_FILE} ${BULK_UPLOAD_FILE} ${COMMIT_UNIX}
 }
 
 function tearDown() {
