@@ -96,23 +96,12 @@ public class MetricRegistry {
         metricSet.add(name, metric);
     }
 
-    public void serialize(JsonWriter jw, StringBuilder replaceBuilder) {
-        MetricRegistrySerializer.serialize(this, replaceBuilder, jw);
-    }
-
     public double get(String name, Map<String, String> tags) {
         final MetricSet metricSet = metricSets.get(tags);
         if (metricSet != null) {
             return metricSet.get(name).get();
         }
         return Double.NaN;
-    }
-
-    @Override
-    public String toString() {
-        final JsonWriter jw = new DslJson<>().newWriter();
-        MetricRegistrySerializer.serialize(this, new StringBuilder(), jw);
-        return jw.toString();
     }
 
     public Map<Map<String, String>, MetricSet> getMetricSets() {
