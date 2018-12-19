@@ -191,11 +191,12 @@ public abstract class AbstractServletContainerIntegrationTest {
             assertThat(responseBody.string()).contains("Hello World");
 
             final List<JsonNode> reportedTransactions = assertContainsOneEntryReported(500, this::getReportedTransactions);
-            assertThat(reportedTransactions.iterator().next().get("context").get("request").get("url").get("pathname").textValue())
-                .isEqualTo(contextPath + pathToTest);
+            JsonNode transaction = reportedTransactions.iterator().next();
+            assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(contextPath + pathToTest);
+            String transactionId = reportedTransactions.iterator().next().get("id").textValue();
             // TODO make that less hacky
             if (!pathToTest.equals("/index.jsp")) {
-                assertContainsOneEntryReported(500, this::getReportedSpans);
+                assertSpansTransactionId(500, this::getReportedSpans, transactionId);
                 assertThat(getServiceName()).isEqualTo(expectedDefaultServiceName);
             }
         }
@@ -210,6 +211,19 @@ public abstract class AbstractServletContainerIntegrationTest {
         } while (reportedTransactions.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
         assertThat(reportedTransactions.size()).isEqualTo(1);
         return reportedTransactions;
+    }
+
+    @Nonnull
+    private void assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
+        long start = System.currentTimeMillis();
+        List<JsonNode> reportedSpans;
+        do {
+            reportedSpans = supplier.get();
+        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
+        for (JsonNode span : reportedSpans) {
+            assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
+        }
     }
 
     @Nonnull
@@ -230,7 +244,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     @NotNull
     protected List<String> getPathsToTest() {
-        return Arrays.asList("/index.jsp", "/servlet", "/async-servlet");
+        return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
     private String getBaseUrl() {

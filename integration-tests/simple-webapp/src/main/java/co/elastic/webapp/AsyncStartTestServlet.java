@@ -19,26 +19,27 @@
  */
 package co.elastic.webapp;
 
-import co.elastic.apm.api.ElasticApm;
-
-import javax.servlet.ServletException;
+import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.sql.SQLException;
 
-public class TestServlet extends HttpServlet {
+public class AsyncStartTestServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        if (!ElasticApm.currentTransaction().isSampled()) {
-            throw new IllegalStateException("Current transaction is not sampled: " + ElasticApm.currentTransaction());
-        }
-        try {
-            resp.getWriter().append(TestDAO.instance().queryDb());
-        } catch (SQLException e) {
-            throw new ServletException("Failed to query DB", e);
-        }
+    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
+        final AsyncContext ctx = req.startAsync();
+        ctx.start(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String dbResult = TestDAO.instance().queryDb();
+                    ctx.getResponse().getWriter().append(dbResult);
+                    ctx.complete();
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to query DB", e);
+                }
+            }
+        });
     }
 }

@@ -48,13 +48,13 @@
  * </p>
  *
  * <pre>
- *          System/Bootstrap CL (Agent)     provides interface StartAsyncAdviceHelper
+ *          System/Bootstrap CL (Agent)     provides interface AsyncContextAdviceHelper
  *                     |
  *                     v
- *             App CL (Servlet API)         uses StartAsyncAdviceHelperImpl from Helper CL
+ *             App CL (Servlet API)         uses AsyncContextAdviceHelperImpl from Helper CL
  *               /              \
  *              v               v
- * WebApp CL (user code/libs)   Helper CL   implements StartAsyncAdviceHelperImpl
+ * WebApp CL (user code/libs)   Helper CL   implements AsyncContextAdviceHelperImpl
  * </pre>
  */
 @NonnullApi
