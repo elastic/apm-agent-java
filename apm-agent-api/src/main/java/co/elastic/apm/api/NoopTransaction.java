@@ -20,6 +20,9 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 
 enum NoopTransaction implements Transaction {
 
@@ -100,5 +103,16 @@ enum NoopTransaction implements Transaction {
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
+    }
+
+    @Override
+    public void addTraceHeaders(@Nullable Map<? super String, ? super String> headers) {
+        // noop
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getTraceHeaders() {
+        return Collections.emptyMap();
     }
 }

@@ -20,6 +20,9 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 
 enum NoopSpan implements Span {
     INSTANCE;
@@ -81,5 +84,16 @@ enum NoopSpan implements Span {
     @Override
     public Span createSpan() {
         return INSTANCE;
+    }
+
+    @Override
+    public void addTraceHeaders(@Nullable Map<? super String, ? super String> headers) {
+        // noop
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getTraceHeaders() {
+        return Collections.emptyMap();
     }
 }

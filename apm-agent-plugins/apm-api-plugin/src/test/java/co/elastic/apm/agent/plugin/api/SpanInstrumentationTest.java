@@ -20,12 +20,17 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,5 +97,32 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         final Transaction transaction = ElasticApm.startTransaction();
         assertThat(transaction.isSampled()).isTrue();
         assertThat(transaction.createSpan().isSampled()).isTrue();
+    }
+
+    @Test
+    void testTraceHeadersNoop() {
+        final Map<String, String> headers = new HashMap<>();
+        assertThat(ElasticApm.currentSpan().getTraceHeaders()).isEmpty();
+        ElasticApm.currentSpan().addTraceHeaders(headers);
+        assertThat(headers).isEmpty();
+
+        assertThat(ElasticApm.currentTransaction().getTraceHeaders()).isEmpty();
+        ElasticApm.currentTransaction().addTraceHeaders(headers);
+        assertThat(headers).isEmpty();
+    }
+
+    @Test
+    void testTraceHeaders() {
+        assertContainsTracingHeaders(span);
+        assertContainsTracingHeaders(transaction);
+    }
+
+    private void assertContainsTracingHeaders(Span span) {
+        try (Scope scope = span.activate()) {
+            final Map<String, String> tracingHeaders = new HashMap<>();
+            span.addTraceHeaders(tracingHeaders);
+            final String traceparent = tracer.activeSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+            Stream.of(tracingHeaders, span.getTraceHeaders()).forEach(headers -> assertThat(headers).containsEntry(TraceContext.TRACE_PARENT_HEADER, traceparent));
+        }
     }
 }

@@ -15,6 +15,8 @@ co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetTraceIdInstrument
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$IsSampledInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTraceHeadersInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetTraceHeadersInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.ApiScopeInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureTransactionInstrumentation

@@ -21,11 +21,16 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -181,6 +186,35 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Return(readOnly = false) boolean sampled) {
             sampled = span.isSampled();
+        }
+    }
+
+    public static class AddTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
+        public AddTraceHeadersInstrumentation() {
+            super(named("addTraceHeaders"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                           @Advice.Argument(0) @Nullable Map<? super String, ? super String> headers) {
+            if (headers != null) {
+                headers.put(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+            }
+        }
+    }
+
+    public static class GetTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
+        public GetTraceHeadersInstrumentation() {
+            super(named("getTraceHeaders"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                           @Advice.Return(readOnly = false) Map<? super String, ? super String> headers) {
+            headers = new HashMap<>();
+            headers.put(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }
     }
 }

@@ -20,6 +20,8 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * A span contains information about a specific code path, executed as part of a {@link Transaction}.
@@ -191,5 +193,10 @@ public interface Span {
      * @return true if this span is recorded and sent to the APM Server
      */
     boolean isSampled();
+
+    void addTraceHeaders(@Nullable Map<? super String, ? super String> headers);
+
+    @Nonnull
+    Map<String, String> getTraceHeaders();
 
 }
