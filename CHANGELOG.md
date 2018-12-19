@@ -1,12 +1,21 @@
 # next
 
 ## Features
+## Bug Fixes
+
+# 1.2.0
+
+## Features
  * Added `capture_headers` configuration option.
    Set to `false` to disable capturing request and response headers.
    This will reduce the allocation rate of the agent and can save you network bandwidth and disk space.
  * Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained. 
 
 ## Bug Fixes
+ * Catch all errors thrown within agent injected code
+ * Enable public APIs and OpenTracing bridge to work properly in OSGi systems, fixes [this WildFly issue](https://github.com/elastic/apm-agent-java/issues/362)
+ * Remove module-info.java to enable agent working on early Tomcat 8.5 versions
+ * Fix [async Servlet API issue](https://github.com/elastic/apm-agent-java/issues/371)
 
 # 1.1.0
 
