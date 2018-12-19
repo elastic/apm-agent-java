@@ -29,14 +29,20 @@ import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 /**
  * Based on brave.servlet.ServletRuntime$TracingAsyncListener (under Apache license 2.0)
  */
 public class ApmAsyncListener implements AsyncListener {
+    private static final AtomicIntegerFieldUpdater<ApmAsyncListener> EVENT_COUNTER_UPDATER =
+        AtomicIntegerFieldUpdater.newUpdater(ApmAsyncListener.class, "endEventCounter");
+
     private final ServletTransactionHelper servletTransactionHelper;
     private final Transaction transaction;
-    private volatile boolean completed = false;
+    private volatile int endEventCounter = 0;
 
     ApmAsyncListener(ServletTransactionHelper servletTransactionHelper, Transaction transaction) {
         this.servletTransactionHelper = servletTransactionHelper;
@@ -45,26 +51,17 @@ public class ApmAsyncListener implements AsyncListener {
 
     @Override
     public void onComplete(AsyncEvent event) {
-        if (!completed) {
-            endTransaction(event);
-            completed = true;
-        }
+        endTransaction(event);
     }
 
     @Override
     public void onTimeout(AsyncEvent event) {
-        if (!completed) {
-            endTransaction(event);
-            completed = true;
-        }
+        endTransaction(event);
     }
 
     @Override
     public void onError(AsyncEvent event) {
-        if (!completed) {
-            endTransaction(event);
-            completed = true;
-        }
+        endTransaction(event);
     }
 
     /**
@@ -82,7 +79,14 @@ public class ApmAsyncListener implements AsyncListener {
     // because only the onExitServletService method may contain references to the servlet API
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
+        // To ensure transaction is ended only by a single event
+        if (EVENT_COUNTER_UPDATER.getAndIncrement(this) > 0) {
+            return;
+        }
+
         HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
+        request.removeAttribute(TRANSACTION_ATTRIBUTE);
+
         HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
         final Response resp = transaction.getContext().getResponse();
         if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
