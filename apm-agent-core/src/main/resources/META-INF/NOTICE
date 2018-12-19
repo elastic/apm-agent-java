@@ -4,3 +4,7 @@ under the Apache License 2.0. See:
  - co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource
  - co.elastic.apm.agent.configuration.StartupInfo
  - co.elastic.apm.agent.bci.bytebuddy.MethodHierarchyMatcher
+
+This product includes software derived from micrometer,
+under the Apache License 2.0. See:
+ - co.elastic.apm.agent.metrics.ProcessorMetrics

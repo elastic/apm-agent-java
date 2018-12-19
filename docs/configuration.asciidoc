@@ -768,6 +768,31 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 | `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE`
 |============
 
+[float]
+[[config-metrics-interval]]
+==== `metrics_interval`
+
+The interval at which the agent sends metrics to the APM Server.
+Must be at least `1s`.
+Set to `0s` to deactivate.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `30s`.
+The default unit for this option is `s`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `30s` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.metrics_interval` | `metrics_interval` | `ELASTIC_APM_METRICS_INTERVAL`
+|============
+
 [[config-stacktrace]]
 === Stacktrace configuration options
 [float]
@@ -1240,6 +1265,18 @@ The default unit for this option is `ms`
 # Default value: 768kb
 #
 # api_request_size=768kb
+
+# The interval at which the agent sends metrics to the APM Server.
+# Must be at least `1s`.
+# Set to `0s` to deactivate.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 30s.
+# The default unit for this option is s.
+# Default value: 30s
+#
+# metrics_interval=30s
 
 ############################################
 # Stacktrace                               #
