@@ -390,10 +390,21 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSystem(final SystemInfo system) {
         writeFieldName("system");
         jw.writeByte(JsonWriter.OBJECT_START);
+        serializeContainerInfo(system.getContainerInfo());
         writeField("architecture", system.getArchitecture());
         writeField("hostname", system.getHostname());
         writeLastField("platform", system.getPlatform());
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private void serializeContainerInfo(SystemInfo.Container container) {
+        if (container.hasContent()) {
+            writeFieldName("container");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeLastField("id", container.getId());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     private void serializeTransactions(final List<Transaction> transactions) {

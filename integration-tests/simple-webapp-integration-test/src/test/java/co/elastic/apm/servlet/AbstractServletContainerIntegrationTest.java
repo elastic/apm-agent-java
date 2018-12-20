@@ -197,7 +197,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             // TODO make that less hacky
             if (!pathToTest.equals("/index.jsp")) {
                 assertSpansTransactionId(500, this::getReportedSpans, transactionId);
-                assertThat(getServiceName()).isEqualTo(expectedDefaultServiceName);
+                validateMetadata();
             }
         }
     }
@@ -281,14 +281,18 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    private String getServiceName() {
+    private void validateMetadata() {
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
             final JsonNode payload;
             payload = objectMapper
                 .readTree(mockServerContainer.getClient()
                     .retrieveRecordedRequests(request(INTAKE_V2_URL))[0].getBodyAsString().split("\n")[0]);
-            return payload.get("metadata").get("service").get("name").textValue();
+            JsonNode metadata = payload.get("metadata");
+            assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
+            JsonNode container = metadata.get("system").get("container");
+            assertThat(container).isNotNull();
+            assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
