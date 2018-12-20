@@ -36,7 +36,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,8 +83,11 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayload() {
+        return createPayload(SystemInfo.create());
+    }
+
+    private TransactionPayload createPayload(SystemInfo system) {
         Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
-        SystemInfo system = SystemInfo.create();
         final ProcessInfo processInfo = new ProcessInfo("title");
         processInfo.getArgv().add("test");
         return new TransactionPayload(processInfo, service, system);
@@ -114,6 +116,17 @@ class TransactionPayloadJsonSchemaTest {
         assertThat(arc).isEqualTo(system.get("architecture").asText());
         assertThat(hostname).isEqualTo(system.get("hostname").asText());
         assertThat(platform).isEqualTo(system.get("platform").asText());
+    }
+
+    @Test
+    void testContainerInfo() throws IOException {
+        TransactionPayload payload = createPayload(new SystemInfo("x64", "localhost", "platform", "containerId"));
+        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        final String content = serializer.toJsonString(payload);
+        System.out.println(content);
+        JsonNode container = objectMapper.readTree(content).get("system").get("container");
+        assertThat(container).isNotNull();
+        assertThat(container.get("id").textValue()).isEqualTo("containerId");
     }
 
     @Test
@@ -155,7 +168,7 @@ class TransactionPayloadJsonSchemaTest {
         return node.get("spans");
     }
 
-    private void validateDbSpanSchema(JsonNode serializedSpans, boolean shouldContainTags) throws IOException {
+    private void validateDbSpanSchema(JsonNode serializedSpans, boolean shouldContainTags) {
         boolean contextOfDbSpanFound = false;
         for (JsonNode child: serializedSpans) {
             if(child.get("type").textValue().startsWith("db.")) {
