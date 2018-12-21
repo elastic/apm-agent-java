@@ -32,6 +32,8 @@ import com.lmax.disruptor.IgnoreExceptionHandler;
 import com.lmax.disruptor.PhasedBackoffWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Future;
@@ -48,6 +50,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * </p>
  */
 public class ApmServerReporter implements Reporter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ApmServerReporter.class);
 
     private static final EventTranslatorOneArg<ReportingEvent, Transaction> TRANSACTION_EVENT_TRANSLATOR = new EventTranslatorOneArg<ReportingEvent, Transaction>() {
         @Override
@@ -71,6 +75,12 @@ public class ApmServerReporter implements Reporter {
         @Override
         public void translateTo(ReportingEvent event, long sequence, ErrorCapture error) {
             event.setError(error);
+        }
+    };
+    private static final EventTranslator<ReportingEvent> SHUTDOWN_EVENT_TRANSLATOR = new EventTranslator<ReportingEvent>() {
+        @Override
+        public void translateTo(ReportingEvent event, long sequence) {
+            event.shutdownEvent();
         }
     };
 
@@ -206,7 +216,12 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void close() {
-        disruptor.shutdown();
+        disruptor.publishEvent(SHUTDOWN_EVENT_TRANSLATOR);
+        try {
+            disruptor.shutdown(5, TimeUnit.SECONDS);
+        } catch (com.lmax.disruptor.TimeoutException e) {
+            logger.warn("Timeout while shutting down disruptor");
+        }
         reportingEventHandler.close();
         if (metricsReportingScheduler != null) {
             metricsReportingScheduler.shutdown();

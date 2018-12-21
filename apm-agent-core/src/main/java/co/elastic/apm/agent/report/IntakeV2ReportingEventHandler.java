@@ -82,6 +82,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private TimerTask timeoutTask;
     private int errorCount;
     private long gracePeriodEnd;
+    private boolean shutDown;
 
     public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -142,7 +143,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             logger.debug("Receiving {} event (sequence {})", event.getType(), sequence);
         }
         try {
-            handleEvent(event, sequence, endOfBatch);
+            if (!shutDown) {
+                handleEvent(event, sequence, endOfBatch);
+            }
         } finally {
             event.resetState();
         }
@@ -153,6 +156,10 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (event.getType() == null) {
             return;
         } else if (event.getType() == ReportingEvent.ReportingEventType.FLUSH) {
+            flush();
+            return;
+        } else if (event.getType() == ReportingEvent.ReportingEventType.SHUTDOWN) {
+            shutDown = true;
             flush();
             return;
         }

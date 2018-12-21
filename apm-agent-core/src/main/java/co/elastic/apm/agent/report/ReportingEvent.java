@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.ERROR;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.FLUSH;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.METRICS;
+import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SHUTDOWN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.SPAN;
 import static co.elastic.apm.agent.report.ReportingEvent.ReportingEventType.TRANSACTION;
 
@@ -96,12 +97,16 @@ public class ReportingEvent {
         this.type = METRICS;
     }
 
+    public void shutdownEvent() {
+        this.type = SHUTDOWN;
+    }
+
     @Nullable
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 
     enum ReportingEventType {
-        FLUSH, TRANSACTION, SPAN, ERROR, METRICS
+        FLUSH, TRANSACTION, SPAN, ERROR, METRICS, SHUTDOWN
     }
 }
