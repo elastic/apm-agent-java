@@ -20,6 +20,9 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 public abstract class AbstractSpanImpl implements Span {
     @Nonnull
@@ -88,5 +91,17 @@ public abstract class AbstractSpanImpl implements Span {
     public boolean isSampled() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getTraceHeaders() {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.GetTraceHeadersInstrumentation
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public void injectTraceHeaders(BiConsumer<String, String> addHeader) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
     }
 }

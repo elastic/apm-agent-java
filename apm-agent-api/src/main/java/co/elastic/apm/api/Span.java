@@ -20,6 +20,8 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * A span contains information about a specific code path, executed as part of a {@link Transaction}.
@@ -119,8 +121,9 @@ public interface Span {
     void end();
 
     /**
+     * Captures an exception and reports it to the APM server.
      *
-     * @param throwable
+     * @param throwable the exception to report
      */
     void captureException(Throwable throwable);
 
@@ -191,5 +194,41 @@ public interface Span {
      * @return true if this span is recorded and sent to the APM Server
      */
     boolean isSampled();
+
+    /**
+     * Allows for manual propagation of the tracing headers.
+     * <p>
+     * If you want to manually instrument an RPC framework which is not already supported by the auto-instrumentation capabilities of the agent,
+     * you can use this method to inject the required tracing headers into the header section of that framework's request object.
+     * </p>
+     * <p>
+     * Example:
+     * </p>
+     * <pre>
+     * span.injectTraceHeaders(request::addHeader);
+     * </pre>
+     * <p>
+     * Note: This method can only be used on Java 8+.
+     * If you are stuck on Java 7, use {@link #getTraceHeaders()}
+     * </p>
+     *
+     * @param addHeader tells the agent how to inject a header into the request object
+     * @since 1.3.0
+     */
+    // implementation note:
+    // depends on the fact that most JVMs link the parameters of a method lazily so calling methods other than this on JDK 7 works fine
+    void injectTraceHeaders(BiConsumer<String, String> addHeader);
+
+    /**
+     * Allows for manual propagation of the tracing headers.
+     * <p>
+     * Note: If you are using Java 8 or newer, it is recommended to use {@link #injectTraceHeaders(BiConsumer)}
+     * </p>
+     *
+     * @return a map of headers which should be included in the outgoing request
+     * @since 1.3.0
+     */
+    @Nonnull
+    Map<String, String> getTraceHeaders();
 
 }

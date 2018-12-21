@@ -21,6 +21,7 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -36,7 +37,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.pool.TypePool;
@@ -107,7 +107,7 @@ public class ElasticApmAgent {
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
-            .with(MethodGraph.Compiler.ForDeclaredMethods.INSTANCE);
+            .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
         AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
@@ -161,7 +161,7 @@ public class ElasticApmAgent {
                         try {
                             typeMatches = advice.getTypeMatcher().matches(typeDescription);
                         } catch (Exception ignored) {
-                            // happens for example on WebSphere, not sure why ¯\_(ツ)_/¯
+                            // could be because of a missing type
                             typeMatches = false;
                         }
                         if (typeMatches) {
@@ -186,7 +186,13 @@ public class ElasticApmAgent {
                     public boolean matches(MethodDescription target) {
                         long start = System.nanoTime();
                         try {
-                            final boolean matches = advice.getMethodMatcher().matches(target);
+                            boolean matches;
+                            try {
+                                matches = advice.getMethodMatcher().matches(target);
+                            } catch (Exception ignored) {
+                                // could be because of a missing type
+                                matches = false;
+                            }
                             if (matches) {
                                 logger.debug("Method match for advice {}: {} matches {}",
                                     advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);

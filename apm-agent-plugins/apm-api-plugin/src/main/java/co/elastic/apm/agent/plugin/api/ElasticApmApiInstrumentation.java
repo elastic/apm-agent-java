@@ -19,16 +19,17 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -46,7 +47,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.ElasticApm");
+        return named("co.elastic.apm.api.ElasticApmJava7");
     }
 
     @Override
@@ -64,6 +65,52 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
                 transaction = tracer.startTransaction();
+            }
+        }
+    }
+
+    @IgnoreJRERequirement
+    public static class StartTransactionWithRemoteParentInstrumentation extends ElasticApmApiInstrumentation {
+
+        public StartTransactionWithRemoteParentInstrumentation() {
+            super(named("doStartTransactionWithRemoteParentFunction"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
+                                               @Advice.Argument(0) @Nullable Function<String, String> getFirstHeader,
+                                               @Advice.Argument(1) @Nullable Function<String, Iterable<String>> getAllHeaders) {
+            if (tracer != null) {
+                if (getFirstHeader != null) {
+                    transaction = tracer.startTransaction(TraceContext.fromHeaders(), getFirstHeader);
+                } else {
+                    transaction = tracer.startTransaction();
+                }
+            }
+        }
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return named("co.elastic.apm.api.ElasticApm");
+        }
+    }
+
+    public static class StartTransactionWithRemoteParentInstrumentationMap extends ElasticApmApiInstrumentation {
+        public StartTransactionWithRemoteParentInstrumentationMap() {
+            super(named("doStartTransactionWithRemoteParentMap"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
+                                               @Advice.Argument(0) @Nullable Map<String, ? extends Iterable<String>> headers) {
+            if (tracer != null) {
+                if (headers != null) {
+                    transaction = tracer.startTransaction(TraceContext.fromMap(), headers);
+                } else {
+                    transaction = tracer.startTransaction();
+                }
             }
         }
     }

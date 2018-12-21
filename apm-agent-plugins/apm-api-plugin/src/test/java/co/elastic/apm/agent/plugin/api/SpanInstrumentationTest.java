@@ -20,12 +20,17 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Scope;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,5 +97,37 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         final Transaction transaction = ElasticApm.startTransaction();
         assertThat(transaction.isSampled()).isTrue();
         assertThat(transaction.createSpan().isSampled()).isTrue();
+    }
+
+    @Test
+    void testTraceHeadersNoop() {
+        assertContainsNoTracingHeaders(ElasticApm.currentSpan());
+        assertContainsNoTracingHeaders(ElasticApm.currentTransaction());
+    }
+
+    @Test
+    void testTraceHeaders() {
+        assertContainsTracingHeaders(span);
+        assertContainsTracingHeaders(transaction);
+    }
+
+    private void assertContainsNoTracingHeaders(Span span) {
+        try (Scope scope = span.activate()) {
+            final Map<String, String> tracingHeaders = new HashMap<>();
+            span.injectTraceHeaders(tracingHeaders::put);
+            span.injectTraceHeaders(null);
+            Stream.of(tracingHeaders, span.getTraceHeaders()).forEach(headers -> assertThat(headers).isEmpty());
+        }
+    }
+
+    private void assertContainsTracingHeaders(Span span) {
+        try (Scope scope = span.activate()) {
+            final Map<String, String> tracingHeaders = new HashMap<>();
+            span.injectTraceHeaders(tracingHeaders::put);
+            span.injectTraceHeaders(null);
+            final String traceparent = tracer.activeSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+            Stream.of(tracingHeaders, span.getTraceHeaders())
+                .forEach(headers -> assertThat(headers).containsEntry(TraceContext.TRACE_PARENT_HEADER, traceparent));
+        }
     }
 }

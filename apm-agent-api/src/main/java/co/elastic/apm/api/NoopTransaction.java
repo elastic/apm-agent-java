@@ -20,6 +20,9 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 enum NoopTransaction implements Transaction {
 
@@ -100,5 +103,16 @@ enum NoopTransaction implements Transaction {
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getTraceHeaders() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public void injectTraceHeaders(BiConsumer<String, String> addHeader) {
+        // noop
     }
 }
