@@ -22,7 +22,6 @@ package co.elastic.apm.agent.matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static co.elastic.apm.agent.matcher.WildcardMatcher.indexOfIgnoreCase;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
@@ -38,6 +37,7 @@ class WildcardMatcherTest {
             softly.assertThat(matcher.matches("foobar")).isTrue();
             softly.assertThat(matcher.matches("bar")).isFalse();
             softly.assertThat(matcher.matches("barfoo")).isFalse();
+            softly.assertThat(matcher.matches("rfoo")).isFalse();
         });
     }
 
@@ -200,6 +200,7 @@ class WildcardMatcherTest {
             softly.assertThat(matcher.matches("foobar")).isFalse();
             softly.assertThat(matcher.matches("bar")).isFalse();
             softly.assertThat(matcher.matches("barfoo")).isTrue();
+            softly.assertThat(matcher.matches("foor")).isFalse();
         });
     }
 
