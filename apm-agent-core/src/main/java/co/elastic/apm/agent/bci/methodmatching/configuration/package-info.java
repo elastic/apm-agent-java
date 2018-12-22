@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.bci.methodmatching;
+package co.elastic.apm.agent.bci.methodmatching.configuration;
 
 import co.elastic.apm.agent.annotation.NonnullApi;

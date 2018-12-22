@@ -243,6 +243,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
+        .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
             "The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
@@ -252,13 +253,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
             "\n" +
             "A few examples:\n" +
+            "\n" +
             " - `org.example.MyClass#myMethod`\n" +
             " - `org.example.MyClass#myMethod()`\n" +
             " - `org.example.MyClass#myMethod(java.lang.String)`\n" +
             " - `org.example.MyClass#myMe*od(java.lang.String, int)`\n" +
-            " - `org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
-            " - `org.example.MyClas*#myMe*od(*.String, int[])`\n" +
-            " - `public org.example.services.*.*Service#*`\n")
+            " - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
+            " - `* org.example.MyClas*#myMe*od(*.String, int[])`\n" +
+            " - `public org.example.services.*.*Service#*`\n" +
+            "\n" +
+            "NOTE: Only use wildcards if necessary.\n" +
+            "The more methods you match to more overhead will be caused by the agent.\n" +
+            "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).")
         .buildWithDefault(Collections.singletonList(MethodMatcher.of("org.springframework.web.servlet.DispatcherServlet#render(*, *, *)")));
 
     public boolean isActive() {

@@ -120,7 +120,7 @@ public abstract class WildcardMatcher {
                 !isLast || matcher.endsWith(WILDCARD),
                 ignoreCase));
         }
-        return new CompoundWildcardMatcher(wildcardString, matchers);
+        return new CompoundWildcardMatcher(wildcardString, matcher, matchers);
     }
 
     /**
@@ -227,8 +227,13 @@ public abstract class WildcardMatcher {
 
     @Override
     public boolean equals(Object obj) {
+        if (!(obj instanceof WildcardMatcher)) {
+            return false;
+        }
         return toString().equals(obj.toString());
     }
+
+    public abstract String getMatcher();
 
     /**
      * This {@link WildcardMatcher} supports wildcards in the middle of the matcher by decomposing the matcher into several
@@ -236,10 +241,12 @@ public abstract class WildcardMatcher {
      */
     static class CompoundWildcardMatcher extends WildcardMatcher {
         private final String wildcardString;
+        private final String matcher;
         private final List<SimpleWildcardMatcher> wildcardMatchers;
 
-        CompoundWildcardMatcher(String wildcardString, List<SimpleWildcardMatcher> wildcardMatchers) {
+        CompoundWildcardMatcher(String wildcardString, String matcher, List<SimpleWildcardMatcher> wildcardMatchers) {
             this.wildcardString = wildcardString;
+            this.matcher = matcher;
             this.wildcardMatchers = wildcardMatchers;
         }
 
@@ -274,6 +281,11 @@ public abstract class WildcardMatcher {
         @Override
         public String toString() {
             return wildcardString;
+        }
+
+        @Override
+        public String getMatcher() {
+            return matcher;
         }
     }
 
@@ -336,6 +348,11 @@ public abstract class WildcardMatcher {
             } else {
                 return -1;
             }
+        }
+
+        @Override
+        public String getMatcher() {
+            return matcher;
         }
     }
 }
