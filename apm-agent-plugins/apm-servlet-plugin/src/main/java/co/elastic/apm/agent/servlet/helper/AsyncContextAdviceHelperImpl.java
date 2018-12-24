@@ -21,26 +21,50 @@ package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.servlet.AsyncInstrumentation;
 import co.elastic.apm.agent.servlet.ServletApiAdvice;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIBUTE;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncContextAdviceHelper<AsyncContext> {
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
 
+    private final ObjectPool<ApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
     private final ElasticApmTracer tracer;
 
     public AsyncContextAdviceHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
+
+        int maxPooledElements = tracer.getConfigurationRegistry().getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
+        asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
+            AtomicQueueFactory.<ApmAsyncListener>newQueue(createBoundedMpmc(maxPooledElements)),
+            false,
+            new ApmAsyncListenerAllocator());
+    }
+
+    ServletTransactionHelper getServletTransactionHelper() {
+        return servletTransactionHelper;
+    }
+
+    private final class ApmAsyncListenerAllocator implements Allocator<ApmAsyncListener> {
+        @Override
+        public ApmAsyncListener createInstance() {
+            return new ApmAsyncListener(AsyncContextAdviceHelperImpl.this);
+        }
     }
 
     @Override
@@ -57,11 +81,15 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
             // specifying the request and response is important
             // otherwise AsyncEvent.getSuppliedRequest returns null per spec
             // however, only some application server like WebSphere actually implement it that way
-            asyncContext.addListener(new ApmAsyncListener(servletTransactionHelper, transaction),
+            asyncContext.addListener(asyncListenerObjectPool.createInstance().withTransaction(transaction),
                 asyncContext.getRequest(), asyncContext.getResponse());
 
             request.setAttribute(ASYNC_ATTRIBUTE, Boolean.TRUE);
             request.setAttribute(TRANSACTION_ATTRIBUTE, transaction);
         }
+    }
+
+    void recycle(ApmAsyncListener apmAsyncListener) {
+        asyncListenerObjectPool.recycle(apmAsyncListener);
     }
 }

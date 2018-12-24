@@ -179,31 +179,60 @@ public abstract class AbstractServletContainerIntegrationTest {
     public void testTransactionReporting() throws Exception {
         for (String pathToTest : getPathsToTest()) {
             mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+            executeRequest(pathToTest, "Hello World", 200);
+            String transactionId = assertTransactionReported(pathToTest, 200);
+            assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+            validateMetadata();
+        }
+    }
 
-            final Response response = httpClient.newCall(new Request.Builder()
-                .get()
-                .url(getBaseUrl() + pathToTest)
-                .build())
-                .execute();
-            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(200);
-            final ResponseBody responseBody = response.body();
-            assertThat(responseBody).isNotNull();
-            assertThat(responseBody.string()).contains("Hello World");
+    @Test
+    public void testSpanErrorReporting() throws Exception {
+        for (String pathToTest : getPathsToTest()) {
+            mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+            executeRequest(pathToTest + "?cause_db_error=true", "DB Error", 200);
+            String transactionId = assertTransactionReported(pathToTest, 200);
+            assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+            assertErrorContent(500, this::getReportedErrors, transactionId, "Column \"NON_EXISTING_COLUMN\" not found");
+        }
+    }
 
-            final List<JsonNode> reportedTransactions = assertContainsOneEntryReported(500, this::getReportedTransactions);
-            JsonNode transaction = reportedTransactions.iterator().next();
-            assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(contextPath + pathToTest);
-            String transactionId = reportedTransactions.iterator().next().get("id").textValue();
-            // TODO make that less hacky
-            if (!pathToTest.equals("/index.jsp")) {
-                assertSpansTransactionId(500, this::getReportedSpans, transactionId);
-                validateMetadata();
+    @Test
+    public void testTransactionErrorReporting() throws Exception {
+        for (String pathToTest : getPathsToTestErrors()) {
+            mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+            executeRequest(pathToTest + "?cause_transaction_error=true", "", 500);
+            String transactionId = assertTransactionReported(pathToTest, 500);
+            assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+            // we currently only report errors when Exceptions are caught, still this test is relevant for response code capturing
+            if (isExpectedStacktrace(pathToTest)) {
+                assertErrorContent(500, this::getReportedErrors, transactionId, "Transaction failure");
             }
         }
     }
 
+    public String assertTransactionReported(String pathToTest, int expectedResponseCode) throws IOException {
+        final List<JsonNode> reportedTransactions = assertContainsOneEntryReported(500, this::getReportedTransactions);
+        JsonNode transaction = reportedTransactions.iterator().next();
+        assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(contextPath + pathToTest);
+        assertThat(transaction.get("context").get("response").get("status_code").intValue()).isEqualTo(expectedResponseCode);
+        return transaction.get("id").textValue();
+    }
+
+    public void executeRequest(String pathToTest, String expectedContent, int expectedResponseCode) throws IOException, InterruptedException {
+        Response response = httpClient.newCall(new Request.Builder()
+            .get()
+            .url(getBaseUrl() + pathToTest)
+            .build())
+            .execute();
+        assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+        final ResponseBody responseBody = response.body();
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.string()).contains(expectedContent);
+    }
+
     @Nonnull
-    private List<JsonNode> assertContainsOneEntryReported(int timeoutMs, Supplier<List<JsonNode>> supplier) throws IOException {
+    private List<JsonNode> assertContainsOneEntryReported(int timeoutMs, Supplier<List<JsonNode>> supplier) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
@@ -214,7 +243,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    private void assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
+    private List<JsonNode> assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedSpans;
         do {
@@ -224,6 +253,23 @@ public abstract class AbstractServletContainerIntegrationTest {
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
         }
+        return reportedSpans;
+    }
+
+    @Nonnull
+    private List<JsonNode> assertErrorContent(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId, String errorMessage) {
+        long start = System.currentTimeMillis();
+        List<JsonNode> reportedErrors;
+        do {
+            reportedErrors = supplier.get();
+        } while (reportedErrors.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        assertThat(reportedErrors.size()).isEqualTo(1);
+        for (JsonNode error : reportedErrors) {
+            assertThat(error.get("transaction_id").textValue()).isEqualTo(transactionId);
+            assertThat(error.get("exception").get("message").textValue()).contains(errorMessage);
+            assertThat(error.get("exception").get("stacktrace").size()).isGreaterThanOrEqualTo(1);
+        }
+        return reportedErrors;
     }
 
     @Nonnull
@@ -247,6 +293,15 @@ public abstract class AbstractServletContainerIntegrationTest {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
+    @NotNull
+    protected List<String> getPathsToTestErrors() {
+        return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
+    }
+
+    protected boolean isExpectedStacktrace(String path) {
+        return !path.equals("/async-start-servlet");
+    }
+
     private String getBaseUrl() {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort) + contextPath;
     }
@@ -260,6 +315,12 @@ public abstract class AbstractServletContainerIntegrationTest {
     private List<JsonNode> getReportedSpans() {
         final List<JsonNode> transactions = getEvents("span");
         transactions.forEach(mockReporter::verifySpanSchema);
+        return transactions;
+    }
+
+    private List<JsonNode> getReportedErrors() {
+        final List<JsonNode> transactions = getEvents("error");
+        transactions.forEach(mockReporter::verifyErrorSchema);
         return transactions;
     }
 

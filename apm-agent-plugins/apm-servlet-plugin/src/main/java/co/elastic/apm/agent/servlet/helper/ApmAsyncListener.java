@@ -21,32 +21,53 @@ package co.elastic.apm.agent.servlet.helper;
 
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
 
+import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 /**
  * Based on brave.servlet.ServletRuntime$TracingAsyncListener (under Apache license 2.0)
+ *
+ * onComplete is always called, even if onError/onTimeout is called, as per the specifications.
+ * However, when onError/onTimeout is called, the Response that can be obtained through the event arg is not yet set with the right
+ * status code, for that we need to rely on onComplete. On the the other hand, the event arg that is received in onComplete does not
+ * contain the Throwable that comes with the event in the preceding onError, so we need to keep it.
+ *
+ * After testing on Payara, WildFly, Tomcat, WebSphere Liberty and Jetty, here is a summary of subtle differences:
+ *  - Liberty is the only one that will invoke onError following an AsyncListener.start invocation with a Runnable that ends with Exception
+ *  - WildFly will not resume the Response until timed-out in the same scenario, but it invokes onTimeout, which is good for our tests
+ *  - Jetty on the same scenario will just go crazy endlessly trying to run the Runnable over and over
+ *  - Some containers may release the response after onError/onTimeout to return to the client, meaning that onComplete is called afterwards
+ *  - Jetty fails to invoke onError after AsyncContext.dispatch to a Servlet that ends with ServletException
  */
-public class ApmAsyncListener implements AsyncListener {
-    private static final AtomicIntegerFieldUpdater<ApmAsyncListener> EVENT_COUNTER_UPDATER =
-        AtomicIntegerFieldUpdater.newUpdater(ApmAsyncListener.class, "endEventCounter");
+public class ApmAsyncListener implements AsyncListener, Recyclable {
 
+    private final AtomicBoolean completed = new AtomicBoolean(false);
+    private final AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl;
     private final ServletTransactionHelper servletTransactionHelper;
-    private final Transaction transaction;
-    private volatile int endEventCounter = 0;
+    @Nullable
+    private volatile Transaction transaction;
+    @Nullable
+    private volatile Throwable throwable;
 
-    ApmAsyncListener(ServletTransactionHelper servletTransactionHelper, Transaction transaction) {
-        this.servletTransactionHelper = servletTransactionHelper;
+    ApmAsyncListener(AsyncContextAdviceHelperImpl asyncContextAdviceHelperImpl) {
+        this.asyncContextAdviceHelperImpl = asyncContextAdviceHelperImpl;
+        this.servletTransactionHelper = asyncContextAdviceHelperImpl.getServletTransactionHelper();
+    }
+
+    ApmAsyncListener withTransaction(Transaction transaction) {
         this.transaction = transaction;
+        return this;
     }
 
     @Override
@@ -56,12 +77,31 @@ public class ApmAsyncListener implements AsyncListener {
 
     @Override
     public void onTimeout(AsyncEvent event) {
-        endTransaction(event);
+        throwable = event.getThrowable();
+        /*
+            NOTE: HTTP status code may not have been set yet, so we do not call endTransaction() from here.
+
+            According to the Servlet 3 specification
+            (http://download.oracle.com/otn-pub/jcp/servlet-3.0-fr-eval-oth-JSpec/servlet-3_0-final-spec.pdf, section 2.3.3.3),
+            onComplete() should always be called by the container even in the case of timeout or error, and the final
+            HTTP status code should be set by then. So we'll just defer to onComplete() for finalizing the span and do
+            nothing here.
+        */
     }
 
     @Override
     public void onError(AsyncEvent event) {
-        endTransaction(event);
+        throwable = event.getThrowable();
+        /*
+            NOTE: HTTP status code may not have been set yet, so we only hold a reference to the related error that may not be
+            otherwise available, but not calling endTransaction() from here.
+
+            According to the Servlet 3 specification
+            (http://download.oracle.com/otn-pub/jcp/servlet-3.0-fr-eval-oth-JSpec/servlet-3_0-final-spec.pdf, section 2.3.3.3),
+            onComplete() should always be called by the container even in the case of timeout or error, and the final
+            HTTP status code should be set by then. So we'll just defer to onComplete() for finalizing the span and do
+            nothing here.
+        */
     }
 
     /**
@@ -80,31 +120,46 @@ public class ApmAsyncListener implements AsyncListener {
     // (see class-level Javadoc)
     private void endTransaction(AsyncEvent event) {
         // To ensure transaction is ended only by a single event
-        if (EVENT_COUNTER_UPDATER.getAndIncrement(this) > 0) {
+        if (completed.getAndSet(true) || transaction == null) {
             return;
         }
 
-        HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
-        request.removeAttribute(TRANSACTION_ATTRIBUTE);
+        try {
+            HttpServletRequest request = (HttpServletRequest) event.getSuppliedRequest();
+            request.removeAttribute(TRANSACTION_ATTRIBUTE);
 
-        HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
-        final Response resp = transaction.getContext().getResponse();
-        if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
-            for (String headerName : response.getHeaderNames()) {
-                resp.addHeader(headerName, response.getHeaders(headerName));
+            HttpServletResponse response = (HttpServletResponse) event.getSuppliedResponse();
+            final Response resp = transaction.getContext().getResponse();
+            if (transaction.isSampled() && servletTransactionHelper.isCaptureHeaders()) {
+                for (String headerName : response.getHeaderNames()) {
+                    resp.addHeader(headerName, response.getHeaders(headerName));
+                }
             }
+            // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
+            // so only call this method if necessary
+            final String contentTypeHeader = request.getHeader("Content-Type");
+            final Map<String, String[]> parameterMap;
+            if (transaction.isSampled() && servletTransactionHelper.captureParameters(request.getMethod(), contentTypeHeader)) {
+                parameterMap = request.getParameterMap();
+            } else {
+                parameterMap = null;
+            }
+            Throwable throwableToSend = event.getThrowable();
+            if (throwableToSend == null) {
+                throwableToSend = throwable;
+            }
+            servletTransactionHelper.onAfter(transaction, throwableToSend,
+                response.isCommitted(), response.getStatus(), request.getMethod(), parameterMap,
+                request.getServletPath(), request.getPathInfo(), contentTypeHeader);
+        } finally {
+            asyncContextAdviceHelperImpl.recycle(this);
         }
-        // request.getParameterMap() may allocate a new map, depending on the servlet container implementation
-        // so only call this method if necessary
-        final String contentTypeHeader = request.getHeader("Content-Type");
-        final Map<String, String[]> parameterMap;
-        if (transaction.isSampled() && servletTransactionHelper.captureParameters(request.getMethod(), contentTypeHeader)) {
-            parameterMap = request.getParameterMap();
-        } else {
-            parameterMap = null;
-        }
-        servletTransactionHelper.onAfter(transaction, event.getThrowable(),
-            response.isCommitted(), response.getStatus(), request.getMethod(), parameterMap,
-            request.getServletPath(), request.getPathInfo(), contentTypeHeader);
+    }
+
+    @Override
+    public void resetState() {
+        transaction = null;
+        throwable = null;
+        completed.set(false);
     }
 }

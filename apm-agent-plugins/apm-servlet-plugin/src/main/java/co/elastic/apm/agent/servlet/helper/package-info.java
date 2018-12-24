@@ -54,7 +54,7 @@
  *             App CL (Servlet API)         uses AsyncContextAdviceHelperImpl from Helper CL
  *               /              \
  *              v               v
- * WebApp CL (user code/libs)   Helper CL   implements AsyncContextAdviceHelperImpl
+ * WebApp CL (user code/libs)   Helper CL   loads AsyncContextAdviceHelperImpl and ApmAsyncListener
  * </pre>
  */
 @NonnullApi

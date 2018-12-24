@@ -23,22 +23,41 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+
+import static co.elastic.webapp.Constants.CAUSE_DB_ERROR;
+import static co.elastic.webapp.Constants.CAUSE_TRANSACTION_ERROR;
+import static co.elastic.webapp.Constants.TRANSACTION_FAILURE;
 
 public class AsyncStartTestServlet extends HttpServlet {
 
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
         final AsyncContext ctx = req.startAsync();
+        ctx.setTimeout(500);
+        final boolean causeDbError = req.getParameter(CAUSE_DB_ERROR) != null;
+        final boolean causeTransactionError = req.getParameter(CAUSE_TRANSACTION_ERROR) != null;
         ctx.start(new Runnable() {
             @Override
             public void run() {
+                Exception cause = null;
+                String content;
                 try {
-                    String dbResult = TestDAO.instance().queryDb();
-                    ctx.getResponse().getWriter().append(dbResult);
-                    ctx.complete();
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to query DB", e);
+                    content = TestDAO.instance().queryDb(causeDbError);
+                } catch (SQLException e) {
+                    cause = e;
+                    content = Constants.DB_ERROR;
                 }
+                try {
+                    ctx.getResponse().getWriter().append(content);
+                } catch (IOException e) {
+                    cause = e;
+                }
+                if (causeTransactionError) {
+                    throw new RuntimeException(TRANSACTION_FAILURE, cause);
+                }
+                ctx.complete();
             }
         });
     }

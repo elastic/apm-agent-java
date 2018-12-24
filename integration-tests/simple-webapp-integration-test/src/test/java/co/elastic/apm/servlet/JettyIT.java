@@ -19,12 +19,14 @@
  */
 package co.elastic.apm.servlet;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class JettyIT extends AbstractServletContainerIntegrationTest {
@@ -46,5 +48,15 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "Jetty {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{{"9.2"}, {"9.3"}, {"9.4"}});
+    }
+
+    @NotNull
+    protected List<String> getPathsToTestErrors() {
+        return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet");
+    }
+
+    @Override
+    protected boolean isExpectedStacktrace(String path) {
+        return !path.equals("/async-dispatch-servlet");
     }
 }

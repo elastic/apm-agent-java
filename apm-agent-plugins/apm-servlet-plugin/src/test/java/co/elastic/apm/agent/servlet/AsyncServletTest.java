@@ -104,7 +104,7 @@ public class AsyncServletTest extends AbstractServletTest {
 
     @Test
     void testAsyncTimeout() throws Exception {
-        assertHasOneTransaction("/async-timeout", body -> true, 200);
+        assertHasOneTransaction("/async-timeout", body -> true, 500);
     }
 
     @Test

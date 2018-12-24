@@ -21,18 +21,17 @@ package co.elastic.webapp;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-class TestDAO {
+public class TestDAO {
 
     private static final TestDAO INSTANCE = new TestDAO();
 
     private Connection connection;
 
-    static TestDAO instance() {
+    public static TestDAO instance() {
         return INSTANCE;
     }
 
@@ -49,10 +48,10 @@ class TestDAO {
         }
     }
 
-    String queryDb() throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM ELASTIC_APM WHERE FOO=$1");
-        preparedStatement.setInt(1, 1);
-        ResultSet resultSet = preparedStatement.executeQuery();
+    public String queryDb(boolean fail) throws SQLException {
+        Statement statement = connection.createStatement();
+        String query = String.format("SELECT * FROM ELASTIC_APM WHERE %s=1", fail ? "NON_EXISTING_COLUMN" : "FOO");
+        ResultSet resultSet = statement.executeQuery(query);
         resultSet.next();
         return resultSet.getString("bar");
     }
