@@ -175,8 +175,18 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
+    /**
+     * NOTE: This test class should contain a single test method, otherwise multiple instances may coexist and cause port clash due to the
+     * debug proxy
+     */
     @Test
-    public void testTransactionReporting() throws Exception {
+    public void testAllScenarios() throws Exception {
+        testTransactionReporting();
+        testTransactionErrorReporting();
+        testSpanErrorReporting();
+    }
+
+    private void testTransactionReporting() throws Exception {
         for (String pathToTest : getPathsToTest()) {
             mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
             executeRequest(pathToTest, "Hello World", 200);
@@ -186,8 +196,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    @Test
-    public void testSpanErrorReporting() throws Exception {
+    private void testSpanErrorReporting() throws Exception {
         for (String pathToTest : getPathsToTest()) {
             mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
             executeRequest(pathToTest + "?cause_db_error=true", "DB Error", 200);
@@ -197,8 +206,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    @Test
-    public void testTransactionErrorReporting() throws Exception {
+    private void testTransactionErrorReporting() throws Exception {
         for (String pathToTest : getPathsToTestErrors()) {
             mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
             executeRequest(pathToTest + "?cause_transaction_error=true", "", 500);
