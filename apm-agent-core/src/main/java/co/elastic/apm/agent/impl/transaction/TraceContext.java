@@ -23,13 +23,11 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.HexUtils;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * This is an implementation of the
@@ -81,18 +79,6 @@ public class TraceContext implements Recyclable {
                 return child.asChildOf(traceparent);
             }
             return false;
-        }
-    };
-
-    private static final ChildContextCreator<Map<String, ? extends Iterable<String>>> FROM_MAP = new ChildContextCreator<Map<String, ? extends Iterable<String>>>() {
-        @Override
-        public boolean asChildOf(TraceContext child, Map<String, ? extends Iterable<String>> headers) {
-            final Iterator<String> iterator = headers.get(TRACE_PARENT_HEADER).iterator();
-            if (iterator.hasNext()) {
-                return child.asChildOf(iterator.next());
-            } else {
-                return false;
-            }
         }
     };
 
@@ -176,25 +162,6 @@ public class TraceContext implements Recyclable {
 
     public static ChildContextCreator<?> asRoot() {
         return AS_ROOT;
-    }
-
-    @IgnoreJRERequirement
-    public static ChildContextCreator<Function<String, String>> fromHeaders() {
-        return new ChildContextCreator<Function<String, String>>() {
-            @Override
-            public boolean asChildOf(TraceContext child, Function<String, String> getFirstHeader) {
-                final String traceParentHeader = getFirstHeader.apply(TRACE_PARENT_HEADER);
-                if (traceParentHeader != null) {
-                    return child.asChildOf(traceParentHeader);
-                } else {
-                    return false;
-                }
-            }
-        };
-    }
-
-    public static ChildContextCreator<Map<String, ? extends Iterable<String>>> fromMap() {
-        return FROM_MAP;
     }
 
     public boolean asChildOf(String traceParentHeader) {

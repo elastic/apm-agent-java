@@ -33,7 +33,6 @@ import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.Map;
 
-import static net.bytebuddy.matcher.ElementMatchers.failSafe;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -45,7 +44,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
     public AbstractSpanInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
-        this.methodMatcher = failSafe(methodMatcher);
+        this.methodMatcher = methodMatcher;
     }
 
     @Override
