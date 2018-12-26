@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -116,7 +115,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
-            Stream.of(tracingHeaders, span.getTraceHeaders()).forEach(headers -> assertThat(headers).isEmpty());
+            assertThat(tracingHeaders).isEmpty();
         }
     }
 
@@ -126,8 +125,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
             final String traceparent = tracer.activeSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
-            Stream.of(tracingHeaders, span.getTraceHeaders())
-                .forEach(headers -> assertThat(headers).containsEntry(TraceContext.TRACE_PARENT_HEADER, traceparent));
+            assertThat(tracingHeaders).containsEntry(TraceContext.TRACE_PARENT_HEADER, traceparent);
         }
     }
 }

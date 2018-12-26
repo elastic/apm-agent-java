@@ -20,9 +20,6 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
-import java.util.Collections;
-import java.util.Map;
-import java.util.function.BiConsumer;
 
 enum NoopSpan implements Span {
     INSTANCE;
@@ -86,14 +83,8 @@ enum NoopSpan implements Span {
         return INSTANCE;
     }
 
-    @Nonnull
     @Override
-    public Map<String, String> getTraceHeaders() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public void injectTraceHeaders(BiConsumer<String, String> addHeader) {
+    public void injectTraceHeaders(HeaderInjector headerInjector) {
         // noop
     }
 }

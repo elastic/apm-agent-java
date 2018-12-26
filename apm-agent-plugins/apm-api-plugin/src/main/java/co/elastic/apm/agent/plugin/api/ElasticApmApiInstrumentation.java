@@ -28,8 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import javax.annotation.Nullable;
-import java.util.Map;
-import java.util.function.Function;
+import java.lang.invoke.MethodHandle;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -47,7 +46,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("co.elastic.apm.api.ElasticApmJava7");
+        return named("co.elastic.apm.api.ElasticApm");
     }
 
     @Override
@@ -79,35 +78,14 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
-                                               @Advice.Argument(0) @Nullable Function<String, String> getFirstHeader,
-                                               @Advice.Argument(1) @Nullable Function<String, Iterable<String>> getAllHeaders) {
+                                               @Advice.Argument(0) MethodHandle getFirstHeader,
+                                               @Advice.Argument(1) @Nullable Object headerExtractor,
+                                               @Advice.Argument(0) MethodHandle getAllHeaders,
+                                               @Advice.Argument(3) @Nullable Object headersExtractor) throws Throwable {
             if (tracer != null) {
-                if (getFirstHeader != null) {
-                    transaction = tracer.startTransaction(TraceContext.fromHeaders(), getFirstHeader);
-                } else {
-                    transaction = tracer.startTransaction();
-                }
-            }
-        }
-
-        @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return named("co.elastic.apm.api.ElasticApm");
-        }
-    }
-
-    public static class StartTransactionWithRemoteParentInstrumentationMap extends ElasticApmApiInstrumentation {
-        public StartTransactionWithRemoteParentInstrumentationMap() {
-            super(named("doStartTransactionWithRemoteParentMap"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
-                                               @Advice.Argument(0) @Nullable Map<String, ? extends Iterable<String>> headers) {
-            if (tracer != null) {
-                if (headers != null) {
-                    transaction = tracer.startTransaction(TraceContext.fromMap(), headers);
+                if (headerExtractor != null) {
+                    final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_HEADER);
+                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader);
                 } else {
                     transaction = tracer.startTransaction();
                 }

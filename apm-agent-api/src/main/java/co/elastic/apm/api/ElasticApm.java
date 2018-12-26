@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,11 +19,9 @@
  */
 package co.elastic.apm.api;
 
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
-
 import javax.annotation.Nonnull;
-import java.util.Map;
-import java.util.function.Function;
+import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 
 /**
  * This class is the main entry point of the public API for the Elastic APM agent.
@@ -38,20 +36,53 @@ import java.util.function.Function;
  * ElasticApm.currentTransaction().setName("SuchController#muchMethod");
  * }</pre>
  */
-/*
- * Implementation note:
- * The parameters of static methods are linked eagerly.
- * In order to be able to refer to Java 8 types but still be Java 7 compatible,
- * The Java 7 compatible code is extracted to a super class.
- * We take advantage of the fact that static methods are inherited as well.
- * So on Java 8, you can just call ElasticApm.startTransaction(),
- * even though that method is defined in ElasticApm's super class ElasticApmJava7.
- *
- * When stuck on Java 7, just call ElasticApmJava7.startTransaction().
- * Observation: actually, it also seems to work to call ElasticApm.startTransaction().
- * I assume the JVM does not eagerly link the methods when only referring to static methods of the super class.
- */
-public class ElasticApm extends ElasticApmJava7 {
+public class ElasticApm {
+
+    ElasticApm() {
+        // do not instantiate
+    }
+
+    /**
+     * Use this method to create a custom transaction.
+     * <p>
+     * Note that the agent will do this for you automatically when ever your application receives an incoming HTTP request.
+     * You only need to use this method to create custom transactions.
+     * </p>
+     * <p>
+     * It is important to call {@link Transaction#end()} when the transaction has ended.
+     * A best practice is to use the transaction in a try-catch-finally block.
+     * Example:
+     * </p>
+     * <pre>
+     * Transaction transaction = ElasticApm.startTransaction();
+     * try {
+     *     transaction.setName("MyController#myAction");
+     *     transaction.setType(Transaction.TYPE_REQUEST);
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     transaction.captureException(e);
+     *     throw e;
+     * } finally {
+     *     transaction.end();
+     * }
+     * </pre>
+     * <p>
+     * Note: Transactions created via this method can not be retrieved by calling {@link #currentSpan()} or {@link #currentTransaction()}.
+     * See {@link Transaction#activate()} on how to achieve that.
+     * </p>
+     *
+     * @return the started transaction.
+     */
+    @Nonnull
+    public static Transaction startTransaction() {
+        Object transaction = doStartTransaction();
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
+    }
+
+    private static Object doStartTransaction() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.StartTransactionInstrumentation.doStartTransaction
+        return null;
+    }
 
     /**
      * Similar to {@link ElasticApm#startTransaction()} but creates this transaction as the child of a remote parent.
@@ -63,21 +94,16 @@ public class ElasticApm extends ElasticApmJava7 {
      * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader);
      * </pre>
      * <p>
-     * Note: If the protocol supports multi-value headers, use {@link #startTransactionWithRemoteParent(Function, Function)}
-     * </p>
-     * <p>
-     * Note: This method can only be used on Java 8+.
-     * If you are stuck on Java 7, use {@link ElasticApm#startTransactionWithRemoteParent(Map)}.
+     * Note: If the protocol supports multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)}
      * </p>
      *
-     * @param getFirstHeader a function which receives a header name and returns the fist header with that name
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
      * @return the started transaction
      * @since 1.3.0
      */
     @Nonnull
-    @IgnoreJRERequirement
-    public static Transaction startTransactionWithRemoteParent(final Function<String, String> getFirstHeader) {
-        return startTransactionWithRemoteParent(getFirstHeader, null);
+    public static Transaction startTransactionWithRemoteParent(final HeaderExtractor headerExtractor) {
+        return startTransactionWithRemoteParent(headerExtractor, null);
     }
 
     /**
@@ -90,28 +116,90 @@ public class ElasticApm extends ElasticApmJava7 {
      * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
      * </pre>
      * <p>
-     * Note: If the protocol does not support multi-value headers, use {@link #startTransactionWithRemoteParent(Function)}
+     * Note: If the protocol does not support multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor)}
      * </p>
      * <p>
-     * Note: This method can only be used on Java 8+.
-     * If you are stuck on Java 7, use {@link ElasticApm#startTransactionWithRemoteParent(Map)}.
-     * </p>
      *
-     * @param getFirstHeader a function which receives a header name and returns the fist header with that name
-     * @param getAllHeaders  a function which receives a header name and returns all headers with that name
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
+     * @param headersExtractor  a function which receives a header name and returns all headers with that name
      * @return the started transaction
      * @since 1.3.0
      */
     @Nonnull
-    @IgnoreJRERequirement
-    public static Transaction startTransactionWithRemoteParent(Function<String, String> getFirstHeader, Function<String, Iterable<String>> getAllHeaders) {
-        Object transaction = doStartTransactionWithRemoteParentFunction(getFirstHeader, getAllHeaders);
+    public static Transaction startTransactionWithRemoteParent(HeaderExtractor headerExtractor, HeadersExtractor headersExtractor) {
+        Object transaction = doStartTransactionWithRemoteParentFunction(ApiMethodHandles.GET_FIRST_HEADER, headerExtractor,
+            ApiMethodHandles.GET_ALL_HEADERS, headersExtractor);
         return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
     }
 
-    @IgnoreJRERequirement
-    private static Object doStartTransactionWithRemoteParentFunction(Function<String, String> getFirstHeader, Function<String, Iterable<String>> getAllHeaders) {
+    private static Object doStartTransactionWithRemoteParentFunction(MethodHandle getFirstHeader, HeaderExtractor headerExtractor,
+                                                                     MethodHandle getAllHeaders, HeadersExtractor headersExtractor) {
         // co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.StartTransactionWithRemoteParentInstrumentation
         return null;
     }
+
+    /**
+     * Returns the currently running transaction.
+     * <p>
+     * If there is no current transaction, this method will return a noop transaction,
+     * which means that you never have to check for {@code null} values.
+     * </p>
+     * <p>
+     * NOTE: Transactions created via {@link #startTransaction()} can not be retrieved by calling this method.
+     * See {@link Transaction#activate()} on how to achieve that.
+     * </p>
+     *
+     * @return The currently running transaction, or a noop transaction (never {@code null}).
+     */
+    @Nonnull
+    public static Transaction currentTransaction() {
+        Object transaction = doGetCurrentTransaction();
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
+    }
+
+    private static Object doGetCurrentTransaction() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentTransactionInstrumentation.doGetCurrentTransaction
+        return null;
+    }
+
+    /**
+     * Returns the currently active span or transaction.
+     * <p>
+     * If there is no current span, this method will return a noop span,
+     * which means that you never have to check for {@code null} values.
+     * </p>
+     * <p>
+     * Note that even if this method is returning a noop span,
+     * you can still {@link Span#captureException(Throwable) capture exceptions} on it.
+     * These exceptions will not have a link to a Span or a Transaction.
+     * </p>
+     * <p>
+     * NOTE: Transactions created via {@link Span#createSpan()} can not be retrieved by calling this method.
+     * See {@link Span#activate()} on how to achieve that.
+     * </p>
+     *
+     * @return The currently active span, or transaction, or a noop span (never {@code null}).
+     */
+    @Nonnull
+    public static Span currentSpan() {
+        Object span = doGetCurrentSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+
+    private static Object doGetCurrentSpan() {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
+        return null;
+    }
+
+    /**
+     * Captures an exception and reports it to the APM server.
+     *
+     * @param e the exception to record
+     * @deprecated use {@link #currentSpan()}.{@link Span#captureException(Throwable) captureException(Throwable)} instead
+     */
+    @Deprecated
+    public static void captureException(@Nullable Throwable e) {
+        // co.elastic.apm.api.ElasticApmInstrumentation.CaptureExceptionInstrumentation.captureException
+    }
+
 }

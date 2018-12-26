@@ -27,16 +27,14 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 import static net.bytebuddy.matcher.ElementMatchers.failSafe;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
@@ -207,19 +205,19 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    @IgnoreJRERequirement
     public static class InjectTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
 
         public InjectTraceHeadersInstrumentation() {
-            super(named("injectTraceHeaders"));
+            super(named("doInjectTraceHeaders"));
         }
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                           @Nullable @Advice.Argument(0) BiConsumer<String, String> headerConsumer) {
-            if (headerConsumer != null) {
-                headerConsumer.accept(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                                           @Advice.Argument(0) MethodHandle addHeader,
+                                           @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
+            if (headerInjector != null) {
+                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
             }
         }
     }

@@ -120,23 +120,13 @@ NOTE: Transactions created via this method can not be retrieved by calling <<api
 or <<api-current-transaction, `ElasticApm.currentTransaction()`>>.
 See <<api-transaction-activate, `transaction.activate()`>> on how to achieve that.
 
-[float]
-[[api-start-transaction-with-remote-parent-map]]
-==== `Transaction startTransactionWithRemoteParent(Map<String, ? extends Iterable<String>> headers)`
-Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
-
-* `headers`: a map, representing the headers of the incoming request
-
-NOTE: If you are using Java 8 or newer, it is recommended to use <<api-start-transaction-with-remote-parent-function>>
-
-since 1.3.0
 
 [float]
-[[api-start-transaction-with-remote-parent-function]]
-==== `Transaction startTransactionWithRemoteParent(Function<String, String> getFirstHeader)`
+[[api-start-transaction-with-remote-parent-header]]
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)`
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
-* `getFirstHeader`:  a function which receives a header name and returns the fist header with that name
+* `headerExtractor`: a functional interface which receives a header name and returns the fist header with that name
 
 Example:
 
@@ -145,21 +135,19 @@ Example:
 Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader);
 ----
 
-NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-function-function>>
+NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-headers>>
 
-NOTE: This method can only be used on Java 8+.
-If you are stuck on Java 7, use <<api-start-transaction-with-remote-parent-map>>.
 
 since 1.3.0
 
 [float]
-[[api-start-transaction-with-remote-parent-function-function]]
-==== `Transaction startTransactionWithRemoteParent(Function<String, String> getFirstHeader, Function<String, Iterable<String>> getAllHeaders)`
+[[api-start-transaction-with-remote-parent-headers]]
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)`
 
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
-* `getFirstHeader`:  a function which receives a header name and returns the fist header with that name
-* `getAllHeaders`:   a function which receives a header name and returns all headers with that name
+* `headerExtractor`:  a functional interface which receives a header name and returns the fist header with that name
+* `headersExtractor`: a functional interface which receives a header name and returns all headers with that name
 
 Example:
 
@@ -169,12 +157,7 @@ Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::g
 ----
 
 
-NOTE: If the protocol does not support multi-value headers, use {@link #startTransactionWithRemoteParent(Function)}
-
-
-NOTE: This method can only be used on Java 8+.
-If you are stuck on Java 7, use <<api-start-transaction-with-remote-parent-map>>.
-
+NOTE: If the protocol does not support multi-value headers, use <<api-start-transaction-with-remote-parent-header>>
 
 since 1.3.0
 
@@ -454,6 +437,29 @@ NOTE: <<api-transaction-activate>> and `Scope#close()` have to be called on the 
 ==== `boolean isSampled()`
 Returns true if this transaction is recorded and sent to the APM Server
 
+[float]
+[[api-transaction-inject-trace-headers]]
+==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+
+* `headerInjector`: tells the agent how to inject a header into the request object
+
+
+Allows for manual propagation of the tracing headers.
+
+If you want to manually instrument an RPC framework which is not already supported by the auto-instrumentation capabilities of the agent,
+you can use this method to inject the required tracing headers into the header section of that framework's request object.
+
+
+Example:
+
+[source,java]
+----
+span.injectTraceHeaders(request::addHeader);
+----
+
+since 1.3.0
+
+
 //----------------------------
 [float]
 [[api-span]]
@@ -607,3 +613,25 @@ and the <<api-span-add-tag>> method.
 [[api-span-is-sampled]]
 ==== `boolean isSampled()`
 Returns true if this span is recorded and sent to the APM Server
+
+[float]
+[[api-span-inject-trace-headers]]
+==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+
+* `headerInjector`: tells the agent how to inject a header into the request object
+
+
+Allows for manual propagation of the tracing headers.
+
+If you want to manually instrument an RPC framework which is not already supported by the auto-instrumentation capabilities of the agent,
+you can use this method to inject the required tracing headers into the header section of that framework's request object.
+
+
+Example:
+
+[source,java]
+----
+span.injectTraceHeaders(request::addHeader);
+----
+
+since 1.3.0
