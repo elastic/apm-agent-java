@@ -29,6 +29,7 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
+import java.nio.Buffer;
 import java.nio.CharBuffer;
 
 
@@ -47,7 +48,7 @@ public class Db implements Recyclable {
         new Resetter<CharBuffer>() {
             @Override
             public void recycle(CharBuffer object) {
-                object.clear();
+                ((Buffer) object).clear();
             }
         });
 
