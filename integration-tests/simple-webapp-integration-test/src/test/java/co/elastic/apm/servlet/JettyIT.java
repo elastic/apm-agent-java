@@ -31,6 +31,8 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class JettyIT extends AbstractServletContainerIntegrationTest {
 
+    private String version;
+
     public JettyIT(final String version) {
         super(new GenericContainer<>("jetty:" + version)
             .withNetwork(Network.SHARED)
@@ -43,6 +45,8 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
             .withFileSystemBind(pathToWar, "/var/lib/jetty/webapps/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withExposedPorts(8080, 9990), "jetty-application");
+
+        this.version = version;
     }
 
     @Parameterized.Parameters(name = "Jetty {0}")
@@ -57,6 +61,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected boolean isExpectedStacktrace(String path) {
-        return !path.equals("/async-dispatch-servlet");
+        // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
+        return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
     }
 }
