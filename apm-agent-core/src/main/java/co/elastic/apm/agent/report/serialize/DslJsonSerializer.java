@@ -391,17 +391,54 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("system");
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeContainerInfo(system.getContainerInfo());
+        serializeKubernetesInfo(system.getKubernetesInfo());
         writeField("architecture", system.getArchitecture());
         writeField("hostname", system.getHostname());
         writeLastField("platform", system.getPlatform());
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private void serializeContainerInfo(SystemInfo.Container container) {
-        if (container.hasContent()) {
+    private void serializeContainerInfo(@Nullable SystemInfo.Container container) {
+        if (container != null) {
             writeFieldName("container");
             jw.writeByte(JsonWriter.OBJECT_START);
             writeLastField("id", container.getId());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubernetesInfo(@Nullable SystemInfo.Kubernetes kubernetes) {
+        if (kubernetes != null && kubernetes.hasContent()) {
+            writeFieldName("kubernetes");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            serializeKubeNodeInfo(kubernetes.getNode());
+            serializeKubePodInfo(kubernetes.getPod());
+            writeLastField("namespace", kubernetes.getNamespace());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubePodInfo(@Nullable SystemInfo.Kubernetes.Pod pod) {
+        if (pod != null) {
+            writeFieldName("pod");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            String podName = pod.getName();
+            if (podName != null) {
+                writeField("name", podName);
+            }
+            writeLastField("uid", pod.getUid());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubeNodeInfo(@Nullable SystemInfo.Kubernetes.Node node) {
+        if (node != null) {
+            writeFieldName("node");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeLastField("name", node.getName());
             jw.writeByte(JsonWriter.OBJECT_END);
             jw.writeByte(COMMA);
         }
