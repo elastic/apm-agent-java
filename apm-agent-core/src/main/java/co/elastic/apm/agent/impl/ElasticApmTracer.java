@@ -248,6 +248,7 @@ public class ElasticApmTracer {
                     error.getContext().getTags().putAll(span.getContext().getTags());
                 }
                 error.asChildOf(active);
+                error.setTransactionSampled(active.isSampled());
             } else {
                 error.getTraceContext().getId().setToRandomValue();
             }

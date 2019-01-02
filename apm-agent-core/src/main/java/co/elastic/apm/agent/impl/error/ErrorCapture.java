@@ -55,6 +55,10 @@ public class ErrorCapture implements Recyclable {
      * (Required)
      */
     private long timestamp;
+    /**
+     * A hint for UI to be able to show whether a recorded trace for the corresponding transaction is expected
+     */
+    private boolean isTransactionSampled;
     private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
 
@@ -97,6 +101,7 @@ public class ErrorCapture implements Recyclable {
         exception = null;
         context.resetState();
         timestamp = 0;
+        isTransactionSampled = false;
         traceContext.resetState();
         culprit.setLength(0);
     }
@@ -170,5 +175,13 @@ public class ErrorCapture implements Recyclable {
             }
         }
         culprit.append(')');
+    }
+
+    public boolean isTransactionSampled() {
+        return isTransactionSampled;
+    }
+
+    public void setTransactionSampled(boolean transactionSampled) {
+        isTransactionSampled = transactionSampled;
     }
 }

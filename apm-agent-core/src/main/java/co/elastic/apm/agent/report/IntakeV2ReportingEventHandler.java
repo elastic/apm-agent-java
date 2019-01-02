@@ -172,6 +172,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             }
             connection = startRequest();
             payloadSerializer.serializeMetaDataNdJson(metaData);
+            if (logger.isTraceEnabled()) {
+                logger.trace(payloadSerializer.toString());
+            }
         }
         try {
             writeEvent(event);
