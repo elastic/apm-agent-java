@@ -205,8 +205,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("enable_type_pool_cache")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
-        .description("When enabled," +
-            "configures Byte Buddy to use a type pool cache whose max size is approximately 1% of the max heap size per class loader.")
+        .description("When enabled, configures Byte Buddy to use a type pool cache.")
         .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> typeMatchingWithNamePreFilter = ConfigurationOption.booleanOption()

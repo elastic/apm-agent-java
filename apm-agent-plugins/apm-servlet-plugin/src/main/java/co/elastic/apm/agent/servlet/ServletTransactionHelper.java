@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
@@ -95,13 +95,13 @@ public class ServletTransactionHelper {
      */
     @Nullable
     @VisibleForAdvice
-    public Transaction onBefore(String servletPath, String pathInfo, String requestURI,
+    public Transaction onBefore(String servletPath, @Nullable String pathInfo,
                                 @Nullable String userAgentHeader,
                                 @Nullable String traceContextHeader) {
         if (coreConfiguration.isActive() &&
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
-            !isExcluded(servletPath, pathInfo, requestURI, userAgentHeader)) {
+            !isExcluded(servletPath, pathInfo, userAgentHeader)) {
             return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader).activate();
         } else {
             return null;
@@ -197,20 +197,18 @@ public class ServletTransactionHelper {
             && webConfiguration.getCaptureBody() != OFF;
     }
 
-    private boolean isExcluded(String servletPath, String pathInfo, String requestURI, @Nullable String userAgentHeader) {
-        final List<WildcardMatcher> ignoreUrls = webConfiguration.getIgnoreUrls();
-        boolean excludeUrl = WildcardMatcher.anyMatch(ignoreUrls, servletPath, pathInfo) != null;
-        if (excludeUrl) {
-            logger.debug("Not tracing this request as the URL {} is ignored by one of the matchers",
-                requestURI, ignoreUrls);
+    private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
+        final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
+        if (excludeUrlMatcher != null) {
+            logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
+                servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
         }
-        final List<WildcardMatcher> ignoreUserAgents = webConfiguration.getIgnoreUserAgents();
-        boolean excludeAgent = userAgentHeader != null && WildcardMatcher.anyMatch(ignoreUserAgents, userAgentHeader) != null;
-        if (excludeAgent) {
-            logger.debug("Not tracing this request as the User-Agent {} is ignored by one of the matchers",
-                userAgentHeader, ignoreUserAgents);
+        final WildcardMatcher excludeAgentMatcher = userAgentHeader != null ? WildcardMatcher.anyMatch(webConfiguration.getIgnoreUserAgents(), userAgentHeader) : null;
+        if (excludeAgentMatcher != null) {
+            logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
+                userAgentHeader, excludeAgentMatcher);
         }
-        return excludeUrl || excludeAgent;
+        return excludeUrlMatcher != null || excludeAgentMatcher != null;
     }
 
     private void fillResponse(Response response, boolean committed, int status) {
