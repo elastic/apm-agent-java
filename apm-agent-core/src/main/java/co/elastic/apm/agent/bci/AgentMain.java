@@ -62,7 +62,9 @@ public class AgentMain {
     public static void init(Instrumentation instrumentation) {
         try {
             final File agentJarFile = getAgentJarFile();
-            instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(agentJarFile));
+            try (JarFile jarFile = new JarFile(agentJarFile)) {
+                instrumentation.appendToBootstrapClassLoaderSearch(jarFile);
+            }
             // invoking via reflection to make sure the class is not loaded by the system classloader,
             // but only from the bootstrap classloader
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, null)
