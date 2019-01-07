@@ -24,7 +24,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.servlet.AsyncInstrumentation;
 import co.elastic.apm.agent.servlet.ServletApiAdvice;
 import co.elastic.apm.agent.servlet.ServletTransactionHelper;
@@ -40,6 +39,7 @@ import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncContextAdviceHelper<AsyncContext> {
 
     private static final String ASYNC_LISTENER_ADDED = ServletApiAdvice.class.getName() + ".asyncListenerAdded";
+    private static final int MAX_POOLED_ELEMENTS = 256;
 
     private final ObjectPool<ApmAsyncListener> asyncListenerObjectPool;
     private final ServletTransactionHelper servletTransactionHelper;
@@ -49,9 +49,8 @@ public class AsyncContextAdviceHelperImpl implements AsyncInstrumentation.AsyncC
         this.tracer = tracer;
         servletTransactionHelper = new ServletTransactionHelper(tracer);
 
-        int maxPooledElements = tracer.getConfigurationRegistry().getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<ApmAsyncListener>newQueue(createBoundedMpmc(maxPooledElements)),
+            AtomicQueueFactory.<ApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
             false,
             new ApmAsyncListenerAllocator());
     }
