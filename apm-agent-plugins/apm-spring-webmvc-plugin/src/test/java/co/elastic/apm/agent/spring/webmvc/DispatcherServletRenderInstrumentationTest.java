@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.dispatcherservlet;
+package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
@@ -41,7 +41,6 @@ import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import java.util.Arrays;
-
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -81,7 +80,7 @@ public class DispatcherServletRenderInstrumentationTest {
 
     private ViewResolver jspViewResolver() {
         InternalResourceViewResolver bean = new InternalResourceViewResolver();
-        bean.setPrefix("/WEB-INF/views/");
+        bean.setPrefix("/static/");
         bean.setSuffix(".jsp");
         return bean;
     }

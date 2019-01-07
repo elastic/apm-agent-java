@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.dispatcherservlet;
+package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -29,8 +29,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -55,10 +53,10 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
             return;
         final AbstractSpan<?> parent = tracer.activeSpan();
         span = parent
-                .createSpan()
-                .withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER)
-                .appendToName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName())
-                .activate();
+            .createSpan()
+            .withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER)
+            .appendToName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName())
+            .activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -92,3 +90,4 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
         return Arrays.asList("dispatcher-servlet", "render");
     }
 }
+

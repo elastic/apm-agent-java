@@ -158,11 +158,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-dispatcher-servlet-render</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
             <version>${project.version}</version>
         </dependency>
