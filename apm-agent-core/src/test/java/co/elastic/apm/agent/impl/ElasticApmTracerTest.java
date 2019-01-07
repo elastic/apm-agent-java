@@ -26,6 +26,7 @@ import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -163,24 +164,42 @@ class ElasticApmTracerTest {
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
         assertThat(error.getTraceContext().hasContent()).isFalse();
+        assertThat(error.isTransactionSampled()).isFalse();
     }
 
     @Test
     void testRecordExceptionWithTrace() {
-        Transaction transaction = tracerImpl.startTransaction();
+        innerRecordExceptionWithTrace(true);
+        innerRecordExceptionWithTrace(false);
+    }
+
+    private void innerRecordExceptionWithTrace(boolean sampled) {
+        reporter.reset();
+        Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(sampled), -1);
         try (Scope scope = transaction.activateInScope()) {
             transaction.getContext().getRequest()
                 .addHeader("foo", "bar")
                 .withMethod("GET")
                 .getUrl()
                 .withPathname("/foo");
-            tracerImpl.currentTransaction().captureException(new Exception("test"));
-            assertThat(reporter.getErrors()).hasSize(1);
-            ErrorCapture error = reporter.getFirstError();
-            assertThat(error.getTraceContext().isChildOf(transaction.getTraceContext())).isTrue();
+            tracerImpl.currentTransaction().captureException(new Exception("from transaction"));
+            ErrorCapture error = validateError(transaction, sampled);
             assertThat(error.getContext().getRequest().getHeaders().get("foo")).isEqualTo("bar");
+            reporter.reset();
+            Span span = transaction.createSpan().activate();
+            span.captureException(new Exception("from span"));
+            validateError(span, sampled);
+            span.deactivate().end();
             transaction.end();
         }
+    }
+
+    private ErrorCapture validateError(AbstractSpan span, boolean sampled) {
+        assertThat(reporter.getErrors()).hasSize(1);
+        ErrorCapture error = reporter.getFirstError();
+        assertThat(error.getTraceContext().isChildOf(span.getTraceContext())).isTrue();
+        assertThat(error.isTransactionSampled()).isEqualTo(sampled);
+        return error;
     }
 
     @Test

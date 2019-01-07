@@ -226,7 +226,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
 
         writeTimestamp(errorCapture.getTimestamp());
-
+        serializeTransactionSampled(errorCapture.isTransactionSampled());
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
         }
@@ -235,6 +235,14 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeException(errorCapture.getException());
 
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private void serializeTransactionSampled(boolean sampled) {
+        writeFieldName("transaction");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeLastField("sampled", sampled);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(COMMA);
     }
 
     private void serializeException(@Nullable Throwable exception) {
@@ -282,6 +290,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         final String s = jw.toString();
         jw.reset();
         return s;
+    }
+
+    public String toString() {
+        return jw.toString();
     }
 
     private void serializeTransactionPayload(final TransactionPayload payload) {

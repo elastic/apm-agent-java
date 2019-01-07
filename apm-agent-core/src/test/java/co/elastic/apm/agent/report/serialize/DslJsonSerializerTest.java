@@ -19,7 +19,9 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
@@ -62,6 +64,28 @@ class DslJsonSerializerTest {
             final String truncatedLongRandomString = longRandomString.substring(0, 1023) + "…";
             softly.assertThat(serializeTags(Map.of(longRandomString, longRandomString))).isEqualTo(toJson(Map.of(truncatedLongRandomString, truncatedLongRandomString)));
         });
+    }
+
+    @Test
+    void testErrorSerialization() throws IOException {
+        ElasticApmTracer tracer = MockTracer.create();
+        Transaction transaction = new Transaction(tracer);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+        error.setTransactionSampled(true);
+        error.setException(new Exception("test"));
+        error.getContext().getTags().put("foo", "bar");
+        String errorJson = serializer.toJsonString(error);
+        System.out.println("errorJson = " + errorJson);
+        JsonNode errorTree = objectMapper.readTree(errorJson);
+        assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
+        assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
+        JsonNode context = errorTree.get("context");
+        assertThat(context.get("tags").get("foo").textValue()).isEqualTo("bar");
+        JsonNode exception = errorTree.get("exception");
+        assertThat(exception.get("message").textValue()).isEqualTo("test");
+        assertThat(exception.get("stacktrace")).isNotNull();
+        assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
+        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
     }
 
     @Test
