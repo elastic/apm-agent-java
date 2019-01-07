@@ -46,7 +46,7 @@ class TraceMethodInstrumentationTest {
         reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
         when(config.getConfig(CoreConfiguration.class).getTraceMethods()).thenReturn(Collections.singletonList(
-            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest#traceMe*"))
+            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest#traceMe*()"))
         );
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
@@ -68,12 +68,22 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    void testDoNotTraceMethod() {
-        _traceMeNot();
+    void testNotMatched_VisibilityModifier() {
+        traceMeNot();
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    private void _traceMeNot() {
+    @Test
+    void testNotMatched_Parameters() {
+        traceMeNot(false);
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
+    // not traced because visibility modifier does not match
+    public void traceMeNot() {
+    }
+
+    private void traceMeNot(boolean doesNotMatchParameterMatcher) {
     }
 
     private void traceMe() {

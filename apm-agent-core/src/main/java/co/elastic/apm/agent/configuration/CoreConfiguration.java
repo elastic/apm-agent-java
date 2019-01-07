@@ -264,7 +264,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match to more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).")
-        .buildWithDefault(Collections.singletonList(MethodMatcher.of("org.springframework.web.servlet.DispatcherServlet#render(*, *, *)")));
+        .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     public boolean isActive() {
         return active.get();

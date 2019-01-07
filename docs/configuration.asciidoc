@@ -328,7 +328,7 @@ Also note that there is a maximum amount of spans per transaction (see <<config-
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `org.springframework.web.servlet.DispatcherServlet#render(*, *, *)` | List | false
+| `<none>` | List | false
 |============
 
 
@@ -1069,9 +1069,9 @@ The default unit for this option is `ms`
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
-# Default value: org.springframework.web.servlet.DispatcherServlet#render(*, *, *)
+# Default value: 
 #
-# trace_methods=org.springframework.web.servlet.DispatcherServlet#render(*, *, *)
+# trace_methods=
 
 ############################################
 # HTTP                                     #
