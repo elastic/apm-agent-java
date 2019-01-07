@@ -1,6 +1,8 @@
 # next
 
 ## Features
+ * Add API methods `ElasticApm#startTransactionWithRemoteParent` and `Span#injectTraceHeaders` to allow for manual context propagation.
+
 ## Bug Fixes
 
 # 1.2.0
