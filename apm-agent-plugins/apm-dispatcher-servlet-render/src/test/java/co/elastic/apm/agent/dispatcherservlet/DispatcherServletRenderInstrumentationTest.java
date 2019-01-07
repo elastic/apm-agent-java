@@ -97,9 +97,8 @@ public class DispatcherServletRenderInstrumentationTest {
     @Test
     public void testCallOfDispatcherServletRender() throws Exception {
         this.mockMvc.perform(get("/test"));
-        reporter.getFirstTransaction(500);
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(2, reporter.getSpans().size());
-        assertEquals("Render message-view", reporter.getSpans().get(1).getName());
+        assertEquals("Render message-view", reporter.getSpans().get(1).getName().toString());
     }
 }
