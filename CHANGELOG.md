@@ -3,6 +3,11 @@
 ## Features
 ## Bug Fixes
 
+# 1.2.1
+
+## Features
+ * Added span for `DispatcherServlet#render`.
+ 
 # 1.2.0
 
 ## Features
