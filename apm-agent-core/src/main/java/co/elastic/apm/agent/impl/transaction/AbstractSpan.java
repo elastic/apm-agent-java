@@ -209,7 +209,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
             }
             doEnd(epochMicros);
         } else {
-            logger.warn("End has already been called: {}" + this);
+            logger.warn("End has already been called: {}", this);
             assert false;
         }
     }

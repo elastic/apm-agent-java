@@ -91,7 +91,7 @@ public class ServletApiAdvice {
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
                 request.getServletPath(), request.getPathInfo(),
-                request.getRequestURI(), request.getHeader("User-Agent"),
+                request.getHeader("User-Agent"),
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             if (transaction == null) {
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation

@@ -22,7 +22,7 @@ package co.elastic.apm.agent.configuration.converter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TimeDuration {
+public class TimeDuration implements Comparable<TimeDuration> {
 
     public static final Pattern DURATION_PATTERN = Pattern.compile("^(-)?(\\d+)(ms|s|m)$");
     private final String durationString;
@@ -67,5 +67,10 @@ public class TimeDuration {
     @Override
     public String toString() {
         return durationString;
+    }
+
+    @Override
+    public int compareTo(TimeDuration o) {
+        return Long.compare(durationMs, o.durationMs);
     }
 }

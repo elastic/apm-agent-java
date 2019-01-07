@@ -17,14 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.report;
+/**
+ * We can't use micrometer directly as it does not support Java 7 which we want to support with the Java agent
+ * Also, micrometer does not have a native concept of {@link co.elastic.apm.agent.metrics.MetricSet}s,
+ * so converting to metricsets in a reporter (group metrics by tags) would introduce some overhead.
+ */
+@NonnullApi
+package co.elastic.apm.agent.metrics.builtin;
 
-import co.elastic.apm.agent.impl.payload.Payload;
-
-public interface PayloadSender {
-    void sendPayload(Payload payload);
-
-    long getReported();
-
-    long getDropped();
-}
+import co.elastic.apm.agent.annotation.NonnullApi;

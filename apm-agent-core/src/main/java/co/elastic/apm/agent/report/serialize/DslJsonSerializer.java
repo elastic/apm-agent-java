@@ -46,6 +46,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -188,6 +189,11 @@ public class DslJsonSerializer implements PayloadSerializer {
     @Override
     public int getBufferSize() {
         return jw.size();
+    }
+
+    @Override
+    public void serializeMetrics(MetricRegistry metricRegistry) {
+        MetricRegistrySerializer.serialize(metricRegistry, replaceBuilder, jw);
     }
 
     private void serializeErrorPayload(ErrorPayload payload) {
@@ -384,10 +390,58 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeSystem(final SystemInfo system) {
         writeFieldName("system");
         jw.writeByte(JsonWriter.OBJECT_START);
+        serializeContainerInfo(system.getContainerInfo());
+        serializeKubernetesInfo(system.getKubernetesInfo());
         writeField("architecture", system.getArchitecture());
         writeField("hostname", system.getHostname());
         writeLastField("platform", system.getPlatform());
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private void serializeContainerInfo(@Nullable SystemInfo.Container container) {
+        if (container != null) {
+            writeFieldName("container");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeLastField("id", container.getId());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubernetesInfo(@Nullable SystemInfo.Kubernetes kubernetes) {
+        if (kubernetes != null && kubernetes.hasContent()) {
+            writeFieldName("kubernetes");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            serializeKubeNodeInfo(kubernetes.getNode());
+            serializeKubePodInfo(kubernetes.getPod());
+            writeLastField("namespace", kubernetes.getNamespace());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubePodInfo(@Nullable SystemInfo.Kubernetes.Pod pod) {
+        if (pod != null) {
+            writeFieldName("pod");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            String podName = pod.getName();
+            if (podName != null) {
+                writeField("name", podName);
+            }
+            writeLastField("uid", pod.getUid());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeKubeNodeInfo(@Nullable SystemInfo.Kubernetes.Node node) {
+        if (node != null) {
+            writeFieldName("node");
+            jw.writeByte(JsonWriter.OBJECT_START);
+            writeLastField("name", node.getName());
+            jw.writeByte(JsonWriter.OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     private void serializeTransactions(final List<Transaction> transactions) {
@@ -616,35 +670,39 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     // visible for testing
     void serializeTags(Map<String, String> value) {
+        serializeTags(value, replaceBuilder, jw);
+    }
+
+    public static void serializeTags(Map<String, String> value, StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(OBJECT_START);
         final int size = value.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, String>> iterator = value.entrySet().iterator();
             Map.Entry<String, String> kv = iterator.next();
-            writeStringValue(sanitizeTagKey(kv.getKey()));
+            writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            writeStringValue(kv.getValue());
+            writeStringValue(kv.getValue(), replaceBuilder, jw);
             for (int i = 1; i < size; i++) {
                 jw.writeByte(COMMA);
                 kv = iterator.next();
-                writeStringValue(sanitizeTagKey(kv.getKey()));
+                writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                writeStringValue(kv.getValue());
+                writeStringValue(kv.getValue(), replaceBuilder, jw);
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private CharSequence sanitizeTagKey(String key) {
+    private static CharSequence sanitizeTagKey(String key, StringBuilder replaceBuilder) {
         for (int i = 0; i < DISALLOWED_IN_TAG_KEY.length; i++) {
             if (key.contains(DISALLOWED_IN_TAG_KEY[i])) {
-                return replaceAll(key, DISALLOWED_IN_TAG_KEY, "_");
+                return replaceAll(key, DISALLOWED_IN_TAG_KEY, "_", replaceBuilder);
             }
         }
         return key;
     }
 
-    private CharSequence replaceAll(String s, String[] stringsToReplace, String replacement) {
+    private static CharSequence replaceAll(String s, String[] stringsToReplace, String replacement, StringBuilder replaceBuilder) {
         // uses a instance variable StringBuilder to avoid allocations
         replaceBuilder.setLength(0);
         replaceBuilder.append(s);
@@ -654,7 +712,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         return replaceBuilder;
     }
 
-    private void replace(StringBuilder replaceBuilder, String toReplace, String replacement) {
+    private static void replace(StringBuilder replaceBuilder, String toReplace, String replacement) {
         for (int i = replaceBuilder.indexOf(toReplace); i != -1; i = replaceBuilder.indexOf(toReplace)) {
             replaceBuilder.replace(i, i + replacement.length(), replacement);
         }
@@ -789,6 +847,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeStringBuilderValue(StringBuilder value) {
+        writeStringBuilderValue(value, jw);
+    }
+
+    private static void writeStringBuilderValue(StringBuilder value, JsonWriter jw) {
         if (value.length() > MAX_VALUE_LENGTH) {
             value.setLength(MAX_VALUE_LENGTH - 1);
             value.append('…');
@@ -797,10 +859,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeStringValue(CharSequence value) {
+        writeStringValue(value, replaceBuilder, jw);
+    }
+
+    private static void writeStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_VALUE_LENGTH + 1));
-            writeStringBuilderValue(replaceBuilder);
+            writeStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);
         }
@@ -867,11 +933,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void writeFieldName(final String fieldName) {
+    public static void writeFieldName(final String fieldName, final JsonWriter jw) {
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeAscii(fieldName);
         jw.writeByte(JsonWriter.QUOTE);
         jw.writeByte(JsonWriter.SEMI);
+    }
+
+    private void writeFieldName(final String fieldName) {
+        writeFieldName(fieldName, jw);
     }
 
     private void writeField(final String fieldName, final List<String> values) {
