@@ -25,7 +25,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -68,7 +67,6 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
     }
 
-    @IgnoreJRERequirement
     public static class StartTransactionWithRemoteParentInstrumentation extends ElasticApmApiInstrumentation {
 
         public StartTransactionWithRemoteParentInstrumentation() {

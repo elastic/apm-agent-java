@@ -30,8 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
-import java.util.HashMap;
-import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -187,20 +185,6 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Return(readOnly = false) boolean sampled) {
             sampled = span.isSampled();
-        }
-    }
-
-    public static class GetTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
-        public GetTraceHeadersInstrumentation() {
-            super(named("getTraceHeaders"));
-        }
-
-        @VisibleForAdvice
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
-                                           @Advice.Return(readOnly = false) Map<? super String, ? super String> headers) {
-            headers = new HashMap<>();
-            headers.put(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }
     }
 

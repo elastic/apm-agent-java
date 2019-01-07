@@ -43,10 +43,6 @@ import static net.bytebuddy.matcher.ElementMatchers.whereNone;
  * we eagerly resolve the parameters of all methods and exclude problematic methods.
  * </p>
  * <p>
- * One use case of this is to be able to instrument classes implementing {@code co.elastic.apm.api.Span},
- * which refers to {@link java.util.function.BiConsumer}.
- * </p>
- * <p>
  * Similar to {@link net.bytebuddy.dynamic.scaffold.MethodGraph.Compiler.ForDeclaredMethods} but eagerly resolves arguments and fails safe
  * on exceptions in that it ignores methods causing exceptions.
  * </p>
