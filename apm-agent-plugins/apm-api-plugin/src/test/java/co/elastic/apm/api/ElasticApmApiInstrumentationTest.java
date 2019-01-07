@@ -195,6 +195,15 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testTransactionWithRemoteParentHeaders() {
+        final TraceContext parent = TraceContext.with64BitId();
+        parent.asRootSpan(ConstantSampler.of(true));
+        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
+        ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(map.get(key))).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+    }
+
+    @Test
     void testTransactionWithRemoteParentNullFunction() {
         ElasticApm.startTransactionWithRemoteParent(null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isRoot()).isTrue();

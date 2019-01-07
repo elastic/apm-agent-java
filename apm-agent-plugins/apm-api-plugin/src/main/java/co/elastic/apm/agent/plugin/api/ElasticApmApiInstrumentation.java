@@ -28,6 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
+import java.util.Iterator;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
@@ -78,12 +79,20 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
                                                @Advice.Argument(0) MethodHandle getFirstHeader,
                                                @Advice.Argument(1) @Nullable Object headerExtractor,
-                                               @Advice.Argument(0) MethodHandle getAllHeaders,
+                                               @Advice.Argument(2) MethodHandle getAllHeaders,
                                                @Advice.Argument(3) @Nullable Object headersExtractor) throws Throwable {
             if (tracer != null) {
                 if (headerExtractor != null) {
                     final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_HEADER);
                     transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader);
+                } else if (headersExtractor != null) {
+                    final Iterable<String> traceparentHeader = (Iterable<String>) getAllHeaders.invoke(headersExtractor, TraceContext.TRACE_PARENT_HEADER);
+                    final Iterator<String> iterator = traceparentHeader.iterator();
+                    if (iterator.hasNext()) {
+                        transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), iterator.next());
+                    } else {
+                        transaction = tracer.startTransaction();
+                    }
                 } else {
                     transaction = tracer.startTransaction();
                 }
