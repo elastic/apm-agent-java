@@ -179,7 +179,7 @@ public class TraceContext implements Recyclable {
                 return false;
             }
             if (traceParentHeader.startsWith("ff")) {
-                logger.warn("Version ff is not supported", traceParentHeader);
+                logger.warn("Version ff is not supported");
                 return false;
             }
             byte version = HexUtils.getNextByte(traceParentHeader, 0);

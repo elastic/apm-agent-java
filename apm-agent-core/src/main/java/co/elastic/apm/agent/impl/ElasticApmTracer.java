@@ -382,8 +382,7 @@ public class ElasticApmTracer {
 
     public void activate(TraceContext traceContext) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating serialized trace context on thread {}",
-                traceContext, Thread.currentThread().getId());
+            logger.debug("Activating trace context {} on thread {}", traceContext, Thread.currentThread().getId());
         }
         activeStack.get().push(traceContext);
     }

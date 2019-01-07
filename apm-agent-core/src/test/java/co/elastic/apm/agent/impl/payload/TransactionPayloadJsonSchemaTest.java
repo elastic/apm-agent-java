@@ -120,13 +120,26 @@ class TransactionPayloadJsonSchemaTest {
 
     @Test
     void testContainerInfo() throws IOException {
-        TransactionPayload payload = createPayload(new SystemInfo("x64", "localhost", "platform", "containerId"));
+        SystemInfo.Container container = new SystemInfo.Container("containerId");
+        String podName = "myPod";
+        String nodeName = "myNode";
+        String namespace = "/my/namespace";
+        String podUID = "podUID";
+        SystemInfo.Kubernetes kubernetes = new SystemInfo.Kubernetes(podName, nodeName, namespace, podUID);
+        TransactionPayload payload = createPayload(new SystemInfo("x64", "localhost", "platform", container, kubernetes));
         DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         System.out.println(content);
-        JsonNode container = objectMapper.readTree(content).get("system").get("container");
-        assertThat(container).isNotNull();
-        assertThat(container.get("id").textValue()).isEqualTo("containerId");
+        JsonNode systemNode = objectMapper.readTree(content).get("system");
+        JsonNode containerNode = systemNode.get("container");
+        assertThat(containerNode).isNotNull();
+        assertThat(containerNode.get("id").textValue()).isEqualTo("containerId");
+        JsonNode kubernetesNode = systemNode.get("kubernetes");
+        assertThat(kubernetesNode).isNotNull();
+        assertThat(kubernetesNode.get("namespace").textValue()).isEqualTo(namespace);
+        assertThat(kubernetesNode.get("node").get("name").textValue()).isEqualTo(nodeName);
+        assertThat(kubernetesNode.get("pod").get("name").textValue()).isEqualTo(podName);
+        assertThat(kubernetesNode.get("pod").get("uid").textValue()).isEqualTo(podUID);
     }
 
     @Test

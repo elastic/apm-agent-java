@@ -31,12 +31,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Information about the system the agent is running on.
  */
 public class SystemInfo {
     private static final Logger logger = LoggerFactory.getLogger(SystemInfo.class);
+
+    private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
+    private static final String POD_REGEX =
+        "(?:^/kubepods/[^/]+/pod([^/]+)$)|" +
+            "(?:^/kubepods\\.slice/kubepods-[^/]+\\.slice/kubepods-[^/]+-pod([^/]+)\\.slice$)";
 
     /**
      * Architecture of the system the agent is running on.
@@ -52,23 +59,32 @@ public class SystemInfo {
     private final String platform;
 
     /**
-     * Info about the container the agent is running on
+     * Info about the container the agent is running on, where applies
      */
-    private final Container container;
+    @Nullable
+    private Container container;
+
+    /**
+     * Info about the Kubernetes pod/node the agent is running on, where applies
+     */
+    @Nullable
+    private Kubernetes kubernetes;
 
     public SystemInfo(String architecture, String hostname, String platform) {
-        this(architecture, hostname, platform, null);
+        this(architecture, hostname, platform, null, null);
     }
 
-    public SystemInfo(String architecture, String hostname, String platform, @Nullable String containerId) {
+    SystemInfo(String architecture, String hostname, String platform, @Nullable Container container, @Nullable Kubernetes kubernetes) {
         this.architecture = architecture;
         this.hostname = hostname;
         this.platform = platform;
-        this.container = new Container(containerId);
+        this.container = container;
+        this.kubernetes = kubernetes;
     }
 
     public static SystemInfo create() {
-        return new SystemInfo(System.getProperty("os.arch"), getNameOfLocalHost(), System.getProperty("os.name"), findContainerId());
+
+        return new SystemInfo(System.getProperty("os.arch"), getNameOfLocalHost(), System.getProperty("os.name")).findContainerDetails();
     }
 
     static String getNameOfLocalHost() {
@@ -90,25 +106,47 @@ public class SystemInfo {
      *
      * @return container ID parsed from {@code /proc/self/cgroup} file lines, or {@code null} if can't find/read/parse file lines
      */
-    private static @Nullable
-    String findContainerId() {
+    SystemInfo findContainerDetails() {
         String containerId = null;
         try {
             Path path = FileSystems.getDefault().getPath("/proc/self/cgroup");
             if (path.toFile().exists()) {
                 List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
                 for (final String line : lines) {
-                    containerId = parseContainerId(line);
-                    if (containerId != null) {
+                    parseContainerId(line);
+                    if (container != null) {
+                        containerId = container.getId();
                         break;
                     }
                 }
             }
         } catch (Throwable e) {
-            logger.warn("Failed to read/parse container ID from '/proc/self/cgroup'");
+            logger.warn("Failed to read/parse container ID from '/proc/self/cgroup'", e);
         }
+
+        try {
+            // Kubernetes Downward API enables setting environment variables. We are looking for the relevant ones to this discovery
+            String podUid = System.getenv("KUBERNETES_POD_UID");
+            String podName = System.getenv("KUBERNETES_POD_NAME");
+            String nodeName = System.getenv("KUBERNETES_NODE_NAME");
+            String namespace = System.getenv("KUBERNETES_NAMESPACE");
+            if (podUid != null || podName != null || nodeName != null || namespace != null) {
+                // avoid overriding valid info with invalid info
+                if (kubernetes != null) {
+                    if (kubernetes.getPod() != null) {
+                        podUid = (podUid != null) ? podUid : kubernetes.getPod().getUid();
+                        podName = (podName != null) ? podName : kubernetes.getPod().getName();
+                    }
+                }
+
+                kubernetes = new Kubernetes(podName, nodeName, namespace, podUid);
+            }
+        } catch (Throwable e) {
+            logger.warn("Failed to read environment variables for Kubernetes Downward API discovery", e);
+        }
+
         logger.debug("container ID is {}", containerId);
-        return containerId;
+        return this;
     }
 
     /**
@@ -116,11 +154,9 @@ public class SystemInfo {
      * three colon-separated fields of the form hierarchy-ID:subsystem-list:cgroup-path.
      *
      * @param line a line from the /proc/self/cgroup file
-     * @return container ID if could be parsed
+     * @return this SystemInfo object after parsing
      */
-    @Nullable
-    static String parseContainerId(String line) {
-        String containerId = null;
+    SystemInfo parseContainerId(String line) {
         final String[] fields = line.split(":");
         if (fields.length == 3) {
             String cGroupPath = fields[2];
@@ -129,23 +165,42 @@ public class SystemInfo {
             if (idPathPart != null) {
                 String idPart = idPathPart.toString();
 
-                // Legacy: /system.slice/docker-<CID>.scope
-                if (idPart.startsWith("docker-")) {
-                    idPart = idPart.substring("docker-".length());
-                }
+                // Legacy, e.g.: /system.slice/docker-<CID>.scope
                 if (idPart.endsWith(".scope")) {
-                    idPart = idPart.substring(0, idPart.length() - ".scope".length());
+                    idPart = idPart.substring(0, idPart.length() - ".scope".length()).substring(idPart.indexOf("-") + 1);
                 }
 
-                if (idPart.matches("^[0-9a-fA-F]{64}$")) {
-                    containerId = idPart;
+                // Looking for kubernetes info
+                Path dirPathPart = Paths.get(cGroupPath).getParent();
+                if (dirPathPart != null) {
+                    String dir = dirPathPart.toString();
+                    final Pattern pattern = Pattern.compile(POD_REGEX);
+                    final Matcher matcher = pattern.matcher(dir);
+                    if (matcher.find()) {
+                        for (int i = 1; i <= matcher.groupCount(); i++) {
+                            String podUid = matcher.group(i);
+                            if (podUid != null && !podUid.isEmpty()) {
+                                logger.debug("Found Kubernetes pod UID: {}", podUid);
+                                // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
+                                // the name should use the Downward API to override the pod name.
+                                kubernetes = new Kubernetes(hostname, null, null, podUid);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If the line matched the one of the kubernetes patterns, we assume that the last part is always the container ID.
+                // Otherwise we validate that it is a 64-length hex string
+                if (kubernetes != null || idPart.matches(CONTAINER_UID_REGEX)) {
+                    container = new Container(idPart);
                 }
             }
         }
-        if (containerId == null) {
+        if (container == null) {
             logger.info("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
         }
-        return containerId;
+        return this;
     }
 
     private static String getHostNameFromEnv() {
@@ -182,29 +237,108 @@ public class SystemInfo {
     }
 
     /**
-     * Info about the container this agent is running on
+     * Info about the container this agent is running on, where applies
      *
      * @return container info
      */
+    @Nullable
     public Container getContainerInfo() {
         return container;
     }
 
+    /**
+     * Info about the kubernetes Pod and Node this agent is running on, where applies
+     *
+     * @return container info
+     */
+    @Nullable
+    public Kubernetes getKubernetesInfo() {
+        return kubernetes;
+    }
+
     public static class Container {
-        @Nullable
         private String id;
 
-        private Container(@Nullable String id) {
+        Container(String id) {
             this.id = id;
         }
 
-        public @Nullable
-        String getId() {
+        public String getId() {
             return id;
+        }
+    }
+
+    public static class Kubernetes {
+        @Nullable
+        Pod pod;
+
+        @Nullable
+        Node node;
+
+        @Nullable
+        private String namespace;
+
+        Kubernetes(@Nullable String podName, @Nullable String nodeName, @Nullable String namespace, @Nullable String podUid) {
+            if (podName != null || podUid != null) {
+                pod = new Pod(podName, podUid);
+            }
+            if (nodeName != null) {
+                node = new Node(nodeName);
+            }
+            this.namespace = namespace;
+        }
+
+        @Nullable
+        public Pod getPod() {
+            return pod;
+        }
+
+        @Nullable
+        public Node getNode() {
+            return node;
+        }
+
+        @Nullable
+        public String getNamespace() {
+            return namespace;
         }
 
         public boolean hasContent() {
-            return id != null;
+            return pod != null || node != null || namespace != null;
+        }
+
+        public static class Pod {
+            @Nullable
+            private String name;
+            @Nullable
+            private String uid;
+
+            Pod(@Nullable String name, @Nullable String uid) {
+                this.name = name;
+                this.uid = uid;
+            }
+
+            @Nullable
+            public String getName() {
+                return name;
+            }
+
+            @Nullable
+            public String getUid() {
+                return uid;
+            }
+        }
+
+        public static class Node {
+            private String name;
+
+            Node(String name) {
+                this.name = name;
+            }
+
+            public String getName() {
+                return name;
+            }
         }
     }
 }
