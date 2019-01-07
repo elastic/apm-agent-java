@@ -25,6 +25,8 @@ import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
+import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
+import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -44,10 +46,12 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -84,7 +88,20 @@ public class ElasticApmAgent {
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {
-        initInstrumentation(tracer, instrumentation, ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader()));
+        initInstrumentation(tracer, instrumentation, loadInstrumentations(tracer));
+    }
+
+    @Nonnull
+    private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
+        final ArrayList<ElasticApmInstrumentation> instrumentations = new ArrayList<ElasticApmInstrumentation>();
+        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader())) {
+            instrumentations.add(instrumentation);
+        }
+        for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
+            instrumentations.add(new TraceMethodInstrumentation(traceMethod));
+        }
+
+        return instrumentations;
     }
 
     public static void initInstrumentation(final ElasticApmTracer tracer, Instrumentation instrumentation,

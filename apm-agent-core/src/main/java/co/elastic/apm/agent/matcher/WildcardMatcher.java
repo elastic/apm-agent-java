@@ -75,6 +75,10 @@ public abstract class WildcardMatcher {
     private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";
 
+    public static WildcardMatcher caseSensitiveMatcher(String matcher) {
+        return valueOf(CASE_SENSITIVE_PREFIX + matcher);
+    }
+
     /**
      * Constructs a new {@link WildcardMatcher} via a wildcard string.
      * <p>
@@ -116,7 +120,7 @@ public abstract class WildcardMatcher {
                 !isLast || matcher.endsWith(WILDCARD),
                 ignoreCase));
         }
-        return new CompoundWildcardMatcher(wildcardString, matchers);
+        return new CompoundWildcardMatcher(wildcardString, matcher, matchers);
     }
 
     /**
@@ -204,7 +208,7 @@ public abstract class WildcardMatcher {
      * @param s the String to match
      * @return whether the String matches the given pattern
      */
-    abstract boolean matches(String s);
+    public abstract boolean matches(String s);
 
     /**
      * This is a different version of {@link #matches(String)} which has the same semantics as calling
@@ -219,7 +223,17 @@ public abstract class WildcardMatcher {
      * when the wildcard pattern matches the partitioned string,
      * {@code false} otherwise.
      */
-    abstract boolean matches(String firstPart, @Nullable String secondPart);
+    public abstract boolean matches(String firstPart, @Nullable String secondPart);
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof WildcardMatcher)) {
+            return false;
+        }
+        return toString().equals(obj.toString());
+    }
+
+    public abstract String getMatcher();
 
     /**
      * This {@link WildcardMatcher} supports wildcards in the middle of the matcher by decomposing the matcher into several
@@ -227,15 +241,17 @@ public abstract class WildcardMatcher {
      */
     static class CompoundWildcardMatcher extends WildcardMatcher {
         private final String wildcardString;
+        private final String matcher;
         private final List<SimpleWildcardMatcher> wildcardMatchers;
 
-        CompoundWildcardMatcher(String wildcardString, List<SimpleWildcardMatcher> wildcardMatchers) {
+        CompoundWildcardMatcher(String wildcardString, String matcher, List<SimpleWildcardMatcher> wildcardMatchers) {
             this.wildcardString = wildcardString;
+            this.matcher = matcher;
             this.wildcardMatchers = wildcardMatchers;
         }
 
         @Override
-        boolean matches(String s) {
+        public boolean matches(String s) {
             int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
                 final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
@@ -249,7 +265,7 @@ public abstract class WildcardMatcher {
         }
 
         @Override
-        boolean matches(String firstPart, @Nullable String secondPart) {
+        public boolean matches(String firstPart, @Nullable String secondPart) {
             int offset = 0;
             for (int i = 0; i < wildcardMatchers.size(); i++) {
                 final SimpleWildcardMatcher matcher = wildcardMatchers.get(i);
@@ -265,6 +281,11 @@ public abstract class WildcardMatcher {
         @Override
         public String toString() {
             return wildcardString;
+        }
+
+        @Override
+        public String getMatcher() {
+            return matcher;
         }
     }
 
@@ -319,7 +340,7 @@ public abstract class WildcardMatcher {
             if (wildcardAtEnd && wildcardAtBeginning) {
                 return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, offset, totalLength);
             } else if (wildcardAtEnd) {
-                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, 0, matcher.length());
+                return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, 0, 1);
             } else if (wildcardAtBeginning) {
                 return indexOfIgnoreCase(firstPart, secondPart, matcher, ignoreCase, totalLength - matcher.length(), totalLength);
             } else if (totalLength == matcher.length()) {
@@ -327,6 +348,11 @@ public abstract class WildcardMatcher {
             } else {
                 return -1;
             }
+        }
+
+        @Override
+        public String getMatcher() {
+            return matcher;
         }
     }
 }

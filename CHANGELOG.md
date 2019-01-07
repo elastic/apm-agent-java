@@ -1,6 +1,10 @@
 # next
 
 ## Features
+ * Added `trace_methods` configuration option which lets you define which methods in your project or 3rd party libraries should be traced.
+   To create spans for all `public` methods of classes whose name ends in `Service` which are in a sub-package of `org.example.services` use this matcher:
+   `public org.example.services.*.*Service#*`
+
 ## Bug Fixes
 
 # 1.2.0
