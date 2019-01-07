@@ -134,6 +134,19 @@ class IntakeV2ReportingEventHandlerTest {
     }
 
     @Test
+    void testShutDown() {
+        reportTransaction();
+        sendShutdownEvent();
+        reportSpan();
+        reportingEventHandler.flush();
+
+        final List<JsonNode> ndJsonNodes = getNdJsonNodes();
+        assertThat(ndJsonNodes).hasSize(2);
+        assertThat(ndJsonNodes.get(0).get("metadata")).isNotNull();
+        assertThat(ndJsonNodes.get(1).get("transaction")).isNotNull();
+    }
+
+    @Test
     void testReportRoundRobinOnServerError() {
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
@@ -188,6 +201,12 @@ class IntakeV2ReportingEventHandlerTest {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setError(new ErrorCapture(MockTracer.create()));
 
+        reportingEventHandler.onEvent(reportingEvent, -1, true);
+    }
+
+    private void sendShutdownEvent() {
+        final ReportingEvent reportingEvent = new ReportingEvent();
+        reportingEvent.shutdownEvent();
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
