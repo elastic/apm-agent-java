@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -98,5 +99,19 @@ public class CustomElementMatchers {
      */
     public static MethodHierarchyMatcher overridesOrImplementsMethodThat(ElementMatcher<? super MethodDescription> methodElementMatcher) {
         return new MethodHierarchyMatcher(methodElementMatcher);
+    }
+
+    public static ElementMatcher.Junction<NamedElement> matches(final WildcardMatcher matcher) {
+        return new ElementMatcher.Junction.AbstractBase<NamedElement>() {
+            @Override
+            public boolean matches(NamedElement target) {
+                return matcher.matches(target.getActualName());
+            }
+
+            @Override
+            public String toString() {
+                return "matches(" + matcher + ")";
+            }
+        };
     }
 }

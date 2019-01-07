@@ -298,6 +298,46 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
 |============
 
+[float]
+[[config-trace-methods]]
+==== `trace_methods`
+
+A list of methods for with to create a transaction or span.
+
+The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+You can use wildcards for the class name, the method name and the parameter types.
+The `*` wildcard matches zero or more characters.
+Specifying the parameter types is optional.
+The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+
+A few examples:
+
+ - `org.example.MyClass#myMethod`
+ - `org.example.MyClass#myMethod()`
+ - `org.example.MyClass#myMethod(java.lang.String)`
+ - `org.example.MyClass#myMe*od(java.lang.String, int)`
+ - `private org.example.MyClass#myMe*od(java.lang.String, *)`
+ - `* org.example.MyClas*#myMe*od(*.String, int[])`
+ - `public org.example.services.*.*Service#*`
+
+NOTE: Only use wildcards if necessary.
+The more methods you match to more overhead will be caused by the agent.
+Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 [float]
@@ -1004,6 +1044,34 @@ The default unit for this option is `ms`
 # Default value: (?-i)*Nested*Exception
 #
 # unnest_exceptions=(?-i)*Nested*Exception
+
+# A list of methods for with to create a transaction or span.
+# 
+# The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+# You can use wildcards for the class name, the method name and the parameter types.
+# The `*` wildcard matches zero or more characters.
+# Specifying the parameter types is optional.
+# The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+# 
+# A few examples:
+# 
+#  - `org.example.MyClass#myMethod`
+#  - `org.example.MyClass#myMethod()`
+#  - `org.example.MyClass#myMethod(java.lang.String)`
+#  - `org.example.MyClass#myMe*od(java.lang.String, int)`
+#  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
+#  - `* org.example.MyClas*#myMe*od(*.String, int[])`
+#  - `public org.example.services.*.*Service#*`
+# 
+# NOTE: Only use wildcards if necessary.
+# The more methods you match to more overhead will be caused by the agent.
+# Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: 
+#
+# trace_methods=
 
 ############################################
 # HTTP                                     #
