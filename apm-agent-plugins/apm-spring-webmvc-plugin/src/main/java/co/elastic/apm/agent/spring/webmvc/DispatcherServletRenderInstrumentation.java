@@ -55,7 +55,7 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
         span = parent
             .createSpan()
             .withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER)
-            .appendToName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName())
+            .appendToName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName() != null ? modelAndView.getViewName() : "")
             .activate();
     }
 
