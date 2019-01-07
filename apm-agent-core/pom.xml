@@ -139,5 +139,13 @@
             <version>1.0</version>
             <scope>test</scope>
         </dependency>
+        <!--For setting environment variables-->
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+            <!-- Latest version (1.19.0) doesn't work at the moment - https://github.com/stefanbirkner/system-rules/issues/70 -->
+            <version>1.17.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
