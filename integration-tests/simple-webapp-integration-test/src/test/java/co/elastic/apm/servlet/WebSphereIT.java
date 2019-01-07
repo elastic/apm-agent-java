@@ -56,4 +56,9 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
         return Arrays.asList(new Object[][]{{"8.5.5"}, {"webProfile7"}});
     }
 
+    @Override
+    protected boolean isExpectedStacktrace(String path) {
+        return true;
+    }
+
 }

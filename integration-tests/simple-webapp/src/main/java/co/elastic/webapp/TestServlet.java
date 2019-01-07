@@ -21,6 +21,7 @@ package co.elastic.webapp;
 
 import co.elastic.apm.api.ElasticApm;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -28,17 +29,47 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import static co.elastic.webapp.Constants.CAUSE_DB_ERROR;
+import static co.elastic.webapp.Constants.CAUSE_TRANSACTION_ERROR;
+import static co.elastic.webapp.Constants.DB_ERROR;
+import static co.elastic.webapp.Constants.TRANSACTION_FAILURE;
+
 public class TestServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
+        // just to test public API availability
         if (!ElasticApm.currentTransaction().isSampled()) {
             throw new IllegalStateException("Current transaction is not sampled: " + ElasticApm.currentTransaction());
         }
+
+        boolean causeDbError = req.getParameter(CAUSE_DB_ERROR) != null;
+        boolean causeServletError = req.getParameter(CAUSE_TRANSACTION_ERROR) != null;
+
+        // if invoked following AsyncContext.dispatch, original request properties are not available. Instead the query string is made
+        // available through this request attribute
+        String originalQueryString = (String) req.getAttribute(AsyncContext.ASYNC_QUERY_STRING);
+        if (originalQueryString != null) {
+            causeDbError |= originalQueryString.contains(CAUSE_DB_ERROR);
+            causeServletError |= originalQueryString.contains(CAUSE_TRANSACTION_ERROR);
+        }
+
+        Exception cause = null;
         try {
-            resp.getWriter().append(TestDAO.instance().queryDb());
-        } catch (SQLException e) {
-            throw new ServletException("Failed to query DB", e);
+            String content;
+            try {
+                content = TestDAO.instance().queryDb(causeDbError);
+            } catch (SQLException e) {
+                cause = e;
+                content = DB_ERROR;
+            }
+            resp.getWriter().append(content);
+        } catch (IOException e) {
+            cause = e;
+        }
+
+        if (causeServletError) {
+            throw new ServletException(TRANSACTION_FAILURE, cause);
         }
     }
 }
