@@ -101,4 +101,9 @@ enum NoopTransaction implements Transaction {
     public Span createSpan() {
         return NoopSpan.INSTANCE;
     }
+
+    @Override
+    public void injectTraceHeaders(HeaderInjector headerInjector) {
+        // noop
+    }
 }

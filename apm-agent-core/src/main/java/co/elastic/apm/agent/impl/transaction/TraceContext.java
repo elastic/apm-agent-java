@@ -26,6 +26,9 @@ import co.elastic.apm.agent.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
+import java.util.Map;
+
 /**
  * This is an implementation of the
  * <a href="https://w3c.github.io/trace-context/#traceparent-field">w3c traceparent header draft</a>.
@@ -78,6 +81,7 @@ public class TraceContext implements Recyclable {
             return false;
         }
     };
+
     private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
         @Override
         public boolean asChildOf(TraceContext child, ElasticApmTracer tracer) {
@@ -394,6 +398,10 @@ public class TraceContext implements Recyclable {
 
     private void onMutation() {
         outgoingHeader.setLength(0);
+    }
+
+    public boolean isRoot() {
+        return parentId.isEmpty();
     }
 
     public interface ChildContextCreator<T> {

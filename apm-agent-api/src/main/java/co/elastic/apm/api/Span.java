@@ -119,8 +119,9 @@ public interface Span {
     void end();
 
     /**
+     * Captures an exception and reports it to the APM server.
      *
-     * @param throwable
+     * @param throwable the exception to report
      */
     void captureException(Throwable throwable);
 
@@ -191,5 +192,23 @@ public interface Span {
      * @return true if this span is recorded and sent to the APM Server
      */
     boolean isSampled();
+
+    /**
+     * Allows for manual propagation of the tracing headers.
+     * <p>
+     * If you want to manually instrument an RPC framework which is not already supported by the auto-instrumentation capabilities of the agent,
+     * you can use this method to inject the required tracing headers into the header section of that framework's request object.
+     * </p>
+     * <p>
+     * Example:
+     * </p>
+     * <pre>
+     * span.injectTraceHeaders(request::addHeader);
+     * </pre>
+     *
+     * @param headerInjector tells the agent how to inject a header into the request object
+     * @since 1.3.0
+     */
+    void injectTraceHeaders(HeaderInjector headerInjector);
 
 }

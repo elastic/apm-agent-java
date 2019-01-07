@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import java.lang.invoke.MethodHandle;
 
 public abstract class AbstractSpanImpl implements Span {
     @Nonnull
@@ -88,5 +89,14 @@ public abstract class AbstractSpanImpl implements Span {
     public boolean isSampled() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.IsSampledInstrumentation
         return false;
+    }
+
+    @Override
+    public void injectTraceHeaders(HeaderInjector headerInjector) {
+        doInjectTraceHeaders(ApiMethodHandles.ADD_HEADER, headerInjector);
+    }
+
+    private void doInjectTraceHeaders(MethodHandle addHeader, HeaderInjector headerInjector) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation.InjectTraceHeadersInstrumentation
     }
 }

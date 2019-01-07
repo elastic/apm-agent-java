@@ -1,4 +1,5 @@
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$StartTransactionInstrumentation
+co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$StartTransactionWithRemoteParentInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
@@ -15,6 +16,7 @@ co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetTraceIdInstrument
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$IsSampledInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$InjectTraceHeadersInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.ApiScopeInstrumentation
 co.elastic.apm.agent.plugin.api.CaptureTransactionInstrumentation

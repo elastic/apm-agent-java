@@ -82,4 +82,9 @@ enum NoopSpan implements Span {
     public Span createSpan() {
         return INSTANCE;
     }
+
+    @Override
+    public void injectTraceHeaders(HeaderInjector headerInjector) {
+        // noop
+    }
 }

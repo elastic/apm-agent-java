@@ -21,6 +21,7 @@ package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 
 /**
  * This class is the main entry point of the public API for the Elastic APM agent.
@@ -37,7 +38,7 @@ import javax.annotation.Nullable;
  */
 public class ElasticApm {
 
-    private ElasticApm() {
+    ElasticApm() {
         // do not instantiate
     }
 
@@ -84,6 +85,60 @@ public class ElasticApm {
     }
 
     /**
+     * Similar to {@link ElasticApm#startTransaction()} but creates this transaction as the child of a remote parent.
+     *
+     * <p>
+     * Example:
+     * </p>
+     * <pre>
+     * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader);
+     * </pre>
+     * <p>
+     * Note: If the protocol supports multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)}
+     * </p>
+     *
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
+     * @return the started transaction
+     * @since 1.3.0
+     */
+    @Nonnull
+    public static Transaction startTransactionWithRemoteParent(final HeaderExtractor headerExtractor) {
+        return startTransactionWithRemoteParent(headerExtractor, null);
+    }
+
+    /**
+     * Similar to {@link ElasticApm#startTransaction()} but creates this transaction as the child of a remote parent.
+     *
+     * <p>
+     * Example:
+     * </p>
+     * <pre>
+     * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
+     * </pre>
+     * <p>
+     * Note: If the protocol does not support multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor)}
+     * </p>
+     * <p>
+     *
+     * @param headerExtractor a function which receives a header name and returns the fist header with that name
+     * @param headersExtractor  a function which receives a header name and returns all headers with that name
+     * @return the started transaction
+     * @since 1.3.0
+     */
+    @Nonnull
+    public static Transaction startTransactionWithRemoteParent(HeaderExtractor headerExtractor, HeadersExtractor headersExtractor) {
+        Object transaction = doStartTransactionWithRemoteParentFunction(ApiMethodHandles.GET_FIRST_HEADER, headerExtractor,
+            ApiMethodHandles.GET_ALL_HEADERS, headersExtractor);
+        return transaction != null ? new TransactionImpl(transaction) : NoopTransaction.INSTANCE;
+    }
+
+    private static Object doStartTransactionWithRemoteParentFunction(MethodHandle getFirstHeader, HeaderExtractor headerExtractor,
+                                                                     MethodHandle getAllHeaders, HeadersExtractor headersExtractor) {
+        // co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.StartTransactionWithRemoteParentInstrumentation
+        return null;
+    }
+
+    /**
      * Returns the currently running transaction.
      * <p>
      * If there is no current transaction, this method will return a noop transaction,
@@ -122,6 +177,7 @@ public class ElasticApm {
      * NOTE: Transactions created via {@link Span#createSpan()} can not be retrieved by calling this method.
      * See {@link Span#activate()} on how to achieve that.
      * </p>
+     *
      * @return The currently active span, or transaction, or a noop span (never {@code null}).
      */
     @Nonnull

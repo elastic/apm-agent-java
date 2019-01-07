@@ -21,8 +21,12 @@ package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
-
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -172,4 +176,43 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
             assertThat(transaction.ensureParentId()).isEqualTo(rumTransactionId);
         }
     }
+
+    @Test
+    void testTransactionWithRemoteParentFunction() {
+        final TraceContext parent = TraceContext.with64BitId();
+        parent.asRootSpan(ConstantSampler.of(true));
+        ElasticApm.startTransactionWithRemoteParent(key -> parent.getOutgoingTraceParentHeader().toString()).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+    }
+
+    @Test
+    void testTransactionWithRemoteParentFunctions() {
+        final TraceContext parent = TraceContext.with64BitId();
+        parent.asRootSpan(ConstantSampler.of(true));
+        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
+        ElasticApm.startTransactionWithRemoteParent(map::get, key -> Collections.singletonList(map.get(key))).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+    }
+
+    @Test
+    void testTransactionWithRemoteParentHeaders() {
+        final TraceContext parent = TraceContext.with64BitId();
+        parent.asRootSpan(ConstantSampler.of(true));
+        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
+        ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(map.get(key))).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
+    }
+
+    @Test
+    void testTransactionWithRemoteParentNullFunction() {
+        ElasticApm.startTransactionWithRemoteParent(null).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isRoot()).isTrue();
+    }
+
+    @Test
+    void testTransactionWithRemoteParentNullFunctions() {
+        ElasticApm.startTransactionWithRemoteParent(null, null).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().isRoot()).isTrue();
+    }
+
 }

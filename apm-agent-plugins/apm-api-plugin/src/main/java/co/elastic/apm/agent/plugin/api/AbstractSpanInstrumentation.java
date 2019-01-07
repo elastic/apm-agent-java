@@ -21,11 +21,15 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandle;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -181,6 +185,23 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Return(readOnly = false) boolean sampled) {
             sampled = span.isSampled();
+        }
+    }
+
+    public static class InjectTraceHeadersInstrumentation extends AbstractSpanInstrumentation {
+
+        public InjectTraceHeadersInstrumentation() {
+            super(named("doInjectTraceHeaders"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+                                           @Advice.Argument(0) MethodHandle addHeader,
+                                           @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
+            if (headerInjector != null) {
+                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+            }
         }
     }
 }
