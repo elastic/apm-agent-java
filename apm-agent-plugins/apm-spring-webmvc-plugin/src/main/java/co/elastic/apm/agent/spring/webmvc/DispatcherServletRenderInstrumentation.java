@@ -28,8 +28,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.annotation.Nullable;
-
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -37,6 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -46,17 +45,16 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeExecute(@Advice.Argument(0) ModelAndView modelAndView,
+    private static void beforeExecute(@Advice.Argument(0) @Nullable ModelAndView modelAndView,
                                       @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.activeSpan() == null)
+        if (tracer == null || tracer.activeSpan() == null) {
             return;
+        }
         final AbstractSpan<?> parent = tracer.activeSpan();
-
         span = parent.createSpan().withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER).withName(DISPATCHER_SERVLET_RENDER_METHOD);
-
-        if (modelAndView != null && modelAndView.getViewName() != null)
+        if (modelAndView != null && modelAndView.getViewName() != null) {
             span.appendToName(" ").appendToName(modelAndView.getViewName());
-
+        }
         span.activate();
     }
 
