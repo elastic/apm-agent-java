@@ -24,25 +24,26 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.stereotype.Controller;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 public class DispatcherServletRenderInstrumentationTest {
@@ -88,16 +89,19 @@ public class DispatcherServletRenderInstrumentationTest {
     @Controller
     public static class MessageController {
         @GetMapping("/test")
-        public String test() {
-            return "message-view";
+        public ModelAndView test() {
+            ModelAndView modelAndView = new ModelAndView();
+            modelAndView.setViewName("message-view");
+            return modelAndView;
         }
     }
 
     @Test
-    public void testCallOfDispatcherServletRender() throws Exception {
+    public void testCallOfDispatcherServletWithNonNullModelAndView() throws Exception {
+        reporter.reset();
         this.mockMvc.perform(get("/test"));
         assertEquals(1, reporter.getTransactions().size());
-        assertEquals(2, reporter.getSpans().size());
-        assertEquals("Render message-view", reporter.getSpans().get(1).getName().toString());
+        assertEquals(1, reporter.getSpans().size());
+        assertEquals("Render message-view", reporter.getSpans().get(0).getName().toString());
     }
 }

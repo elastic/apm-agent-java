@@ -31,7 +31,6 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -45,6 +44,7 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
 
     private static final String SPAN_TYPE_DISPATCHER_SERVLET_RENDER = "template.dispatcher-servlet.render";
     private static final String RENDER_METHOD = "Render";
+    private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.Argument(0) ModelAndView modelAndView,
@@ -52,11 +52,14 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
         if (tracer == null || tracer.activeSpan() == null)
             return;
         final AbstractSpan<?> parent = tracer.activeSpan();
-        span = parent
-            .createSpan()
-            .withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER)
-            .appendToName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName() != null ? modelAndView.getViewName() : "")
-            .activate();
+
+        span = parent.createSpan().withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER);
+        if (modelAndView == null || modelAndView.getViewName() == null)
+            span.withName(DISPATCHER_SERVLET_RENDER_METHOD);
+        else
+            span.withName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName()).activate();
+
+        span.activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
@@ -74,7 +77,7 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
         return nameStartsWith("org.springframework")
             .and(not(isInterface()))
             .and(declaresMethod(getMethodMatcher()))
-            .and(hasSuperType(named("org.springframework.web.servlet.DispatcherServlet")));
+            .and(named("org.springframework.web.servlet.DispatcherServlet"));
     }
 
     @Override
