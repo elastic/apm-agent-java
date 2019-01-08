@@ -43,7 +43,6 @@ import java.util.Collection;
 public class DispatcherServletRenderInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE_DISPATCHER_SERVLET_RENDER = "template.dispatcher-servlet.render";
-    private static final String RENDER_METHOD = "Render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -53,11 +52,10 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
             return;
         final AbstractSpan<?> parent = tracer.activeSpan();
 
-        span = parent.createSpan().withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER);
-        if (modelAndView == null || modelAndView.getViewName() == null)
-            span.withName(DISPATCHER_SERVLET_RENDER_METHOD);
-        else
-            span.withName(RENDER_METHOD).appendToName(" ").appendToName(modelAndView.getViewName()).activate();
+        span = parent.createSpan().withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER).withName(DISPATCHER_SERVLET_RENDER_METHOD);
+
+        if (modelAndView != null && modelAndView.getViewName() != null)
+            span.appendToName(" ").appendToName(modelAndView.getViewName());
 
         span.activate();
     }

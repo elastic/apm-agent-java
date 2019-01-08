@@ -102,6 +102,6 @@ public class DispatcherServletRenderInstrumentationTest {
         this.mockMvc.perform(get("/test"));
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("Render message-view", reporter.getSpans().get(0).getName().toString());
+        assertEquals("DispatcherServlet#render message-view", reporter.getSpans().get(0).getName().toString());
     }
 }
