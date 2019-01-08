@@ -37,6 +37,8 @@ import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.matches;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -104,7 +106,9 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
                 matcher = matcher.and(takesArgument(i, matches(argumentMatchers.get(i))));
             }
         }
-        return matcher;
+        // Byte Buddy can't catch exceptions (onThrowable = Throwable.class) during a constructor call:
+        // java.lang.IllegalStateException: Cannot catch exception during constructor call
+        return matcher.and(not(isConstructor()));
     }
 
     @Override

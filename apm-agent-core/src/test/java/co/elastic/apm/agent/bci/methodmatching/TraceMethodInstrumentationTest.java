@@ -31,7 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -45,8 +45,9 @@ class TraceMethodInstrumentationTest {
     void setUp() {
         reporter = new MockReporter();
         ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(CoreConfiguration.class).getTraceMethods()).thenReturn(Collections.singletonList(
-            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest#traceMe*()"))
+        when(config.getConfig(CoreConfiguration.class).getTraceMethods()).thenReturn(Arrays.asList(
+            MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
+            MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"))
         );
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
@@ -62,35 +63,52 @@ class TraceMethodInstrumentationTest {
 
     @Test
     void testTraceMethod() {
-        traceMe();
+        TestClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("TestClass#traceMeToo");
     }
 
     @Test
     void testNotMatched_VisibilityModifier() {
-        traceMeNot();
+        TestClass.traceMeNot();
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
     @Test
     void testNotMatched_Parameters() {
-        traceMeNot(false);
+        TestClass.traceMeNot(false);
         assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    // not traced because visibility modifier does not match
-    public void traceMeNot() {
+    // Byte Buddy can't catch exceptions (onThrowable = Throwable.class) during a constructor call:
+    @Test
+    void testNotMatched_Constructor() {
+        new TestExcludeConstructor();
+        assertThat(reporter.getTransactions()).isEmpty();
     }
 
-    private void traceMeNot(boolean doesNotMatchParameterMatcher) {
+    public static class TestClass {
+        // not traced because visibility modifier does not match
+        public static void traceMeNot() {
+        }
+
+        private static void traceMeNot(boolean doesNotMatchParameterMatcher) {
+        }
+
+        private static void traceMe() {
+            traceMeToo();
+        }
+
+        private static void traceMeToo() {
+
+        }
     }
 
-    private void traceMe() {
-        traceMeToo();
+    public static class TestExcludeConstructor {
+        public TestExcludeConstructor() {
+        }
     }
 
-    private void traceMeToo() {
-
-    }
 }
