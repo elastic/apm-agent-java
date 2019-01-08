@@ -82,9 +82,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private TimerTask timeoutTask;
     private int errorCount;
-    private long gracePeriodEnd;
-    private boolean shutDown;
-    private volatile boolean closed;
+    private volatile boolean shutDown;
 
     public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -110,13 +108,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // when there are multiple agents, they should not all start connecting to the same apm server
         Collections.shuffle(serverUrls);
         return serverUrls;
-    }
-
-    private static long calculateEndOfGracePeriod(long errorCount) {
-        long backoffTimeSeconds = getBackoffTimeSeconds(errorCount);
-        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
-        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
-        return System.currentTimeMillis() + backoffTimeMillis + getRandomJitter(backoffTimeMillis);
     }
 
     /*
@@ -168,23 +159,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         processorEventHandler.onEvent(event, sequence, endOfBatch);
         try {
             if (connection == null) {
-                long millisToGracePeriodEnd = gracePeriodEnd - System.currentTimeMillis();
-                if (millisToGracePeriodEnd > 0) {
-                    // back off because there are connection issues with the apm server
-                    try {
-                        synchronized (WAIT_LOCK) {
-                            WAIT_LOCK.wait(millisToGracePeriodEnd);
-                        }
-                        if (closed) {
-                            dropped++;
-                            return;
-                        }
-                    } catch (InterruptedException e) {
-                        logger.info("APM Agent ReportingEventHandler had been interrupted", e);
-                        dropped++;
-                        return;
-                    }
-                }
                 connection = startRequest();
                 payloadSerializer.serializeMetaDataNdJson(metaData);
             }
@@ -193,10 +167,10 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             } catch (Exception e) {
                 // end request on error to start backing off
                 flush();
-                onConnectionError(null, currentlyTransmitting, 0);
+                onConnectionError(null, currentlyTransmitting + 1, 0);
             }
         } catch (IOException e) {
-            onConnectionError(null, currentlyTransmitting, 0);
+            onConnectionError(null, currentlyTransmitting + 1, 0);
         }
         if (shouldFlush()) {
             flush();
@@ -371,7 +345,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private void onConnectionError(@Nullable Integer responseCode, long droppedEvents, long reportedEvents) {
-        gracePeriodEnd = calculateEndOfGracePeriod(errorCount++);
         dropped += droppedEvents;
         reported += reportedEvents;
         // if the response code is null, the server did not even send a response
@@ -381,6 +354,20 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         } else if (responseCode == 404) {
             logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
                 "Please use APM Server 6.5.0 or newer.");
+        }
+
+        long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
+        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        if (backoffTimeMillis > 0) {
+            // back off because there are connection issues with the apm server
+            try {
+                synchronized (WAIT_LOCK) {
+                    WAIT_LOCK.wait(backoffTimeMillis);
+                }
+            } catch (InterruptedException e) {
+                logger.info("APM Agent ReportingEventHandler had been interrupted", e);
+            }
         }
     }
 
@@ -396,7 +383,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public void close() {
-        closed = true;
+        shutDown = true;
         timeoutTimer.cancel();
         synchronized (WAIT_LOCK) {
             WAIT_LOCK.notifyAll();
