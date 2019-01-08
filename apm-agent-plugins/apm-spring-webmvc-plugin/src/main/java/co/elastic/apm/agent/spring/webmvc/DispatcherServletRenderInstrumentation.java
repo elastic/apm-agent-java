@@ -28,11 +28,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.ModelAndView;
 
-import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import javax.annotation.Nullable;
@@ -70,10 +66,7 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("org.springframework")
-            .and(not(isInterface()))
-            .and(declaresMethod(getMethodMatcher()))
-            .and(named("org.springframework.web.servlet.DispatcherServlet"));
+        return named("org.springframework.web.servlet.DispatcherServlet");
     }
 
     @Override
