@@ -255,9 +255,12 @@ pipeline {
       }
       when {
         beforeAgent true
-        allOf {
-          branch 'master'
-          expression { return params.doc_ci }
+        anyOf{
+          allOf {
+            branch 'master'
+            expression { return params.doc_ci }
+          }
+          expression { return params.Run_As_Master_Branch && params.doc_ci }
         }
       }
       steps {
