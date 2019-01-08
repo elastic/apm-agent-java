@@ -60,7 +60,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
-    public static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
+    private static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
+    private static final Object WAIT_LOCK = new Object();
 
     private final ReporterConfiguration reporterConfiguration;
     private final ProcessorEventHandler processorEventHandler;
@@ -83,6 +84,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private int errorCount;
     private long gracePeriodEnd;
     private boolean shutDown;
+    private volatile boolean closed;
 
     public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -164,25 +166,50 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             return;
         }
         processorEventHandler.onEvent(event, sequence, endOfBatch);
-        if (connection == null) {
-            if (gracePeriodEnd > System.currentTimeMillis()) {
-                // back off because there are connection issues with the apm server
-                dropped++;
-                return;
-            }
-            connection = startRequest();
-            payloadSerializer.serializeMetaDataNdJson(metaData);
-        }
         try {
-            writeEvent(event);
-        } catch (Exception e) {
-            // end request on error to start backing off
-            flush();
+            if (connection == null) {
+                long millisToGracePeriodEnd = gracePeriodEnd - System.currentTimeMillis();
+                if (millisToGracePeriodEnd > 0) {
+                    // back off because there are connection issues with the apm server
+                    try {
+                        synchronized (WAIT_LOCK) {
+                            WAIT_LOCK.wait(millisToGracePeriodEnd);
+                        }
+                        if (closed) {
+                            dropped++;
+                            return;
+                        }
+                    } catch (InterruptedException e) {
+                        logger.info("APM Agent ReportingEventHandler had been interrupted", e);
+                        dropped++;
+                        return;
+                    }
+                }
+                connection = startRequest();
+                payloadSerializer.serializeMetaDataNdJson(metaData);
+            }
+            try {
+                writeEvent(event);
+            } catch (Exception e) {
+                // end request on error to start backing off
+                flush();
+                onConnectionError(null, currentlyTransmitting, 0);
+            }
+        } catch (IOException e) {
             onConnectionError(null, currentlyTransmitting, 0);
         }
         if (shouldFlush()) {
             flush();
         }
+    }
+
+    /**
+     * Returns the number of bytes already serialized and waiting in the underlying serializer's buffer.
+     *
+     * @return number of bytes currently waiting in the underlying serializer's buffer, not yet flushed to the underlying stream
+     */
+    int getBufferSize() {
+        return payloadSerializer.getBufferSize();
     }
 
     private void writeEvent(ReportingEvent event) {
@@ -212,46 +239,40 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         return flush;
     }
 
-    @Nullable
-    private HttpURLConnection startRequest() {
-        try {
-            URL url = getUrl();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Starting new request to {}", url);
-            }
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            if (!reporterConfiguration.isVerifyServerCert()) {
-                if (connection instanceof HttpsURLConnection) {
-                    trustAll((HttpsURLConnection) connection);
-                }
-            }
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            if (reporterConfiguration.getSecretToken() != null) {
-                connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
-            }
-            connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-            connection.setRequestProperty("User-Agent", USER_AGENT);
-            connection.setRequestProperty("Content-Encoding", "deflate");
-            connection.setRequestProperty("Content-Type", "application/x-ndjson");
-            connection.setUseCaches(false);
-            connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.connect();
-            os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
-            payloadSerializer.setOutputStream(os);
-            if (reporter != null) {
-                timeoutTask = new FlushOnTimeoutTimerTask(reporter);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
-                }
-                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
-            }
-            return connection;
-        } catch (IOException e) {
-            onConnectionError(null, currentlyTransmitting, 0);
-            return null;
+    private HttpURLConnection startRequest() throws IOException {
+        URL url = getUrl();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Starting new request to {}", url);
         }
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        if (!reporterConfiguration.isVerifyServerCert()) {
+            if (connection instanceof HttpsURLConnection) {
+                trustAll((HttpsURLConnection) connection);
+            }
+        }
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        if (reporterConfiguration.getSecretToken() != null) {
+            connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+        }
+        connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
+        connection.setRequestProperty("User-Agent", USER_AGENT);
+        connection.setRequestProperty("Content-Encoding", "deflate");
+        connection.setRequestProperty("Content-Type", "application/x-ndjson");
+        connection.setUseCaches(false);
+        connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+        connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+        connection.connect();
+        os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+        payloadSerializer.setOutputStream(os);
+        if (reporter != null) {
+            timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+            }
+            timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
+        }
+        return connection;
     }
 
     @Nonnull
@@ -375,7 +396,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public void close() {
+        closed = true;
         timeoutTimer.cancel();
+        synchronized (WAIT_LOCK) {
+            WAIT_LOCK.notifyAll();
+        }
     }
 
     private static class FlushOnTimeoutTimerTask extends TimerTask {

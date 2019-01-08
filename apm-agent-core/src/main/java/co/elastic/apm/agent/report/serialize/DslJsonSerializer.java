@@ -186,6 +186,12 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(NEW_LINE);
     }
 
+    /**
+     * Returns the number of bytes already serialized and waiting in the underlying {@link JsonWriter}'s buffer.
+     * Note that the resulting JSON can be bigger if a Stream is set to the writer and some data was already flushed
+     *
+     * @return number of bytes currently waiting in the underlying {@link JsonWriter} to be flushed to the underlying stream
+     */
     @Override
     public int getBufferSize() {
         return jw.size();

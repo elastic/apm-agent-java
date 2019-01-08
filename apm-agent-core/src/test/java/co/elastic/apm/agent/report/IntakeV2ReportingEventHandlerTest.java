@@ -73,6 +73,7 @@ class IntakeV2ReportingEventHandlerTest {
     @Rule
     public WireMockRule mockApmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private IntakeV2ReportingEventHandler reportingEventHandler;
+    private IntakeV2ReportingEventHandler nonConnectedReportingEventHandler;
 
     @Nonnull
     private static JsonNode getReadTree(String s) {
@@ -100,6 +101,13 @@ class IntakeV2ReportingEventHandlerTest {
                 // testing ability to configure a server url with additional path (ending with "/" in this case)
                 new URL(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + "/")
             ));
+        nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
+            reporterConfiguration,
+            mock(ProcessorEventHandler.class),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            List.of(
+                new URL("http://non.existing:8080")
+            ));
     }
 
     @AfterEach
@@ -120,10 +128,12 @@ class IntakeV2ReportingEventHandlerTest {
 
     @Test
     void testReport() {
-        reportTransaction();
+        reportTransaction(reportingEventHandler);
         reportSpan();
         reportError();
+        assertThat(reportingEventHandler.getBufferSize()).isGreaterThan(0);
         reportingEventHandler.flush();
+        assertThat(reportingEventHandler.getBufferSize()).isEqualTo(0);
 
         final List<JsonNode> ndJsonNodes = getNdJsonNodes();
         assertThat(ndJsonNodes).hasSize(4);
@@ -134,8 +144,14 @@ class IntakeV2ReportingEventHandlerTest {
     }
 
     @Test
+    void testNoopWhenNotConnected() {
+        reportTransaction(nonConnectedReportingEventHandler);
+        assertThat(nonConnectedReportingEventHandler.getBufferSize()).isEqualTo(0);
+    }
+
+    @Test
     void testShutDown() {
-        reportTransaction();
+        reportTransaction(reportingEventHandler);
         sendShutdownEvent();
         reportSpan();
         reportingEventHandler.flush();
@@ -150,7 +166,7 @@ class IntakeV2ReportingEventHandlerTest {
     void testReportRoundRobinOnServerError() {
         mockApmServer1.stubFor(post(INTAKE_V2_URL).willReturn(serviceUnavailable()));
 
-        reportTransaction();
+        reportTransaction(reportingEventHandler);
         reportingEventHandler.flush();
         mockApmServer1.verify(postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
@@ -158,7 +174,7 @@ class IntakeV2ReportingEventHandlerTest {
         mockApmServer1.resetRequests();
         mockApmServer2.resetRequests();
 
-        reportTransaction();
+        reportTransaction(reportingEventHandler);
         reportingEventHandler.flush();
         mockApmServer1.verify(0, postRequestedFor(urlEqualTo(INTAKE_V2_URL)));
         mockApmServer2.verify(postRequestedFor(urlEqualTo(APM_SERVER_PATH + INTAKE_V2_URL)));
@@ -183,7 +199,7 @@ class IntakeV2ReportingEventHandlerTest {
         assertThat(IntakeV2ReportingEventHandler.getRandomJitter(100)).isBetween(-10L, 10L);
     }
 
-    private void reportTransaction() {
+    private void reportTransaction(IntakeV2ReportingEventHandler reportingEventHandler) {
         final ReportingEvent reportingEvent = new ReportingEvent();
         reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
 
