@@ -1,1 +1,2 @@
 co.elastic.apm.agent.spring.webmvc.SpringTransactionNameInstrumentation
+co.elastic.apm.agent.spring.webmvc.DispatcherServletRenderInstrumentation
