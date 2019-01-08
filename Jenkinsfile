@@ -245,6 +245,7 @@ pipeline {
       Build the documentation.
     */
     stage('Documentation') {
+      agent { label 'linux && immutable' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
