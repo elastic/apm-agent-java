@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 pipeline {
-  agent none
+  agent any
   environment {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
+    NOTIFY_TO = credentials('notify-to')
+    JOB_GCS_BUCKET = credentials('gcs-bucket')
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -38,6 +40,7 @@ pipeline {
         */
         stage('Checkout') {
           steps {
+            deleteDir()
             gitCheckout(basedir: "${BASE_DIR}")
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
           }
@@ -47,16 +50,15 @@ pipeline {
         */
         stage('build') {
           steps {
-            withEnvWrapper() {
-              unstash 'source'
-              dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
-                """
-              }
-              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+            deleteDir()
+            unstash 'source'
+            dir("${BASE_DIR}"){
+              sh """#!/bin/bash
+              set -euxo pipefail
+              ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
+              """
             }
+            stash allowEmpty: true, name: 'build', useDefaultExcludes: false
           }
         }
       }
@@ -80,14 +82,13 @@ pipeline {
             expression { return params.test_ci }
           }
           steps {
-            withEnvWrapper() {
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw test
-                """
-              }
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh """#!/bin/bash
+              set -euxo pipefail
+              ./mvnw test
+              """
             }
           }
           post {
@@ -115,11 +116,10 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            withEnvWrapper() {
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-01.sh'
-              }
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh './scripts/jenkins/smoketests-01.sh'
             }
           }
           post {
@@ -147,11 +147,10 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            withEnvWrapper() {
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-02.sh'
-              }
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh './scripts/jenkins/smoketests-02.sh'
             }
           }
           post {
@@ -193,17 +192,16 @@ pipeline {
             }
           }
           steps {
-            withEnvWrapper() {
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                script {
-                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
-                }
-                sh './scripts/jenkins/run-benchmarks.sh'
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              script {
+                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
               }
+              sh './scripts/jenkins/run-benchmarks.sh'
             }
           }
           post {
@@ -231,14 +229,13 @@ pipeline {
             expression { return params.doc_ci }
           }
           steps {
-            withEnvWrapper() {
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh """#!/bin/bash
-                set -euxo pipefail
-                ./mvnw compile javadoc:javadoc
-                """
-              }
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh """#!/bin/bash
+              set -euxo pipefail
+              ./mvnw compile javadoc:javadoc
+              """
             }
           }
         }
@@ -263,12 +260,11 @@ pipeline {
         }
       }
       steps {
-        withEnvWrapper() {
-          unstash 'source'
-          checkoutElasticDocsTools(basedir: "${ELASTIC_DOCS}")
-          dir("${BASE_DIR}"){
-            sh './scripts/jenkins/docs.sh'
-          }
+        deleteDir()
+        unstash 'source'
+        checkoutElasticDocsTools(basedir: "${ELASTIC_DOCS}")
+        dir("${BASE_DIR}"){
+          sh './scripts/jenkins/docs.sh'
         }
       }
       post{
@@ -287,7 +283,7 @@ pipeline {
     }
     failure {
       echoColor(text: '[FAILURE]', colorfg: 'red', colorbg: 'default')
-      //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${NOTIFY_TO}", sendToIndividuals: false])
+      step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${NOTIFY_TO}", sendToIndividuals: false])
     }
     unstable {
       echoColor(text: '[UNSTABLE]', colorfg: 'yellow', colorbg: 'default')
