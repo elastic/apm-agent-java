@@ -85,8 +85,11 @@ class TraceMethodInstrumentationTest {
     // Byte Buddy can't catch exceptions (onThrowable = Throwable.class) during a constructor call:
     @Test
     void testNotMatched_Constructor() {
-        new TestExcludeConstructor();
+        final TestExcludeConstructor testClass = new TestExcludeConstructor();
         assertThat(reporter.getTransactions()).isEmpty();
+        testClass.traceMe();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestExcludeConstructor#traceMe");
     }
 
     public static class TestClass {
@@ -108,6 +111,9 @@ class TraceMethodInstrumentationTest {
 
     public static class TestExcludeConstructor {
         public TestExcludeConstructor() {
+        }
+
+        public void traceMe() {
         }
     }
 
