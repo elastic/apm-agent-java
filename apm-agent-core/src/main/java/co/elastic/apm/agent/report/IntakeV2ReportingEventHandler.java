@@ -162,14 +162,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                 connection = startRequest();
                 payloadSerializer.serializeMetaDataNdJson(metaData);
             }
-            try {
-                writeEvent(event);
-            } catch (Exception e) {
-                // end request on error to start backing off
-                flush();
-                onConnectionError(null, currentlyTransmitting + 1, 0);
-            }
-        } catch (IOException e) {
+            writeEvent(event);
+        } catch (Exception e) {
+            logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
+            logger.debug("Event handling failure", e);
+            flush();
             onConnectionError(null, currentlyTransmitting + 1, 0);
         }
         if (shouldFlush()) {
@@ -325,8 +322,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // TODO read accepted, dropped and invalid
         onConnectionError(responseCode, currentlyTransmitting, 0);
         if (e != null) {
-            logger.warn(e.getMessage());
-            logger.debug("Sending payload to APM server failed with {}", responseCode, e);
+            logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
+            logger.debug("Sending payload to APM server failed", e);
         }
         if (logger.isWarnEnabled()) {
             try {
@@ -363,7 +360,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             // back off because there are connection issues with the apm server
             try {
                 synchronized (WAIT_LOCK) {
-                    WAIT_LOCK.wait(backoffTimeMillis);
+                    WAIT_LOCK.wait(backoffTimeMillis + getRandomJitter(backoffTimeMillis));
                 }
             } catch (InterruptedException e) {
                 logger.info("APM Agent ReportingEventHandler had been interrupted", e);
