@@ -7,6 +7,7 @@
    `public org.example.services.*.*Service#*`
 
 ## Bug Fixes
+ * Fixing a potential memory leak when there is no connection with APM server
 
 # 1.2.1
 

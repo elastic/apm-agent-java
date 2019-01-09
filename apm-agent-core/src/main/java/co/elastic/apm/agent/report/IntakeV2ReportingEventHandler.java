@@ -60,7 +60,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
-    public static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
+    private static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
+    private static final Object WAIT_LOCK = new Object();
 
     private final ReporterConfiguration reporterConfiguration;
     private final ProcessorEventHandler processorEventHandler;
@@ -81,8 +82,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     @Nullable
     private TimerTask timeoutTask;
     private int errorCount;
-    private long gracePeriodEnd;
-    private boolean shutDown;
+    private volatile boolean shutDown;
 
     public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
@@ -108,13 +108,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // when there are multiple agents, they should not all start connecting to the same apm server
         Collections.shuffle(serverUrls);
         return serverUrls;
-    }
-
-    private static long calculateEndOfGracePeriod(long errorCount) {
-        long backoffTimeSeconds = getBackoffTimeSeconds(errorCount);
-        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
-        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
-        return System.currentTimeMillis() + backoffTimeMillis + getRandomJitter(backoffTimeMillis);
     }
 
     /*
@@ -164,25 +157,30 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             return;
         }
         processorEventHandler.onEvent(event, sequence, endOfBatch);
-        if (connection == null) {
-            if (gracePeriodEnd > System.currentTimeMillis()) {
-                // back off because there are connection issues with the apm server
-                dropped++;
-                return;
-            }
-            connection = startRequest();
-            payloadSerializer.serializeMetaDataNdJson(metaData);
-        }
         try {
+            if (connection == null) {
+                connection = startRequest();
+                payloadSerializer.serializeMetaDataNdJson(metaData);
+            }
             writeEvent(event);
         } catch (Exception e) {
-            // end request on error to start backing off
+            logger.error("Failed to handle event of type {} with this error: {}", event.getType(), e.getMessage());
+            logger.debug("Event handling failure", e);
             flush();
-            onConnectionError(null, currentlyTransmitting, 0);
+            onConnectionError(null, currentlyTransmitting + 1, 0);
         }
         if (shouldFlush()) {
             flush();
         }
+    }
+
+    /**
+     * Returns the number of bytes already serialized and waiting in the underlying serializer's buffer.
+     *
+     * @return number of bytes currently waiting in the underlying serializer's buffer, not yet flushed to the underlying stream
+     */
+    int getBufferSize() {
+        return payloadSerializer.getBufferSize();
     }
 
     private void writeEvent(ReportingEvent event) {
@@ -212,46 +210,40 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         return flush;
     }
 
-    @Nullable
-    private HttpURLConnection startRequest() {
-        try {
-            URL url = getUrl();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Starting new request to {}", url);
-            }
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            if (!reporterConfiguration.isVerifyServerCert()) {
-                if (connection instanceof HttpsURLConnection) {
-                    trustAll((HttpsURLConnection) connection);
-                }
-            }
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            if (reporterConfiguration.getSecretToken() != null) {
-                connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
-            }
-            connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-            connection.setRequestProperty("User-Agent", USER_AGENT);
-            connection.setRequestProperty("Content-Encoding", "deflate");
-            connection.setRequestProperty("Content-Type", "application/x-ndjson");
-            connection.setUseCaches(false);
-            connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.connect();
-            os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
-            payloadSerializer.setOutputStream(os);
-            if (reporter != null) {
-                timeoutTask = new FlushOnTimeoutTimerTask(reporter);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
-                }
-                timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
-            }
-            return connection;
-        } catch (IOException e) {
-            onConnectionError(null, currentlyTransmitting, 0);
-            return null;
+    private HttpURLConnection startRequest() throws IOException {
+        URL url = getUrl();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Starting new request to {}", url);
         }
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        if (!reporterConfiguration.isVerifyServerCert()) {
+            if (connection instanceof HttpsURLConnection) {
+                trustAll((HttpsURLConnection) connection);
+            }
+        }
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        if (reporterConfiguration.getSecretToken() != null) {
+            connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
+        }
+        connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
+        connection.setRequestProperty("User-Agent", USER_AGENT);
+        connection.setRequestProperty("Content-Encoding", "deflate");
+        connection.setRequestProperty("Content-Type", "application/x-ndjson");
+        connection.setUseCaches(false);
+        connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+        connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
+        connection.connect();
+        os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
+        payloadSerializer.setOutputStream(os);
+        if (reporter != null) {
+            timeoutTask = new FlushOnTimeoutTimerTask(reporter);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Scheduling request timeout in {}", reporterConfiguration.getApiRequestTime());
+            }
+            timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
+        }
+        return connection;
     }
 
     @Nonnull
@@ -330,8 +322,8 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // TODO read accepted, dropped and invalid
         onConnectionError(responseCode, currentlyTransmitting, 0);
         if (e != null) {
-            logger.warn(e.getMessage());
-            logger.debug("Sending payload to APM server failed with {}", responseCode, e);
+            logger.error("Error sending data to APM server: {}, response code is {}", e.getMessage(), responseCode);
+            logger.debug("Sending payload to APM server failed", e);
         }
         if (logger.isWarnEnabled()) {
             try {
@@ -350,7 +342,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private void onConnectionError(@Nullable Integer responseCode, long droppedEvents, long reportedEvents) {
-        gracePeriodEnd = calculateEndOfGracePeriod(errorCount++);
         dropped += droppedEvents;
         reported += reportedEvents;
         // if the response code is null, the server did not even send a response
@@ -360,6 +351,20 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         } else if (responseCode == 404) {
             logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
                 "Please use APM Server 6.5.0 or newer.");
+        }
+
+        long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
+        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
+        if (backoffTimeMillis > 0) {
+            // back off because there are connection issues with the apm server
+            try {
+                synchronized (WAIT_LOCK) {
+                    WAIT_LOCK.wait(backoffTimeMillis + getRandomJitter(backoffTimeMillis));
+                }
+            } catch (InterruptedException e) {
+                logger.info("APM Agent ReportingEventHandler had been interrupted", e);
+            }
         }
     }
 
@@ -375,7 +380,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     @Override
     public void close() {
+        shutDown = true;
         timeoutTimer.cancel();
+        synchronized (WAIT_LOCK) {
+            WAIT_LOCK.notifyAll();
+        }
     }
 
     private static class FlushOnTimeoutTimerTask extends TimerTask {
