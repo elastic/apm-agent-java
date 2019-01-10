@@ -15,7 +15,7 @@
  * Added span for `DispatcherServlet#render` ([#409](https://github.com/elastic/apm-agent-java/pull/409)).
  * Flush reporter on shutdown to make sure all recorded Spans are sent to the server before the programm exits ([#397](https://github.com/elastic/apm-agent-java/pull/397))
  * Adds Kubernetes ([#383](https://github.com/elastic/apm-agent-java/issues/383)) and Docker metadata to, enabling correlation with the Kibana Infra UI.
- * Impoved error handling of the Servlet Async API ([#399](https://github.com/elastic/apm-agent-java/issues/399))
+ * Improved error handling of the Servlet Async API ([#399](https://github.com/elastic/apm-agent-java/issues/399))
 
 ## Bug Fixes
  * Fixing a potential memory leak when there is no connection with APM server
