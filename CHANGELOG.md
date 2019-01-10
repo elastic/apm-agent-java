@@ -1,18 +1,26 @@
 # next
 
 ## Features
- * Add API methods `ElasticApm#startTransactionWithRemoteParent` and `Span#injectTraceHeaders` to allow for manual context propagation.
+
+## Bug Fixes
+
+# 1.3.0
+
+## Features
+ * The agent now collects system and JVM metrics ([#360](https://github.com/elastic/apm-agent-java/pull/360))
+ * Add API methods `ElasticApm#startTransactionWithRemoteParent` and `Span#injectTraceHeaders` to allow for manual context propagation ([#396](https://github.com/elastic/apm-agent-java/pull/396)).
  * Added `trace_methods` configuration option which lets you define which methods in your project or 3rd party libraries should be traced.
    To create spans for all `public` methods of classes whose name ends in `Service` which are in a sub-package of `org.example.services` use this matcher:
-   `public org.example.services.*.*Service#*`
+   `public org.example.services.*.*Service#*` ([#398](https://github.com/elastic/apm-agent-java/pull/398))
+ * Added span for `DispatcherServlet#render` ([#409](https://github.com/elastic/apm-agent-java/pull/409)).
+ * Flush reporter on shutdown to make sure all recorded Spans are sent to the server before the programm exits ([#397](https://github.com/elastic/apm-agent-java/pull/397))
+ * Adds Kubernetes ([#383](https://github.com/elastic/apm-agent-java/issues/383)) and Docker metadata to, enabling correlation with the Kibana Infra UI.
+ * Impoved error handling of the Servlet Async API ([#399](https://github.com/elastic/apm-agent-java/issues/399))
 
 ## Bug Fixes
  * Fixing a potential memory leak when there is no connection with APM server
+ * Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 ([#401](https://github.com/elastic/apm-agent-java/pull/401))
 
-# 1.2.1
-
-## Features
- * Added span for `DispatcherServlet#render`.
  
 # 1.2.0
 
