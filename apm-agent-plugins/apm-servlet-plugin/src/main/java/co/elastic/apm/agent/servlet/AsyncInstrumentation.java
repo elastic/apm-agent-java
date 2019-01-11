@@ -165,10 +165,10 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
             private static void onEnterAsyncContextStart(@Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
-                if (tracer != null) {
+                if (tracer != null && runnable != null) {
                     final Transaction transaction = tracer.currentTransaction();
-                    if (transaction != null && runnable != null && asyncHelper != null) {
-                        runnable = tracer.wrapRunnable(runnable, transaction);
+                    if (transaction != null) {
+                        runnable = transaction.withActiveSpan(runnable);
                     }
                 }
             }

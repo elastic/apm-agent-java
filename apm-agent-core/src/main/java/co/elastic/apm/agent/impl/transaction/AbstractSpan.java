@@ -189,4 +189,16 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return getTraceContext().isChildOf(other);
     }
 
+    /**
+     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
+     *
+     * <p>
+     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
+     * This should only be used span is closed in thread the provided {@link Runnable} is executed in.
+     * </p>
+     */
+    public Runnable withActiveSpan(Runnable runnable) {
+        return tracer.wrapRunnable(runnable, this);
+    }
+
 }

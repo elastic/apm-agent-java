@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -57,6 +58,14 @@ public abstract class ElasticApmInstrumentation {
     static void staticInit(ElasticApmTracer tracer) {
         // allow re-init with a different tracer
         ElasticApmInstrumentation.tracer = tracer;
+    }
+
+    @Nullable
+    public static TraceContextHolder<?> getActive() {
+        if (tracer != null) {
+            return tracer.getActive();
+        }
+        return null;
     }
 
     public void init(ElasticApmTracer tracer) {

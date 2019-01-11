@@ -184,6 +184,16 @@ public abstract class AbstractServletContainerIntegrationTest {
         testTransactionReporting();
         testTransactionErrorReporting();
         testSpanErrorReporting();
+        testExecutorService();
+    }
+
+    private void testExecutorService() throws Exception {
+        mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
+        final String pathToTest = "/executor-service-servlet";
+        executeRequest(pathToTest, null, 200);
+        String transactionId = assertTransactionReported(pathToTest, 200);
+        final List<JsonNode> spans = assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+        assertThat(spans).hasSize(1);
     }
 
     private void testTransactionReporting() throws Exception {
@@ -236,7 +246,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
-        assertThat(responseBody.string()).contains(expectedContent);
+        if (expectedContent != null) {
+            assertThat(responseBody.string()).contains(expectedContent);
+        }
     }
 
     @Nonnull

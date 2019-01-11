@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * An abstraction of both {@link TraceContext} and {@link AbstractSpan}.
@@ -62,44 +63,30 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     public abstract boolean isChildOf(TraceContextHolder other);
 
     public T activate() {
-        try {
-            tracer.activate(this);
-            List<ActivationListener> activationListeners = tracer.getActivationListeners();
-            for (int i = 0; i < activationListeners.size(); i++) {
-                try {
-                    activationListeners.get(i).onActivate(this);
-                } catch (Error e) {
-                    throw e;
-                } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#onActivate", activationListeners.get(i).getClass().getSimpleName(), t);
-                }
-            }
-        } catch (Throwable t) {
+        tracer.activate(this);
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                logger.error("Unexpected error while activating context", t);
-            } catch (Throwable ignore) {
+                activationListeners.get(i).onActivate(this);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#onActivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
         return (T) this;
     }
 
     public T deactivate() {
-        try {
-            tracer.deactivate(this);
-            List<ActivationListener> activationListeners = tracer.getActivationListeners();
-            for (int i = 0; i < activationListeners.size(); i++) {
-                try {
-                    activationListeners.get(i).onDeactivate();
-                } catch (Error e) {
-                    throw e;
-                } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
-                }
-            }
-        } catch (Throwable t) {
+        tracer.deactivate(this);
+        List<ActivationListener> activationListeners = tracer.getActivationListeners();
+        for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                logger.error("Unexpected error while activating context", t);
-            } catch (Throwable ignore) {
+                activationListeners.get(i).onDeactivate();
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
         return (T) this;
@@ -132,6 +119,30 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
             captureException(getTraceContext().getClock().getEpochMicros(), t);
         }
         return (T) this;
+    }
+
+    /**
+     * Wraps the provided {@link Runnable} and makes this {@link TraceContext} active in the {@link Runnable#run()} method.
+     *
+     * <p>
+     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
+     * This is useful if this span is closed in a different thread than the provided {@link Runnable} is executed in.
+     * </p>
+     */
+    public Runnable withActiveContext(Runnable runnable) {
+        return tracer.wrapRunnable(runnable, getTraceContext());
+    }
+
+    /**
+     * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
+     *
+     * <p>
+     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
+     * This is useful if this span is closed in a different thread than the provided {@link java.util.concurrent.Callable} is executed in.
+     * </p>
+     */
+    public <V> Callable<V> withActiveContext(Callable<V> runnable) {
+        return tracer.wrapCallable(runnable, getTraceContext());
     }
 
 }
