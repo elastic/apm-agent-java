@@ -179,7 +179,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTransactionWithRemoteParentFunction() {
-        final TraceContext parent = TraceContext.with64BitId();
+        final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         ElasticApm.startTransactionWithRemoteParent(key -> parent.getOutgoingTraceParentHeader().toString()).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
@@ -187,7 +187,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTransactionWithRemoteParentFunctions() {
-        final TraceContext parent = TraceContext.with64BitId();
+        final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
         ElasticApm.startTransactionWithRemoteParent(map::get, key -> Collections.singletonList(map.get(key))).end();
@@ -196,7 +196,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTransactionWithRemoteParentHeaders() {
-        final TraceContext parent = TraceContext.with64BitId();
+        final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
         final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
         ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(map.get(key))).end();

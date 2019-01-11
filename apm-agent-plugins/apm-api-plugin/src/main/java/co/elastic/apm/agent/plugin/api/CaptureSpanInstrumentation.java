@@ -25,8 +25,8 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -60,7 +60,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                                      @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
                                      @Advice.Local("span") Span span) {
         if (tracer != null) {
-            final AbstractSpan<?> parent = tracer.activeSpan();
+            final TraceContextHolder<?> parent = tracer.getActive();
             if (parent != null) {
                 span = parent.createSpan()
                     .withName(spanName.isEmpty() ? signature : spanName)

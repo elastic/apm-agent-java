@@ -19,8 +19,8 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import com.google.common.collect.MapMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +29,7 @@ import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 import static co.elastic.apm.agent.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
 import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
@@ -45,7 +43,7 @@ public class JdbcHelperImpl implements JdbcHelper {
 
     @Override
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent) {
+    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent) {
         if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;
         }
@@ -92,7 +90,7 @@ public class JdbcHelperImpl implements JdbcHelper {
      * This makes sure that even when there are wrappers for the statement,
      * we only record each JDBC call once.
      */
-    private boolean isAlreadyMonitored(@Nullable AbstractSpan<?> parent) {
+    private boolean isAlreadyMonitored(@Nullable TraceContextHolder<?> parent) {
         if (!(parent instanceof Span)) {
             return false;
         }

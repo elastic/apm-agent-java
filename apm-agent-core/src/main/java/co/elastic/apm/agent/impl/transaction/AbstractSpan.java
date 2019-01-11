@@ -20,20 +20,17 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.SpanListener;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable {
+public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
-    protected final TraceContext traceContext = TraceContext.with64BitId();
+    protected final TraceContext traceContext;
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
@@ -56,7 +53,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
     private volatile boolean finished = true;
 
     public AbstractSpan(ElasticApmTracer tracer) {
+        super(tracer);
         this.tracer = tracer;
+        traceContext = TraceContext.with64BitId(this.tracer);
     }
 
     /**
@@ -116,6 +115,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return traceContext.isSampled();
     }
 
+    @Override
     public TraceContext getTraceContext() {
         return traceContext;
     }
@@ -135,50 +135,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return traceContext.isChildOf(parent.traceContext);
     }
 
-    public T activate() {
-        tracer.activate(this);
-        List<SpanListener> spanListeners = tracer.getSpanListeners();
-        for (int i = 0; i < spanListeners.size(); i++) {
-            try {
-                spanListeners.get(i).onActivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onActivate", spanListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
-        return (T) this;
-    }
-
-    public T deactivate() {
-        tracer.deactivate(this);
-        List<SpanListener> spanListeners = tracer.getSpanListeners();
-        for (int i = 0; i < spanListeners.size(); i++) {
-            try {
-                spanListeners.get(i).onDeactivate(this);
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onDeactivate", spanListeners.get(i).getClass().getSimpleName(), t);
-            }
-        }
-        return (T) this;
-    }
-
-    public Scope activateInScope() {
-        // already in scope
-        if (tracer.activeSpan() == this) {
-            return Scope.NoopScope.INSTANCE;
-        }
-        activate();
-        return new Scope() {
-            @Override
-            public void close() {
-                deactivate();
-            }
-        };
-    }
-
+    @Override
     public Span createSpan() {
         return createSpan(traceContext.getClock().getEpochMicros());
     }
@@ -239,14 +196,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> implements Recyclable
         return (T) this;
     }
 
-    public T captureException(@Nullable Throwable t) {
-        if (t != null) {
-            captureException(getTraceContext().getClock().getEpochMicros(), t);
-        }
-        return (T) this;
+    @Override
+    public boolean isChildOf(TraceContextHolder other) {
+        return getTraceContext().isChildOf(other);
     }
 
-    public void captureException(long epochMicros, Throwable t) {
-        tracer.captureException(epochMicros, t, this);
-    }
 }

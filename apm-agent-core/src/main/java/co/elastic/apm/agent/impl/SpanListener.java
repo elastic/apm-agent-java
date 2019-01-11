@@ -19,13 +19,13 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 
 public interface SpanListener {
 
     void init(ElasticApmTracer tracer);
 
-    void onActivate(AbstractSpan<?> span) throws Throwable;
+    void onActivate(TraceContextHolder<?> span) throws Throwable;
 
-    void onDeactivate(AbstractSpan<?> span) throws Throwable;
+    void onDeactivate(TraceContextHolder<?> span) throws Throwable;
 }

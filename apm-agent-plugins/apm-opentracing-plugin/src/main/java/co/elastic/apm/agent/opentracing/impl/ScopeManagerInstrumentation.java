@@ -23,6 +23,7 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -94,7 +95,10 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.activeSpan();
+                final TraceContextHolder active = tracer.getActive();
+                if (active instanceof AbstractSpan) {
+                    span = active;
+                }
             }
         }
 
@@ -110,7 +114,10 @@ public class ScopeManagerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void getCurrentTraceContext(@Advice.Return(readOnly = false) Object traceContext) {
             if (tracer != null) {
-                traceContext = tracer.activeTraceContext();
+                final TraceContextHolder active = tracer.getActive();
+                if (active instanceof TraceContext) {
+                    traceContext = active;
+                }
             }
         }
 

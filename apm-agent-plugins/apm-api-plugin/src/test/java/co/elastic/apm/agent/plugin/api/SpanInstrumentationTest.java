@@ -124,7 +124,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
             final Map<String, String> tracingHeaders = new HashMap<>();
             span.injectTraceHeaders(tracingHeaders::put);
             span.injectTraceHeaders(null);
-            final String traceparent = tracer.activeSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+            final String traceparent = tracer.getActive().getTraceContext().getOutgoingTraceParentHeader().toString();
             assertThat(tracingHeaders).containsEntry(TraceContext.TRACE_PARENT_HEADER, traceparent);
         }
     }

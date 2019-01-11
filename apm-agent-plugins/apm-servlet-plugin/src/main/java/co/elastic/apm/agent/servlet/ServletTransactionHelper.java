@@ -147,7 +147,7 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        if (tracer.activeSpan() == transaction) {
+        if (tracer.getActive() == transaction) {
             // when calling javax.servlet.AsyncContext#start, the transaction is not activated,
             // as neither javax.servlet.Filter.doFilter nor javax.servlet.AsyncListener.onStartAsync will be invoked
             transaction.deactivate();

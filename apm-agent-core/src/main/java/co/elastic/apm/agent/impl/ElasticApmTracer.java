@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -69,10 +70,10 @@ public class ElasticApmTracer {
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<Object>> activeStack = new ThreadLocal<Deque<Object>>() {
+    private final ThreadLocal<Deque<TraceContextHolder>> activeStack = new ThreadLocal<Deque<TraceContextHolder>>() {
         @Override
-        protected Deque<Object> initialValue() {
-            return new ArrayDeque<Object>();
+        protected Deque<TraceContextHolder> initialValue() {
+            return new ArrayDeque<TraceContextHolder>();
         }
     };
     private final CoreConfiguration coreConfiguration;
@@ -171,15 +172,6 @@ public class ElasticApmTracer {
         return null;
     }
 
-    @Nullable
-    public Span currentSpan() {
-        final AbstractSpan<?> abstractSpan = activeSpan();
-        if (abstractSpan instanceof Span) {
-            return (Span) abstractSpan;
-        }
-        return null;
-    }
-
     /**
      * Starts a span with a given parent context.
      * <p>
@@ -219,7 +211,7 @@ public class ElasticApmTracer {
         } else {
             dropped = false;
         }
-        span.start(TraceContext.fromParentSpan(), parent, epochMicros, dropped);
+        span.start(TraceContext.fromParent(), parent, epochMicros, dropped);
         return span;
     }
 
@@ -228,10 +220,10 @@ public class ElasticApmTracer {
     }
 
     public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis() * 1000, e, activeSpan());
+        captureException(System.currentTimeMillis() * 1000, e, getActive());
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable AbstractSpan<?> active) {
+    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> active) {
         if (e != null) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
@@ -247,7 +239,7 @@ public class ElasticApmTracer {
                     Span span = (Span) active;
                     error.getContext().getTags().putAll(span.getContext().getTags());
                 }
-                error.asChildOf(active);
+                error.asChildOf(active.getTraceContext());
                 error.setTransactionSampled(active.isSampled());
             } else {
                 error.getTraceContext().getId().setToRandomValue();
@@ -343,26 +335,12 @@ public class ElasticApmTracer {
         return sampler;
     }
 
+    // returning noop instead of null would be cool
+    // but that would only be useful if getActive().createSpan() would return a noop
+    // but we don't have noop spans and if there is no parent we may not want to record the operation (for example JDBC)
+    // so checking for null is the best option
     @Nullable
-    public AbstractSpan<?> activeSpan() {
-        final Object active = getActive();
-        if (active instanceof AbstractSpan) {
-            return (AbstractSpan<?>) active;
-        }
-        return null;
-    }
-
-    @Nullable
-    public TraceContext activeTraceContext() {
-        final Object active = getActive();
-        if (active instanceof TraceContext) {
-            return (TraceContext) active;
-        }
-        return null;
-    }
-
-    @Nullable
-    public Object getActive() {
+    public TraceContextHolder getActive() {
         return activeStack.get().peek();
     }
 
@@ -374,38 +352,23 @@ public class ElasticApmTracer {
         return spanListeners;
     }
 
-    public void activate(AbstractSpan<?> span) {
+    public void activate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", span, Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
         }
-        activeStack.get().push(span);
+        activeStack.get().push(holder);
     }
 
-    public void activate(TraceContext traceContext) {
+    public void deactivate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating trace context {} on thread {}", traceContext, Thread.currentThread().getId());
+            logger.debug("Deactivating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
         }
-        activeStack.get().push(traceContext);
-    }
-
-    public void deactivate(AbstractSpan<?> span) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", span, Thread.currentThread().getId());
-        }
-        assertIsActive(span, activeStack.get().poll());
-        if (span instanceof Transaction) {
+        assertIsActive(holder, activeStack.get().poll());
+        if (holder instanceof Transaction) {
             // a transaction is always the bottom of this stack
             // clearing to avoid potential leaks in case of wrong api usage
             activeStack.get().clear();
         }
-    }
-
-    public void deactivate(TraceContext traceContext) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating trace context {} on thread {}",
-                traceContext, Thread.currentThread().getId());
-        }
-        assertIsActive(traceContext, activeStack.get().poll());
     }
 
     private void assertIsActive(Object span, @Nullable Object currentlyActive) {

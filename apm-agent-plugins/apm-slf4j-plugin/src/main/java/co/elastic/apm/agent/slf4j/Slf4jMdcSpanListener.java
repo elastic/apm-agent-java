@@ -22,9 +22,9 @@ package co.elastic.apm.agent.slf4j;
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.SpanListener;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 
 import javax.annotation.Nullable;
@@ -77,8 +77,8 @@ public class Slf4jMdcSpanListener implements SpanListener {
     }
 
     @Override
-    public void onActivate(AbstractSpan<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled() && span.isSampled()) {
+    public void onActivate(TraceContextHolder<?> span) throws Throwable {
+        if (config != null && config.isLogCorrelationEnabled() && span.getTraceContext().isSampled()) {
             MethodHandle put = mdcPutMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             TraceContext traceContext = span.getTraceContext();
             if (put != null) {
@@ -90,8 +90,8 @@ public class Slf4jMdcSpanListener implements SpanListener {
     }
 
     @Override
-    public void onDeactivate(AbstractSpan<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled() && span.isSampled()) {
+    public void onDeactivate(TraceContextHolder<?> span) throws Throwable {
+        if (config != null && config.isLogCorrelationEnabled() && span.getTraceContext().isSampled()) {
             MethodHandle remove = mdcRemoveMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             if (remove != null) {
                 remove.invokeExact(TRACE_ID);

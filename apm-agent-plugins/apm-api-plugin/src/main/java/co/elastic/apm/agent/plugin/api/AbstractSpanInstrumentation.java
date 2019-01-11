@@ -22,6 +22,7 @@ package co.elastic.apm.agent.plugin.api;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -62,9 +63,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                    @Advice.Argument(0) String name) {
-            span.setName(name);
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).setName(name);
+            }
         }
     }
 
@@ -75,9 +78,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                    @Advice.Argument(0) String type) {
-            span.withType(type);
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).withType(type);
+            }
         }
     }
 
@@ -88,9 +93,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                         @Advice.Return(readOnly = false) Object result) {
-            result = span.createSpan();
+            if (holder instanceof AbstractSpan) {
+                result = holder.createSpan();
+            }
         }
     }
 
@@ -101,8 +108,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.end();
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder) {
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).end();
+            }
         }
     }
 
@@ -114,9 +123,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void doCreateSpan(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                         @Advice.Argument(0) Throwable t) {
-            span.captureException(t);
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).captureException(t);
+            }
         }
     }
 
@@ -127,10 +138,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void getId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                  @Advice.Return(readOnly = false) String id) {
             if (tracer != null) {
-                id = span.getTraceContext().getId().toString();
+                id = holder.getTraceContext().getId().toString();
             }
         }
     }
@@ -142,10 +153,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void getTraceId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                       @Advice.Return(readOnly = false) String traceId) {
             if (tracer != null) {
-                traceId = span.getTraceContext().getTraceId().toString();
+                traceId = holder.getTraceContext().getTraceId().toString();
             }
         }
     }
@@ -157,9 +168,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            span.addTag(key, value);
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).addTag(key, value);
+            }
         }
     }
 
@@ -170,8 +183,10 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-            span.activate();
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder) {
+            if (holder instanceof AbstractSpan) {
+                ((AbstractSpan) holder).activate();
+            }
         }
     }
 
@@ -182,9 +197,9 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                   @Advice.Return(readOnly = false) boolean sampled) {
-            sampled = span.isSampled();
+            sampled = holder.getTraceContext().isSampled();
         }
     }
 
@@ -196,11 +211,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
+        public static void addTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> holder,
                                            @Advice.Argument(0) MethodHandle addHeader,
                                            @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_HEADER, holder.getTraceContext().getOutgoingTraceParentHeader().toString());
             }
         }
     }

@@ -101,9 +101,9 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
                     if (microseconds >= 0) {
-                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext, microseconds);
+                        return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
                     } else {
-                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext);
+                        return tracer.startSpan(TraceContext.fromParent(), parentContext);
                     }
                 }
             }

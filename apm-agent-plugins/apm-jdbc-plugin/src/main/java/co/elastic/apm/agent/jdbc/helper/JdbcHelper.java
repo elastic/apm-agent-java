@@ -19,13 +19,13 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;
 
 public interface JdbcHelper {
     @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable AbstractSpan<?> parent);
+    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent);
 }

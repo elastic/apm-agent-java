@@ -21,9 +21,9 @@ package co.elastic.apm.agent.resttemplate;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -53,10 +53,10 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                       @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.activeSpan() == null) {
+        if (tracer == null || tracer.getActive() == null) {
             return;
         }
-        final AbstractSpan<?> parent = tracer.activeSpan();
+        final TraceContextHolder<?> parent = tracer.getActive();
         span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
             request.getURI().getHost(), SPAN_TYPE_SPRING_REST_TEMPLATE);
         if (span != null) {

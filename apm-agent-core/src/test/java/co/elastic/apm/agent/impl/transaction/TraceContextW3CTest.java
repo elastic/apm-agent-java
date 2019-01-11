@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.mock;
 
 public class TraceContextW3CTest {
 
@@ -50,7 +52,7 @@ public class TraceContextW3CTest {
                 if (headersMap.getAll("traceparent").size() == 1) {
                     final String traceParentHeader = headersMap.getFirst("traceparent");
                     final boolean traceparentValid = testCase.get("is_traceparent_valid").booleanValue();
-                    final TraceContext traceContext = TraceContext.with64BitId();
+                    final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
                     softly.assertThat(traceContext.asChildOf(traceParentHeader))
                         .withFailMessage("Expected '%s' to be %s", traceParentHeader, traceparentValid ? "valid" : "invalid")
                         .isEqualTo(traceparentValid);
