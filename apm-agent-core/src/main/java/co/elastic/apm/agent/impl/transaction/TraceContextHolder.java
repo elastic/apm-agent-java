@@ -28,6 +28,22 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.List;
 
+/**
+ * An abstraction of both {@link TraceContext} and {@link AbstractSpan}.
+ * Given an instance of this class,
+ * you can create child spans,
+ * capture exceptions and manage activations/scopes.
+ * <p>
+ * This abstraction reliefs clients from having to differ between the case
+ * when the current activation is a {@link TraceContext} vs an {@link AbstractSpan}.
+ * </p>
+ * <p>
+ * A {@link TraceContext} would be active when the current thread does not own the lifecycle of the parent span.
+ * Otherwise an {@link AbstractSpan} would be active.
+ * </p>
+ *
+ * @param <T> the type, used to enable fluent method chaining
+ */
 public abstract class TraceContextHolder<T extends TraceContextHolder> {
 
     private static final Logger logger = LoggerFactory.getLogger(TraceContextHolder.class);

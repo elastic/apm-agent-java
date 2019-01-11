@@ -70,10 +70,10 @@ public class ElasticApmTracer {
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
     // Also, the caller does not have to keep a reference to the previously active span, as that is maintained by the stack
-    private final ThreadLocal<Deque<TraceContextHolder>> activeStack = new ThreadLocal<Deque<TraceContextHolder>>() {
+    private final ThreadLocal<Deque<TraceContextHolder<?>>> activeStack = new ThreadLocal<Deque<TraceContextHolder<?>>>() {
         @Override
-        protected Deque<TraceContextHolder> initialValue() {
-            return new ArrayDeque<TraceContextHolder>();
+        protected Deque<TraceContextHolder<?>> initialValue() {
+            return new ArrayDeque<TraceContextHolder<?>>();
         }
     };
     private final CoreConfiguration coreConfiguration;
@@ -340,7 +340,7 @@ public class ElasticApmTracer {
     // but we don't have noop spans and if there is no parent we may not want to record the operation (for example JDBC)
     // so checking for null is the best option
     @Nullable
-    public TraceContextHolder getActive() {
+    public TraceContextHolder<?> getActive() {
         return activeStack.get().peek();
     }
 
