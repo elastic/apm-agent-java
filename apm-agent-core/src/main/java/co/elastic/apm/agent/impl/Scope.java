@@ -38,7 +38,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
  * so that {@link ElasticApmTracer#getActive()} returns the expected {@link TraceContextHolder}.
  * </p>
  * <p>
- * Note: {@link #close() closing} a scope does not {@link TraceContextHolder#end() end} it's active {@link TraceContextHolder}.
+ * Note: {@link #close() closing} a scope does not {@link co.elastic.apm.agent.impl.transaction.AbstractSpan#end() end} it's active
+ * {@link co.elastic.apm.agent.impl.transaction.AbstractSpan}.
  * </p>
  */
 public interface Scope extends AutoCloseable {
