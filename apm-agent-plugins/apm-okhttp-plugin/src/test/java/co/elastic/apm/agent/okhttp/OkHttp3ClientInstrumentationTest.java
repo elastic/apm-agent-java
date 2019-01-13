@@ -17,15 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.okhttp3;
+package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
-import com.squareup.okhttp.OkHttpClient;
-
-import com.squareup.okhttp.Request;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.junit.Before;
 
-public class OkHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
+public class OkHttp3ClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
     private OkHttpClient client;
 

@@ -18,6 +18,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.okhttp3;
+package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.annotation.NonnullApi;

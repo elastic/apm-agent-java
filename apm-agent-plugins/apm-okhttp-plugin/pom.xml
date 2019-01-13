@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apm-okhttp3-plugin</artifactId>
+    <artifactId>apm-okhttp-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>

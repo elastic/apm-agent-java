@@ -183,7 +183,7 @@
         </dependency>
          <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-okhttp3-plugin</artifactId>
+            <artifactId>apm-okhttp-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

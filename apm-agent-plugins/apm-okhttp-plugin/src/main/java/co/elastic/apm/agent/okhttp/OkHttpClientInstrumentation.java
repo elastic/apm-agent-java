@@ -17,12 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.okhttp3;
+package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,29 +39,33 @@ import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
+public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.STATIC) @Nullable Object requestField,
+    private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
                                          @Advice.Local("span") Span span) throws IOException {
 
         if (tracer == null || tracer.activeSpan() == null) {
             return;
         }
         final AbstractSpan<?> parent = tracer.activeSpan();
-        System.out.println("OkHttpClientInstrumentation.onBeforeExecute");
-        if (requestField instanceof com.squareup.okhttp.Request) {
-            System.out.println("OkHttp requestField");
-            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) requestField;
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.uri(), request.url().getHost(), SPAN_TYPE_OK_HTTP_CLIENT);
+
+        if (originalRequest == null) {
+            return;
         }
 
-        if (requestField instanceof okhttp3.Request) {
-            System.out.println("OkHttp3 requestField");
-            okhttp3.Request request = (okhttp3.Request) requestField;
+        if (originalRequest instanceof com.squareup.okhttp.Request) {
+            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
+            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.uri(), request.url().getHost(), SPAN_TYPE_OK_HTTP_CLIENT);
+            originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+        }
+
+        if (originalRequest instanceof okhttp3.Request) {
+            okhttp3.Request request = (okhttp3.Request) originalRequest;
             span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().uri(), request.url().host(), SPAN_TYPE_OK_HTTP_CLIENT);
+            originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
         }
     }
 
