@@ -1,0 +1,2 @@
+co.elastic.apm.agent.okhttp3.OkHttp3ClientInstrumentation
+co.elastic.apm.agent.okhttp3.OkHttp3RequestBuilderInstrumentation

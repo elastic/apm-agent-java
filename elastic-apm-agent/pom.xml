@@ -181,6 +181,11 @@
             <artifactId>apm-es-restclient-plugin-6_4</artifactId>
             <version>${project.version}</version>
         </dependency>
+         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-okhttp3-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
