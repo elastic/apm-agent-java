@@ -188,7 +188,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void isSampled(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                      @Advice.Return(readOnly = false) boolean sampled) {
-            sampled = context.getTraceContext().isSampled();
+            sampled = context.isSampled();
         }
     }
 
