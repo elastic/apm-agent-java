@@ -123,7 +123,7 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         private static void doGetCurrentSpan(@Advice.Return(readOnly = false) Object span) {
             if (tracer != null) {
-                span = tracer.activeSpan();
+                span = tracer.getActive();
             }
         }
     }

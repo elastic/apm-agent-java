@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.when;
 
-class Slf4JMdcSpanListenerTest extends AbstractInstrumentationTest {
+class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
 

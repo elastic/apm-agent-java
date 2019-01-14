@@ -86,7 +86,7 @@ public class TransactionUtils {
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
         Span span = new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParentSpan(), t)
+            .start(TraceContext.fromParent(), t)
             .withName("SELECT FROM product_types")
             .withType("db.postgresql.query");
         span.getContext().getDb()
@@ -99,20 +99,20 @@ public class TransactionUtils {
         spans.add(span);
 
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParentSpan(), t)
+            .start(TraceContext.fromParent(), t)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParentSpan(), t)
+            .start(TraceContext.fromParent(), t)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParentSpan(), t)
+            .start(TraceContext.fromParent(), t)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParentSpan(), t)
+            .start(TraceContext.fromParent(), t)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext.http.apache-httpclient");

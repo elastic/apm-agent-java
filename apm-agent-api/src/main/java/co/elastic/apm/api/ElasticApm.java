@@ -187,7 +187,7 @@ public class ElasticApm {
     }
 
     private static Object doGetCurrentSpan() {
-        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
+        // co.elastic.apm.api.ElasticApmApiInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
         return null;
     }
 

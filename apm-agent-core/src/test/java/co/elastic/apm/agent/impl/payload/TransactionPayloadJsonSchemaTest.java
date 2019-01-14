@@ -57,7 +57,7 @@ class TransactionPayloadJsonSchemaTest {
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
         Span span = new Span(mock(ElasticApmTracer.class));
-        span.start(TraceContext.fromParentSpan(), transaction)
+        span.start(TraceContext.fromParent(), transaction)
             .withType("type")
             .withName("name");
         payload.getSpans().add(span);

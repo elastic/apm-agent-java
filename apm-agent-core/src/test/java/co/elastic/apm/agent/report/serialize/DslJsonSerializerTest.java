@@ -70,7 +70,7 @@ class DslJsonSerializerTest {
     void testErrorSerialization() throws IOException {
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
-        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction).withTimestamp(5000);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
         error.setTransactionSampled(true);
         error.setException(new Exception("test"));
         error.getContext().getTags().put("foo", "bar");

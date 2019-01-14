@@ -25,6 +25,7 @@ public class ScopeImpl implements Scope {
 
     @Nonnull
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    // co.elastic.apm.agent.impl.transaction.TraceContextHolder
     private final Object span;
 
     ScopeImpl(@Nonnull Object span) {

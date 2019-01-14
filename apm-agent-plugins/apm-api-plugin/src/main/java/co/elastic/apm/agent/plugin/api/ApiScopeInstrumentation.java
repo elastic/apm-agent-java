@@ -19,7 +19,7 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -30,6 +30,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class ApiScopeInstrumentation extends ApiInstrumentation {
 
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    private static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context) {
+        context.deactivate();
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.apm.api.ScopeImpl");
@@ -38,10 +43,5 @@ public class ApiScopeInstrumentation extends ApiInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("close");
-    }
-
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void close(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span) {
-        span.deactivate();
     }
 }

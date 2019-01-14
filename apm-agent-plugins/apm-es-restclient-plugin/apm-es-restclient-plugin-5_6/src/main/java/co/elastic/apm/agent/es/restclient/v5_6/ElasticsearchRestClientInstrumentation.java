@@ -21,8 +21,8 @@ package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.util.IOUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -63,7 +63,7 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         if (tracer == null) {
             return;
         }
-        final AbstractSpan<?> activeSpan = tracer.activeSpan();
+        final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return;
         }
