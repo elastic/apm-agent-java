@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 package co.elastic.apm.agent.http.client;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -32,7 +32,7 @@ public class HttpClientHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(AbstractSpan<?> parent, String method, @Nullable URI uri, String hostName, String spanType) {
+    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, String hostName, String spanType) {
         Span span = null;
         if (!isAlreadyMonitored(parent)) {
             span = parent
@@ -51,7 +51,7 @@ public class HttpClientHelper {
     /*
      * typically, more than one ClientExecChain implementation is invoked during an HTTP request
      */
-    private static boolean isAlreadyMonitored(AbstractSpan<?> parent) {
+    private static boolean isAlreadyMonitored(TraceContextHolder<?> parent) {
         if (!(parent instanceof Span)) {
             return false;
         }

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,9 +101,9 @@ public class ApmSpanBuilderInstrumentation extends ElasticApmInstrumentation {
                     return createTransaction(tags, operationName, microseconds, baggage, tracer);
                 } else {
                     if (microseconds >= 0) {
-                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext, microseconds);
+                        return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
                     } else {
-                        return tracer.startSpan(TraceContext.fromTraceContext(), parentContext);
+                        return tracer.startSpan(TraceContext.fromParent(), parentContext);
                     }
                 }
             }

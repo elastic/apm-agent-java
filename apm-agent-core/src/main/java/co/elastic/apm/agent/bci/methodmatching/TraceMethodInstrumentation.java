@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ package co.elastic.apm.agent.bci.methodmatching;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -54,7 +55,7 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @Advice.Local("span") AbstractSpan<?> span) {
         if (tracer != null) {
-            final AbstractSpan<?> parent = tracer.activeSpan();
+            final TraceContextHolder<?> parent = tracer.getActive();
             if (parent == null) {
                 span = tracer.startTransaction()
                     .withName(signature)
@@ -71,9 +72,8 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan<?> span,
                                     @Advice.Thrown Throwable t) {
         if (span != null) {
-            span.captureException(t)
-                .deactivate()
-                .end();
+            span.captureException(t);
+            span.deactivate().end();
         }
     }
 

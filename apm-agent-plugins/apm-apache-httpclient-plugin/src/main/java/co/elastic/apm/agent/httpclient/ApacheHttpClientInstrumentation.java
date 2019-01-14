@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -53,10 +53,10 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
     private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                         @Advice.Argument(1) HttpRequestWrapper request,
                                         @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.activeSpan() == null) {
+        if (tracer == null || tracer.getActive() == null) {
             return;
         }
-        final AbstractSpan<?> parent = tracer.activeSpan();
+        final TraceContextHolder<?> parent = tracer.getActive();
         span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName(), SPAN_TYPE_APACHE_HTTP_CLIENT);
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
