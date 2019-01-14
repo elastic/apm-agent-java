@@ -28,9 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import static co.elastic.apm.servlet.AbstractServletContainerIntegrationTest.mockServerContainer;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public enum TestApp {
     JSF("../jsf-http-get", "jsf-http-get.war", TestApp::testJsf);
@@ -66,7 +65,7 @@ public enum TestApp {
         // warmup required, may result in 404 at the first time...
         containerIntegrationTest.executeRequest(fullTestPath);
         mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         containerIntegrationTest.executeAndValidateRequest(fullTestPath, "HTTP GET", 200);
         JsonNode transaction = containerIntegrationTest.assertTransactionReported(viewPath, 200);
@@ -76,6 +75,7 @@ public enum TestApp {
             500,
             containerIntegrationTest::getReportedSpans,
             transactionId);
+        assertThat(spans.size()).isEqualTo(2);
         Iterator<JsonNode> iterator = spans.iterator();
         JsonNode executeSpan = iterator.next();
         assertThat(executeSpan.get("name").textValue()).isEqualTo("JSF Execute");
