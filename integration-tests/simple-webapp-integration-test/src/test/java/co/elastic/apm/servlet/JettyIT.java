@@ -44,7 +44,9 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("jetty"))
             .withFileSystemBind(pathToWar, "/var/lib/jetty/webapps/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990), "jetty-application");
+            .withExposedPorts(8080, 9990),
+            "jetty-application",
+            "/var/lib/jetty/webapps");
 
         this.version = version;
     }

@@ -37,6 +37,8 @@ import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.Servlet;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -61,6 +63,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
         handler.addServlet(TestServlet.class, "/test");
+        handler.addServlet(BaseTestServlet.class, "/base");
         handler.addServlet(ForwardingServlet.class, "/forward");
         handler.addServlet(IncludingServlet.class, "/include");
         handler.addFilter(TestFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
@@ -69,6 +72,11 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testServletInstrumentation() throws Exception {
         testInstrumentation(new ServletInstrumentation(), 1, "/test");
+    }
+
+    @Test
+    void testBaseServletInstrumentation() throws Exception {
+        testInstrumentation(new ServletInstrumentation(), 1, "/base");
     }
 
     @Test
@@ -129,6 +137,35 @@ class ServletInstrumentationTest extends AbstractServletTest {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             req.getRequestDispatcher("/test").include(req, resp);
+        }
+    }
+
+    public static class BaseTestServlet implements Servlet {
+        @Override
+        public void init(ServletConfig config) {
+
+        }
+
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws IOException {
+            res.getWriter().append("Hello World!")
+                .flush();
+            res.getBufferSize();
+        }
+
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+
+        @Override
+        public void destroy() {
+
         }
     }
 

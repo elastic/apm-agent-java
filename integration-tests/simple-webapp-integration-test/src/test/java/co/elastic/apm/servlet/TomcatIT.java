@@ -26,6 +26,7 @@ import org.testcontainers.containers.Network;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
@@ -43,7 +44,11 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
             .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080), 8080, "/simple-webapp", "tomcat-application");
+            .withExposedPorts(8080),
+            8080,
+            "/simple-webapp",
+            "tomcat-application",
+            "/usr/local/tomcat/webapps");
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -56,4 +61,20 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
         return "/usr/local/tomcat/logs/*";
     }
 
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF);
+    }
+
+    @Nullable
+    @Override
+    protected String getContainerLibPath() {
+        return "/usr/local/tomcat/lib";
+    }
+
+    @Nullable
+    @Override
+    protected String getTestLibPath() {
+        return "resources/tomcat/lib";
+    }
 }

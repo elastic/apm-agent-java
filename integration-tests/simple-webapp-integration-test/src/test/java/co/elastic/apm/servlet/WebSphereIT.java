@@ -25,6 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class WebSphereIT extends AbstractServletContainerIntegrationTest {
@@ -48,7 +49,11 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("websphere"))
             .withFileSystemBind(pathToWar, "/config/dropins/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(9080, 7777), 9080, "/simple-webapp", "websphere-application");
+            .withExposedPorts(9080, 7777),
+            9080,
+            "/simple-webapp",
+            "websphere-application",
+            "/config/dropins");
     }
 
     @Parameterized.Parameters(name = "WebSphere {0}")
@@ -61,4 +66,8 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
         return true;
     }
 
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF);
+    }
 }
