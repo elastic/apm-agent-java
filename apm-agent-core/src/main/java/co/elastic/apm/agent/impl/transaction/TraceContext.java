@@ -21,7 +21,6 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,7 @@ import org.slf4j.LoggerFactory;
  *       Header name     Version           Trace-Id                Span-Id     Flags
  * </pre>
  */
-public class TraceContext extends TraceContextHolder implements Recyclable {
+public class TraceContext extends TraceContextHolder {
 
     public static final String TRACE_PARENT_HEADER = "elastic-apm-traceparent";
     private static final int EXPECTED_LENGTH = 55;
@@ -87,7 +86,6 @@ public class TraceContext extends TraceContextHolder implements Recyclable {
     // ???????1 -> maybe recorded
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
-    private final ElasticApmTracer tracer;
     private final Id traceId = Id.new128BitId();
     private final Id id;
     private final Id parentId = Id.new64BitId();
@@ -103,7 +101,6 @@ public class TraceContext extends TraceContextHolder implements Recyclable {
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
         super(tracer);
-        this.tracer = tracer;
         this.id = id;
     }
 

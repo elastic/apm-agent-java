@@ -20,8 +20,8 @@
 package co.elastic.apm.agent.slf4j;
 
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.SpanListener;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -32,7 +32,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-public class Slf4jMdcSpanListener implements SpanListener {
+public class Slf4JMdcActivationListener implements ActivationListener {
 
     // the string concatenation prevents the shade plugin from relocating org.slf4j.MDC to co.elastic.apm.agent.shaded.slf4j.MDC
     // the toString prevents constant folding, which would also make the shade plugin relocate
@@ -77,21 +77,21 @@ public class Slf4jMdcSpanListener implements SpanListener {
     }
 
     @Override
-    public void onActivate(TraceContextHolder<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled() && span.getTraceContext().isSampled()) {
+    public void onActivate(TraceContextHolder<?> context) throws Throwable {
+        if (config != null && config.isLogCorrelationEnabled() && context.isSampled()) {
             MethodHandle put = mdcPutMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
-            TraceContext traceContext = span.getTraceContext();
+            TraceContext traceContext = context.getTraceContext();
             if (put != null) {
                 put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
-                String idKey = span instanceof Span ? SPAN_ID : TRANSACTION_ID;
+                String idKey = context instanceof Span ? SPAN_ID : TRANSACTION_ID;
                 put.invokeExact(idKey, traceContext.getId().toString());
             }
         }
     }
 
     @Override
-    public void onDeactivate(TraceContextHolder<?> span) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled() && span.getTraceContext().isSampled()) {
+    public void onDeactivate() throws Throwable {
+        if (config != null && config.isLogCorrelationEnabled()) {
             MethodHandle remove = mdcRemoveMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
             if (remove != null) {
                 remove.invokeExact(TRACE_ID);

@@ -77,16 +77,16 @@ public class ElasticApmTracer {
         }
     };
     private final CoreConfiguration coreConfiguration;
-    private final List<SpanListener> spanListeners;
+    private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private Sampler sampler;
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<SpanListener> spanListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
-        this.spanListeners = spanListeners;
+        this.activationListeners = activationListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -128,8 +128,8 @@ public class ElasticApmTracer {
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
-        for (SpanListener spanListener : spanListeners) {
-            spanListener.init(this);
+        for (ActivationListener activationListener : activationListeners) {
+            activationListener.init(this);
         }
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
     }
@@ -335,21 +335,17 @@ public class ElasticApmTracer {
         return sampler;
     }
 
-    // returning noop instead of null would be cool
-    // but that would only be useful if getActive().createSpan() would return a noop
-    // but we don't have noop spans and if there is no parent we may not want to record the operation (for example JDBC)
-    // so checking for null is the best option
     @Nullable
     public TraceContextHolder<?> getActive() {
         return activeStack.get().peek();
     }
 
-    public void registerSpanListener(SpanListener spanListener) {
-        this.spanListeners.add(spanListener);
+    public void registerSpanListener(ActivationListener activationListener) {
+        this.activationListeners.add(activationListener);
     }
 
-    public List<SpanListener> getSpanListeners() {
-        return spanListeners;
+    public List<ActivationListener> getActivationListeners() {
+        return activationListeners;
     }
 
     public void activate(TraceContextHolder<?> holder) {

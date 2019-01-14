@@ -19,9 +19,10 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.SpanListener;
+import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,11 +45,11 @@ import java.util.List;
  *
  * @param <T> the type, used to enable fluent method chaining
  */
-public abstract class TraceContextHolder<T extends TraceContextHolder> {
+public abstract class TraceContextHolder<T extends TraceContextHolder> implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(TraceContextHolder.class);
 
-    private final ElasticApmTracer tracer;
+    protected final ElasticApmTracer tracer;
 
     protected TraceContextHolder(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -63,14 +64,14 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> {
     public T activate() {
         try {
             tracer.activate(this);
-            List<SpanListener> spanListeners = tracer.getSpanListeners();
-            for (int i = 0; i < spanListeners.size(); i++) {
+            List<ActivationListener> activationListeners = tracer.getActivationListeners();
+            for (int i = 0; i < activationListeners.size(); i++) {
                 try {
-                    spanListeners.get(i).onActivate(this);
+                    activationListeners.get(i).onActivate(this);
                 } catch (Error e) {
                     throw e;
                 } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#onActivate", spanListeners.get(i).getClass().getSimpleName(), t);
+                    logger.warn("Exception while calling {}#onActivate", activationListeners.get(i).getClass().getSimpleName(), t);
                 }
             }
         } catch (Throwable t) {
@@ -85,14 +86,14 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> {
     public T deactivate() {
         try {
             tracer.deactivate(this);
-            List<SpanListener> spanListeners = tracer.getSpanListeners();
-            for (int i = 0; i < spanListeners.size(); i++) {
+            List<ActivationListener> activationListeners = tracer.getActivationListeners();
+            for (int i = 0; i < activationListeners.size(); i++) {
                 try {
-                    spanListeners.get(i).onDeactivate(this);
+                    activationListeners.get(i).onDeactivate();
                 } catch (Error e) {
                     throw e;
                 } catch (Throwable t) {
-                    logger.warn("Exception while calling {}#onDeactivate", spanListeners.get(i).getClass().getSimpleName(), t);
+                    logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
                 }
             }
         } catch (Throwable t) {
@@ -118,7 +119,9 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> {
         };
     }
 
-    public abstract boolean isSampled();
+    public boolean isSampled() {
+        return getTraceContext().isSampled();
+    }
 
     public void captureException(long epochMicros, Throwable t) {
         tracer.captureException(epochMicros, t, this);

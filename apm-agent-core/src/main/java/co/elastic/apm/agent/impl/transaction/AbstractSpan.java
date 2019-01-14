@@ -20,14 +20,13 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> implements Recyclable {
+public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
@@ -35,7 +34,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
-    protected final ElasticApmTracer tracer;
     protected long timestamp;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
@@ -54,7 +52,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
-        this.tracer = tracer;
         traceContext = TraceContext.with64BitId(this.tracer);
     }
 
@@ -104,15 +101,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     public long getTimestamp() {
         return timestamp;
-    }
-
-    /**
-     * Transactions that are 'sampled' will include all available information.
-     * Transactions that are not sampled will not have 'spans' or 'context'.
-     * Defaults to true.
-     */
-    public boolean isSampled() {
-        return traceContext.isSampled();
     }
 
     @Override
