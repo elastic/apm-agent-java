@@ -36,6 +36,8 @@ class RemoteAttacherTest {
         assertThat(RemoteAttacher.Arguments.parse("-l").isHelp()).isFalse();
         assertThat(RemoteAttacher.Arguments.parse("-l").isList()).isTrue();
         assertThat(RemoteAttacher.Arguments.parse("--list").isList()).isTrue();
+        assertThat(RemoteAttacher.Arguments.parse("-c").isContinuous()).isTrue();
+        assertThat(RemoteAttacher.Arguments.parse("--continuous").isContinuous()).isTrue();
         assertThat(RemoteAttacher.Arguments.parse("-p", "42").getPid()).isEqualTo("42");
         assertThat(RemoteAttacher.Arguments.parse("--pid", "42").getPid()).isEqualTo("42");
         assertThat(RemoteAttacher.Arguments.parse("--args", "foo=bar").getArgs()).isEqualTo("foo=bar");
@@ -49,5 +51,6 @@ class RemoteAttacherTest {
         assertThat(RemoteAttacher.Arguments.parse("-i", "foo", "bar", "baz", "--args", "42").getIncludes()).isEqualTo(Arrays.asList("foo", "bar", "baz"));
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--args", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--exclude", "foo")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--continuous")).isInstanceOf(IllegalArgumentException.class);
     }
 }

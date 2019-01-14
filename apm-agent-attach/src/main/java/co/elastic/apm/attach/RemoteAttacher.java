@@ -56,11 +56,12 @@ public class RemoteAttacher {
         final RemoteAttacher attacher = new RemoteAttacher(arguments);
         if (arguments.isHelp()) {
             System.out.println("DESCRIPTION");
-            System.out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all matching running and starting JVMs.");
+            System.out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs --continuous-ly and attaches to all running and starting JVMs which match the filters.");
             System.out.println();
             System.out.println("OPTIONS");
             System.out.println("    -l --list:          Lists all running JVMs. Same output as 'jps -l'.");
-            System.out.println("    -p --pid:           PID of JVM to attach. If not provided, this program continuously runs and attaches to all matching JVMs.");
+            System.out.println("    -p --pid:           PID of JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
+            System.out.println("    -c --continuous:    If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
             System.out.println("    -e --exclude:       A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
             System.out.println("                        (Matches the output of 'jps -l')");
             System.out.println("    -i --include:       A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
@@ -78,10 +79,10 @@ public class RemoteAttacher {
             ElasticApmAttacher.attach(arguments.getPid(), arguments.getArgs());
             log("INFO", "Done");
         } else {
-            while (true) {
+            do {
                 attacher.attachToNewJvms(getJpsOutput());
                 Thread.sleep(1000);
-            }
+            } while (arguments.isContinuous());
         }
     }
 
@@ -229,15 +230,17 @@ public class RemoteAttacher {
         private final String argsProvider;
         private final boolean help;
         private final boolean list;
+        private final boolean continuous;
 
-        private Arguments(String pid, List<String> includes, List<String> excludes, String args, String argsProvider, boolean help, boolean list) {
+        private Arguments(String pid, List<String> includes, List<String> excludes, String args, String argsProvider, boolean help, boolean list, boolean continuous) {
             this.help = help;
             this.list = list;
+            this.continuous = continuous;
             if (args != null && argsProvider != null) {
                 throw new IllegalArgumentException("Providing both --args and --args-provider is illegal");
             }
-            if (pid != null && (!includes.isEmpty() || !excludes.isEmpty())) {
-                throw new IllegalArgumentException("Providing --pid and --include or --exclude is illegal");
+            if (pid != null && (!includes.isEmpty() || !excludes.isEmpty() || continuous)) {
+                throw new IllegalArgumentException("Providing --pid and either of --include, --exclude or --continuous is illegal");
             }
             this.pid = pid;
             this.includes = includes;
@@ -254,6 +257,7 @@ public class RemoteAttacher {
             String argsProvider = null;
             boolean help = args.length == 0;
             boolean list = false;
+            boolean continuous = false;
             String currentArg = "";
             for (String arg : args) {
                 if (arg.startsWith("-")) {
@@ -266,6 +270,10 @@ public class RemoteAttacher {
                         case "-l":
                         case "--list":
                             list = true;
+                            break;
+                        case "-c":
+                        case "--continuous":
+                            continuous = true;
                             break;
                         case "-p":
                         case "--pid":
@@ -308,7 +316,7 @@ public class RemoteAttacher {
                     }
                 }
             }
-            return new Arguments(pid, includes, excludes, agentArgs, argsProvider, help, list);
+            return new Arguments(pid, includes, excludes, agentArgs, argsProvider, help, list, continuous);
         }
 
         String getPid() {
@@ -335,8 +343,12 @@ public class RemoteAttacher {
             return help;
         }
 
-        public boolean isList() {
+        boolean isList() {
             return list;
+        }
+
+        boolean isContinuous() {
+            return continuous;
         }
     }
 
