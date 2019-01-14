@@ -97,7 +97,7 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration) {
         this.stacktraceConfiguration = stacktraceConfiguration;
-        jw = new DslJson<>().newWriter(BUFFER_SIZE);
+        jw = new DslJson<>(new DslJson.Settings<>()).newWriter(BUFFER_SIZE);
     }
 
     @Override

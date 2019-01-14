@@ -82,9 +82,9 @@ public class ElasticApmAgent {
      * @param instrumentation the instrumentation instance
      * @param agentJarFile    a reference to the agent jar on the file system
      */
-    public static void initialize(Instrumentation instrumentation, File agentJarFile) {
+    public static void initialize(String agentArguments, Instrumentation instrumentation, File agentJarFile) {
         ElasticApmAgent.agentJarFile = agentJarFile;
-        initInstrumentation(new ElasticApmTracerBuilder().build(), instrumentation);
+        initInstrumentation(new ElasticApmTracerBuilder(agentArguments).build(), instrumentation);
     }
 
     public static void initInstrumentation(ElasticApmTracer tracer, Instrumentation instrumentation) {

@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
@@ -56,9 +57,16 @@ public class ElasticApmTracerBuilder {
     private Iterable<LifecycleListener> lifecycleListeners;
     private Map<String, String> inlineConfig = new HashMap<>();
     private List<SpanListener> spanListeners = new ArrayList<>();
+    @Nullable
+    private final String agentArguments;
 
     public ElasticApmTracerBuilder() {
-        final List<ConfigurationSource> configSources = getConfigSources();
+        this(null);
+    }
+
+    public ElasticApmTracerBuilder(@Nullable String agentArguments) {
+        this.agentArguments = agentArguments;
+        final List<ConfigurationSource> configSources = getConfigSources(this.agentArguments);
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
         for (SpanListener spanListener : ServiceLoader.load(SpanListener.class, ElasticApmTracerBuilder.class.getClassLoader())) {
@@ -88,7 +96,7 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracer build() {
         if (configurationRegistry == null) {
-            final List<ConfigurationSource> configSources = getConfigSources();
+            final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
         }
         if (reporter == null) {
@@ -122,8 +130,11 @@ public class ElasticApmTracerBuilder {
         }
     }
 
-    private List<ConfigurationSource> getConfigSources() {
+    private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
         List<ConfigurationSource> result = new ArrayList<>();
+        if (agentArguments != null && !agentArguments.isEmpty()) {
+            result.add(AgentArgumentsConfigurationSource.parse(agentArguments));
+        }
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
         result.add(new AbstractConfigurationSource() {
