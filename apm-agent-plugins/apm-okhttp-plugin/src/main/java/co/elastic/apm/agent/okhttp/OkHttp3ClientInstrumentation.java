@@ -21,7 +21,6 @@ package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -32,7 +31,6 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -46,7 +44,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                         @Advice.Local("span") Span span) throws IOException {
+                                         @Advice.Local("span") Span span) {
 
         if (tracer == null || tracer.getActive() == null) {
             return;
