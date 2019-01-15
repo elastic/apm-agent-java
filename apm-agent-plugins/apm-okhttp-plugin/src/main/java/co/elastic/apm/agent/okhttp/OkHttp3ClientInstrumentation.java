@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -40,42 +41,51 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp3";
+    private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp";
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                         @Advice.Local("span") Span span) {
-
-        if (tracer == null || tracer.getActive() == null) {
-            return;
-        }
-
-        if (originalRequest == null) {
-            return;
-        }
-
-        final TraceContextHolder<?> parent = tracer.getActive();
-
-        if (originalRequest instanceof okhttp3.Request) {
-            okhttp3.Request request = (okhttp3.Request) originalRequest;
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().uri(), request.url().host(), SPAN_TYPE_OK_HTTP_CLIENT);
-            originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
-        }
+    @Override
+    public Class<?> getAdviceClass() {
+        return OkHttpClient3ExecuteAdvice.class;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
-                                      @Advice.Local("span") @Nullable Span span,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (span != null) {
-            try {
-                if (response != null) {
-                    int statusCode = response.code();
-                    span.getContext().getHttp().withStatusCode(statusCode);
+    @VisibleForAdvice
+    public static class OkHttpClient3ExecuteAdvice {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
+                                             @Advice.Local("span") Span span) {
+
+            if (tracer == null || tracer.getActive() == null) {
+                return;
+            }
+
+            if (originalRequest == null) {
+                return;
+            }
+
+            final TraceContextHolder<?> parent = tracer.getActive();
+
+            if (originalRequest instanceof okhttp3.Request) {
+                okhttp3.Request request = (okhttp3.Request) originalRequest;
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().uri(), request.url().host(), SPAN_TYPE_OK_HTTP_CLIENT);
+                originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Return @Nullable okhttp3.Response response,
+                                          @Advice.Local("span") @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                try {
+                    if (response != null) {
+                        int statusCode = response.code();
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.captureException(t);
+                } finally {
+                    span.deactivate().end();
                 }
-                span.captureException(t);
-            } finally {
-                span.deactivate().end();
             }
         }
     }
@@ -92,7 +102,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "okhttp3");
+        return Arrays.asList("http-client", "okhttp");
     }
 
 }

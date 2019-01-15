@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.okhttp;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -43,39 +44,48 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp";
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                         @Advice.Local("span") Span span) throws IOException {
-
-        if (tracer == null || tracer.getActive() == null) {
-            return;
-        }
-        final TraceContextHolder<?> parent = tracer.getActive();
-
-        if (originalRequest == null) {
-            return;
-        }
-
-        if (originalRequest instanceof com.squareup.okhttp.Request) {
-            com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.uri(), request.url().getHost(), SPAN_TYPE_OK_HTTP_CLIENT);
-            originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
-        }
+    @Override
+    public Class<?> getAdviceClass() {
+        return OkHttpClientExecuteAdvice.class;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
-                                      @Advice.Local("span") @Nullable Span span,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (span != null) {
-            try {
-                if (response != null) {
-                    int statusCode = response.code();
-                    span.getContext().getHttp().withStatusCode(statusCode);
+    @VisibleForAdvice
+    public static class OkHttpClientExecuteAdvice {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
+                                             @Advice.Local("span") Span span) throws IOException {
+
+            if (tracer == null || tracer.getActive() == null) {
+                return;
+            }
+            final TraceContextHolder<?> parent = tracer.getActive();
+
+            if (originalRequest == null) {
+                return;
+            }
+
+            if (originalRequest instanceof com.squareup.okhttp.Request) {
+                com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.uri(), request.url().getHost(), SPAN_TYPE_OK_HTTP_CLIENT);
+                originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Return @Nullable com.squareup.okhttp.Response response,
+                                          @Advice.Local("span") @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                try {
+                    if (response != null) {
+                        int statusCode = response.code();
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.captureException(t);
+                } finally {
+                    span.deactivate().end();
                 }
-                span.captureException(t);
-            } finally {
-                span.deactivate().end();
             }
         }
     }
