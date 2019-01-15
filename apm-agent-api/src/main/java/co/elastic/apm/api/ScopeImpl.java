@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ public class ScopeImpl implements Scope {
 
     @Nonnull
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    // co.elastic.apm.agent.impl.transaction.TraceContextHolder
     private final Object span;
 
     ScopeImpl(@Nonnull Object span) {

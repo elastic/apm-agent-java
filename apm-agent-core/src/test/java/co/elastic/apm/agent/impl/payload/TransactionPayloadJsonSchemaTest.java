@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ class TransactionPayloadJsonSchemaTest {
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
         Span span = new Span(mock(ElasticApmTracer.class));
-        span.start(TraceContext.fromParentSpan(), transaction)
+        span.start(TraceContext.fromParent(), transaction)
             .withType("type")
             .withName("name");
         payload.getSpans().add(span);

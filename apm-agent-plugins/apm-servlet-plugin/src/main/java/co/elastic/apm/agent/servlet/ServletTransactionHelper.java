@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        if (tracer.activeSpan() == transaction) {
+        if (tracer.getActive() == transaction) {
             // when calling javax.servlet.AsyncContext#start, the transaction is not activated,
             // as neither javax.servlet.Filter.doFilter nor javax.servlet.AsyncListener.onStartAsync will be invoked
             transaction.deactivate();

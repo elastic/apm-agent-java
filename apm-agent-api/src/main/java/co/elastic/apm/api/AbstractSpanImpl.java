@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import java.lang.invoke.MethodHandle;
 
 public abstract class AbstractSpanImpl implements Span {
     @Nonnull
-    // co.elastic.apm.impl.transaction.AbstractSpan
+    // co.elastic.apm.agent.impl.transaction.TraceContextHolder
     protected final Object span;
 
     AbstractSpanImpl(@Nonnull Object span) {

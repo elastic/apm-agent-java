@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -187,7 +187,7 @@ public class ElasticApm {
     }
 
     private static Object doGetCurrentSpan() {
-        // co.elastic.apm.api.ElasticApmInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
+        // co.elastic.apm.api.ElasticApmApiInstrumentation.CurrentSpanInstrumentation.doGetCurrentSpan
         return null;
     }
 

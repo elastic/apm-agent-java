@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
@@ -37,7 +36,7 @@ import java.util.Collection;
  */
 public class ErrorCapture implements Recyclable {
 
-    private final TraceContext traceContext = TraceContext.with128BitId();
+    private final TraceContext traceContext;
 
     /**
      * Context
@@ -64,6 +63,7 @@ public class ErrorCapture implements Recyclable {
 
     public ErrorCapture(ElasticApmTracer tracer) {
         this.tracer = tracer;
+        traceContext = TraceContext.with128BitId(this.tracer);
     }
 
     /**
@@ -111,13 +111,13 @@ public class ErrorCapture implements Recyclable {
     }
 
     /**
-     * Creates a reference to a {@link co.elastic.apm.agent.impl.transaction.Span} or {@link co.elastic.apm.agent.impl.transaction.Transaction}
+     * Creates a reference to a {@link TraceContext}
      *
-     * @param parent
      * @return {@code this}, for chaining
+     * @param traceContext
      */
-    public ErrorCapture asChildOf(AbstractSpan<?> parent) {
-        this.traceContext.asChildOf(parent.getTraceContext());
+    public ErrorCapture asChildOf(TraceContext traceContext) {
+        this.traceContext.asChildOf(traceContext);
         return this;
     }
 
