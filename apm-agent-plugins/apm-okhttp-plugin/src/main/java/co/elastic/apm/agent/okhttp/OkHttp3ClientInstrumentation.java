@@ -24,6 +24,7 @@ import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -47,7 +48,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
     private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
                                          @Advice.Local("span") Span span) throws IOException {
 
-        if (tracer == null || tracer.activeSpan() == null) {
+        if (tracer == null || tracer.getActive() == null) {
             return;
         }
 
@@ -55,7 +56,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
             return;
         }
 
-        final AbstractSpan<?> parent = tracer.activeSpan();
+        final TraceContextHolder<?> parent = tracer.getActive();
 
         if (originalRequest instanceof okhttp3.Request) {
             okhttp3.Request request = (okhttp3.Request) originalRequest;
