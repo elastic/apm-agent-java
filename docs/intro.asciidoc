@@ -54,6 +54,14 @@ When starting your application, add the JVM flag `-javaagent:/path/to/elastic-ap
 See <<application-server-setup>> for server specific installation instructions.
 
 [float]
+[[intro-attacher]]
+=== Alternative installation method
+We are working on an alternative way of installing the agent which does not require you to modify the configuration of your application servers.
+See <<attach-setup>>.
+
+NOTE: This installation method is experimental.
+
+[float]
 [[supported-technologies]]
 === Supported technologies
 Please check <<supported-technologies-details, the supported technologies page>>
