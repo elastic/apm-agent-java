@@ -4,7 +4,6 @@ please view this documentation at https://www.elastic.co/guide/en/apm/agent/java
 endif::[]
 
 [[intro]]
-
 == Introduction
 
 Welcome to the APM Java Agent documentation.
@@ -29,41 +28,29 @@ NOTE: The minimum required version of the APM Server is 6.5.0
 === Additional Components
 
 APM Agents work in conjunction with the {apm-server-ref-v}/index.html[APM Server], {ref}/index.html[Elasticsearch], and {kibana-ref}/index.html[Kibana].
-Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how these components work together. 
+Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how these components work together.
 
 [float]
 [[get-started]]
-=== Get started
+=== Setup
 
-The first step in getting started with the Elastic APM Java agent is to download the latest release of the agent jar file from
-link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
+The <<setup>> page lists the tree different ways to set up the agent:
 
-NOTE: Don't declare a dependency to the agent in your application.
+. <<setup-javaagent>>
+. <<setup-attach-cli>>
+. <<setup-attach-api>>
 
 [float]
 [[get-started-configuration]]
 === Configuration
-Once you are set with instrumenting your favorite framework,
+
+Once you are set the agent setup,
 see the <<configuration,configuration guide>> on how to configure Elastic APM.
-
-[float]
-[[javaagent]]
-=== Add `javaagent` flag
-When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
-
-See <<application-server-setup>> for server specific installation instructions.
-
-[float]
-[[intro-attacher]]
-=== Alternative installation method
-We are working on an alternative way of installing the agent which does not require you to modify the configuration of your application servers.
-See <<attach-setup>>.
-
-NOTE: This installation method is experimental.
 
 [float]
 [[supported-technologies]]
 === Supported technologies
+
 Please check <<supported-technologies-details, the supported technologies page>>
 whether the Elastic APM agent supports auto-instrumentation of the technologies your application is using.
 

@@ -1,5 +1,36 @@
-[[attach-setup]]
-== Setup the agent with the attacher
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
+[[setup]]
+== Setup
+
+[float]
+[[setup-javaagent]]
+=== With `--javaagent` JVM flag (manual setup)
+
+[float]
+[[setup-javaagent-download]]
+==== Download the Java agent
+
+The first step in getting started with the Elastic APM Java agent is to download the latest release of the agent jar file from
+link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:elastic-apm-agent[maven central].
+
+NOTE: Don't declare a dependency to the agent in your application.
+
+
+[float]
+[[setup-javaagent-add-flag]]
+==== Add `javaagent` flag
+When starting your application, add the JVM flag `-javaagent:/path/to/elastic-apm-agent-<version>.jar`
+
+See <<application-server-setup>> for server specific installation instructions.
+
+
+[float]
+[[setup-attach-cli]]
+=== With `apm-agent-attach.jar` program (automatic setup)
 
 NOTE: This installation method is experimental.
 
@@ -7,33 +38,29 @@ You can use the attacher as a standalone application on the command line or incl
 
 This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
 
-[float]
-[[attach-setup-cli]]
-=== Use the attacher as a command line application
-
 The `apm-agent-attach.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
 This requires that the OS user executing `apm-agent-attach.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) is the same.
 
 
 [float]
-[[attach-setup-cli-download]]
-=== Download
+[[setup-attach-cli-download]]
+==== Download
 
 You can download the attach program from maven central:
 link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[maven central]
 
 
 [float]
-[[attach-setup-usage-cli]]
-=== Usage
+[[setup-attach-cli-usage]]
+==== Usage
 
 [float]
-[[attach-setup-usage-cli-pid]]
-==== Attach to a JVM with a specific PID
+[[setup-attach-cli-usage-pid]]
+===== Attach to a JVM with a specific PID
 
 Attaches the agent to a JVM with a specific process ID.
 Optionally, you can pass in arguments to configure the agent.
-See <<attach-setup-usage-cli-options>> for the format of the agent arguments.
+See <<setup-attach-cli-usage-options>> for the format of the agent arguments.
 
 [source,bash]
 ----
@@ -50,8 +77,8 @@ java -jar apm-agent-attach.jar --pid 42 \
 ----
 
 [float]
-[[attach-setup-usage-cli-filtered]]
-==== Attach to a filtered set of JVMs on a certain host
+[[setup-attach-cli-usage-filtered]]
+===== Attach to a filtered set of JVMs on a certain host
 
 Attaches the agent to all matching JVMs on the host which confirm to the optional include and exclude filters.
 
@@ -75,8 +102,8 @@ java -jar apm-agent-attach.jar \
 ----
 
 [float]
-[[attach-setup-usage-cli-list]]
-==== List running JVMs
+[[setup-attach-cli-usage-list]]
+===== List running JVMs
 
 Lists all currently running JVMs, including their PID and their main class name or the path to their jar file.
 
@@ -86,8 +113,8 @@ java -jar apm-agent-attach.jar --list
 ----
 
 [float]
-[[attach-setup-usage-cli-options]]
-==== Options
+[[setup-attach-cli-usage-options]]
+===== Options
 
 *-l, --list*::
 +
@@ -155,8 +182,10 @@ NOTE: this option cannot be used in conjunction with `--pid` and `--args`
 --
 
 [float]
-[[attach-setup-usage-api]]
-=== Use programmatic API to self-attach
+[[setup-attach-api]]
+=== Use programmatic API to self-attach (via dependency)
+
+NOTE: This installation method is experimental.
 
 Declare a dependency to the link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[`apm-agent-attach`] artifact.
 
