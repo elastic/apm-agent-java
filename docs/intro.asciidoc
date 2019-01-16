@@ -32,7 +32,7 @@ Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how
 
 [float]
 [[get-started]]
-=== Setup
+=== Set up
 
 The <<setup>> page lists the tree different ways to set up the agent:
 

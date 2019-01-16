@@ -1,5 +1,5 @@
 [[application-server-setup]]
-== Setup the agent with Application Servers
+== Set up the agent with Application Servers
 Different application servers have different ways of setting the `-javaagent` flag and system properties.
 
 Note that system properties are only one way of configuring the agent but setting the `-javaagent` flag is required in each case.
