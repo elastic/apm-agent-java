@@ -1,18 +1,18 @@
 [[attach-setup]]
 == Setup the agent with the attacher
 
+NOTE: This installation method is experimental.
+
 You can use the attacher as a standalone application on the command line or include it in your application to programmatically attach to the current JVM.
 
 This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
-
-NOTE: This installation method is experimental.
 
 [float]
 [[attach-setup-cli]]
 === Use the attacher as a command line application
 
 The `apm-agent-attach.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
-This requires that the OS user of the attach is the same as the OS user of the applications to be monitored (the JVMs to attach to).
+This requires that the OS user executing `apm-agent-attach.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) is the same.
 
 
 [float]
@@ -46,14 +46,14 @@ Additionally, it applies some <<configuration,configuration options>>.
 [source,bash]
 ----
 java -jar apm-agent-attach.jar --pid 42 \
-     --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
+    --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
 ----
 
 [float]
 [[attach-setup-usage-cli-filtered]]
 ==== Attach to a filtered set of JVMs on a certain host
 
-Attaches to agent to all matching JVMs on the host which confirm to the optional include and exclude filters.
+Attaches the agent to all matching JVMs on the host which confirm to the optional include and exclude filters.
 
 [source,bash]
 ----
@@ -68,9 +68,10 @@ Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar --include '.*MyApplication.*' '.*/my-application.jar' \
-     --continuous \
-     --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
+java -jar apm-agent-attach.jar \
+    --include '.*MyApplication.*' '.*/my-application.jar' \
+    --continuous \
+    --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
 ----
 
 [float]
@@ -99,7 +100,7 @@ Lists all running JVMs. Same output as `jps -l`.
 --
 PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the `--exclude` and `--include` filters.
 
-NOTE: this option can not be used in conjunction with `--continuous`, `--exclude`, `--include` and `--args-provider`
+NOTE: this option cannot be used in conjunction with `--continuous`, `--exclude`, `--include` and `--args-provider`
 --
 
 *-c, --continuous*::
@@ -107,7 +108,7 @@ NOTE: this option can not be used in conjunction with `--continuous`, `--exclude
 --
 If provided, this program continuously runs and attaches to all running and starting JVMs which match the `--exclude` and `--include` filters.
 
-NOTE: this option can not be used in conjunction with `--pid`
+NOTE: this option cannot be used in conjunction with `--pid`
 --
 
 *-e, --exclude <exclude_pattern>...*::
@@ -116,7 +117,7 @@ NOTE: this option can not be used in conjunction with `--pid`
 A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.
 (Matches the output of `jps -l`)
 
-NOTE: this option can not be used in conjunction with `--pid`
+NOTE: this option cannot be used in conjunction with `--pid`
 --
 
 *-i, --include <include_pattern>...*::
@@ -125,7 +126,7 @@ NOTE: this option can not be used in conjunction with `--pid`
 A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
 (Matches the output of `jps -l`)
 
-NOTE: this option can not be used in conjunction with `--pid`
+NOTE: this option cannot be used in conjunction with `--pid`
 --
 
 *-a, --args <agent_arguments>*::
@@ -136,7 +137,7 @@ If set, the arguments are used to configure the agent on the attached JVM (agent
 The syntax of the arguments is `key1=value1;key2=value1,value2`.
 See <<configuration>> for all available configuration options.
 
-NOTE: this option can not be used in conjunction with `--args-provider`
+NOTE: this option cannot be used in conjunction with `--args-provider`
 --
 
 *-A, --args-provider <args_provider_script>*::
@@ -150,7 +151,7 @@ When returning a non-zero status code from this program, the agent will not be a
 The syntax of the arguments is `key1=value1;key2=value1,value2`.
 See <<configuration>> for all available configuration options.
 
-NOTE: this option can not be used in conjunction with `--pid` and `--args`
+NOTE: this option cannot be used in conjunction with `--pid` and `--args`
 --
 
 [float]
