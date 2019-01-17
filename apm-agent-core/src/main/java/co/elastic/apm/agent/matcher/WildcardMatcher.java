@@ -74,9 +74,14 @@ public abstract class WildcardMatcher {
     private static final String CASE_INSENSITIVE_PREFIX = "(?i)";
     private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";
+    private static final WildcardMatcher MATCH_ALL = valueOf(WILDCARD);
 
     public static WildcardMatcher caseSensitiveMatcher(String matcher) {
         return valueOf(CASE_SENSITIVE_PREFIX + matcher);
+    }
+
+    public static WildcardMatcher matchAll() {
+        return MATCH_ALL;
     }
 
     /**
