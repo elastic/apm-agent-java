@@ -1,13 +1,9 @@
 # next
 
 ## Features
+ * Added support for sync calls of OkHttp client
 
 ## Bug Fixes
-
-# 1.3.1
-
-## Features
- * Added support for sync calls of OkHttp client
 
 # 1.3.0
 
