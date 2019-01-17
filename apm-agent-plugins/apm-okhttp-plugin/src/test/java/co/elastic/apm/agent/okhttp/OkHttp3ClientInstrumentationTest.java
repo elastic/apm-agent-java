@@ -38,7 +38,7 @@ public class OkHttp3ClientInstrumentationTest extends AbstractHttpClientInstrume
         Request request = new Request.Builder()
             .url(path)
             .build();
-        client.newCall(request).execute().close();
+        client.newCall(request).execute().body().close();
     }
 
 }
