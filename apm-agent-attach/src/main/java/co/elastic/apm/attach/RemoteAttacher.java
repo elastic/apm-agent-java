@@ -22,6 +22,7 @@ package co.elastic.apm.attach;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,44 +56,7 @@ public class RemoteAttacher {
         }
         final RemoteAttacher attacher = new RemoteAttacher(arguments);
         if (arguments.isHelp()) {
-            System.out.println("SYNOPSIS");
-            System.out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>]");
-            System.out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous]");
-            System.out.println("                                   [--args <agent_arguments> | --args-provider <args_provider_script>]");
-            System.out.println("    java -jar apm-agent-attach.jar (--list | --help)");
-            System.out.println();
-            System.out.println("DESCRIPTION");
-            System.out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.");
-            System.out.println();
-            System.out.println("OPTIONS");
-            System.out.println("    -l, --list");
-            System.out.println("        Lists all running JVMs. Same output as 'jps -l'.");
-            System.out.println();
-            System.out.println("    -p, --pid <pid>");
-            System.out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
-            System.out.println();
-            System.out.println("    -c, --continuous");
-            System.out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
-            System.out.println();
-            System.out.println("    -e, --exclude <exclude_pattern>...");
-            System.out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
-            System.out.println("        (Matches the output of 'jps -l')");
-            System.out.println();
-            System.out.println("    -i, --include <include_pattern>...");
-            System.out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
-            System.out.println("        (Matches the output of 'jps -l')");
-            System.out.println();
-            System.out.println("    -a, --args <agent_arguments>");
-            System.out.println("        If set, the arguments are used to configure the agent on the attached JVM (agentArguments of agentmain).");
-            System.out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
-            System.out.println();
-            System.out.println("    -A, --args-provider <args_provider_script>");
-            System.out.println("        The name of a program which is called when a new JVM starts up.");
-            System.out.println("        The program gets the pid and the main class name or path to the JAR file as an argument");
-            System.out.println("        and returns an arg string which is used to configure the agent on the attached JVM (agentArguments of agentmain).");
-            System.out.println("        When returning a non-zero status code from this program, the agent will not be attached to the starting JVM.");
-            System.out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
-            System.out.println("        Note: this option can not be used in conjunction with --pid and --args.");
+            arguments.printHelp(System.out);
         } else if (arguments.isList()) {
             System.out.println(getJpsOutput());
         } else if (arguments.getPid() != null) {
@@ -280,7 +244,7 @@ public class RemoteAttacher {
             boolean list = false;
             boolean continuous = false;
             String currentArg = "";
-            for (String arg : args) {
+            for (String arg : normalize(args)) {
                 if (arg.startsWith("-")) {
                     currentArg = arg;
                     switch (arg) {
@@ -338,6 +302,62 @@ public class RemoteAttacher {
                 }
             }
             return new Arguments(pid, includes, excludes, agentArgs, argsProvider, help, list, continuous);
+        }
+
+        // -ab -> -a -b
+        private static List<String> normalize(String[] args) {
+            final List<String> normalizedArgs = new ArrayList<>(args.length);
+            for (String arg : args) {
+                if (arg.startsWith("-") && !arg.startsWith("--")) {
+                    for (int i = 1; i < arg.length(); i++) {
+                        normalizedArgs.add("-" + arg.charAt(i));
+                    }
+                } else {
+                    normalizedArgs.add(arg);
+                }
+            }
+            return normalizedArgs;
+        }
+
+        void printHelp(PrintStream out) {
+            out.println("SYNOPSIS");
+            out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>]");
+            out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous]");
+            out.println("                                   [--args <agent_arguments> | --args-provider <args_provider_script>]");
+            out.println("    java -jar apm-agent-attach.jar (--list | --help)");
+            out.println();
+            out.println("DESCRIPTION");
+            out.println("    Attaches the Elastic APM Java agent to a JVM with a specific PID or runs continuously and attaches to all running and starting JVMs which match the filters.");
+            out.println();
+            out.println("OPTIONS");
+            out.println("    -l, --list");
+            out.println("        Lists all running JVMs. Same output as 'jps -l'.");
+            out.println();
+            out.println("    -p, --pid <pid>");
+            out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
+            out.println();
+            out.println("    -c, --continuous");
+            out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
+            out.println();
+            out.println("    -e, --exclude <exclude_pattern>...");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
+            out.println("        (Matches the output of 'jps -l')");
+            out.println();
+            out.println("    -i, --include <include_pattern>...");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
+            out.println("        (Matches the output of 'jps -l')");
+            out.println();
+            out.println("    -a, --args <agent_arguments>");
+            out.println("        If set, the arguments are used to configure the agent on the attached JVM (agentArguments of agentmain).");
+            out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
+            out.println();
+            out.println("    -A, --args-provider <args_provider_script>");
+            out.println("        The name of a program which is called when a new JVM starts up.");
+            out.println("        The program gets the pid and the main class name or path to the JAR file as an argument");
+            out.println("        and returns an arg string which is used to configure the agent on the attached JVM (agentArguments of agentmain).");
+            out.println("        When returning a non-zero status code from this program, the agent will not be attached to the starting JVM.");
+            out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
+            out.println("        Note: this option can not be used in conjunction with --pid and --args.");
         }
 
         String getPid() {

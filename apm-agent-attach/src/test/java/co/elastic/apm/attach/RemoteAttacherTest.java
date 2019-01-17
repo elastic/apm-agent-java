@@ -52,5 +52,10 @@ class RemoteAttacherTest {
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--args", "foo=bar", "--args-provider", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--exclude", "foo")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("--pid", "42", "--continuous")).isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(RemoteAttacher.Arguments.parse("-ca", "foo=bar").getArgs()).isEqualTo("foo=bar");
+        assertThat(RemoteAttacher.Arguments.parse("-ca", "foo=bar").isContinuous()).isTrue();
+
+        assertThatThrownBy(() -> RemoteAttacher.Arguments.parse("-lax")).isInstanceOf(IllegalArgumentException.class).hasMessage("Illegal argument: -x");
     }
 }
