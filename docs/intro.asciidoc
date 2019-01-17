@@ -34,7 +34,7 @@ Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how
 [[get-started]]
 === Setup
 
-The <<setup>> page lists the tree different ways to set up the agent:
+The <<setup>> page lists the three different ways to set up the agent:
 
 . <<setup-javaagent>>
 . <<setup-attach-cli>>
@@ -44,7 +44,7 @@ The <<setup>> page lists the tree different ways to set up the agent:
 [[get-started-configuration]]
 === Configuration
 
-Once you are set the agent setup,
+Once you've setup the agent,
 see the <<configuration,configuration guide>> on how to configure Elastic APM.
 
 [float]
