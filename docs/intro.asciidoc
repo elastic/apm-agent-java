@@ -25,24 +25,28 @@ NOTE: The minimum required version of the APM Server is 6.5.0
 
 [float]
 [[additional-components]]
-=== Additional Components
+=== Additional components
 
 APM Agents work in conjunction with the {apm-server-ref-v}/index.html[APM Server], {ref}/index.html[Elasticsearch], and {kibana-ref}/index.html[Kibana].
 Please view the {apm-overview-ref-v}/index.html[APM Overview] for details on how these components work together.
 
 [float]
 [[get-started]]
-=== Set up
+=== Get started
 
-The <<setup>> page lists the three different ways to set up the agent:
+[float]
+[[intro-setup]]
+==== Set up
 
-. <<setup-javaagent>>
-. <<setup-attach-cli>>
-. <<setup-attach-api>>
+There are three different ways to set up the Elastic APM Java Agent:
+
+. <<setup-javaagent>> - Manually set up and configure the agent with the `--javaagent` JVM flag.
+. <<setup-attach-cli>> - Automatically set up the agent without needing to alter the configuration of your application server.
+. <<setup-attach-api>> - Use the `apm-agent-attach` artifact and the `attach` API to set up the agent.
 
 [float]
 [[get-started-configuration]]
-=== Configuration
+==== Configuration
 
 Once you've setup the agent,
 see the <<configuration,configuration guide>> on how to configure Elastic APM.
