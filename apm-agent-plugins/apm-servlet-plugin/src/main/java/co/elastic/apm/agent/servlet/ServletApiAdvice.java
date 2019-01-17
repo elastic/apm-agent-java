@@ -134,18 +134,11 @@ public class ServletApiAdvice {
         if (scope != null) {
             scope.close();
         }
-        if (servletRequest instanceof HttpServletRequest) {
+        if (thiz instanceof HttpServlet && servletRequest instanceof HttpServletRequest) {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                if (thiz instanceof HttpServlet) {
-                    ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getName());
-                } else if ("javax.faces.webapp.FacesServlet".equals(thiz.getClass().getName())) {
-                    currentTransaction.withName(httpServletRequest.getServletPath());
-                    if (httpServletRequest.getPathInfo() != null) {
-                        currentTransaction.appendToName(httpServletRequest.getPathInfo());
-                    }
-                }
+                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getName());
                 final Principal userPrincipal = httpServletRequest.getUserPrincipal();
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }

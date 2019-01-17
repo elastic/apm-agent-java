@@ -29,6 +29,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import java.util.Collection;
 import java.util.Collections;
 
+import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -38,7 +39,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 /**
- * Instruments servlets to create transactions.
+ * Instruments HTTP servlets to create transactions.
  * <p>
  * If the transaction has already been recorded with the help of {@link FilterChainInstrumentation},
  * it does not record the transaction again.
@@ -46,10 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * this makes sure to record a transaction in that case.
  * </p>
  */
-public class ServletInstrumentation extends ElasticApmInstrumentation {
-
-    static final String SERVLET_API = "servlet-api";
-
+public class HttpServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public void init(ElasticApmTracer tracer) {
         ServletApiAdvice.init(tracer);
@@ -57,20 +55,20 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Servlet");
+        return nameContains("Servlet").or(nameContainsIgnoreCase("jsp"));
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
+            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
+            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")));
     }
 
     @Override

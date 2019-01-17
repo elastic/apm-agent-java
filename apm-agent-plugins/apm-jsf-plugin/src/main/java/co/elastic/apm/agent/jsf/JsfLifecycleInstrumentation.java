@@ -23,6 +23,7 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -64,8 +65,6 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
     }
 
     public static class JsfLifecycleExecuteInstrumentation extends JsfLifecycleInstrumentation {
-        private static final String SPAN_TYPE = "jsf-execute";
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute")
@@ -73,43 +72,65 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                 .and(takesArgument(0, named("javax.faces.context.FacesContext")));
         }
 
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void createExecuteSpan(@Advice.Local("span") Span span) {
-            if (tracer != null) {
-                final TraceContextHolder<?> parent = tracer.getActive();
-                if (parent == null || !parent.isSampled()) {
-                    return;
-                }
-                if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
-                    return;
-                }
-                span = parent.createSpan()
-                    .withType(SPAN_TYPE)
-                    .withName("JSF Execute");
-                span.activate();
-            }
+        @Override
+        public Class<?> getAdviceClass() {
+            return JsfLifecycleExecuteAdvice.class;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void endExecuteSpan(@Advice.Local("span") @Nullable Span span,
-                                          @Advice.Thrown @Nullable Throwable t) {
-            if (span != null) {
-                try {
-                    if (t != null) {
-                        span.captureException(t);
-                    }
-                } finally {
-                    span.deactivate().end();
-                }
+        public static class JsfLifecycleExecuteAdvice {
+            private static final String SPAN_TYPE = "template.jsf.execute";
 
+            @SuppressWarnings("Duplicates")
+            @Advice.OnMethodEnter(suppress = Throwable.class)
+            public static void createExecuteSpan(@Advice.Argument(0) javax.faces.context.FacesContext facesContext,
+                                                 @Advice.Local("span") Span span) {
+                if (tracer != null) {
+                    final TraceContextHolder<?> parent = tracer.getActive();
+                    if (parent == null || !parent.isSampled()) {
+                        return;
+                    }
+                    if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
+                        return;
+                    }
+                    Transaction transaction = tracer.currentTransaction();
+                    if (transaction != null) {
+                        try {
+                            javax.faces.context.ExternalContext externalContext = facesContext.getExternalContext();
+                            if (externalContext != null) {
+                                transaction.withName(externalContext.getRequestServletPath());
+                                String pathInfo = externalContext.getRequestPathInfo();
+                                if (pathInfo != null) {
+                                    transaction.appendToName(pathInfo);
+                                }
+                            }
+                        } catch (Exception e) {
+                            // do nothing- rely on the default servlet name logic
+                        }
+                    }
+                    span = parent.createSpan()
+                        .withType(SPAN_TYPE)
+                        .withName("JSF Execute");
+                    span.activate();
+                }
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+            public static void endExecuteSpan(@Advice.Local("span") @Nullable Span span,
+                                              @Advice.Thrown @Nullable Throwable t) {
+                if (span != null) {
+                    try {
+                        if (t != null) {
+                            span.captureException(t);
+                        }
+                    } finally {
+                        span.deactivate().end();
+                    }
+                }
             }
         }
     }
 
     public static class JsfLifecycleRenderInstrumentation extends JsfLifecycleInstrumentation {
-        private static final String SPAN_TYPE = "jsf-render";
-
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("render")
@@ -124,36 +145,44 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
             return ret;
         }
 
-        @SuppressWarnings("Duplicates")
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void createRenderSpan(@Advice.Local("span") Span span) {
-            if (tracer != null) {
-                final TraceContextHolder<?> parent = tracer.getActive();
-                if (parent == null || !parent.isSampled()) {
-                    return;
-                }
-                if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
-                    return;
-                }
-                span = parent.createSpan()
-                    .withType(SPAN_TYPE)
-                    .withName("JSF Render");
-                span.activate();
-            }
+        @Override
+        public Class<?> getAdviceClass() {
+            return JsfLifecycleRenderAdvice.class;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void endRenderSpan(@Advice.Local("span") @Nullable Span span,
-                                         @Advice.Thrown @Nullable Throwable t) {
-            if (span != null) {
-                try {
-                    if (t != null) {
-                        span.captureException(t);
-                    }
-                } finally {
-                    span.deactivate().end();
-                }
+        public static class JsfLifecycleRenderAdvice {
+            private static final String SPAN_TYPE = "template.jsf.render";
 
+            @SuppressWarnings("Duplicates")
+            @Advice.OnMethodEnter(suppress = Throwable.class)
+            public static void createRenderSpan(@Advice.Local("span") Span span) {
+                if (tracer != null) {
+                    final TraceContextHolder<?> parent = tracer.getActive();
+                    if (parent == null || !parent.isSampled()) {
+                        return;
+                    }
+                    if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
+                        return;
+                    }
+                    span = parent.createSpan()
+                        .withType(SPAN_TYPE)
+                        .withName("JSF Render");
+                    span.activate();
+                }
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+            public static void endRenderSpan(@Advice.Local("span") @Nullable Span span,
+                                             @Advice.Thrown @Nullable Throwable t) {
+                if (span != null) {
+                    try {
+                        if (t != null) {
+                            span.captureException(t);
+                        }
+                    } finally {
+                        span.deactivate().end();
+                    }
+                }
             }
         }
     }
