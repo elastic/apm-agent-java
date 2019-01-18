@@ -136,7 +136,7 @@ Distributed tracing will only work if you are using one of the supported network
 |===
 |Framework |Supported versions | Description | Since
 
-|Apache HttpClient (<<config-disable-instrumentations,incubating>>)
+|Apache HttpClient
 |4.3+
 |The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
  The spans are named after the schema `<method> <host>`.
@@ -157,6 +157,26 @@ Distributed tracing will only work if you are using one of the supported network
 | 1.4.0
 
 |===
+
+
+[float]
+[[supported-async-frameworks]]
+=== Asynchronous frameworks
+When a Span is created in a different Thread than its parent,
+the trace context has to be propagated onto this thread.
+
+This section lists all supported asynchronous frameworks.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|ExecutorService
+|
+|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|1.4.0
+
+|===
+
 
 [float]
 [[supported-technologies-caveats]]

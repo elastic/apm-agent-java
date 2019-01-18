@@ -31,6 +31,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
     @Parameterized.Parameters()
     public static Iterable<Supplier<ExecutorService>> data() {
         return Arrays.asList(() -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()),
+            () -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadScheduledExecutor()),
             () -> ExecutorServiceWrapper.wrap(new ForkJoinPool()),
             () -> GlobalEventExecutor.INSTANCE);
     }

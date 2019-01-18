@@ -62,10 +62,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.This Executor thiz, @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && runnable != null) {
+                // this could be a problem when the executor casts to a specific Runnable
                 runnable = active.withActiveContext(runnable);
             }
         }
@@ -79,10 +80,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onSubmit(@Advice.This ExecutorService thiz, @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && callable != null) {
+                // this could be a problem when the executor casts to a specific Callable
                 callable = active.withActiveContext(callable);
             }
         }

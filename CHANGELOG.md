@@ -2,6 +2,7 @@
 
 ## Features
  * Added support for sync calls of OkHttp client
+ * Added support for context propagation for `java.util.concurrent.ExecutorService`s
 
 ## Bug Fixes
 
