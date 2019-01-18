@@ -32,7 +32,6 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -53,8 +52,8 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
     public static class OkHttpClientExecuteAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute( @Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
-                                             @Advice.Local("span") Span span) throws IOException {
+        private static void onBeforeExecute(@Advice.FieldValue(value = "originalRequest", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable Object originalRequest,
+                                            @Advice.Local("span") Span span) {
 
             if (tracer == null || tracer.getActive() == null) {
                 return;
@@ -67,7 +66,7 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
 
             if (originalRequest instanceof com.squareup.okhttp.Request) {
                 com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.uri(), request.httpUrl().host(), SPAN_TYPE_OK_HTTP_CLIENT);
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.httpUrl().toString(), request.httpUrl().host(), SPAN_TYPE_OK_HTTP_CLIENT);
                 if (span != null) {
                     originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }
