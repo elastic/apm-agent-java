@@ -33,6 +33,12 @@ public class HttpClientHelper {
     @Nullable
     @VisibleForAdvice
     public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, String hostName, String spanType) {
+        return startHttpClientSpan(parent, method, uri != null ? uri.toString() : null, hostName, spanType);
+    }
+
+    @Nullable
+    @VisibleForAdvice
+    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri, String hostName, String spanType) {
         Span span = null;
         if (!isAlreadyMonitored(parent)) {
             span = parent
@@ -42,7 +48,7 @@ public class HttpClientHelper {
                 .activate();
 
             if (uri != null) {
-                span.getContext().getHttp().withUrl(uri.toString());
+                span.getContext().getHttp().withUrl(uri);
             }
         }
         return span;
