@@ -87,6 +87,7 @@
         <module>apm-agent-api</module>
         <module>apm-opentracing</module>
         <module>integration-tests</module>
+        <module>apm-agent-attach</module>
     </modules>
 
     <distributionManagement>

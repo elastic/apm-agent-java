@@ -10,7 +10,7 @@ endif::[]
 
 ifndef::env-github[]
 include::./intro.asciidoc[Introduction]
-include::./application-server-setup.asciidoc[Setup the agent with Application Servers]
+include::./setup.asciidoc[Set up the agent]
 include::./supported-technologies.asciidoc[Supported Technologies]
 include::./metrics.asciidoc[Metrics]
 include::./configuration.asciidoc[Configuration]

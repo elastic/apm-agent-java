@@ -1,0 +1,44 @@
+[[setup-attach-api]]
+=== Programmatic API setup to self-attach
+
+NOTE: This installation method is experimental.
+
+Declare a dependency to the link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[`apm-agent-attach`] artifact.
+
+[source,xml]
+.pom.xml
+----
+<dependency>
+    <groupId>co.elastic.apm</groupId>
+    <artifactId>apm-agent-attach</artifactId>
+    <version>${elastic-apm.version}</version>
+</dependency>
+----
+
+
+Call `ElasticApmAttacher.attach()` in the first line of your `public static void main(String[] args)` method.
+
+This example demonstrates the the usage of the `attach` API with a simple Spring Boot application:
+
+[source,java]
+.MyApplication.java
+----
+import co.elastic.apm.attach.ElasticApmAttacher;
+import org.springframework.boot.SpringApplication;
+
+@SpringBootApplication
+public class MyApplication {
+    public static void main(String[] args) {
+        ElasticApmAttacher.attach();
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+----
+
+NOTE: The API is not limited to Spring Boot and does not require Spring Boot, it is just used for demonstration purposes.
+
+[float]
+[[setup-attach-api-configuration]]
+==== Configuration
+
+The recommended way of configuring the agent when using the attach API is to add the configuration to `src/main/resources/elasticapm.properties`.

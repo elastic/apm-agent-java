@@ -41,25 +41,31 @@ public class AgentMain {
     /**
      * Allows the installation of this agent via the {@code javaagent} command line argument.
      *
-     * @param agentArguments  The unused agent arguments.
+     * @param agentArguments  The agent arguments.
      * @param instrumentation The instrumentation instance.
      */
     public static void premain(String agentArguments, Instrumentation instrumentation) {
-        init(instrumentation);
+        init(agentArguments, instrumentation);
     }
 
     /**
      * Allows the installation of this agent via the Attach API.
      *
-     * @param agentArguments  The unused agent arguments.
+     * @param agentArguments  The agent arguments.
      * @param instrumentation The instrumentation instance.
      */
     @SuppressWarnings("unused")
     public static void agentmain(String agentArguments, Instrumentation instrumentation) {
-        init(instrumentation);
+        init(agentArguments, instrumentation);
     }
 
-    public static void init(Instrumentation instrumentation) {
+    public synchronized static void init(String agentArguments, Instrumentation instrumentation) {
+        if (Boolean.getBoolean("ElasticApm.attached")) {
+            // agent is already attached; don't attach twice
+            // don't fail as this is a valid case
+            // for example, Spring Boot restarts the application in dev mode
+            return;
+        }
         try {
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
@@ -68,8 +74,9 @@ public class AgentMain {
             // invoking via reflection to make sure the class is not loaded by the system classloader,
             // but only from the bootstrap classloader
             Class.forName("co.elastic.apm.agent.bci.ElasticApmAgent", true, null)
-                .getMethod("initialize", Instrumentation.class, File.class)
-                .invoke(null, instrumentation, agentJarFile);
+                .getMethod("initialize", String.class, Instrumentation.class, File.class)
+                .invoke(null, agentArguments, instrumentation, agentJarFile);
+            System.setProperty("ElasticApm.attached", Boolean.TRUE.toString());
         } catch (Exception e) {
             System.err.println("Failed to start agent");
             e.printStackTrace();
