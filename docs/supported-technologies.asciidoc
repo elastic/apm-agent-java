@@ -134,17 +134,27 @@ Other Servlet 3+ compliant servers will most likely work as well.
 Distributed tracing will only work if you are using one of the supported networking frameworks.
 
 |===
-|Framework |Supported versions | Description
+|Framework |Supported versions | Description | Since
 
 |Apache HttpClient (<<config-disable-instrumentations,incubating>>)
 |4.3+
 |The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
  The spans are named after the schema `<method> <host>`.
+| 0.7.0
 
 |Spring RestTemplate
 |4+
 |The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
  The spans are named after the schema `<method> <host>`.
+| 0.7.0
+
+|OkHttp
+|2, 3
+|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+ The spans are named after the schema `<method> <host>`.
+ Note: Currently, only synchronous calls via `Call#execute()` are supported.
+ `Call#enquene(Callback)` is not yet supported.
+| 1.4.0
 
 |===
 
