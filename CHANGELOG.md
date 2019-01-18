@@ -1,6 +1,7 @@
 # next
 
 ## Features
+ * Added support for sync calls of OkHttp client
 
 ## Bug Fixes
 
