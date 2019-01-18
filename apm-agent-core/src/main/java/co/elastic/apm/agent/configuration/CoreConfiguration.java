@@ -253,6 +253,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "A few examples:\n" +
             "\n" +
+            " - `org.example.*#*`\n" +
             " - `org.example.MyClass#myMethod`\n" +
             " - `org.example.MyClass#myMethod()`\n" +
             " - `org.example.MyClass#myMethod(java.lang.String)`\n" +
@@ -263,7 +264,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match to more overhead will be caused by the agent.\n" +
-            "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).")
+            "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
+            "\n" +
+            "NOTE: A method matcher is always required even if you are trying to trace every method in a package.\n" +
+            "This means that `org.example.*` is invalid, while `org.example.*#*` works.")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     public boolean isActive() {

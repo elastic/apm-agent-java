@@ -312,6 +312,7 @@ The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 
 A few examples:
 
+ - `org.example.*#*`
  - `org.example.MyClass#myMethod`
  - `org.example.MyClass#myMethod()`
  - `org.example.MyClass#myMethod(java.lang.String)`
@@ -323,6 +324,9 @@ A few examples:
 NOTE: Only use wildcards if necessary.
 The more methods you match to more overhead will be caused by the agent.
 Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
+
+NOTE: A method matcher is always required even if you are trying to trace every method in a package.
+This means that `org.example.*` is invalid, while `org.example.*#*` works.
 
 
 [options="header"]
@@ -1055,6 +1059,7 @@ The default unit for this option is `ms`
 # 
 # A few examples:
 # 
+#  - `org.example.*#*`
 #  - `org.example.MyClass#myMethod`
 #  - `org.example.MyClass#myMethod()`
 #  - `org.example.MyClass#myMethod(java.lang.String)`
@@ -1066,6 +1071,9 @@ The default unit for this option is `ms`
 # NOTE: Only use wildcards if necessary.
 # The more methods you match to more overhead will be caused by the agent.
 # Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
+# 
+# NOTE: A method matcher is always required even if you are trying to trace every method in a package.
+# This means that `org.example.*` is invalid, while `org.example.*#*` works.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
