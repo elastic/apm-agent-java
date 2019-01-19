@@ -86,6 +86,7 @@ class TraceMethodInstrumentationTest {
     @Test
     void testNotMatched_Constructor() {
         final TestExcludeConstructor testClass = new TestExcludeConstructor();
+        // the static initializer should not be traced
         assertThat(reporter.getTransactions()).isEmpty();
         testClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -110,6 +111,9 @@ class TraceMethodInstrumentationTest {
     }
 
     public static class TestExcludeConstructor {
+        static {
+        }
+
         public TestExcludeConstructor() {
         }
 

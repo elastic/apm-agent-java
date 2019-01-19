@@ -248,6 +248,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
             "You can use wildcards for the class name, the method name and the parameter types.\n" +
             "The `*` wildcard matches zero or more characters.\n" +
+            "That means that a wildcard in a package name also matches sub-packages\n" +
             "Specifying the parameter types is optional.\n" +
             "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
             "\n" +
@@ -260,7 +261,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `org.example.MyClass#myMe*od(java.lang.String, int)`\n" +
             " - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
             " - `* org.example.MyClas*#myMe*od(*.String, int[])`\n" +
-            " - `public org.example.services.*.*Service#*`\n" +
+            " - `public org.example.services.*Service#*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match to more overhead will be caused by the agent.\n" +

@@ -38,7 +38,12 @@ import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.matches;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
+import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.isNative;
+import static net.bytebuddy.matcher.ElementMatchers.isSynthetic;
+import static net.bytebuddy.matcher.ElementMatchers.isTypeInitializer;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -80,6 +85,11 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return matches(methodMatcher.getClassMatcher())
+            .and(not(nameContains("$JaxbAccessor")))
+            .and(not(nameContains("$$")))
+            .and(not(nameContains("CGLIB")))
+            .and(not(nameContains("EnhancerBy")))
+            .and(not(nameContains("$Proxy")))
             .and(declaresMethod(matches(methodMatcher.getMethodMatcher())));
     }
 
@@ -108,7 +118,11 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
         }
         // Byte Buddy can't catch exceptions (onThrowable = Throwable.class) during a constructor call:
         // java.lang.IllegalStateException: Cannot catch exception during constructor call
-        return matcher.and(not(isConstructor()));
+        return matcher.and(not(isConstructor()))
+            .and(not(isAbstract()))
+            .and(not(isNative()))
+            .and(not(isSynthetic()))
+            .and(not(isTypeInitializer()));
     }
 
     @Override
