@@ -34,8 +34,9 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     public TomcatIT(final String tomcatVersion) {
         super(new GenericContainer<>("tomcat:" + tomcatVersion)
             .withNetwork(Network.SHARED)
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket")
+            // uncomment for debugging
+            //.withEnv("JPDA_ADDRESS", "5005")
+            //.withEnv("JPDA_TRANSPORT", "dt_socket")
             .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")

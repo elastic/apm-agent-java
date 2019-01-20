@@ -41,7 +41,9 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             "websphere-liberty:" + version
         )
             .withNetwork(Network.SHARED)
-            .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
+            .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar")
+            // uncomment for debugging
+            //.withEnv("JVM_ARGS", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")

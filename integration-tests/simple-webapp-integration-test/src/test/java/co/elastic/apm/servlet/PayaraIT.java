@@ -44,10 +44,11 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
                             "</java-config>#" +
                             "<jvm-options>-Xdebug</jvm-options></java-config>#",
                         "glassfish/domains/domain1/config/domain.xml")
-                    .run("sed", "-i", "s#" +
-                            "</java-config>#" +
-                            "<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
-                        "glassfish/domains/domain1/config/domain.xml")
+                    // uncomment for debugging
+                    //.run("sed", "-i", "s#" +
+                    //        "</java-config>#" +
+                    //"<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
+                    //    "glassfish/domains/domain1/config/domain.xml")
                 )
         )
             .withNetwork(Network.SHARED)
