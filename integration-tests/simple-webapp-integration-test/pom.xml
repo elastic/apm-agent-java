@@ -21,9 +21,9 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jsf-http-get</artifactId>
+            <artifactId>jsf-app</artifactId>
             <version>${project.version}</version>
-            <type>war</type>
+            <type>pom</type>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

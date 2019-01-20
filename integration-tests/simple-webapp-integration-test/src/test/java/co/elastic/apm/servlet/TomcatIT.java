@@ -63,18 +63,6 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<TestApp> getTestApps() {
-        return Collections.singletonList(TestApp.JSF);
-    }
-
-    @Nullable
-    @Override
-    protected String getContainerLibPath() {
-        return "/usr/local/tomcat/lib";
-    }
-
-    @Nullable
-    @Override
-    protected String getTestLibPath() {
-        return "resources/tomcat/lib";
+        return Collections.singletonList(TestApp.JSF_STANDALONE);
     }
 }

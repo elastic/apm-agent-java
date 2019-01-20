@@ -26,6 +26,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @RunWith(Parameterized.class)
@@ -65,5 +66,10 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     protected boolean isExpectedStacktrace(String path) {
         // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
         return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
+    }
+
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF_STANDALONE);
     }
 }

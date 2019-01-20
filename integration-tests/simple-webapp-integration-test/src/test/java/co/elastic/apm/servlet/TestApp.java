@@ -32,7 +32,8 @@ import static co.elastic.apm.servlet.AbstractServletContainerIntegrationTest.moc
 import static org.assertj.core.api.Assertions.assertThat;
 
 public enum TestApp {
-    JSF("../jsf-http-get", "jsf-http-get.war", TestApp::testJsf);
+    JSF("../jsf-app/jsf-app-dependent", "jsf-http-get.war", TestApp::testJsf),
+    JSF_STANDALONE("../jsf-app/jsf-app-standalone", "jsf-http-get.war", TestApp::testJsf);
 
     TestApp(String modulePath, String appFileName, Consumer<AbstractServletContainerIntegrationTest> testMethod) {
         this.modulePath = modulePath;

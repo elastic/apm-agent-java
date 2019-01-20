@@ -126,7 +126,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             checkFilePresent(pathToAppFile);
             servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.appFileName);
         }
-        addToLib(servletContainer);
         if (debugProxy != null) {
             this.debugProxy.start();
         }
@@ -135,30 +134,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             // set to a higher value for debugging
             .withStartupTimeout(Duration.ofSeconds(60)));
         this.servletContainer.start();
-    }
-
-    private void addToLib(GenericContainer<?> servletContainer) {
-        String testLibPath = getTestLibPath();
-        String containerLibPath = getContainerLibPath();
-        if (testLibPath != null && containerLibPath != null) {
-            File testLibDir = new File(testLibPath);
-            if (testLibDir.exists()) {
-                for (File jarFile : testLibDir.listFiles()) {
-                    String jarFileName = jarFile.getName();
-                    servletContainer.withFileSystemBind(jarFile.getPath(), new File(containerLibPath, jarFileName).getPath());
-                }
-            }
-        }
-    }
-
-    @Nullable
-    protected String getContainerLibPath() {
-        return null;
-    }
-
-    @Nullable
-    protected String getTestLibPath() {
-        return null;
     }
 
     private static String getPathToJavaagent() {

@@ -8,22 +8,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>jsf-http-get</artifactId>
-    <packaging>war</packaging>
-
+    <artifactId>jsf-app</artifactId>
+    <packaging>pom</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
 
-    <build>
-        <finalName>jsf-http-get</finalName>
-    </build>
-
-    <dependencies>
-        <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
-            <version>7.0</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-
+    <modules>
+        <module>jsf-app-dependent</module>
+        <module>jsf-app-standalone</module>
+    </modules>
 </project>
