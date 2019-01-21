@@ -57,6 +57,11 @@ the agent does not capture transactions.
 |If you are using Spring MVC (for example with Spring Boot),
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
 
+|JavaServer Faces
+|2.2.x, 2.3.x
+|If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
+rendering
+
 |Spring Boot
 |1.5+, 2.x
 |Supports embedded Tomcat, Jetty and Undertow

@@ -42,13 +42,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class AbstractHttpClientInstrumentationTest extends AbstractInstrumentationTest {
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort(), false);
 
     @Before
     public final void setUpWiremock() {
         wireMockRule.stubFor(get(urlEqualTo("/"))
             .willReturn(aResponse()
                 .withStatus(200)));
+        wireMockRule.stubFor(get(urlEqualTo("/error"))
+            .willReturn(aResponse()
+                .withStatus(515)));
         wireMockRule.stubFor(get(urlEqualTo("/redirect"))
             .willReturn(seeOther("/")));
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
@@ -68,6 +71,28 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/"))
             .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
+    }
+
+    @Test
+    public void testNonExistingHttpCall() {
+        String path = "/non-existing";
+        performGetWithinTransaction(path);
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
+    }
+
+    @Test
+    public void testErrorHttpCall() {
+        String path = "/error";
+        performGetWithinTransaction(path);
+
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
     @Test
@@ -113,7 +138,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         try (Scope scope = transaction.withType("request").activateInScope()) {
             try {
                 performGet(getBaseUrl() + path);
-            } catch (Exception ignore) {
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         transaction.end();

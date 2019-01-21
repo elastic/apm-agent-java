@@ -26,6 +26,7 @@ import org.testcontainers.containers.Network;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
@@ -33,8 +34,9 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     public TomcatIT(final String tomcatVersion) {
         super(new GenericContainer<>("tomcat:" + tomcatVersion)
             .withNetwork(Network.SHARED)
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket")
+            // uncomment for debugging
+            //.withEnv("JPDA_ADDRESS", "5005")
+            //.withEnv("JPDA_TRANSPORT", "dt_socket")
             .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
@@ -43,7 +45,11 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
             .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080), 8080, "/simple-webapp", "tomcat-application");
+            .withExposedPorts(8080),
+            8080,
+            "/simple-webapp",
+            "tomcat-application",
+            "/usr/local/tomcat/webapps");
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -56,4 +62,8 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
         return "/usr/local/tomcat/logs/*";
     }
 
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF_STANDALONE);
+    }
 }

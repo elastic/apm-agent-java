@@ -5,6 +5,8 @@
  * Added support for context propagation for `java.util.concurrent.ExecutorService`s
  * The `trace_methods` configuration now allows to omit the method matcher.
    Example: `com.example.*` traces all classes and methods within the `com.example` package and sub-packages.
+ * Added support for JSF. Tested on WildFly, WebSphere Liberty and Payara with embedded JSF implementation and on Tomcat and Jetty with
+ MyFaces 2.2 and 2.3
 
 ## Bug Fixes
 
