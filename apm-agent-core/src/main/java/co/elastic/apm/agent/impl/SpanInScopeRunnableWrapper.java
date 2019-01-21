@@ -76,7 +76,7 @@ public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
                 tracer.recycle(this);
             } catch (Throwable t) {
                 try {
-                    logger.error("Unexpected error while activating span", t);
+                    logger.error("Unexpected error while deactivating or recycling span", t);
                 } catch (Throwable ignore) {
                 }
             }
