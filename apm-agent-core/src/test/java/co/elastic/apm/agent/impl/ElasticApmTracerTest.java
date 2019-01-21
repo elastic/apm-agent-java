@@ -158,6 +158,15 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testProgrammaticallyDisableStackTraces() {
+        when(tracerImpl.getConfig(StacktraceConfiguration.class).getSpanFramesMinDurationMs()).thenReturn(-1L);
+        Transaction transaction = tracerImpl.startTransaction();
+        transaction.createSpan().disableStackTraceCollection().end();
+        transaction.end();
+        assertThat(reporter.getFirstSpan().getStacktrace()).isNull();
+    }
+
+    @Test
     void testRecordException() {
         tracerImpl.captureException(new Exception("test"));
         assertThat(reporter.getErrors()).hasSize(1);

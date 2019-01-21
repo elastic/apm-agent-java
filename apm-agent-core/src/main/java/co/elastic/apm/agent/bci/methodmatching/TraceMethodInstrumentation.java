@@ -68,6 +68,7 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
             } else {
                 span = parent.createSpan()
                     .withName(signature)
+                    .disableStackTraceCollection()
                     .activate();
             }
         }

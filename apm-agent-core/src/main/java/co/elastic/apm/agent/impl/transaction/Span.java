@@ -37,6 +37,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private final SpanContext context = new SpanContext();
     @Nullable
     private Throwable stacktrace;
+    private boolean disableStackTraces;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
@@ -105,6 +106,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
+        disableStackTraces = false;
     }
 
     @Override
@@ -124,5 +126,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     public Span withStacktrace(Throwable stacktrace) {
         this.stacktrace = stacktrace;
         return this;
+    }
+
+    public Span disableStackTraceCollection() {
+        this.disableStackTraces = true;
+        return this;
+    }
+
+    public boolean isDisableStackTraces() {
+        return disableStackTraces;
     }
 }
