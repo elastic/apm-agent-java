@@ -44,6 +44,8 @@ class MethodMatcherInstrumentationTest {
         assertMatches(MethodMatcher.of(getClass().getName() + "#testMultipleParameters(java.lang.String, int[], java.lang.Object[])"), getClass().getDeclaredMethod("testMultipleParameters", String.class, int[].class, Object[].class));
         assertMatches(MethodMatcher.of(getClass().getName() + "#testMultipleParameters(*.String, int[], java.lang.Object[])"), getClass().getDeclaredMethod("testMultipleParameters", String.class, int[].class, Object[].class));
         assertMatches(MethodMatcher.of(getClass().getName() + "#testMultipleParameters(*, *, *)"), getClass().getDeclaredMethod("testMultipleParameters", String.class, int[].class, Object[].class));
+        assertMatches(MethodMatcher.of(getClass().getPackageName() + "*#*"), getClass().getDeclaredMethod("testMethodMatching"));
+        assertMatches(MethodMatcher.of(getClass().getPackageName() + "*"), getClass().getDeclaredMethod("testMethodMatching"));
     }
 
     @Test

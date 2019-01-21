@@ -32,6 +32,7 @@ import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -67,11 +68,17 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void afterExecute(@Advice.Return ClientHttpResponse clientHttpResponse,
                                      @Advice.Local("span") @Nullable Span span,
-                                     @Advice.Thrown @Nullable Throwable t) {
+                                     @Advice.Thrown @Nullable Throwable t) throws IOException {
         if (span != null) {
-            span.captureException(t)
-                .deactivate()
-                .end();
+            try {
+                if (clientHttpResponse != null) {
+                    int statusCode = clientHttpResponse.getRawStatusCode();
+                    span.getContext().getHttp().withStatusCode(statusCode);
+                }
+                span.captureException(t);
+            } finally {
+                span.deactivate().end();
+            }
         }
     }
 

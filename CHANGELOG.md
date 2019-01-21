@@ -1,8 +1,10 @@
-# next
+# next (1.4.0)
 
 ## Features
  * Added support for sync calls of OkHttp client
  * Added support for context propagation for `java.util.concurrent.ExecutorService`s
+ * The `trace_methods` configuration now allows to omit the method matcher.
+   Example: `com.example.*` traces all classes and methods within the `com.example` package and sub-packages.
 
 ## Bug Fixes
 

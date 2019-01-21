@@ -38,7 +38,7 @@ public class MethodMatcher {
     private static final String METHOD_NAME = "([a-zA-Z\\d_$\\*]+)";
     private static final String PARAM = "([a-zA-Z\\d_$.\\[\\]\\*]+)";
     private static final String PARAMS = PARAM + "(,\\s*" + PARAM + ")*";
-    private static final Pattern METHOD_MATCHER_PATTERN = Pattern.compile("^(" + MODIFIER + "\\s+)?" + CLASS_NAME + "#" + METHOD_NAME + "(\\((" + PARAMS + ")*\\))?$");
+    private static final Pattern METHOD_MATCHER_PATTERN = Pattern.compile("^(" + MODIFIER + "\\s+)?" + CLASS_NAME + "(#" + METHOD_NAME + "(\\((" + PARAMS + ")*\\))?)?$");
 
     private final String stringRepresentation;
     @Nullable
@@ -62,8 +62,11 @@ public class MethodMatcher {
             throw new IllegalArgumentException("'" + methodMatcher + "'" + " is not a valid method matcher");
         }
 
-        return new MethodMatcher(methodMatcher, getModifier(matcher.group(2)), caseSensitiveMatcher(matcher.group(3)), caseSensitiveMatcher(matcher.group(4)),
-            getArgumentMatchers(matcher.group(5)));
+        final String modifier = matcher.group(2);
+        final WildcardMatcher clazz = caseSensitiveMatcher(matcher.group(3));
+        final WildcardMatcher method = matcher.group(5) != null ? caseSensitiveMatcher(matcher.group(5)) : WildcardMatcher.matchAll();
+        final List<WildcardMatcher> args = getArgumentMatchers(matcher.group(6));
+        return new MethodMatcher(methodMatcher, getModifier(modifier), clazz, method, args);
     }
 
     @Nullable
