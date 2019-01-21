@@ -57,20 +57,20 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Servlet").or(nameContainsIgnoreCase("jsp"));
+        return nameContains("Servlet");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.http.HttpServlet")));
+            .and(hasSuperType(named("javax.servlet.Servlet")).or(nameContainsIgnoreCase("jsp")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("service")
-            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
-            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")));
+            .and(takesArgument(0, named("javax.servlet.ServletRequest")))
+            .and(takesArgument(1, named("javax.servlet.ServletResponse")));
     }
 
     @Override

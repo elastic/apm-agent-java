@@ -25,6 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class WildFlyIT extends AbstractServletContainerIntegrationTest {
@@ -34,7 +35,9 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             .withNetwork(Network.SHARED)
             // this overrides the defaults, so we have to manually re-add preferIPv4Stack
             // the other defaults don't seem to be important
-            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
+            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true")
+            // uncomment for debugging
+            //.withEnv("JAVA_OPTS", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
@@ -42,7 +45,9 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("wildfly"))
             .withFileSystemBind(pathToWar, "/opt/jboss/wildfly/standalone/deployments/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990), "jboss-application");
+            .withExposedPorts(8080, 9990),
+            "jboss-application",
+            "/opt/jboss/wildfly/standalone/deployments");
     }
 
     @Parameterized.Parameters(name = "Wildfly {0}")
@@ -55,5 +60,10 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             {"12.0.0.Final"},
             {"13.0.0.Final"}
         });
+    }
+
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF);
     }
 }

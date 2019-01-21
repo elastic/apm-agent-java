@@ -26,6 +26,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
@@ -43,10 +44,11 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
                             "</java-config>#" +
                             "<jvm-options>-Xdebug</jvm-options></java-config>#",
                         "glassfish/domains/domain1/config/domain.xml")
-                    .run("sed", "-i", "s#" +
-                            "</java-config>#" +
-                            "<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
-                        "glassfish/domains/domain1/config/domain.xml")
+                    // uncomment for debugging
+                    //.run("sed", "-i", "s#" +
+                    //        "</java-config>#" +
+                    //"<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
+                    //    "glassfish/domains/domain1/config/domain.xml")
                 )
         )
             .withNetwork(Network.SHARED)
@@ -57,7 +59,11 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("payara"))
             .withFileSystemBind(pathToWar, deploymentsFolder + "/simple-webapp.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080), 8080, "/simple-webapp", "glassfish-application");
+            .withExposedPorts(8080),
+            8080,
+            "/simple-webapp",
+            "glassfish-application",
+            deploymentsFolder);
     }
 
     @Parameterized.Parameters(name = "Payara {0}")
@@ -67,4 +73,10 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
             {"5.182", "/opt/payara5/deployments"}
         });
     }
+
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF);
+    }
+
 }

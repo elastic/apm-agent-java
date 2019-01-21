@@ -26,6 +26,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @RunWith(Parameterized.class)
@@ -36,7 +37,9 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     public JettyIT(final String version) {
         super(new GenericContainer<>("jetty:" + version)
             .withNetwork(Network.SHARED)
-            .withEnv("JAVA_OPTIONS", "-javaagent:/elastic-apm-agent.jar -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
+            .withEnv("JAVA_OPTIONS", "-javaagent:/elastic-apm-agent.jar")
+            // uncomment for debugging
+            //.withEnv("JAVA_OPTIONS", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
@@ -44,7 +47,9 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix("jetty"))
             .withFileSystemBind(pathToWar, "/var/lib/jetty/webapps/ROOT.war")
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990), "jetty-application");
+            .withExposedPorts(8080, 9990),
+            "jetty-application",
+            "/var/lib/jetty/webapps");
 
         this.version = version;
     }
@@ -63,5 +68,10 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     protected boolean isExpectedStacktrace(String path) {
         // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
         return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
+    }
+
+    @Override
+    protected Iterable<TestApp> getTestApps() {
+        return Collections.singletonList(TestApp.JSF_STANDALONE);
     }
 }
