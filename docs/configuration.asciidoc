@@ -307,6 +307,7 @@ A list of methods for with to create a transaction or span.
 The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
 You can use wildcards for the class name, the method name and the parameter types.
 The `*` wildcard matches zero or more characters.
+That means that a wildcard in a package name also matches sub-packages
 Specifying the parameter types is optional.
 The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 
@@ -320,10 +321,10 @@ A few examples:
  - `org.example.MyClass#myMe*od(java.lang.String, int)`
  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
  - `* org.example.MyClas*#myMe*od(*.String, int[])`
- - `public org.example.services.*.*Service#*`
+ - `public org.example.services.*Service#*`
 
 NOTE: Only use wildcards if necessary.
-The more methods you match to more overhead will be caused by the agent.
+The more methods you match the more overhead will be caused by the agent.
 Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
 
 Since 1.3.0
@@ -1054,6 +1055,7 @@ The default unit for this option is `ms`
 # The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
 # You can use wildcards for the class name, the method name and the parameter types.
 # The `*` wildcard matches zero or more characters.
+# That means that a wildcard in a package name also matches sub-packages
 # Specifying the parameter types is optional.
 # The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 # 
@@ -1067,10 +1069,10 @@ The default unit for this option is `ms`
 #  - `org.example.MyClass#myMe*od(java.lang.String, int)`
 #  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
 #  - `* org.example.MyClas*#myMe*od(*.String, int[])`
-#  - `public org.example.services.*.*Service#*`
+#  - `public org.example.services.*Service#*`
 # 
 # NOTE: Only use wildcards if necessary.
-# The more methods you match to more overhead will be caused by the agent.
+# The more methods you match the more overhead will be caused by the agent.
 # Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).
 # 
 # Since 1.3.0

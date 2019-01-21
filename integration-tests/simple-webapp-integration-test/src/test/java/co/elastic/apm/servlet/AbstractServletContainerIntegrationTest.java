@@ -107,7 +107,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final int webPort;
     private final String contextPath;
     @Nullable
-    private final GenericContainer<?> debugProxy;
+    private GenericContainer<?> debugProxy;
     private final String expectedDefaultServiceName;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath) {
@@ -119,7 +119,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
-        this.debugProxy = createDebugProxy(servletContainer, 5005);
+        // uncomment for debugging
+        //this.debugProxy = createDebugProxy(servletContainer, 5005);
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         for (TestApp testApp: getTestApps()) {
             String pathToAppFile = testApp.getAppFilePath();

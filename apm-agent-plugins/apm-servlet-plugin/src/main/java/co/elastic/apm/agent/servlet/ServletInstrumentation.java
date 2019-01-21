@@ -63,7 +63,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return not(isInterface())
-            .and(hasSuperType(named("javax.servlet.Servlet")));
+            .and(hasSuperType(named("javax.servlet.Servlet")).or(nameContainsIgnoreCase("jsp")));
     }
 
     @Override
