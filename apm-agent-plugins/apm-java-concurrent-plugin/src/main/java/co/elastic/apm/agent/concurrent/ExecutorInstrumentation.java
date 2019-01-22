@@ -20,7 +20,9 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.util.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -43,6 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
 
+    @VisibleForAdvice
+    public static final WeakConcurrentMap<Executor, Boolean> excluded = new WeakConcurrentMap.WithInlinedExpunction<Executor, Boolean>();
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Execut")
@@ -63,11 +68,35 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onExecute(@Advice.This Executor thiz, @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable) {
+        public static void onExecute(@Advice.This Executor thiz,
+                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
+                                     @Advice.Local("original") Runnable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && runnable != null) {
-                // this could be a problem when the executor casts to a specific Runnable
+            if (active != null && runnable != null && !excluded.containsKey(thiz)) {
+                original = runnable;
                 runnable = active.withActiveContext(runnable);
+            }
+        }
+
+        // This advice detects if the Executor can't cope with our wrappers
+        // If so, it retries without the wrapper and adds it to a list of excluded Executor instances
+        // which disables context propagation for those
+        // There is a slight risk that retrying causes a side effect but the more likely scenario is that adding the task to the queue
+        // fails and noting has been executed yet.
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, repeatOn = Advice.OnNonDefaultValue.class)
+        public static boolean onError(@Advice.This Executor thiz,
+                                      @Nullable @Advice.Thrown Exception exception,
+                                      @Nullable @Advice.Argument(value = 0, readOnly = false) Runnable runnable,
+                                      @Advice.Local("original") @Nullable Runnable original) {
+
+            if (original != null && exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
+                // seems like this executor expects a specific subtype of Callable
+                runnable = original;
+                // repeat only if submitting a task fails for the first time
+                return excluded.put(thiz, Boolean.TRUE) == null;
+            } else {
+                // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
+                return false;
             }
         }
 
@@ -81,11 +110,32 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onSubmit(@Advice.This ExecutorService thiz, @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable) {
+        public static void onSubmit(@Advice.This ExecutorService thiz,
+                                    @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
+                                    @Advice.Local("original") Callable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && callable != null) {
-                // this could be a problem when the executor casts to a specific Callable
+            if (active != null && callable != null && !excluded.containsKey(thiz)) {
+                original = callable;
                 callable = active.withActiveContext(callable);
+            }
+        }
+
+        // This advice detects if the Executor can't cope with our wrappers
+        // If so, it retries without the wrapper and adds it to a list of excluded Executor instances
+        // which disables context propagation for those
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Exception.class, repeatOn = Advice.OnNonDefaultValue.class)
+        public static boolean onError(@Advice.This Executor thiz,
+                                      @Nullable @Advice.Thrown Exception exception,
+                                      @Nullable @Advice.Argument(value = 0, readOnly = false) Callable callable,
+                                      @Advice.Local("original") Callable original) {
+            if (exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
+                // seems like this executor expects a specific subtype of Callable
+                callable = original;
+                // repeat only if submitting a task fails for the first time
+                return excluded.put(thiz, Boolean.TRUE) == null;
+            } else {
+                // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
+                return false;
             }
         }
 
