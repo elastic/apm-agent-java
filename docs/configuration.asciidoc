@@ -838,6 +838,32 @@ The default unit for this option is `s`
 | `elastic.apm.metrics_interval` | `metrics_interval` | `ELASTIC_APM_METRICS_INTERVAL`
 |============
 
+[float]
+[[config-disable-metrics]]
+==== `disable_metrics`
+
+Disables the collection of certain metrics.
+If the name of a metric matches any of the wildcard expressions, it will not be collected.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `jvm.gc.*` | List | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.disable_metrics` | `disable_metrics` | `ELASTIC_APM_DISABLE_METRICS`
+|============
+
 [[config-stacktrace]]
 === Stacktrace configuration options
 [float]
@@ -1355,6 +1381,20 @@ The default unit for this option is `ms`
 # Default value: 30s
 #
 # metrics_interval=30s
+
+# Disables the collection of certain metrics.
+# If the name of a metric matches any of the wildcard expressions, it will not be collected.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: comma separated list
+# Default value: jvm.gc.*
+#
+# disable_metrics=jvm.gc.*
 
 ############################################
 # Stacktrace                               #
