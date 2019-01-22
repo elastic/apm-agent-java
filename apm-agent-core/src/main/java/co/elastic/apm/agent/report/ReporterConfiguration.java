@@ -151,7 +151,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("disable_metrics")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Disables metrics with a matching metric name.\n" +
+        .description("Disables the collection of certain metrics.\n" +
+            "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
