@@ -20,11 +20,13 @@
 package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class JvmMemoryMetricsTest {
 
@@ -32,7 +34,7 @@ class JvmMemoryMetricsTest {
 
     @Test
     void testMetrics() {
-        final MetricRegistry registry = new MetricRegistry();
+        final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
         System.out.println(registry.toString());
         assertThat(registry.get("jvm.memory.heap.used", Collections.emptyMap())).isNotZero();

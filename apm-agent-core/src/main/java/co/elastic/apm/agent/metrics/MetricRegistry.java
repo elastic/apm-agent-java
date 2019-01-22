@@ -19,6 +19,9 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,6 +39,11 @@ public class MetricRegistry {
      * Groups {@link MetricSet}s by their unique tags.
      */
     private final ConcurrentMap<Map<String, String>, MetricSet> metricSets = new ConcurrentHashMap<>();
+    private final ReporterConfiguration config;
+
+    public MetricRegistry(ReporterConfiguration config) {
+        this.config = config;
+    }
 
     /**
      * Same as {@link #add(String, Map, DoubleSupplier)} but only adds the metric
@@ -50,6 +58,9 @@ public class MetricRegistry {
      * @see #add(String, Map, DoubleSupplier)
      */
     public void addUnlessNan(String name, Map<String, String> tags, DoubleSupplier metric) {
+        if (isDisabled(name)) {
+            return;
+        }
         if (!Double.isNaN(metric.get())) {
             add(name, tags, metric);
         }
@@ -68,6 +79,9 @@ public class MetricRegistry {
      * @see #add(String, Map, DoubleSupplier)
      */
     public void addUnlessNegative(String name, Map<String, String> tags, DoubleSupplier metric) {
+        if (isDisabled(name)) {
+            return;
+        }
         if (metric.get() >= 0) {
             add(name, tags, metric);
         }
@@ -84,12 +98,19 @@ public class MetricRegistry {
      *               ({@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval)})
      */
     public void add(String name, Map<String, String> tags, DoubleSupplier metric) {
+        if (isDisabled(name)) {
+            return;
+        }
         MetricSet metricSet = metricSets.get(tags);
         if (metricSet == null) {
             metricSets.putIfAbsent(tags, new MetricSet(tags));
             metricSet = metricSets.get(tags);
         }
         metricSet.add(name, metric);
+    }
+
+    private boolean isDisabled(String name) {
+        return WildcardMatcher.anyMatch(config.getDisableMetrics(), name) != null;
     }
 
     public double get(String name, Map<String, String> tags) {
