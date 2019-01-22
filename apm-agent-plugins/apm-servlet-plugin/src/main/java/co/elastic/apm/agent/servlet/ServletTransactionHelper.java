@@ -98,12 +98,14 @@ public class ServletTransactionHelper {
     public Transaction onBefore(String servletPath, @Nullable String pathInfo,
                                 @Nullable String userAgentHeader,
                                 @Nullable String traceContextHeader) {
+        System.out.println("On before Helper");
         if (coreConfiguration.isActive() &&
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, userAgentHeader)) {
             return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader).activate();
         } else {
+            System.out.println("Return null on before");
             return null;
         }
     }
@@ -112,7 +114,7 @@ public class ServletTransactionHelper {
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
                                    String remoteAddr) {
-
+        System.out.println("Trying to fill Request Context");
         final Request request = transaction.getContext().getRequest();
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
     }
@@ -128,6 +130,7 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+        System.out.println("in onAfter");
         try {
             fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
             if(exception != null && status == 200) {
@@ -156,6 +159,7 @@ public class ServletTransactionHelper {
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
+        System.out.println("Apply default Transaction Name");
         if (webConfiguration.isUsePathAsName()) {
             WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
             if (groupMatcher != null) {
@@ -294,7 +298,9 @@ public class ServletTransactionHelper {
         if (servletClass == null || transactionName.length() > 0) {
             return;
         }
+        System.out.println("setTransactionNameByServletClass="+method+" transactionName="+transactionName.toString());
         String servletClassName = servletClass.getName();
+        System.out.println("ServletClassName="+servletClassName);
         transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
         transactionName.append('#');
         switch (method) {

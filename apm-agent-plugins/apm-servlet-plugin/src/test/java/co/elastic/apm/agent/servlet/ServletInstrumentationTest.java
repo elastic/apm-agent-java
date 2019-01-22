@@ -66,30 +66,30 @@ class ServletInstrumentationTest extends AbstractServletTest {
         handler.addFilter(TestFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
     }
 
-    @Test
-    void testServletInstrumentation() throws Exception {
-        testInstrumentation(new ServletInstrumentation(), 1, "/test");
-    }
+//    @Test
+//    void testServletInstrumentation() throws Exception {
+//        testInstrumentation(new ServletInstrumentation(), 1, "/test");
+//    }
 
-    @Test
-    void testFilterChainInstrumentation() throws Exception {
-        testInstrumentation(new FilterChainInstrumentation(), 1, "/test");
-    }
+//    @Test
+//    void testFilterChainInstrumentation() throws Exception {
+//        testInstrumentation(new FilterChainInstrumentation(), 1, "/test");
+//    }
 
-    @Test
-    void testNoopInstrumentation() throws Exception {
-        testInstrumentation(new NoopInstrumentation(), 0, "/test");
-    }
+//    @Test
+//    void testNoopInstrumentation() throws Exception {
+//        testInstrumentation(new NoopInstrumentation(), 0, "/test");
+//    }
 
     @Test
     void testForward() throws Exception {
         testInstrumentation(new ServletInstrumentation(), 1, "/forward");
     }
 
-    @Test
-    void testInclude() throws Exception {
-        testInstrumentation(new ServletInstrumentation(), 1, "/include");
-    }
+//    @Test
+//    void testInclude() throws Exception {
+//        testInstrumentation(new ServletInstrumentation(), 1, "/include");
+//    }
 
     private void testInstrumentation(ElasticApmInstrumentation instrumentation, int expectedTransactions, String path) throws IOException, InterruptedException {
         initInstrumentation(instrumentation);
