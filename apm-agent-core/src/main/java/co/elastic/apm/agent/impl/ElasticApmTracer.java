@@ -82,6 +82,7 @@ public class ElasticApmTracer {
     private Sampler sampler;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
+        this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
@@ -131,7 +132,6 @@ public class ElasticApmTracer {
         for (ActivationListener activationListener : activationListeners) {
             activationListener.init(this);
         }
-        metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
     }
 
