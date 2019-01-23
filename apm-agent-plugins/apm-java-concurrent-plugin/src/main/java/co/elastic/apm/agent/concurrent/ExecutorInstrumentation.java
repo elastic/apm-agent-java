@@ -89,7 +89,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                       @Nullable @Advice.Argument(value = 0, readOnly = false) Runnable runnable,
                                       @Advice.Local("original") @Nullable Runnable original) {
 
-            if (original != null && exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
+            if (original != null && (exception instanceof ClassCastException || exception instanceof IllegalArgumentException)) {
                 // seems like this executor expects a specific subtype of Callable
                 runnable = original;
                 // repeat only if submitting a task fails for the first time
