@@ -844,6 +844,7 @@ The default unit for this option is `s`
 
 Disables the collection of certain metrics.
 If the name of a metric matches any of the wildcard expressions, it will not be collected.
+Example: `foo.*,bar.*`
 
 This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
@@ -1384,6 +1385,7 @@ The default unit for this option is `ms`
 
 # Disables the collection of certain metrics.
 # If the name of a metric matches any of the wildcard expressions, it will not be collected.
+# Example: `foo.*,bar.*`
 # 
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.

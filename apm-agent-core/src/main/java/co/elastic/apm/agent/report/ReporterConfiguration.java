@@ -153,6 +153,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(REPORTER_CATEGORY)
         .description("Disables the collection of certain metrics.\n" +
             "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +
+            "Example: `foo.*,bar.*`\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
