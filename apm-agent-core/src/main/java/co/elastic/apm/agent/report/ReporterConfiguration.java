@@ -156,7 +156,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
-        .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("jvm.gc.*")));
+        .buildWithDefault(Collections.emptyList());
 
     @Nullable
     public String getSecretToken() {
