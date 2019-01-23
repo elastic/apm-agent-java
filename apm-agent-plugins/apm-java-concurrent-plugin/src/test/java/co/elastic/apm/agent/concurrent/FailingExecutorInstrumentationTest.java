@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.ContextInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.ContextInScopeRunnableWrapper;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +38,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     private ExecutorService executor;
-    private AtomicInteger counter = new AtomicInteger();
+    private AtomicInteger runCounter;
+    private AtomicInteger submitWithWrapperCounter;
 
     @BeforeEach
     void setUp() {
@@ -45,6 +47,7 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
             @Override
             public ForkJoinTask<?> submit(Runnable task) {
                 if (task instanceof ContextInScopeRunnableWrapper) {
+                    submitWithWrapperCounter.incrementAndGet();
                     throw new ClassCastException();
                 }
                 return super.submit(task);
@@ -52,7 +55,8 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
             @Override
             public <V> ForkJoinTask<V> submit(Callable<V> task) {
-                if (task instanceof ContextInScopeRunnableWrapper) {
+                if (task instanceof ContextInScopeCallableWrapper) {
+                    submitWithWrapperCounter.incrementAndGet();
                     throw new IllegalArgumentException();
                 }
                 return super.submit(task);
@@ -60,10 +64,12 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
             @Override
             public void execute(Runnable task) {
-                throw new IllegalArgumentException();
+                throw new UnsupportedOperationException();
             }
         });
         tracer.startTransaction().activate();
+        runCounter = new AtomicInteger();
+        submitWithWrapperCounter = new AtomicInteger();
     }
 
     @AfterEach
@@ -73,25 +79,38 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testRunnableWrappersNotSupported() throws Exception {
-        executor.submit(this::failIfCalledTwice).get();
+        executor.submit(() -> {
+            assertThat(runCounter.incrementAndGet()).isEqualTo(1);
+        }).get();
+        assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
+
+        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isTrue();
+        executor.submit(() -> {
+            assertThat(runCounter.incrementAndGet()).isEqualTo(2);
+        }).get();
+        assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
     }
 
     @Test
     void testCallableWrappersNotSupported() throws Exception {
         executor.submit(() -> {
-            failIfCalledTwice();
+            assertThat(runCounter.incrementAndGet()).isEqualTo(1);
             return null;
         }).get();
+        assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
+
+        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isTrue();
+        executor.submit(() -> {
+            assertThat(runCounter.incrementAndGet()).isEqualTo(2);
+        }).get();
+        assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
     }
 
     @Test
     void testNoInfiniteLoop() {
         Assertions.assertThatThrownBy(() -> executor.execute(() -> {
-        })).isInstanceOf(IllegalArgumentException.class);
+        })).isInstanceOf(UnsupportedOperationException.class);
+        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isFalse();
     }
 
-    // verifies that the Runnables/Callables are executed at most once
-    void failIfCalledTwice() {
-        assertThat(counter.incrementAndGet()).isLessThan(2);
-    }
 }
