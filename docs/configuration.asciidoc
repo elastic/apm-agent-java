@@ -854,7 +854,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `jvm.gc.*` | List | false
+| `<none>` | List | false
 |============
 
 
@@ -1392,9 +1392,9 @@ The default unit for this option is `ms`
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
-# Default value: jvm.gc.*
+# Default value: 
 #
-# disable_metrics=jvm.gc.*
+# disable_metrics=
 
 ############################################
 # Stacktrace                               #
