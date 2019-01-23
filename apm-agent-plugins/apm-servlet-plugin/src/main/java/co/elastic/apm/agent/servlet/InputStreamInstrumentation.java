@@ -7,8 +7,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
 /*-
  * #%L
@@ -31,7 +33,9 @@ import java.util.Collections;
  */
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.TransactionContext;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -50,11 +54,6 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
     static final String SERVLET_API = "servlet-api";
 
     @Override
-    public void init(ElasticApmTracer tracer) {
-        InputStreamAdvice.init(tracer);
-    }
-
-    @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("ServletInputStream");
     }
@@ -71,7 +70,7 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {
-        return InputStreamAdvice.class;
+        return InputStreamInstrumentation.InputStreamAdvice.class;
     }
 
     @Override
@@ -79,6 +78,41 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
         return Collections.singleton(SERVLET_API);
     }
 
+    public static class InputStreamAdvice {
+        @VisibleForAdvice
+        public static ThreadLocal<Boolean> excluded = new ThreadLocal<Boolean>() {
+            @Override
+            protected Boolean initialValue() {
+                return Boolean.FALSE;
+            }
+        };
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onReadExit(@Advice.Argument(0) Object argument) {
+            System.out.println("Hello");
+            if (argument == null || tracer == null || tracer.currentTransaction() == null || tracer.currentTransaction().getContext() == null) {
+                return;
+            }
+
+            System.out.println(new String((byte[]) argument));
+
+            TransactionContext context = tracer.currentTransaction().getContext();
+            Map<String, Object> custom = context.getCustom();
+
+            byte[] fullData = null;
+            byte[] existingData = (byte[]) custom.get("REQUESTBODYDATA");
+            byte[] newData = (byte[]) argument;
+
+            if (existingData == null) {
+                fullData = Arrays.copyOf(newData, newData.length);
+            } else {
+                fullData = new byte[existingData.length + newData.length];
+                System.arraycopy(existingData, 0, fullData, 0, existingData.length);
+                System.arraycopy(newData, 0, fullData, existingData.length, newData.length);
+            }
+            custom.put("REQUESTBODYDATA", fullData);
+        }
+    }
 
 }
 
