@@ -27,6 +27,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.IOUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -36,6 +37,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,11 +48,13 @@ class TransactionPayloadJsonSchemaTest {
 
     private JsonSchema schema;
     private ObjectMapper objectMapper;
+    private DslJsonSerializer serializer;
 
     @BeforeEach
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
         objectMapper = new ObjectMapper();
+        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
     }
 
     private TransactionPayload createPayloadWithRequiredValues() {
@@ -108,7 +113,6 @@ class TransactionPayloadJsonSchemaTest {
         String platform = System.getProperty("os.name");
         String hostname = SystemInfo.getNameOfLocalHost();
         TransactionPayload payload = createPayload();
-        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         System.out.println(content);
         JsonNode node = objectMapper.readTree(content);
@@ -127,7 +131,6 @@ class TransactionPayloadJsonSchemaTest {
         String podUID = "podUID";
         SystemInfo.Kubernetes kubernetes = new SystemInfo.Kubernetes(podName, nodeName, namespace, podUID);
         TransactionPayload payload = createPayload(new SystemInfo("x64", "localhost", "platform", container, kubernetes));
-        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         System.out.println(content);
         JsonNode systemNode = objectMapper.readTree(content).get("system");
@@ -157,6 +160,37 @@ class TransactionPayloadJsonSchemaTest {
         validateJsonStructure(createPayloadWithAllValues());
     }
 
+    @Test
+    void testBodyBuffer() throws IOException {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        IOUtils.decodeUtf8Bytes("{f".getBytes(StandardCharsets.UTF_8), bodyBuffer);
+        IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
+        IOUtils.decodeUtf8Byte((byte) '}', bodyBuffer);
+        bodyBuffer.flip();
+        final String content = serializer.toJsonString(transaction);
+        System.out.println(content);
+        final JsonNode transactionJson = objectMapper.readTree(content);
+        assertThat(transactionJson.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
+
+        transaction.resetState();
+        assertThat((Object) transaction.getContext().getRequest().getBodyBuffer()).isNull();
+    }
+
+    @Test
+    void testBodyBufferCopy() throws IOException {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        IOUtils.decodeUtf8Bytes("{foo}".getBytes(StandardCharsets.UTF_8), bodyBuffer);
+        bodyBuffer.flip();
+
+        Transaction copy = createTransactionWithRequiredValues();
+        copy.getContext().copyFrom(transaction.getContext());
+
+        assertThat(objectMapper.readTree(serializer.toJsonString(copy)).get("context"))
+            .isEqualTo(objectMapper.readTree(serializer.toJsonString(transaction)).get("context"));
+    }
+
     private void validateJsonStructure(TransactionPayload payload) throws IOException {
         JsonNode serializedSpans = getSerializedSpans(payload);
         validateDbSpanSchema(serializedSpans, true);
@@ -172,7 +206,6 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private JsonNode getSerializedSpans(TransactionPayload payload) throws IOException {
-        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String content = serializer.toJsonString(payload);
         System.out.println(content);
         JsonNode node = objectMapper.readTree(content);
@@ -226,7 +259,6 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private void validate(TransactionPayload payload) throws IOException {
-        DslJsonSerializer serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
         final String contentInDistributedTracingFormat = serializer.toJsonString(payload);
         System.out.println(contentInDistributedTracingFormat);
         Set<ValidationMessage> distributedTracingFormatErrors = schema.validate(objectMapper.readTree(contentInDistributedTracingFormat));

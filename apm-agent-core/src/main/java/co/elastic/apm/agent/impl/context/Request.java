@@ -19,10 +19,18 @@
  */
 package co.elastic.apm.agent.impl.context;
 
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.impl.Resetter;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
+import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 
 import javax.annotation.Nullable;
+import java.nio.Buffer;
+import java.nio.CharBuffer;
 import java.util.Enumeration;
 
 
@@ -32,6 +40,21 @@ import java.util.Enumeration;
  * If a log record was generated as a result of a http request, the http interface can be used to collect this information.
  */
 public class Request implements Recyclable {
+
+
+    private final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
+        new Allocator<CharBuffer>() {
+            @Override
+            public CharBuffer createInstance() {
+                return CharBuffer.allocate(DslJsonSerializer.MAX_LONG_STRING_VALUE_LENGTH);
+            }
+        },
+        new Resetter<CharBuffer>() {
+            @Override
+            public void recycle(CharBuffer object) {
+                ((Buffer) object).clear();
+            }
+        });
 
     private final PotentiallyMultiValuedMap postParams = new PotentiallyMultiValuedMap();
     /**
@@ -64,6 +87,8 @@ public class Request implements Recyclable {
      */
     @Nullable
     private String method;
+    @Nullable
+    private CharBuffer bodyBuffer;
 
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
@@ -100,6 +125,37 @@ public class Request implements Recyclable {
     public Request withRawBody(String rawBody) {
         this.rawBody = rawBody;
         return this;
+    }
+
+    /**
+     * Gets a pooled {@link CharBuffer} to record the DB statement and associates it with this instance.
+     * <p>
+     * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
+     * </p>
+     * <p>
+     * Note: This method is not thread safe
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement
+     */
+    public CharBuffer withBodyBuffer() {
+        if (this.bodyBuffer == null) {
+            this.bodyBuffer = charBufferPool.createInstance();
+        }
+        return this.bodyBuffer;
+    }
+
+    /**
+     * Returns the associated pooled {@link CharBuffer} to record the DB statement.
+     * <p>
+     * Note: returns {@code null} unless {@link #withBodyBuffer()} has previously been called
+     * </p>
+     *
+     * @return a {@link CharBuffer} to record the DB statement, or {@code null}
+     */
+    @Nullable
+    public CharBuffer getBodyBuffer() {
+        return bodyBuffer;
     }
 
     public PotentiallyMultiValuedMap getFormUrlEncodedParameters() {
@@ -198,6 +254,10 @@ public class Request implements Recyclable {
         socket.resetState();
         url.resetState();
         cookies.resetState();
+        if (bodyBuffer != null) {
+            charBufferPool.recycle(bodyBuffer);
+        }
+        bodyBuffer = null;
     }
 
     public void copyFrom(Request other) {
@@ -209,6 +269,14 @@ public class Request implements Recyclable {
         this.socket.copyFrom(other.socket);
         this.url.copyFrom(other.url);
         this.cookies.copyFrom(other.cookies);
+        if (other.bodyBuffer != null) {
+            final CharBuffer otherBuffer = other.getBodyBuffer();
+            final CharBuffer thisBuffer = this.withBodyBuffer();
+            for (int i = 0; i < otherBuffer.length(); i++) {
+                thisBuffer.append(otherBuffer.charAt(i));
+            }
+            thisBuffer.flip();
+        }
     }
 
     public boolean hasContent() {
