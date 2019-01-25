@@ -74,7 +74,7 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("read").and(takesArgument(0, byte[].class)).and(takesArgument(1, int.class)).and(takesArgument(2, int.class));
+        return (named("read").or(named("readLine"))).and(takesArgument(0, byte[].class)).and(takesArgument(1, int.class)).and(takesArgument(2, int.class));
     }
 
     @Override
