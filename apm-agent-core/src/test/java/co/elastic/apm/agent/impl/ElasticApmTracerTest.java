@@ -279,7 +279,7 @@ class ElasticApmTracerTest {
     @Test
     void testSamplingNone() throws IOException {
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
-        Transaction transaction = tracerImpl.startTransaction();
+        Transaction transaction = tracerImpl.startTransaction().withType("request");
         try (Scope scope = transaction.activateInScope()) {
             transaction.setUser("1", "jon.doe@example.com", "jondoe");
             Span span = tracerImpl.getActive().createSpan();
@@ -292,6 +292,7 @@ class ElasticApmTracerTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(0);
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isNull();
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
     }
 
     @Test
