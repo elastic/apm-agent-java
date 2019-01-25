@@ -64,6 +64,7 @@ import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
 
@@ -299,7 +300,7 @@ public class ElasticApmAgent {
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("java."))
-            .or(nameStartsWith("com.sun."))
+            .or(nameStartsWith("com.sun.").and(not(nameStartsWith("com.sun.faces."))))
             .or(nameStartsWith("sun"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))

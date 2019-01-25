@@ -12,6 +12,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <modules>
         <module>simple-webapp</module>
+        <module>jsf-app</module>
         <module>simple-webapp-integration-test</module>
         <module>spring-boot-1-5</module>
         <module>spring-boot-2</module>

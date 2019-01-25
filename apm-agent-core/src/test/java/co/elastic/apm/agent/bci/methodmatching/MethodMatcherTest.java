@@ -23,13 +23,16 @@ import org.junit.jupiter.api.Test;
 
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MethodMatcherTest {
 
     @Test
     void testMethodMatcherWithoutMethod() {
-        assertThatThrownBy(() -> MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.MethodMatcherTest")).isInstanceOf(IllegalArgumentException.class);
+        final MethodMatcher methodMatcher = MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.MethodMatcherTest");
+        assertThat(methodMatcher).isNotNull();
+        assertThat(methodMatcher.getClassMatcher().getMatcher()).isEqualTo("co.elastic.apm.agent.bci.methodmatching.MethodMatcherTest");
+        assertThat(methodMatcher.getMethodMatcher().getMatcher()).isEqualTo("*");
+        assertThat(methodMatcher.getArgumentMatchers()).isNull();
     }
 
     @Test

@@ -71,9 +71,15 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
                                       @Advice.Local("span") @Nullable Span span,
                                       @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
-            span.captureException(t)
-                .deactivate()
-                .end();
+            try {
+                if (response != null && response.getStatusLine() != null) {
+                    int statusCode = response.getStatusLine().getStatusCode();
+                    span.getContext().getHttp().withStatusCode(statusCode);
+                }
+                span.captureException(t);
+            } finally {
+                span.deactivate().end();
+            }
         }
     }
 

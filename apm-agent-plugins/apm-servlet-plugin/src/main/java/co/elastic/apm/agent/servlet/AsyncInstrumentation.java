@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -55,7 +54,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * See https://github.com/raphw/byte-buddy/issues/465 for more information.
  * However, the helper class {@link AsyncContextAdviceHelper} has access to the Servlet API,
  * as it is loaded by the child classloader of {@link AsyncContext}
- * (see {@link StartAsyncInstrumentation.StartAsyncAdvice#onExitStartAsync(HttpServletRequest, AsyncContext)}
+ * (see {@link StartAsyncInstrumentation.StartAsyncAdvice#onExitStartAsync(AsyncContext)}
  * and {@link AsyncContextInstrumentation.AsyncContextStartAdvice#onEnterAsyncContextStart(Runnable)}).
  */
 public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
@@ -92,14 +91,14 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("javax.servlet.http.HttpServletRequest")));
+                .and(hasSuperType(named("javax.servlet.ServletRequest")));
         }
 
         /**
          * Matches
          * <ul>
-         * <li>{@link HttpServletRequest#startAsync()}</li>
-         * <li>{@link HttpServletRequest#startAsync(ServletRequest, ServletResponse)}</li>
+         * <li>{@link ServletRequest#startAsync()}</li>
+         * <li>{@link ServletRequest#startAsync(ServletRequest, ServletResponse)}</li>
          * </ul>
          *
          * @return
@@ -126,7 +125,7 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
         public static class StartAsyncAdvice {
 
             @Advice.OnMethodExit(suppress = Throwable.class)
-            private static void onExitStartAsync(@Advice.This HttpServletRequest request, @Advice.Return AsyncContext asyncContext) {
+            private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
                 if (tracer != null) {
                     if (asyncHelper != null) {
                         asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
