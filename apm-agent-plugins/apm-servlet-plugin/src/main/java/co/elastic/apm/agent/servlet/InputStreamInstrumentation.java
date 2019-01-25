@@ -7,7 +7,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -104,7 +103,7 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
         };
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onReadExit(@Advice.Argument(0) byte[] newData, @Advice.Argument(1) int from, @Advice.Argument(2) int to) {
+        public static void onReadExit(@Advice.Argument(0) byte[] newData, @Advice.Argument(1) int off, @Advice.Argument(2) int len) {
 
             if (newData == null || tracer == null || tracer.currentTransaction() == null || tracer.currentTransaction().getContext() == null) {
                 return;
@@ -113,17 +112,18 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
             TransactionContext context = tracer.currentTransaction().getContext();
             Map<String, Object> custom = context.getCustom();
 
-            int numberOfBytesToRead = to - from;
-            byte[] fullData = null;
+            int numberOfBytesToRead = len;
             byte[] existingData = (byte[]) custom.get("REQUESTBODYDATA");
+            int existingDataLength = (existingData == null) ? 0 : existingData.length;
+            byte[] fullData = new byte[existingDataLength + numberOfBytesToRead];
+
 
             if (existingData == null) {
-                fullData = Arrays.copyOf(newData, numberOfBytesToRead);
+                System.arraycopy(newData, off, fullData, existingDataLength, numberOfBytesToRead);
             } else {
                 try {
-                    fullData = new byte[existingData.length + numberOfBytesToRead];
-                    System.arraycopy(existingData, 0, fullData, 0, existingData.length);
-                    System.arraycopy(newData, 0, fullData, existingData.length, numberOfBytesToRead);
+                    System.arraycopy(existingData, 0, fullData, 0, existingDataLength);
+                    System.arraycopy(newData, off, fullData, existingDataLength, numberOfBytesToRead);
                 } catch (Exception e) {
 
                 }
