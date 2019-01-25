@@ -21,7 +21,7 @@ package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import com.google.common.collect.MapMaker;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.Map;
 
 import static co.elastic.apm.agent.jdbc.JdbcUtils.DB_SPAN_TYPE_PREFIX;
 import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
@@ -37,7 +36,7 @@ import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 public class JdbcHelperImpl implements JdbcHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final Map<Connection, ConnectionMetaData> metaDataMap = new MapMaker().concurrencyLevel(16).weakKeys().makeMap();
+    private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = new WeakConcurrentMap<Connection, ConnectionMetaData>(true);
 
     private static final String UNKNOWN_SPAN_TYPE = computeJdbcSpanTypeName("unknown");
 
