@@ -268,6 +268,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "The more methods you match the more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
             "\n" +
+            "NOTE: The agent will create stack traces for spans which took longer than\n" +
+            "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
+            "When tracing a large number of methods (for example by using wildcards),\n" +
+            "this may lead to high overhead.\n" +
+            "Consider increasing the threshold or to disable stack trace collection altogether.\n" +
+            "\n" +
             "Since 1.3.0")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
