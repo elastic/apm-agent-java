@@ -173,6 +173,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jsf-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-5_6</artifactId>
             <version>${project.version}</version>
         </dependency>

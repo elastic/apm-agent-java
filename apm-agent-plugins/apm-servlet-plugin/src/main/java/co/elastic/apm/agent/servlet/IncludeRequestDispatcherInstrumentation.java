@@ -20,12 +20,10 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -36,36 +34,30 @@ import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-public class RequestDispatcherInstrumentation extends ElasticApmInstrumentation {
+public class IncludeRequestDispatcherInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_REQUEST_DISPATCHER = "servlet.request-dispatcher.forward";
-    private static final String FORWARD_INCLUDE = "forward-include";
+    private static final String SPAN_TYPE_REQUEST_DISPATCHER = "servlet.request-dispatcher.include";
+    private static final String INCLUDE = "INCLUDE";
 
     @Override
     public Class<?> getAdviceClass() {
-        return RequestDispatcherAdvice.class;
+        return IncludeRequestDispatcherAdvice.class;
     }
 
-    @VisibleForAdvice
-    public static class RequestDispatcherAdvice {
-
+    public static class IncludeRequestDispatcherAdvice extends IncludeRequestDispatcherInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void beforeExecute(@Advice.Local("transaction") @Nullable Transaction transaction,
-                                         @Advice.Local("span") @Nullable Span span) {
-            System.out.println("Tracer ..");
+        private static void beforeExecute(@Advice.Local("span") @Nullable Span span) {
             if (tracer == null || tracer.getActive() == null) {
-                System.out.println("tracer is null");
                 return;
             }
-            System.out.println("Trying to activate span");
             final TraceContextHolder<?> parent = tracer.getActive();
-            span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(FORWARD_INCLUDE).withName(" ");
-            span.activate();
+            span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(INCLUDE).activate();
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterExecute(@Advice.Local("span") @Nullable Span span,
-                                         @Advice.Thrown @Nullable Throwable t) {
+                                        @Advice.Thrown @Nullable Throwable t) {
+
             if (span != null) {
                 span.captureException(t)
                     .deactivate()
@@ -75,14 +67,18 @@ public class RequestDispatcherInstrumentation extends ElasticApmInstrumentation 
     }
 
     @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContainsIgnoreCase("dispatcher");
+    }
+
+    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameContains("dispatcher");
+        return nameContainsIgnoreCase("dispatcher");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("include")
-            .or(named("forward"));
+        return named("include").and(takesArguments(2));
     }
 
     @Override

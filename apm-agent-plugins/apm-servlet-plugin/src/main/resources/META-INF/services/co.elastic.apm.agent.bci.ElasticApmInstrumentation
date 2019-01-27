@@ -1,5 +1,6 @@
 co.elastic.apm.agent.servlet.ServletInstrumentation
-co.elastic.apm.agent.servlet.RequestDispatcherInstrumentation
+co.elastic.apm.agent.servlet.ForwardRequestDispatcherInstrumentation
+co.elastic.apm.agent.servlet.IncludeRequestDispatcherInstrumentation
 co.elastic.apm.agent.servlet.FilterChainInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation

@@ -94,13 +94,12 @@ public class ServletApiAdvice {
                 request.getHeader("User-Agent"),
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));
             if (transaction == null) {
-                System.out.println("Transaction is null.");
                 // if the request is excluded, avoid matching all exclude patterns again on each filter invocation
                 excluded.set(Boolean.TRUE);
                 return;
             }
             final Request req = transaction.getContext().getRequest();
-            System.out.println("Request = {}"+req);
+
             if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
                 if (request.getCookies() != null) {
                     for (Cookie cookie : request.getCookies()) {
@@ -129,7 +128,6 @@ public class ServletApiAdvice {
                                             @Advice.Local("scope") @Nullable Scope scope,
                                             @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
-        System.out.println("onExitServletService," + (tracer == null));
         if (tracer == null) {
             return;
         }
@@ -157,7 +155,6 @@ public class ServletApiAdvice {
             if (request.getAttribute(ServletTransactionHelper.ASYNC_ATTRIBUTE) != null) {
                 // HttpServletRequest.startAsync was invoked on this request.
                 // The transaction should be handled from now on by the other thread committing the response
-                System.out.println("Trying to deactivate ASYNC");
                 transaction.deactivate();
             } else {
                 // this is not an async request, so we can end the transaction immediately
@@ -177,7 +174,6 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
-                System.out.println("ON after call");
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader);
             }

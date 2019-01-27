@@ -4,6 +4,11 @@
  * Added support for sync calls of OkHttp client
  * The `trace_methods` configuration now allows to omit the method matcher.
    Example: `com.example.*` traces all classes and methods within the `com.example` package and sub-packages.
+ * Added support for JSF. Tested on WildFly, WebSphere Liberty and Payara with embedded JSF implementation and on Tomcat and Jetty with
+ MyFaces 2.2 and 2.3
+ * Introduces a new configuration option `disable_metrics` which disables the collection of metrics via a wildcard expression.
+   The default is set to `jvm.gc.*` to circumvent a bug in the APM UI in Kibana 6.6.0.
+   You can remove the default value once you are on Kibana 6.6.1 or higher.
 
 ## Bug Fixes
 

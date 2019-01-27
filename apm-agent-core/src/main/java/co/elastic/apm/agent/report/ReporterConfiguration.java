@@ -23,8 +23,11 @@ import co.elastic.apm.agent.configuration.converter.ByteValue;
 import co.elastic.apm.agent.configuration.converter.ByteValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.converter.UrlValueConverter;
 
 import javax.annotation.Nullable;
@@ -144,6 +147,17 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .addValidator(isNotInRange(TimeDuration.of("1ms"), TimeDuration.of("999ms")))
         .buildWithDefault(TimeDuration.of("30s"));
 
+    private final ConfigurationOption<List<WildcardMatcher>> disableMetrics = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("disable_metrics")
+        .configurationCategory(REPORTER_CATEGORY)
+        .description("Disables the collection of certain metrics.\n" +
+            "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(false)
+        .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("jvm.gc.*")));
+
     @Nullable
     public String getSecretToken() {
         return secretToken.get();
@@ -187,5 +201,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public long getMetricsIntervalMs() {
         return metricsInterval.get().getMillis();
+    }
+
+    public List<WildcardMatcher> getDisableMetrics() {
+        return disableMetrics.get();
     }
 }

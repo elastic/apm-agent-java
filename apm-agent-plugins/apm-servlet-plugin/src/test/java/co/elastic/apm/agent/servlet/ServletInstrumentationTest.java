@@ -24,6 +24,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -33,25 +34,17 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
+import java.util.*;
 
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ServletInstrumentationTest extends AbstractServletTest {
+public class ServletInstrumentationTest extends AbstractServletTest {
 
     @AfterEach
     final void afterEach() {
@@ -61,40 +54,42 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
         handler.addServlet(TestServlet.class, "/test");
+        handler.addServlet(BaseTestServlet.class, "/base");
         handler.addServlet(ForwardingServlet.class, "/forward");
         handler.addServlet(IncludingServlet.class, "/include");
         handler.addFilter(TestFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
     }
 
-//    @Test
-//    void testServletInstrumentation() throws Exception {
-//        testInstrumentation(new ServletInstrumentation(), 1, "/test");
-//    }
+    @Test
+    void testBaseServletInstrumentation() throws Exception {
+        testInstrumentation(Collections.singletonList(new ServletInstrumentation()), 1, "/base");
+    }
 
-//    @Test
-//    void testFilterChainInstrumentation() throws Exception {
-//        testInstrumentation(new FilterChainInstrumentation(), 1, "/test");
-//    }
+    @Test
+    void testFilterChainInstrumentation() throws Exception {
+        testInstrumentation(Collections.singletonList(new FilterChainInstrumentation()), 1, "/test");
+    }
 
-//    @Test
-//    void testNoopInstrumentation() throws Exception {
-//        testInstrumentation(new NoopInstrumentation(), 0, "/test");
-//    }
+    @Test
+    void testNoopInstrumentation() throws Exception {
+        testInstrumentation(Collections.singletonList(new NoopInstrumentation()), 0, "/test");
+    }
 
     @Test
     void testForward() throws Exception {
-        testInstrumentation(new ServletInstrumentation(), 1, "/forward");
+        testInstrumentation(Arrays.asList(new ForwardRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/forward");
     }
 
-//    @Test
-//    void testInclude() throws Exception {
-//        testInstrumentation(new ServletInstrumentation(), 1, "/include");
-//    }
+    @Test
+    void testInclude() throws Exception {
+        testInstrumentation(Arrays.asList(new ServletInstrumentation(), new IncludeRequestDispatcherInstrumentation()), 1, "/include");
+    }
 
-    private void testInstrumentation(ElasticApmInstrumentation instrumentation, int expectedTransactions, String path) throws IOException, InterruptedException {
-        initInstrumentation(instrumentation);
+    private void testInstrumentation(List<ElasticApmInstrumentation> instrumentations, int expectedTransactions, String path) throws IOException, InterruptedException {
+        initInstrumentation(instrumentations);
 
         final Response response = get(path);
+
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.body().string()).isEqualTo("Hello World!");
 
@@ -104,11 +99,11 @@ class ServletInstrumentationTest extends AbstractServletTest {
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
     }
 
-    private void initInstrumentation(ElasticApmInstrumentation instrumentation) {
+    private void initInstrumentation(List<ElasticApmInstrumentation> instrumentations) {
         ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .reporter(reporter)
-            .build(), ByteBuddyAgent.install(), Collections.singleton(instrumentation));
+            .build(), ByteBuddyAgent.install(), instrumentations);
     }
 
     public static class TestServlet extends HttpServlet {
@@ -129,6 +124,35 @@ class ServletInstrumentationTest extends AbstractServletTest {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             req.getRequestDispatcher("/test").include(req, resp);
+        }
+    }
+
+    public static class BaseTestServlet implements Servlet {
+        @Override
+        public void init(ServletConfig config) {
+
+        }
+
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws IOException {
+            res.getWriter().append("Hello World!")
+                .flush();
+            res.getBufferSize();
+        }
+
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+
+        @Override
+        public void destroy() {
+
         }
     }
 
