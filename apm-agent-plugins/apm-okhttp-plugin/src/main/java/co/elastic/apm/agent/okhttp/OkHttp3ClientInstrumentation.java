@@ -35,13 +35,12 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp";
+    private static final String OK_HTTP_CLIENT = "okhttp";
 
     @Override
     public Class<?> getAdviceClass() {
@@ -67,7 +66,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
             if (originalRequest instanceof okhttp3.Request) {
                 okhttp3.Request request = (okhttp3.Request) originalRequest;
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host(), SPAN_TYPE_OK_HTTP_CLIENT);
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host(), OK_HTTP_CLIENT);
                 if (span != null) {
                     originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }

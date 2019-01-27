@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
-import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -49,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_SPRING_REST_TEMPLATE = HTTP_CLIENT_SPAN_TYPE_PREFIX + "spring-resttemplate";
+    private static final String SPRING_REST_TEMPLATE = "spring-resttemplate";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
@@ -59,7 +58,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
         }
         final TraceContextHolder<?> parent = tracer.getActive();
         span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
-            request.getURI().getHost(), SPAN_TYPE_SPRING_REST_TEMPLATE);
+            request.getURI().getHost(), SPRING_REST_TEMPLATE);
         if (span != null) {
             request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }

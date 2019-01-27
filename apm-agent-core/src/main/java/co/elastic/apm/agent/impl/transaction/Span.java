@@ -32,6 +32,27 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
 
     /**
+     * General type describing this span (eg: 'db', 'ext', 'template', etc)
+     * (Required)
+     */
+    @Nullable
+    private volatile String type;
+
+    /**
+     * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
+     * (Optional)
+     */
+    @Nullable
+    private volatile String subtype;
+
+    /**
+     * An action describing this span (eg 'query', 'execute', 'render' etc)
+     * (Optional)
+     */
+    @Nullable
+    private volatile String action;
+
+    /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
@@ -86,9 +107,57 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
+    /**
+     * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
+     */
+    public Span withType(@Nullable String type) {
+        if (!isSampled()) {
+            return this;
+        }
+        this.type = type;
+        return this;
+    }
+
+    /**
+     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
+     */
+    public Span withSubtype(@Nullable String subtype) {
+        if (!isSampled()) {
+            return this;
+        }
+        this.subtype = subtype;
+        return this;
+    }
+
+    /**
+     * Action related to this span (eg: 'query', 'render' etc)
+     */
+    public Span withAction(@Nullable String action) {
+        if (!isSampled()) {
+            return this;
+        }
+        this.action = action;
+        return this;
+    }
+
     @Nullable
     public Throwable getStacktrace() {
         return stacktrace;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    @Nullable
+    public String getSubtype() {
+        return subtype;
+    }
+
+    @Nullable
+    public String getAction() {
+        return action;
     }
 
     @Override
@@ -101,6 +170,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
         }
+        if (type == null) {
+            type = "custom";
+        }
         this.tracer.endSpan(this);
     }
 
@@ -109,6 +181,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
+        type = null;
+        subtype = null;
+        action = null;
         originator = null;
     }
 

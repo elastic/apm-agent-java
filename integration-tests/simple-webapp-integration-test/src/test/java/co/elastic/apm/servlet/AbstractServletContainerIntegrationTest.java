@@ -241,7 +241,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             executeAndValidateRequest(pathToTest, "Hello World", 200);
             JsonNode transaction = assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
-            assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+            List<JsonNode> spans = assertSpansTransactionId(500, this::getReportedSpans, transactionId);
+            for (JsonNode span : spans) {
+                assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
+            }
             validateMetadata();
         }
     }

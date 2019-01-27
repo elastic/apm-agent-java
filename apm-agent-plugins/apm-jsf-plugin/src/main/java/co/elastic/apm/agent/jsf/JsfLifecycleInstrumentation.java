@@ -20,7 +20,6 @@
 package co.elastic.apm.agent.jsf;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -50,6 +49,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Code is duplicated because it is injected inline
  */
 public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentation {
+    private static final String SPAN_TYPE = "template";
+    private static final String SPAN_SUBTYPE = "jsf";
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameContains("Lifecycle");
@@ -85,7 +87,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
         }
 
         public static class JsfLifecycleExecuteAdvice {
-            private static final String SPAN_TYPE = "template.jsf.execute";
+            private static final String SPAN_ACTION = "execute";
 
             @SuppressWarnings("Duplicates")
             @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -96,8 +98,11 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                     if (parent == null || !parent.isSampled()) {
                         return;
                     }
-                    if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
-                        return;
+                    if (parent instanceof Span) {
+                        Span parentSpan = (Span)parent;
+                        if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
+                            return;
+                        }
                     }
                     Transaction transaction = tracer.currentTransaction();
                     if (transaction != null) {
@@ -116,6 +121,8 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                     }
                     span = parent.createSpan()
                         .withType(SPAN_TYPE)
+                        .withSubtype(SPAN_SUBTYPE)
+                        .withAction(SPAN_ACTION)
                         .withName("JSF Execute");
                     span.activate();
                 }
@@ -158,7 +165,7 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
         }
 
         public static class JsfLifecycleRenderAdvice {
-            private static final String SPAN_TYPE = "template.jsf.render";
+            private static final String SPAN_ACTION = "render";
 
             @SuppressWarnings("Duplicates")
             @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -168,11 +175,16 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                     if (parent == null || !parent.isSampled()) {
                         return;
                     }
-                    if (parent instanceof AbstractSpan<?> && SPAN_TYPE.equals(((AbstractSpan) parent).getType())) {
-                        return;
+                    if (parent instanceof Span) {
+                        Span parentSpan = (Span)parent;
+                        if (SPAN_SUBTYPE.equals(parentSpan.getSubtype()) && SPAN_ACTION.equals(parentSpan.getAction())) {
+                            return;
+                        }
                     }
                     span = parent.createSpan()
                         .withType(SPAN_TYPE)
+                        .withSubtype(SPAN_SUBTYPE)
+                        .withAction(SPAN_ACTION)
                         .withName("JSF Render");
                     span.activate();
                 }

@@ -35,39 +35,52 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
-    private Span span;
     private Transaction transaction;
 
     @BeforeEach
     void setUp() {
         transaction = ElasticApm.startTransaction();
-        span = transaction.createSpan();
     }
 
     @Test
     void testSetName() {
+        Span span = transaction.startSpan();
         span.setName("foo");
-        endSpan();
+        endSpan(span);
         assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("foo");
     }
 
     @Test
-    void testSetType() {
-        span.setType("foo");
-        endSpan();
-        assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
+    void testLegacyAPIs() {
+        Span span = transaction.createSpan();
+        span.setType("foo.bar.baz");
+        endSpan(span);
+        co.elastic.apm.agent.impl.transaction.Span  internalSpan = reporter.getFirstSpan();
+        assertThat(internalSpan.getType()).isEqualTo("foo");
+        assertThat(internalSpan.getSubtype()).isEqualTo("bar");
+        assertThat(internalSpan.getAction()).isEqualTo("baz");
+    }
+
+    @Test
+    void testTypes() {
+        Span span = transaction.startSpan("foo", "bar", "baz");
+        endSpan(span);
+        co.elastic.apm.agent.impl.transaction.Span  internalSpan = reporter.getFirstSpan();
+        assertThat(internalSpan.getType()).isEqualTo("foo");
+        assertThat(internalSpan.getSubtype()).isEqualTo("bar");
+        assertThat(internalSpan.getAction()).isEqualTo("baz");
     }
 
     @Test
     void testChaining() {
-        span.setType("foo").setName("foo").addTag("foo", "bar");
-        endSpan();
+        Span span = transaction.startSpan("foo", null, null).setName("foo").addTag("foo", "bar");
+        endSpan(span);
         assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("foo", "bar");
     }
 
-    private void endSpan() {
+    private void endSpan(Span span) {
         span.end();
         transaction.end();
         assertThat(reporter.getSpans()).hasSize(1);
@@ -76,10 +89,11 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testScope() {
+        Span span = transaction.startSpan();
         assertThat(ElasticApm.currentSpan().getId()).isNotEqualTo(span.getId());
         try (final Scope scope = span.activate()) {
             assertThat(ElasticApm.currentSpan().getId()).isEqualTo(span.getId());
-            ElasticApm.currentSpan().createSpan().end();
+            ElasticApm.currentSpan().startSpan().end();
         }
         span.end();
         transaction.end();
@@ -95,7 +109,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(ElasticApm.currentTransaction().isSampled()).isFalse();
         final Transaction transaction = ElasticApm.startTransaction();
         assertThat(transaction.isSampled()).isTrue();
-        assertThat(transaction.createSpan().isSampled()).isTrue();
+        assertThat(transaction.startSpan().isSampled()).isTrue();
     }
 
     @Test
@@ -106,6 +120,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTraceHeaders() {
+        Span span = transaction.startSpan();
         assertContainsTracingHeaders(span);
         assertContainsTracingHeaders(transaction);
     }

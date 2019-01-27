@@ -31,7 +31,9 @@ class SpanTest {
     void resetState() {
         Span span = new Span(mock(ElasticApmTracer.class))
             .withName("SELECT FROM product_types")
-            .withType("db.postgresql.query");
+            .withType("db")
+            .withSubtype("postgresql")
+            .withAction("query");
         span.getContext().getDb()
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
@@ -40,6 +42,8 @@ class SpanTest {
         span.resetState();
         assertThat(span.getContext().hasContent()).isFalse();
         assertThat((CharSequence) span.getName()).isNullOrEmpty();
-        assertThat(span.getType()).isNullOrEmpty();
+        assertThat(span.getType()).isNull();
+        assertThat(span.getSubtype()).isNull();
+        assertThat(span.getAction()).isNull();
     }
 }

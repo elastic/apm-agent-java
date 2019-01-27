@@ -94,29 +94,13 @@ public interface Transaction extends Span {
     void end();
 
     /**
-     * Start and return a new custom span as a child of this transaction.
-     * <p>
-     * It is important to call {@link Span#end()} when the span has ended.
-     * A best practice is to use the span in a try-catch-finally block.
-     * Example:
-     * </p>
-     * <pre>
-     * Span span = transaction.startSpan();
-     * try {
-     *     span.setName("SELECT FROM customer");
-     *     span.setType("db.mysql.query");
-     *     // do your thing...
-     * } catch (Exception e) {
-     *     ElasticApm.captureException(e);
-     *     throw e;
-     * } finally {
-     *     span.end();
-     * }
-     * </pre>
+     * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
+     * Instead, start a new span through {@link Span#startSpan()} or {@link Span#startSpan(String, String, String)}.
      *
      * @return the started span, never {@code null}
      */
     @Nonnull
+    @Deprecated
     Span createSpan();
 
     /**

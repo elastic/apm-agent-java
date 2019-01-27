@@ -24,9 +24,23 @@ import io.opentracing.tag.StringTag;
 public class ElasticApmTags {
 
     /**
-     * Sets the type of the transaction
+     * Sets the type of the transaction or span.
+     * Prior to version 1.4, span type was hierarchical, eg "db.postgresql.query". Since version 1.4, subtype (corresponding 'postresql'
+     * in this example) and action (corresponding 'query' in this example) are set separately. Agents of version 1.4 and higher will parse
+     * hierarchical type setting so not to break existing OpenTracing bridge usages, but this is deprecated and will be remove in future
+     * versions.
      */
     public static final StringTag TYPE = new StringTag("type");
+
+    /**
+     * Sets the subtype of the span (irrelevant for transactions)
+     */
+    public static final StringTag SUBTYPE = new StringTag("subtype");
+
+    /**
+     * Sets the action related to the span (irrelevant for transactions)
+     */
+    public static final StringTag ACTION = new StringTag("action");
 
     /**
      * Sets the user id,

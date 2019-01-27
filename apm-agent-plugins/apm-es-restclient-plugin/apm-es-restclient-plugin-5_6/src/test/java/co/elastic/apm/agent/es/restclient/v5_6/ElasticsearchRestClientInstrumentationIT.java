@@ -58,8 +58,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.DB_CONTEXT_TYPE;
 import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_ACTION;
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.ELASTICSEARCH;
 import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -154,10 +155,12 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
     private void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         assertThat(span.getType()).isEqualTo(SPAN_TYPE);
+        assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
+        assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
         assertThat(span.getName().toString()).isEqualTo(expectedName);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
 
-        assertThat(span.getContext().getDb().getType()).isEqualTo(DB_CONTEXT_TYPE);
+        assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
 
         if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
             assertThat(span.getContext().getDb().getStatement()).isNull();
@@ -173,7 +176,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
     private void validateDbContextContent(Span span, String statement) {
         Db db = span.getContext().getDb();
-        assertThat(db.getType()).isEqualTo(DB_CONTEXT_TYPE);
+        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
         assertThat((Object) db.getStatementBuffer()).isNotNull();
         assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
     }

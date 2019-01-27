@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 
 public abstract class AbstractSpanImpl implements Span {
@@ -38,6 +39,24 @@ public abstract class AbstractSpanImpl implements Span {
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
+    @Nonnull
+    @Override
+    public Span startSpan(String type, @Nullable String subtype, @Nullable String action) {
+        Object span = doCreateSpan();
+        if (span != null) {
+            doSetTypes(span, type, subtype, action);
+            return new SpanImpl(span);
+        }
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span startSpan() {
+        Object span = doCreateSpan();
+        return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
+    }
+
     private Object doCreateSpan() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
@@ -49,6 +68,10 @@ public abstract class AbstractSpanImpl implements Span {
 
     void doSetType(String type) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation.doSetType
+    }
+
+    private void doSetTypes(Object span, String type, @Nullable String subtype, @Nullable String action) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation.doSetType
     }
 
     void doAddTag(String key, String value) {
