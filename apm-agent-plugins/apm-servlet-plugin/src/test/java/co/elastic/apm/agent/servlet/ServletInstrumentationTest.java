@@ -24,7 +24,6 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -77,12 +76,12 @@ public class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testForward() throws Exception {
-        testInstrumentation(Arrays.asList(new ForwardRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/forward");
+        testInstrumentation(Collections.singletonList(new ServletInstrumentation()), 1, "/forward");
     }
 
     @Test
     void testInclude() throws Exception {
-        testInstrumentation(Arrays.asList(new ServletInstrumentation(), new IncludeRequestDispatcherInstrumentation()), 1, "/include");
+        testInstrumentation(Collections.singletonList(new ServletInstrumentation()), 1, "/include");
     }
 
     private void testInstrumentation(List<ElasticApmInstrumentation> instrumentations, int expectedTransactions, String path) throws IOException, InterruptedException {

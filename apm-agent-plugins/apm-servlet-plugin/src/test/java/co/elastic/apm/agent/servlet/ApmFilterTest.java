@@ -250,7 +250,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new TestServlet());
         filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("ApmFilterTest$TestServlet#doGet");
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("GET ApmFilterTest$TestServlet");
     }
 
     @Test
