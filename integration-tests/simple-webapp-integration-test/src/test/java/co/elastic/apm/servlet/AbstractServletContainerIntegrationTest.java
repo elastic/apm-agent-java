@@ -204,7 +204,7 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void testExecutorService() throws Exception {
         mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
-        final String pathToTest = "/executor-service-servlet";
+        final String pathToTest = contextPath + "/executor-service-servlet";
         executeAndValidateRequest(pathToTest, null, 200);
         String transactionId = assertTransactionReported(pathToTest, 200).get("id").textValue();
         final List<JsonNode> spans = assertSpansTransactionId(500, this::getReportedSpans, transactionId);
