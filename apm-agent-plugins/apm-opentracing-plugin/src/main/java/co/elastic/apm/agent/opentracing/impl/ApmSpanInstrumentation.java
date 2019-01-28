@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -34,19 +33,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
+public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ApmSpanInstrumentation.class);
-
-    static final String OPENTRACING_INSTRUMENTATION_GROUP = "opentracing";
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -62,16 +57,6 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return methodMatcher;
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
     }
 
     public static class FinishInstrumentation extends ApmSpanInstrumentation {
