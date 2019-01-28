@@ -22,7 +22,6 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.ContextInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.ContextInScopeRunnableWrapper;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +33,7 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -64,6 +64,11 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
             @Override
             public void execute(Runnable task) {
+                throw new IllegalArgumentException();
+            }
+
+            @Override
+            public <T> ForkJoinTask<T> submit(Runnable task, T result) {
                 throw new UnsupportedOperationException();
             }
         });
@@ -84,7 +89,7 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
         }).get();
         assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
 
-        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isTrue();
+        assertThat(ExecutorInstrumentation.excluded.contains(executor)).isTrue();
         executor.submit(() -> {
             assertThat(runCounter.incrementAndGet()).isEqualTo(2);
         }).get();
@@ -99,7 +104,7 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
         }).get();
         assertThat(submitWithWrapperCounter.get()).isEqualTo(1);
 
-        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isTrue();
+        assertThat(ExecutorInstrumentation.excluded.contains(executor)).isTrue();
         executor.submit(() -> {
             assertThat(runCounter.incrementAndGet()).isEqualTo(2);
         }).get();
@@ -107,10 +112,17 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testNoInfiniteLoop() {
-        Assertions.assertThatThrownBy(() -> executor.execute(() -> {
-        })).isInstanceOf(UnsupportedOperationException.class);
-        assertThat(ExecutorInstrumentation.excluded.containsKey(executor)).isFalse();
+    void testOnlyRetryOnce() {
+        assertThatThrownBy(() -> executor.execute(() -> {
+        })).isInstanceOf(IllegalArgumentException.class);
+        assertThat(ExecutorInstrumentation.excluded.contains(executor)).isTrue();
+    }
+
+    @Test
+    void testUnrelatedException() {
+        assertThatThrownBy(() -> executor.submit(() -> {
+        }, null)).isInstanceOf(UnsupportedOperationException.class);
+        assertThat(ExecutorInstrumentation.excluded.contains(executor)).isFalse();
     }
 
 }

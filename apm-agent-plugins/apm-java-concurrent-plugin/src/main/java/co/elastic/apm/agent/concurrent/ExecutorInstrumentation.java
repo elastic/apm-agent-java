@@ -22,7 +22,7 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.util.weaklockfree.WeakConcurrentMap;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -46,7 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Executor, Boolean> excluded = new WeakConcurrentMap.WithInlinedExpunction<Executor, Boolean>();
+    public static final WeakConcurrentSet<Executor> excluded = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.THREAD);
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -72,7 +72,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                      @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
                                      @Advice.Local("original") Runnable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && runnable != null && !excluded.containsKey(thiz)) {
+            if (active != null && runnable != null && !excluded.contains(thiz)) {
                 original = runnable;
                 runnable = active.withActiveContext(runnable);
             }
@@ -93,7 +93,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                 // seems like this executor expects a specific subtype of Callable
                 runnable = original;
                 // repeat only if submitting a task fails for the first time
-                return excluded.put(thiz, Boolean.TRUE) == null;
+                return excluded.add(thiz);
             } else {
                 // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
                 return false;
@@ -114,7 +114,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
                                     @Advice.Local("original") Callable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && callable != null && !excluded.containsKey(thiz)) {
+            if (active != null && callable != null && !excluded.contains(thiz)) {
                 original = callable;
                 callable = active.withActiveContext(callable);
             }
@@ -132,7 +132,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                 // seems like this executor expects a specific subtype of Callable
                 callable = original;
                 // repeat only if submitting a task fails for the first time
-                return excluded.put(thiz, Boolean.TRUE) == null;
+                return excluded.add(thiz);
             } else {
                 // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
                 return false;
