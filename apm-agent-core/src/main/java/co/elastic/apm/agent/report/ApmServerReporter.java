@@ -104,7 +104,7 @@ public class ApmServerReporter implements Reporter {
                 thread.setName("apm-reporter");
                 return thread;
             }
-        }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 100_000_000));
+        }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
