@@ -46,21 +46,14 @@ import java.util.concurrent.locks.LockSupport;
  * because consumers don't have to signal.
  * </p>
  */
-public final class IncreasingSleepingWaitStrategy implements WaitStrategy {
-    private static final int DEFAULT_SLEEP = 100;
+public final class ExponentionallyIncreasingSleepingWaitStrategy implements WaitStrategy {
 
     private final int sleepTimeNsStart;
     private final int sleepTimeNsMax;
-    private final int sleepTimeNsStep;
 
-    public IncreasingSleepingWaitStrategy() {
-        this(DEFAULT_SLEEP, DEFAULT_SLEEP, 0);
-    }
-
-    public IncreasingSleepingWaitStrategy(int sleepTimeNsStart, int sleepTimeNsMax, int sleepTimeNsStep) {
+    public ExponentionallyIncreasingSleepingWaitStrategy(int sleepTimeNsStart, int sleepTimeNsMax) {
         this.sleepTimeNsStart = sleepTimeNsStart;
         this.sleepTimeNsMax = sleepTimeNsMax;
-        this.sleepTimeNsStep = sleepTimeNsStep;
     }
 
     @Override
@@ -84,7 +77,7 @@ public final class IncreasingSleepingWaitStrategy implements WaitStrategy {
 
         if (currentSleep < sleepTimeNsMax) {
             LockSupport.parkNanos(currentSleep);
-            return currentSleep + sleepTimeNsStep;
+            return currentSleep * 2;
         } else {
             LockSupport.parkNanos(sleepTimeNsMax);
             return currentSleep;

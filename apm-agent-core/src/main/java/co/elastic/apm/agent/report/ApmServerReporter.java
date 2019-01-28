@@ -23,7 +23,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.report.disruptor.IncreasingSleepingWaitStrategy;
+import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
 import com.lmax.disruptor.EventFactory;
@@ -104,7 +104,7 @@ public class ApmServerReporter implements Reporter {
                 thread.setName("apm-reporter");
                 return thread;
             }
-        }, ProducerType.MULTI, new IncreasingSleepingWaitStrategy(1_000_000, 250_000_000, 2_5000_000));
+        }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 100_000_000));
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
