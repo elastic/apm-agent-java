@@ -37,6 +37,7 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -44,11 +45,12 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 /**
- * Instruments the ServletInputStream read method.
+ * Instruments the ServletInputStream read and readLine method.
  * <p>
- * Due to the fact that an InputStream can only be read once, the read method of the ServletInputStream has to be instrumented in order to passively read the
- * InputStream. Within the read method of the InputStream the content of the request body will be copied to the passed in byte array. Therefore the passed in
- * byte array will be copied when the read method exits. The copied data is stored in the transaction context and processed at a later stage.
+ * Due to the fact that an InputStream can only be read once, the read and readLine method of the ServletInputStream has to be instrumented in order to
+ * passively read the InputStream. Within the afore mentioned methods the content of the request body will be copied to the byte array that is passed in to
+ * these methods as an argument. Therefore the passed in byte array will be copied when the read method exits. The copied data is stored in the transaction
+ * context and processed at a later stage.
  * </p>
  */
 public class InputStreamInstrumentation extends ElasticApmInstrumentation {
@@ -63,12 +65,11 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("ServletInputStream");
+        return nameContains("Stream");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // return any();
         return not(isInterface()).and(hasSuperType(named("javax.servlet.ServletInputStream")));
     }
 
@@ -89,11 +90,11 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     public static class InputStreamAdvice {
+        
         @Nullable
         @VisibleForAdvice
         public static ElasticApmTracer tracer;
 
-        @Nullable
         @VisibleForAdvice
         public static ThreadLocal<Boolean> reading = new ThreadLocal<Boolean>() {
             @Override
@@ -102,33 +103,45 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
             }
         };
 
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onReadEnter(@Advice.This Object thiz,
+                                       @Advice.Local("transaction") Transaction transaction,
+                                       @Advice.Local("alreadyReading") boolean alreadyReading) {
+            alreadyReading = reading.get();
+            reading.set(Boolean.TRUE);
+        }
+        
+
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onReadExit(@Advice.Argument(0) byte[] newData, @Advice.Argument(1) int off, @Advice.Argument(2) int len) {
-
-            if (newData == null || tracer == null || tracer.currentTransaction() == null || tracer.currentTransaction().getContext() == null) {
-                return;
-            }
-
-            TransactionContext context = tracer.currentTransaction().getContext();
-            Map<String, Object> custom = context.getCustom();
-
-            int numberOfBytesToRead = len;
-            byte[] existingData = (byte[]) custom.get("REQUESTBODYDATA");
-            int existingDataLength = (existingData == null) ? 0 : existingData.length;
-            byte[] fullData = new byte[existingDataLength + numberOfBytesToRead];
-
-
-            if (existingData == null) {
-                System.arraycopy(newData, off, fullData, existingDataLength, numberOfBytesToRead);
-            } else {
-                try {
-                    System.arraycopy(existingData, 0, fullData, 0, existingDataLength);
-                    System.arraycopy(newData, off, fullData, existingDataLength, numberOfBytesToRead);
-                } catch (Exception e) {
-
+        public static void onReadExit(@Advice.Argument(0) byte[] newData, 
+                                      @Advice.Argument(1) int off,
+                                      @Advice.Argument(2) int len,
+                                      @Nullable @Advice.Thrown Throwable t,
+                                      @Advice.Local("alreadyReading") boolean alreadyReading) {
+            try {
+                if (alreadyReading || newData == null || tracer == null || tracer.currentTransaction() == null || t != null) {
+                    return;
                 }
+                
+                TransactionContext context = tracer.currentTransaction().getContext();
+                Map<String, Object> custom = context.getCustom();
+    
+    
+                byte[] existingData = (byte[]) custom.get("REQUESTBODYDATA");
+                int existingDataLength = (existingData == null) ? 0 : existingData.length;
+                byte[] fullData = new byte[existingDataLength + len];
+                
+                if (existingData == null) {
+                    System.arraycopy(newData, off, fullData, existingDataLength, len);
+                } else {
+                    System.arraycopy(existingData, 0, fullData, 0, existingDataLength);
+                    System.arraycopy(newData, off, fullData, existingDataLength, len);
+                }
+                
+                custom.put("REQUESTBODYDATA", fullData);
+            } finally{
+                reading.set(Boolean.FALSE);
             }
-            custom.put("REQUESTBODYDATA", fullData);
         }
     }
 }
