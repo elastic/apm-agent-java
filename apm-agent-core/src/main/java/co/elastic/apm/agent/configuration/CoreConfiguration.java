@@ -272,7 +272,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or to disable stack trace collection altogether.\n" +
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n" +
             "\n" +
             "Since 1.3.0")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
