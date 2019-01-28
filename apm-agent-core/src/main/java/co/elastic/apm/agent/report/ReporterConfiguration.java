@@ -157,7 +157,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     @Nullable
     public String getSecretToken() {
