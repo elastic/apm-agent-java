@@ -72,11 +72,6 @@ public class Request implements Recyclable {
      */
     private final PotentiallyMultiValuedMap cookies = new PotentiallyMultiValuedMap();
     /**
-     * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
-     */
-    @Nullable
-    private String rawBody;
-    /**
      * HTTP version.
      */
     @Nullable
@@ -98,18 +93,15 @@ public class Request implements Recyclable {
         if (!postParams.isEmpty()) {
             return postParams;
         } else {
-            return rawBody;
+            return bodyBuffer;
         }
-    }
-
-    @Nullable
-    public String getRawBody() {
-        return rawBody;
     }
 
     public void redactBody() {
         postParams.resetState();
-        rawBody = "[REDACTED]";
+        if (bodyBuffer != null) {
+            bodyBuffer.clear().append("[REDACTED]").flip();
+        }
     }
 
     public Request addFormUrlEncodedParameter(String key, String value) {
@@ -119,11 +111,6 @@ public class Request implements Recyclable {
 
     public Request addFormUrlEncodedParameters(String key, String[] values) {
         this.postParams.set(key, values);
-        return this;
-    }
-
-    public Request withRawBody(String rawBody) {
-        this.rawBody = rawBody;
         return this;
     }
 
@@ -246,7 +233,6 @@ public class Request implements Recyclable {
 
     @Override
     public void resetState() {
-        rawBody = null;
         postParams.resetState();
         headers.resetState();
         httpVersion = null;
@@ -261,7 +247,6 @@ public class Request implements Recyclable {
     }
 
     public void copyFrom(Request other) {
-        this.rawBody = other.rawBody;
         this.postParams.copyFrom(other.postParams);
         this.headers.copyFrom(other.headers);
         this.httpVersion = other.httpVersion;
@@ -284,7 +269,6 @@ public class Request implements Recyclable {
             headers.size() > 0 ||
             httpVersion != null ||
             cookies.size() > 0 ||
-            rawBody != null ||
             postParams.size() > 0 ||
             socket.hasContent() ||
             url.hasContent();
