@@ -177,9 +177,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * 'db.postgresql.query', 'template.erb', etc for spans)
      */
     public T withType(@Nullable String type) {
-        if (!isSampled()) {
-            return (T) this;
-        }
         this.type = type;
         return (T) this;
     }
