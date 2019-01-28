@@ -128,7 +128,7 @@ public class Request implements Recyclable {
     }
 
     /**
-     * Gets a pooled {@link CharBuffer} to record the DB statement and associates it with this instance.
+     * Gets a pooled {@link CharBuffer} to record the request body and associates it with this instance.
      * <p>
      * Note: you may not hold a reference to the returned {@link CharBuffer} as it will be reused.
      * </p>
@@ -136,7 +136,7 @@ public class Request implements Recyclable {
      * Note: This method is not thread safe
      * </p>
      *
-     * @return a {@link CharBuffer} to record the DB statement
+     * @return a {@link CharBuffer} to record the request body
      */
     public CharBuffer withBodyBuffer() {
         if (this.bodyBuffer == null) {
@@ -146,12 +146,12 @@ public class Request implements Recyclable {
     }
 
     /**
-     * Returns the associated pooled {@link CharBuffer} to record the DB statement.
+     * Returns the associated pooled {@link CharBuffer} to record the request body.
      * <p>
      * Note: returns {@code null} unless {@link #withBodyBuffer()} has previously been called
      * </p>
      *
-     * @return a {@link CharBuffer} to record the DB statement, or {@code null}
+     * @return a {@link CharBuffer} to record the request body, or {@code null}
      */
     @Nullable
     public CharBuffer getBodyBuffer() {
