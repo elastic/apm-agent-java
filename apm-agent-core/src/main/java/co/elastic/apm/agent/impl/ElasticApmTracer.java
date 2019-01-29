@@ -411,11 +411,13 @@ public class ElasticApmTracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
         }
-        assertIsActive(holder, activeStack.get().poll());
-        if (holder instanceof Transaction) {
-            // a transaction is always the bottom of this stack
-            // clearing to avoid potential leaks in case of wrong api usage
-            activeStack.get().clear();
+        final Deque<TraceContextHolder<?>> stack = activeStack.get();
+        assertIsActive(holder, stack.poll());
+        if (holder == stack.peekFirst()) {
+            // if this is the bottom of the stack
+            // clear to avoid potential leaks in case of wrong api usage
+            // makes all leaked spans eligible for GC
+            stack.clear();
         }
     }
 

@@ -37,6 +37,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private final SpanContext context = new SpanContext();
     @Nullable
     private Throwable stacktrace;
+    @Nullable
+    private volatile Object originator;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
@@ -91,6 +93,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void doEnd(long epochMicros) {
+        // makes the originator eligible for GC before the span has been reported
+        originator = null;
         if (logger.isDebugEnabled()) {
             logger.debug("} endSpan {}", this);
             if (logger.isTraceEnabled()) {
@@ -105,6 +109,29 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
+        originator = null;
+    }
+
+    /**
+     * Returns {@code true} if this span was originated by the provided object.
+     * <p>
+     * Checking for the originator makes sure that this span is actually the span which corresponds to,
+     * for example, the {@link java.net.HttpURLConnection} this span was created for and that this is not some unrelated parent span.
+     * It also ensures we don't try to end a span twice if there are proxy classes involved.
+     * </p>
+     *
+     * @param originator the potential originator of this span, for example a {@link java.net.HttpURLConnection}.
+     * @return {@code true} if this span was originated by the provided object
+     */
+    public boolean isOriginatedBy(Object originator) {
+        return this.originator == originator;
+    }
+
+    /**
+     * Sets the instance which is the originator for this span, for example a {@link java.net.HttpURLConnection}.
+     */
+    public void setOriginator(@Nullable Object originator) {
+        this.originator = originator;
     }
 
     @Override
