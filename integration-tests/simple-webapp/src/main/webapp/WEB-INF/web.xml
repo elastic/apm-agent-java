@@ -40,6 +40,17 @@
     </servlet-mapping>
 
     <servlet>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ExecutorServiceTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <url-pattern>/executor-service-servlet</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
         <servlet-name>HttpUrlConnectionTestServlet</servlet-name>
         <servlet-class>co.elastic.webapp.HttpUrlConnectionTestServlet</servlet-class>
         <load-on-startup>1</load-on-startup>

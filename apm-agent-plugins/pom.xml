@@ -22,6 +22,7 @@
         <module>apm-slf4j-plugin</module>
         <module>apm-es-restclient-plugin</module>
         <module>apm-okhttp-plugin</module>
+        <module>apm-java-concurrent-plugin</module>
         <module>apm-urlconnection-plugin</module>
     </modules>
 

@@ -302,7 +302,10 @@ public class ElasticApmAgent {
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
             .or(nameStartsWith("java.")
                 .and(
-                    not(nameEndsWith("URLConnection"))
+                    not(
+                        nameEndsWith("URLConnection")
+                            .or(nameStartsWith("java.util.concurrent."))
+                    )
                 )
             )
             .or(nameStartsWith("com.sun.")
