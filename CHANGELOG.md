@@ -9,6 +9,7 @@
  * Introduces a new configuration option `disable_metrics` which disables the collection of metrics via a wildcard expression.
    The default is set to `jvm.gc.*` to circumvent a bug in the APM UI in Kibana 6.6.0.
    You can remove the default value once you are on Kibana 6.6.1 or higher.
+ * Support for HttpUrlConnection
 
 ## Bug Fixes
 
