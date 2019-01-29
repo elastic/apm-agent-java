@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -36,6 +37,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -61,6 +63,8 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
+        @VisibleForAdvice
+        public static final String SPAN_TYPE = HTTP_CLIENT_SPAN_TYPE_PREFIX + "urlconnection";
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void enter(@Advice.This HttpURLConnection thiz,
@@ -69,7 +73,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                 return;
             }
             final URL url = thiz.getURL();
-            final Span span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost(), "urlconnection");
+            final Span span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost(), SPAN_TYPE);
             if (span != null) {
                 span.setOriginator(thiz);
                 if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_HEADER) == null) {
@@ -117,7 +121,6 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
      * this makes sure to end the span.
      */
     public static class DisconnectInstrumentation extends HttpUrlConnectionInstrumentation {
-
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
