@@ -93,6 +93,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void doEnd(long epochMicros) {
+        // makes the originator eligible for GC before the span has been reported
+        originator = null;
         if (logger.isDebugEnabled()) {
             logger.debug("} endSpan {}", this);
             if (logger.isTraceEnabled()) {
