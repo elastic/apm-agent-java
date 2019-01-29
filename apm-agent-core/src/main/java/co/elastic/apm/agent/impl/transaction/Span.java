@@ -111,9 +111,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
      */
     public Span withType(@Nullable String type) {
-        if (!isSampled()) {
-            return this;
-        }
         this.type = type;
         return this;
     }
@@ -122,9 +119,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
      */
     public Span withSubtype(@Nullable String subtype) {
-        if (!isSampled()) {
-            return this;
-        }
         this.subtype = subtype;
         return this;
     }
@@ -133,11 +127,35 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * Action related to this span (eg: 'query', 'render' etc)
      */
     public Span withAction(@Nullable String action) {
-        if (!isSampled()) {
-            return this;
-        }
         this.action = action;
         return this;
+    }
+
+    /**
+     * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
+     * typing system and attempts to split the type by dots to discover subtype and action.
+     * TODO: remove in 2.0 - no need for that once we decide to drop support for old agent usages
+     */
+    @Deprecated
+    public void setType(@Nullable String type, @Nullable String subtype, @Nullable String action) {
+        if (type != null && (subtype == null || subtype.isEmpty()) && (action == null || action.isEmpty())) {
+            // hierarchical typing - pre 1.4; we need to split
+            String temp = type;
+            int indexOfFirstDot = temp.indexOf(".");
+            if (indexOfFirstDot > 0) {
+                type = temp.substring(0, indexOfFirstDot);
+                int indexOfSecondDot = temp.indexOf(".", indexOfFirstDot + 1);
+                if (indexOfSecondDot > 0) {
+                    subtype = temp.substring(indexOfFirstDot + 1, indexOfSecondDot);
+                    if (indexOfSecondDot + 1 < temp.length()) {
+                        action = temp.substring(indexOfSecondDot + 1);
+                    }
+                }
+            }
+        }
+        this.type = type;
+        this.subtype = subtype;
+        this.action = action;
     }
 
     @Nullable

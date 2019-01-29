@@ -115,9 +115,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
      */
     public Transaction withType(@Nullable String type) {
-        if (!isSampled()) {
-            return this;
-        }
         this.type = type;
         return this;
     }

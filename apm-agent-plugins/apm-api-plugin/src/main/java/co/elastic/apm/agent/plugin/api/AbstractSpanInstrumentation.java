@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.Utils;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -86,7 +85,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
             if (context instanceof Transaction) {
                 ((Transaction) context).withType(type);
             } else if (context instanceof Span) {
-                Utils.setSpanType((Span) context, type, null, null);
+                ((Span) context).setType(type, null, null);
             }
         }
     }
@@ -99,11 +98,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setType(@Advice.Argument(0) Object span,
-                                   @Advice.Argument(1) String type,
-                                   @Advice.Argument(2) String subtype,
-                                   @Advice.Argument(3) String action) {
+                                   @Advice.Argument(1) @Nullable String type,
+                                   @Advice.Argument(2) @Nullable String subtype,
+                                   @Advice.Argument(3) @Nullable String action) {
             if (span instanceof Span) {
-                Utils.setSpanType((Span) span, type, subtype, action);
+                ((Span) span).setType(type, subtype, action);
             }
         }
     }

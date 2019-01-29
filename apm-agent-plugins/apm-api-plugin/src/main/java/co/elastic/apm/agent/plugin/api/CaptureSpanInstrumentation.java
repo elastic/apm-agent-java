@@ -20,7 +20,6 @@
 package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.Utils;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -67,7 +66,7 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
             final TraceContextHolder<?> parent = tracer.getActive();
             if (parent != null) {
                 span = parent.createSpan();
-                Utils.setSpanType(span, type, subtype, action);
+                span.setType(type, subtype, action);
                 span.withName(spanName.isEmpty() ? signature : spanName)
                     .activate();
             } else {

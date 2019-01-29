@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.agent.plugin.api;
 
-import co.elastic.apm.agent.bci.Utils;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -84,7 +83,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String type) {
             if (span instanceof Span) {
-                Utils.setSpanType((Span) span, type, null, null);
+                ((Span) span).setType(type, null, null);
             }
         }
     }

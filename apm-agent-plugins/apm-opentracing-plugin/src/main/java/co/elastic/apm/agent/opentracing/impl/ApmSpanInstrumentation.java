@@ -235,7 +235,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
             if ("type".equals(key)) {
                 if (span.getSubtype() == null && span.getAction() == null) {
-                    Utils.setSpanType(span, value.toString(), null, null);
+                    span.setType(value.toString(), null, null);
                 } else {
                     span.withType(value.toString());
                 }
