@@ -19,10 +19,10 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
@@ -34,19 +34,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
+public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ApmSpanInstrumentation.class);
-
-    static final String OPENTRACING_INSTRUMENTATION_GROUP = "opentracing";
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -64,16 +60,6 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
-    }
-
     public static class FinishInstrumentation extends ApmSpanInstrumentation {
         public FinishInstrumentation() {
             super(named("finishInternal"));
@@ -81,15 +67,16 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                           @Advice.Argument(0) long finishMicros) {
+                                           @Advice.Argument(0) long finishMicros,
+                                           @Advice.Argument(value = 1, optional = true) @Nullable Object traceContext) {
             if (span != null) {
-                doFinishInternal(span, finishMicros);
+                doFinishInternal(span, finishMicros, traceContext);
                 span = null;
             }
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros) {
+        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros, @Nullable Object traceContext) {
             if (span.getType() == null) {
                 if (span instanceof Transaction) {
                     Transaction transaction = (Transaction) span;
@@ -109,6 +96,12 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 span.end(finishMicros);
             } else {
                 span.end();
+            }
+
+            // If the finished span is the active span, replace with the corresponding TraceContext
+            if (tracer != null && traceContext != null && span == tracer.getActive() && traceContext instanceof TraceContext) {
+                tracer.deactivate(span);
+                tracer.activate((TraceContext) traceContext);
             }
         }
     }

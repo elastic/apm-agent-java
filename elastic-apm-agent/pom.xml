@@ -64,15 +64,6 @@
                                     <pattern>org.jctools</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>com.google</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.guava</shadedPattern>
-                                </relocation>
-                                <!--A guava dependency-->
-                                <relocation>
-                                    <pattern>org.checkerframework</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.checkerframework</shadedPattern>
-                                </relocation>
                                 <!--
                                 Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
                                 Although this is not a package but a string constant, it does work
@@ -163,6 +154,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-java-concurrent-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jaxrs-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -214,6 +210,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webmvc-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-urlconnection-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

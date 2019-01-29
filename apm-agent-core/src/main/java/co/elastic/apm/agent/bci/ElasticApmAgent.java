@@ -63,6 +63,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflec
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -299,9 +300,27 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            .or(nameStartsWith("java."))
-            .or(nameStartsWith("com.sun.").and(not(nameStartsWith("com.sun.faces."))))
-            .or(nameStartsWith("sun"))
+            .or(nameStartsWith("java.")
+                .and(
+                    not(
+                        nameEndsWith("URLConnection")
+                            .or(nameStartsWith("java.util.concurrent."))
+                    )
+                )
+            )
+            .or(nameStartsWith("com.sun.")
+                .and(
+                    not(
+                        nameStartsWith("com.sun.faces.")
+                            .or(nameEndsWith("URLConnection"))
+                    )
+                )
+            )
+            .or(nameStartsWith("sun")
+                .and(
+                    not(nameEndsWith("URLConnection"))
+                )
+            )
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))

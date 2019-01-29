@@ -29,54 +29,55 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 @VisibleForAdvice
-public class InScopeRunnableWrapper implements Runnable, Recyclable {
-    private final Logger logger = LoggerFactory.getLogger(InScopeRunnableWrapper.class);
-
-    @Nullable
-    private Runnable delegate;
-    @Nullable
-    private AbstractSpan<?> span;
-
+public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(SpanInScopeRunnableWrapper.class);
     private final ElasticApmTracer tracer;
+    @Nullable
+    private volatile Runnable delegate;
+    @Nullable
+    private volatile AbstractSpan<?> span;
 
-    InScopeRunnableWrapper(ElasticApmTracer tracer) {
+    SpanInScopeRunnableWrapper(ElasticApmTracer tracer) {
         this.tracer = tracer;
     }
 
-    public InScopeRunnableWrapper wrap(Runnable delegate, AbstractSpan<?> span) {
+    SpanInScopeRunnableWrapper wrap(Runnable delegate, AbstractSpan<?> span) {
         this.delegate = delegate;
         this.span = span;
         return this;
     }
 
+    // Exceptions in the agent may never affect the monitored application
+    // normally, advices act as the boundary of user and agent code and exceptions are handled via @Advice.OnMethodEnter(suppress = Throwable.class)
+    // In this case, this class acts as the boundary of user and agent code so we have to do the tedious exception handling here
     @Override
     public void run() {
-        if (span != null) {
+        // minimize volatile reads
+        AbstractSpan<?> localSpan = span;
+        if (localSpan != null) {
             try {
-                span.activate();
-            } catch (Throwable throwable) {
+                localSpan.activate();
+            } catch (Throwable t) {
                 try {
-                    logger.warn("Failed to activate span");
-                } catch (Throwable t) {
-                    // do nothing, just never fail
+                    logger.error("Unexpected error while activating span", t);
+                } catch (Throwable ignore) {
                 }
             }
         }
-
         try {
             //noinspection ConstantConditions
             delegate.run();
+            // the span may be ended at this point
         } finally {
             try {
-                if (span != null) {
-                    span.deactivate();
+                if (localSpan != null) {
+                    localSpan.deactivate();
                 }
                 tracer.recycle(this);
-            } catch (Throwable throwable) {
+            } catch (Throwable t) {
                 try {
-                    logger.warn("Failed to deactivate span or recycle");
-                } catch (Throwable t) {
-                    // do nothing, just never fail
+                    logger.error("Unexpected error while deactivating or recycling span", t);
+                } catch (Throwable ignore) {
                 }
             }
         }

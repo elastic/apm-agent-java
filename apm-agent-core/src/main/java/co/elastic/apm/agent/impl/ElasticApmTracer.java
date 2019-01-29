@@ -47,6 +47,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -59,13 +60,22 @@ import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 public class ElasticApmTracer {
     private static final Logger logger = LoggerFactory.getLogger(ElasticApmTracer.class);
 
+    /**
+     * The number of required {@link Runnable} wrappers does not depend on the size of the disruptor
+     * but rather on the amount of application threads.
+     * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
+     */
+    private static final int MAX_POOLED_RUNNABLES = 256;
+
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
     private final Iterable<LifecycleListener> lifecycleListeners;
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
-    private final ObjectPool<InScopeRunnableWrapper> runnableWrapperObjectPool;
+    private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
+    private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
+    private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
     // Maintains a stack of all the activated spans
     // This way its easy to retrieve the bottom of the stack (the transaction)
@@ -112,11 +122,27 @@ public class ElasticApmTracer {
                     return new ErrorCapture(ElasticApmTracer.this);
                 }
             });
-        runnableWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<InScopeRunnableWrapper>newQueue(createBoundedMpmc(maxPooledElements)), false,
-            new Allocator<InScopeRunnableWrapper>() {
+        // consider specialized object pools which return the objects to the thread-local pool of their originating thread
+        // with a combination of DetachedThreadLocal and org.jctools.queues.MpscRelaxedArrayQueue
+        runnableSpanWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<SpanInScopeRunnableWrapper>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
+            new Allocator<SpanInScopeRunnableWrapper>() {
                 @Override
-                public InScopeRunnableWrapper createInstance() {
-                    return new InScopeRunnableWrapper(ElasticApmTracer.this);
+                public SpanInScopeRunnableWrapper createInstance() {
+                    return new SpanInScopeRunnableWrapper(ElasticApmTracer.this);
+                }
+            });
+        runnableContextWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ContextInScopeRunnableWrapper>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
+            new Allocator<ContextInScopeRunnableWrapper>() {
+                @Override
+                public ContextInScopeRunnableWrapper createInstance() {
+                    return new ContextInScopeRunnableWrapper(ElasticApmTracer.this);
+                }
+            });
+        callableContextWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ContextInScopeCallableWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
+            new Allocator<ContextInScopeCallableWrapper<?>>() {
+                @Override
+                public ContextInScopeCallableWrapper<?> createInstance() {
+                    return new ContextInScopeCallableWrapper<>(ElasticApmTracer.this);
                 }
             });
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
@@ -302,11 +328,36 @@ public class ElasticApmTracer {
     }
 
     public Runnable wrapRunnable(Runnable delegate, AbstractSpan<?> span) {
-        return runnableWrapperObjectPool.createInstance().wrap(delegate, span);
+        if (delegate instanceof SpanInScopeRunnableWrapper) {
+            return delegate;
+        }
+        return runnableSpanWrapperObjectPool.createInstance().wrap(delegate, span);
     }
 
-    public void recycle(InScopeRunnableWrapper wrapper) {
-        runnableWrapperObjectPool.recycle(wrapper);
+    public void recycle(SpanInScopeRunnableWrapper wrapper) {
+        runnableSpanWrapperObjectPool.recycle(wrapper);
+    }
+
+    public Runnable wrapRunnable(Runnable delegate, TraceContext traceContext) {
+        if (delegate instanceof ContextInScopeRunnableWrapper) {
+            return delegate;
+        }
+        return runnableContextWrapperObjectPool.createInstance().wrap(delegate, traceContext);
+    }
+
+    public void recycle(ContextInScopeRunnableWrapper wrapper) {
+        runnableContextWrapperObjectPool.recycle(wrapper);
+    }
+
+    public <V> Callable<V> wrapCallable(Callable<V> delegate, TraceContext traceContext) {
+        if (delegate instanceof ContextInScopeCallableWrapper) {
+            return delegate;
+        }
+        return ((ContextInScopeCallableWrapper<V>) callableContextWrapperObjectPool.createInstance()).wrap(delegate, traceContext);
+    }
+
+    public void recycle(ContextInScopeCallableWrapper<?> callableWrapper) {
+        callableContextWrapperObjectPool.recycle(callableWrapper);
     }
 
     /**
@@ -360,11 +411,13 @@ public class ElasticApmTracer {
         if (logger.isDebugEnabled()) {
             logger.debug("Deactivating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
         }
-        assertIsActive(holder, activeStack.get().poll());
-        if (holder instanceof Transaction) {
-            // a transaction is always the bottom of this stack
-            // clearing to avoid potential leaks in case of wrong api usage
-            activeStack.get().clear();
+        final Deque<TraceContextHolder<?>> stack = activeStack.get();
+        assertIsActive(holder, stack.poll());
+        if (holder == stack.peekFirst()) {
+            // if this is the bottom of the stack
+            // clear to avoid potential leaks in case of wrong api usage
+            // makes all leaked spans eligible for GC
+            stack.clear();
         }
     }
 

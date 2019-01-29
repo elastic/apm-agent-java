@@ -138,30 +138,54 @@ Other Servlet 3+ compliant servers will most likely work as well.
 === Networking frameworks
 Distributed tracing will only work if you are using one of the supported networking frameworks.
 
-|===
-|Framework |Supported versions | Description | Since
+For the supported HTTP libraries, the agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+The spans are named after the schema `<method> <host>`, for example `GET elastic.co`.
 
-|Apache HttpClient (<<config-disable-instrumentations,incubating>>)
+|===
+|Framework |Supported versions | Note | Since
+
+|Apache HttpClient
 |4.3+
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
+|
 | 0.7.0
 
 |Spring RestTemplate
 |4+
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
+|
 | 0.7.0
 
 |OkHttp
 |2, 3
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
- Note: Currently, only synchronous calls via `Call#execute()` are supported.
+|Currently, only synchronous calls via `Call#execute()` are supported.
  `Call#enquene(Callback)` is not yet supported.
 | 1.4.0
 
+|HttpUrlConnection
+|
+|
+| 1.4.0
+
 |===
+
+
+[float]
+[[supported-async-frameworks]]
+=== Asynchronous frameworks
+When a Span is created in a different Thread than its parent,
+the trace context has to be propagated onto this thread.
+
+This section lists all supported asynchronous frameworks.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|ExecutorService
+|
+|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|1.4.0
+
+|===
+
 
 [float]
 [[supported-technologies-caveats]]

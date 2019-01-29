@@ -91,13 +91,13 @@ class ApmSpan implements Span {
             if (traceContext != null) {
                 // prevents race conditions with ScopeManager#activate(Span)
                 synchronized (traceContext) {
-                    finishInternal(finishMicros);
+                    finishInternal(finishMicros, traceContext);
                 }
             }
         }
     }
 
-    private void finishInternal(long finishMicros) {
+    private void finishInternal(long finishMicros, Object traceContext) {
         // implementation injected at runtime by co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.FinishInstrumentation.finishInternal
     }
 

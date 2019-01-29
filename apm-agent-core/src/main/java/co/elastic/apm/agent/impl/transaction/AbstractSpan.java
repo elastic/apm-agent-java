@@ -177,9 +177,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * 'db.postgresql.query', 'template.erb', etc for spans)
      */
     public T withType(@Nullable String type) {
-        if (!isSampled()) {
-            return (T) this;
-        }
         this.type = type;
         return (T) this;
     }
@@ -187,6 +184,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     @Override
     public boolean isChildOf(TraceContextHolder other) {
         return getTraceContext().isChildOf(other);
+    }
+
+    /**
+     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
+     *
+     * <p>
+     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
+     * This should only be used span is closed in thread the provided {@link Runnable} is executed in.
+     * </p>
+     */
+    public Runnable withActiveSpan(Runnable runnable) {
+        return tracer.wrapRunnable(runnable, this);
     }
 
 }
