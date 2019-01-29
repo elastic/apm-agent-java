@@ -216,7 +216,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(spans).hasSize(1);
         final JsonNode span = spans.get(0);
 
-        assertThat(innerTransaction.get("trace_id").textValue()).isEqualTo(innerTransaction.get("trace_id").textValue());
+        assertThat(innerTransaction.get("trace_id").textValue()).isEqualTo(outerTransaction.get("trace_id").textValue());
         assertThat(innerTransaction.get("trace_id").textValue()).isEqualTo(span.get("trace_id").textValue());
         assertThat(innerTransaction.get("parent_id").textValue()).isEqualTo(span.get("id").textValue());
         assertThat(span.get("parent_id").textValue()).isEqualTo(outerTransaction.get("id").textValue());
