@@ -33,24 +33,27 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
     public PayaraIT(final String serverVersion, final String deploymentsFolder) {
         super(new GenericContainer<>(
-            new ImageFromDockerfile()
-                .withDockerfileFromBuilder(builder -> builder
-                    .from("payara/server-web:" + serverVersion)
-                    .run("sed", "-i", "s#" +
-                            "</java-config>#" +
-                            "<jvm-options>-javaagent:/elastic-apm-agent.jar</jvm-options></java-config>#",
-                        "glassfish/domains/domain1/config/domain.xml")
-                    .run("sed", "-i", "s#" +
-                            "</java-config>#" +
-                            "<jvm-options>-Xdebug</jvm-options></java-config>#",
-                        "glassfish/domains/domain1/config/domain.xml")
-                    // uncomment for debugging
-                    //.run("sed", "-i", "s#" +
-                    //        "</java-config>#" +
-                    //"<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
-                    //    "glassfish/domains/domain1/config/domain.xml")
-                )
-        )
+                new ImageFromDockerfile()
+                    .withDockerfileFromBuilder(builder -> {
+                            builder
+                                .from("payara/server-web:" + serverVersion)
+                                .run("sed", "-i", "s#" +
+                                        "</java-config>#" +
+                                        "<jvm-options>-javaagent:/elastic-apm-agent.jar</jvm-options></java-config>#",
+                                    "glassfish/domains/domain1/config/domain.xml")
+                                .run("sed", "-i", "s#" +
+                                        "</java-config>#" +
+                                        "<jvm-options>-Xdebug</jvm-options></java-config>#",
+                                    "glassfish/domains/domain1/config/domain.xml");
+                            if (ENABLE_DEBUGGING) {
+                                builder.run("sed", "-i", "s#" +
+                                        "</java-config>#" +
+                                        "<jvm-options>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</jvm-options></java-config>#",
+                                    "glassfish/domains/domain1/config/domain.xml");
+                            }
+                        }
+                    )
+            )
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")

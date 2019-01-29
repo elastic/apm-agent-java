@@ -69,12 +69,11 @@ import static org.mockserver.model.HttpRequest.request;
  * you have to rerun {@code mvn clean package}.
  * </p>
  * <p>
- * To debug, add a remote debugging configuration for port 5005.
- * Note: not all server are configured for debugging.
- * Currently, {@link TomcatIT} and {@link PayaraIT} have debugging configured
+ * To debug, add a remote debugging configuration for port 5005 and set {@link #ENABLE_DEBUGGING} to {@code true}.
  * </p>
  */
 public abstract class AbstractServletContainerIntegrationTest {
+    static boolean ENABLE_DEBUGGING = false;
     static final String pathToWar = "../simple-webapp/target/ROOT.war";
     static final String pathToJavaagent;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
@@ -94,8 +93,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         httpClient = new OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            // set to 0 for debugging
-            .readTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
         pathToJavaagent = getPathToJavaagent();
         checkFilePresent(pathToWar);
@@ -119,7 +117,10 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         this.contextPath = contextPath;
-        this.debugProxy = createDebugProxy(servletContainer, 5005);
+        if (ENABLE_DEBUGGING) {
+            enableDebugging(servletContainer);
+            this.debugProxy = createDebugProxy(servletContainer, 5005);
+        }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         for (TestApp testApp: getTestApps()) {
             String pathToAppFile = testApp.getAppFilePath();
@@ -128,8 +129,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
             .forPort(webPort)
-            // set to a higher value for debugging
-            .withStartupTimeout(Duration.ofSeconds(60)));
+            .withStartupTimeout(Duration.ofSeconds(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 60)));
         this.servletContainer.start();
     }
 
@@ -150,6 +150,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         assertThat(warFile).exists();
         assertThat(warFile).isFile();
         assertThat(warFile.length()).isGreaterThan(0);
+    }
+
+    protected void enableDebugging(GenericContainer<?> servletContainer) {
     }
 
     // makes sure the debugging port is always 5005
@@ -205,8 +208,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         final String pathToTest = contextPath + "/http-url-connection";
         executeAndValidateRequest(pathToTest, "Hello World!", 200);
 
-        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions);
-        assertThat(reportedTransactions).hasSize(2);
+        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions, 2);
         final JsonNode innerTransaction = reportedTransactions.get(0);
         final JsonNode outerTransaction = reportedTransactions.get(1);
 
@@ -262,8 +264,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
-        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions);
-        assertThat(reportedTransactions.size()).isEqualTo(1);
+        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions, 1);
         JsonNode transaction = reportedTransactions.iterator().next();
         assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(pathToTest);
         assertThat(transaction.get("context").get("response").get("status_code").intValue()).isEqualTo(expectedResponseCode);
@@ -287,12 +288,13 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    private List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier) {
+    private List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier, int expected) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
             reportedTransactions = supplier.get();
-        } while (reportedTransactions.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedTransactions.size() != expected && System.currentTimeMillis() - start < timeoutMs);
+        assertThat(reportedTransactions).hasSize(expected);
         return reportedTransactions;
     }
 

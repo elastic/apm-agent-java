@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,15 +32,12 @@ import java.util.Collections;
 public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
     public WebSphereIT(final String version) {
-        super(new GenericContainer<>(
-              /* uncomment to debug (waits for debugger to attach)
-              new ImageFromDockerfile()
-                    .withDockerfileFromBuilder(builder -> builder
-                        .from("websphere-liberty:" + version)
-                        .cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")
-              */
-            "websphere-liberty:" + version
-        )
+        super((ENABLE_DEBUGGING
+                ? new GenericContainer<>(new ImageFromDockerfile()
+                .withDockerfileFromBuilder(builder -> builder
+                    .from("websphere-liberty:" + version).cmd("/opt/ibm/wlp/bin/server", "debug", "defaultServer")))
+                : new GenericContainer<>("websphere-liberty:" + version)
+            )
             .withNetwork(Network.SHARED)
             .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar")
             // uncomment for debugging
