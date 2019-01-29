@@ -22,6 +22,7 @@ package co.elastic.apm.agent.opentracing.impl;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
@@ -66,15 +67,16 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                           @Advice.Argument(0) long finishMicros) {
+                                           @Advice.Argument(0) long finishMicros,
+                                           @Advice.Argument(value = 1, optional = true) @Nullable Object traceContext) {
             if (span != null) {
-                doFinishInternal(span, finishMicros);
+                doFinishInternal(span, finishMicros, traceContext);
                 span = null;
             }
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros) {
+        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros, @Nullable Object traceContext) {
             if (span.getType() == null) {
                 if (span instanceof Transaction) {
                     Transaction transaction = (Transaction) span;
@@ -94,6 +96,12 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 span.end(finishMicros);
             } else {
                 span.end();
+            }
+
+            // If the finished span is the active span, replace with the corresponding TraceContext
+            if (tracer != null && traceContext != null && span == tracer.getActive() && traceContext instanceof TraceContext) {
+                tracer.deactivate(span);
+                tracer.activate((TraceContext) traceContext);
             }
         }
     }
