@@ -252,7 +252,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
+Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -779,6 +779,8 @@ Disabled by default to save disk space.
 
 Maximum time to keep an HTTP request to the APM Server open for.
 
+NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
 The default unit for this option is `s`
@@ -1057,7 +1059,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`.
+# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-rs-annotations`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1363,6 +1365,8 @@ The default unit for this option is `ms`
 # include_process_args=false
 
 # Maximum time to keep an HTTP request to the APM Server open for.
+# 
+# NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
