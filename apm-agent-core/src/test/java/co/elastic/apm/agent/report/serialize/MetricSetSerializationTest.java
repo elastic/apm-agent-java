@@ -20,7 +20,6 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.metrics.MetricSet;
-import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,5 +46,23 @@ class MetricSetSerializationTest {
         System.out.println(metricSetAsString);
         final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
         assertThat(jsonNode.get("metricset").get("samples").get("foo.bar").get("value").doubleValue()).isEqualTo(42);
+    }
+
+    @Test
+    void testNonFiniteSerialization() throws IOException {
+        final MetricSet metricSet = new MetricSet(Collections.emptyMap());
+        metricSet.add("valid", () -> 4.0);
+        metricSet.add("infinite", () -> Double.POSITIVE_INFINITY);
+        metricSet.add("NaN", () -> Double.NaN);
+        metricSet.add("negative.infinite", () -> Double.NEGATIVE_INFINITY);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        final String metricSetAsString = jw.toString();
+        System.out.println(metricSetAsString);
+        final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
+        JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.get("valid").get("value").doubleValue()).isEqualTo(4.0);
+        assertThat(samples.get("infinite").get("value").isNull()).isTrue();
+        assertThat(samples.get("NaN").get("value").isNull()).isTrue();
+        assertThat(samples.get("negative.infinite").get("value").isNull()).isTrue();
     }
 }
