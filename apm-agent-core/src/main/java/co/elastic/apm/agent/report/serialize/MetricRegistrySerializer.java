@@ -86,10 +86,10 @@ public class MetricRegistrySerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
         {
             DslJsonSerializer.writeFieldName("value", jw);
-            if (Double.isFinite(value)) {
-                NumberConverter.serialize(value, jw);
-            } else {
+            if (Double.isInfinite(value) || Double.isNaN(value)) {
                 jw.writeNull();
+            } else {
+                NumberConverter.serialize(value, jw);
             }
         }
         jw.writeByte(JsonWriter.OBJECT_END);
