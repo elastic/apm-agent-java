@@ -9,6 +9,9 @@
  MyFaces 2.2 and 2.3
  * Introduces a new configuration option `disable_metrics` which disables the collection of metrics via a wildcard expression.
  * Support for HttpUrlConnection
+ * Adds `subtype` and `action` to spans. This replaces former typing mechanism where type, subtype and action were all set through
+ the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action, 
+ however `Span.createSpan` and `Span.setType` are deprecated starting this version.
 
 ## Bug Fixes
 

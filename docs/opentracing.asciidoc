@@ -93,6 +93,10 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
 
 - `type` - sets the type of the transaction/span,
   for example `request`, `ext` or `db`
+- `subtype` - sets the subtype of the span,
+  for example `http`, `mysql` or `jsf`
+- `action` - sets the action related to a span,
+  for example `query`, `execute` or `render`
 - `user.id` - sets the user id,
   appears in the "User" tab in the transaction details in the Elastic APM UI
 - `user.email` - sets the user email,
