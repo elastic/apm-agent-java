@@ -299,7 +299,7 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            .or(nameStartsWith("java."))
+            .or(nameStartsWith("java.").and(not(nameStartsWith("java.util.concurrent."))))
             .or(nameStartsWith("com.sun.").and(not(nameStartsWith("com.sun.faces."))))
             .or(nameStartsWith("sun"))
             .or(nameStartsWith("org.aspectj."))

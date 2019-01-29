@@ -80,13 +80,13 @@ public class MockReporter implements Reporter {
     }
 
     @Override
-    public void report(Transaction transaction) {
+    public synchronized void report(Transaction transaction) {
         verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
     }
 
     @Override
-    public void report(Span span) {
+    public synchronized void report(Span span) {
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         spans.add(span);
     }
@@ -119,27 +119,42 @@ public class MockReporter implements Reporter {
         }
     }
 
-    public List<Transaction> getTransactions() {
+    public synchronized List<Transaction> getTransactions() {
         return Collections.unmodifiableList(transactions);
     }
 
-    public Transaction getFirstTransaction() {
+    public synchronized Transaction getFirstTransaction() {
         return transactions.iterator().next();
     }
 
     public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
         final long end = System.currentTimeMillis() + timeoutMs;
         do {
-            if (!transactions.isEmpty()) {
-                return getFirstTransaction();
+            synchronized (this) {
+                if (!transactions.isEmpty()) {
+                    return getFirstTransaction();
+                }
             }
             Thread.sleep(1);
         } while (System.currentTimeMillis() < end);
         return getFirstTransaction();
     }
 
+    public Span getFirstSpan(long timeoutMs) throws InterruptedException {
+        final long end = System.currentTimeMillis() + timeoutMs;
+        do {
+            synchronized (this) {
+                if (!spans.isEmpty()) {
+                    return getFirstSpan();
+                }
+            }
+            Thread.sleep(1);
+        } while (System.currentTimeMillis() < end);
+        return getFirstSpan();
+    }
+
     @Override
-    public void report(ErrorCapture error) {
+    public synchronized void report(ErrorCapture error) {
         verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
         errors.add(error);
     }
@@ -149,19 +164,19 @@ public class MockReporter implements Reporter {
         // noop
     }
 
-    public Span getFirstSpan() {
+    public synchronized Span getFirstSpan() {
         return spans.get(0);
     }
 
-    public List<Span> getSpans() {
+    public synchronized List<Span> getSpans() {
         return spans;
     }
 
-    public List<ErrorCapture> getErrors() {
+    public synchronized List<ErrorCapture> getErrors() {
         return Collections.unmodifiableList(errors);
     }
 
-    public ErrorCapture getFirstError() {
+    public synchronized ErrorCapture getFirstError() {
         return errors.iterator().next();
     }
 

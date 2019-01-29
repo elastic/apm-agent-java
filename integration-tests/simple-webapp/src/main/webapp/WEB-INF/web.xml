@@ -24,6 +24,12 @@
         <load-on-startup>1</load-on-startup>
         <async-supported>true</async-supported>
     </servlet>
+    <servlet>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ExecutorServiceTestServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
 
     <servlet-mapping>
         <servlet-name>TestServlet</servlet-name>
@@ -36,5 +42,9 @@
     <servlet-mapping>
         <servlet-name>AsyncStartServlet</servlet-name>
         <url-pattern>/async-start-servlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ExecutorServiceTestServlet</servlet-name>
+        <url-pattern>/executor-service-servlet</url-pattern>
     </servlet-mapping>
 </web-app>
