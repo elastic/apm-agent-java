@@ -192,7 +192,7 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        final Object bottomOfStack = activeStack.get().peekFirst();
+        final Object bottomOfStack = activeStack.get().peekLast();
         if (bottomOfStack instanceof Transaction) {
             return (Transaction) bottomOfStack;
         }
@@ -413,7 +413,7 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
-        if (holder == stack.peekFirst()) {
+        if (holder == stack.peekLast()) {
             // if this is the bottom of the stack
             // clear to avoid potential leaks in case of wrong api usage
             // makes all leaked spans eligible for GC

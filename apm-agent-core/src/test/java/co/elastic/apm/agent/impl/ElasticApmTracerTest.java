@@ -64,6 +64,7 @@ class ElasticApmTracerTest {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             Span span = tracerImpl.getActive().createSpan();
             try (Scope spanScope = span.activateInScope()) {
+                assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
                 assertThat(tracerImpl.getActive()).isSameAs(span);
                 assertThat(span.isChildOf(transaction)).isTrue();
                 span.end();
