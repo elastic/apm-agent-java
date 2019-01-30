@@ -380,7 +380,7 @@ try {
     span.setName("SELECT FROM customer");
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    span.captureException(e);
     throw e;
 } finally {
     span.end();
@@ -406,7 +406,7 @@ try {
     span.setName("SELECT FROM customer");
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    span.captureException(e);
     throw e;
 } finally {
     span.end();
@@ -597,7 +597,7 @@ try {
     span.setName("SELECT FROM customer");
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    span.captureException(e);
     throw e;
 } finally {
     span.end();
@@ -623,7 +623,7 @@ try {
     span.setName("SELECT FROM customer");
     // do your thing...
 } catch (Exception e) {
-    ElasticApm.captureException(e);
+    span.captureException(e);
     throw e;
 } finally {
     span.end();
