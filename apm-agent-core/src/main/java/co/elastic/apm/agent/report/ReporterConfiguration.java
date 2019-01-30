@@ -125,7 +125,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Maximum time to keep an HTTP request to the APM Server open for.")
+        .description("Maximum time to keep an HTTP request to the APM Server open for.\n" +
+            "\n" +
+            "NOTE: This value has to be lower than the APM Server's `read_timeout` setting.")
         .buildWithDefault(TimeDuration.of("10s"));
 
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
