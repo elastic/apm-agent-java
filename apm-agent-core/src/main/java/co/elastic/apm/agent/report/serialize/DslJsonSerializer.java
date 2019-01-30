@@ -232,7 +232,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
 
         writeTimestamp(errorCapture.getTimestamp());
-        serializeTransactionSampled(errorCapture.isTransactionSampled());
+        serializeErrorTransactionInfo(errorCapture.getTransactionInfo());
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
         }
@@ -243,10 +243,13 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private void serializeTransactionSampled(boolean sampled) {
+    private void serializeErrorTransactionInfo(ErrorCapture.TransactionInfo errorTransactionInfo) {
         writeFieldName("transaction");
         jw.writeByte(JsonWriter.OBJECT_START);
-        writeLastField("sampled", sampled);
+        if (errorTransactionInfo.getType() != null) {
+            writeField("type", errorTransactionInfo.getType());
+        }
+        writeLastField("sampled", errorTransactionInfo.isSampled());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);
     }

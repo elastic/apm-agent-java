@@ -255,6 +255,11 @@ public class ElasticApmTracer {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
             error.setException(e);
+            Transaction currentTransaction = currentTransaction();
+            if (currentTransaction != null) {
+                error.setTransactionType(currentTransaction.getType());
+                error.setTransactionSampled(currentTransaction.isSampled());
+            }
             if (active != null) {
                 if (active instanceof Transaction) {
                     Transaction transaction = (Transaction) active;
@@ -267,7 +272,6 @@ public class ElasticApmTracer {
                     error.getContext().getTags().putAll(span.getContext().getTags());
                 }
                 error.asChildOf(active.getTraceContext());
-                error.setTransactionSampled(active.isSampled());
             } else {
                 error.getTraceContext().getId().setToRandomValue();
             }
