@@ -46,8 +46,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String APACHE_HTTP_CLIENT = "apache-httpclient";
-
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
                                         @Advice.Argument(1) HttpRequestWrapper request,
@@ -56,7 +54,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
             return;
         }
         final TraceContextHolder<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName(), APACHE_HTTP_CLIENT);
+        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
         if (span != null) {
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {

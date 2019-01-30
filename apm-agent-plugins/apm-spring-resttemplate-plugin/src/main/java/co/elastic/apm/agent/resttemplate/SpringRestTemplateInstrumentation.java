@@ -48,8 +48,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPRING_REST_TEMPLATE = "spring-resttemplate";
-
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.This ClientHttpRequest request,
                                       @Advice.Local("span") Span span) {
@@ -58,7 +56,7 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
         }
         final TraceContextHolder<?> parent = tracer.getActive();
         span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
-            request.getURI().getHost(), SPRING_REST_TEMPLATE);
+            request.getURI().getHost());
         if (span != null) {
             request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }

@@ -36,21 +36,21 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
      * (Required)
      */
     @Nullable
-    private volatile String type;
+    private String type;
 
     /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
      * (Optional)
      */
     @Nullable
-    private volatile String subtype;
+    private String subtype;
 
     /**
      * An action describing this span (eg 'query', 'execute', 'render' etc)
      * (Optional)
      */
     @Nullable
-    private volatile String action;
+    private String action;
 
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user

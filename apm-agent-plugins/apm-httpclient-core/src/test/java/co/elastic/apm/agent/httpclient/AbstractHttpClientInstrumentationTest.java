@@ -67,6 +67,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
+        assertThat(reporter.getSpans().get(0).getType()).isEqualTo("external");
+        assertThat(reporter.getSpans().get(0).getSubtype()).isEqualTo("http");
+        assertThat(reporter.getSpans().get(0).getAction()).isNull();
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/"))

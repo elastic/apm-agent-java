@@ -40,8 +40,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String OK_HTTP_CLIENT = "okhttp";
-
     @Override
     public Class<?> getAdviceClass() {
         return OkHttpClient3ExecuteAdvice.class;
@@ -66,7 +64,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
             if (originalRequest instanceof okhttp3.Request) {
                 okhttp3.Request request = (okhttp3.Request) originalRequest;
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host(), OK_HTTP_CLIENT);
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host());
                 if (span != null) {
                     originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }

@@ -11,7 +11,8 @@
  * Support for HttpUrlConnection
  * Adds `subtype` and `action` to spans. This replaces former typing mechanism where type, subtype and action were all set through
  the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action, 
- however `Span.createSpan` and `Span.setType` are deprecated starting this version.
+ however `Span.createSpan` and `Span.setType` are deprecated starting this version. Instead, type-less spans can be created using the new 
+ `Span.startSpan` API and typed spans can be created using the new `Span.startSpan(String type, String subtype, String action)` API
 
 ## Bug Fixes
 
