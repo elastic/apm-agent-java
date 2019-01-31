@@ -64,6 +64,8 @@ class TransactionPayloadJsonSchemaTest {
         Span span = new Span(mock(ElasticApmTracer.class));
         span.start(TraceContext.fromParent(), transaction)
             .withType("type")
+            .withSubtype("subtype")
+            .withAction("action")
             .withName("name");
         payload.getSpans().add(span);
         return payload;
@@ -197,7 +199,7 @@ class TransactionPayloadJsonSchemaTest {
         validateHttpSpanSchema(serializedSpans);
 
         for (Span span : payload.getSpans()) {
-            if (span.getType() != null && span.getType().equals("db.postgresql.query")) {
+            if (span.getType() != null && span.getType().equals("db")) {
                 span.getContext().getTags().clear();
                 validateDbSpanSchema(getSerializedSpans(payload), false);
                 break;

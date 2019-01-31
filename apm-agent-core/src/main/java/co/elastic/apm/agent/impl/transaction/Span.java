@@ -32,6 +32,27 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
 
     /**
+     * General type describing this span (eg: 'db', 'ext', 'template', etc)
+     * (Required)
+     */
+    @Nullable
+    private String type;
+
+    /**
+     * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
+     * (Optional)
+     */
+    @Nullable
+    private String subtype;
+
+    /**
+     * An action describing this span (eg 'query', 'execute', 'render' etc)
+     * (Optional)
+     */
+    @Nullable
+    private String action;
+
+    /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
@@ -86,9 +107,75 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
+    /**
+     * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
+     */
+    public Span withType(@Nullable String type) {
+        this.type = type;
+        return this;
+    }
+
+    /**
+     * Sets the span's subtype, related to the  (eg: 'mysql', 'postgresql', 'jsf' etc)
+     */
+    public Span withSubtype(@Nullable String subtype) {
+        this.subtype = subtype;
+        return this;
+    }
+
+    /**
+     * Action related to this span (eg: 'query', 'render' etc)
+     */
+    public Span withAction(@Nullable String action) {
+        this.action = action;
+        return this;
+    }
+
+    /**
+     * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
+     * typing system and attempts to split the type by dots to discover subtype and action.
+     * TODO: remove in 2.0 - no need for that once we decide to drop support for old agent usages
+     */
+    @Deprecated
+    public void setType(@Nullable String type, @Nullable String subtype, @Nullable String action) {
+        if (type != null && (subtype == null || subtype.isEmpty()) && (action == null || action.isEmpty())) {
+            // hierarchical typing - pre 1.4; we need to split
+            String temp = type;
+            int indexOfFirstDot = temp.indexOf(".");
+            if (indexOfFirstDot > 0) {
+                type = temp.substring(0, indexOfFirstDot);
+                int indexOfSecondDot = temp.indexOf(".", indexOfFirstDot + 1);
+                if (indexOfSecondDot > 0) {
+                    subtype = temp.substring(indexOfFirstDot + 1, indexOfSecondDot);
+                    if (indexOfSecondDot + 1 < temp.length()) {
+                        action = temp.substring(indexOfSecondDot + 1);
+                    }
+                }
+            }
+        }
+        this.type = type;
+        this.subtype = subtype;
+        this.action = action;
+    }
+
     @Nullable
     public Throwable getStacktrace() {
         return stacktrace;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    @Nullable
+    public String getSubtype() {
+        return subtype;
+    }
+
+    @Nullable
+    public String getAction() {
+        return action;
     }
 
     @Override
@@ -101,6 +188,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
         }
+        if (type == null) {
+            type = "custom";
+        }
         this.tracer.endSpan(this);
     }
 
@@ -109,6 +199,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
+        type = null;
+        subtype = null;
+        action = null;
         originator = null;
     }
 

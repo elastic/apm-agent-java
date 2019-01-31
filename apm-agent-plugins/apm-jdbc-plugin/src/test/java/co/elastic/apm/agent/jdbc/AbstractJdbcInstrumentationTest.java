@@ -37,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl.DB_SPAN_ACTION;
+import static co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl.DB_SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -47,15 +49,15 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private static final String PREPARED_STATEMENT_SQL = "SELECT * FROM ELASTIC_APM WHERE FOO=?";
     private static final long PREPARED_STMT_TIMEOUT = 10000;
 
-    private final String expectedSpanType;
+    private final String expectedDbVendor;
     private Connection connection;
     @Nullable
     private PreparedStatement preparedStatement;
     private final Transaction transaction;
 
-    AbstractJdbcInstrumentationTest(Connection connection, String expectedSpanType) throws Exception {
+    AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor) throws Exception {
         this.connection = connection;
-        this.expectedSpanType = expectedSpanType;
+        this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction().activate();
@@ -118,7 +120,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(reporter.getSpans()).hasSize(1);
         Span jdbcSpan = reporter.getFirstSpan();
         assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT");
-        assertThat(jdbcSpan.getType()).isEqualToIgnoringCase(expectedSpanType);
+        assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
+        assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
+        assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(sql);
         assertThat(db.getUser()).isEqualToIgnoringCase(connection.getMetaData().getUserName());

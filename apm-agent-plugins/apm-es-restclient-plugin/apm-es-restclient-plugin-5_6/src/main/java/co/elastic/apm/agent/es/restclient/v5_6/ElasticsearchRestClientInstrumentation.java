@@ -49,11 +49,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
-    public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
+    static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
     @VisibleForAdvice
-    public static final String SPAN_TYPE = "db.elasticsearch.request";
+    static final String SPAN_TYPE = "db";
     @VisibleForAdvice
-    public static final String DB_CONTEXT_TYPE = "elasticsearch";
+    static final String ELASTICSEARCH = "elasticsearch";
+    @VisibleForAdvice
+    static final String SPAN_ACTION = "request";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void onBeforeExecute(@Advice.Argument(0) String method,
@@ -69,8 +71,10 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
         }
         span = activeSpan.createSpan()
             .withType(SPAN_TYPE)
+            .withSubtype(ELASTICSEARCH)
+            .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);
-        span.getContext().getDb().withType(DB_CONTEXT_TYPE);
+        span.getContext().getDb().withType(ELASTICSEARCH);
         span.activate();
 
         if (span.isSampled()) {

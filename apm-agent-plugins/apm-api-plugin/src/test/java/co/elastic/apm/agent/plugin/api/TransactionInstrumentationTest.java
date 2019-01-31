@@ -91,15 +91,12 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void createSpan() throws Exception {
-        Span span = transaction.createSpan();
-        span.setType("foo");
+    public void startSpan() throws Exception {
+        Span span = transaction.startSpan("foo", null, null);
         span.setName("bar");
-        Span child = span.createSpan();
-        child.setType("foo2");
+        Span child = span.startSpan("foo2", null, null);
         child.setName("bar2");
-        Span span3 = transaction.createSpan();
-        span3.setType("foo3");
+        Span span3 = transaction.startSpan("foo3", null, null);
         span3.setName("bar3");
         span3.end();
         child.end();

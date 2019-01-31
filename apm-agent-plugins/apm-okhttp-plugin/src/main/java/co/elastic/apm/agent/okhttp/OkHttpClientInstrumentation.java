@@ -35,13 +35,10 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
-
-    private static final String SPAN_TYPE_OK_HTTP_CLIENT = HTTP_CLIENT_SPAN_TYPE_PREFIX + "okhttp";
 
     @Override
     public Class<?> getAdviceClass() {
@@ -66,9 +63,10 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
 
             if (originalRequest instanceof com.squareup.okhttp.Request) {
                 com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.httpUrl().toString(), request.httpUrl().host(), SPAN_TYPE_OK_HTTP_CLIENT);
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.httpUrl().toString(), request.httpUrl().host());
                 if (span != null) {
-                    originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+                    originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER,
+                        span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }
             }
         }

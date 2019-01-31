@@ -224,6 +224,24 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testTypeTags() {
+        // New span model with type, subtype and action
+        co.elastic.apm.agent.impl.transaction.Span span = createSpanFromOtTags(Map.of(
+            "type", "template",
+            "subtype", "jsf",
+            "action", "render"));
+        assertThat(span.getType()).isEqualTo("template");
+        assertThat(span.getSubtype()).isEqualTo("jsf");
+        assertThat(span.getAction()).isEqualTo("render");
+
+        // legacy hierarchical typing with new span model
+        span = createSpanFromOtTags(Map.of("type", "db.oracle.query"));
+        assertThat(span.getType()).isEqualTo("db");
+        assertThat(span.getSubtype()).isEqualTo("oracle");
+        assertThat(span.getAction()).isEqualTo("query");
+    }
+
+    @Test
     void testResolveServerType() {
         assertSoftly(softly -> {
             softly.assertThat(createTransactionFromOtTags(Map.of("span.kind", "server")).getType()).isEqualTo("unknown");

@@ -27,23 +27,24 @@ import javax.annotation.Nullable;
 import java.net.URI;
 
 public class HttpClientHelper {
-
-    public static final String HTTP_CLIENT_SPAN_TYPE_PREFIX = "ext.http.";
+    private static final String EXTERNAL_TYPE = "external";
+    private static final String HTTP_SUBTYPE = "http";
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, String hostName, String spanType) {
-        return startHttpClientSpan(parent, method, uri != null ? uri.toString() : null, hostName, spanType);
+    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, String hostName) {
+        return startHttpClientSpan(parent, method, uri != null ? uri.toString() : null, hostName);
     }
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri, String hostName, String spanType) {
+    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri, String hostName) {
         Span span = null;
         if (!isAlreadyMonitored(parent)) {
             span = parent
                 .createSpan()
-                .withType(spanType)
+                .withType(EXTERNAL_TYPE)
+                .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName)
                 .activate();
 
@@ -64,6 +65,7 @@ public class HttpClientHelper {
         Span parentSpan = (Span) parent;
         // a http client span can't be the child of another http client span
         // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().startsWith(HTTP_CLIENT_SPAN_TYPE_PREFIX);
+        return parentSpan.getType() != null && parentSpan.getType().equals(EXTERNAL_TYPE) &&
+            parentSpan.getSubtype() != null && parentSpan.getSubtype().equals(HTTP_SUBTYPE);
     }
 }

@@ -88,7 +88,9 @@ public class TransactionUtils {
         Span span = new Span(mock(ElasticApmTracer.class))
             .start(TraceContext.fromParent(), t)
             .withName("SELECT FROM product_types")
-            .withType("db.postgresql.query");
+            .withType("db")
+            .withSubtype("postgresql")
+            .withAction("query");
         span.getContext().getDb()
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
@@ -115,7 +117,9 @@ public class TransactionUtils {
             .start(TraceContext.fromParent(), t)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
-            .withType("ext.http.apache-httpclient");
+            .withType("ext")
+            .withSubtype("http")
+            .withAction("apache-httpclient");
         span.getContext().getHttp()
             .withUrl("http://test.elastic.co/test-service")
             .withMethod("POST")

@@ -22,7 +22,9 @@ package co.elastic.apm.agent.report.serialize;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -125,6 +127,45 @@ class DslJsonSerializerTest {
         assertThat(jsonNode.get("context").get("request").get("headers").get("baz")).isNull();
         // should a null value sneak in, it should not break
         assertThat(jsonNode.get("context").get("request").get("headers").get("bar").isNull()).isTrue();
+    }
+
+    @Test
+    void testSpanTypeSerialization() throws IOException {
+        Span span = new Span(mock(ElasticApmTracer.class));
+        span.getTraceContext().asRootSpan(ConstantSampler.of(true));
+        span.withType("template.jsf.render.view");
+        JsonNode spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        assertThat(spanJson.get("type").textValue()).isEqualTo("template_jsf_render_view");
+
+        span.withType("template").withSubtype("jsf.lifecycle").withAction("render.view");
+        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
+
+        span = new Span(mock(ElasticApmTracer.class));
+        span.getTraceContext().asRootSpan(ConstantSampler.of(true));
+        span.withType("template").withAction("jsf.render");
+        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
+
+        span = new Span(mock(ElasticApmTracer.class));
+        span.getTraceContext().asRootSpan(ConstantSampler.of(true));
+        span.withType("template").withSubtype("jsf.render");
+        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
+
+        span = new Span(mock(ElasticApmTracer.class));
+        span.getTraceContext().asRootSpan(ConstantSampler.of(true));
+        span.withSubtype("jsf").withAction("render");
+        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        assertThat(spanJson.get("type").isNull()).isTrue();
+        System.out.println(spanJson);
+    }
+
+    @Test
+    void testInlineReplacement() {
+        StringBuilder sb = new StringBuilder("this.is.a.string");
+        DslJsonSerializer.replace(sb, ".", "_DOT_", 6);
+        assertThat(sb.toString()).isEqualTo("this.is_DOT_a_DOT_string");
     }
 
     private String toJson(Map<String, String> map) {

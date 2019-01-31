@@ -20,7 +20,6 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -37,7 +36,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static co.elastic.apm.agent.http.client.HttpClientHelper.HTTP_CLIENT_SPAN_TYPE_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -63,9 +61,6 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
 
     public static class CreateSpanInstrumentation extends HttpUrlConnectionInstrumentation {
 
-        @VisibleForAdvice
-        public static final String SPAN_TYPE = HTTP_CLIENT_SPAN_TYPE_PREFIX + "urlconnection";
-
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void enter(@Advice.This HttpURLConnection thiz,
                                  @Advice.FieldValue("connected") boolean connected) {
@@ -73,7 +68,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                 return;
             }
             final URL url = thiz.getURL();
-            final Span span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost(), SPAN_TYPE);
+            final Span span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost());
             if (span != null) {
                 span.setOriginator(thiz);
                 if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_HEADER) == null) {

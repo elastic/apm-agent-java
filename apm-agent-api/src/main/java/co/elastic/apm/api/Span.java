@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * A span contains information about a specific code path, executed as part of a {@link Transaction}.
@@ -50,19 +51,13 @@ public interface Span {
     Span setName(String name);
 
     /**
-     * Sets the type of span.
-     * <p>
-     * The type is a hierarchical string used to group similar spans together.
-     * For instance, all spans of MySQL queries are given the type `db.mysql.query`.
-     * </p>
-     * <p>
-     * In the above example `db` is considered the type prefix. Though there are no naming restrictions for this prefix,
-     * the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
-     * </p>
-     *
+     * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
+     * Instead, setting the span type can be done when starting a new span through {@link #startSpan(String, String, String)}.
+     * 
      * @param type the type of the span
      */
     @Nonnull
+    @Deprecated
     Span setType(String type);
 
     /**
@@ -82,17 +77,26 @@ public interface Span {
     Span addTag(String key, String value);
 
     /**
-     * Start and return a new custom span as a child of this span.
+     * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
+     * Instead, start a new span through {@link #startSpan()} or {@link #startSpan(String, String, String)}.
+     *
+     * @return the started span, never {@code null}
+     */
+    @Nonnull
+    @Deprecated
+    Span createSpan();
+
+    /**
+     * Start and return a new typed custom span as a child of this span.
      * <p>
      * It is important to call {@link Span#end()} when the span has ended.
      * A best practice is to use the span in a try-catch-finally block.
      * Example:
      * </p>
      * <pre>
-     * Span span = parent.startSpan();
+     * Span span = parent.startSpan("db", "mysql", "query");
      * try {
      *     span.setName("SELECT FROM customer");
-     *     span.setType("db.mysql.query");
      *     // do your thing...
      * } catch (Exception e) {
      *     span.captureException(e);
@@ -105,16 +109,61 @@ public interface Span {
      * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
      * See {@link #activate()} on how to achieve that.
      * </p>
+     * <p>
+     * The type, subtype and action strings are used to group similar spans together, with increasing resolution.
+     * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans 
+     * describing queries are give the action `query`.
+     * </p>
+     * <p>
+     * In the above example `db` is considered the general type. Though there are no naming restrictions for the general types,
+     * the following are standardized across all Elastic APM agents: `app`, `db`, `cache`, `template`, and `ext`.
+     * </p>
+     * <p>
+     * NOTE: '.' (dot) character is not allowed within type, subtype and action. Any such character will be replaced with a '_'
+     * (underscore) character.
+     * </p>
      *
+     * @param type      The general type of the new span
+     * @param subtype   The subtype of the new span
+     * @param action    The action related to the new span
      * @return the started span, never {@code null}
      */
     @Nonnull
-    Span createSpan();
+    Span startSpan(String type, @Nullable String subtype, @Nullable String action);
+
+    /**
+     * Start and return a new custom span with no type, as a child of this span.
+     * <p>
+     * It is important to call {@link Span#end()} when the span has ended.
+     * A best practice is to use the span in a try-catch-finally block.
+     * Example:
+     * </p>
+     * <pre>
+     * Span span = parent.startSpan();
+     * try {
+     *     span.setName("SELECT FROM customer");
+     *     // do your thing...
+     * } catch (Exception e) {
+     *     span.captureException(e);
+     *     throw e;
+     * } finally {
+     *     span.end();
+     * }
+     * </pre>
+     * <p>
+     * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
+     * See {@link #activate()} on how to achieve that.
+     * </p>
+     * 
+     * @return the started span, never {@code null}
+     */
+    @Nonnull
+    Span startSpan();
 
     /**
      * Ends the span and schedules it to be reported to the APM Server.
      * It is illegal to call any methods on a span instance which has already ended.
-     * This also includes this method and {@link #createSpan()}.
+     * This also includes this method and {@link #startSpan()}.
      */
     void end();
 

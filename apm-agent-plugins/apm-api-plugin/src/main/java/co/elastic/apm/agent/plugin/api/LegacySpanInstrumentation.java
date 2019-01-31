@@ -21,6 +21,7 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -81,7 +82,9 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String type) {
-            span.withType(type);
+            if (span instanceof Span) {
+                ((Span) span).setType(type, null, null);
+            }
         }
     }
 

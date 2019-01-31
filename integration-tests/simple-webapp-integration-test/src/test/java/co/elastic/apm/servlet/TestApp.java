@@ -80,7 +80,9 @@ public enum TestApp {
         Iterator<JsonNode> iterator = spans.iterator();
         JsonNode executeSpan = iterator.next();
         assertThat(executeSpan.get("name").textValue()).isEqualTo("JSF Execute");
+        assertThat(executeSpan.get("type").textValue()).isEqualTo("template.jsf.execute");
         JsonNode renderSpan = iterator.next();
         assertThat(renderSpan.get("name").textValue()).isEqualTo("JSF Render");
+        assertThat(renderSpan.get("type").textValue()).isEqualTo("template.jsf.render");
     }
 }

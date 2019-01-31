@@ -8,6 +8,7 @@ co.elastic.apm.agent.plugin.api.TransactionInstrumentation$EnsureParentIdInstrum
 co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetResultInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$CaptureExceptionInstrumentation

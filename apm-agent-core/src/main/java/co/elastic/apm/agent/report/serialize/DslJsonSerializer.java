@@ -524,8 +524,42 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (span.getContext().hasContent()) {
             serializeSpanContext(span.getContext());
         }
-        writeLastField("type", span.getType());
+        serializeSpanType(span);
         jw.writeByte(OBJECT_END);
+    }
+
+    /**
+     * TODO: remove in 2.0
+     * To be removed for agents working only with APM server 7.0 or higher, where schema contains span.type, span.subtype and span.action
+     * @param span serialized span
+     */
+    private void serializeSpanType(Span span) {
+        writeFieldName("type");
+        String type = span.getType();
+        if (type != null) {
+            replaceBuilder.setLength(0);
+            replaceBuilder.append(type);
+            replace(replaceBuilder, ".", "_", 0);
+            String subtype = span.getSubtype();
+            String action = span.getAction();
+            if ((subtype != null && !subtype.isEmpty()) || (action != null && !action.isEmpty())) {
+                replaceBuilder.append('.');
+                int replaceStartIndex = replaceBuilder.length() + 1;
+                if (subtype != null && !subtype.isEmpty()) {
+                    replaceBuilder.append(subtype);
+                    replace(replaceBuilder, ".", "_", replaceStartIndex);
+                }
+                if (action != null && !action.isEmpty()) {
+                    replaceBuilder.append('.');
+                    replaceStartIndex = replaceBuilder.length() + 1;
+                    replaceBuilder.append(action);
+                    replace(replaceBuilder, ".", "_", replaceStartIndex);
+                }
+            }
+            writeStringValue(replaceBuilder);
+        } else {
+            jw.writeNull();
+        }
     }
 
     private void serializeStacktrace(StackTraceElement[] stacktrace) {
@@ -725,14 +759,15 @@ public class DslJsonSerializer implements PayloadSerializer {
         replaceBuilder.setLength(0);
         replaceBuilder.append(s);
         for (String toReplace : stringsToReplace) {
-            replace(replaceBuilder, toReplace, replacement);
+            replace(replaceBuilder, toReplace, replacement, 0);
         }
         return replaceBuilder;
     }
 
-    private static void replace(StringBuilder replaceBuilder, String toReplace, String replacement) {
-        for (int i = replaceBuilder.indexOf(toReplace); i != -1; i = replaceBuilder.indexOf(toReplace)) {
-            replaceBuilder.replace(i, i + replacement.length(), replacement);
+    static void replace(StringBuilder replaceBuilder, String toReplace, String replacement, int fromIndex) {
+        for (int i = replaceBuilder.indexOf(toReplace, fromIndex); i != -1; i = replaceBuilder.indexOf(toReplace, fromIndex)) {
+            replaceBuilder.replace(i, i + toReplace.length(), replacement);
+            fromIndex = i;
         }
     }
 

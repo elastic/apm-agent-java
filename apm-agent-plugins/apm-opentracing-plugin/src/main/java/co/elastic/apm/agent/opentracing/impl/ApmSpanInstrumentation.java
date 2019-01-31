@@ -76,31 +76,32 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros, @Nullable Object traceContext) {
-            if (span.getType() == null) {
-                if (span instanceof Transaction) {
-                    Transaction transaction = (Transaction) span;
-                    if (transaction.getType() == null) {
-                        if (transaction.getContext().getRequest().hasContent()) {
-                            transaction.withType(Transaction.TYPE_REQUEST);
-                        } else {
-                            transaction.withType("unknown");
-                        }
+        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros, @Nullable Object traceContext) {
+            if (abstractSpan instanceof Transaction) {
+                Transaction transaction = (Transaction) abstractSpan;
+                if (transaction.getType() == null) {
+                    if (transaction.getContext().getRequest().hasContent()) {
+                        transaction.withType(Transaction.TYPE_REQUEST);
+                    } else {
+                        transaction.withType("unknown");
                     }
-                } else {
+                }
+            } else {
+                Span span = (Span) abstractSpan;
+                if (span.getType() == null) {
                     span.withType("unknown");
                 }
             }
 
             if (finishMicros >= 0) {
-                span.end(finishMicros);
+                abstractSpan.end(finishMicros);
             } else {
-                span.end();
+                abstractSpan.end();
             }
 
             // If the finished span is the active span, replace with the corresponding TraceContext
-            if (tracer != null && traceContext != null && span == tracer.getActive() && traceContext instanceof TraceContext) {
-                tracer.deactivate(span);
+            if (tracer != null && traceContext != null && abstractSpan == tracer.getActive() && traceContext instanceof TraceContext) {
+                tracer.deactivate(abstractSpan);
                 tracer.activate((TraceContext) traceContext);
             }
         }
@@ -233,7 +234,17 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
             if ("type".equals(key)) {
-                span.withType(value.toString());
+                if (span.getSubtype() == null && span.getAction() == null) {
+                    span.setType(value.toString(), null, null);
+                } else {
+                    span.withType(value.toString());
+                }
+                return true;
+            } else if ("subtype".equals(key)) {
+                span.withSubtype(value.toString());
+                return true;
+            } else if ("action".equals(key)) {
+                span.withAction(value.toString());
                 return true;
             } else if ("sampling.priority".equals(key)) {
                 // mid-trace sampling is not allowed
@@ -241,9 +252,9 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
             } else if ("db.type".equals(key)) {
                 span.getContext().getDb().withType(value.toString());
                 if (isCache(value)) {
-                    span.withType("cache");
+                    span.withType("cache").withSubtype(value.toString());
                 } else {
-                    span.withType("db");
+                    span.withType("db").withSubtype(value.toString());
                 }
                 return true;
             } else if ("db.instance".equals(key)) {
@@ -251,6 +262,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 return true;
             } else if ("db.statement".equals(key)) {
                 span.getContext().getDb().withStatement(value.toString());
+                span.withAction("query");
                 return true;
             } else if ("span.kind".equals(key)) {
                 if (span.getType() == null && ("producer".equals(value) || "client".equals(value))) {

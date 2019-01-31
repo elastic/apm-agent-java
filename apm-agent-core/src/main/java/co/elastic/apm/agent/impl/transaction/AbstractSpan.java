@@ -40,14 +40,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * (Required)
      */
     protected double duration;
-    /**
-     * Keyword of specific relevance in the service's domain
-     * (eg:  'request', 'backgroundjob' for transactions and
-     * 'db.postgresql.query', 'template.erb', etc for spans)
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
+
     private volatile boolean finished = true;
 
     public AbstractSpan(ElasticApmTracer tracer) {
@@ -114,7 +107,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         name.setLength(0);
         timestamp = 0;
         duration = 0;
-        type = null;
         traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
@@ -146,9 +138,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         if (!finished) {
             this.finished = true;
             this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
-            if (type == null) {
-                type = "custom";
-            }
             if (name.length() == 0) {
                 name.append("unnamed");
             }
@@ -160,26 +149,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     protected abstract void doEnd(long epochMicros);
-
-    /**
-     * @return Keyword of specific relevance in the service's domain
-     * (eg:  'request', 'backgroundjob' for transactions and
-     * 'db.postgresql.query', 'template.erb', etc for spans)
-     */
-    @Nullable
-    public String getType() {
-        return type;
-    }
-
-    /**
-     * Keyword of specific relevance in the service's domain
-     * (eg:  'request', 'backgroundjob' for transactions and
-     * 'db.postgresql.query', 'template.erb', etc for spans)
-     */
-    public T withType(@Nullable String type) {
-        this.type = type;
-        return (T) this;
-    }
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
