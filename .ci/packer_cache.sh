@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-JAVA_HOME=$HOME/.java/java10 ./mvnw verify
+JAVA_HOME=$HOME/.java/java10 ./mvnw clean verify
