@@ -74,6 +74,7 @@ class DslJsonSerializerTest {
         Transaction transaction = new Transaction(tracer);
         ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
         error.setTransactionSampled(true);
+        error.setTransactionType("test-type");
         error.setException(new Exception("test"));
         error.getContext().getTags().put("foo", "bar");
         String errorJson = serializer.toJsonString(error);
@@ -88,6 +89,7 @@ class DslJsonSerializerTest {
         assertThat(exception.get("stacktrace")).isNotNull();
         assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
+        assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
     }
 
     @Test

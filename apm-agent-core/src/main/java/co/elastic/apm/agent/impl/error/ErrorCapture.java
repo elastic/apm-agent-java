@@ -54,10 +54,12 @@ public class ErrorCapture implements Recyclable {
      * (Required)
      */
     private long timestamp;
+
     /**
-     * A hint for UI to be able to show whether a recorded trace for the corresponding transaction is expected
+     * Provides info about the Transaction corresponding this error
      */
-    private boolean isTransactionSampled;
+    private TransactionInfo transactionInfo = new TransactionInfo();
+
     private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
 
@@ -101,7 +103,7 @@ public class ErrorCapture implements Recyclable {
         exception = null;
         context.resetState();
         timestamp = 0;
-        isTransactionSampled = false;
+        transactionInfo.resetState();
         traceContext.resetState();
         culprit.setLength(0);
     }
@@ -114,7 +116,7 @@ public class ErrorCapture implements Recyclable {
      * Creates a reference to a {@link TraceContext}
      *
      * @return {@code this}, for chaining
-     * @param traceContext
+     * @param traceContext parent trace context
      */
     public ErrorCapture asChildOf(TraceContext traceContext) {
         this.traceContext.asChildOf(traceContext);
@@ -177,11 +179,42 @@ public class ErrorCapture implements Recyclable {
         culprit.append(')');
     }
 
-    public boolean isTransactionSampled() {
-        return isTransactionSampled;
+    public static class TransactionInfo implements Recyclable {
+        /**
+         * A hint for UI to be able to show whether a recorded trace for the corresponding transaction is expected
+         */
+        private boolean isSampled;
+        /**
+         * The related TransactionInfo type
+         */
+        @Nullable
+        private String type;
+
+        @Override
+        public void resetState() {
+            isSampled = false;
+            type = null;
+        }
+
+        public boolean isSampled() {
+            return isSampled;
+        }
+
+        @Nullable
+        public String getType() {
+            return type;
+        }
+    }
+
+    public TransactionInfo getTransactionInfo() {
+        return transactionInfo;
     }
 
     public void setTransactionSampled(boolean transactionSampled) {
-        isTransactionSampled = transactionSampled;
+        transactionInfo.isSampled = transactionSampled;
+    }
+
+    public void setTransactionType(@Nullable String type) {
+        transactionInfo.type = type;
     }
 }

@@ -165,7 +165,7 @@ class ElasticApmTracerTest {
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
         assertThat(error.getTraceContext().hasContent()).isFalse();
-        assertThat(error.isTransactionSampled()).isFalse();
+        assertThat(error.getTransactionInfo().isSampled()).isFalse();
     }
 
     @Test
@@ -177,6 +177,7 @@ class ElasticApmTracerTest {
     private void innerRecordExceptionWithTrace(boolean sampled) {
         reporter.reset();
         Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(sampled), -1);
+        transaction.withType("test-type");
         try (Scope scope = transaction.activateInScope()) {
             transaction.getContext().getRequest()
                 .addHeader("foo", "bar")
@@ -184,22 +185,23 @@ class ElasticApmTracerTest {
                 .getUrl()
                 .withPathname("/foo");
             tracerImpl.currentTransaction().captureException(new Exception("from transaction"));
-            ErrorCapture error = validateError(transaction, sampled);
+            ErrorCapture error = validateError(transaction, sampled, transaction);
             assertThat(error.getContext().getRequest().getHeaders().get("foo")).isEqualTo("bar");
             reporter.reset();
             Span span = transaction.createSpan().activate();
             span.captureException(new Exception("from span"));
-            validateError(span, sampled);
+            validateError(span, sampled, transaction);
             span.deactivate().end();
             transaction.end();
         }
     }
 
-    private ErrorCapture validateError(AbstractSpan span, boolean sampled) {
+    private ErrorCapture validateError(AbstractSpan span, boolean sampled, Transaction correspondingTransaction) {
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getTraceContext().isChildOf(span.getTraceContext())).isTrue();
-        assertThat(error.isTransactionSampled()).isEqualTo(sampled);
+        assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
+        assertThat(error.getTransactionInfo().getType()).isEqualTo(correspondingTransaction.getType());
         return error;
     }
 
