@@ -20,16 +20,18 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -46,7 +48,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Before
     public final void setUpWiremock() {
-        wireMockRule.stubFor(get(urlEqualTo("/"))
+        wireMockRule.stubFor(any(urlEqualTo("/"))
             .willReturn(aResponse()
                 .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
@@ -56,6 +58,14 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .willReturn(seeOther("/")));
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
+        final Transaction transaction = tracer.startTransaction();
+        transaction.withType("request").activate();
+    }
+
+    @After
+    public final void after() {
+        tracer.currentTransaction().deactivate().end();
+        assertThat(reporter.getTransactions()).hasSize(1);
     }
 
     @Test
@@ -63,7 +73,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getTransactions()).hasSize(1);
+        verifyHttpSpan(path);
+    }
+
+    protected void verifyHttpSpan(String path) {
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -72,7 +85,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getAction()).isNull();
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
-        verify(getRequestedFor(urlPathEqualTo("/"))
+        verify(anyRequestedFor(urlPathEqualTo(path))
             .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
     }
 
@@ -81,7 +94,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
@@ -92,7 +104,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/error";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
@@ -103,7 +114,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/redirect";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -120,7 +130,6 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 
-        assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();
@@ -132,21 +141,18 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
             .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
     }
 
-    private String getBaseUrl() {
+    protected String getBaseUrl() {
         return "http://localhost:" + wireMockRule.port();
     }
 
     protected void performGetWithinTransaction(String path) {
-        final Transaction transaction = tracer.startTransaction();
-        try (Scope scope = transaction.withType("request").activateInScope()) {
-            try {
-                performGet(getBaseUrl() + path);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        try {
+            performGet(getBaseUrl() + path);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        transaction.end();
     }
+
 
     protected abstract void performGet(String path) throws Exception;
 }

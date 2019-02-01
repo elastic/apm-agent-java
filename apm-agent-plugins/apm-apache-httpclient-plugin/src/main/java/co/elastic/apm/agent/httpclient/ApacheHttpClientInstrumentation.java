@@ -56,6 +56,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
         final TraceContextHolder<?> parent = tracer.getActive();
         span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
         if (span != null) {
+            span.activate();
             request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
             // re-adds the header on redirects
@@ -64,7 +65,7 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onAfterExecute(@Advice.Return CloseableHttpResponse response,
+    public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
                                       @Advice.Local("span") @Nullable Span span,
                                       @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {

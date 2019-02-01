@@ -20,10 +20,11 @@
 package co.elastic.apm.agent.urlconnection;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -44,6 +45,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrumentation {
 
+    @VisibleForAdvice
+    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = new WeakConcurrentMap<HttpURLConnection, Span>(true);
+
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "urlconnection");
@@ -63,43 +67,52 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void enter(@Advice.This HttpURLConnection thiz,
-                                 @Advice.FieldValue("connected") boolean connected) {
-            if (tracer == null || tracer.getActive() == null || connected) {
+                                 @Advice.FieldValue("connected") boolean connected,
+                                 @Advice.Local("span") Span span,
+                                 @Advice.Origin String signature) {
+            if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            final URL url = thiz.getURL();
-            final Span span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost());
-            if (span != null) {
-                span.setOriginator(thiz);
-                if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_HEADER) == null) {
-                    thiz.addRequestProperty(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+            span = inFlightSpans.get(thiz);
+            if (span == null && !connected) {
+                final URL url = thiz.getURL();
+                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost());
+                if (span != null) {
+                    if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_HEADER) == null) {
+                        thiz.addRequestProperty(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                    }
                 }
+            }
+            if (span != null) {
+                span.activate();
             }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void exit(@Advice.This HttpURLConnection thiz,
                                 @Nullable @Advice.Thrown Throwable t,
-                                @Advice.FieldValue("responseCode") int responseCode) {
-            if (tracer == null) {
+                                @Advice.FieldValue("responseCode") int responseCode,
+                                @Nullable @Advice.Local("span") Span span,
+                                @Advice.Origin String signature) {
+            if (span == null) {
                 return;
+            } else {
             }
-            // we can't use local variables as a span might be started in HttpUrlConnection#connect
-            // but it is always ended in HttpUrlConnection#getInputStream
-            final TraceContextHolder<?> active = tracer.getActive();
-            if (active instanceof Span) {
-                final Span span = (Span) active;
-                // makes sure this is actually the span for this HttpUrlConnection and not some random parent span
-                if (span.isOriginatedBy(thiz)) {
-                    if (responseCode != -1) {
-                        // if the response code is set, the connection has been established via getOutputStream
-                        // if the response code is unset even after getOutputStream has been called, there will be an exception
-                        span.getContext().getHttp().withStatusCode(responseCode);
-                        span.captureException(t).deactivate().end();
-                    } else if (t != null) {
-                        span.captureException(t).deactivate().end();
-                    }
-                }
+            span.deactivate();
+            if (responseCode != -1) {
+                inFlightSpans.remove(thiz);
+                // if the response code is set, the connection has been established via getOutputStream
+                // if the response code is unset even after getOutputStream has been called, there will be an exception
+                span.getContext().getHttp().withStatusCode(responseCode);
+                span.captureException(t).end();
+            } else if (t != null) {
+                inFlightSpans.remove(thiz);
+                span.captureException(t).end();
+            } else {
+                // if connect or getOutputStream has been called we can't end the span right away
+                // we have to store associate it with thiz HttpURLConnection instance and end once getInputStream has been called
+                // note that this could happen on another thread
+                inFlightSpans.put(thiz, span);
             }
         }
 
@@ -121,15 +134,9 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                            @Nullable @Advice.Thrown Throwable t,
                                            @Advice.FieldValue("responseCode") int responseCode) {
-            if (tracer == null) {
-                return;
-            }
-            final TraceContextHolder<?> active = tracer.getActive();
-            if (active instanceof Span) {
-                final Span span = (Span) active;
-                if (span.isOriginatedBy(thiz)) {
-                    span.captureException(t).deactivate().end();
-                }
+            Span span = inFlightSpans.get(thiz);
+            if (span != null) {
+                span.captureException(t).end();
             }
         }
 

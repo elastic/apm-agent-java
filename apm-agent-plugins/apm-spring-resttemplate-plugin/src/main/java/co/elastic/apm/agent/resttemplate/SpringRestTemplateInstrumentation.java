@@ -58,12 +58,13 @@ public class SpringRestTemplateInstrumentation extends ElasticApmInstrumentation
         span = HttpClientHelper.startHttpClientSpan(parent, Objects.toString(request.getMethod()), request.getURI(),
             request.getURI().getHost());
         if (span != null) {
+            span.activate();
             request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
         }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void afterExecute(@Advice.Return ClientHttpResponse clientHttpResponse,
+    private static void afterExecute(@Advice.Return @Nullable ClientHttpResponse clientHttpResponse,
                                      @Advice.Local("span") @Nullable Span span,
                                      @Advice.Thrown @Nullable Throwable t) throws IOException {
         if (span != null) {
