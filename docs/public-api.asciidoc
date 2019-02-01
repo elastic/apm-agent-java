@@ -272,7 +272,7 @@ is used as a tag key as it can lead to mapping explosions.
 
 [source,java]
 ----
-transaction.setTag("foo", "bar");
+transaction.addTag("foo", "bar");
 ----
 
 * `key`:   The tag key
@@ -537,7 +537,7 @@ is used as a tag key as it can lead to mapping explosions.
 
 [source,java]
 ----
-span.setTag("foo", "bar");
+span.addTag("foo", "bar");
 ----
 
 * `key`:   The tag key
