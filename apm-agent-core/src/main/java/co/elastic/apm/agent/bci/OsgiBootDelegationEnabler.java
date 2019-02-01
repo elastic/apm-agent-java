@@ -22,9 +22,6 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
  * Required in OSGi environments like Equinox, which is used in WebSphere.
  * By adding the base package of the APM agent,
@@ -37,18 +34,25 @@ import java.util.List;
  * </p>
  */
 public class OsgiBootDelegationEnabler implements LifecycleListener {
-    private static final List<String> bootdelegationNames = Arrays.asList("org.osgi.framework.bootdelegation", "atlassian.org.osgi.framework.bootdelegation");
     private static final String APM_BASE_PACKAGE = "co.elastic.apm.agent.*";
+    // see https://confluence.atlassian.com/jirakb/using-javaagent-with-jira-790793295.html#UsingjavaagentwithJIRA-Resolution
+    private static final String ATLASSIAN_BOOTDELEGATION = "META-INF.services,com.yourkit,com.singularity.*,com.jprofiler," +
+        "com.jprofiler.*,org.apache.xerces,org.apache.xerces.*,org.apache.xalan,org.apache.xalan.*,sun.*,com.sun.jndi.*,com.icl.saxon," +
+        "com.icl.saxon.*,javax.servlet,javax.servlet.*,com.sun.xml.bind.*,co.elastic.apm.agent.*";
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        for (String bootdelegationName : bootdelegationNames) {
-            final String systemPackages = System.getProperty(bootdelegationName);
-            if (systemPackages != null) {
-                System.setProperty(bootdelegationName, systemPackages + "," + APM_BASE_PACKAGE);
-            } else {
-                System.setProperty(bootdelegationName, APM_BASE_PACKAGE);
-            }
+        // may be problematic as it could override the defaults in a properties file
+        appendToSystemProperty("org.osgi.framework.bootdelegation", APM_BASE_PACKAGE);
+        appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION);
+    }
+
+    private void appendToSystemProperty(String propertyName, String append) {
+        final String systemPackages = System.getProperty(propertyName);
+        if (systemPackages != null) {
+            System.setProperty(propertyName, systemPackages + "," + append);
+        } else {
+            System.setProperty(propertyName, append);
         }
     }
 

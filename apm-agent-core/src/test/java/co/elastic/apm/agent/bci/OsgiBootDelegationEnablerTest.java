@@ -43,7 +43,7 @@ class OsgiBootDelegationEnablerTest {
         osgiBootDelegationEnabler.start(mock(ElasticApmTracer.class));
         assertThat(System.getProperties())
             .containsEntry("org.osgi.framework.bootdelegation", "co.elastic.apm.agent.*")
-            .containsEntry("atlassian.org.osgi.framework.bootdelegation", "co.elastic.apm.agent.*");
+            .containsKey("atlassian.org.osgi.framework.bootdelegation");
     }
 
     @Test
@@ -52,6 +52,6 @@ class OsgiBootDelegationEnablerTest {
         osgiBootDelegationEnabler.start(mock(ElasticApmTracer.class));
         assertThat(System.getProperties())
             .containsEntry("org.osgi.framework.bootdelegation", "foo.bar,co.elastic.apm.agent.*")
-            .containsEntry("atlassian.org.osgi.framework.bootdelegation", "co.elastic.apm.agent.*");
+            .containsKey("atlassian.org.osgi.framework.bootdelegation");
     }
 }
