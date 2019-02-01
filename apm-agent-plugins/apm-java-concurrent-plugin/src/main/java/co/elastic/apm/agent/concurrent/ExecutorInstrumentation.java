@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -110,7 +109,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onSubmit(@Advice.This ExecutorService thiz,
+        public static void onSubmit(@Advice.This Executor thiz,
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
                                     @Advice.Local("original") Callable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
