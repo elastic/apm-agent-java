@@ -96,7 +96,6 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
                                 @Advice.Origin String signature) {
             if (span == null) {
                 return;
-            } else {
             }
             span.deactivate();
             if (responseCode != -1) {
@@ -134,7 +133,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
         public static void afterDisconnect(@Advice.This HttpURLConnection thiz,
                                            @Nullable @Advice.Thrown Throwable t,
                                            @Advice.FieldValue("responseCode") int responseCode) {
-            Span span = inFlightSpans.get(thiz);
+            Span span = inFlightSpans.remove(thiz);
             if (span != null) {
                 span.captureException(t).end();
             }
