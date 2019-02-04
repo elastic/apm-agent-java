@@ -61,7 +61,9 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
             {"10.0.0.Final"},
             {"11.0.0.Final"},
             {"12.0.0.Final"},
-            {"13.0.0.Final"}
+            {"13.0.0.Final"},
+            {"14.0.0.Final"},
+            {"15.0.0.Final"}
         });
     }
 
