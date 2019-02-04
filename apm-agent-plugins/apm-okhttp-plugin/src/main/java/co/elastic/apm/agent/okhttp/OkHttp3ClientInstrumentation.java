@@ -66,6 +66,7 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
                 okhttp3.Request request = (okhttp3.Request) originalRequest;
                 span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host());
                 if (span != null) {
+                    span.activate();
                     originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }
             }

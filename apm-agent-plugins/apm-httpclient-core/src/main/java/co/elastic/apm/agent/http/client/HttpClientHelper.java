@@ -45,8 +45,7 @@ public class HttpClientHelper {
                 .createSpan()
                 .withType(EXTERNAL_TYPE)
                 .withSubtype(HTTP_SUBTYPE)
-                .appendToName(method).appendToName(" ").appendToName(hostName)
-                .activate();
+                .appendToName(method).appendToName(" ").appendToName(hostName);
 
             if (uri != null) {
                 span.getContext().getHttp().withUrl(uri);
