@@ -25,6 +25,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -49,6 +51,8 @@ class TraceMethodInstrumentationTest {
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
             MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"))
         );
+        when(config.getConfig(CoreConfiguration.class).getMethodsExcludedFromInstrumentation())
+            .thenReturn(Collections.singletonList(WildcardMatcher.valueOf("*exclude*")));
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
@@ -66,6 +70,15 @@ class TraceMethodInstrumentationTest {
         TestClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestClass#traceMe");
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("TestClass#traceMeToo");
+    }
+
+    @Test
+    void testExcludedMethod() {
+        TestClass.traceMeAsWell();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestClass#traceMeAsWell");
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("TestClass#traceMeToo");
     }
@@ -105,7 +118,16 @@ class TraceMethodInstrumentationTest {
             traceMeToo();
         }
 
+        private static void traceMeAsWell() {
+            traceMeToo();
+            traceMeNotExcludeMe();
+        }
+
         private static void traceMeToo() {
+
+        }
+
+        private static void traceMeNotExcludeMe() {
 
         }
     }

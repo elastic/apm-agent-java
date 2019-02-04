@@ -289,7 +289,7 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
-        final List<WildcardMatcher> excludedFromInstrumentation = coreConfiguration.getExcludedFromInstrumentation();
+        final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
@@ -331,7 +331,7 @@ public class ElasticApmAgent {
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(excludedFromInstrumentation, target.getName()) != null;
+                    return WildcardMatcher.anyMatch(classesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();
