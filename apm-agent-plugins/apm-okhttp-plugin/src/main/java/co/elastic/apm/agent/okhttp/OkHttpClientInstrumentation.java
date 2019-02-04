@@ -65,6 +65,7 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
                 com.squareup.okhttp.Request request = (com.squareup.okhttp.Request) originalRequest;
                 span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.httpUrl().toString(), request.httpUrl().host());
                 if (span != null) {
+                    span.activate();
                     originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER,
                         span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 }

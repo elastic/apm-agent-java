@@ -46,6 +46,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -192,9 +193,16 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        final Object bottomOfStack = activeStack.get().peekLast();
+        final TraceContextHolder<?> bottomOfStack = activeStack.get().peekLast();
         if (bottomOfStack instanceof Transaction) {
             return (Transaction) bottomOfStack;
+        } else {
+            for (Iterator<TraceContextHolder<?>> it = activeStack.get().descendingIterator(); it.hasNext(); ) {
+                TraceContextHolder<?> context = it.next();
+                if (context instanceof Transaction) {
+                    return (Transaction) context;
+                }
+            }
         }
         return null;
     }
@@ -343,7 +351,7 @@ public class ElasticApmTracer {
     }
 
     public Runnable wrapRunnable(Runnable delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeRunnableWrapper) {
+        if (delegate instanceof ContextInScopeRunnableWrapper || delegate instanceof SpanInScopeRunnableWrapper) {
             return delegate;
         }
         return runnableContextWrapperObjectPool.createInstance().wrap(delegate, traceContext);
@@ -419,7 +427,7 @@ public class ElasticApmTracer {
         assertIsActive(holder, stack.poll());
         if (holder == stack.peekLast()) {
             // if this is the bottom of the stack
-            // clear to avoid potential leaks in case of wrong api usage
+            // clear to avoid potential leaks in case some spans didn't deactivate properly
             // makes all leaked spans eligible for GC
             stack.clear();
         }

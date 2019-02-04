@@ -59,7 +59,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            /*{"7-jre7-slim"},*/
+            {"7-jre7-slim"},
             {"8.5.0-jre8"},
             {"8.5-jre8-slim"},
             {"9-jre9-slim"},

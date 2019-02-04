@@ -22,17 +22,14 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import net.bytebuddy.asm.Advice;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.SyncTaskExecutor;
 
 import java.util.Arrays;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -42,18 +39,21 @@ import java.util.function.Supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
-public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
+public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationTest {
 
-    private final Executor executor;
+    private final ExecutorService executor;
     private Transaction transaction;
 
-    public ExecutorInstrumentationTest(Supplier<ExecutorService> supplier) {
+    public ExecutorServiceInstrumentationTest(Supplier<ExecutorService> supplier) {
         executor = supplier.get();
     }
 
     @Parameterized.Parameters()
-    public static Iterable<Supplier<Executor>> data() {
-        return Arrays.asList(SimpleAsyncTaskExecutor::new, SyncTaskExecutor::new);
+    public static Iterable<Supplier<ExecutorService>> data() {
+        return Arrays.asList(() -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadExecutor()),
+            () -> ExecutorServiceWrapper.wrap(Executors.newSingleThreadScheduledExecutor()),
+            () -> ExecutorServiceWrapper.wrap(new ForkJoinPool()),
+            () -> GlobalEventExecutor.INSTANCE);
     }
 
     @Before
@@ -67,8 +67,41 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testExecutorSubmitRunnableAnonymousInnerClass() throws Exception {
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                createAsyncSpan();
+            }
+        }).get();
+
+        assertOnlySpanIsChildOfOnlyTransaction();
+    }
+
+    @Test
+    public void testExecutorSubmitRunnableLambda() throws Exception {
+        executor.submit(() -> createAsyncSpan()).get(1, TimeUnit.SECONDS);
+        assertOnlySpanIsChildOfOnlyTransaction();
+    }
+
+    @Test
     public void testExecutorExecute() throws Exception {
         executor.execute(this::createAsyncSpan);
+        assertOnlySpanIsChildOfOnlyTransaction();
+    }
+
+    @Test
+    public void testExecutorSubmitRunnableWithResult() throws Exception {
+        executor.submit(this::createAsyncSpan, null);
+        assertOnlySpanIsChildOfOnlyTransaction();
+    }
+
+    @Test
+    public void testExecutorSubmitCallableMethodReference() throws Exception {
+        executor.submit(() -> {
+            createAsyncSpan();
+            return null;
+        }).get(1, TimeUnit.SECONDS);
         assertOnlySpanIsChildOfOnlyTransaction();
     }
 
