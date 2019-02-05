@@ -51,7 +51,6 @@ public class ForwardRequestDispatcherInstrumentation extends ElasticApmInstrumen
                 return;
             }
             final TraceContextHolder<?> parent = tracer.getActive();
-
             span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(FORWARD).activate();
         }
 

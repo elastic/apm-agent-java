@@ -139,7 +139,7 @@ public class ServletApiAdvice {
             Transaction currentTransaction = tracer.currentTransaction();
             if (currentTransaction != null) {
                 final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), thiz.getClass(), currentTransaction.getName());
+                ServletTransactionHelper.setTransactionNameByServletClass(httpServletRequest.getMethod(), httpServletRequest.getRequestURI(), thiz.getClass(), currentTransaction.getName());
                 final Principal userPrincipal = httpServletRequest.getUserPrincipal();
                 ServletTransactionHelper.setUsernameIfUnset(userPrincipal != null ? userPrincipal.getName() : null, currentTransaction.getContext());
             }

@@ -64,10 +64,10 @@ public class ForwardRequestDispatcherInstrumentationTest extends AbstractServlet
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }
+        System.out.println("Transaction name="+reporter.getFirstTransaction().getName().toString());
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("FORWARD", reporter.getSpans().get(0).getName().toString());
-
+        assertEquals("FORWARD /forward", reporter.getSpans().get(0).getName().toString());
     }
 
     private void initInstrumentation(List<ElasticApmInstrumentation> instrumentations) {

@@ -67,9 +67,10 @@ public class IncludeRequestDispatcherInstrumentationTest extends AbstractServlet
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }
+        System.out.println("Transaction name="+reporter.getFirstTransaction().getName().toString());
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("INCLUDE", reporter.getSpans().get(0).getName().toString());
+        assertEquals("INCLUDE /include", reporter.getSpans().get(0).getName().toString());
 
     }
 
