@@ -444,6 +444,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer.waitingFor(Wait.forHttp(path)
             .forPort(webPort)
             .forStatusCode(200)
-            .withStartupTimeout(Duration.ofSeconds(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 60)));
+            .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 5)));
     }
 }
