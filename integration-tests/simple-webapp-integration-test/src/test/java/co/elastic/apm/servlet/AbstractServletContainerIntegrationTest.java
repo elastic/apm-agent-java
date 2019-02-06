@@ -129,7 +129,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
         this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
             .forPort(webPort)
-            .withStartupTimeout(Duration.ofSeconds(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 60)));
+            .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 5)));
         this.servletContainer.start();
     }
 
