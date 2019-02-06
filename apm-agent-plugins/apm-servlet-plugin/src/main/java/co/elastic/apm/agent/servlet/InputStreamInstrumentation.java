@@ -89,7 +89,6 @@ public class InputStreamInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
     public static class InputStreamAdvice {
-
         @Nullable
         @VisibleForAdvice
         public static ElasticApmTracer tracer;
