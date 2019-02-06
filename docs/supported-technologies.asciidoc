@@ -96,6 +96,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |<<setup-wildfly,WildFly>>
 |8-13
 
+|<<setup-wildfly,JBoss EAP>>
+|7.0, 7.1, 7.2
+
 |<<setup-jetty,Jetty>> (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
 
