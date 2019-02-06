@@ -21,18 +21,21 @@ package co.elastic.apm.servlet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import okhttp3.Response;
+import org.mockserver.model.ClearType;
+import org.mockserver.model.HttpRequest;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static co.elastic.apm.servlet.AbstractServletContainerIntegrationTest.mockServerContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public enum TestApp {
-    JSF("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/index.html", TestApp::testJsf),
-    JSF_STANDALONE("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/index.html", TestApp::testJsf),
-    SOAP("../soap-test", "soap-test.war", "/soap-test/index.html", TestApp::testSoap);
+    JSF("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html", TestApp::testJsf),
+    JSF_STANDALONE("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", TestApp::testJsf),
+    SOAP("../soap-test", "soap-test.war", "/soap-test/status.html", TestApp::testSoap);
 
     final String modulePath;
     final String appFileName;
@@ -61,6 +64,7 @@ public enum TestApp {
 
     private static void testJsfRequest(AbstractServletContainerIntegrationTest containerIntegrationTest, String testedPath,
                                        String additionalPathInfo) throws IOException, InterruptedException {
+        mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
         String viewPath = "/jsf-http-get" + testedPath;
         String fullTestPath = viewPath + additionalPathInfo;
 
