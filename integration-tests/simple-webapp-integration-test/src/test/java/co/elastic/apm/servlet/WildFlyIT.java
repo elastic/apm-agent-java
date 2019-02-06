@@ -25,7 +25,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class WildFlyIT extends AbstractServletContainerIntegrationTest {
@@ -69,6 +68,6 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<TestApp> getTestApps() {
-        return Collections.singletonList(TestApp.JSF);
+        return Arrays.asList(TestApp.JSF, TestApp.SOAP);
     }
 }
