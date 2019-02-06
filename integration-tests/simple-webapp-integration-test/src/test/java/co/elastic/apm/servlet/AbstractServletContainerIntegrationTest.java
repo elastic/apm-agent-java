@@ -127,9 +127,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             checkFilePresent(pathToAppFile);
             servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.appFileName);
         }
-        this.servletContainer.waitingFor(Wait.forHttp(contextPath + "/status.jsp")
-            .forPort(webPort)
-            .withStartupTimeout(Duration.ofSeconds(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 60)));
+        waitFor(contextPath + "/status.jsp");
         this.servletContainer.start();
     }
 
@@ -200,6 +198,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         testExecutorService();
         testHttpUrlConnection();
         for (TestApp testApp : getTestApps()) {
+            waitFor(testApp.statusEndpoint);
+            mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
             testApp.testMethod.accept(this);
         }
     }
@@ -438,5 +438,12 @@ public abstract class AbstractServletContainerIntegrationTest {
                 spans.add(jsonSpan);
             }
         }
+    }
+
+    public void waitFor(String path) {
+        this.servletContainer.waitingFor(Wait.forHttp(path)
+            .forPort(webPort)
+            .forStatusCode(200)
+            .withStartupTimeout(Duration.ofSeconds(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 60)));
     }
 }
