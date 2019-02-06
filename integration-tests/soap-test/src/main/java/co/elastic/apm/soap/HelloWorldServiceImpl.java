@@ -25,7 +25,7 @@ import javax.jws.WebService;
 
 @WebService(serviceName = "HelloWorldService", portName = "HelloWorld", name = "HelloWorld",
     endpointInterface = "co.elastic.apm.soap.HelloWorldService",
-    targetNamespace = "http://www.jboss.org/jbossas/quickstarts/wshelloworld/HelloWorld")
+    targetNamespace = "elastic")
 public class HelloWorldServiceImpl implements HelloWorldService {
     @Override
     public String sayHello() {

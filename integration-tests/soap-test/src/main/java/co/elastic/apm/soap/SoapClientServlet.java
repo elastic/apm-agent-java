@@ -33,9 +33,9 @@ import java.net.URL;
 public class SoapClientServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        QName serviceName = new QName("http://www.jboss.org/jbossas/quickstarts/wshelloworld/HelloWorld", "HelloWorldService");
+        QName serviceName = new QName("elastic", "HelloWorldService");
         final HelloWorldService service = Service
-            .create(new URL("http://localhost:" + req.getLocalPort() + req.getServletContext().getContextPath() + "/HelloWorldService?wsdl"), serviceName)
+            .create(new URL("http", req.getLocalAddr(), req.getLocalPort(),req.getServletContext().getContextPath() + "/HelloWorldService?wsdl"), serviceName)
             .getPort(HelloWorldService.class);
         final String remoteTraceId = service.sayHello();
         if (!ElasticApm.currentTransaction().getTraceId().equals(remoteTraceId)) {

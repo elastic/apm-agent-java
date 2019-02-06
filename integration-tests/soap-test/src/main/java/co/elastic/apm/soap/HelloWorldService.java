@@ -24,7 +24,7 @@ import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 
 @SOAPBinding(style = SOAPBinding.Style.RPC)
-@WebService(targetNamespace = "http://www.jboss.org/jbossas/quickstarts/wshelloworld/HelloWorld")
+@WebService(targetNamespace = "elastic")
 public interface HelloWorldService {
     @WebMethod
     String sayHello();
