@@ -31,7 +31,7 @@ import java.util.Collections;
 public class JBossIT extends AbstractServletContainerIntegrationTest {
 
     public JBossIT(final String jbossVersion) {
-        super(new GenericContainer<>("registry.access.redhat.com/jboss-eap-7/" + jbossVersion)
+        super(new GenericContainer<>("registry.access.redhat.com/" + jbossVersion)
             .withNetwork(Network.SHARED)
             // this overrides the defaults, so we have to manually re-add preferIPv4Stack
             // the other defaults don't seem to be important
@@ -59,9 +59,10 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
     @Parameterized.Parameters(name = "JBoss {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"eap70-openshift"},
-            {"eap71-openshift"},
-            {"eap72-openshift"}
+            {"jboss-eap-6/eap64-openshift"},
+            {"jboss-eap-7/eap70-openshift"},
+            {"jboss-eap-7/eap71-openshift"},
+            {"jboss-eap-7/eap72-openshift"}
         });
     }
 
