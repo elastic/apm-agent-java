@@ -265,7 +265,8 @@ public abstract class AbstractServletContainerIntegrationTest {
         for (String pathToTest : getPathsToTestErrors()) {
             String fullPathToTest = contextPath + pathToTest;
             mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
-            executeAndValidateRequest(fullPathToTest + "?cause_transaction_error=true", "", 500);
+            // JBoss EAP 6.4 returns a 200 in case of an error in async dispatch 🤷‍♂️
+            executeAndValidateRequest(fullPathToTest + "?cause_transaction_error=true", "", null);
             JsonNode transaction = assertTransactionReported(fullPathToTest, 500);
             String transactionId = transaction.get("id").textValue();
             assertSpansTransactionId(500, this::getReportedSpans, transactionId);
@@ -284,9 +285,11 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    void executeAndValidateRequest(String pathToTest, String expectedContent, int expectedResponseCode) throws IOException, InterruptedException {
+    void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest);
-        assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+        if (expectedResponseCode != null) {
+            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+        }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
         if (expectedContent != null) {
@@ -444,6 +447,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.servletContainer.waitingFor(Wait.forHttp(path)
             .forPort(webPort)
             .forStatusCode(200)
-            .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? Integer.MAX_VALUE : 5)));
+            .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? 1_000 : 5)));
     }
 }

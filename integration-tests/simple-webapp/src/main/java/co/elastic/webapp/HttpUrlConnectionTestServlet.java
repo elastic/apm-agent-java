@@ -32,7 +32,7 @@ public class HttpUrlConnectionTestServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        final URL url = new URL("http://localhost:" + req.getLocalPort() + req.getServletContext().getContextPath() + "/hello-world.jsp");
+        final URL url = new URL("http",  req.getLocalAddr(), req.getLocalPort(),req.getServletContext().getContextPath() + "/hello-world.jsp");
         final HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         urlConnection.connect();
         final InputStream inputStream = urlConnection.getInputStream();
