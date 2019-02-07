@@ -68,6 +68,6 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<TestApp> getTestApps() {
-        return Collections.singletonList(TestApp.JSF);
+        return Arrays.asList(TestApp.JSF, TestApp.SOAP);
     }
 }
