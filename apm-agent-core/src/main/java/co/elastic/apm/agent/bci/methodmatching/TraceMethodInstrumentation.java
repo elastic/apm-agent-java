@@ -21,6 +21,7 @@ package co.elastic.apm.agent.bci.methodmatching;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -96,6 +97,18 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         ElementMatcher.Junction<? super MethodDescription> matcher = matches(methodMatcher.getMethodMatcher());
+
+        final List<WildcardMatcher> methodsExcludedFromInstrumentation =
+            (tracer != null)? tracer.getConfig(CoreConfiguration.class).getMethodsExcludedFromInstrumentation(): null;
+        if (methodsExcludedFromInstrumentation != null && !methodsExcludedFromInstrumentation.isEmpty()) {
+            matcher = matcher.and(not(new ElementMatcher<MethodDescription>() {
+                @Override
+                public boolean matches(MethodDescription target) {
+                    return WildcardMatcher.anyMatch(methodsExcludedFromInstrumentation, target.getActualName()) != null;
+                }
+            }));
+        }
+
         if (methodMatcher.getModifier() != null) {
             switch (methodMatcher.getModifier()) {
                 case Modifier.PUBLIC:

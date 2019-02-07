@@ -94,7 +94,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |7.x, 8.5.x, 9.x
 
 |<<setup-wildfly,WildFly>>
-|8-13
+|8-15
 
 |<<setup-wildfly,JBoss EAP>>
 |7.0, 7.1, 7.2
