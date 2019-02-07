@@ -35,7 +35,7 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
             .withNetwork(Network.SHARED)
             // this overrides the defaults, so we have to manually re-add preferIPv4Stack
             // the other defaults don't seem to be important
-            .withEnv("JAVA_OPTS", "$JAVA_OPTS -javaagent:/elastic-apm-agent.jar" +
+            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar " +
                 "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider")
             .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
