@@ -34,12 +34,12 @@ public final class ExecutorUtils {
         // don't instantiate
     }
 
-    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadName, int queueCapacity) {
+    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDaemonPool(final String threadName, int queueCapacity) {
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
         return new ScheduledThreadPoolExecutor(queueCapacity, daemonThreadFactory);
     }
 
-    public static ThreadPoolExecutor createSingleThreadDeamonPool(final String threadName, int queueCapacity) {
+    public static ThreadPoolExecutor createSingleThreadDaemonPool(final String threadName, int queueCapacity) {
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
         return new NamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
     }
