@@ -21,9 +21,7 @@ package co.elastic.apm.servlet;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import org.mockserver.client.MockServerClient;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 /**
  * Acts as a mock for the APM-server.
@@ -37,7 +35,6 @@ public class MockServerContainer extends GenericContainer<MockServerContainer> {
     public MockServerContainer() {
         super("jamesdbloom/mockserver:mockserver-5.4.1");
         addExposedPorts(1080);
-        withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(getClass())));
     }
 
     @Override

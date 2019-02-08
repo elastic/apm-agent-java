@@ -22,38 +22,21 @@ package co.elastic.apm.servlet;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class JBossIT extends AbstractServletContainerIntegrationTest {
 
     public JBossIT(final String jbossVersion) {
         super(new GenericContainer<>("registry.access.redhat.com/" + jbossVersion)
-            .withNetwork(Network.SHARED)
-            // this overrides the defaults, so we have to manually re-add preferIPv4Stack
-            // the other defaults don't seem to be important
-            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
-                "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider")
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
-            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("jboss"))
-            .withFileSystemBind(pathToWar, "/opt/eap/standalone/deployments/ROOT.war")
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990),
+                // this overrides the defaults, so we have to manually re-add preferIPv4Stack
+                // the other defaults don't seem to be important
+                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
+                    "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider"),
             "jboss-application",
-            "/opt/eap/standalone/deployments");
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
-            "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider " +
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+            "/opt/eap/standalone/deployments",
+            "jboss");
     }
 
     @Parameterized.Parameters(name = "JBoss {0}")
@@ -67,7 +50,14 @@ public class JBossIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected Iterable<TestApp> getTestApps() {
-        return Arrays.asList(TestApp.JSF, TestApp.SOAP);
+    protected void enableDebugging(GenericContainer<?> servletContainer) {
+        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
+            "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider " +
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+    }
+
+    @Override
+    protected Iterable<Class<? extends TestApp>> getTestClasses() {
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
     }
 }
