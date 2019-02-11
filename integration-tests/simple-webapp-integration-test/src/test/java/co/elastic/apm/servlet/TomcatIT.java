@@ -22,38 +22,19 @@ package co.elastic.apm.servlet;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     public TomcatIT(final String tomcatVersion) {
         super(new GenericContainer<>("tomcat:" + tomcatVersion)
-            .withNetwork(Network.SHARED)
-            .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar")
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
-            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("tomcat"))
-            .withFileSystemBind(pathToWar, "/usr/local/tomcat/webapps/simple-webapp.war")
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080),
-            8080,
-            "/simple-webapp",
+                .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar"),
             "tomcat-application",
-            "/usr/local/tomcat/webapps");
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer
-            .withEnv("JPDA_ADDRESS", "5005")
-            .withEnv("JPDA_TRANSPORT", "dt_socket");
+            "/usr/local/tomcat/webapps",
+            "tomcat");
     }
 
     @Parameterized.Parameters(name = "Tomcat {0}")
@@ -68,13 +49,20 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
         });
     }
 
+    @Override
+    protected void enableDebugging(GenericContainer<?> servletContainer) {
+        servletContainer
+            .withEnv("JPDA_ADDRESS", "5005")
+            .withEnv("JPDA_TRANSPORT", "dt_socket");
+    }
+
     @Nullable
     protected String getServerLogsPath() {
         return "/usr/local/tomcat/logs/*";
     }
 
     @Override
-    protected Iterable<TestApp> getTestApps() {
-        return Collections.singletonList(TestApp.JSF_STANDALONE);
+    protected Iterable<Class<? extends TestApp>> getTestClasses() {
+        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
     }
 }

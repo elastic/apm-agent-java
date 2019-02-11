@@ -19,80 +19,35 @@
  */
 package co.elastic.apm.servlet;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import okhttp3.Response;
-import org.mockserver.model.ClearType;
-import org.mockserver.model.HttpRequest;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
-
-import static co.elastic.apm.servlet.AbstractServletContainerIntegrationTest.mockServerContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public enum TestApp {
-    JSF("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html", TestApp::testJsf),
-    JSF_STANDALONE("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", TestApp::testJsf),
-    SOAP("../soap-test", "soap-test.war", "/soap-test/status.html", TestApp::testSoap);
+public abstract class TestApp {
+    public static final TestApp JSF = new JsfApplicationServerTestApp();
+    public static final TestApp JSF_STANDALONE = new JsfServletContainerTestApp();
+    public static final TestApp SOAP = new SoapTestApp();
 
-    final String modulePath;
-    final String appFileName;
-    final String statusEndpoint;
-    final Consumer<AbstractServletContainerIntegrationTest> testMethod;
+    private final String modulePath;
+    private final String appFileName;
+    private final String statusEndpoint;
 
-    TestApp(String modulePath, String appFileName, String statusEndpoint, Consumer<AbstractServletContainerIntegrationTest> testMethod) {
+    TestApp(String modulePath, String appFileName, String statusEndpoint) {
         this.modulePath = modulePath;
         this.appFileName = appFileName;
-        this.testMethod = testMethod;
         this.statusEndpoint = statusEndpoint;
     }
 
     String getAppFilePath() {
-        return modulePath + "/target/" + appFileName;
+        return modulePath + "/target/" + getAppFileName();
     }
 
-    private static void testJsf(AbstractServletContainerIntegrationTest containerIntegrationTest) {
-        try {
-            testJsfRequest(containerIntegrationTest, "/faces/index.xhtml", "");
-            testJsfRequest(containerIntegrationTest, "/faces/login.xhtml", "?name=Jack");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public String getAppFileName() {
+        return appFileName;
     }
 
-    private static void testJsfRequest(AbstractServletContainerIntegrationTest containerIntegrationTest, String testedPath,
-                                       String additionalPathInfo) throws IOException, InterruptedException {
-        mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
-        String viewPath = "/jsf-http-get" + testedPath;
-        String fullTestPath = viewPath + additionalPathInfo;
-
-        containerIntegrationTest.executeAndValidateRequest(fullTestPath, "HTTP GET", 200);
-        JsonNode transaction = containerIntegrationTest.assertTransactionReported(viewPath, 200);
-        assertThat(transaction.get("name").textValue()).isEqualTo(testedPath);
-        String transactionId = transaction.get("id").textValue();
-        List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
-            500,
-            containerIntegrationTest::getReportedSpans,
-            transactionId);
-        assertThat(spans.size()).isEqualTo(2);
-        Iterator<JsonNode> iterator = spans.iterator();
-        JsonNode executeSpan = iterator.next();
-        assertThat(executeSpan.get("name").textValue()).isEqualTo("JSF Execute");
-        assertThat(executeSpan.get("type").textValue()).isEqualTo("template.jsf.execute");
-        JsonNode renderSpan = iterator.next();
-        assertThat(renderSpan.get("name").textValue()).isEqualTo("JSF Render");
-        assertThat(renderSpan.get("type").textValue()).isEqualTo("template.jsf.render");
+    public String getStatusEndpoint() {
+        return statusEndpoint;
     }
 
-    private static void testSoap(AbstractServletContainerIntegrationTest test) {
-        try {
-            final Response response = test.executeRequest("/soap-test/execute-soap-request");
-            assertThat(response.code()).isEqualTo(200);
-            assertThat(response.body().string()).isNotEmpty();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;
+
 }

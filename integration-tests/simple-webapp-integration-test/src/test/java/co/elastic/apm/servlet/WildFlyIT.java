@@ -22,7 +22,6 @@ package co.elastic.apm.servlet;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
 
 import java.util.Arrays;
 
@@ -31,25 +30,12 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
     public WildFlyIT(final String wildFlyVersion) {
         super(new GenericContainer<>("jboss/wildfly:" + wildFlyVersion)
-            .withNetwork(Network.SHARED)
-            // this overrides the defaults, so we have to manually re-add preferIPv4Stack
-            // the other defaults don't seem to be important
-            .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true")
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
-            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("wildfly"))
-            .withFileSystemBind(pathToWar, "/opt/jboss/wildfly/standalone/deployments/ROOT.war")
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080, 9990),
+                // this overrides the defaults, so we have to manually re-add preferIPv4Stack
+                // the other defaults don't seem to be important
+                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true"),
             "jboss-application",
-            "/opt/jboss/wildfly/standalone/deployments");
-    }
-
-    @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+            "/opt/jboss/wildfly/standalone/deployments",
+            "wildfly");
     }
 
     @Parameterized.Parameters(name = "Wildfly {0}")
@@ -67,7 +53,12 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected Iterable<TestApp> getTestApps() {
-        return Arrays.asList(TestApp.JSF, TestApp.SOAP);
+    protected void enableDebugging(GenericContainer<?> servletContainer) {
+        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+    }
+
+    @Override
+    protected Iterable<Class<? extends TestApp>> getTestClasses() {
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
     }
 }
