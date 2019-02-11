@@ -17,8 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.servlet.tests;
 
+import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
@@ -26,14 +27,14 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ServletApiTestApp extends TestApp {
+public class ServletApiTestApp extends TestApp {
 
     public ServletApiTestApp() {
         super("../simple-webapp", "simple-webapp.war", "/simple-webapp/status.jsp");
     }
 
     @Override
-    void test(AbstractServletContainerIntegrationTest test) throws Exception {
+    public void test(AbstractServletContainerIntegrationTest test) throws Exception {
         testTransactionReporting(test);
         testTransactionErrorReporting(test);
         testSpanErrorReporting(test);

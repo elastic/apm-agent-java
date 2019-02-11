@@ -17,14 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.servlet.tests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 public abstract class TestApp {
-    public static final TestApp JSF = new JsfApplicationServerTestApp();
-    public static final TestApp JSF_STANDALONE = new JsfServletContainerTestApp();
-    public static final TestApp SOAP = new SoapTestApp();
 
     private final String modulePath;
     private final String appFileName;
@@ -36,7 +33,7 @@ public abstract class TestApp {
         this.statusEndpoint = statusEndpoint;
     }
 
-    String getAppFilePath() {
+    public String getAppFilePath() {
         return modulePath + "/target/" + getAppFileName();
     }
 
@@ -48,6 +45,6 @@ public abstract class TestApp {
         return statusEndpoint;
     }
 
-    abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;
+    public abstract void test(AbstractServletContainerIntegrationTest test) throws Exception;
 
 }

@@ -8,7 +8,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>simple-webapp-integration-test</artifactId>
+    <artifactId>application-server-integration-tests</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
 

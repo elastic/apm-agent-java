@@ -19,6 +19,9 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
+import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.TestApp;
 import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -59,12 +62,12 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     }
 
     @NotNull
-    protected List<String> getPathsToTestErrors() {
+    public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet");
     }
 
     @Override
-    protected boolean isExpectedStacktrace(String path) {
+    public boolean isExpectedStacktrace(String path) {
         // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
         return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
     }

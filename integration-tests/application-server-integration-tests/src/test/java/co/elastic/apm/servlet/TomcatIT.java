@@ -19,46 +19,53 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
+import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class WildFlyIT extends AbstractServletContainerIntegrationTest {
+public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
-    public WildFlyIT(final String wildFlyVersion) {
-        super(new GenericContainer<>("jboss/wildfly:" + wildFlyVersion)
-                // this overrides the defaults, so we have to manually re-add preferIPv4Stack
-                // the other defaults don't seem to be important
-                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true"),
-            "jboss-application",
-            "/opt/jboss/wildfly/standalone/deployments",
-            "wildfly");
+    public TomcatIT(final String tomcatVersion) {
+        super(new GenericContainer<>("tomcat:" + tomcatVersion)
+                .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar"),
+            "tomcat-application",
+            "/usr/local/tomcat/webapps",
+            "tomcat");
     }
 
-    @Parameterized.Parameters(name = "Wildfly {0}")
+    @Parameterized.Parameters(name = "Tomcat {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"8.2.1.Final"},
-            {"9.0.0.Final"},
-            {"10.0.0.Final"},
-            {"11.0.0.Final"},
-            {"12.0.0.Final"},
-            {"13.0.0.Final"},
-            {"14.0.0.Final"},
-            {"15.0.0.Final"}
+            {"7-jre7-slim"},
+            {"8.5.0-jre8"},
+            {"8.5-jre8-slim"},
+            {"9-jre9-slim"},
+            {"9-jre10-slim"},
+            {"9-jre11-slim"}
         });
     }
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer
+            .withEnv("JPDA_ADDRESS", "5005")
+            .withEnv("JPDA_TRANSPORT", "dt_socket");
+    }
+
+    @Nullable
+    protected String getServerLogsPath() {
+        return "/usr/local/tomcat/logs/*";
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
     }
 }
