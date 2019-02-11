@@ -99,11 +99,11 @@ Option 2: edit `start.ini`
 Option 3: If you are using embedded Jetty, see <<setup-generic>>.
 
 [float]
-[[setup-wildfly]]
-==== WildFly
+[[setup-jboss-wildfly]]
+==== JBoss EAP/WildFly
 
 [float]
-[[setup-wildfly-standalone]]
+[[setup-jboss-wildfly-standalone]]
 ===== Standalone Mode
 Add the agent configuration at the bottom of the `standalone.conf` file:
 
@@ -130,7 +130,7 @@ set JAVA_OPTS=%JAVA_OPTS% -Delastic.apm.server_urls=http://localhost:8200
 ----
 
 [float]
-[[setup-wildfly-domain]]
+[[setup-jboss-wildfly-domain]]
 ===== Domain Mode
 Edit the `domain.xml` file which is usually located under `domain/configuration` and add a JVM option for the `-javaagent` flag,
 as well as some system properties for the configuration.
