@@ -56,55 +56,56 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
     @VisibleForAdvice
     static final String SPAN_ACTION = "request";
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeExecute(@Advice.Argument(0) Request request,
-                                        @Advice.Local("span") Span span) {
-        if (tracer == null) {
-            return;
-        }
-        final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
-            return;
-        }
-        span = activeSpan.createSpan()
-            .withType(SPAN_TYPE)
-            .withSubtype(ELASTICSEARCH)
-            .withAction(SPAN_ACTION)
-            .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
-        span.getContext().getDb().withType(ELASTICSEARCH);
-        span.activate();
+    private static class ElasticsearchRestClientAdvice {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onBeforeExecute(@Advice.Argument(0) Request request,
+                                            @Advice.Local("span") Span span) {
+            if (tracer == null) {
+                return;
+            }
+            final TraceContextHolder<?> activeSpan = tracer.getActive();
+            if (activeSpan == null || !activeSpan.isSampled()) {
+                return;
+            }
+            span = activeSpan.createSpan()
+                .withType(SPAN_TYPE)
+                .withSubtype(ELASTICSEARCH)
+                .withAction(SPAN_ACTION)
+                .appendToName("Elasticsearch: ").appendToName(request.getMethod()).appendToName(" ").appendToName(request.getEndpoint());
+            span.getContext().getDb().withType(ELASTICSEARCH);
+            span.activate();
 
-        if (span.isSampled()) {
-            span.getContext().getHttp().withMethod(request.getMethod());
-            if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
-                HttpEntity entity = request.getEntity();
-                if (entity != null && entity.isRepeatable()) {
-                    try {
-                        IOUtils.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
-                    } catch (IOException e) {
-                        // We can't log from here
+            if (span.isSampled()) {
+                span.getContext().getHttp().withMethod(request.getMethod());
+                if (request.getEndpoint().endsWith(SEARCH_QUERY_PATH_SUFFIX)) {
+                    HttpEntity entity = request.getEntity();
+                    if (entity != null && entity.isRepeatable()) {
+                        try {
+                            IOUtils.readUtf8Stream(entity.getContent(), span.getContext().getDb().withStatementBuffer());
+                        } catch (IOException e) {
+                            // We can't log from here
+                        }
                     }
                 }
             }
         }
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onAfterExecute(@Advice.Return @Nullable Response response,
-                                      @Advice.Local("span") @Nullable Span span,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (span != null) {
-            try {
-                String url = null;
-                int statusCode = -1;
-                if(response != null) {
-                    url = response.getHost().toURI();
-                    statusCode = response.getStatusLine().getStatusCode();
-                } else if(t != null) {
-                    if (t instanceof ResponseException) {
-                        ResponseException esre = (ResponseException) t;
-                        url = esre.getResponse().getHost().toURI();
-                        statusCode = esre.getResponse().getStatusLine().getStatusCode();
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Return @Nullable Response response,
+                                          @Advice.Local("span") @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                try {
+                    String url = null;
+                    int statusCode = -1;
+                    if (response != null) {
+                        url = response.getHost().toURI();
+                        statusCode = response.getStatusLine().getStatusCode();
+                    } else if (t != null) {
+                        if (t instanceof ResponseException) {
+                            ResponseException esre = (ResponseException) t;
+                            url = esre.getResponse().getHost().toURI();
+                            statusCode = esre.getResponse().getStatusLine().getStatusCode();
 
                         /*
                         // Add tags so that they will be copied to error capture
@@ -112,21 +113,27 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
                         span.addTag(ELASTICSEARCH_NODE_URL_KEY, url);
                         span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
                         */
+                        }
+                        span.captureException(t);
                     }
-                    span.captureException(t);
+
+                    if (url != null && !url.isEmpty()) {
+                        span.getContext().getHttp().withUrl(url);
+                    }
+                    if (statusCode > 0) {
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                } finally {
+                    span.deactivate().end();
                 }
 
-                if(url != null && !url.isEmpty()) {
-                    span.getContext().getHttp().withUrl(url);
-                }
-                if(statusCode > 0) {
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-            } finally {
-                span.deactivate().end();
             }
-
         }
+    }
+
+    @Override
+    public Class<?> getAdviceClass() {
+        return ElasticsearchRestClientAdvice.class;
     }
 
     @Override
