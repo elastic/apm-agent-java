@@ -26,35 +26,34 @@ import org.testcontainers.containers.GenericContainer;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class WildFlyIT extends AbstractServletContainerIntegrationTest {
+public class JBossIT extends AbstractServletContainerIntegrationTest {
 
-    public WildFlyIT(final String wildFlyVersion) {
-        super(new GenericContainer<>("jboss/wildfly:" + wildFlyVersion)
+    public JBossIT(final String jbossVersion) {
+        super(new GenericContainer<>("registry.access.redhat.com/" + jbossVersion)
                 // this overrides the defaults, so we have to manually re-add preferIPv4Stack
                 // the other defaults don't seem to be important
-                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true"),
+                .withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
+                    "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider"),
             "jboss-application",
-            "/opt/jboss/wildfly/standalone/deployments",
-            "wildfly");
+            "/opt/eap/standalone/deployments",
+            "jboss");
     }
 
-    @Parameterized.Parameters(name = "Wildfly {0}")
+    @Parameterized.Parameters(name = "JBoss {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"8.2.1.Final"},
-            {"9.0.0.Final"},
-            {"10.0.0.Final"},
-            {"11.0.0.Final"},
-            {"12.0.0.Final"},
-            {"13.0.0.Final"},
-            {"14.0.0.Final"},
-            {"15.0.0.Final"}
+            {"jboss-eap-6/eap64-openshift"},
+            {"jboss-eap-7/eap70-openshift"},
+            {"jboss-eap-7/eap71-openshift"},
+            {"jboss-eap-7/eap72-openshift"}
         });
     }
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("JAVA_OPTS", "-javaagent:/elastic-apm-agent.jar -Djava.net.preferIPv4Stack=true " +
+            "-Djboss.modules.system.pkgs=org.jboss.logmanager,jdk.nashorn.api,com.sun.crypto.provider " +
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override

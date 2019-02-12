@@ -22,11 +22,9 @@ package co.elastic.apm.servlet;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class PayaraIT extends AbstractServletContainerIntegrationTest {
@@ -53,20 +51,10 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
                             }
                         }
                     )
-            )
-            .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
-            .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
-            .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
-            .withLogConsumer(new StandardOutLogConsumer().withPrefix("payara"))
-            .withFileSystemBind(pathToWar, deploymentsFolder + "/simple-webapp.war")
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withExposedPorts(8080),
-            8080,
-            "/simple-webapp",
+            ),
             "glassfish-application",
-            deploymentsFolder);
+            deploymentsFolder,
+            "payara");
     }
 
     @Parameterized.Parameters(name = "Payara {0}")
@@ -78,8 +66,7 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected Iterable<TestApp> getTestApps() {
-        return Collections.singletonList(TestApp.JSF);
+    protected Iterable<Class<? extends TestApp>> getTestClasses() {
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class);
     }
-
 }
