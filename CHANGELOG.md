@@ -1,4 +1,10 @@
-# next (1.4.0)
+# next (1.5.0)
+
+## Features
+
+## Bug Fixes
+
+# 1.4.0
 
 ## Features
  * Added support for sync calls of OkHttp client
@@ -13,8 +19,17 @@
  the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action, 
  however `Span.createSpan` and `Span.setType` are deprecated starting this version. Instead, type-less spans can be created using the new 
  `Span.startSpan` API and typed spans can be created using the new `Span.startSpan(String type, String subtype, String action)` API
+ * Add support for JBoss EAP
+ * Improving startup times
 
 ## Bug Fixes
+ * Fixes a failure in BitBucket when agent deployed ([#349](https://github.com/elastic/apm-agent-java/issues/349))
+ * Fixes increased CPU consumption ([#443](https://github.com/elastic/apm-agent-java/issues/443) and [#453](https://github.com/elastic/apm-agent-java/issues/453))
+ * Fixed some OpenTracing bridge functionalities that were not working when auto-instrumentation is disabled
+ * Fixed an error occurring when ending an OpenTracing span before deactivating
+ * Sending proper `null` for metrics that have a NaN value
+ * Fixes JVM crash with Java 7 ([#458](https://github.com/elastic/apm-agent-java/issues/458))
+ * Fixes an application deployment failure when using EclipseLink and `trace_methods` configuration ([#474](https://github.com/elastic/apm-agent-java/issues/474))
 
 # 1.3.0
 
