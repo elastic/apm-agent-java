@@ -20,6 +20,10 @@
 package co.elastic.apm.servlet;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,6 +43,21 @@ class ServletApiTestApp extends TestApp {
         testSpanErrorReporting(test);
         testExecutorService(test);
         testHttpUrlConnection(test);
+        testCaptureBody(test);
+    }
+
+    private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
+        test.clearMockServerLog();
+        final Response response = test.getHttpClient().newCall(new Request.Builder()
+            .post(RequestBody.create(MediaType.parse("text/plain"), "{foo}"))
+            .url(test.getBaseUrl() + "/simple-webapp/echo")
+            .build())
+            .execute();
+        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.body().string()).isEqualTo("{foo}");
+
+        final JsonNode transaction = test.assertTransactionReported("/simple-webapp/echo", 200);
+        assertThat(transaction.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {

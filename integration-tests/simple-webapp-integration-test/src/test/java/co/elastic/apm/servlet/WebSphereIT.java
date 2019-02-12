@@ -49,11 +49,6 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005");
-    }
-
-    @Override
     protected boolean isExpectedStacktrace(String path) {
         return true;
     }

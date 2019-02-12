@@ -120,6 +120,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar");
@@ -314,7 +315,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         return !path.equals("/async-start-servlet");
     }
 
-    private String getBaseUrl() {
+    public String getBaseUrl() {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort);
     }
 
@@ -387,5 +388,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .forStatusCode(200)
             .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? 1_000 : 5))
             .waitUntilReady(servletContainer);
+    }
+
+    public OkHttpClient getHttpClient() {
+        return httpClient;
     }
 }

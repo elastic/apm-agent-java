@@ -60,4 +60,14 @@
         <url-pattern>/http-url-connection</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>EchoServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.EchoServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EchoServlet</servlet-name>
+        <url-pattern>/echo</url-pattern>
+    </servlet-mapping>
+
 </web-app>

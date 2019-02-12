@@ -136,7 +136,22 @@ public abstract class WildcardMatcher {
      * @return {@code true}, if any of the matchers match the provided string
      */
     @Nullable
-    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, String s) {
+    public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
+        return anyMatch(matchers, s) != null;
+    }
+
+    /**
+     * Returns {@code true}, if any of the matchers match the provided string.
+     *
+     * @param matchers the matchers which should be used to match the provided string
+     * @param s        the string to match against
+     * @return {@code true}, if any of the matchers match the provided string
+     */
+    @Nullable
+    public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
+        if (s == null) {
+            return null;
+        }
         return anyMatch(matchers, s, null);
     }
 

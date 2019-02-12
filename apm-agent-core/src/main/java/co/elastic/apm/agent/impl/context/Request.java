@@ -72,6 +72,11 @@ public class Request implements Recyclable {
      */
     private final PotentiallyMultiValuedMap cookies = new PotentiallyMultiValuedMap();
     /**
+     * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
+     */
+    @Nullable
+    private String rawBody;
+    /**
      * HTTP version.
      */
     @Nullable
@@ -84,6 +89,7 @@ public class Request implements Recyclable {
     private String method;
     @Nullable
     private CharBuffer bodyBuffer;
+    private boolean bodyBufferFinished = false;
 
     /**
      * Data should only contain the request body (not the query string). It can either be a dictionary (for standard HTTP requests) or a raw request body.
@@ -92,16 +98,29 @@ public class Request implements Recyclable {
     public Object getBody() {
         if (!postParams.isEmpty()) {
             return postParams;
+        } else if (rawBody != null) {
+            return rawBody;
         } else {
             return bodyBuffer;
         }
     }
 
-    public void redactBody() {
+    @Nullable
+    public String getRawBody() {
+        return rawBody;
+    }
+
+    public void setRawBody(String rawBody) {
         postParams.resetState();
         if (bodyBuffer != null) {
-            bodyBuffer.clear().append("[REDACTED]").flip();
+            charBufferPool.recycle(bodyBuffer);
+            bodyBuffer = null;
         }
+        this.rawBody = rawBody;
+    }
+
+    public void redactBody() {
+        setRawBody("[REDACTED]");
     }
 
     public Request addFormUrlEncodedParameter(String key, String value) {
@@ -132,6 +151,13 @@ public class Request implements Recyclable {
         return this.bodyBuffer;
     }
 
+    public void endOfBufferInput() {
+        if (bodyBuffer != null && !bodyBufferFinished) {
+            bodyBufferFinished = true;
+            ((Buffer) bodyBuffer).flip();
+        }
+    }
+
     /**
      * Returns the associated pooled {@link CharBuffer} to record the request body.
      * <p>
@@ -142,6 +168,15 @@ public class Request implements Recyclable {
      */
     @Nullable
     public CharBuffer getBodyBuffer() {
+        if (!bodyBufferFinished) {
+            return bodyBuffer;
+        } else {
+            return null;
+        }
+    }
+
+    @Nullable
+    public CharBuffer getBodyBufferForSerialization() {
         return bodyBuffer;
     }
 
@@ -231,6 +266,10 @@ public class Request implements Recyclable {
         return cookies;
     }
 
+    void onTransactionEnd() {
+        endOfBufferInput();
+    }
+
     @Override
     public void resetState() {
         postParams.resetState();
@@ -242,8 +281,8 @@ public class Request implements Recyclable {
         cookies.resetState();
         if (bodyBuffer != null) {
             charBufferPool.recycle(bodyBuffer);
+            bodyBuffer = null;
         }
-        bodyBuffer = null;
     }
 
     public void copyFrom(Request other) {
@@ -255,12 +294,12 @@ public class Request implements Recyclable {
         this.url.copyFrom(other.url);
         this.cookies.copyFrom(other.cookies);
         if (other.bodyBuffer != null) {
-            final CharBuffer otherBuffer = other.getBodyBuffer();
+            final CharBuffer otherBuffer = other.bodyBuffer;
             final CharBuffer thisBuffer = this.withBodyBuffer();
             for (int i = 0; i < otherBuffer.length(); i++) {
                 thisBuffer.append(otherBuffer.charAt(i));
             }
-            thisBuffer.flip();
+            ((Buffer) thisBuffer).flip();
         }
     }
 
