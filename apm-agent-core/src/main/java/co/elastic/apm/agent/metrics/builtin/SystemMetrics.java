@@ -25,11 +25,9 @@ import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import javax.annotation.Nullable;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -62,28 +60,28 @@ public class SystemMetrics implements LifecycleListener {
     private final Class<?> operatingSystemBeanClass;
 
     @Nullable
-    private final MethodHandle systemCpuUsage;
+    private final Method systemCpuUsage;
 
     @Nullable
-    private final MethodHandle processCpuUsage;
+    private final Method processCpuUsage;
 
     @Nullable
-    private final MethodHandle freeMemory;
+    private final Method freeMemory;
 
     @Nullable
-    private final MethodHandle totalMemory;
+    private final Method totalMemory;
 
     @Nullable
-    private final MethodHandle virtualProcessMemory;
+    private final Method virtualProcessMemory;
 
     public SystemMetrics() {
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
         this.operatingSystemBeanClass = getFirstClassFound(OPERATING_SYSTEM_BEAN_CLASS_NAMES);
-        this.systemCpuUsage = detectMethod("getSystemCpuLoad", double.class);
-        this.processCpuUsage = detectMethod("getProcessCpuLoad", double.class);
-        this.freeMemory = detectMethod("getFreePhysicalMemorySize", long.class);
-        this.totalMemory = detectMethod("getTotalPhysicalMemorySize", long.class);
-        this.virtualProcessMemory = detectMethod("getCommittedVirtualMemorySize", long.class);
+        this.systemCpuUsage = detectMethod("getSystemCpuLoad");
+        this.processCpuUsage = detectMethod("getProcessCpuLoad");
+        this.freeMemory = detectMethod("getFreePhysicalMemorySize");
+        this.totalMemory = detectMethod("getTotalPhysicalMemorySize");
+        this.virtualProcessMemory = detectMethod("getCommittedVirtualMemorySize");
     }
 
     @Override
@@ -128,24 +126,24 @@ public class SystemMetrics implements LifecycleListener {
         });
     }
 
-    private double invoke(@Nullable MethodHandle method) {
+    private double invoke(@Nullable Method method) {
         try {
-            return method != null ? (double) method.invoke(operatingSystemBean) : Double.NaN;
+            return method != null ? ((Number) method.invoke(operatingSystemBean)).doubleValue() : Double.NaN;
         } catch (Throwable e) {
             return Double.NaN;
         }
     }
 
     @Nullable
-    private MethodHandle detectMethod(String name, Class<?> returnType) {
+    private Method detectMethod(String name) {
         if (operatingSystemBeanClass == null) {
             return null;
         }
         try {
             // ensure the Bean we have is actually an instance of the interface
             operatingSystemBeanClass.cast(operatingSystemBean);
-            return MethodHandles.lookup().findVirtual(operatingSystemBeanClass, name, MethodType.methodType(returnType));
-        } catch (ClassCastException | NoSuchMethodException | SecurityException | IllegalAccessException e) {
+            return operatingSystemBeanClass.getMethod(name);
+        } catch (ClassCastException | NoSuchMethodException | SecurityException e) {
             return null;
         }
     }
