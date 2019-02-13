@@ -24,6 +24,7 @@
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>
         <module>apm-urlconnection-plugin</module>
+        <module>apm-cdi-plugin</module>
         <module>apm-jaxws-plugin</module>
         <module>apm-scheduled-annotation-plugin</module>
         <module>apm-quartz-job-plugin</module>
