@@ -20,6 +20,7 @@
 package co.elastic.apm.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
@@ -211,11 +212,11 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    void clearMockServerLog() {
+    public void clearMockServerLog() {
         mockServerContainer.getClient().clear(HttpRequest.request(), ClearType.LOG);
     }
 
-    JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
+    public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
         final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions, 1);
         JsonNode transaction = reportedTransactions.iterator().next();
         assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(pathToTest);
@@ -223,7 +224,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
+    public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest);
         if (expectedResponseCode != null) {
             assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
@@ -235,7 +236,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    Response executeRequest(String pathToTest) throws IOException {
+    public Response executeRequest(String pathToTest) throws IOException {
         return httpClient.newCall(new Request.Builder()
             .get()
             .url(getBaseUrl() + pathToTest)
@@ -244,7 +245,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier, int expected) {
+    public List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier, int expected) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
@@ -255,7 +256,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    List<JsonNode> assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
+    public List<JsonNode> assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedSpans;
         do {
@@ -269,7 +270,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    List<JsonNode> assertErrorContent(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId, String errorMessage) {
+    public List<JsonNode> assertErrorContent(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId, String errorMessage) {
         long start = System.currentTimeMillis();
         List<JsonNode> reportedErrors;
         do {
@@ -301,16 +302,16 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @NotNull
-    protected List<String> getPathsToTest() {
+    public List<String> getPathsToTest() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
     @NotNull
-    protected List<String> getPathsToTestErrors() {
+    public List<String> getPathsToTestErrors() {
         return Arrays.asList("/index.jsp", "/servlet", "/async-dispatch-servlet", "/async-start-servlet");
     }
 
-    protected boolean isExpectedStacktrace(String path) {
+    public boolean isExpectedStacktrace(String path) {
         return !path.equals("/async-start-servlet");
     }
 
@@ -318,19 +319,19 @@ public abstract class AbstractServletContainerIntegrationTest {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort);
     }
 
-    List<JsonNode> getReportedTransactions() {
+    public List<JsonNode> getReportedTransactions() {
         final List<JsonNode> transactions = getEvents("transaction");
         transactions.forEach(mockReporter::verifyTransactionSchema);
         return transactions;
     }
 
-    List<JsonNode> getReportedSpans() {
+    public List<JsonNode> getReportedSpans() {
         final List<JsonNode> transactions = getEvents("span");
         transactions.forEach(mockReporter::verifySpanSchema);
         return transactions;
     }
 
-    List<JsonNode> getReportedErrors() {
+    public List<JsonNode> getReportedErrors() {
         final List<JsonNode> transactions = getEvents("error");
         transactions.forEach(mockReporter::verifyErrorSchema);
         return transactions;
@@ -354,7 +355,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    void validateMetadata() {
+    public void validateMetadata() {
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
             final JsonNode payload;

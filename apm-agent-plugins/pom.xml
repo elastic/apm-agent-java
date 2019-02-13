@@ -24,6 +24,7 @@
         <module>apm-okhttp-plugin</module>
         <module>apm-java-concurrent-plugin</module>
         <module>apm-urlconnection-plugin</module>
+        <module>apm-jaxws-plugin</module>
     </modules>
 
     <properties>

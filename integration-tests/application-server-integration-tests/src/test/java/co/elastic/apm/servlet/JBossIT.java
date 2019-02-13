@@ -19,6 +19,10 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.SoapTestApp;
+import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;

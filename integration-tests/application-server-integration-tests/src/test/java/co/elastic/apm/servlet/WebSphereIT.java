@@ -19,6 +19,9 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
+import co.elastic.apm.servlet.tests.ServletApiTestApp;
+import co.elastic.apm.servlet.tests.TestApp;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.GenericContainer;
@@ -54,7 +57,7 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
     }
 
     @Override
-    protected boolean isExpectedStacktrace(String path) {
+    public boolean isExpectedStacktrace(String path) {
         return true;
     }
 

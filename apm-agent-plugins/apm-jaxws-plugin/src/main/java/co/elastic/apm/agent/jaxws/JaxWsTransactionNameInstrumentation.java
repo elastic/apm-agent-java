@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.jaxrs;
+package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
@@ -39,10 +39,11 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     private Collection<String> applicationPackages = Collections.emptyList();
 
@@ -50,7 +51,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     private static void setTransactionName(@SimpleMethodSignature String signature) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
-            if (transaction != null) {
+            if (transaction != null && transaction.getName().length() == 0) {
                 transaction.withName(signature);
             }
         }
@@ -64,44 +65,34 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         // setting application_packages makes this matcher more performant but is not required
-        // could lead to false negative matches when importing a 3rd party library whose JAX-RS resources are exposed
+        // could lead to false negative matches when importing a 3rd party library whose JAX-WS resources are exposed
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any());
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
-        // "Note that inheritance of class or interface annotations is not supported."
-        // However, at least Jersey also supports the @Path to be at a parent class/interface
-        // we don't to support that at the moment because of performance concerns
-        // (matching on the class hierarchy vs matching one class)
-        return isAnnotatedWith(named("javax.ws.rs.Path"));
+        // the implementations have to be annotated as well
+        // quote from javadoc:
+        // "Marks a Java class as implementing a Web Service, or a Java interface as defining a Web Service interface."
+        return isAnnotatedWith(named("javax.jws.WebService")).and(not(isInterface()));
     }
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.ws.rs.Path"));
+            .and(classLoaderCanLoadClass("javax.jws.WebService"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
-        // "JAX-RS annotations may be used on the methods and method parameters of a super-class or an implemented interface."
         return overridesOrImplementsMethodThat(
             isAnnotatedWith(
-                named("javax.ws.rs.GET")
-                    .or(named("javax.ws.rs.POST"))
-                    .or(named("javax.ws.rs.PUT"))
-                    .or(named("javax.ws.rs.DELETE"))
-                    .or(named("javax.ws.rs.HEAD"))
-                    .or(named("javax.ws.rs.OPTIONS"))
-                    .or(named("javax.ws.rs.HttpMethod"))))
+                named("javax.jws.WebMethod")))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("jax-rs");
+        return Collections.singletonList("jax-ws");
     }
 }
