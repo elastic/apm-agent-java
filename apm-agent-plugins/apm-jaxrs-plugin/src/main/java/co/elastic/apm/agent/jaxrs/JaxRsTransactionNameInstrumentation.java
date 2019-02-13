@@ -37,14 +37,17 @@ import java.util.Collections;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     private Collection<String> applicationPackages = Collections.emptyList();
+    private JaxRsConfiguration configuration;
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
@@ -59,6 +62,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @Override
     public void init(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        configuration = tracer.getConfig(JaxRsConfiguration.class);
     }
 
     @Override
@@ -73,9 +77,17 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
         // "Note that inheritance of class or interface annotations is not supported."
         // However, at least Jersey also supports the @Path to be at a parent class/interface
-        // we don't to support that at the moment because of performance concerns
+        // we only to support that if explicitly activated by the user because of performance concerns
         // (matching on the class hierarchy vs matching one class)
-        return isAnnotatedWith(named("javax.ws.rs.Path"));
+        if (configuration.isAllowPathOnHierarchy()) {
+            return not(isInterface())
+                .and(not(ElementMatchers.<TypeDescription>nameContains("$Proxy")))
+                .and(isAnnotatedWith(named("javax.ws.rs.Path"))
+                    .or(hasSuperType(isAnnotatedWith(named("javax.ws.rs.Path"))))
+                );
+        } else {
+            return isAnnotatedWith(named("javax.ws.rs.Path"));
+        }
     }
 
     @Override

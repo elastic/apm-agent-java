@@ -21,20 +21,19 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.test.JerseyTest;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Application;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
+/**
+ * Test jax-rs instrumentation with allow_path_on_hierarchy=false
+ */
+public class JaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTest {
 
     @BeforeClass
     public static void beforeClass() {
@@ -46,9 +45,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         AbstractInstrumentationTest.afterAll();
     }
 
-    public Application configure() {
-        return new ResourceConfig(TestResource.class);
-    }
 
     @Before
     public void before() {
@@ -57,32 +53,14 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionName() {
-        final Transaction request = AbstractInstrumentationTest.getTracer().startTransaction().withType("request").activate();
-        try {
-            assertThat(getClient().target(getBaseUri()).path("test").request().buildGet().invoke(String.class)).isEqualTo("ok");
-        } finally {
-            request.deactivate().end();
-        }
-        assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getName().toString())
-            .isEqualTo("TestResource#testMethod");
+        doRequest(AbstractInstrumentationTest.getTracer(), "test");
+        doRequest(AbstractInstrumentationTest.getTracer(), "testInterface");
+        doRequest(AbstractInstrumentationTest.getTracer(), "testAbstract");
+        List<Transaction> actualTransactions = AbstractInstrumentationTest.getReporter().getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("TestResource#testMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
     }
 
-    public interface SuperResourceInterface {
-        @GET
-        String testMethod();
-    }
-
-    public interface TestResourceInterface extends SuperResourceInterface {
-        String testMethod();
-    }
-
-    static abstract class AbstractResourceClass implements TestResourceInterface {
-    }
-
-    @Path("test")
-    public static class TestResource extends AbstractResourceClass {
-        public String testMethod() {
-            return "ok";
-        }
-    }
 }
