@@ -84,7 +84,7 @@ rendering
 |JAX-WS
 |
 |The transactions are named based on your `@javax.jws.WebService` annotated classes and `@javax.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
- Note that only the packages configured in <<config-application-packages>> are scanned for JAX-RS resources.
+ Note that only the packages configured in <<config-application-packages>> are scanned for JAX-WS resources.
  If you don't set this option,
  all classes are scanned.
  This comes at the cost of increased startup times, however.

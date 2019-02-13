@@ -29,7 +29,7 @@ import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 

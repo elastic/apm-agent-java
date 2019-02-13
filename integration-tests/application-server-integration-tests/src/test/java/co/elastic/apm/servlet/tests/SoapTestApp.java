@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import okhttp3.Response;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +41,14 @@ public class SoapTestApp extends TestApp {
         assertThat(response.body().string()).isNotEmpty();
 
         final List<JsonNode> reportedTransactions = test.getReportedTransactions();
-        assertThat(reportedTransactions.stream().map(node -> node.get("name").textValue())).contains("HelloWorldServiceImpl#sayHello");
+        // there will also be another transaction for getting the WSDL but we don't need to assert on that
+        assertThat(reportedTransactions.stream().map(node -> node.get("name").textValue())).contains("HelloWorldServiceImpl#sayHello", "SoapClientServlet#doGet");
+        final Set<String> traceIds = reportedTransactions.stream().map(node -> node.get("trace_id").textValue()).collect(Collectors.toSet());
+        assertThat(traceIds).hasSize(1);
+
+        final List<JsonNode> spans = test.getReportedSpans();
+        // there will also be another span for getting the WSDL but we don't need to assert on that
+        assertThat(spans.stream().map(node -> node.get("trace_id").textValue()).collect(Collectors.toSet())).isEqualTo(traceIds);
+        assertThat(spans.stream().filter(span -> span.get("context").get("http").get("url").textValue().endsWith("/soap-test/HelloWorldService"))).isNotEmpty();
     }
 }

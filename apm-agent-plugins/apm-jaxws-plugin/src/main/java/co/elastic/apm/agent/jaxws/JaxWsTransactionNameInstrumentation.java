@@ -31,7 +31,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -94,6 +93,6 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("jax-ws", "jax-ws-annotations");
+        return Collections.singletonList("jax-ws");
     }
 }
