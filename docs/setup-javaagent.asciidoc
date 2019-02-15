@@ -191,8 +191,7 @@ Update the `domain.xml` file to add the `-javaagent` flag and system properties.
 [float]
 [[setup-cloud-foundry]]
 ==== Cloud Foundry
-Inject the `elastic-apm-agent-<version>.jar` into the root path of the deployable application, e.g. `my-application.jar`.
-Update the `manifest.yml` file to add the `-javaagent` flag and system properties as part of `JAVA_OPTS`.
+Inject the `elastic-apm-agent-<version>.jar` into the root path of the deployable application, e.g. `my-application.jar`. Update the `manifest.yml` file to add the `-javaagent` flag and system properties as part of `JAVA_OPTS`.
 
 [source,xml]
 .manifest.yml
