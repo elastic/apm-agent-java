@@ -187,3 +187,24 @@ Update the `domain.xml` file to add the `-javaagent` flag and system properties.
   <jvm-options>-Delastic.apm.server_urls=http://localhost:8200</jvm-options>
 </java-config>
 ----
+
+[float]
+[[setup-cloud-foundry]]
+==== Cloud Foundry
+Inject the `elastic-apm-agent-<version>.jar` into the root path of the deployable application, e.g. `my-application.jar`.
+Update the `manifest.yml` file to add the `-javaagent` flag and system properties as part of `JAVA_OPTS`.
+
+[source,xml]
+.manifest.yml
+----
+applications:
+- name: my-application
+  memory: 1G
+  path: ./target/my-application.jar
+  env:
+    JAVA_OPTS: >
+      -javaagent:./elastic-apm-agent-<version>.jar
+      -Delastic.apm.server_urls=http://localhost:8200
+      -Delastic.apm.service_name=my-cool-service
+      -Delastic.apm.application_packages=org.example,org.another.example
+----
