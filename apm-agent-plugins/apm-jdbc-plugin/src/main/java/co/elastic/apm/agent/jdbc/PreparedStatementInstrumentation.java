@@ -52,7 +52,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
 
     @Nullable
     @VisibleForAdvice
-    public static HelperClassManager<JdbcHelper> jdbcHelper;
+    public static HelperClassManager<JdbcHelper> jdbcHelperManager;
 
     // not inlining as we can then set breakpoints into this method
     // also, we don't have class loader issues when doing so
@@ -61,9 +61,12 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @VisibleForAdvice
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onBeforeExecute(@Advice.This PreparedStatement statement) throws SQLException {
-        if (tracer != null && jdbcHelper != null) {
+        if (tracer != null && jdbcHelperManager != null) {
             final @Nullable String sql = ConnectionInstrumentation.getSqlForStatement(statement);
-            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl != null) {
+                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            }
         }
         return null;
     }
@@ -80,7 +83,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        jdbcHelper = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
