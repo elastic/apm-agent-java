@@ -257,7 +257,7 @@ public abstract class HelperClassManager<T> {
         }
     }
 
-    static Class injectClass(@Nullable ClassLoader targetClassLoader, ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
+    static Class injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
         if (targetClassLoader == null) {
             if (isBootstrapClass) {
                 return Class.forName(className, false, null);

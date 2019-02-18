@@ -123,7 +123,8 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
-            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar");
+            .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
+            .withStartupTimeout(Duration.ofMinutes(5));
         for (TestApp testApp : getTestApps()) {
             String pathToAppFile = testApp.getAppFilePath();
             checkFilePresent(pathToAppFile);
