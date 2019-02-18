@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Field;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -176,12 +175,15 @@ public abstract class HelperClassManager<T> {
 
     public static class ForAnyClassLoader<T> extends HelperClassManager<T> {
 
-        private final ConcurrentHashMap<Integer, WeakReference<T>> classLoaderId2helperMap;
-        private final ConcurrentHashMap<Integer, Boolean> failedClassLoaderSet;
+        // doesn't need to be concurrent - invoked only from a synchronized context
+        static final Map<Integer, WeakReference<List<Object>>> clId2helperImplListMap = new HashMap<>();
+
+        final ConcurrentHashMap<Integer, WeakReference<T>> clId2helperMap;
+        final ConcurrentHashMap<Integer, Boolean> failedClassLoaderSet;
 
         private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             super(tracer, implementation, additionalHelpers);
-            classLoaderId2helperMap = new ConcurrentHashMap<>();
+            clId2helperMap = new ConcurrentHashMap<>();
             failedClassLoaderSet = new ConcurrentHashMap<>();
         }
 
@@ -191,10 +193,10 @@ public abstract class HelperClassManager<T> {
 
         @Override
         @Nullable
-        public T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) throws IllegalAccessException, NoSuchFieldException, IOException {
+        public T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) throws IllegalAccessException, NoSuchFieldException, IOException, ClassNotFoundException {
             final ClassLoader targetCl = classOfTargetClassLoader.getClassLoader();
             final Integer clIdentityHashCode = System.identityHashCode(targetCl);
-            WeakReference<T> helperRef = classLoaderId2helperMap.get(clIdentityHashCode);
+            WeakReference<T> helperRef = clId2helperMap.get(clIdentityHashCode);
             if (helperRef == null) {
                 return loadAndReferenceHelper(targetCl, classOfTargetClassLoader.getProtectionDomain(), clIdentityHashCode);
             } else {
@@ -202,28 +204,43 @@ public abstract class HelperClassManager<T> {
             }
         }
 
+        @SuppressWarnings("Java8CollectionRemoveIf")
         @Nullable
-        private synchronized T loadAndReferenceHelper(ClassLoader targetCl, ProtectionDomain pd, Integer clIdentityHashCode) throws IOException, IllegalAccessException, NoSuchFieldException {
+        private synchronized T loadAndReferenceHelper(ClassLoader targetCl, ProtectionDomain pd, Integer clIdentityHashCode) throws IOException, IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
             T helper;
-            WeakReference<T> helperRef = classLoaderId2helperMap.get(clIdentityHashCode);
+            WeakReference<T> helperRef = clId2helperMap.get(clIdentityHashCode);
             if (helperRef == null) {
                 // clean stale entries first, but only if related class loader is not marked as failed. If failed- we want to leave null ref
-                Iterator<Map.Entry<Integer, WeakReference<T>>> clRefIterator = classLoaderId2helperMap.entrySet().iterator();
+                Iterator<Map.Entry<Integer, WeakReference<T>>> clRefIterator = clId2helperMap.entrySet().iterator();
                 while (clRefIterator.hasNext()) {
                     Map.Entry<Integer, WeakReference<T>> refEntry = clRefIterator.next();
                     if (refEntry.getValue().get() == null && !failedClassLoaderSet.containsKey(refEntry.getKey())) {
                         clRefIterator.remove();
-                        classLoaderId2helperMap.remove(refEntry.getKey());
+                    }
+                }
+                Iterator<WeakReference<List<Object>>> helperImplListIterator = clId2helperImplListMap.values().iterator();
+                while (helperImplListIterator.hasNext()) {
+                    if (helperImplListIterator.next().get() == null) {
+                        helperImplListIterator.remove();
                     }
                 }
 
                 helper = createHelper(targetCl, tracer, implementation, additionalHelpers);
 
-                Class helperHolder = injectClass(targetCl, pd, "co.elastic.apm.agent.bci.HelperHolder");
-                Field helperInstanceField = helperHolder.getField("helperInstance");
-                helperInstanceField.set(null, helper);
+                List<Object> helperImplList = null;
+                WeakReference<List<Object>> helperImplListRef = clId2helperImplListMap.get(clIdentityHashCode);
+                if (helperImplListRef != null) {
+                    helperImplList = helperImplListRef.get();
+                }
+                if (helperImplList == null) {
+                    Class<?> helperHolderClass = injectClass(targetCl, pd, "co.elastic.apm.agent.bci.HelperHolder", true);
+                    //noinspection unchecked
+                    helperImplList = (List<Object>) helperHolderClass.getField("helperInstanceList").get(null);
+                    clId2helperImplListMap.put(clIdentityHashCode, new WeakReference<>(helperImplList));
+                }
 
-                classLoaderId2helperMap.put(clIdentityHashCode, new WeakReference<>(helper));
+                helperImplList.add(helper);
+                clId2helperMap.put(clIdentityHashCode, new WeakReference<>(helper));
             } else {
                 helper = helperRef.get();
             }
@@ -233,16 +250,29 @@ public abstract class HelperClassManager<T> {
         @Override
         protected void markFailedClassLoader(ClassLoader failedClassLoader) {
             Integer classLoaderId = System.identityHashCode(failedClassLoader);
-            WeakReference<T> former = classLoaderId2helperMap.putIfAbsent(classLoaderId, new WeakReference<>((T) null));
+            WeakReference<T> former = clId2helperMap.putIfAbsent(classLoaderId, new WeakReference<>((T) null));
             if (former == null) {
                 failedClassLoaderSet.putIfAbsent(classLoaderId, Boolean.TRUE);
             }
         }
     }
 
-    static Class injectClass(ClassLoader targetClassLoader, ProtectionDomain pd, String className) throws IOException {
-        ClassInjector classInjector = new ClassInjector.UsingReflection(targetClassLoader, pd, PackageDefinitionStrategy.NoOp.INSTANCE,
-            true);
+    static Class injectClass(@Nullable ClassLoader targetClassLoader, ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
+        if (targetClassLoader == null) {
+            if (isBootstrapClass) {
+                return Class.forName(className, false, null);
+            } else {
+                throw new UnsupportedOperationException("Cannot load non-bootstrap class from bootstrap class loader");
+            }
+        }
+
+        ClassInjector classInjector;
+        if (targetClassLoader == ClassLoader.getSystemClassLoader()) {
+            classInjector = ClassInjector.UsingReflection.ofSystemClassLoader();
+        } else {
+            classInjector = new ClassInjector.UsingReflection(targetClassLoader, pd, PackageDefinitionStrategy.NoOp.INSTANCE,
+                true);
+        }
         final byte[] classBytes = getAgentClassBytes(className);
         final TypeDescription typeDesc =
             new TypeDescription.Latent(className, 0, null, Collections.<TypeDescription.Generic>emptyList());

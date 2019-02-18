@@ -19,13 +19,16 @@
  */
 package co.elastic.apm.agent.bci;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A class that holds a static reference to a helper instance. Used to be loaded by the parent of the class loader that loads the helper
  * itself, thus making the helper instance non-GC-eligible as long as the parent class loader is alive.
  * NOTE: THIS CLASS SHOULD NEVER BE INSTANCIATED NOR REFERENCED EXPLICITLY, IT SHOULD ONLY BE USED THROUGH REFLECTION
  */
 public class HelperHolder<T> {
-    public static Object helperInstance;
+    public static final List<Object> helperInstanceList = new ArrayList<>();
 
     // should never be instanciated
     private HelperHolder() {
