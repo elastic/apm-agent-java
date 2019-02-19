@@ -85,23 +85,18 @@ class HelperClassManagerTest {
         ClassLoader targetClassLoader1 = new URLClassLoader(urls, getClass().getClassLoader().getParent());
         Class libClass1 = targetClassLoader1.loadClass("co.elastic.apm.agent.bci.HelperClassManagerTest$InnerTestClass$LibClass");
         Object helper1 = helperClassManager1.getForClassLoaderOfClass(libClass1);
-        Integer cl1Id = System.identityHashCode(targetClassLoader1);
-        assertThat(helperClassManager1.clId2helperMap.keySet().size()).isEqualTo(1);
-        assertThat(helperClassManager1.clId2helperMap.keySet().iterator().next()).isEqualTo(cl1Id);
-        assertThat(helperClassManager1.clId2helperMap.values().iterator().next().get()).isEqualTo(helper1);
-        assertThat(helperClassManager1.failedClassLoaderSet.keySet()).isEmpty();
+        assertThat(helperClassManager1.clId2helperMap.containsKey(targetClassLoader1)).isTrue();
+        assertThat(helperClassManager1.clId2helperMap.get(targetClassLoader1).get()).isEqualTo(helper1);
         assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.size()).isEqualTo(1);
-        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.keySet().iterator().next()).isEqualTo(cl1Id);
+        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.get(targetClassLoader1)).isNotNull();
 
         HelperClassManager.ForAnyClassLoader<?> helperClassManager2 = HelperClassManager.ForAnyClassLoader.of(mock(ElasticApmTracer.class),
             "co.elastic.apm.agent.bci.HelperClassManagerTest$InnerTestClass$HelperClassImpl");
         Object helper2 = helperClassManager2.getForClassLoaderOfClass(libClass1);
-        assertThat(helperClassManager2.clId2helperMap.keySet().size()).isEqualTo(1);
-        assertThat(helperClassManager2.clId2helperMap.keySet().iterator().next()).isEqualTo(cl1Id);
-        assertThat(helperClassManager2.clId2helperMap.values().iterator().next().get()).isEqualTo(helper2);
-        assertThat(helperClassManager2.failedClassLoaderSet.keySet()).isEmpty();
+        assertThat(helperClassManager2.clId2helperMap.containsKey(targetClassLoader1)).isTrue();
+        assertThat(helperClassManager2.clId2helperMap.get(targetClassLoader1).get()).isEqualTo(helper2);
         assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.size()).isEqualTo(1);
-        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.keySet().iterator().next()).isEqualTo(cl1Id);
+        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.get(targetClassLoader1)).isNotNull();
 
         targetClassLoader1 = null;
         libClass1 = null;
@@ -109,20 +104,19 @@ class HelperClassManagerTest {
         System.gc();
         Thread.sleep(1000);
 
-        assertThat(helperClassManager1.clId2helperMap.values().iterator().next().get()).isNull();
-        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.values().iterator().next().get()).isNull();
-        assertThat(helperClassManager2.clId2helperMap.values().iterator().next().get()).isNull();
-        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.values().iterator().next().get()).isNull();
+        // iterators of this map skip stale entries (where referenced key is null)
+        assertThat(helperClassManager1.clId2helperMap.approximateSize()).isEqualTo(1);
+        assertThat(helperClassManager1.clId2helperMap.iterator().hasNext()).isFalse();
+        assertThat(helperClassManager2.clId2helperMap.approximateSize()).isEqualTo(1);
+        assertThat(helperClassManager2.clId2helperMap.iterator().hasNext()).isFalse();
 
         ClassLoader targetClassLoader3 = new URLClassLoader(urls, getClass().getClassLoader().getParent());
         Class libClass3 = targetClassLoader3.loadClass("co.elastic.apm.agent.bci.HelperClassManagerTest$InnerTestClass$LibClass");
         @SuppressWarnings("unused") Object helper3 = helperClassManager1.getForClassLoaderOfClass(libClass3);
-        Integer cl3Id = System.identityHashCode(targetClassLoader3);
-        assertThat(helperClassManager1.clId2helperMap.keySet().size()).isEqualTo(1);
-        assertThat(helperClassManager1.clId2helperMap.keySet().iterator().next()).isEqualTo(cl3Id);
-        assertThat(helperClassManager1.failedClassLoaderSet.keySet()).isEmpty();
+        assertThat(helperClassManager1.clId2helperMap.approximateSize()).isEqualTo(1);
+        assertThat(helperClassManager1.clId2helperMap.get(targetClassLoader3).get()).isEqualTo(helper3);
         assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.size()).isEqualTo(1);
-        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.keySet().iterator().next()).isEqualTo(cl3Id);
+        assertThat(HelperClassManager.ForAnyClassLoader.clId2helperImplListMap.get(targetClassLoader3)).isNotNull();
     }
 
     private void assertFailLoadingOnlyOnce(HelperClassManager<Object> helperClassManager, Class libClass1) {
