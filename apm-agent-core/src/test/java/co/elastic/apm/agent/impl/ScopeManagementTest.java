@@ -56,14 +56,15 @@ class ScopeManagementTest {
 
     /**
      * Disables assertions in {@link ElasticApmTracer}, runs the test and restores original setting
-     *
-     * @param test
      */
     void runTestWithAssertionsDisabled(Runnable test) {
         boolean assertionsEnabled = tracer.assertionsEnabled;
-        tracer.assertionsEnabled = false;
-        test.run();
-        tracer.assertionsEnabled = assertionsEnabled;
+        try {
+            tracer.assertionsEnabled = false;
+            test.run();
+        } finally {
+            tracer.assertionsEnabled = assertionsEnabled;
+        }
     }
 
     @Test
