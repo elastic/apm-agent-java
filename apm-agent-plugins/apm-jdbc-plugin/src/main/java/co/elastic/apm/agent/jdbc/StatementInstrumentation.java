@@ -54,14 +54,17 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     @Nullable
     @VisibleForAdvice
-    public static HelperClassManager<JdbcHelper> jdbcHelper;
+    public static HelperClassManager<JdbcHelper> jdbcHelperManager;
 
     @Nullable
     @VisibleForAdvice
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onBeforeExecute(@Advice.This Statement statement, @Advice.Argument(0) String sql) throws SQLException {
-        if (tracer != null && jdbcHelper != null) {
-            return jdbcHelper.getForClassLoaderOfClass(Statement.class).createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+        if (tracer != null && jdbcHelperManager != null) {
+            JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+            if (helperImpl != null) {
+                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+            }
         }
         return null;
     }
@@ -79,7 +82,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        jdbcHelper = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 

@@ -63,11 +63,11 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     @Nullable
     @VisibleForAdvice
     // referring to AsyncContext is legal because of type erasure
-    public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelper;
+    public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelperManager;
 
     @Override
     public void init(ElasticApmTracer tracer) {
-        asyncHelper = HelperClassManager.ForSingleClassLoader.of(tracer,
+        asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
             "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
             "co.elastic.apm.agent.servlet.helper.ApmAsyncListener");
@@ -126,9 +126,10 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
 
             @Advice.OnMethodExit(suppress = Throwable.class)
             private static void onExitStartAsync(@Advice.Return AsyncContext asyncContext) {
-                if (tracer != null) {
-                    if (asyncHelper != null) {
-                        asyncHelper.getForClassLoaderOfClass(AsyncContext.class).onExitStartAsync(asyncContext);
+                if (tracer != null && asyncHelperManager != null) {
+                    AsyncContextAdviceHelper<AsyncContext> helperImpl = asyncHelperManager.getForClassLoaderOfClass(AsyncContext.class);
+                    if (helperImpl != null) {
+                        helperImpl.onExitStartAsync(asyncContext);
                     }
                 }
             }

@@ -20,16 +20,26 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
+import net.bytebuddy.dynamic.loading.ClassInjector;
+import net.bytebuddy.dynamic.loading.PackageDefinitionStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * This class helps to overcome the fact that the agent classes can't access the classes they want to instrument.
@@ -62,9 +72,33 @@ import java.util.Map;
  *
  * @param <T> the type of the helper interface
  */
-public interface HelperClassManager<T> {
+public abstract class HelperClassManager<T> {
+    private static final Logger logger = LoggerFactory.getLogger(HelperClassManager.class);
 
-    T getForClassLoaderOfClass(Class<?> classOfTargetClassLoader);
+    protected final ElasticApmTracer tracer;
+    protected final String implementation;
+    protected final String[] additionalHelpers;
+
+    protected HelperClassManager(ElasticApmTracer tracer, String implementation, String[] additionalHelpers) {
+        this.tracer = tracer;
+        this.implementation = implementation;
+        this.additionalHelpers = additionalHelpers;
+    }
+
+    @Nullable
+    public T getForClassLoaderOfClass(Class<?> classOfTargetClassLoader) {
+        T ret = null;
+        try {
+            ret = doGetForClassLoaderOfClass(classOfTargetClassLoader);
+        } catch (Throwable throwable) {
+            logger.error("Failed to load Helper class " + implementation + " for class " + classOfTargetClassLoader + ", loaded by " +
+                "ClassLoader " + classOfTargetClassLoader.getClassLoader(), throwable);
+        }
+        return ret;
+    }
+
+    @Nullable
+    protected abstract T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) throws Exception;
 
     /**
      * This helper class manager assumes that there is only one {@link ClassLoader} which loads the classes,
@@ -94,18 +128,16 @@ public interface HelperClassManager<T> {
      *
      * @param <T> the type of the helper class interface
      */
-    class ForSingleClassLoader<T> implements HelperClassManager<T> {
+    public static class ForSingleClassLoader<T> extends HelperClassManager<T> {
 
-        private final ElasticApmTracer tracer;
-        private final String implementation;
-        private final String[] additionalHelpers;
         @Nullable
         private volatile T helperImplementation;
 
+        // No need to make volatile - at worst we will fail more than once, but avoid volatile cache invalidations for all the rest
+        private boolean failed;
+
         private ForSingleClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
-            this.tracer = tracer;
-            this.implementation = implementation;
-            this.additionalHelpers = additionalHelpers;
+            super(tracer, implementation, additionalHelpers);
         }
 
         public static <T> ForSingleClassLoader<T> of(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
@@ -113,67 +145,184 @@ public interface HelperClassManager<T> {
         }
 
         @Override
-        public T getForClassLoaderOfClass(Class<?> classOfTargetClassLoader) {
+        @Nullable
+        public T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) {
+            if (failed) {
+                return null;
+            }
             // local variable helps to avoid multiple volatile reads
             T localHelper = this.helperImplementation;
             if (localHelper == null) {
                 synchronized (this) {
                     localHelper = this.helperImplementation;
                     if (localHelper == null) {
-                        localHelper = createHelper(classOfTargetClassLoader.getClassLoader(), tracer, implementation, additionalHelpers);
+                        try {
+                            localHelper = createHelper(classOfTargetClassLoader.getClassLoader(), tracer, implementation, additionalHelpers);
+                        } catch (Throwable throwable) {
+                            failed = true;
+                            throw throwable;
+                        }
                         this.helperImplementation = localHelper;
                     }
                 }
             }
             return localHelper;
         }
+    }
 
-        private static <T> T createHelper(@Nullable ClassLoader targetClassLoader, ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
-            try {
-                final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers));
-                Class<? extends T> helperClass;
-                try {
-                    helperClass = loadHelperClass(targetClassLoader, implementation, typeDefinitions);
-                } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                    // in the unit tests, the agent is not added to the bootstrap class loader
-                    helperClass = loadHelperClass(ClassLoader.getSystemClassLoader(), implementation, typeDefinitions);
-                }
-                // the helper class may have a no-arg or a ElasticApmTracer constructor
-                // this is preferable to a init method,
-                // as it allows the tracer instance variable to be non-null
-                try {
-                    return helperClass.getDeclaredConstructor(ElasticApmTracer.class).newInstance(tracer);
-                } catch (NoSuchMethodException e) {
-                    return helperClass.getDeclaredConstructor().newInstance();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+    /**
+     * This helper class manager is for usage of confined context class loaders, like web app class loaders.
+     * It injects a minimal class to the target class loader and keeps loaded helper instances in a static field of that class.
+     * This way, helper instances have a hard reference as long as the class loader is alive, when they become GC-eligible, that without
+     * holding hard references to the class loader or any of the user/library classes.
+     * This manager supports multiple helpers for each class loader through a list of hard references held statically by the injected class.
+     * Failures in helper class loading are cached so that no loading attempts will be made over and over.
+     * In order to optimize performance, stale entries are removed only when new helpers are being loaded (normally at the beginning of
+     * startup time and when new applications are deployed). These maps shouldn't grow big as they have an entry per class loader.
+     *
+     * @param <T>
+     */
+    public static class ForAnyClassLoader<T> extends HelperClassManager<T> {
+
+        // doesn't need to be concurrent - invoked only from a synchronized context
+        static final Map<ClassLoader, WeakReference<List<Object>>> clId2helperImplListMap = new WeakHashMap<>();
+
+        final WeakConcurrentMap<ClassLoader, WeakReference<T>> clId2helperMap;
+
+        private ForAnyClassLoader(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
+            super(tracer, implementation, additionalHelpers);
+            clId2helperMap = new WeakConcurrentMap<>(false);
+        }
+
+        public static <T> ForAnyClassLoader<T> of(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
+            return new ForAnyClassLoader<>(tracer, implementation, additionalHelpers);
+        }
+
+        @Override
+        @Nullable
+        public T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) throws Exception {
+            final ClassLoader targetCl = classOfTargetClassLoader.getClassLoader();
+            WeakReference<T> helperRef = clId2helperMap.get(targetCl);
+            if (helperRef == null) {
+                return loadAndReferenceHelper(classOfTargetClassLoader);
+            } else {
+                return helperRef.get();
             }
         }
 
-        private static List<String> asList(String implementation, String[] additionalHelpers) {
-            final ArrayList<String> list = new ArrayList<>(additionalHelpers.length + 1);
-            list.add(implementation);
-            list.addAll(Arrays.asList(additionalHelpers));
-            return list;
-        }
+        @SuppressWarnings("Java8CollectionRemoveIf")
+        @Nullable
+        private synchronized T loadAndReferenceHelper(Class<?> classOfTargetClassLoader) throws Exception {
+            T helper;
+            ClassLoader targetCl = classOfTargetClassLoader.getClassLoader();
+            WeakReference<T> helperRef = clId2helperMap.get(targetCl);
+            if (helperRef == null) {
+                try {
+                    // clean stale entries first
+                    clId2helperMap.expungeStaleEntries();
 
-        @SuppressWarnings("unchecked")
-        private static <T> Class<T> loadHelperClass(@Nullable ClassLoader targetClassLoader, String implementation,
-                                                    Map<String, byte[]> typeDefinitions) throws ClassNotFoundException {
-            final ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(targetClassLoader, true, typeDefinitions);
-            return (Class<T>) helperCL.loadClass(implementation);
-        }
+                    helper = createHelper(targetCl, tracer, implementation, additionalHelpers);
 
-        private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
-            Map<String, byte[]> typeDefinitions = new HashMap<>();
-            for (final String helperName : helperClassNames) {
-                final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader());
-                final byte[] classBytes = locator.locate(helperName).resolve();
-                typeDefinitions.put(helperName, classBytes);
+                    List<Object> helperImplList = null;
+                    WeakReference<List<Object>> helperImplListRef = clId2helperImplListMap.get(targetCl);
+                    if (helperImplListRef != null) {
+                        helperImplList = helperImplListRef.get();
+                    }
+                    if (helperImplList == null) {
+                        // Currently using the target class's ProtectionDomain, still need to validate that this is a valid approach
+                        Class<?> helperHolderClass = injectClass(targetCl, classOfTargetClassLoader.getProtectionDomain(), "co.elastic.apm.agent.bci.HelperHolder"
+                            , true);
+                        //noinspection unchecked
+                        helperImplList = (List<Object>) helperHolderClass.getField("helperInstanceList").get(null);
+                        clId2helperImplListMap.put(targetCl, new WeakReference<>(helperImplList));
+                    }
+
+                    helperImplList.add(helper);
+                    clId2helperMap.put(targetCl, new WeakReference<>(helper));
+                } catch (Throwable throwable) {
+                    clId2helperMap.putIfAbsent(targetCl, new WeakReference<>((T) null));
+                    throw throwable;
+                }
+            } else {
+                helper = helperRef.get();
             }
-            return typeDefinitions;
+            return helper;
         }
     }
 
+    static Class injectClass(@Nullable ClassLoader targetClassLoader, @Nullable ProtectionDomain pd, String className, boolean isBootstrapClass) throws IOException, ClassNotFoundException {
+        if (targetClassLoader == null) {
+            if (isBootstrapClass) {
+                return Class.forName(className, false, null);
+            } else {
+                throw new UnsupportedOperationException("Cannot load non-bootstrap class from bootstrap class loader");
+            }
+        }
+
+        ClassInjector classInjector;
+        if (targetClassLoader == ClassLoader.getSystemClassLoader()) {
+            classInjector = ClassInjector.UsingReflection.ofSystemClassLoader();
+        } else {
+            classInjector = new ClassInjector.UsingReflection(targetClassLoader, pd, PackageDefinitionStrategy.NoOp.INSTANCE,
+                true);
+        }
+        final byte[] classBytes = getAgentClassBytes(className);
+        final TypeDescription typeDesc =
+            new TypeDescription.Latent(className, 0, null, Collections.<TypeDescription.Generic>emptyList());
+        Map<TypeDescription, byte[]> typeMap = new HashMap<>();
+        typeMap.put(typeDesc, classBytes);
+        return classInjector.inject(typeMap).values().iterator().next();
+    }
+
+    private static <T> T createHelper(@Nullable ClassLoader targetClassLoader, ElasticApmTracer tracer, String implementation,
+                                      String... additionalHelpers) {
+        try {
+            final Map<String, byte[]> typeDefinitions = getTypeDefinitions(asList(implementation, additionalHelpers));
+            Class<? extends T> helperClass;
+            try {
+                helperClass = loadHelperClass(targetClassLoader, implementation, typeDefinitions);
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                // in the unit tests, the agent is not added to the bootstrap class loader
+                helperClass = loadHelperClass(ClassLoader.getSystemClassLoader(), implementation, typeDefinitions);
+            }
+            // the helper class may have a no-arg or a ElasticApmTracer constructor
+            // this is preferable to a init method,
+            // as it allows the tracer instance variable to be non-null
+            try {
+                return helperClass.getDeclaredConstructor(ElasticApmTracer.class).newInstance(tracer);
+            } catch (NoSuchMethodException e) {
+                return helperClass.getDeclaredConstructor().newInstance();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static List<String> asList(String implementation, String[] additionalHelpers) {
+        final ArrayList<String> list = new ArrayList<>(additionalHelpers.length + 1);
+        list.add(implementation);
+        list.addAll(Arrays.asList(additionalHelpers));
+        return list;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Class<T> loadHelperClass(@Nullable ClassLoader targetClassLoader, String implementation,
+                                                Map<String, byte[]> typeDefinitions) throws ClassNotFoundException {
+        final ClassLoader helperCL = new ByteArrayClassLoader.ChildFirst(targetClassLoader, true, typeDefinitions);
+        return (Class<T>) helperCL.loadClass(implementation);
+    }
+
+    private static Map<String, byte[]> getTypeDefinitions(List<String> helperClassNames) throws IOException {
+        Map<String, byte[]> typeDefinitions = new HashMap<>();
+        for (final String helperName : helperClassNames) {
+            final byte[] classBytes = getAgentClassBytes(helperName);
+            typeDefinitions.put(helperName, classBytes);
+        }
+        return typeDefinitions;
+    }
+
+    private static byte[] getAgentClassBytes(String className) throws IOException {
+        final ClassFileLocator locator = ClassFileLocator.ForClassLoader.of(ClassLoader.getSystemClassLoader());
+        return locator.locate(className).resolve();
+    }
 }
