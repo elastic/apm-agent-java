@@ -79,7 +79,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         // However, at least Jersey also supports the @Path to be at a parent class/interface
         // we only to support that if explicitly activated by the user because of performance concerns
         // (matching on the class hierarchy vs matching one class)
-        if (configuration.isAllowPathOnHierarchy()) {
+        if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
                 .and(not(ElementMatchers.<TypeDescription>nameContains("$Proxy")))
                 .and(isAnnotatedWith(named("javax.ws.rs.Path"))

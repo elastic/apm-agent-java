@@ -37,9 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
- * Test jax-rs instrumentation with allow_path_on_hierarchy=true
+ * Test jax-rs instrumentation with enable_jaxrs_annotation_inheritance=true
  */
-public class JaxRsTransactionNameInstrumentationWithAllowPathOnHierarchyTest extends AbstractJaxRsTest {
+public class JaxRsTransactionNameInstrumentationWithEnableJaxrsAnnotationInheritanceTest extends AbstractJaxRsTest {
 
     private static ElasticApmTracer tracer;
     private static MockReporter reporter;
@@ -50,7 +50,7 @@ public class JaxRsTransactionNameInstrumentationWithAllowPathOnHierarchyTest ext
         //manual initialization so we can set allow_path_on_hierarchy before instrumentation
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(JaxRsConfiguration.class).isAllowPathOnHierarchy()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)

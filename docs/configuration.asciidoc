@@ -521,8 +521,8 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [[config-jax-rs]]
 === JAX-RS configuration options
 [float]
-[[config-allow-path-on-hierarchy]]
-==== `allow_path_on_hierarchy`
+[[config-enable-jaxrs-annotation-inheritance]]
+==== `enable_jaxrs_annotation_inheritance`
 
 According to JAX-RS 2.0 spec (section 3.6 Annotation Inheritance) inheritance of class or interface annotations is not supported.
 Thus, the agent will not recognize JAX-RS resource where the implementation class is not directly annotated with the @Path annotation.
@@ -542,7 +542,7 @@ NOTE: Setting this to `true` will reduce startup performance because of class hi
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.allow_path_on_hierarchy` | `allow_path_on_hierarchy` | `ELASTIC_APM_ALLOW_PATH_ON_HIERARCHY`
+| `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
 |============
 
 [[config-logging]]
@@ -1265,7 +1265,7 @@ The default unit for this option is `ms`
 # Type: Boolean
 # Default value: false
 #
-# allow_path_on_hierarchy=false
+# enable_jaxrs_annotation_inheritance=false
 
 ############################################
 # Logging                                  #

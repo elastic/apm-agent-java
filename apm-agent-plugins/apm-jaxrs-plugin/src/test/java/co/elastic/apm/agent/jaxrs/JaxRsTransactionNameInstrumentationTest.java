@@ -31,7 +31,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test jax-rs instrumentation with allow_path_on_hierarchy=false
+ * Test jax-rs instrumentation with enable_jaxrs_annotation_inheritance=false
  */
 public class JaxRsTransactionNameInstrumentationTest extends AbstractJaxRsTest {
 

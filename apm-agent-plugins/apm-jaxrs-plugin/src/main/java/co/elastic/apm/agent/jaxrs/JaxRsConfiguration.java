@@ -28,8 +28,8 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 public class JaxRsConfiguration extends ConfigurationOptionProvider {
     private static final String JAXRS_CATEGORY = "JAX-RS";
 
-    private final ConfigurationOption<Boolean> allowPathOnHierarchy = ConfigurationOption.booleanOption()
-        .key("allow_path_on_hierarchy")
+    private final ConfigurationOption<Boolean> enableJaxrsAnnotationInheritance = ConfigurationOption.booleanOption()
+        .key("enable_jaxrs_annotation_inheritance")
         .configurationCategory(JAXRS_CATEGORY)
         .tags("performance")
         .description("According to JAX-RS 2.0 spec (section 3.6 Annotation Inheritance) inheritance of class or interface annotations is not supported.\n" +
@@ -46,7 +46,7 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
      * @return if true, the jax-rs plugin must scan for @Path annotations in the class hierarchy of classes.
      * if false, only @Path annotations on implementation classes are considered.
      */
-    public boolean isAllowPathOnHierarchy() {
-        return allowPathOnHierarchy.get();
+    public boolean isEnableJaxrsAnnotationInheritance() {
+        return enableJaxrsAnnotationInheritance.get();
     }
 }
