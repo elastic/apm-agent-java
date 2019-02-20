@@ -535,7 +535,7 @@ NOTE: Setting this to `true` will reduce startup performance because of class hi
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | false
+| `true` | Boolean | false
 |============
 
 
@@ -1263,9 +1263,9 @@ The default unit for this option is `ms`
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
-# Default value: false
+# Default value: true
 #
-# enable_jaxrs_annotation_inheritance=false
+# enable_jaxrs_annotation_inheritance=true
 
 ############################################
 # Logging                                  #

@@ -39,7 +39,7 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "NOTE: Setting this to `true` will reduce startup performance because of class hierarchy scanning. Only use when needed")
         .dynamic(false)
-        .buildWithDefault(false);
+        .buildWithDefault(true);
 
 
     /**

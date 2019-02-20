@@ -76,8 +76,8 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // quote from JAX-RS 2.0 spec (section 3.6 Annotation Inheritance)
         // "Note that inheritance of class or interface annotations is not supported."
-        // However, at least Jersey also supports the @Path to be at a parent class/interface
-        // we only to support that if explicitly activated by the user because of performance concerns
+        // However, at least Jersey also supports the @Path to be at a parent class/interface.
+        // If annotation inheritance is not needed, the user may turn it of for better startup performance
         // (matching on the class hierarchy vs matching one class)
         if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
