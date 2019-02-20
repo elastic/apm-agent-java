@@ -181,8 +181,38 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
-                                  @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            if (context instanceof AbstractSpan) {
+                                  @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
+            if (value != null && context instanceof AbstractSpan) {
+                ((AbstractSpan) context).addTag(key, value);
+            }
+        }
+    }
+
+    public static class AddNumberTagInstrumentation extends AbstractSpanInstrumentation {
+        public AddNumberTagInstrumentation() {
+            super(named("doAddNumberTag"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                  @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
+            if (value != null && context instanceof AbstractSpan) {
+                ((AbstractSpan) context).addTag(key, value);
+            }
+        }
+    }
+
+    public static class AddBooleanTagInstrumentation extends AbstractSpanInstrumentation {
+        public AddBooleanTagInstrumentation() {
+            super(named("doAddBooleanTag"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                  @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
+            if (value != null && context instanceof AbstractSpan) {
                 ((AbstractSpan) context).addTag(key, value);
             }
         }

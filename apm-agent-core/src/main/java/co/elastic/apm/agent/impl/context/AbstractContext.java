@@ -21,6 +21,7 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,13 +29,34 @@ public abstract class AbstractContext implements Recyclable {
     /**
      * A flat mapping of user-defined tags with string values.
      */
-    private final Map<String, String> tags = new ConcurrentHashMap<>();
+    private final Map<String, Object> tags = new ConcurrentHashMap<>();
 
-    /**
-     * A flat mapping of user-defined tags with string values.
-     */
-    public Map<String, String> getTags() {
-        return tags;
+    public Iterator<? extends Map.Entry<String, ?>> getTagsIterator() {
+        return tags.entrySet().iterator();
+    }
+
+    public void addTag(String key, String value) {
+        tags.put(key, value);
+    }
+
+    public void addTag(String key, Number value) {
+        tags.put(key, value);
+    }
+
+    public void addTag(String key, boolean value) {
+        tags.put(key, value);
+    }
+
+    public Object getTag(String key) {
+        return tags.get(key);
+    }
+
+    public void clearTags() {
+        tags.clear();
+    }
+
+    public boolean hasTags() {
+        return !tags.isEmpty();
     }
 
     @Override

@@ -35,12 +35,12 @@ class TransactionContextTest {
     }
 
     @Test
-    void testCopyFromDoNotCopyTags() {
+    void testCopyFromCopiesTags() {
         TransactionContext context = new TransactionContext();
-        context.getTags().put("foo", "bar");
+        context.addTag("foo", "bar");
         TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
-        assertThat(copyOfContext.getTags()).isEmpty();
+        assertThat(copyOfContext.getTag("foo")).isEqualTo("bar");
     }
 
     @Test

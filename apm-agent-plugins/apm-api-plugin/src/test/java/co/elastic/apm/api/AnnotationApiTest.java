@@ -34,12 +34,12 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("transaction");
-        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
 
         assertThat(reporter.getSpans()).hasSize(2);
 
         assertThat(reporter.getSpans().get(0).getName().toString()).isEqualTo("AnnotationTestClass#nestedSpan");
-        assertThat(reporter.getSpans().get(0).getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getSpans().get(0).getContext().getTag("foo")).isEqualTo("bar");
         assertThat(reporter.getSpans().get(0).isChildOf(reporter.getSpans().get(1))).isTrue();
 
         assertThat(reporter.getSpans().get(1).getName().toString()).isEqualTo("AnnotationTestClass#span");

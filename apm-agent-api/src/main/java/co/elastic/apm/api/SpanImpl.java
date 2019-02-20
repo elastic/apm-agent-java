@@ -54,4 +54,18 @@ class SpanImpl extends AbstractSpanImpl {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Span addTag(String key, Number value) {
+        doAddNumberTag(key, value);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addTag(String key, boolean value) {
+        doAddBooleanTag(key, value);
+        return this;
+    }
+
 }

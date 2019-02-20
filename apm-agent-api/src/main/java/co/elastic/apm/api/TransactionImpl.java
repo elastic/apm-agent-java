@@ -56,6 +56,20 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, Number value) {
+        doAddNumberTag(key, value);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, boolean value) {
+        doAddBooleanTag(key, value);
+        return this;
+    }
+
     @Override
     public Transaction setUser(String id, String email, String username) {
         // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation.setUser

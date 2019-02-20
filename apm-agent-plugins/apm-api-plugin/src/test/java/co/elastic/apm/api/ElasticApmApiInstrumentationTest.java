@@ -160,15 +160,27 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setName("foo");
         transaction.setType("bar");
         transaction.addTag("foo", "bar");
+        transaction.addTag("number", 1);
+        transaction.addTag("boolean", true);
+        transaction.addTag("null", (String) null);
         Span span = transaction.startSpan("bar", null, null);
         span.setName("foo");
         span.addTag("bar", "baz");
+        span.addTag("number", 1);
+        span.addTag("boolean", true);
+        span.addTag("null", (String) null);
         span.end();
         transaction.end();
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
-        assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("bar", "baz");
+        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getTag("number")).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getContext().getTag("boolean")).isEqualTo(true);
+        assertThat(reporter.getFirstTransaction().getContext().getTag("null")).isNull();
+        assertThat(reporter.getFirstSpan().getContext().getTag("bar")).isEqualTo("baz");
+        assertThat(reporter.getFirstSpan().getContext().getTag("number")).isEqualTo(1);
+        assertThat(reporter.getFirstSpan().getContext().getTag("boolean")).isEqualTo(true);
+        assertThat(reporter.getFirstSpan().getContext().getTag("null")).isNull();
     }
 
     @Test

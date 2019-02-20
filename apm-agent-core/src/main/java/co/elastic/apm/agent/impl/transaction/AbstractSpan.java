@@ -126,6 +126,10 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public abstract void addTag(String key, String value);
 
+    public abstract void addTag(String key, Number value);
+
+    public abstract void addTag(String key, Boolean value);
+
     protected void onStart() {
         this.finished = false;
     }

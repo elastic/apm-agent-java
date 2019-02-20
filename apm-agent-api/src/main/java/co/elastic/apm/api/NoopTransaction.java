@@ -47,6 +47,18 @@ enum NoopTransaction implements Transaction {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addTag(String key, boolean value) {
+        return this;
+    }
+
     @Override
     public Transaction setUser(String id, String email, String username) {
         // noop

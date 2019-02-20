@@ -58,7 +58,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     void testAddTag() {
         transaction.addTag("foo", "bar");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
     }
 
     @Test
@@ -83,7 +83,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         endTransaction();
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
-        assertThat(reporter.getFirstTransaction().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");

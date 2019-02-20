@@ -200,7 +200,7 @@ class TransactionPayloadJsonSchemaTest {
 
         for (Span span : payload.getSpans()) {
             if (span.getType() != null && span.getType().equals("db")) {
-                span.getContext().getTags().clear();
+                span.getContext().clearTags();
                 validateDbSpanSchema(getSerializedSpans(payload), false);
                 break;
             }

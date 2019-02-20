@@ -52,7 +52,7 @@ public class MetricRegistrySerializer {
 
                 if (!metricSet.getTags().isEmpty()) {
                     DslJsonSerializer.writeFieldName("tags", jw);
-                    DslJsonSerializer.serializeTags(metricSet.getTags(), replaceBuilder, jw);
+                    DslJsonSerializer.serializeStringTags(metricSet.getTags().entrySet().iterator(), replaceBuilder, jw);
                     jw.writeByte(JsonWriter.COMMA);
                 }
 

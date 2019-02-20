@@ -77,6 +77,38 @@ public interface Span {
     Span addTag(String key, String value);
 
     /**
+     * A flat mapping of user-defined tags with number values.
+     * <p>
+     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a tag key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The tag key.
+     * @param value The tag value.
+     */
+    @Nonnull
+    Span addTag(String key, Number value);
+
+    /**
+     * A flat mapping of user-defined tags with boolean values.
+     * <p>
+     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a tag key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The tag key.
+     * @param value The tag value.
+     */
+    @Nonnull
+    Span addTag(String key, boolean value);
+
+    /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, start a new span through {@link #startSpan()} or {@link #startSpan(String, String, String)}.
      *
