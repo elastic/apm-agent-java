@@ -26,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -34,7 +33,6 @@ import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Disabled
 class ScopeManagementTest {
 
     private ElasticApmTracer tracer;
@@ -43,7 +41,6 @@ class ScopeManagementTest {
 
     @BeforeEach
     void setUp() {
-        ScopeManagementTest.class.getClassLoader().setClassAssertionStatus(ElasticApmTracer.class.getName(), false);
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
         tracer = new ElasticApmTracerBuilder()
@@ -54,56 +51,78 @@ class ScopeManagementTest {
 
     @AfterEach
     void tearDown() {
-        ScopeManagementTest.class.getClassLoader().setClassAssertionStatus(ElasticApmTracer.class.getName(), true);
         assertThat(tracer.getActive()).isNull();
+    }
+
+    /**
+     * Disables assertions in {@link ElasticApmTracer}, runs the test and restores original setting
+     */
+    void runTestWithAssertionsDisabled(Runnable test) {
+        boolean assertionsEnabled = tracer.assertionsEnabled;
+        try {
+            tracer.assertionsEnabled = false;
+            test.run();
+        } finally {
+            tracer.assertionsEnabled = assertionsEnabled;
+        }
     }
 
     @Test
     void testWrongDeactivationOrder() {
-        final Transaction transaction = tracer.startTransaction().activate();
-        final Span span = transaction.createSpan().activate();
-        transaction.deactivate();
-        span.deactivate();
+        runTestWithAssertionsDisabled(() -> {
+            final Transaction transaction = tracer.startTransaction().activate();
+            final Span span = transaction.createSpan().activate();
+            transaction.deactivate();
+            span.deactivate();
 
-        assertThat(tracer.getActive()).isNull();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test
     void testActivateTwice() {
-        tracer.startTransaction()
-            .activate().activate()
-            .deactivate().deactivate();
+        runTestWithAssertionsDisabled(() -> {
+            tracer.startTransaction()
+                .activate().activate()
+                .deactivate().deactivate();
 
-        assertThat(tracer.getActive()).isNull();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test
     void testMissingDeactivation() {
-        final Transaction transaction = tracer.startTransaction().activate();
-        transaction.createSpan().activate();
-        transaction.deactivate();
+        runTestWithAssertionsDisabled(() -> {
+            final Transaction transaction = tracer.startTransaction().activate();
+            transaction.createSpan().activate();
+            transaction.deactivate();
 
-        assertThat(tracer.getActive()).isNull();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test
     void testContextAndSpanActivation() {
-        final Transaction transaction = tracer.startTransaction().activate();
-        transaction.withActiveContext(transaction.withActiveSpan(() ->
-            assertThat(tracer.getActive()).isSameAs(transaction))).run();
-        transaction.deactivate();
+        runTestWithAssertionsDisabled(() -> {
+            final Transaction transaction = tracer.startTransaction().activate();
+            transaction.withActiveContext(transaction.withActiveSpan(() ->
+                assertThat(tracer.getActive()).isSameAs(transaction))).run();
+            transaction.deactivate();
 
-        assertThat(tracer.getActive()).isNull();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test
     void testSpanAndContextActivation() {
-        final Transaction transaction = tracer.startTransaction().activate();
-        transaction.withActiveSpan(transaction.withActiveContext((Runnable) () ->
-            assertThat(tracer.currentTransaction()).isSameAs(transaction))).run();
-        transaction.deactivate();
+        runTestWithAssertionsDisabled(() -> {
+            final Transaction transaction = tracer.startTransaction().activate();
+            transaction.withActiveSpan(transaction.withActiveContext((Runnable) () ->
+                assertThat(tracer.currentTransaction()).isSameAs(transaction))).run();
+            transaction.deactivate();
 
-        assertThat(tracer.getActive()).isNull();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test
