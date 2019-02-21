@@ -91,6 +91,7 @@ public class ElasticApmTracer {
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
     private Sampler sampler;
+    boolean assertionsEnabled = false;
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -160,6 +161,9 @@ public class ElasticApmTracer {
             activationListener.init(this);
         }
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
+
+        // sets the assertionsEnabled flag to true if indeed enabled
+        assert assertionsEnabled = true;
     }
 
     public Transaction startTransaction() {
@@ -427,8 +431,11 @@ public class ElasticApmTracer {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);
+
+            if (assertionsEnabled) {
+                throw new AssertionError();
+            }
         }
-        assert span == currentlyActive;
     }
 
     public MetricRegistry getMetricRegistry() {
