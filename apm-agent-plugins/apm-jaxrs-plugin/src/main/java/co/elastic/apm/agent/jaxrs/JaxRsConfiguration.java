@@ -32,12 +32,9 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
         .key("enable_jaxrs_annotation_inheritance")
         .configurationCategory(JAXRS_CATEGORY)
         .tags("performance")
-        .description("According to JAX-RS 2.0 spec (section 3.6 Annotation Inheritance) inheritance of class or interface annotations is not supported.\n" +
-            "Thus, the agent will not recognize JAX-RS resource where the implementation class is not directly annotated with the @Path annotation.\n" +
-            "However, some JAX-RS implementation allow the @Path annotation to be inherited from superclasses and interfaces.\n" +
-            "If your application uses @Path annotation inheritance, set this option to `true` to allow the agent to recognize those JAX-RS resources.\n" +
-            "\n" +
-            "NOTE: Setting this to `true` will reduce startup performance because of class hierarchy scanning. Only use when needed")
+        .description(
+            "By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.\n" +
+            "If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.\n")
         .dynamic(false)
         .buildWithDefault(true);
 

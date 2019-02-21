@@ -524,12 +524,9 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [[config-enable-jaxrs-annotation-inheritance]]
 ==== `enable_jaxrs_annotation_inheritance`
 
-According to JAX-RS 2.0 spec (section 3.6 Annotation Inheritance) inheritance of class or interface annotations is not supported.
-Thus, the agent will not recognize JAX-RS resource where the implementation class is not directly annotated with the @Path annotation.
-However, some JAX-RS implementation allow the @Path annotation to be inherited from superclasses and interfaces.
-If your application uses @Path annotation inheritance, set this option to `true` to allow the agent to recognize those JAX-RS resources.
+By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.
+If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
 
-NOTE: Setting this to `true` will reduce startup performance because of class hierarchy scanning. Only use when needed
 
 
 [options="header"]
@@ -1254,12 +1251,9 @@ The default unit for this option is `ms`
 # JAX-RS                                   #
 ############################################
 
-# According to JAX-RS 2.0 spec (section 3.6 Annotation Inheritance) inheritance of class or interface annotations is not supported.
-# Thus, the agent will not recognize JAX-RS resource where the implementation class is not directly annotated with the @Path annotation.
-# However, some JAX-RS implementation allow the @Path annotation to be inherited from superclasses and interfaces.
-# If your application uses @Path annotation inheritance, set this option to `true` to allow the agent to recognize those JAX-RS resources.
+# By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.
+# If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
 # 
-# NOTE: Setting this to `true` will reduce startup performance because of class hierarchy scanning. Only use when needed
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
