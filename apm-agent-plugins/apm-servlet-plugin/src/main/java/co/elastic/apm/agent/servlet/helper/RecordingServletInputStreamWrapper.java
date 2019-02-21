@@ -78,18 +78,6 @@ public class RecordingServletInputStreamWrapper extends ServletInputStream {
         }
     }
 
-    // not @Override'ing in order to be able to compile against Java 7
-    public int readNBytes(byte[] b, int off, int len) throws IOException {
-        try {
-            final int read = servletInputStream.readNBytes(b, off, len);
-            decode(b, off, read);
-            return read;
-        } catch (IOException e) {
-            request.endOfBufferInput();
-            throw e;
-        }
-    }
-
     @Override
     public int readLine(byte[] b, int off, int len) throws IOException {
         try {
@@ -140,7 +128,12 @@ public class RecordingServletInputStreamWrapper extends ServletInputStream {
 
     @Override
     public void reset() throws IOException {
-        servletInputStream.reset();
+        try {
+            servletInputStream.reset();
+        } finally {
+            // don't read things twice from the stream, assume we have read everything by now
+            request.endOfBufferInput();
+        }
     }
 
     @Override
