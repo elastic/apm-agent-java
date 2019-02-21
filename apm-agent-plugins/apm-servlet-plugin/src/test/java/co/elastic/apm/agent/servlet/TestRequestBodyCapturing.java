@@ -23,6 +23,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.web.WebConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -45,6 +48,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -202,6 +207,34 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
         assertThat(body.toString()).isEqualTo("");
+    }
+
+    @Test
+    void testTrackPostParams() throws IOException, ServletException {
+        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
+        request.addParameter("foo", "bar");
+        request.addParameter("baz", "qux", "quux");
+        request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
+
+        filterChain.doFilter(request, new MockHttpServletResponse());
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
+        PotentiallyMultiValuedMap params = (PotentiallyMultiValuedMap) reporter.getFirstTransaction().getContext().getRequest().getBody();
+        assertThat(params.get("foo")).isEqualTo("bar");
+        assertThat(params.get("baz")).isEqualTo(Arrays.asList("qux", "quux"));
+    }
+
+    @Test
+    void testTrackPostParamsDisabled() throws IOException, ServletException {
+        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        when(webConfiguration.getCaptureContentTypes()).thenReturn(Collections.emptyList());
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
+        request.addParameter("foo", "bar");
+        request.addParameter("baz", "qux", "quux");
+        request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
+
+        filterChain.doFilter(request, new MockHttpServletResponse());
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isEqualTo("[REDACTED]");
     }
 
     private void executeRequest(MockFilterChain filterChain, byte[] bytes, String contentType) throws IOException, ServletException {

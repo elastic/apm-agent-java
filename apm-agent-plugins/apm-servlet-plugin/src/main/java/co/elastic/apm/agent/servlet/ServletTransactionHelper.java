@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,6 +55,7 @@ public class ServletTransactionHelper {
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+    private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -63,12 +63,6 @@ public class ServletTransactionHelper {
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
     private final WebConfiguration webConfiguration;
-    // TODO make configurable
-    private List<WildcardMatcher> recordedContentTypes = Arrays.asList(
-        WildcardMatcher.valueOf("text/*"),
-        WildcardMatcher.valueOf("application/json"),
-        WildcardMatcher.valueOf("application/xml")
-    );
 
     @VisibleForAdvice
     public ServletTransactionHelper(ElasticApmTracer tracer) {
@@ -129,7 +123,12 @@ public class ServletTransactionHelper {
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (webConfiguration.getCaptureBody() != OFF && WildcardMatcher.isAnyMatch(recordedContentTypes, contentTypeHeader)) {
+            if (webConfiguration.getCaptureBody() != OFF
+                && contentTypeHeader != null
+                // form parameters are recorded via ServletRequest.getParameterMap
+                // as the container might not call ServletRequest.getInputStream
+                && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
+                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
@@ -210,9 +209,10 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
         return contentTypeHeader != null
-            && contentTypeHeader.startsWith("application/x-www-form-urlencoded")
+            && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
-            && webConfiguration.getCaptureBody() != OFF;
+            && webConfiguration.getCaptureBody() != OFF
+            && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
@@ -261,7 +261,7 @@ public class ServletTransactionHelper {
     }
 
     private void captureParameters(Request request, Map<String, String[]> params, @Nullable String contentTypeHeader) {
-        if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
+        if (contentTypeHeader != null && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)) {
             for (Map.Entry<String, String[]> param : params.entrySet()) {
                 request.addFormUrlEncodedParameters(param.getKey(), param.getValue());
             }
