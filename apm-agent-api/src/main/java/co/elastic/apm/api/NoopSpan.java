@@ -48,13 +48,19 @@ enum NoopSpan implements Span {
 
     @Nonnull
     @Override
-    public Span addTag(String key, Number value) {
+    public Span addLabel(String key, String value) {
         return this;
     }
 
     @Nonnull
     @Override
-    public Span addTag(String key, boolean value) {
+    public Span addLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addLabel(String key, boolean value) {
         return this;
     }
 

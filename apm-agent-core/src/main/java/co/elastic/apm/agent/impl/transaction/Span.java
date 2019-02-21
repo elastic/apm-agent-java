@@ -202,17 +202,17 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public void addTag(String key, String value) {
-        context.addTag(key, value);
+        context.addLabel(key, value);
     }
 
     @Override
     public void addTag(String key, Number value) {
-        context.addTag(key, value);
+        context.addLabel(key, value);
     }
 
     @Override
     public void addTag(String key, Boolean value) {
-        context.addTag(key, value);
+        context.addLabel(key, value);
     }
 
     public void recycle() {

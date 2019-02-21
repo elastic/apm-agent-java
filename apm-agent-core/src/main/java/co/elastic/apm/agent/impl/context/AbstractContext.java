@@ -27,48 +27,52 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractContext implements Recyclable {
     /**
-     * A flat mapping of user-defined tags with string values.
+     * A flat mapping of user-defined labels with {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values
+     * (formerly known as tags).
+     * <p>
+     * See also https://github.com/elastic/ecs#-base-fields
+     * </p>
      */
-    private final Map<String, Object> tags = new ConcurrentHashMap<>();
+    private final Map<String, Object> labels = new ConcurrentHashMap<>();
 
     public Iterator<? extends Map.Entry<String, ?>> getTagsIterator() {
-        return tags.entrySet().iterator();
+        return labels.entrySet().iterator();
     }
 
-    public void addTag(String key, String value) {
-        tags.put(key, value);
+    public void addLabel(String key, String value) {
+        labels.put(key, value);
     }
 
-    public void addTag(String key, Number value) {
-        tags.put(key, value);
+    public void addLabel(String key, Number value) {
+        labels.put(key, value);
     }
 
-    public void addTag(String key, boolean value) {
-        tags.put(key, value);
+    public void addLabel(String key, boolean value) {
+        labels.put(key, value);
     }
 
-    public Object getTag(String key) {
-        return tags.get(key);
+    public Object getLabel(String key) {
+        return labels.get(key);
     }
 
-    public void clearTags() {
-        tags.clear();
+    public void clearLabels() {
+        labels.clear();
     }
 
-    public boolean hasTags() {
-        return !tags.isEmpty();
+    public boolean hasLabels() {
+        return !labels.isEmpty();
     }
 
     @Override
     public void resetState() {
-        tags.clear();
+        labels.clear();
     }
 
     public boolean hasContent() {
-        return !tags.isEmpty();
+        return !labels.isEmpty();
     }
 
     public void copyFrom(AbstractContext other) {
-        tags.putAll(other.tags);
+        labels.putAll(other.labels);
     }
 }

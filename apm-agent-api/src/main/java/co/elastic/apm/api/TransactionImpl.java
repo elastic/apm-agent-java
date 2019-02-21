@@ -58,15 +58,22 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
 
     @Nonnull
     @Override
-    public Transaction addTag(String key, Number value) {
-        doAddNumberTag(key, value);
+    public Transaction addLabel(String key, String value) {
+        doAddTag(key, value);
         return this;
     }
 
     @Nonnull
     @Override
-    public Transaction addTag(String key, boolean value) {
-        doAddBooleanTag(key, value);
+    public Transaction addLabel(String key, Number value) {
+        doAddNumberLabel(key, value);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addLabel(String key, boolean value) {
+        doAddBooleanLabel(key, value);
         return this;
     }
 

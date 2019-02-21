@@ -313,8 +313,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             .startActive(true)) {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getTag("number")).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getContext().getTag("boolean")).isEqualTo(true);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("number")).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("boolean")).isEqualTo(true);
 
     }
 
@@ -328,7 +328,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             }
         }
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isNull();
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isNull();
         assertThat(reporter.getSpans()).isEmpty();
     }
 
@@ -400,8 +400,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         }
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
-        assertThat(reporter.getFirstSpan().getContext().getTag("bar")).isEqualTo("baz");
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstSpan().getContext().getLabel("bar")).isEqualTo("baz");
     }
 
     private Transaction createTransactionFromOtTags(Map<String, String> tags) {

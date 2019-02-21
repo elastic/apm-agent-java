@@ -143,17 +143,17 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             return;
         }
-        getContext().addTag(key, value);
+        getContext().addLabel(key, value);
     }
 
     @Override
     public void addTag(String key, Number value) {
-        context.addTag(key, value);
+        context.addLabel(key, value);
     }
 
     @Override
     public void addTag(String key, Boolean value) {
-        context.addTag(key, value);
+        context.addLabel(key, value);
     }
 
     public void setUser(String id, String email, String username) {

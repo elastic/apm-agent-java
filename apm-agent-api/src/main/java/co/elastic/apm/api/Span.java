@@ -36,8 +36,8 @@ import javax.annotation.Nullable;
  * <p>
  * Note: Calling any methods after {@link #end()} has been called is illegal.
  * You may only interact with spans when you have control over its lifecycle.
- * For example, if a span is ended on another thread you must not add tags if there is a chance for a race between the {@link #end()}
- * and the {@link #addTag(String, String)} method.
+ * For example, if a span is ended on another thread you must not add labels if there is a chance for a race between the {@link #end()}
+ * and the {@link #addLabel(String, String)} method.
  * </p>
  */
 public interface Span {
@@ -61,52 +61,86 @@ public interface Span {
     Span setType(String type);
 
     /**
-     * A flat mapping of user-defined tags with string values.
+     * A flat mapping of user-defined labels with string values.
      * <p>
-     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
      * By all means,
      * you should avoid that user specified data,
      * like URL parameters,
-     * is used as a tag key as it can lead to mapping explosions.
+     * is used as a label key as it can lead to mapping explosions.
      * </p>
      *
-     * @param key   The tag key.
-     * @param value The tag value.
+     * @param key   The label key.
+     * @param value The label value.
+     * @deprecated use {@link #addLabel(String, String)} instead
      */
     @Nonnull
+    @Deprecated
     Span addTag(String key, String value);
 
     /**
-     * A flat mapping of user-defined tags with number values.
+     * A flat mapping of user-defined labels with string values.
      * <p>
-     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
      * By all means,
      * you should avoid that user specified data,
      * like URL parameters,
-     * is used as a tag key as it can lead to mapping explosions.
+     * is used as a label key as it can lead to mapping explosions.
      * </p>
      *
-     * @param key   The tag key.
-     * @param value The tag value.
+     * @param key   The label key.
+     * @param value The label value.
      */
     @Nonnull
-    Span addTag(String key, Number value);
+    Span addLabel(String key, String value);
 
     /**
-     * A flat mapping of user-defined tags with boolean values.
+     * A flat mapping of user-defined labels with number values.
      * <p>
-     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
      * By all means,
      * you should avoid that user specified data,
      * like URL parameters,
-     * is used as a tag key as it can lead to mapping explosions.
+     * is used as a label key as it can lead to mapping explosions.
      * </p>
      *
-     * @param key   The tag key.
-     * @param value The tag value.
+     * @param key   The label key.
+     * @param value The label value.
      */
     @Nonnull
-    Span addTag(String key, boolean value);
+    Span addLabel(String key, Number value);
+
+    /**
+     * A flat mapping of user-defined labels with boolean values.
+     * <p>
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a label key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     */
+    @Nonnull
+    Span addLabel(String key, boolean value);
 
     /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.

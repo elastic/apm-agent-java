@@ -1,6 +1,11 @@
 # next (1.5.0)
 
 ## Features
+ * Support for number and boolean labels in the public API (#497).
+   This change also renames `tag` to `label` on the API level to be compliant with the [Elastic Common Schema (ECS)](https://github.com/elastic/ecs#-base-fields).
+   The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
+   As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
+   Previously, they were stored under `context.tags`.
 
 ## Bug Fixes
 

@@ -77,7 +77,7 @@ class DslJsonSerializerTest {
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
         error.setException(new Exception("test"));
-        error.getContext().addTag("foo", "bar");
+        error.getContext().addLabel("foo", "bar");
         String errorJson = serializer.toJsonString(error);
         System.out.println("errorJson = " + errorJson);
         JsonNode errorTree = objectMapper.readTree(errorJson);
@@ -181,7 +181,7 @@ class DslJsonSerializerTest {
 
     private String serializeTags(Map<String, String> tags) {
         final AbstractContext context = new AbstractContext() {};
-        tags.forEach(context::addTag);
+        tags.forEach(context::addLabel);
         serializer.serializeTags(context);
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();

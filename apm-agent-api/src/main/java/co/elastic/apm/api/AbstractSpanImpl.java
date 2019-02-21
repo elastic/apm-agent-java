@@ -74,15 +74,16 @@ public abstract class AbstractSpanImpl implements Span {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation.doSetType
     }
 
+    // not renaming to doAddStringLabel so that API and agent versions don't have to match
     void doAddTag(String key, String value) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation
     }
 
-    void doAddNumberTag(String key, Number value) {
+    void doAddNumberLabel(String key, Number value) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberTagInstrumentation
     }
 
-    void doAddBooleanTag(String key, Boolean value) {
+    void doAddBooleanLabel(String key, Boolean value) {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddBooleanTagInstrumentation
     }
 

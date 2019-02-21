@@ -653,7 +653,7 @@ public class DslJsonSerializer implements PayloadSerializer {
             spanContextWritten = true;
         }
 
-        if (context.hasTags()) {
+        if (context.hasLabels()) {
             if (spanContextWritten) {
                 jw.writeByte(COMMA);
             }

@@ -77,7 +77,7 @@ public class TransactionUtils {
             .withUsername("foo")
             .withEmail("foo@example.com");
 
-        context.addTag("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
+        context.addLabel("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
         context.getCustom().put("my_key", 1);
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);

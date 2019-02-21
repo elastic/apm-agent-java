@@ -58,16 +58,26 @@ public interface Transaction extends Span {
     @Nonnull
     Transaction setType(String type);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #addLabel(String, String)} instead
+     */
     @Nonnull
+    @Deprecated
     Transaction addTag(String key, String value);
 
     @Nonnull
     @Override
-    Transaction addTag(String key, Number value);
+    Transaction addLabel(String key, String value);
 
     @Nonnull
     @Override
-    Transaction addTag(String key, boolean value);
+    Transaction addLabel(String key, Number value);
+
+    @Nonnull
+    @Override
+    Transaction addLabel(String key, boolean value);
 
     /**
      * Call this to enrich collected performance data and errors with information about the user/client.

@@ -23,7 +23,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,9 +55,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testAddTag() {
-        transaction.addTag("foo", "bar");
+        transaction.addLabel("foo", "bar");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
     }
 
     @Test
@@ -79,11 +78,11 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
-        transaction.setType("foo").setName("foo").addTag("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
+        transaction.setType("foo").setName("foo").addLabel("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
-        assertThat(reporter.getFirstTransaction().getContext().getTag("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getEmail()).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("baz");

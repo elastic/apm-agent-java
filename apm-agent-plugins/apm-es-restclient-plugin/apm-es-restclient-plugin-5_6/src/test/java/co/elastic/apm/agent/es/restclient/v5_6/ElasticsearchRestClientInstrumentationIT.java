@@ -26,7 +26,6 @@ import co.elastic.apm.agent.impl.transaction.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -52,15 +51,16 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.ELASTICSEARCH;
 import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
 import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_ACTION;
-import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.ELASTICSEARCH;
 import static co.elastic.apm.agent.es.restclient.v5_6.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -144,7 +144,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         ErrorCapture errorCapture = errorCaptures.get(0);
         assertThat(errorCapture.getException()).isNotNull();
 /*
-        Map<String, String> tags = errorCapture.getContext().getTags();
+        Map<String, String> tags = errorCapture.getContext().getLabels();
         assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
         assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo("404");
         assertThat(tags).containsKey(ERROR_REASON_KEY);

@@ -37,10 +37,10 @@ class TransactionContextTest {
     @Test
     void testCopyFromCopiesTags() {
         TransactionContext context = new TransactionContext();
-        context.addTag("foo", "bar");
+        context.addLabel("foo", "bar");
         TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
-        assertThat(copyOfContext.getTag("foo")).isEqualTo("bar");
+        assertThat(copyOfContext.getLabel("foo")).isEqualTo("bar");
     }
 
     @Test

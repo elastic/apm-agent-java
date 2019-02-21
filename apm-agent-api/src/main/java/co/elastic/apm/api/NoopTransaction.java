@@ -49,13 +49,19 @@ enum NoopTransaction implements Transaction {
 
     @Nonnull
     @Override
-    public Transaction addTag(String key, Number value) {
+    public Transaction addLabel(String key, String value) {
         return this;
     }
 
     @Nonnull
     @Override
-    public Transaction addTag(String key, boolean value) {
+    public Transaction addLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addLabel(String key, boolean value) {
         return this;
     }
 

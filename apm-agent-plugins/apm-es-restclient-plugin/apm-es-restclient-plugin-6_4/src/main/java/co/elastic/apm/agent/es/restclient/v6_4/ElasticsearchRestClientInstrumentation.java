@@ -109,9 +109,9 @@ public class ElasticsearchRestClientInstrumentation extends ElasticApmInstrument
 
                         /*
                         // Add tags so that they will be copied to error capture
-                        span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(statusCode));
-                        span.addTag(ELASTICSEARCH_NODE_URL_KEY, url);
-                        span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
+                        span.addLabel(QUERY_STATUS_CODE_KEY, Integer.toString(statusCode));
+                        span.addLabel(ELASTICSEARCH_NODE_URL_KEY, url);
+                        span.addLabel(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
                         */
                         }
                         span.captureException(t);
