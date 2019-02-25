@@ -78,16 +78,19 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     }
 
     public T deactivate() {
-        tracer.deactivate(this);
-        List<ActivationListener> activationListeners = tracer.getActivationListeners();
-        for (int i = 0; i < activationListeners.size(); i++) {
-            try {
-                activationListeners.get(i).onDeactivate();
-            } catch (Error e) {
-                throw e;
-            } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+        try {
+            List<ActivationListener> activationListeners = tracer.getActivationListeners();
+            for (int i = 0; i < activationListeners.size(); i++) {
+                try {
+                    activationListeners.get(i).onDeactivate(this);
+                } catch (Error e) {
+                    throw e;
+                } catch (Throwable t) {
+                    logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                }
             }
+        } finally {
+            tracer.deactivate(this);
         }
         return (T) this;
     }

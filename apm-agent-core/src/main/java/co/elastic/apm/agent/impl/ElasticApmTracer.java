@@ -211,6 +211,10 @@ public class ElasticApmTracer {
         return null;
     }
 
+    public boolean isThreadRootContext(TraceContextHolder traceContextHolder) {
+        return activeStack.get().peekLast() == traceContextHolder;
+    }
+
     /**
      * Starts a span with a given parent context.
      * <p>

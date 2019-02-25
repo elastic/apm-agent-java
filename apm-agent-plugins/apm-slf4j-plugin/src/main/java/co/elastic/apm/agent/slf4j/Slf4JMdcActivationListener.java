@@ -22,7 +22,6 @@ package co.elastic.apm.agent.slf4j;
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
@@ -31,6 +30,8 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class Slf4JMdcActivationListener implements ActivationListener {
 
@@ -40,6 +41,15 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     private static final String TRACE_ID = "trace.id";
     private static final String SPAN_ID = "span.id";
     private static final String TRANSACTION_ID = "transaction.id";
+    private static final String NA_SPAN_ID = "NA";
+
+    private final ThreadLocal<Deque<String>> spanIdStack = new ThreadLocal<Deque<String>>() {
+        @Override
+        protected Deque<String> initialValue() {
+            return new ArrayDeque<String>();
+        }
+    };
+
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache =
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
             @Nullable
@@ -68,37 +78,79 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                 }
             }
         });
+    private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcGetMethodHandleCache =
+        new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
+            @Nullable
+            @Override
+            public MethodHandle get(ClassLoader classLoader) {
+                try {
+                    return MethodHandles.lookup()
+                        .findStatic(classLoader.loadClass(ORG_SLF4J_MDC), "get", MethodType.methodType(String.class, String.class));
+                } catch (Exception ignore) {
+                    // this class loader does not have the slf4j api
+                    return null;
+                }
+            }
+        });
     @Nullable
     private LoggingConfiguration config;
+    @Nullable
+    private ElasticApmTracer tracer;
 
     @Override
     public void init(ElasticApmTracer tracer) {
+        this.tracer = tracer;
         config = tracer.getConfig(LoggingConfiguration.class);
     }
 
     @Override
     public void onActivate(TraceContextHolder<?> context) throws Throwable {
         if (config != null && config.isLogCorrelationEnabled() && context.isSampled()) {
-            MethodHandle put = mdcPutMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
-            TraceContext traceContext = context.getTraceContext();
+            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+            // always push something to span ID stack - either valid ID or a non-valid-id marker
+            String formerSpanId = NA_SPAN_ID;
+            MethodHandle get = mdcGetMethodHandleCache.get(contextClassLoader);
+            if (get != null) {
+                formerSpanId = (String) get.invokeExact(SPAN_ID);
+                if (formerSpanId == null) {
+                    formerSpanId = NA_SPAN_ID;
+                }
+            }
+            spanIdStack.get().push(formerSpanId);
+
+            MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
             if (put != null) {
-                put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
-                String idKey = context instanceof Span ? SPAN_ID : TRANSACTION_ID;
-                put.invokeExact(idKey, traceContext.getId().toString());
+                TraceContext traceContext = context.getTraceContext();
+                put.invokeExact(SPAN_ID, traceContext.getId().toString());
+                if (tracer != null && tracer.isThreadRootContext(context)) {
+                    put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
+                    put.invokeExact(TRANSACTION_ID, traceContext.getTransactionId().toString());
+                }
             }
         }
     }
 
     @Override
-    public void onDeactivate() throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled()) {
-            MethodHandle remove = mdcRemoveMethodHandleCache.get(Thread.currentThread().getContextClassLoader());
+    public void onDeactivate(TraceContextHolder<?> context) throws Throwable {
+        if (config != null && config.isLogCorrelationEnabled() && context.isSampled()) {
+            String formerSpanId = spanIdStack.get().poll();
+
+            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
             if (remove != null) {
-                remove.invokeExact(TRACE_ID);
                 remove.invokeExact(SPAN_ID);
-                remove.invokeExact(TRANSACTION_ID);
+                if (tracer != null && tracer.isThreadRootContext(context)) {
+                    remove.invokeExact(TRACE_ID);
+                    remove.invokeExact(TRANSACTION_ID);
+                }
+            }
+
+            MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
+            //noinspection StringEquality
+            if (put != null && NA_SPAN_ID != formerSpanId) {
+                put.invokeExact(SPAN_ID, formerSpanId);
             }
         }
     }
-
 }
