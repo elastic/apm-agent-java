@@ -51,7 +51,7 @@ public class ForwardRequestDispatcherInstrumentationTest extends AbstractServlet
 
     @Test
     void testForward() throws Exception {
-        testInstrumentation(Arrays.asList(new ForwardRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/forward");
+        testInstrumentation(Arrays.asList(new RequestDispatcherInstrumentation(), new ForwardRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/forward");
     }
 
     private void testInstrumentation(List<ElasticApmInstrumentation> instrumentations, int expectedTransactions, String path) throws IOException, InterruptedException {
@@ -64,10 +64,9 @@ public class ForwardRequestDispatcherInstrumentationTest extends AbstractServlet
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }
-        System.out.println("Transaction name="+reporter.getFirstTransaction().getName().toString());
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("FORWARD /forward", reporter.getSpans().get(0).getName().toString());
+        assertEquals("FORWARD /test", reporter.getSpans().get(0).getName().toString());
     }
 
     private void initInstrumentation(List<ElasticApmInstrumentation> instrumentations) {

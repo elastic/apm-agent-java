@@ -174,7 +174,8 @@ public class ElasticApm {
      * These exceptions will not have a link to a Span or a Transaction.
      * </p>
      * <p>
-     * NOTE: Transactions created via {@link Span#createSpan()} can not be retrieved by calling this method.
+     * NOTE: Transactions created via {@link Span#startSpan()} or via {@link Span#startSpan(String, String, String)} can not be retrieved
+     * by calling this method.
      * See {@link Span#activate()} on how to achieve that.
      * </p>
      *

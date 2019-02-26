@@ -29,8 +29,14 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Enumeration;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
@@ -46,18 +52,27 @@ public class ForwardRequestDispatcherInstrumentation extends ElasticApmInstrumen
 
     public static class ForwardRequestDispatcherAdvice extends ForwardRequestDispatcherInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeExecute(@Advice.Local("span") @Nullable Span span) {
+        private static void beforeExecute(@Advice.Local("span") @Nullable Span span,
+                                          @Advice.Argument(0) @Nullable ServletRequest request) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
             final TraceContextHolder<?> parent = tracer.getActive();
-            span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(FORWARD).activate();
+
+            if (request != null && request instanceof HttpServletRequest) {
+                HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+                String forwardServletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.FORWARD_SERVLET_PATH);
+                span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(FORWARD);
+                if (forwardServletPath != null) {
+                    span.appendToName(" ").appendToName(forwardServletPath);
+                }
+                span.activate();
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterExecute(@Advice.Local("span") @Nullable Span span,
                                         @Advice.Thrown @Nullable Throwable t) {
-
             if (span != null) {
                 span.captureException(t)
                     .deactivate()

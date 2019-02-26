@@ -19,14 +19,12 @@
  */
 package co.elastic.apm.agent.jdbc;
 
-import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
-
 import java.sql.DriverManager;
 
 public class JdbcInstrumentationTest extends AbstractJdbcInstrumentationTest {
 
     public JdbcInstrumentationTest() throws Exception {
-        super(DriverManager.getConnection("jdbc:h2:mem:test"), computeJdbcSpanTypeName("h2"));
+        super(DriverManager.getConnection("jdbc:h2:mem:test"), "h2");
     }
 
 }

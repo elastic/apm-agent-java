@@ -21,8 +21,10 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -80,8 +82,27 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void setType(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                    @Advice.Argument(0) String type) {
-            if (context instanceof AbstractSpan) {
-                ((AbstractSpan) context).withType(type);
+            if (context instanceof Transaction) {
+                ((Transaction) context).withType(type);
+            } else if (context instanceof Span) {
+                ((Span) context).setType(type, null, null);
+            }
+        }
+    }
+
+    public static class SetTypesInstrumentation extends AbstractSpanInstrumentation {
+        public SetTypesInstrumentation() {
+            super(named("doSetTypes"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void setType(@Advice.Argument(0) Object span,
+                                   @Advice.Argument(1) @Nullable String type,
+                                   @Advice.Argument(2) @Nullable String subtype,
+                                   @Advice.Argument(3) @Nullable String action) {
+            if (span instanceof Span) {
+                ((Span) span).setType(type, subtype, action);
             }
         }
     }

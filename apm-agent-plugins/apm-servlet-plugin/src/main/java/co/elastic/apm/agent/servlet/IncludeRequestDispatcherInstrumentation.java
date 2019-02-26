@@ -29,6 +29,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -46,12 +49,22 @@ public class IncludeRequestDispatcherInstrumentation extends ElasticApmInstrumen
 
     public static class IncludeRequestDispatcherAdvice extends IncludeRequestDispatcherInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeExecute(@Advice.Local("span") @Nullable Span span) {
+        private static void beforeExecute(@Advice.Local("span") @Nullable Span span,
+                                          @Advice.Argument(0) @Nullable ServletRequest request) {
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
             final TraceContextHolder<?> parent = tracer.getActive();
-            span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(INCLUDE).activate();
+
+            if (request != null && request instanceof HttpServletRequest) {
+                HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+                String includeServletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+                span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(INCLUDE);
+                if (includeServletPath != null) {
+                    span.appendToName(" ").appendToName(includeServletPath);
+                }
+                span.activate();
+            }
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

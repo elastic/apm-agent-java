@@ -51,6 +51,13 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
+    /**
+     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
+     * (Required)
+     */
+    @Nullable
+    private volatile String type;
+
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -105,6 +112,14 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
+     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
+     */
+    public Transaction withType(@Nullable String type) {
+        this.type = type;
+        return this;
+    }
+
+    /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     @Nullable
@@ -143,6 +158,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (!isSampled()) {
             context.resetState();
         }
+        if (type == null) {
+            type = "custom";
+        }
         this.tracer.endTransaction(this);
     }
 
@@ -157,6 +175,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         result = null;
         spanCount.resetState();
         noop = false;
+        type = null;
     }
 
     public void recycle() {
@@ -165,6 +184,11 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public boolean isNoop() {
         return noop;
+    }
+
+    @Nullable
+    public String getType() {
+        return type;
     }
 
     @Override

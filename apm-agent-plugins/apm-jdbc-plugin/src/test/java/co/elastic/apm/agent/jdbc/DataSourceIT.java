@@ -31,7 +31,6 @@ import org.vibur.dbcp.ViburDBCPDataSource;
 import javax.sql.DataSource;
 import java.util.function.Supplier;
 
-import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
 import static java.util.Arrays.asList;
 
 // inspired by https://github.com/testcontainers/testcontainers-java/blob/master/modules/jdbc-test/src/test/java/org/testcontainers/jdbc/JDBCDriverWithPoolTest.java
@@ -41,7 +40,7 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
     private static final String URL = "jdbc:h2:mem:test";
 
     public DataSourceIT(Supplier<DataSource> dataSourceSupplier) throws Exception {
-        super(dataSourceSupplier.get().getConnection(), computeJdbcSpanTypeName("h2"));
+        super(dataSourceSupplier.get().getConnection(), "h2");
     }
 
     @Parameterized.Parameters

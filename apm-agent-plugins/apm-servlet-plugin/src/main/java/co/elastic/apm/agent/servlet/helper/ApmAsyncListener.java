@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
@@ -49,6 +50,7 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_
  *  - Jetty on the same scenario will just go crazy endlessly trying to run the Runnable over and over
  *  - Some containers may release the response after onError/onTimeout to return to the client, meaning that onComplete is called afterwards
  *  - Jetty fails to invoke onError after AsyncContext.dispatch to a Servlet that ends with ServletException
+ *  - JBoss EAP 6.4 does not invoke onComplete after onError is invoked
  */
 public class ApmAsyncListener implements AsyncListener, Recyclable {
 
@@ -78,6 +80,9 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
     @Override
     public void onTimeout(AsyncEvent event) {
         throwable = event.getThrowable();
+        if (isJBossEap6(event)) {
+            endTransaction(event);
+        }
         /*
             NOTE: HTTP status code may not have been set yet, so we do not call endTransaction() from here.
 
@@ -86,12 +91,17 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
             onComplete() should always be called by the container even in the case of timeout or error, and the final
             HTTP status code should be set by then. So we'll just defer to onComplete() for finalizing the span and do
             nothing here.
+
+            But JBoss EAP 6 is a special one...
         */
     }
 
     @Override
     public void onError(AsyncEvent event) {
         throwable = event.getThrowable();
+        if (isJBossEap6(event)) {
+            endTransaction(event);
+        }
         /*
             NOTE: HTTP status code may not have been set yet, so we only hold a reference to the related error that may not be
             otherwise available, but not calling endTransaction() from here.
@@ -101,7 +111,14 @@ public class ApmAsyncListener implements AsyncListener, Recyclable {
             onComplete() should always be called by the container even in the case of timeout or error, and the final
             HTTP status code should be set by then. So we'll just defer to onComplete() for finalizing the span and do
             nothing here.
+
+            But JBoss EAP 6 is a special one...
         */
+    }
+
+    private boolean isJBossEap6(AsyncEvent event) {
+        final ServletContext context = event.getSuppliedRequest().getServletContext();
+        return context.getMajorVersion() == 3 && context.getMinorVersion() == 0 && System.getProperty("jboss.home.dir") != null;
     }
 
     /**

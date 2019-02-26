@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.3.1-SNAPSHOT</version>
+        <version>1.4.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,9 +13,10 @@
     <modules>
         <module>simple-webapp</module>
         <module>jsf-app</module>
-        <module>simple-webapp-integration-test</module>
+        <module>application-server-integration-tests</module>
         <module>spring-boot-1-5</module>
         <module>spring-boot-2</module>
+        <module>soap-test</module>
     </modules>
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>

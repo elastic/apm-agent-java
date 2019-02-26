@@ -19,7 +19,6 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -30,13 +29,10 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
-import static co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation.OPENTRACING_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
+public class ApmScopeInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
@@ -59,15 +55,5 @@ public class ApmScopeInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("release");
-    }
-
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
     }
 }

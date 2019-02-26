@@ -19,10 +19,10 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.web.ResultUtil;
 import net.bytebuddy.asm.Advice;
@@ -34,19 +34,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
+public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ApmSpanInstrumentation.class);
-
-    static final String OPENTRACING_INSTRUMENTATION_GROUP = "opentracing";
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -64,16 +60,6 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
         return methodMatcher;
     }
 
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(OPENTRACING_INSTRUMENTATION_GROUP);
-    }
-
     public static class FinishInstrumentation extends ApmSpanInstrumentation {
         public FinishInstrumentation() {
             super(named("finishInternal"));
@@ -81,34 +67,42 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void finishInternal(@Advice.FieldValue(value = "dispatcher", readOnly = false, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
-                                           @Advice.Argument(0) long finishMicros) {
+                                           @Advice.Argument(0) long finishMicros,
+                                           @Advice.Argument(value = 1, optional = true) @Nullable Object traceContext) {
             if (span != null) {
-                doFinishInternal(span, finishMicros);
+                doFinishInternal(span, finishMicros, traceContext);
                 span = null;
             }
         }
 
         @VisibleForAdvice
-        public static void doFinishInternal(AbstractSpan<?> span, long finishMicros) {
-            if (span.getType() == null) {
-                if (span instanceof Transaction) {
-                    Transaction transaction = (Transaction) span;
-                    if (transaction.getType() == null) {
-                        if (transaction.getContext().getRequest().hasContent()) {
-                            transaction.withType(Transaction.TYPE_REQUEST);
-                        } else {
-                            transaction.withType("unknown");
-                        }
+        public static void doFinishInternal(AbstractSpan<?> abstractSpan, long finishMicros, @Nullable Object traceContext) {
+            if (abstractSpan instanceof Transaction) {
+                Transaction transaction = (Transaction) abstractSpan;
+                if (transaction.getType() == null) {
+                    if (transaction.getContext().getRequest().hasContent()) {
+                        transaction.withType(Transaction.TYPE_REQUEST);
+                    } else {
+                        transaction.withType("unknown");
                     }
-                } else {
+                }
+            } else {
+                Span span = (Span) abstractSpan;
+                if (span.getType() == null) {
                     span.withType("unknown");
                 }
             }
 
             if (finishMicros >= 0) {
-                span.end(finishMicros);
+                abstractSpan.end(finishMicros);
             } else {
-                span.end();
+                abstractSpan.end();
+            }
+
+            // If the finished span is the active span, replace with the corresponding TraceContext
+            if (tracer != null && traceContext != null && abstractSpan == tracer.getActive() && traceContext instanceof TraceContext) {
+                tracer.deactivate(abstractSpan);
+                tracer.activate((TraceContext) traceContext);
             }
         }
     }
@@ -240,7 +234,17 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
 
         private static boolean handleSpecialSpanTag(Span span, String key, Object value) {
             if ("type".equals(key)) {
-                span.withType(value.toString());
+                if (span.getSubtype() == null && span.getAction() == null) {
+                    span.setType(value.toString(), null, null);
+                } else {
+                    span.withType(value.toString());
+                }
+                return true;
+            } else if ("subtype".equals(key)) {
+                span.withSubtype(value.toString());
+                return true;
+            } else if ("action".equals(key)) {
+                span.withAction(value.toString());
                 return true;
             } else if ("sampling.priority".equals(key)) {
                 // mid-trace sampling is not allowed
@@ -248,9 +252,9 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
             } else if ("db.type".equals(key)) {
                 span.getContext().getDb().withType(value.toString());
                 if (isCache(value)) {
-                    span.withType("cache");
+                    span.withType("cache").withSubtype(value.toString());
                 } else {
-                    span.withType("db");
+                    span.withType("db").withSubtype(value.toString());
                 }
                 return true;
             } else if ("db.instance".equals(key)) {
@@ -258,6 +262,7 @@ public class ApmSpanInstrumentation extends ElasticApmInstrumentation {
                 return true;
             } else if ("db.statement".equals(key)) {
                 span.getContext().getDb().withStatement(value.toString());
+                span.withAction("query");
                 return true;
             } else if ("span.kind".equals(key)) {
                 if (span.getType() == null && ("producer".equals(value) || "client".equals(value))) {

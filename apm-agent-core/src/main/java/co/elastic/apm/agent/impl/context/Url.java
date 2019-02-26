@@ -161,8 +161,10 @@ public class Url implements Recyclable {
 
     public void copyFrom(Url other) {
         this.protocol = other.protocol;
+        this.full.setLength(0);
         this.full.append(other.full);
         this.hostname = other.hostname;
+        this.port.setLength(0);
         this.port.append(other.port);
         this.pathname = other.pathname;
         this.search = other.search;

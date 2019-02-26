@@ -57,7 +57,7 @@ public class ConnectionInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void storeSql(@Advice.Return final PreparedStatement statement, @Advice.Argument(0) String sql) {
-        statementSqlMap.put(statement, sql);
+        statementSqlMap.putIfAbsent(statement, sql);
     }
 
     /**

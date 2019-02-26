@@ -44,9 +44,48 @@ class IOUtilsTest  {
     }
 
     @Test
-    void testStringLargerThanBuffer() throws IOException {
-        final CharBuffer charBuffer = CharBuffer.allocate(2000);
-        final String longString = RandomStringUtils.randomAlphanumeric(2000);
+    void readUtf8Bytes() {
+        final CharBuffer charBuffer = CharBuffer.allocate(8);
+        assertThat(IOUtils.decodeUtf8Bytes("{f".getBytes(UTF_8), charBuffer).isError()).isFalse();
+        assertThat(IOUtils.decodeUtf8Bytes("oo}".getBytes(UTF_8), charBuffer).isError()).isFalse();
+        charBuffer.flip();
+        assertThat(charBuffer.toString()).isEqualTo("{foo}");
+    }
+
+    @Test
+    void readUtf8BytesOffsetLength() {
+        final CharBuffer charBuffer = CharBuffer.allocate(8);
+        final byte[] bytes = "{foo}".getBytes(UTF_8);
+        final byte[] buffer = new byte[512];
+        System.arraycopy(bytes, 0, buffer, 42, bytes.length);
+        assertThat(IOUtils.decodeUtf8Bytes(buffer, 42, bytes.length, charBuffer).isError()).isFalse();
+        charBuffer.flip();
+        assertThat(charBuffer.toString()).isEqualTo("{foo}");
+    }
+
+    @Test
+    void readUtf8Byte() {
+        final CharBuffer charBuffer = CharBuffer.allocate(8);
+        for (byte b : "{foo}".getBytes(UTF_8)) {
+            assertThat(IOUtils.decodeUtf8Byte(b, charBuffer).isError()).isFalse();
+        }
+        charBuffer.flip();
+        assertThat(charBuffer.toString()).isEqualTo("{foo}");
+    }
+
+    @Test
+    void testBytesLargerThanByteBuffer() {
+        final CharBuffer charBuffer = CharBuffer.allocate(IOUtils.BYTE_BUFFER_CAPACITY * 2);
+        final String longString = RandomStringUtils.randomAlphanumeric(IOUtils.BYTE_BUFFER_CAPACITY * 2);
+        assertThat(IOUtils.decodeUtf8Bytes(longString.getBytes(UTF_8), charBuffer).isError()).isFalse();
+        charBuffer.flip();
+        assertThat(charBuffer.toString()).isEqualTo(longString);
+    }
+
+    @Test
+    void testStreamLargerThanByteBuffer() throws IOException {
+        final CharBuffer charBuffer = CharBuffer.allocate(IOUtils.BYTE_BUFFER_CAPACITY * 2);
+        final String longString = RandomStringUtils.randomAlphanumeric(IOUtils.BYTE_BUFFER_CAPACITY * 2);
         assertThat(IOUtils.readUtf8Stream(toInputStream(longString, UTF_8), charBuffer)).isTrue();
         assertThat(charBuffer.toString()).isEqualTo(longString);
     }
@@ -70,9 +109,18 @@ class IOUtilsTest  {
     }
 
     @Test
-    void testOverflow() throws IOException {
+    void testOverflowStream() throws IOException {
         final CharBuffer charBuffer = CharBuffer.allocate(8);
         assertThat(IOUtils.readUtf8Stream(toInputStream("foobarbaz", UTF_8), charBuffer)).isTrue();
+        assertThat(charBuffer.toString()).isEqualTo("foobarba");
+    }
+
+    @Test
+    void testOverflowBytes() {
+        final CharBuffer charBuffer = CharBuffer.allocate(8);
+        assertThat(IOUtils.decodeUtf8Bytes("foobarbaz".getBytes(UTF_8), charBuffer).isOverflow()).isTrue();
+        assertThat(IOUtils.decodeUtf8Bytes("qux".getBytes(UTF_8), charBuffer).isOverflow()).isTrue();
+        charBuffer.flip();
         assertThat(charBuffer.toString()).isEqualTo("foobarba");
     }
 
@@ -81,6 +129,13 @@ class IOUtilsTest  {
         final CharBuffer charBuffer = CharBuffer.allocate(16);
         assertThat(IOUtils.readUtf8Stream(toInputStream("{foo}", UTF_16), charBuffer)).isFalse();
         assertThat(charBuffer.length()).isZero();
+    }
+
+    @Test
+    void readUtf16Bytes() {
+        final CharBuffer charBuffer = CharBuffer.allocate(16);
+        assertThat(IOUtils.decodeUtf8Bytes("{foo}".getBytes(UTF_16), charBuffer).isError()).isTrue();
+        assertThat((CharSequence) charBuffer).isEqualTo(CharBuffer.allocate(16));
     }
 
     @Nonnull

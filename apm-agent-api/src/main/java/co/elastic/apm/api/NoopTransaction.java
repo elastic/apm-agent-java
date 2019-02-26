@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 enum NoopTransaction implements Transaction {
 
@@ -91,16 +92,29 @@ enum NoopTransaction implements Transaction {
         return NoopScope.INSTANCE;
     }
 
-    @Nonnull
     @Override
     public boolean isSampled() {
         return false;
     }
 
+    @Nonnull
     @Override
     public Span createSpan() {
         return NoopSpan.INSTANCE;
     }
+
+    @Nonnull
+    @Override
+    public Span startSpan(String type, @Nullable String subtype, @Nullable String action) {
+        return NoopSpan.INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span startSpan() {
+        return NoopSpan.INSTANCE;
+    }
+
 
     @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {

@@ -45,26 +45,30 @@ the agent does not capture transactions.
 [[supported-web-frameworks]]
 === Web Frameworks
 |===
-|Framework |Supported versions | Description
+|Framework |Supported versions | Description | Since
 
 |Servlet API
 |3+
 |A transaction will be created for all incoming HTTP requests to your Servlet API-based application.
  See also <<supported-app-servers>>
+|1.0.0
 
 |Spring Web MVC
 |4.x, 5.x
 |If you are using Spring MVC (for example with Spring Boot),
   the transactions are named based on your controllers (`ControllerClass#controllerMethod`).
+|1.0.0
 
 |JavaServer Faces
 |2.2.x, 2.3.x
 |If you are using JSF, transactions are named based on the requested Facelets and spans are captured for visibility into execution and
 rendering
+|1.0.0
 
 |Spring Boot
 |1.5+, 2.x
 |Supports embedded Tomcat, Jetty and Undertow
+|1.0.0
 
 |JAX-RS
 |2.x
@@ -75,6 +79,18 @@ rendering
  This comes at the cost of increased startup times, however.
 
  Note: JAX-RS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>>.
+|1.0.0
+
+|JAX-WS
+|
+|The transactions are named based on your `@javax.jws.WebService` annotated classes and `@javax.jws.WebMethod` annotated method names (`WebServiceClass#webMethod`).
+ Note that only the packages configured in <<config-application-packages>> are scanned for JAX-WS resources.
+ If you don't set this option,
+ all classes are scanned.
+ This comes at the cost of increased startup times, however.
+
+ Note: JAX-WS is only supported when running on a supported <<supported-app-servers, Application Server/Servlet Container>> and when using the HTTP binding.
+|1.4.0
 
 |===
 
@@ -93,8 +109,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |<<setup-tomcat,Tomcat>>
 |7.x, 8.5.x, 9.x
 
-|<<setup-wildfly,WildFly>>
-|8-13
+|<<setup-jboss-wildfly,WildFly>>
+|8-15
+
+|<<setup-jboss-wildfly,JBoss EAP>>
+|6.4, 7.0, 7.1, 7.2
 
 |<<setup-jetty,Jetty>> (only the `ServletContextHandler` is supported)
 |9.2, 9.3, 9.4
@@ -138,38 +157,68 @@ Other Servlet 3+ compliant servers will most likely work as well.
 === Networking frameworks
 Distributed tracing will only work if you are using one of the supported networking frameworks.
 
-|===
-|Framework |Supported versions | Description | Since
+For the supported HTTP libraries, the agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
+The spans are named after the schema `<method> <host>`, for example `GET elastic.co`.
 
-|Apache HttpClient (<<config-disable-instrumentations,incubating>>)
+|===
+|Framework |Supported versions | Note | Since
+
+|Apache HttpClient
 |4.3+
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
+|
 | 0.7.0
 
 |Spring RestTemplate
 |4+
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
+|
 | 0.7.0
 
 |OkHttp
 |2, 3
-|The agent automatically creates spans for outgoing HTTP requests and propagates tracing headers.
- The spans are named after the schema `<method> <host>`.
- Note: Currently, only synchronous calls via `Call#execute()` are supported.
+|Currently, only synchronous calls via `Call#execute()` are supported.
  `Call#enquene(Callback)` is not yet supported.
 | 1.4.0
 
+|HttpUrlConnection
+|
+|
+| 1.4.0
+
+|JAX-WS client
+|
+|JAX-WS clients created via link:https://docs.oracle.com/javaee/7/api/javax/xml/ws/Service.html[`javax.xml.ws.Service`]
+ inherently support context propagation as they are using `HttpUrlConnection` underneath.
+|1.4.0
+
 |===
+
+
+[float]
+[[supported-async-frameworks]]
+=== Asynchronous frameworks
+When a Span is created in a different Thread than its parent,
+the trace context has to be propagated onto this thread.
+
+This section lists all supported asynchronous frameworks.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|ExecutorService
+|
+|The agent propagates the context when using the `java.util.concurrent.ExecutorService` methods of any `ExecutorService` implementation.
+|1.4.0
+
+|===
+
 
 [float]
 [[supported-technologies-caveats]]
 === Caveats
-* Tracing of asynchronous invocations (for example `java.util.concurrent.ExecutorService`) is currently not supported.
 * Certain OSGi containers need the following configuration setting in case you see exceptions like
   `java.lang.NoClassDefFoundError: co/elastic/apm/jdbc/StatementInstrumentation`:
   `org.osgi.framework.bootdelegation=co.elastic.apm.agent.*`
 * Other JVM languages, like Scala, Kotlin and Groovy have not been tested yet.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
-  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`
+  You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
+  Try to grant `java.security.AllPermission` to the agent.

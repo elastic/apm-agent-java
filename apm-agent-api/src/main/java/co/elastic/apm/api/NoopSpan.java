@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 enum NoopSpan implements Span {
     INSTANCE;
@@ -72,14 +73,26 @@ enum NoopSpan implements Span {
         return NoopScope.INSTANCE;
     }
 
-    @Nonnull
     @Override
     public boolean isSampled() {
         return false;
     }
 
+    @Nonnull
     @Override
     public Span createSpan() {
+        return INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span startSpan(String type, @Nullable String subtype, @Nullable String action) {
+        return INSTANCE;
+    }
+
+    @Nonnull
+    @Override
+    public Span startSpan() {
         return INSTANCE;
     }
 

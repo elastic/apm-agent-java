@@ -36,6 +36,7 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
@@ -63,6 +64,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflec
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -163,28 +165,32 @@ public class ElasticApmAgent {
         logger.debug("Applying advice {}", advice.getClass().getName());
         advice.init(tracer);
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
+        final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();
+        final ElementMatcher<? super NamedElement> typeMatcherPreFilter = advice.getTypeMatcherPreFilter();
+        final ElementMatcher<? super TypeDescription> typeMatcher = advice.getTypeMatcher();
+        final ElementMatcher<? super MethodDescription> methodMatcher = advice.getMethodMatcher();
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
                 @Override
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
                     long start = System.nanoTime();
                     try {
-                        if (!advice.getClassLoaderMatcher().matches(classLoader)) {
+                        if (!classLoaderMatcher.matches(classLoader)) {
                             return false;
                         }
-                        if (typeMatchingWithNamePreFilter && !advice.getTypeMatcherPreFilter().matches(typeDescription)) {
+                        if (typeMatchingWithNamePreFilter && !typeMatcherPreFilter.matches(typeDescription)) {
                             return false;
                         }
                         boolean typeMatches;
                         try {
-                            typeMatches = advice.getTypeMatcher().matches(typeDescription);
+                            typeMatches = typeMatcher.matches(typeDescription);
                         } catch (Exception ignored) {
                             // could be because of a missing type
                             typeMatches = false;
                         }
                         if (typeMatches) {
                             logger.debug("Type match for advice {}: {} matches {}",
-                                advice.getClass().getSimpleName(), advice.getTypeMatcher(), typeDescription);
+                                advice.getClass().getSimpleName(), typeMatcher, typeDescription);
                             if (logger.isTraceEnabled()) {
                                 logClassLoaderHierarchy(classLoader, logger, advice);
                             }
@@ -206,14 +212,14 @@ public class ElasticApmAgent {
                         try {
                             boolean matches;
                             try {
-                                matches = advice.getMethodMatcher().matches(target);
+                                matches = methodMatcher.matches(target);
                             } catch (Exception ignored) {
                                 // could be because of a missing type
                                 matches = false;
                             }
                             if (matches) {
                                 logger.debug("Method match for advice {}: {} matches {}",
-                                    advice.getClass().getSimpleName(), advice.getMethodMatcher(), target);
+                                    advice.getClass().getSimpleName(), methodMatcher, target);
                             }
                             return matches;
                         } finally {
@@ -288,7 +294,7 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
-        final List<WildcardMatcher> excludedFromInstrumentation = coreConfiguration.getExcludedFromInstrumentation();
+        final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
@@ -299,9 +305,28 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            .or(nameStartsWith("java."))
-            .or(nameStartsWith("com.sun.").and(not(nameStartsWith("com.sun.faces."))))
-            .or(nameStartsWith("sun"))
+            .or(nameStartsWith("java.")
+                .and(
+                    not(
+                        nameEndsWith("URLConnection")
+                            .or(nameStartsWith("java.util.concurrent."))
+                    )
+                )
+            )
+            .or(nameStartsWith("com.sun.")
+                .and(
+                    not(
+                        nameStartsWith("com.sun.faces.")
+                            .or(nameEndsWith("URLConnection"))
+                    )
+                )
+            )
+            .or(nameStartsWith("sun")
+                .and(
+                    not(nameEndsWith("URLConnection"))
+                )
+            )
+            .or(nameStartsWith("co.elastic.apm.agent.shaded"))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
             .or(nameStartsWith("com.p6spy."))
@@ -312,7 +337,7 @@ public class ElasticApmAgent {
             .or(new ElementMatcher.Junction.AbstractBase<TypeDescription>() {
                 @Override
                 public boolean matches(TypeDescription target) {
-                    return WildcardMatcher.anyMatch(excludedFromInstrumentation, target.getName()) != null;
+                    return WildcardMatcher.anyMatch(classesExcludedFromInstrumentation, target.getName()) != null;
                 }
             })
             .disableClassFormatChanges();

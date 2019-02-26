@@ -54,7 +54,7 @@ public class IncludeRequestDispatcherInstrumentationTest extends AbstractServlet
 
     @Test
     void testInclude() throws Exception {
-        testInstrumentation(Arrays.asList(new IncludeRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/include");
+        testInstrumentation(Arrays.asList(new RequestDispatcherInstrumentation(), new IncludeRequestDispatcherInstrumentation(), new ServletInstrumentation()), 1, "/include");
     }
 
     private void testInstrumentation(List<ElasticApmInstrumentation> instrumentations, int expectedTransactions, String path) throws IOException, InterruptedException {
@@ -67,10 +67,10 @@ public class IncludeRequestDispatcherInstrumentationTest extends AbstractServlet
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
         }
-        System.out.println("Transaction name="+reporter.getFirstTransaction().getName().toString());
+
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("INCLUDE /include", reporter.getSpans().get(0).getName().toString());
+        assertEquals("INCLUDE /test", reporter.getSpans().get(0).getName().toString());
 
     }
 

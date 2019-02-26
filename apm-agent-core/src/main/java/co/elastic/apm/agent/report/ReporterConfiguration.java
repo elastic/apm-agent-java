@@ -125,7 +125,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
-        .description("Maximum time to keep an HTTP request to the APM Server open for.")
+        .description("Maximum time to keep an HTTP request to the APM Server open for.\n" +
+            "\n" +
+            "NOTE: This value has to be lower than the APM Server's `read_timeout` setting.")
         .buildWithDefault(TimeDuration.of("10s"));
 
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
@@ -153,10 +155,11 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(REPORTER_CATEGORY)
         .description("Disables the collection of certain metrics.\n" +
             "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +
+            "Example: `foo.*,bar.*`\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
-        .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("jvm.gc.*")));
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     @Nullable
     public String getSecretToken() {

@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,14 +57,35 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
 
     @Test
     void testType() {
-        AnnotationTestClass.transactionWithType();
+        testTransactionAndSpanTypes(true);
+        testTransactionAndSpanTypes(false);
+    }
+
+    private void testTransactionAndSpanTypes(boolean useLegacyTyping) {
+        reporter.reset();
+        AnnotationTestClass.transactionWithType(useLegacyTyping);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("transactionWithType");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("job");
 
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("spanWithType");
-        assertThat(reporter.getFirstSpan().getType()).isEqualTo("other");
+        Span internalSpan = reporter.getFirstSpan();
+        assertThat(internalSpan.getName().toString()).isEqualTo("spanWithType");
+        assertThat(internalSpan.getType()).isEqualTo("ext");
+        assertThat(internalSpan.getSubtype()).isEqualTo("http");
+        assertThat(internalSpan.getAction()).isEqualTo("okhttp");
+    }
+
+    @Test
+    void testMissingSubtype() {
+        reporter.reset();
+        AnnotationTestClass.transactionForMissingSpanSubtype();
+        assertThat(reporter.getSpans()).hasSize(1);
+        Span internalSpan = reporter.getFirstSpan();
+        assertThat(internalSpan.getName().toString()).isEqualTo("spanWithMissingSubtype");
+        assertThat(internalSpan.getType()).isEqualTo("ext.http");
+        assertThat(internalSpan.getSubtype()).isEqualTo("");
+        assertThat(internalSpan.getAction()).isEqualTo("okhttp");
     }
 
     public static class AnnotationTestClass {
@@ -90,12 +112,31 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         }
 
         @CaptureTransaction(value = "transactionWithType", type = "job")
-        static void transactionWithType() {
-            spanWithType();
+        static void transactionWithType(boolean useLegacyTyping) {
+            if (useLegacyTyping) {
+                spanWithHierarchicalType();
+            } else {
+                spanWithSplitTypes();
+            }
         }
 
-        @CaptureSpan(value = "spanWithType", type = "other")
-        private static void spanWithType() {
+        @CaptureSpan(value = "spanWithType", type = "ext.http.okhttp")
+        private static void spanWithHierarchicalType() {
+
+        }
+
+        @CaptureSpan(value = "spanWithType", type = "ext", subtype = "http", action = "okhttp")
+        private static void spanWithSplitTypes() {
+
+        }
+
+        @CaptureTransaction()
+        static void transactionForMissingSpanSubtype() {
+            spanWithMissingSubtype();
+        }
+
+        @CaptureSpan(value = "spanWithMissingSubtype", type = "ext.http", action = "okhttp")
+        private static void spanWithMissingSubtype() {
 
         }
     }

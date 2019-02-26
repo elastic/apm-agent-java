@@ -37,7 +37,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class DispatcherServletRenderInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_DISPATCHER_SERVLET_RENDER = "template.dispatcher-servlet.render";
+    private static final String SPAN_TYPE = "template";
+    private static final String SPAN_SUBTYPE = "dispatcher-servlet";
+    private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -47,7 +49,11 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
             return;
         }
         final TraceContextHolder<?> parent = tracer.getActive();
-        span = parent.createSpan().withType(SPAN_TYPE_DISPATCHER_SERVLET_RENDER).withName(DISPATCHER_SERVLET_RENDER_METHOD);
+        span = parent.createSpan()
+            .withType(SPAN_TYPE)
+            .withSubtype(SPAN_SUBTYPE)
+            .withAction(SPAN_ACTION)
+            .withName(DISPATCHER_SERVLET_RENDER_METHOD);
         if (modelAndView != null && modelAndView.getViewName() != null) {
             span.appendToName(" ").appendToName(modelAndView.getViewName());
         }

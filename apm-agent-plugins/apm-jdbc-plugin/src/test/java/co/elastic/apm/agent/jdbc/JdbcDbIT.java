@@ -25,8 +25,6 @@ import org.junit.runners.Parameterized;
 import java.sql.DriverManager;
 import java.util.Arrays;
 
-import static co.elastic.apm.agent.jdbc.JdbcUtils.computeJdbcSpanTypeName;
-
 @RunWith(Parameterized.class)
 public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
 
@@ -34,19 +32,18 @@ public class JdbcDbIT extends AbstractJdbcInstrumentationTest {
         System.setProperty("oracle.jdbc.timezoneAsRegion", "false");
     }
 
-    public JdbcDbIT(String url, String expectedSpanType) throws Exception {
-        super(DriverManager.getConnection(url), expectedSpanType);
+    public JdbcDbIT(String url, String expectedDbVendor) throws Exception {
+        super(DriverManager.getConnection(url), expectedDbVendor);
     }
 
     @Parameterized.Parameters(name = "{index}: {0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"jdbc:tc:mysql:5://hostname/databasename", computeJdbcSpanTypeName("mysql")},
-            {"jdbc:tc:postgresql:9://hostname/databasename", computeJdbcSpanTypeName("postgresql")},
-            {"jdbc:tc:postgresql:10://hostname/databasename", computeJdbcSpanTypeName("postgresql")},
-            {"jdbc:tc:mariadb:10://hostname/databasename", computeJdbcSpanTypeName("mariadb")},
-            {"jdbc:tc:mssqlserver:2017-CU9://hostname/databasename", computeJdbcSpanTypeName("sqlserver")},
-            {"jdbc:tc:oracle://hostname/databasename", computeJdbcSpanTypeName("oracle")},
+            {"jdbc:tc:mysql:5://hostname/databasename", "mysql"},
+            {"jdbc:tc:postgresql:9://hostname/databasename", "postgresql"},
+            {"jdbc:tc:postgresql:10://hostname/databasename", "postgresql"},
+            {"jdbc:tc:mariadb:10://hostname/databasename", "mariadb"},
+            {"jdbc:tc:sqlserver:2017-CU12://hostname/databasename", "sqlserver"},
         });
     }
 

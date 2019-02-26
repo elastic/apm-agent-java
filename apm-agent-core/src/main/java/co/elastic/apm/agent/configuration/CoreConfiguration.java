@@ -220,9 +220,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
 
-    private final ConfigurationOption<List<WildcardMatcher>> excludedFromInstrumentation = ConfigurationOption
+    private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
-        .key("excluded_from_instrumentation")
+        .key("classes_excluded_from_instrumentation")
         .configurationCategory(CORE_CATEGORY)
         .tags("internal")
         .description("\n" +
@@ -237,6 +237,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("(?-i)org.eclipse.jdt.ecj*"),
             WildcardMatcher.valueOf("(?-i)org.wildfly.extension.*"),
             WildcardMatcher.valueOf("(?-i)org.wildfly.security*")
+        ));
+
+    private final ConfigurationOption<List<WildcardMatcher>> methodsExcludedFromInstrumentation = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("methods_excluded_from_instrumentation")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("(?-i)_persistence_*")
         ));
 
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
@@ -267,6 +280,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
             "Also note that there is a maximum amount of spans per transaction (see <<config-transaction-max-spans, `transaction_max_spans`>>).\n" +
+            "\n" +
+            "NOTE: The agent will create stack traces for spans which took longer than\n" +
+            "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
+            "When tracing a large number of methods (for example by using wildcards),\n" +
+            "this may lead to high overhead.\n" +
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n" +
             "\n" +
             "Since 1.3.0")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
@@ -319,8 +338,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return typeMatchingWithNamePreFilter.get();
     }
 
-    public List<WildcardMatcher> getExcludedFromInstrumentation() {
-        return excludedFromInstrumentation.get();
+    public List<WildcardMatcher> getClassesExcludedFromInstrumentation() {
+        return classesExcludedFromInstrumentation.get();
+    }
+
+    public List<WildcardMatcher> getMethodsExcludedFromInstrumentation() {
+        return methodsExcludedFromInstrumentation.get();
     }
 
     public List<MethodMatcher> getTraceMethods() {
