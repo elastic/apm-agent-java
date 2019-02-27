@@ -52,8 +52,8 @@ class ServletTransactionHelperTest {
     @Test
     void setTransactionNameByServletClass() {
         StringBuilder transactionName = new StringBuilder();
-        ServletTransactionHelper.setTransactionNameByServletClass("GET", "/api", ServletTransactionHelperTest.class, transactionName);
-        assertThat(transactionName.toString()).isEqualTo("GET /api ServletTransactionHelperTest");
+        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transactionName);
+        assertThat(transactionName.toString()).isEqualTo("GET ServletTransactionHelperTest");
     }
 
     @Test

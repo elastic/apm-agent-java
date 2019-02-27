@@ -290,14 +290,12 @@ public class ServletTransactionHelper {
     }
 
     @VisibleForAdvice
-    public static void setTransactionNameByServletClass(String method, String requestURI, @Nullable Class<?> servletClass, StringBuilder transactionName) {
-        logger.debug("TransactionName =  {}", transactionName);
+    public static void setTransactionNameByServletClass(String method, @Nullable Class<?> servletClass, StringBuilder transactionName) {
         if (servletClass == null || transactionName.length() > 0) {
             return;
         }
         String servletClassName = servletClass.getName();
-        logger.debug("ClassName =  {}",servletClassName);
-        transactionName.append(method).append(" ").append(requestURI).append(" ");
+        transactionName.append(method).append(" ");
         transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
     }
 
