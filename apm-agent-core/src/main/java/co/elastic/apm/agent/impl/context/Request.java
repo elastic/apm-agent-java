@@ -110,6 +110,11 @@ public class Request implements Recyclable {
         return rawBody;
     }
 
+    /**
+     * Sets the body as a raw string and removes any previously set {@link #postParams} or {@link #bodyBuffer}.
+     *
+     * @param rawBody the body as a raw string
+     */
     public void setRawBody(String rawBody) {
         postParams.resetState();
         if (bodyBuffer != null) {
