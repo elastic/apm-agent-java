@@ -518,6 +518,30 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.url_groups` | `url_groups` | `ELASTIC_APM_URL_GROUPS`
 |============
 
+[[config-jax-rs]]
+=== JAX-RS configuration options
+[float]
+[[config-enable-jaxrs-annotation-inheritance]]
+==== `enable_jaxrs_annotation_inheritance`
+
+By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.
+If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
+|============
+
 [[config-logging]]
 === Logging configuration options
 [float]
@@ -1222,6 +1246,20 @@ The default unit for this option is `ms`
 # Default value: 
 #
 # url_groups=
+
+############################################
+# JAX-RS                                   #
+############################################
+
+# By default, the agent will scan for @Path annotations on the whole class hierarchy, recognizing a class as a JAX-RS resource if the class or any of its superclasses/interfaces has a class level @Path annotation.
+# If your application does not use @Path annotation inheritance, set this property to 'false' to only scan for direct @Path annotations. This can improve the startup time of the agent.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# enable_jaxrs_annotation_inheritance=true
 
 ############################################
 # Logging                                  #
