@@ -129,11 +129,11 @@ public abstract class WildcardMatcher {
     }
 
     /**
-     * Returns {@code true}, if any of the matchers match the provided string.
+     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param s        the string to match against
-     * @return {@code true}, if any of the matchers match the provided string
+     * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
      */
     @Nullable
     public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
@@ -156,12 +156,12 @@ public abstract class WildcardMatcher {
     }
 
     /**
-     * Returns {@code true}, if any of the matchers match the provided partitioned string.
+     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided partitioned string.
      *
      * @param matchers   the matchers which should be used to match the provided string
      * @param firstPart  The first part of the string to match against.
      * @param secondPart The second part of the string to match against.
-     * @return {@code true}, if any of the matchers match the provided partitioned string
+     * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
      * @see #matches(String, String)
      */
     @Nullable

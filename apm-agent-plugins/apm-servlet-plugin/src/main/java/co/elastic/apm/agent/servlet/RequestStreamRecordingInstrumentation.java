@@ -48,7 +48,7 @@ public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumenta
 
     @Nullable
     @VisibleForAdvice
-    // referring to AsyncContext is legal because of type erasure
+    // referring to InputStreamWrapperFactory is legal because of type erasure
     public static HelperClassManager<InputStreamWrapperFactory> wrapperHelperClassManager;
 
     @Override
@@ -108,10 +108,10 @@ public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumenta
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void afterGetInputStream(@Advice.Return(readOnly = false) ServletInputStream inputStream,
                                                @Advice.Local("nested") boolean nested) {
+            if (nested || tracer == null || wrapperHelperClassManager == null) {
+                return;
+            }
             try {
-                if (nested || tracer == null || wrapperHelperClassManager == null) {
-                    return;
-                }
                 final Transaction transaction = tracer.currentTransaction();
                 // only wrap if the body buffer has been initialized via ServletTransactionHelper.startCaptureBody
                 if (transaction != null && transaction.getContext().getRequest().getBodyBuffer() != null) {

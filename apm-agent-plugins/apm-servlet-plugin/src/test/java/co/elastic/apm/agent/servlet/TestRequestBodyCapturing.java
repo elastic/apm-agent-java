@@ -52,7 +52,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class TestRequestBodyCapturing extends AbstractInstrumentationTest {
@@ -104,11 +104,11 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @MethodSource("streamConsumers")
     void testReadTextPlain(InputStreamConsumer consumer) throws Exception {
         streamConsumer = consumer;
-        executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
+        executeRequest(filterChain, "foo\nbar".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
-        assertThat(body.toString()).isEqualTo("foo");
+        assertThat(body.toString()).isEqualTo("foo\nbar");
     }
 
     @Test
