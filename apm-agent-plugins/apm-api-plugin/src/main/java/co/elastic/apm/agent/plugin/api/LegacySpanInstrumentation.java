@@ -166,7 +166,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter
         public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                   @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            span.addTag(key, value);
+            span.addLabel(key, value);
         }
     }
 

@@ -183,7 +183,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
             if (value != null && context instanceof AbstractSpan) {
-                ((AbstractSpan) context).addTag(key, value);
+                ((AbstractSpan) context).addLabel(key, value);
             }
         }
     }
@@ -198,7 +198,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
             if (value != null && context instanceof AbstractSpan) {
-                ((AbstractSpan) context).addTag(key, value);
+                ((AbstractSpan) context).addLabel(key, value);
             }
         }
     }
@@ -213,7 +213,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                     @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
             if (value != null && context instanceof AbstractSpan) {
-                ((AbstractSpan) context).addTag(key, value);
+                ((AbstractSpan) context).addLabel(key, value);
             }
         }
     }

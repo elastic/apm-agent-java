@@ -263,7 +263,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 [float]
 [[api-transaction-add-tag]]
 ==== `Transaction addLabel(String key, value)`
-A flat mapping of user-defined labels with string values.
+A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
 As of version 7.x, they are stored as `labels` to comply with the https://github.com/elastic/ecs[Elastic Common Schema (ECS)].
@@ -532,7 +532,7 @@ span.setName("SELECT FROM customer");
 [float]
 [[api-span-add-tag]]
 ==== `Span addLabel(String key, value)`
-A flat mapping of user-defined labels with string values.
+A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
 As of version 7.x, they are stored as `labels` to comply with the https://github.com/elastic/ecs[Elastic Common Schema (ECS)].

@@ -189,11 +189,11 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         private static void addTag(AbstractSpan transaction, String key, Object value) {
             if (value instanceof Number) {
-                transaction.addTag(key, (Number) value);
+                transaction.addLabel(key, (Number) value);
             } else if (value instanceof Boolean) {
-                transaction.addTag(key, (Boolean) value);
+                transaction.addLabel(key, (Boolean) value);
             } else {
-                transaction.addTag(key, value.toString());
+                transaction.addLabel(key, value.toString());
             }
         }
 

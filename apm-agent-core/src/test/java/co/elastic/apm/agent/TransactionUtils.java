@@ -96,8 +96,8 @@ public class TransactionUtils {
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
             .withUser("readonly_user");
-        span.addTag("monitored_by", "ACME");
-        span.addTag("framework", "some-framework");
+        span.addLabel("monitored_by", "ACME");
+        span.addLabel("framework", "some-framework");
         spans.add(span);
 
         spans.add(new Span(mock(ElasticApmTracer.class))
