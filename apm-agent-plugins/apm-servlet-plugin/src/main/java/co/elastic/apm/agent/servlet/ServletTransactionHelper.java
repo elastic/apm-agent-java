@@ -56,7 +56,7 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
 
-    private static final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
+    private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
     private final Set<String> METHODS_WITH_BODY = new HashSet<>(Arrays.asList("POST", "PUT", "PATCH", "DELETE"));
     private final ElasticApmTracer tracer;
@@ -155,7 +155,6 @@ public class ServletTransactionHelper {
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
-        logger.debug("Trying to apply default = {}, servletPath = {}, pathInfo = {}, transaction = {}", method, servletPath, pathInfo, transactionName);
         if (webConfiguration.isUsePathAsName()) {
             WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
             if (groupMatcher != null) {
