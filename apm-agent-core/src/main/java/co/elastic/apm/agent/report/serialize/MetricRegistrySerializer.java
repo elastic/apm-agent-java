@@ -69,23 +69,24 @@ public class MetricRegistrySerializer {
         final int size = samples.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, DoubleSupplier>> iterator = samples.entrySet().iterator();
-            String key = null;
+
+            // serialize first valid value
             double value = Double.NaN;
-            Map.Entry<String, DoubleSupplier> kv;
             while (iterator.hasNext() && !isValid(value)) {
-                kv = iterator.next();
-                key = kv.getKey();
+                Map.Entry<String, DoubleSupplier> kv = iterator.next();
                 value = kv.getValue().get();
+                if (isValid(value)) {
+                    serializeSample(kv.getKey(), value, jw);
+                }
             }
-            if (isValid(value)) {
-                serializeSample(key, value, jw);
-                while (iterator.hasNext()) {
-                    kv = iterator.next();
-                    value = kv.getValue().get();
-                    if (isValid(value)) {
-                        jw.writeByte(JsonWriter.COMMA);
-                        serializeSample(kv.getKey(), value, jw);
-                    }
+
+            // serialize rest
+            while (iterator.hasNext()) {
+                Map.Entry<String, DoubleSupplier> kv = iterator.next();
+                value = kv.getValue().get();
+                if (isValid(value)) {
+                    jw.writeByte(JsonWriter.COMMA);
+                    serializeSample(kv.getKey(), value, jw);
                 }
             }
         }
