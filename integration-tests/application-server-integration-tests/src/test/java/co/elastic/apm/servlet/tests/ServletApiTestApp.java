@@ -48,17 +48,19 @@ public class ServletApiTestApp extends TestApp {
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
-        test.clearMockServerLog();
-        final Response response = test.getHttpClient().newCall(new Request.Builder()
-            .post(RequestBody.create(MediaType.parse("text/plain"), "{foo}"))
-            .url(test.getBaseUrl() + "/simple-webapp/echo")
-            .build())
-            .execute();
-        assertThat(response.code()).isEqualTo(200);
-        assertThat(response.body().string()).isEqualTo("{foo}");
+        for (String readMethod : List.of(/*"read-byte", "read-bytes",*/ "read-offset", "read-line")) {
+            test.clearMockServerLog();
+            final Response response = test.getHttpClient().newCall(new Request.Builder()
+                .post(RequestBody.create(MediaType.parse("text/plain"), "{foo}\n{bar}"))
+                .url(test.getBaseUrl() + "/simple-webapp/echo?read-method=" + readMethod)
+                .build())
+                .execute();
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string()).isEqualTo("{foo}\n{bar}");
 
-        final JsonNode transaction = test.assertTransactionReported("/simple-webapp/echo", 200);
-        assertThat(transaction.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
+            final JsonNode transaction = test.assertTransactionReported("/simple-webapp/echo", 200);
+            assertThat(transaction.get("context").get("request").get("body").textValue()).isEqualTo("{foo}\n{bar}");
+        }
     }
 
     private void testExecutorService(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -66,7 +68,7 @@ public class ServletApiTestApp extends TestApp {
         final String pathToTest = "/simple-webapp/executor-service-servlet";
         test.executeAndValidateRequest(pathToTest, null, 200);
         String transactionId = test.assertTransactionReported(pathToTest, 200).get("id").textValue();
-        final List<JsonNode> spans = test.assertSpansTransactionId(500, test::getReportedSpans, transactionId);
+        final List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
         assertThat(spans).hasSize(1);
     }
 
@@ -75,11 +77,11 @@ public class ServletApiTestApp extends TestApp {
         final String pathToTest = "/simple-webapp/http-url-connection";
         test.executeAndValidateRequest(pathToTest, "Hello World!", 200);
 
-        final List<JsonNode> reportedTransactions = test.getAllReported(500, test::getReportedTransactions, 2);
+        final List<JsonNode> reportedTransactions = test.getAllReported(test::getReportedTransactions, 2);
         final JsonNode innerTransaction = reportedTransactions.get(0);
         final JsonNode outerTransaction = reportedTransactions.get(1);
 
-        final List<JsonNode> spans = test.assertSpansTransactionId(500, test::getReportedSpans, outerTransaction.get("id").textValue());
+        final List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, outerTransaction.get("id").textValue());
         assertThat(spans).hasSize(1);
         final JsonNode span = spans.get(0);
 
@@ -98,7 +100,7 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(pathToTest, "Hello World", 200);
             JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
-            List<JsonNode> spans = test.assertSpansTransactionId(500, test::getReportedSpans, transactionId);
+            List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             for (JsonNode span : spans) {
                 assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
             }
@@ -113,7 +115,7 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(pathToTest + "?cause_db_error=true", "DB Error", 200);
             JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
-            test.assertSpansTransactionId(500, test::getReportedSpans, transactionId);
+            test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             test.assertErrorContent(500, test::getReportedErrors, transactionId, "Column \"NON_EXISTING_COLUMN\" not found");
         }
     }
@@ -126,7 +128,7 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(fullPathToTest + "?cause_transaction_error=true", "", null);
             JsonNode transaction = test.assertTransactionReported(fullPathToTest, 500);
             String transactionId = transaction.get("id").textValue();
-            test.assertSpansTransactionId(500, test::getReportedSpans, transactionId);
+            test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             // we currently only report errors when Exceptions are caught, still this test is relevant for response code capturing
             if (test.isExpectedStacktrace(pathToTest)) {
                 test.assertErrorContent(500, test::getReportedErrors, transactionId, "Transaction failure");

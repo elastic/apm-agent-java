@@ -68,6 +68,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
             InputStream::read,
             is -> is.read(BUFFER),
             is -> is.read(BUFFER, 0, BUFFER.length),
+            is -> is.read(BUFFER, 42, BUFFER.length / 2),
             is -> is.readLine(BUFFER, 0, BUFFER.length),
             is -> {
                 is.readNBytes(BUFFER, 0, BUFFER.length);
@@ -235,6 +236,14 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
         filterChain.doFilter(request, new MockHttpServletResponse());
         assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isEqualTo("[REDACTED]");
+    }
+
+    @Test
+    void testNoExplicitEndOfInput() {
+        final Transaction transaction = tracer.startTransaction();
+        transaction.getContext().getRequest().withBodyBuffer();
+        transaction.end();
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody().toString()).isEqualTo("");
     }
 
     private void executeRequest(MockFilterChain filterChain, byte[] bytes, String contentType) throws IOException, ServletException {

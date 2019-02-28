@@ -284,6 +284,7 @@ public class Request implements Recyclable {
         socket.resetState();
         url.resetState();
         cookies.resetState();
+        bodyBufferFinished = false;
         if (bodyBuffer != null) {
             charBufferPool.recycle(bodyBuffer);
             bodyBuffer = null;

@@ -19,6 +19,8 @@
  */
 package co.elastic.webapp;
 
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,8 +32,31 @@ public class EchoServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         byte[] buffer = new byte[1024];
         int read;
-        while ((read = req.getInputStream().read(buffer)) > 0) {
-            resp.getOutputStream().write(buffer, 0, read);
+        final ServletOutputStream os = resp.getOutputStream();
+        final ServletInputStream is = req.getInputStream();
+        switch (req.getParameter("read-method")) {
+            case "read-byte":
+                while ((read = is.read()) > 0) {
+                    os.write(read);
+                }
+                break;
+            case "read-bytes":
+                while ((read = is.read(buffer)) > 0) {
+                    os.write(buffer, 0, read);
+                }
+                break;
+            case "read-offset":
+                while ((read = is.read(buffer, 42, buffer.length / 2)) > 0) {
+                    os.write(buffer, 42, read);
+                }
+                break;
+            case "read-line":
+                while ((read = is.readLine(buffer, 0, buffer.length)) > 0) {
+                    os.write(buffer, 0, read);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid read-method");
         }
         resp.setContentType(req.getContentType());
     }

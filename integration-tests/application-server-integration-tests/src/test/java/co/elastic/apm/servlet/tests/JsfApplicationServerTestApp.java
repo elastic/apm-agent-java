@@ -51,7 +51,6 @@ public class JsfApplicationServerTestApp extends TestApp {
         assertThat(transaction.get("name").textValue()).isEqualTo(testedPath);
         String transactionId = transaction.get("id").textValue();
         List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
-            500,
             containerIntegrationTest::getReportedSpans,
             transactionId);
         assertThat(spans.size()).isEqualTo(2);
