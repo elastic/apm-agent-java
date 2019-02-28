@@ -57,7 +57,7 @@ class SpanImpl extends AbstractSpanImpl {
     @Nonnull
     @Override
     public Span addLabel(String key, String value) {
-        doAddTag(key, value);
+        doAddStringLabel(key, value);
         return this;
     }
 

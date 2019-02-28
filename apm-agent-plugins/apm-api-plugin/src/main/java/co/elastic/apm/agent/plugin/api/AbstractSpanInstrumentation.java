@@ -175,7 +175,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
 
     public static class AddStringLabelInstrumentation extends AbstractSpanInstrumentation {
         public AddStringLabelInstrumentation() {
-            super(named("doAddTag"));
+            super(named("doAddTag").or(named("doAddStringLabel")));
         }
 
         @VisibleForAdvice

@@ -59,7 +59,7 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Nonnull
     @Override
     public Transaction addLabel(String key, String value) {
-        doAddTag(key, value);
+        doAddStringLabel(key, value);
         return this;
     }
 

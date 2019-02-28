@@ -95,7 +95,8 @@ public class Id implements Recyclable {
 
     public void copyFrom(Id other) {
         System.arraycopy(other.data, 0, data, 0, data.length);
-        onMutation(other.empty);
+        this.cachedStringRepresentation = other.cachedStringRepresentation;
+        this.empty = other.empty;
     }
 
     private void onMutation() {
