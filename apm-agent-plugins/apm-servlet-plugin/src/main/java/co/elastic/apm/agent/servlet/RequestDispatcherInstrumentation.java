@@ -20,9 +20,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -46,7 +44,7 @@ public class RequestDispatcherInstrumentation extends ElasticApmInstrumentation 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeExecute(@Advice.Argument(0) @Nullable String path,
                                           @Advice.This @Nullable Object thiz) {
-            if (thiz instanceof HttpServletRequest) {
+            if (thiz != null && thiz instanceof HttpServletRequest) {
                 ((HttpServletRequest) thiz).setAttribute(RequestDispatcher.FORWARD_SERVLET_PATH, (path != null) ? path : "");
                 ((HttpServletRequest) thiz).setAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH, (path != null) ? path : "");
             }

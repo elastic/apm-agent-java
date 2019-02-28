@@ -23,7 +23,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -39,7 +38,10 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class IncludeRequestDispatcherInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_REQUEST_DISPATCHER = "servlet.request-dispatcher.include";
+    private static final String SPAN_TYPE = "template";
+    private static final String SPAN_SUBTYPE = "servlet";
+    private static final String SPAN_ACTION = "include";
+
     private static final String INCLUDE = "INCLUDE";
 
     @Override
@@ -59,7 +61,11 @@ public class IncludeRequestDispatcherInstrumentation extends ElasticApmInstrumen
             if (request != null && request instanceof HttpServletRequest) {
                 HttpServletRequest httpServletRequest = (HttpServletRequest) request;
                 String includeServletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-                span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(INCLUDE);
+                span = parent.createSpan()
+                    .withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName(INCLUDE);
                 if (includeServletPath != null) {
                     span.appendToName(" ").appendToName(includeServletPath);
                 }
@@ -80,18 +86,15 @@ public class IncludeRequestDispatcherInstrumentation extends ElasticApmInstrumen
     }
 
     @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContainsIgnoreCase("dispatcher");
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameContainsIgnoreCase("dispatcher");
+        return not(isInterface())
+            .and(nameContainsIgnoreCase("dispatcher"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("include").and(takesArguments(2));
+        return named("include").and(takesArguments(2))
+            .and(isPublic());
     }
 
     @Override

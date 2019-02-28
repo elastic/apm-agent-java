@@ -23,7 +23,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -31,18 +30,18 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Enumeration;
 
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class ForwardRequestDispatcherInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_REQUEST_DISPATCHER = "servlet.request-dispatcher.forward";
+    private static final String SPAN_TYPE = "template";
+    private static final String SPAN_SUBTYPE = "servlet";
+    private static final String SPAN_ACTION = "forward";
+
     private static final String FORWARD = "FORWARD";
 
     @Override
@@ -62,7 +61,11 @@ public class ForwardRequestDispatcherInstrumentation extends ElasticApmInstrumen
             if (request != null && request instanceof HttpServletRequest) {
                 HttpServletRequest httpServletRequest = (HttpServletRequest) request;
                 String forwardServletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.FORWARD_SERVLET_PATH);
-                span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER).withName(FORWARD);
+                span = parent.createSpan()
+                    .withType(SPAN_TYPE)
+                    .withSubtype(SPAN_SUBTYPE)
+                    .withAction(SPAN_ACTION)
+                    .withName(FORWARD);
                 if (forwardServletPath != null) {
                     span.appendToName(" ").appendToName(forwardServletPath);
                 }
@@ -82,18 +85,15 @@ public class ForwardRequestDispatcherInstrumentation extends ElasticApmInstrumen
     }
 
     @Override
-    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContainsIgnoreCase("dispatcher");
-    }
-
-    @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameContainsIgnoreCase("dispatcher");
+        return not(isInterface())
+            .and(nameContainsIgnoreCase("dispatcher"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("forward").and(takesArguments(2));
+        return named("forward").and(takesArguments(2))
+            .and(isPublic());
     }
 
     @Override
