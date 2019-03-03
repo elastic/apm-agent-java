@@ -24,12 +24,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
+
+    // used to mark this span as expected to switch lifecycle-managing-thread, eg span created by one thread and ended by another
+    private volatile boolean isLifecycleManagingThreadSwitch;
+
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
@@ -107,6 +112,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         name.setLength(0);
         timestamp = 0;
         duration = 0;
+        isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
     }
@@ -155,16 +161,47 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return getTraceContext().isChildOf(other);
     }
 
+    public void markLifecycleManagingThreadSwitchExpected() {
+        isLifecycleManagingThreadSwitch = true;
+    }
+
     /**
      * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      *
      * <p>
      * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
-     * This should only be used span is closed in thread the provided {@link Runnable} is executed in.
+     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
      * </p>
      */
-    public Runnable withActiveSpan(Runnable runnable) {
-        return tracer.wrapRunnable(runnable, this);
+    @Override
+    public Runnable withActive(Runnable runnable) {
+        if (isLifecycleManagingThreadSwitch) {
+            // reset the lifecycle management flag, so that the executing thread will remain in charge until set otherwise by setting
+            // this flag once more
+            isLifecycleManagingThreadSwitch = false;
+            return tracer.wrapRunnable(runnable, this);
+        } else {
+            return tracer.wrapRunnable(runnable, traceContext);
+        }
     }
 
+    /**
+     * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
+     *
+     * <p>
+     * Note: does activates the {@link AbstractSpan} and not only the {@link TraceContext}.
+     * This should only be used when the span is closed in thread the provided {@link Runnable} is executed in.
+     * </p>
+     */
+    @Override
+    public <V> Callable<V> withActive(Callable<V> callable) {
+        if (isLifecycleManagingThreadSwitch) {
+            // reset the lifecycle management flag, so that the executing thread will remain in charge until set otherwise by setting
+            // this flag once more
+            isLifecycleManagingThreadSwitch = false;
+            return tracer.wrapCallable(callable, this);
+        } else {
+            return tracer.wrapCallable(callable, traceContext);
+        }
+    }
 }

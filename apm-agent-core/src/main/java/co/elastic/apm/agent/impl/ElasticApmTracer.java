@@ -21,6 +21,10 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
+import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
+import co.elastic.apm.agent.impl.async.SpanInScopeCallableWrapper;
+import co.elastic.apm.agent.impl.async.SpanInScopeRunnableWrapper;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ProbabilitySampler;
 import co.elastic.apm.agent.impl.sampling.Sampler;
@@ -75,6 +79,7 @@ public class ElasticApmTracer {
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
     private final ObjectPool<SpanInScopeRunnableWrapper> runnableSpanWrapperObjectPool;
+    private final ObjectPool<SpanInScopeCallableWrapper<?>> callableSpanWrapperObjectPool;
     private final ObjectPool<ContextInScopeRunnableWrapper> runnableContextWrapperObjectPool;
     private final ObjectPool<ContextInScopeCallableWrapper<?>> callableContextWrapperObjectPool;
     private final Reporter reporter;
@@ -131,6 +136,13 @@ public class ElasticApmTracer {
                 @Override
                 public SpanInScopeRunnableWrapper createInstance() {
                     return new SpanInScopeRunnableWrapper(ElasticApmTracer.this);
+                }
+            });
+        callableSpanWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<SpanInScopeCallableWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
+            new Allocator<SpanInScopeCallableWrapper<?>>() {
+                @Override
+                public SpanInScopeCallableWrapper<?> createInstance() {
+                    return new SpanInScopeCallableWrapper<>(ElasticApmTracer.this);
                 }
             });
         runnableContextWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ContextInScopeRunnableWrapper>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
@@ -354,6 +366,17 @@ public class ElasticApmTracer {
         runnableSpanWrapperObjectPool.recycle(wrapper);
     }
 
+    public <V> Callable<V> wrapCallable(Callable<V> delegate, AbstractSpan<?> span) {
+        if (delegate instanceof SpanInScopeCallableWrapper) {
+            return delegate;
+        }
+        return ((SpanInScopeCallableWrapper<V>) callableSpanWrapperObjectPool.createInstance()).wrap(delegate, span);
+    }
+
+    public void recycle(SpanInScopeCallableWrapper<?> wrapper) {
+        callableSpanWrapperObjectPool.recycle(wrapper);
+    }
+
     public Runnable wrapRunnable(Runnable delegate, TraceContext traceContext) {
         if (delegate instanceof ContextInScopeRunnableWrapper || delegate instanceof SpanInScopeRunnableWrapper) {
             return delegate;
@@ -366,7 +389,7 @@ public class ElasticApmTracer {
     }
 
     public <V> Callable<V> wrapCallable(Callable<V> delegate, TraceContext traceContext) {
-        if (delegate instanceof ContextInScopeCallableWrapper) {
+        if (delegate instanceof ContextInScopeCallableWrapper || delegate instanceof SpanInScopeCallableWrapper) {
             return delegate;
         }
         return ((ContextInScopeCallableWrapper<V>) callableContextWrapperObjectPool.createInstance()).wrap(delegate, traceContext);

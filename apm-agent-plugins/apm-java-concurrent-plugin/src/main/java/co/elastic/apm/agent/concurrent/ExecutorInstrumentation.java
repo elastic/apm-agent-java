@@ -73,7 +73,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && runnable != null && !excluded.contains(thiz)) {
                 original = runnable;
-                runnable = active.withActiveContext(runnable);
+                runnable = active.withActive(runnable);
             }
         }
 
@@ -115,7 +115,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && callable != null && !excluded.contains(thiz)) {
                 original = callable;
-                callable = active.withActiveContext(callable);
+                callable = active.withActive(callable);
             }
         }
 
