@@ -24,11 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * A metric set is a collection of metrics which have the same tags.
+ * A metric set is a collection of metrics which have the same labels.
  * <p>
  * A metric set corresponds to one document per
  * {@link co.elastic.apm.agent.report.ReporterConfiguration#metricsInterval metrics_interval} in Elasticsearch.
- * An alternative would be to have one document per metric but having one document for all metrics with the same tags saves disk space.
+ * An alternative would be to have one document per metric but having one document for all metrics with the same labels saves disk space.
  * </p>
  * Example of some serialized metric sets:
  * <pre>
@@ -38,11 +38,11 @@ import java.util.concurrent.ConcurrentMap;
  * </pre>
  */
 public class MetricSet {
-    private final Map<String, String> tags;
+    private final Map<String, String> labels;
     private final ConcurrentMap<String, DoubleSupplier> samples = new ConcurrentHashMap<>();
 
-    public MetricSet(Map<String, String> tags) {
-        this.tags = tags;
+    public MetricSet(Map<String, String> labels) {
+        this.labels = labels;
     }
 
     public void add(String name, DoubleSupplier metric) {
@@ -53,8 +53,8 @@ public class MetricSet {
         return samples.get(name);
     }
 
-    public Map<String, String> getTags() {
-        return tags;
+    public Map<String, String> getLabels() {
+        return labels;
     }
 
     public Map<String, DoubleSupplier> getSamples() {

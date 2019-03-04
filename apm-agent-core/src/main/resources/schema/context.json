@@ -48,7 +48,7 @@
             "regexProperties": true,
             "patternProperties": {
                 "^[^.*\"]*$": {
-                    "type": "string",
+                    "type": ["string", "boolean", "number", "null"],
                     "maxLength": 1024
                 }
             },

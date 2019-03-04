@@ -50,9 +50,9 @@ public class MetricRegistrySerializer {
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
 
-                if (!metricSet.getTags().isEmpty()) {
+                if (!metricSet.getLabels().isEmpty()) {
                     DslJsonSerializer.writeFieldName("tags", jw);
-                    DslJsonSerializer.serializeTags(metricSet.getTags(), replaceBuilder, jw);
+                    DslJsonSerializer.serializeStringTags(metricSet.getLabels().entrySet().iterator(), replaceBuilder, jw);
                     jw.writeByte(JsonWriter.COMMA);
                 }
 

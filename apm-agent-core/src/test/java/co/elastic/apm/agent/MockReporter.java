@@ -106,7 +106,7 @@ public class MockReporter implements Reporter {
     private void verifyJsonSchema(JsonSchema schema, JsonNode jsonNode) {
         if (verifyJsonSchema) {
             Set<ValidationMessage> errors = schema.validate(jsonNode);
-            assertThat(errors).isEmpty();
+            assertThat(errors).withFailMessage("%s\n%s", errors, jsonNode).isEmpty();
         }
     }
 

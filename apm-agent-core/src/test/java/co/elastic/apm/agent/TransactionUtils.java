@@ -77,7 +77,7 @@ public class TransactionUtils {
             .withUsername("foo")
             .withEmail("foo@example.com");
 
-        context.getTags().put("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
+        context.addLabel("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
         context.getCustom().put("my_key", 1);
         context.getCustom().put("some_other_value", "foo bar");
         context.getCustom().put("and_objects", STRINGS);
@@ -96,8 +96,8 @@ public class TransactionUtils {
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
             .withUser("readonly_user");
-        span.addTag("monitored_by", "ACME");
-        span.addTag("framework", "some-framework");
+        span.addLabel("monitored_by", "ACME");
+        span.addLabel("framework", "some-framework");
         spans.add(span);
 
         spans.add(new Span(mock(ElasticApmTracer.class))

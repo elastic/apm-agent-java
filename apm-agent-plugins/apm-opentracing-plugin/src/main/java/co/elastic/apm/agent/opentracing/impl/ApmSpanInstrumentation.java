@@ -177,13 +177,23 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
 
         private static void handleTransactionTag(Transaction transaction, String key, Object value) {
             if (!handleSpecialTransactionTag(transaction, key, value)) {
-                transaction.addTag(key, value.toString());
+                addTag(transaction, key, value);
             }
         }
 
         private static void handleSpanTag(Span span, String key, Object value) {
             if (!handleSpecialSpanTag(span, key, value)) {
-                span.addTag(key, value.toString());
+                addTag(span, key, value);
+            }
+        }
+
+        private static void addTag(AbstractSpan transaction, String key, Object value) {
+            if (value instanceof Number) {
+                transaction.addLabel(key, (Number) value);
+            } else if (value instanceof Boolean) {
+                transaction.addLabel(key, (Boolean) value);
+            } else {
+                transaction.addLabel(key, value.toString());
             }
         }
 
