@@ -60,10 +60,14 @@ public class JvmGcMetrics implements LifecycleListener {
 
         try {
             // only refer to hotspot specific class via reflection to avoid linkage errors
-            Class.forName("com.sun.management.ThreadMXBean");
-            // in reference to JMH's GC profiler (gc.alloc.rate)
-            registry.add("jvm.gc.alloc", Collections.<String, String>emptyMap(),
-                (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0]);
+            final Class<?> sunBeanClass = Class.forName("com.sun.management.ThreadMXBean");
+            // J9 does contain com.sun.management.ThreadMXBean in classpath
+            // but the actual MBean it uses (com.ibm.lang.management.internal.ExtendedThreadMXBeanImpl) does not implement it
+            if (sunBeanClass.isInstance(ManagementFactory.getThreadMXBean())) {
+                // in reference to JMH's GC profiler (gc.alloc.rate)
+                registry.add("jvm.gc.alloc", Collections.<String, String>emptyMap(),
+                    (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0]);
+            }
         } catch (ClassNotFoundException ignore) {
         }
     }
