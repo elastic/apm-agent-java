@@ -27,7 +27,6 @@ import javax.servlet.ServletInputStream;
 public class InputStreamFactoryHelperImpl implements RequestStreamRecordingInstrumentation.InputStreamWrapperFactory {
     @Override
     public ServletInputStream wrap(Request request, ServletInputStream servletInputStream) {
-        System.out.println("wrap");
         return new RecordingServletInputStreamWrapper(request, servletInputStream);
     }
 }

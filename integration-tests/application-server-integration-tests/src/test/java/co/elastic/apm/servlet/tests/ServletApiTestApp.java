@@ -48,7 +48,7 @@ public class ServletApiTestApp extends TestApp {
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
-        for (String readMethod : List.of(/*"read-byte", "read-bytes",*/ "read-offset", "read-line")) {
+        for (String readMethod : List.of("read-byte", "read-bytes", "read-offset", "read-line")) {
             test.clearMockServerLog();
             final Response response = test.getHttpClient().newCall(new Request.Builder()
                 .post(RequestBody.create(MediaType.parse("text/plain"), "{foo}\n{bar}"))
