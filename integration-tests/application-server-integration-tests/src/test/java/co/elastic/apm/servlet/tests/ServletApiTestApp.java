@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ServletApiTestApp extends TestApp {
 
     public ServletApiTestApp() {
-        super("../simple-webapp", "simple-webapp.war", "/simple-webapp/status.jsp");
+        super("../simple-webapp", "simple-webapp.war", "/simple-webapp/status.jsp", "Simple Web App");
     }
 
     @Override
@@ -83,7 +83,7 @@ public class ServletApiTestApp extends TestApp {
             for (JsonNode span : spans) {
                 assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
             }
-            test.validateMetadata();
+            test.validateEventMetadata(this);
         }
     }
 

@@ -22,7 +22,7 @@ package co.elastic.apm.agent.configuration;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-class ServiceNameUtil {
+public class ServiceNameUtil {
     private static final String JAR_VERSION_SUFFIX = "-(\\d+\\.)+(\\d+)(-.*)?$";
 
     static String getDefaultServiceName() {
@@ -70,7 +70,7 @@ class ServiceNameUtil {
         return null;
     }
 
-    private static String replaceDisallowedChars(String serviceName) {
+    public static String replaceDisallowedChars(String serviceName) {
         return serviceName.replaceAll("[^a-zA-Z0-9 _-]", "-");
     }
 

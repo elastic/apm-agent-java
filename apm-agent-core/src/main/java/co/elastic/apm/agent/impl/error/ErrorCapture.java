@@ -65,6 +65,8 @@ public class ErrorCapture implements Recyclable {
 
     private ElasticApmTracer tracer;
     private final StringBuilder culprit = new StringBuilder();
+    @Nullable
+    private String serviceName;
 
     public ErrorCapture(ElasticApmTracer tracer) {
         this.tracer = tracer;
@@ -109,6 +111,7 @@ public class ErrorCapture implements Recyclable {
         transactionInfo.resetState();
         traceContext.resetState();
         culprit.setLength(0);
+        serviceName = null;
     }
 
     public void recycle() {
@@ -191,6 +194,15 @@ public class ErrorCapture implements Recyclable {
             }
         }
         culprit.append(')');
+    }
+
+    public void setServiceName(@Nullable String serviceName) {
+        this.serviceName = serviceName;
+    }
+
+    @Nullable
+    public String getServiceName() {
+        return serviceName;
     }
 
     public static class TransactionInfo implements Recyclable {

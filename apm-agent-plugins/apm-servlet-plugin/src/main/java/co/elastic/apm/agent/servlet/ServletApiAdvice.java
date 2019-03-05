@@ -90,6 +90,7 @@ public class ServletApiAdvice {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
+                request.getServletContext().getClassLoader(),
                 request.getServletPath(), request.getPathInfo(),
                 request.getHeader("User-Agent"),
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));

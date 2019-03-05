@@ -356,21 +356,36 @@ public abstract class AbstractServletContainerIntegrationTest {
         }
     }
 
-    public void validateMetadata() {
+    public void validateEventMetadata(TestApp testApp) {
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
-            final JsonNode payload;
-            payload = objectMapper
-                .readTree(mockServerContainer.getClient()
-                    .retrieveRecordedRequests(request(INTAKE_V2_URL))[0].getBodyAsString().split("\n")[0]);
-            JsonNode metadata = payload.get("metadata");
-            assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
-            JsonNode container = metadata.get("system").get("container");
-            assertThat(container).isNotNull();
-            assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
+            for (String line : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))[0].getBodyAsString().split("\n")) {
+                final JsonNode event = objectMapper.readTree(line);
+                final JsonNode metadata = event.get("metadata");
+                if (metadata != null) {
+                    validataMetadataEvent(metadata);
+                } else {
+                    validateServiceName(testApp, event.get("error"));
+                    validateServiceName(testApp, event.get("span"));
+                    validateServiceName(testApp, event.get("transaction"));
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void validateServiceName(TestApp testApp, JsonNode event) {
+        if (testApp.getExpectedServiceName() != null && event != null) {
+            assertThat(event.get("service").get("name").textValue()).isEqualTo(testApp.getExpectedServiceName());
+        }
+    }
+
+    private void validataMetadataEvent(JsonNode metadata) {
+        assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
+        JsonNode container = metadata.get("system").get("container");
+        assertThat(container).isNotNull();
+        assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
     }
 
     private void addSpans(List<JsonNode> spans, JsonNode payload) {

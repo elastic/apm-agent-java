@@ -233,6 +233,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
 
         writeTimestamp(errorCapture.getTimestamp());
+        serializeServiceName(errorCapture.getServiceName());
         serializeErrorTransactionInfo(errorCapture.getTransactionInfo());
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
@@ -482,6 +483,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
+        serializeServiceName(transaction.getServiceName());
         serializeContext(transaction.getContext());
         serializeSpanCount(transaction.getSpanCount());
         writeLastField("sampled", transaction.isSampled());
@@ -522,6 +524,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeTimestamp(span.getTimestamp());
         serializeTraceContext(span.getTraceContext(), true);
         writeField("duration", span.getDuration());
+        serializeServiceName(span.getServiceName());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
@@ -530,6 +533,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeServiceName(@Nullable String serviceName) {
+        if (serviceName != null) {
+            writeFieldName("service");
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", serviceName);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     /**

@@ -24,6 +24,9 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -31,7 +34,9 @@ import net.bytebuddy.matcher.ElementMatcher;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -49,9 +54,11 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
 
@@ -60,8 +67,17 @@ class ServletInstrumentationTest extends AbstractServletTest {
         ElasticApmAgent.reset();
     }
 
+    @BeforeEach
+    void init() throws IOException {
+        // makes sure Servlet#init is called
+        // the problem is that the tracer is re-created for each test run and thus does not contain service names from previous runs
+        get("/init");
+    }
+
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
+        handler.setDisplayName(getClass().getSimpleName());
+        handler.addServlet(EnsureInitServlet.class, "/init");
         handler.addServlet(TestServlet.class, "/test");
         handler.addServlet(BaseTestServlet.class, "/base");
         handler.addServlet(ForwardingServlet.class, "/forward");
@@ -108,21 +124,31 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
+            assertThat(reporter.getTransactions().stream().map(Transaction::getServiceName).distinct()).containsExactly(getClass().getSimpleName());
         }
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
     }
 
     private void initInstrumentation(ElasticApmInstrumentation instrumentation) {
+        final ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        when(config.getConfig(WebConfiguration.class).getIgnoreUrls()).thenReturn(List.of(WildcardMatcher.valueOf("/init")));
         ElasticApmAgent.initInstrumentation(new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
-            .build(), ByteBuddyAgent.install(), Collections.singleton(instrumentation));
+            .build(), ByteBuddyAgent.install(), List.of(instrumentation, new ServletContextServiceNameInstrumentation()));
     }
 
     public static class TestServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             resp.getWriter().append("Hello World!");
+        }
+    }
+
+    public static class EnsureInitServlet extends HttpServlet {
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
+            init(getServletConfig());
         }
     }
 
