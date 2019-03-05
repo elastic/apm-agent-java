@@ -35,7 +35,7 @@ public abstract class AbstractContext implements Recyclable {
      */
     private final Map<String, Object> labels = new ConcurrentHashMap<>();
 
-    public Iterator<? extends Map.Entry<String, ?>> getTagsIterator() {
+    public Iterator<? extends Map.Entry<String, ?>> getLabelIterator() {
         return labels.entrySet().iterator();
     }
 

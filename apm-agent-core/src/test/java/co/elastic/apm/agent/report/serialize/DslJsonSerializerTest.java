@@ -182,7 +182,7 @@ class DslJsonSerializerTest {
     private String serializeTags(Map<String, String> tags) {
         final AbstractContext context = new AbstractContext() {};
         tags.forEach(context::addLabel);
-        serializer.serializeTags(context);
+        serializer.serializeLabels(context);
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();
         return jsonString;

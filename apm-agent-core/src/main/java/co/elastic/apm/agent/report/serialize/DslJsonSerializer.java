@@ -87,7 +87,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
-    private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
+    private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
@@ -658,7 +658,7 @@ public class DslJsonSerializer implements PayloadSerializer {
                 jw.writeByte(COMMA);
             }
             writeFieldName("tags");
-            serializeTags(context);
+            serializeLabels(context);
         }
 
         jw.writeByte(OBJECT_END);
@@ -716,39 +716,44 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
         writeFieldName("tags");
-        serializeTags(context);
+        serializeLabels(context);
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
 
     // visible for testing
-    void serializeTags(AbstractContext context) {
-        serializeTags(context.getTagsIterator(), replaceBuilder, jw);
+    void serializeLabels(AbstractContext context) {
+        if (context.hasLabels()) {
+            serializeLabels(context.getLabelIterator(), replaceBuilder, jw);
+        } else {
+            jw.writeByte(OBJECT_START);
+            jw.writeByte(OBJECT_END);
+        }
     }
 
-    static void serializeStringTags(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
-        serializeTags(iterator, replaceBuilder, jw);
+    static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
+        serializeLabels(iterator, replaceBuilder, jw);
     }
 
-    private static void serializeTags(Iterator<? extends Map.Entry<String, ?>> tagsIterator, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void serializeLabels(Iterator<? extends Map.Entry<String, ?>> it, StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(OBJECT_START);
-        if (tagsIterator.hasNext()) {
-            Map.Entry<String, ?> kv = tagsIterator.next();
-            writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+        if (it.hasNext()) {
+            Map.Entry<String, ?> kv = it.next();
+            writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeTagValue(replaceBuilder, jw, kv.getValue());
-            while (tagsIterator.hasNext()) {
+            serializeLabelValue(replaceBuilder, jw, kv.getValue());
+            while (it.hasNext()) {
                 jw.writeByte(COMMA);
-                kv = tagsIterator.next();
-                writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+                kv = it.next();
+                writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeTagValue(replaceBuilder, jw, kv.getValue());
+                serializeLabelValue(replaceBuilder, jw, kv.getValue());
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private static void serializeTagValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+    private static void serializeLabelValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
         if (value instanceof String) {
             writeStringValue((String) value, replaceBuilder, jw);
         } else if (value instanceof Number) {
@@ -761,10 +766,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private static CharSequence sanitizeTagKey(String key, StringBuilder replaceBuilder) {
-        for (int i = 0; i < DISALLOWED_IN_TAG_KEY.length; i++) {
-            if (key.contains(DISALLOWED_IN_TAG_KEY[i])) {
-                return replaceAll(key, DISALLOWED_IN_TAG_KEY, "_", replaceBuilder);
+    private static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
+        for (int i = 0; i < DISALLOWED_IN_LABEL_KEY.length; i++) {
+            if (key.contains(DISALLOWED_IN_LABEL_KEY[i])) {
+                return replaceAll(key, DISALLOWED_IN_LABEL_KEY, "_", replaceBuilder);
             }
         }
         return key;
