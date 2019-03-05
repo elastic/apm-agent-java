@@ -50,9 +50,9 @@ public class MetricRegistrySerializer {
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
 
-                if (!metricSet.getTags().isEmpty()) {
+                if (!metricSet.getLabels().isEmpty()) {
                     DslJsonSerializer.writeFieldName("tags", jw);
-                    DslJsonSerializer.serializeTags(metricSet.getTags(), replaceBuilder, jw);
+                    DslJsonSerializer.serializeStringTags(metricSet.getLabels().entrySet().iterator(), replaceBuilder, jw);
                     jw.writeByte(JsonWriter.COMMA);
                 }
 
@@ -69,29 +69,40 @@ public class MetricRegistrySerializer {
         final int size = samples.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, DoubleSupplier>> iterator = samples.entrySet().iterator();
-            Map.Entry<String, DoubleSupplier> kv = iterator.next();
-            serializeSample(kv.getKey(), kv.getValue().get(), jw);
-            for (int i = 1; i < size; i++) {
-                jw.writeByte(JsonWriter.COMMA);
-                kv = iterator.next();
-                serializeSample(kv.getKey(), kv.getValue().get(), jw);
+
+            // serialize first valid value
+            double value = Double.NaN;
+            while (iterator.hasNext() && !isValid(value)) {
+                Map.Entry<String, DoubleSupplier> kv = iterator.next();
+                value = kv.getValue().get();
+                if (isValid(value)) {
+                    serializeSample(kv.getKey(), value, jw);
+                }
+            }
+
+            // serialize rest
+            while (iterator.hasNext()) {
+                Map.Entry<String, DoubleSupplier> kv = iterator.next();
+                value = kv.getValue().get();
+                if (isValid(value)) {
+                    jw.writeByte(JsonWriter.COMMA);
+                    serializeSample(kv.getKey(), value, jw);
+                }
             }
         }
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static boolean isValid(double value) {
+        return !Double.isInfinite(value) && !Double.isNaN(value);
     }
 
     private static void serializeSample(String key, double value, JsonWriter jw) {
         jw.writeString(key);
         jw.writeByte(JsonWriter.SEMI);
         jw.writeByte(JsonWriter.OBJECT_START);
-        {
-            DslJsonSerializer.writeFieldName("value", jw);
-            if (Double.isInfinite(value) || Double.isNaN(value)) {
-                jw.writeNull();
-            } else {
-                NumberConverter.serialize(value, jw);
-            }
-        }
+        DslJsonSerializer.writeFieldName("value", jw);
+        NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 }

@@ -223,7 +223,7 @@ So it has all the methods a <<api-span,`Span`>> offers plus additional ones.
 
 NOTE: Calling any of the transaction's methods after <<api-transaction-end>> has been called is illegal.
 You may only interact with transaction when you have control over its lifecycle.
-For example, if a span is ended in another thread you must not add tags if there is a chance for a race between the <<api-transaction-end>>
+For example, if a span is ended in another thread you must not add labels if there is a chance for a race between the <<api-transaction-end>>
 and the <<api-transaction-add-tag>> method.
 
 [float]
@@ -262,9 +262,13 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `Transaction addTag(String key, String value)`
-A flat mapping of user-defined tags with string values.
-Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+==== `Transaction addLabel(String key, value)`
+A flat mapping of user-defined labels with string, number or boolean values.
+
+NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
+As of version 7.x, they are stored as `labels` to comply with the https://github.com/elastic/ecs[Elastic Common Schema (ECS)].
+
+NOTE: The labels are indexed in Elasticsearch so that they are searchable and aggregatable.
 By all means,
 you should avoid that user specified data,
 like URL parameters,
@@ -272,11 +276,11 @@ is used as a tag key as it can lead to mapping explosions.
 
 [source,java]
 ----
-transaction.addTag("foo", "bar");
+transaction.addLabel("foo", "bar");
 ----
 
-* `key`:   The tag key
-* `value`: The tag value
+* `String key`:   The tag key
+* `String|Number|boolean value`: The tag value
 
 [float]
 [[api-transaction-set-user]]
@@ -527,9 +531,13 @@ span.setName("SELECT FROM customer");
 
 [float]
 [[api-span-add-tag]]
-==== `Span addTag(String key, String value)`
-A flat mapping of user-defined tags with string values.
-Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+==== `Span addLabel(String key, value)`
+A flat mapping of user-defined labels with string, number or boolean values.
+
+NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
+As of version 7.x, they are stored as `labels` to comply with the https://github.com/elastic/ecs[Elastic Common Schema (ECS)].
+
+NOTE: The labels are indexed in Elasticsearch so that they are searchable and aggregatable.
 By all means,
 you should avoid that user specified data,
 like URL parameters,
@@ -537,11 +545,11 @@ is used as a tag key as it can lead to mapping explosions.
 
 [source,java]
 ----
-span.addTag("foo", "bar");
+span.addLabel("foo", "bar");
 ----
 
-* `key`:   The tag key
-* `value`: The tag value
+* `String key`:   The tag key
+* `String|Number|boolean value`: The tag value
 
 [float]
 [[api-span-capture-exception]]
@@ -663,7 +671,7 @@ try (final Scope scope = span.activate()) {
 
 NOTE: Calling any of the span's methods after <<api-span-end>> has been called is illegal.
 You may only interact with span when you have control over its lifecycle.
-For example, if a span is ended in another thread you must not add tags if there is a chance for a race between the <<api-span-end>>
+For example, if a span is ended in another thread you must not add labels if there is a chance for a race between the <<api-span-end>>
 and the <<api-span-add-tag>> method.
 
 [float]

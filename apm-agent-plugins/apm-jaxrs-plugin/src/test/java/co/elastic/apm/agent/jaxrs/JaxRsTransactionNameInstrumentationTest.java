@@ -19,52 +19,110 @@
  */
 package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+/**
+ * Test jax-rs instrumentation
+ */
 public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
+
+    private static ElasticApmTracer tracer;
+    private static MockReporter reporter;
+    private static ConfigurationRegistry config;
 
     @BeforeClass
     public static void beforeClass() {
-        AbstractInstrumentationTest.beforeAll();
+        reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .reporter(reporter)
+            .build();
     }
 
-    @AfterClass
-    public static void afterClass() {
-        AbstractInstrumentationTest.afterAll();
-    }
-
-    public Application configure() {
-        return new ResourceConfig(TestResource.class);
+    @After
+    public void after() {
+        //reset after each method to test different non-dynamic parameters
+        ElasticApmAgent.reset();
     }
 
     @Before
     public void before() {
-        AbstractInstrumentationTest.reset();
+        SpyConfiguration.reset(config);
+        reporter.reset();
     }
 
     @Test
-    public void testJaxRsTransactionName() {
-        final Transaction request = AbstractInstrumentationTest.getTracer().startTransaction().withType("request").activate();
+    public void testJaxRsTransactionNameWithoutJaxrsAnnotationInheritance() {
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        doRequest("testInterface");
+        doRequest("testAbstract");
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameWithJaxrsAnnotationInheritance() {
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        doRequest("testInterface");
+        doRequest("testAbstract");
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+    }
+
+
+    /**
+     * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
+     */
+    protected Application configure() {
+        return new ResourceConfig(ResourceWithPath.class, ResourceWithPathOnInterface.class, ResourceWithPathOnAbstract.class);
+    }
+
+    /**
+     * Make a GET request against the target path wrapped in an apm transaction.
+     *
+     * @param path the path to make the get request against
+     */
+    private void doRequest(String path) {
+        final Transaction request = tracer.startTransaction().withType("request").activate();
         try {
-            assertThat(getClient().target(getBaseUri()).path("test").request().buildGet().invoke(String.class)).isEqualTo("ok");
+            assertThat(getClient().target(getBaseUri()).path(path).request().buildGet().invoke(String.class)).isEqualTo("ok");
         } finally {
             request.deactivate().end();
         }
-        assertThat(AbstractInstrumentationTest.getReporter().getFirstTransaction().getName().toString())
-            .isEqualTo("TestResource#testMethod");
     }
 
     public interface SuperResourceInterface {
@@ -72,17 +130,44 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         String testMethod();
     }
 
-    public interface TestResourceInterface extends SuperResourceInterface {
+    @Path("testInterface")
+    public interface ResourceInterfaceWithPath extends SuperResourceInterface {
+        String testMethod();
+
+    }
+
+    public interface ResourceInterfaceWithoutPath extends SuperResourceInterface {
         String testMethod();
     }
 
-    static abstract class AbstractResourceClass implements TestResourceInterface {
+    public abstract static class AbstractResourceClassWithoutPath implements ResourceInterfaceWithoutPath {
+
+    }
+
+    @Path("testAbstract")
+    public abstract static class AbstractResourceClassWithPath implements ResourceInterfaceWithoutPath {
+
+
     }
 
     @Path("test")
-    public static class TestResource extends AbstractResourceClass {
+    public static class ResourceWithPath extends AbstractResourceClassWithoutPath {
+        public String testMethod() {
+            return "ok";
+        }
+
+    }
+
+    public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {
         public String testMethod() {
             return "ok";
         }
     }
+
+    public static class ResourceWithPathOnInterface implements ResourceInterfaceWithPath {
+        public String testMethod() {
+            return "ok";
+        }
+    }
+    
 }

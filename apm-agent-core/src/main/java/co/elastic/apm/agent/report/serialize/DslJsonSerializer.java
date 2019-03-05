@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
@@ -652,13 +653,12 @@ public class DslJsonSerializer implements PayloadSerializer {
             spanContextWritten = true;
         }
 
-        Map<String, String> tags = context.getTags();
-        if (!tags.isEmpty()) {
+        if (context.hasLabels()) {
             if (spanContextWritten) {
                 jw.writeByte(COMMA);
             }
             writeFieldName("tags");
-            serializeTags(tags);
+            serializeTags(context);
         }
 
         jw.writeByte(OBJECT_END);
@@ -715,37 +715,50 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
-        // TODO custom context
         writeFieldName("tags");
-        final Map<String, String> value = context.getTags();
-        serializeTags(value);
+        serializeTags(context);
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
 
     // visible for testing
-    void serializeTags(Map<String, String> value) {
-        serializeTags(value, replaceBuilder, jw);
+    void serializeTags(AbstractContext context) {
+        serializeTags(context.getTagsIterator(), replaceBuilder, jw);
     }
 
-    public static void serializeTags(Map<String, String> value, StringBuilder replaceBuilder, JsonWriter jw) {
+    static void serializeStringTags(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
+        serializeTags(iterator, replaceBuilder, jw);
+    }
+
+    private static void serializeTags(Iterator<? extends Map.Entry<String, ?>> tagsIterator, StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(OBJECT_START);
-        final int size = value.size();
-        if (size > 0) {
-            final Iterator<Map.Entry<String, String>> iterator = value.entrySet().iterator();
-            Map.Entry<String, String> kv = iterator.next();
+        if (tagsIterator.hasNext()) {
+            Map.Entry<String, ?> kv = tagsIterator.next();
             writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            writeStringValue(kv.getValue(), replaceBuilder, jw);
-            for (int i = 1; i < size; i++) {
+            serializeTagValue(replaceBuilder, jw, kv.getValue());
+            while (tagsIterator.hasNext()) {
                 jw.writeByte(COMMA);
-                kv = iterator.next();
+                kv = tagsIterator.next();
                 writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                writeStringValue(kv.getValue(), replaceBuilder, jw);
+                serializeTagValue(replaceBuilder, jw, kv.getValue());
             }
         }
         jw.writeByte(OBJECT_END);
+    }
+
+    private static void serializeTagValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+        if (value instanceof String) {
+            writeStringValue((String) value, replaceBuilder, jw);
+        } else if (value instanceof Number) {
+            NumberConverter.serialize(((Number) value).doubleValue(), jw);
+        } else if (value instanceof Boolean) {
+            BoolConverter.serialize((Boolean) value, jw);
+        } else {
+            // can't happen, as AbstractContext enforces the values to be either String, Number or boolean
+            jw.writeString("invalid value");
+        }
     }
 
     private static CharSequence sanitizeTagKey(String key, StringBuilder replaceBuilder) {

@@ -26,11 +26,6 @@ import co.elastic.apm.agent.impl.transaction.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -48,7 +43,10 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.After;
@@ -56,6 +54,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -146,7 +145,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         ErrorCapture errorCapture = errorCaptures.get(0);
         assertThat(errorCapture.getException()).isNotNull();
 /*
-        Map<String, String> tags = errorCapture.getContext().getTags();
+        Map<String, String> tags = errorCapture.getContext().getLabels();
         assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
         assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo("404");
         assertThat(tags).containsKey(ERROR_REASON_KEY);

@@ -262,7 +262,7 @@ public class ElasticApmTracer {
         captureException(System.currentTimeMillis() * 1000, e, getActive());
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> active) {
+    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
         if (e != null) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
@@ -272,18 +272,8 @@ public class ElasticApmTracer {
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
             }
-            if (active != null) {
-                if (active instanceof Transaction) {
-                    Transaction transaction = (Transaction) active;
-                    // The error might have occurred in a different thread than the one the transaction was recorded
-                    // That's why we have to ensure the visibility of the transaction properties
-                    error.getContext().copyFrom(transaction.getContextEnsureVisibility());
-                }
-                else if (active instanceof Span) {
-                    Span span = (Span) active;
-                    error.getContext().getTags().putAll(span.getContext().getTags());
-                }
-                error.asChildOf(active.getTraceContext());
+            if (parent != null) {
+                error.asChildOf(parent);
             } else {
                 error.getTraceContext().getId().setToRandomValue();
             }

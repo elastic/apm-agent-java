@@ -21,6 +21,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -76,7 +77,7 @@ class DslJsonSerializerTest {
         error.setTransactionSampled(true);
         error.setTransactionType("test-type");
         error.setException(new Exception("test"));
-        error.getContext().getTags().put("foo", "bar");
+        error.getContext().addLabel("foo", "bar");
         String errorJson = serializer.toJsonString(error);
         System.out.println("errorJson = " + errorJson);
         JsonNode errorTree = objectMapper.readTree(errorJson);
@@ -179,7 +180,9 @@ class DslJsonSerializerTest {
     }
 
     private String serializeTags(Map<String, String> tags) {
-        serializer.serializeTags(tags);
+        final AbstractContext context = new AbstractContext() {};
+        tags.forEach(context::addLabel);
+        serializer.serializeTags(context);
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();
         return jsonString;

@@ -124,7 +124,11 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return tracer.startSpan(this, epochMicros);
     }
 
-    public abstract void addTag(String key, String value);
+    public abstract void addLabel(String key, String value);
+
+    public abstract void addLabel(String key, Number value);
+
+    public abstract void addLabel(String key, Boolean value);
 
     protected void onStart() {
         this.finished = false;
