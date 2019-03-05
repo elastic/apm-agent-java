@@ -39,7 +39,6 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     private static final String TRACE_ID = "trace.id";
     private static final String SPAN_ID = "span.id";
     private static final String TRANSACTION_ID = "transaction.id";
-    private static final String NA_SPAN_ID = "NA";
 
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache =
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
