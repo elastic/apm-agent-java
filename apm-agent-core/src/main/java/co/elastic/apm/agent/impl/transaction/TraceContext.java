@@ -25,6 +25,8 @@ import co.elastic.apm.agent.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Callable;
+
 /**
  * This is an implementation of the
  * <a href="https://w3c.github.io/trace-context/#traceparent-field">w3c traceparent header draft</a>.
@@ -377,4 +379,29 @@ public class TraceContext extends TraceContextHolder {
         return copy;
     }
 
+    /**
+     * Wraps the provided {@link Runnable} and makes this {@link TraceContext} active in the {@link Runnable#run()} method.
+     *
+     * <p>
+     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
+     * This is useful if this span is closed in a different thread than the provided {@link Runnable} is executed in.
+     * </p>
+     */
+    @Override
+    public Runnable withActive(Runnable runnable) {
+        return tracer.wrapRunnable(runnable, this);
+    }
+
+    /**
+     * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
+     *
+     * <p>
+     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
+     * This is useful if this span is closed in a different thread than the provided {@link java.util.concurrent.Callable} is executed in.
+     * </p>
+     */
+    @Override
+    public Callable withActive(Callable callable) {
+        return tracer.wrapCallable(callable, this);
+    }
 }

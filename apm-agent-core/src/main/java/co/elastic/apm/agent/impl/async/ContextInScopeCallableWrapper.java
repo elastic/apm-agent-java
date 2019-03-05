@@ -17,33 +17,36 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.async;
 
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Callable;
 
 @VisibleForAdvice
-public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
-    private static final Logger logger = LoggerFactory.getLogger(SpanInScopeRunnableWrapper.class);
+public class ContextInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(ContextInScopeCallableWrapper.class);
     private final ElasticApmTracer tracer;
+    private final TraceContext context;
     @Nullable
-    private volatile Runnable delegate;
-    @Nullable
-    private volatile AbstractSpan<?> span;
+    private volatile Callable<V> delegate;
 
-    SpanInScopeRunnableWrapper(ElasticApmTracer tracer) {
+    public ContextInScopeCallableWrapper(ElasticApmTracer tracer) {
         this.tracer = tracer;
+        context = TraceContext.with64BitId(tracer);
     }
 
-    SpanInScopeRunnableWrapper wrap(Runnable delegate, AbstractSpan<?> span) {
+    public ContextInScopeCallableWrapper<V> wrap(Callable<V> delegate, TraceContext context) {
+        this.context.copyFrom(context);
+        // ordering is important: volatile write has to be after copying the TraceContext to ensure visibility in #run
         this.delegate = delegate;
-        this.span = span;
         return this;
     }
 
@@ -51,28 +54,21 @@ public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
     // normally, advices act as the boundary of user and agent code and exceptions are handled via @Advice.OnMethodEnter(suppress = Throwable.class)
     // In this case, this class acts as the boundary of user and agent code so we have to do the tedious exception handling here
     @Override
-    public void run() {
-        // minimize volatile reads
-        AbstractSpan<?> localSpan = span;
-        if (localSpan != null) {
+    public V call() throws Exception {
+        try {
+            context.activate();
+        } catch (Throwable t) {
             try {
-                localSpan.activate();
-            } catch (Throwable t) {
-                try {
-                    logger.error("Unexpected error while activating span", t);
-                } catch (Throwable ignore) {
-                }
+                logger.error("Unexpected error while activating span", t);
+            } catch (Throwable ignore) {
             }
         }
         try {
             //noinspection ConstantConditions
-            delegate.run();
-            // the span may be ended at this point
+            return delegate.call();
         } finally {
             try {
-                if (localSpan != null) {
-                    localSpan.deactivate();
-                }
+                context.deactivate();
                 tracer.recycle(this);
             } catch (Throwable t) {
                 try {
@@ -85,7 +81,7 @@ public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
 
     @Override
     public void resetState() {
+        context.resetState();
         delegate = null;
-        span = null;
     }
 }

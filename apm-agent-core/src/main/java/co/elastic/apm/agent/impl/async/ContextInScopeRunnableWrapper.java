@@ -17,10 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.async;
 
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
@@ -36,12 +37,12 @@ public class ContextInScopeRunnableWrapper implements Runnable, Recyclable {
     @Nullable
     private volatile Runnable delegate;
 
-    ContextInScopeRunnableWrapper(ElasticApmTracer tracer) {
+    public ContextInScopeRunnableWrapper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         context = TraceContext.with64BitId(tracer);
     }
 
-    ContextInScopeRunnableWrapper wrap(Runnable delegate, TraceContext context) {
+    public ContextInScopeRunnableWrapper wrap(Runnable delegate, TraceContext context) {
         this.context.copyFrom(context);
         // ordering is important: volatile write has to be after copying the TraceContext to ensure visibility in #run
         this.delegate = delegate;

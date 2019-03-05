@@ -17,11 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.async;
 
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,22 +31,21 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 @VisibleForAdvice
-public class ContextInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
-    private static final Logger logger = LoggerFactory.getLogger(ContextInScopeCallableWrapper.class);
+public class SpanInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(SpanInScopeCallableWrapper.class);
     private final ElasticApmTracer tracer;
-    private final TraceContext context;
     @Nullable
     private volatile Callable<V> delegate;
+    @Nullable
+    private volatile AbstractSpan<?> span;
 
-    ContextInScopeCallableWrapper(ElasticApmTracer tracer) {
+    public SpanInScopeCallableWrapper(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        context = TraceContext.with64BitId(tracer);
     }
 
-    ContextInScopeCallableWrapper<V> wrap(Callable<V> delegate, TraceContext context) {
-        this.context.copyFrom(context);
-        // ordering is important: volatile write has to be after copying the TraceContext to ensure visibility in #run
+    public SpanInScopeCallableWrapper<V> wrap(Callable<V> delegate, AbstractSpan<?> span) {
         this.delegate = delegate;
+        this.span = span;
         return this;
     }
 
@@ -54,20 +54,27 @@ public class ContextInScopeCallableWrapper<V> implements Callable<V>, Recyclable
     // In this case, this class acts as the boundary of user and agent code so we have to do the tedious exception handling here
     @Override
     public V call() throws Exception {
-        try {
-            context.activate();
-        } catch (Throwable t) {
+        // minimize volatile reads
+        AbstractSpan<?> localSpan = span;
+        if (localSpan != null) {
             try {
-                logger.error("Unexpected error while activating span", t);
-            } catch (Throwable ignore) {
+                localSpan.activate();
+            } catch (Throwable t) {
+                try {
+                    logger.error("Unexpected error while activating span", t);
+                } catch (Throwable ignore) {
+                }
             }
         }
         try {
             //noinspection ConstantConditions
             return delegate.call();
+            // the span may be ended at this point
         } finally {
             try {
-                context.deactivate();
+                if (localSpan != null) {
+                    localSpan.deactivate();
+                }
                 tracer.recycle(this);
             } catch (Throwable t) {
                 try {
@@ -80,7 +87,7 @@ public class ContextInScopeCallableWrapper<V> implements Callable<V>, Recyclable
 
     @Override
     public void resetState() {
-        context.resetState();
         delegate = null;
+        span = null;
     }
 }

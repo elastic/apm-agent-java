@@ -20,8 +20,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.ContextInScopeCallableWrapper;
-import co.elastic.apm.agent.impl.ContextInScopeRunnableWrapper;
+import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
+import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
