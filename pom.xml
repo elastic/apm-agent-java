@@ -70,7 +70,7 @@
 
         <version.plugin.compiler>3.7.0</version.plugin.compiler>
         <version.plugin.jar>3.1.0</version.plugin.jar>
-        <version.plugin.javadoc>3.0.1</version.plugin.javadoc>
+        <version.plugin.javadoc>3.1.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
         <version.byte-buddy>1.9.3</version.byte-buddy>
 
