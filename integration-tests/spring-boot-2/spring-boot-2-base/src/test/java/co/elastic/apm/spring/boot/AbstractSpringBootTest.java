@@ -20,7 +20,6 @@
 package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -28,6 +27,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.Before;
@@ -102,6 +102,7 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
+        assertThat(transaction.getServiceName()).isEqualTo("spring-boot-test");
     }
 
     @Test

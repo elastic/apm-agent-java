@@ -25,13 +25,13 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -39,12 +39,12 @@ public class SpringServiceNameInstrumentation extends ElasticApmInstrumentation 
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameStartsWith("org.springframework.context.support");
+        return nameEndsWith("ApplicationContext");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.springframework.context.support.AbstractApplicationContext"));
+        return hasSuperType(named("org.springframework.web.context.WebApplicationContext"));
     }
 
     @Override
@@ -63,10 +63,11 @@ public class SpringServiceNameInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class SpringServiceNameAdvice {
-        @Advice.OnMethodExit
-        public static void afterInitPropertySources(@Advice.This AbstractApplicationContext applicationContext) {
-            if (tracer != null) {
-                tracer.overrideServiceNameForClassLoader(applicationContext.getClassLoader(), applicationContext.getEnvironment().getProperty("spring.application.name"));
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void afterInitPropertySources(@Advice.This WebApplicationContext applicationContext) {
+            if (tracer != null && applicationContext.getServletContext() != null) {
+                tracer.overrideServiceNameForClassLoader(applicationContext.getServletContext().getClassLoader(), applicationContext.getEnvironment().getProperty("spring.application.name"));
             }
         }
     }

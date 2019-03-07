@@ -83,7 +83,6 @@ public class ServletApiTestApp extends TestApp {
             for (JsonNode span : spans) {
                 assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
             }
-            test.validateEventMetadata(this);
         }
     }
 

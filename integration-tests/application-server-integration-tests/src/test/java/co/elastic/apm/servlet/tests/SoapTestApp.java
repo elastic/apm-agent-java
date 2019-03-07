@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SoapTestApp extends TestApp {
     public SoapTestApp() {
-        super("../soap-test", "soap-test.war", "/soap-test/status.html", null);
+        super("../soap-test", "soap-test.war", "/soap-test/status.html", "soap-test");
     }
 
     @Override

@@ -23,7 +23,7 @@ import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
 
 public class JsfServletContainerTestApp extends TestApp {
     public JsfServletContainerTestApp() {
-        super("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", null);
+        super("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
     }
 
     @Override
