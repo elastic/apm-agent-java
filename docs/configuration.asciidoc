@@ -111,7 +111,11 @@ NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| Name of main class or jar | String | false
+| For Spring-based application, uses the `spring.application.name` property.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the context path the application is mapped to (unless mapped to the root context).
+Falls back to the name of the main class or jar file.
+ | String | false
 |============
 
 
@@ -170,7 +174,7 @@ Also keep that in mind when creating alerts.
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate`
 
-By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 
 
 [options="header"]
@@ -252,7 +256,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-application-name`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1012,9 +1016,17 @@ The default unit for this option is `ms`
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: Name of main class or jar
+# Default value: For Spring-based application, uses the `spring.application.name` property.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the context path the application is mapped to (unless mapped to the root context).
+Falls back to the name of the main class or jar file.
+
 #
-# service_name=Name of main class or jar
+# service_name=For Spring-based application, uses the `spring.application.name` property.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the context path the application is mapped to (unless mapped to the root context).
+Falls back to the name of the main class or jar file.
+
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #
@@ -1037,7 +1049,7 @@ The default unit for this option is `ms`
 #
 # environment=
 
-# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 #
 # This setting can be changed at runtime
 # Type: Double
@@ -1083,7 +1095,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-application-name`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #

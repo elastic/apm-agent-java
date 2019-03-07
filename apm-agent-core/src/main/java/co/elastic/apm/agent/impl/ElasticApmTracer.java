@@ -540,7 +540,10 @@ public class ElasticApmTracer {
      * @param classLoader the class loader which corresponds to a particular service
      * @param serviceName the service name for this class loader
      */
-    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, String serviceName) {
+    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+        if (serviceName == null) {
+            return;
+        }
         if (classLoader == null) {
             classLoader = ClassLoader.getSystemClassLoader();
         }
