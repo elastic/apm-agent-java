@@ -170,7 +170,7 @@ Also keep that in mind when creating alerts.
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate`
 
-By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 
 
 [options="header"]
@@ -1037,7 +1037,7 @@ The default unit for this option is `ms`
 #
 # environment=
 
-# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
+# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
 #
 # This setting can be changed at runtime
 # Type: Double

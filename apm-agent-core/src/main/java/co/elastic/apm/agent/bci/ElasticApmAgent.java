@@ -97,7 +97,7 @@ public class ElasticApmAgent {
     @Nonnull
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
         final ArrayList<ElasticApmInstrumentation> instrumentations = new ArrayList<ElasticApmInstrumentation>();
-        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader())) {
+        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class, ClassLoader.getSystemClassLoader())) {
             instrumentations.add(instrumentation);
         }
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
