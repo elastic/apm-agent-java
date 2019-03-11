@@ -64,7 +64,9 @@ pipeline {
               """
             }
             stash allowEmpty: true, name: 'build', useDefaultExcludes: false
-            archiveArtifacts allowEmptyArchive: true, artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar", onlyIfSuccessful: true
+            archiveArtifacts allowEmptyArchive: true,
+              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar", 
+              onlyIfSuccessful: true
           }
         }
       }
