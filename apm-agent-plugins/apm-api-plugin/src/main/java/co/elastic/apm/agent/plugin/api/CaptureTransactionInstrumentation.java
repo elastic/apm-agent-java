@@ -55,7 +55,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     private StacktraceConfiguration config;
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(@Advice.This Object thiz,
+    public static void onMethodEnter(@Advice.Origin Class<?> clazz,
                                      @SimpleMethodSignature String signature,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
@@ -63,7 +63,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, thiz.getClass().getClassLoader())
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClass().getClassLoader())
                     .withName(transactionName.isEmpty() ? signature : transactionName)
                     .withType(type)
                     .activate();
