@@ -63,17 +63,17 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     public abstract boolean isChildOf(TraceContextHolder other);
 
     public T activate() {
-        tracer.activate(this);
         List<ActivationListener> activationListeners = tracer.getActivationListeners();
         for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                activationListeners.get(i).onActivate(this);
+                activationListeners.get(i).beforeActivate(this);
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
+        tracer.activate(this);
         return (T) this;
     }
 
@@ -82,11 +82,11 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         List<ActivationListener> activationListeners = tracer.getActivationListeners();
         for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                activationListeners.get(i).onDeactivate();
+                activationListeners.get(i).afterDeactivate();
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
         return (T) this;

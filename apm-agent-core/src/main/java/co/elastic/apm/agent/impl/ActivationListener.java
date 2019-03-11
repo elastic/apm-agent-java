@@ -35,7 +35,7 @@ public interface ActivationListener {
      * @param context the {@link TraceContextHolder} which is being activated
      * @throws Throwable if there was an error while calling this method
      */
-    void onActivate(TraceContextHolder<?> context) throws Throwable;
+    void beforeActivate(TraceContextHolder<?> context) throws Throwable;
 
     /**
      * A callback for {@link TraceContextHolder#deactivate()}
@@ -46,5 +46,5 @@ public interface ActivationListener {
      *
      * @throws Throwable if there was an error while calling this method
      */
-    void onDeactivate() throws Throwable;
+    void afterDeactivate() throws Throwable;
 }
