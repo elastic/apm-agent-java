@@ -63,7 +63,7 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClass().getClassLoader())
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
                     .withName(transactionName.isEmpty() ? signature : transactionName)
                     .withType(type)
                     .activate();
