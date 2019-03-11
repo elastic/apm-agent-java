@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import java.util.List;
@@ -81,11 +82,13 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         doRequest("test");
         doRequest("testInterface");
         doRequest("testAbstract");
+        doRequest("POST", "testAbstract");
         List<Transaction> actualTransactions = reporter.getTransactions();
-        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions).hasSize(4);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(3).getName().toString()).isEqualTo("AbstractResourceClassWithPath#testMethodOnAbstractClass");
     }
 
     @Test
@@ -96,11 +99,13 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         doRequest("test");
         doRequest("testInterface");
         doRequest("testAbstract");
+        doRequest("POST", "testAbstract");
         List<Transaction> actualTransactions = reporter.getTransactions();
-        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions).hasSize(4);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+        assertThat(actualTransactions.get(3).getName().toString()).isEqualTo("AbstractResourceClassWithPath#testMethodOnAbstractClass");
     }
 
 
@@ -117,9 +122,19 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
      * @param path the path to make the get request against
      */
     private void doRequest(String path) {
+        doRequest("GET", path);
+    }
+
+    /**
+     * Make a GET request against the target path wrapped in an apm transaction.
+     *
+     * @param method
+     * @param path the path to make the get request against
+     */
+    private void doRequest(String method, String path) {
         final Transaction request = tracer.startTransaction().withType("request").activate();
         try {
-            assertThat(getClient().target(getBaseUri()).path(path).request().buildGet().invoke(String.class)).isEqualTo("ok");
+            assertThat(getClient().target(getBaseUri()).path(path).request().build(method).invoke(String.class)).isEqualTo("ok");
         } finally {
             request.deactivate().end();
         }
@@ -146,8 +161,10 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Path("testAbstract")
     public abstract static class AbstractResourceClassWithPath implements ResourceInterfaceWithoutPath {
-
-
+        @POST
+        public String testMethodOnAbstractClass() {
+            return "ok";
+        }
     }
 
     @Path("test")
