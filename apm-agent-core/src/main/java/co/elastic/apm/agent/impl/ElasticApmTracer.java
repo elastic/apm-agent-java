@@ -223,7 +223,7 @@ public class ElasticApmTracer {
         }
         final String serviceName = getServiceName(initiatingClassLoader);
         if (serviceName != null) {
-            transaction.setServiceName(serviceName);
+            transaction.getTraceContext().setServiceName(serviceName);
         }
         return transaction;
     }
@@ -284,9 +284,7 @@ public class ElasticApmTracer {
                 dropped = false;
                 transaction.getSpanCount().getStarted().incrementAndGet();
             }
-            span.setServiceName(transaction.getServiceName());
         } else {
-            // TODO determine service name
             dropped = false;
         }
         span.start(TraceContext.fromParent(), parent, epochMicros, dropped);
@@ -297,11 +295,21 @@ public class ElasticApmTracer {
         return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getStarted().get();
     }
 
-    public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis() * 1000, e, getActive());
+    /**
+     * Captures an exception without providing an explicit reference to a parent {@link TraceContextHolder}
+     *
+     * @param e                     the exception to capture
+     * @param initiatingClassLoader the class
+     */
+    public void captureException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
+        captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
+    public void captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        captureException(epochMicros, e, parent, null);
+    }
+
+    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         if (e != null) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
@@ -310,14 +318,12 @@ public class ElasticApmTracer {
             if (currentTransaction != null) {
                 error.setTransactionType(currentTransaction.getType());
                 error.setTransactionSampled(currentTransaction.isSampled());
-                error.setServiceName(currentTransaction.getServiceName());
-            } else {
-                // TODO determine service name
             }
             if (parent != null) {
                 error.asChildOf(parent);
             } else {
                 error.getTraceContext().getId().setToRandomValue();
+                error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
             reporter.report(error);
         }

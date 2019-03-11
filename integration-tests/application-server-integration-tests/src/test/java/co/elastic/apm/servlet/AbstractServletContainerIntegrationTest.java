@@ -369,9 +369,8 @@ public abstract class AbstractServletContainerIntegrationTest {
                 if (metadata != null) {
                     validataMetadataEvent(metadata);
                 } else {
-                    // TODO make it work ;)
-                    //  validateServiceName(event.get("error"));
-                    //  validateServiceName(event.get("span"));
+                    validateServiceName(event.get("error"));
+                    validateServiceName(event.get("span"));
                     validateServiceName(event.get("transaction"));
                 }
             }

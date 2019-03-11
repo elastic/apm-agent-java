@@ -24,7 +24,6 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -124,7 +123,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
         if (expectedTransactions > 0) {
             reporter.getFirstTransaction(500);
-            assertThat(reporter.getTransactions().stream().map(Transaction::getServiceName).distinct()).containsExactly(getClass().getSimpleName());
+            assertThat(reporter.getTransactions().stream().map(transaction -> transaction.getTraceContext().getServiceName()).distinct()).containsExactly(getClass().getSimpleName());
         }
         assertThat(reporter.getTransactions()).hasSize(expectedTransactions);
     }

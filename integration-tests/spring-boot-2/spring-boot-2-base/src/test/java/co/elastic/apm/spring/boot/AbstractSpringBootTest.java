@@ -102,7 +102,7 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
-        assertThat(transaction.getServiceName()).isEqualTo("spring-boot-test");
+        assertThat(transaction.getTraceContext().getServiceName()).isEqualTo("spring-boot-test");
     }
 
     @Test

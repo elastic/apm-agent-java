@@ -273,14 +273,14 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testOverrideServiceNameForClassLoader() {
         tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
         ElasticApm.startTransaction().end();
-        assertThat(reporter.getFirstTransaction().getServiceName()).isEqualTo("overridden");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
     @Test
     void testOverrideServiceNameForClassLoaderWithRemoteParent() {
         tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
-        assertThat(reporter.getFirstTransaction().getServiceName()).isEqualTo("overridden");
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
 }

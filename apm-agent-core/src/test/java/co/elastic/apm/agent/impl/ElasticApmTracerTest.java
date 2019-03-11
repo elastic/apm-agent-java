@@ -160,7 +160,7 @@ class ElasticApmTracerTest {
 
     @Test
     void testRecordException() {
-        tracerImpl.captureException(new Exception("test"));
+        tracerImpl.captureException(new Exception("test"), getClass().getClassLoader());
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();

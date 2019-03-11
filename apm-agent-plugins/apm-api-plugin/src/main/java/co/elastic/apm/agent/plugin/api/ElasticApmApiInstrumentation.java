@@ -136,9 +136,9 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void captureException(@Advice.Argument(0) @Nullable Throwable e) {
+        private static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
-                tracer.captureException(e);
+                tracer.captureException(e, clazz.getClassLoader());
             }
         }
     }

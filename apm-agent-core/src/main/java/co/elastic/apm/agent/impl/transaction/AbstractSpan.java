@@ -47,8 +47,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     protected double duration;
 
     private volatile boolean finished = true;
-    @Nullable
-    private String serviceName;
 
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
@@ -116,7 +114,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         duration = 0;
         isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
-        serviceName = null;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
@@ -209,19 +206,5 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         } else {
             return tracer.wrapCallable(callable, traceContext);
         }
-    }
-
-    /**
-     * Overrides the {@link co.elastic.apm.agent.impl.payload.Service#name} property sent via the meta data Intake V2 event.
-     *
-     * @param serviceName the service name for this event
-     */
-    public void setServiceName(@Nullable String serviceName) {
-        this.serviceName = serviceName;
-    }
-
-    @Nullable
-    public String getServiceName() {
-        return serviceName;
     }
 }
