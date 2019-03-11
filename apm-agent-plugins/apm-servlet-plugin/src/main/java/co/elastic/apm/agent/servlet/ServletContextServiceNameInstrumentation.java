@@ -73,7 +73,7 @@ public class ServletContextServiceNameInstrumentation extends ElasticApmInstrume
 
     public static class ServletContextServiceNameAdvice {
 
-        @Advice.OnMethodEnter
+        @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onServletInit(@Nullable @Advice.Argument(0) ServletConfig servletConfig) {
             if (tracer == null || servletConfig == null) {
                 return;

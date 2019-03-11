@@ -76,6 +76,7 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Override
     protected void setUpHandler(ServletContextHandler handler) {
         handler.setDisplayName(getClass().getSimpleName());
+        handler.setClassLoader(getClass().getClassLoader());
         handler.addServlet(EnsureInitServlet.class, "/init");
         handler.addServlet(TestServlet.class, "/test");
         handler.addServlet(BaseTestServlet.class, "/base");
