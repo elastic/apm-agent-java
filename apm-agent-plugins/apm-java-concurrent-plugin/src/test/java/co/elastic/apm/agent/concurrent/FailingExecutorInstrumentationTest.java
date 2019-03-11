@@ -22,6 +22,7 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class FailingExecutorInstrumentationTest extends AbstractInstrumentationTest {
                 throw new UnsupportedOperationException();
             }
         });
-        tracer.startTransaction().activate();
+        tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         runCounter = new AtomicInteger();
         submitWithWrapperCounter = new AtomicInteger();
     }

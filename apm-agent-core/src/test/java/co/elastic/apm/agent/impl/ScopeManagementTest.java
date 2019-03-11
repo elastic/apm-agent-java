@@ -72,7 +72,7 @@ class ScopeManagementTest {
     @Test
     void testWrongDeactivationOrder() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             final Span span = transaction.createSpan().activate();
             transaction.deactivate();
             span.deactivate();
@@ -84,7 +84,7 @@ class ScopeManagementTest {
     @Test
     void testActivateTwice() {
         runTestWithAssertionsDisabled(() -> {
-            tracer.startTransaction()
+            tracer.startTransaction(TraceContext.asRoot(), null, null)
                 .activate().activate()
                 .deactivate().deactivate();
 
@@ -95,7 +95,7 @@ class ScopeManagementTest {
     @Test
     void testMissingDeactivation() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             transaction.createSpan().activate();
             transaction.deactivate();
 
@@ -106,7 +106,7 @@ class ScopeManagementTest {
     @Test
     void testContextAndSpanRunnableActivation() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             transaction.markLifecycleManagingThreadSwitchExpected();
             transaction.withActive(transaction.withActive((Runnable) () ->
                 assertThat(tracer.getActive()).isSameAs(transaction))).run();
@@ -119,7 +119,7 @@ class ScopeManagementTest {
     @Test
     void testContextAndSpanCallableActivation() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             transaction.markLifecycleManagingThreadSwitchExpected();
             try {
                 assertThat(transaction.withActive(transaction.withActive(() -> tracer.currentTransaction())).call()).isSameAs(transaction);
@@ -135,7 +135,7 @@ class ScopeManagementTest {
     @Test
     void testSpanAndContextRunnableActivation() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             Runnable runnable = transaction.withActive((Runnable) () ->
                 assertThat(tracer.currentTransaction()).isSameAs(transaction));
             transaction.markLifecycleManagingThreadSwitchExpected();
@@ -149,7 +149,7 @@ class ScopeManagementTest {
     @Test
     void testSpanAndContextCallableActivation() {
         runTestWithAssertionsDisabled(() -> {
-            final Transaction transaction = tracer.startTransaction().activate();
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             Callable<Transaction> callable = transaction.withActive(() -> tracer.currentTransaction());
             transaction.markLifecycleManagingThreadSwitchExpected();
             try {
@@ -165,7 +165,7 @@ class ScopeManagementTest {
 
     @Test
     void testContextAndSpanRunnableActivationInDifferentThread() throws Exception {
-        final Transaction transaction = tracer.startTransaction().activate();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.markLifecycleManagingThreadSwitchExpected();
         Executors.newSingleThreadExecutor().submit(transaction.withActive(transaction.withActive(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
@@ -178,7 +178,7 @@ class ScopeManagementTest {
 
     @Test
     void testContextAndSpanCallableActivationInDifferentThread() throws Exception {
-        final Transaction transaction = tracer.startTransaction().activate();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.markLifecycleManagingThreadSwitchExpected();
         Future<Transaction> transactionFuture = Executors.newSingleThreadExecutor().submit(transaction.withActive(transaction.withActive(() -> {
             assertThat(tracer.getActive()).isSameAs(transaction);
@@ -192,7 +192,7 @@ class ScopeManagementTest {
 
     @Test
     void testSpanAndContextRunnableActivationInDifferentThread() throws Exception {
-        final Transaction transaction = tracer.startTransaction().activate();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         Runnable runnable = transaction.withActive(() -> {
             assertThat(tracer.currentTransaction()).isSameAs(transaction);
             assertThat(tracer.getActive()).isInstanceOf(TraceContext.class);
@@ -206,7 +206,7 @@ class ScopeManagementTest {
 
     @Test
     void testSpanAndContextCallableActivationInDifferentThread() throws Exception {
-        final Transaction transaction = tracer.startTransaction().activate();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         Callable<Transaction> callable = transaction.withActive(() -> {
             assertThat(tracer.getActive()).isInstanceOf(TraceContext.class);
             return tracer.currentTransaction();

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -54,14 +55,15 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     private StacktraceConfiguration config;
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(@SimpleMethodSignature String signature,
+    public static void onMethodEnter(@Advice.This Object thiz,
+                                     @SimpleMethodSignature String signature,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
                                      @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
                                      @Advice.Local("transaction") Transaction transaction) {
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction()
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, thiz.getClass().getClassLoader())
                     .withName(transactionName.isEmpty() ? signature : transactionName)
                     .withType(type)
                     .activate();

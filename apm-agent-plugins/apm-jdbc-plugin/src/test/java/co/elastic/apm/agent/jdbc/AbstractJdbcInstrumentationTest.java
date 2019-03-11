@@ -22,6 +22,7 @@ package co.elastic.apm.agent.jdbc;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +61,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
-        transaction = tracer.startTransaction().activate();
+        transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("transaction");
         transaction.withType("request");
         transaction.withResult("success");

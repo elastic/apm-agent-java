@@ -24,6 +24,7 @@ import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Db;
 import co.elastic.apm.agent.impl.transaction.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -111,7 +112,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startTransaction().activate();
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("ES Transaction");
         transaction.withType("request");
         transaction.withResult("success");

@@ -182,27 +182,6 @@ public class ElasticApmTracer {
     }
 
     /**
-     * Starts a root transaction
-     *
-     * @return a root transaction
-     */
-    public Transaction startTransaction() {
-        return startTransaction(TraceContext.asRoot(), null);
-    }
-
-    /**
-     * Starts a transaction as a child of the provided parent
-     *
-     * @param childContextCreator used to make the transaction a child of the provided parent
-     * @param parent              the parent of the transaction. May be a traceparent header.
-     * @param <T>                 the type of the parent. {@code String} in case of a traceparent header.
-     * @return a transaction which is a child of the provided parent
-     */
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent) {
-        return startTransaction(childContextCreator, parent, null);
-    }
-
-    /**
      * Starts a transaction as a child of the provided parent
      *
      * @param childContextCreator   used to make the transaction a child of the provided parent
@@ -214,20 +193,6 @@ public class ElasticApmTracer {
      */
     public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
         return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
-    }
-
-    /**
-     * Starts a transaction as a child of the provided parent
-     *
-     * @param childContextCreator used to make the transaction a child of the provided parent
-     * @param parent              the parent of the transaction. May be a traceparent header.
-     * @param sampler             the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
-     * @param epochMicros         the start timestamp
-     * @param <T>                 the type of the parent. {@code String} in case of a traceparent header.
-     * @return a transaction which is a child of the provided parent
-     */
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler, long epochMicros) {
-        return startTransaction(childContextCreator, parent, sampler, epochMicros, null);
     }
 
     /**
@@ -541,21 +506,25 @@ public class ElasticApmTracer {
      * @param serviceName the service name for this class loader
      */
     public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
-        if (serviceName == null) {
+        // overriding the service name for the bootstrap class loader is not an actual use-case
+        // null may also mean we don't know about the initiating class loader
+        if (classLoader == null || serviceName == null) {
             return;
-        }
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
         }
         if (!serviceNameByClassLoader.containsKey(classLoader)) {
             serviceNameByClassLoader.putIfAbsent(classLoader, ServiceNameUtil.replaceDisallowedChars(serviceName));
         }
     }
 
+    @Nullable
     private String getServiceName(@Nullable ClassLoader initiatingClassLoader) {
         if (initiatingClassLoader == null) {
-            initiatingClassLoader = ClassLoader.getSystemClassLoader();
+            return null;
         }
         return serviceNameByClassLoader.get(initiatingClassLoader);
+    }
+
+    public void resetServiceNameOverrides() {
+        serviceNameByClassLoader.clear();
     }
 }

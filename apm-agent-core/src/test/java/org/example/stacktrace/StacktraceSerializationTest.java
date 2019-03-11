@@ -23,6 +23,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -106,7 +107,7 @@ class StacktraceSerializationTest {
     }
 
     private List<JsonNode> getStackTrace() throws IOException {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         final Span span = transaction.createSpan();
         span.end();
         transaction.end();

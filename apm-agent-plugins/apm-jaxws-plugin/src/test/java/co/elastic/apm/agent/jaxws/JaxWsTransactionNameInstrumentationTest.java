@@ -21,6 +21,7 @@ package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTes
 
     @Test
     void testTransactionName() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             helloWorldService.sayHello();
         } finally {
