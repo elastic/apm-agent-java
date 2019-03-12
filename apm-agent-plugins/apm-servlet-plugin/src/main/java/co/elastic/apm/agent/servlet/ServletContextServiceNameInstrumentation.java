@@ -82,8 +82,10 @@ public class ServletContextServiceNameInstrumentation extends ElasticApmInstrume
             if (servletContext == null) {
                 return;
             }
+            @Nullable
             String serviceName = servletContext.getServletContextName();
-            if ("application".equals(serviceName)) {
+            if ("application".equals(serviceName) || "".equals(serviceName)) {
+                // payara returns an empty string as opposed to null
                 // spring applications which did not set spring.application.name have application as the default
                 // this is a worse default than the one we would otherwise choose
                 serviceName = null;
