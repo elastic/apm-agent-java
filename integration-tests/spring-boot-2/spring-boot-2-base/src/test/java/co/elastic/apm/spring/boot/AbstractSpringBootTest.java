@@ -30,6 +30,7 @@ import co.elastic.apm.agent.web.WebConfiguration;
 import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -90,8 +91,8 @@ public abstract class AbstractSpringBootTest {
         reporter.reset();
     }
 
-    @After
-    public void tearDown() {
+    @AfterClass
+    public static void tearDown() {
         ElasticApmAgent.reset();
     }
 
