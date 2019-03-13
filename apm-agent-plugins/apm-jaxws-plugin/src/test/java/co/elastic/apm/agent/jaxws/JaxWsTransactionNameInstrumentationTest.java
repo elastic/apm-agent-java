@@ -43,7 +43,7 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTes
 
     @Test
     void testTransactionName() {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         try (Scope scope = transaction.activateInScope()) {
             helloWorldService.sayHello();
         } finally {

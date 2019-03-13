@@ -208,7 +208,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTraceContextScopes() {
-        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
+        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         tracer.activate(transaction.getTraceContext());
         final Span span = ElasticApm.currentSpan();
         assertThat(tracer.getActive()).isInstanceOf(TraceContext.class);

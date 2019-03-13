@@ -514,7 +514,10 @@ public class ElasticApmTracer {
     public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
         // overriding the service name for the bootstrap class loader is not an actual use-case
         // null may also mean we don't know about the initiating class loader
-        if (classLoader == null || serviceName == null) {
+        if (classLoader == null
+            || serviceName == null || serviceName.isEmpty()
+            // if the service name is set explicitly, don't override it
+            || !coreConfiguration.getServiceNameConfig().isDefault()) {
             return;
         }
         if (!serviceNameByClassLoader.containsKey(classLoader)) {

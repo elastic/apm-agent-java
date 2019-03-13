@@ -107,7 +107,7 @@ class StacktraceSerializationTest {
     }
 
     private List<JsonNode> getStackTrace() throws IOException {
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         final Span span = transaction.createSpan();
         span.end();
         transaction.end();

@@ -302,6 +302,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceName.get();
     }
 
+    public ConfigurationOption<String> getServiceNameConfig() {
+        return serviceName;
+    }
+
     public String getServiceVersion() {
         return serviceVersion.get();
     }
