@@ -246,3 +246,4 @@ If you have access to make releases, the process is as follows:
 1. Update [`CHANGELOG.md`](CHANGELOG.md) to reflect version release. Go over PRs or git log and add bug fixes and features.
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
+1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
