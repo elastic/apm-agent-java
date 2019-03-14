@@ -63,15 +63,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        // we can't get the timestamp here as the clock has not yet been initialized
-        return start(childContextCreator, parentContext, -1);
-    }
-
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        return start(childContextCreator, parentContext, epochMicros, false);
-    }
-
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         onStart();
         childContextCreator.asChildOf(traceContext, parentContext);
