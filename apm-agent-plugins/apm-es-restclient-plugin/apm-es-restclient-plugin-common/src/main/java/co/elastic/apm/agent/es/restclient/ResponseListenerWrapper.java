@@ -32,13 +32,14 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Nullable
     private ResponseListener delegate;
     @Nullable
-    private Span span;
+    private volatile Span span;
 
     ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelperImpl helper) {
         this.helper = helper;
     }
 
     ResponseListenerWrapper with(ResponseListener delegate, Span span) {
+        // Order is important due to visibility - write to span last on this (initiating) thread
         this.delegate = delegate;
         this.span = span;
         return this;
@@ -47,9 +48,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onSuccess(Response response) {
         try {
-            if (span != null) {
-                helper.finishClientSpan(response, span, null);
-            }
+            finishClientSpan(response, null);
         } finally {
             if (delegate != null) {
                 delegate.onSuccess(response);
@@ -61,14 +60,20 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     @Override
     public void onFailure(Exception exception) {
         try {
-            if (span != null) {
-                helper.finishClientSpan(null, span, exception);
-            }
+            finishClientSpan(null, exception);
         } finally {
             if (delegate != null) {
                 delegate.onFailure(exception);
             }
             helper.recycle(this);
+        }
+    }
+
+    private void finishClientSpan(@Nullable Response response, @Nullable Throwable throwable) {
+        // First read volatile span to ensure visibility on executing thread
+        Span localSpan = span;
+        if (localSpan != null) {
+            helper.finishClientSpan(response, localSpan, throwable);
         }
     }
 

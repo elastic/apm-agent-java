@@ -6,6 +6,7 @@
    The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
    As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
    Previously, they were stored under `context.tags`.
+ * Support async queries made by Elasticsearch REST client 
 
 ## Bug Fixes
 

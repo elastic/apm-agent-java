@@ -31,6 +31,8 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
 import org.jctools.queues.atomic.AtomicQueueFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -38,6 +40,8 @@ import java.io.IOException;
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class ElasticsearchRestClientInstrumentationHelperImpl implements ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> {
+
+    private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelperImpl.class);
 
     public static final String SEARCH_QUERY_PATH_SUFFIX = "_search";
     public static final String SPAN_TYPE = "db";
@@ -91,7 +95,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     try {
                         IOUtils.readUtf8Stream(httpEntity.getContent(), span.getContext().getDb().withStatementBuffer());
                     } catch (IOException e) {
-                        // We can't log from here
+                        logger.error("Failed to read Elasticsearch client query from request body", e);
                     }
                 }
             }
@@ -112,13 +116,6 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     ResponseException esre = (ResponseException) t;
                     url = esre.getResponse().getHost().toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
-
-                        /*
-                        // Add tags so that they will be copied to error capture
-                        span.addTag(QUERY_STATUS_CODE_KEY, Integer.toString(statusCode));
-                        span.addTag(ELASTICSEARCH_NODE_URL_KEY, url);
-                        span.addTag(ERROR_REASON_KEY, esre.getResponse().getStatusLine().getReasonPhrase());
-                        */
                 }
                 span.captureException(t);
             }

@@ -69,6 +69,8 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
                 span = helper.createClientSpan(request.getMethod(), request.getEndpoint(), request.getEntity());
                 if (span != null) {
                     responseListener = helper.<ResponseListener>wrapResponseListener(responseListener, span);
+                    // write to the span's volatile field to ensure proper visibility on the executing thread
+                    span.markLifecycleManagingThreadSwitchExpected();
                     wrapped = true;
                 }
             }
@@ -78,7 +80,8 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
         private static void onAfterExecute(@Advice.Argument(1) ResponseListener responseListener,
                                            @Advice.Local("span") @Nullable Span span,
                                            @Advice.Local("wrapped") boolean wrapped,
-                                           @Advice.Local("helper") @Nullable ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper, @Advice.Thrown @Nullable Throwable t) {
+                                           @Advice.Local("helper") @Nullable ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener> helper,
+                                           @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
                 // Deactivate in this thread. Span will be ended and reported by the listener
                 span.deactivate();
