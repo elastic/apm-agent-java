@@ -83,7 +83,8 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("javax.enterprise.context.NormalScope"));
+            .and(classLoaderCanLoadClass("javax.inject.Scope")
+                .or(classLoaderCanLoadClass("javax.enterprise.context.NormalScope")));
     }
 
     @Override
@@ -95,8 +96,11 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        // Any class that is annotated with an annotation that is itself annotated with @NormalScope
-        return isAnnotatedWith(isAnnotatedWith(ElementMatchers.named("javax.enterprise.context.NormalScope")));
+        // Any class that is annotated with an annotation that is itself annotated with @NormalScope or @Scope
+        return isAnnotatedWith(
+            isAnnotatedWith(
+                ElementMatchers.named("javax.enterprise.context.NormalScope")
+                    .or(ElementMatchers.named("javax.inject.Scope"))));
     }
 
     @Override
