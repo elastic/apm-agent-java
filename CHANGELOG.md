@@ -7,6 +7,7 @@
    As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
    Previously, they were stored under `context.tags`.
  * Support async queries made by Elasticsearch REST client 
+ * Support async calls made by OkHttp client (`Call#enqueue`)
 
 ## Bug Fixes
 
