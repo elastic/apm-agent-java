@@ -41,8 +41,13 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPa
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
+import static net.bytebuddy.matcher.ElementMatchers.isEquals;
+import static net.bytebuddy.matcher.ElementMatchers.isGetter;
+import static net.bytebuddy.matcher.ElementMatchers.isHashCode;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.isSetter;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
+import static net.bytebuddy.matcher.ElementMatchers.isToString;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
@@ -61,6 +66,7 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
             if (parent != null) {
                 span = parent.createSpan()
                     .withName(signature)
+                    .withType("cdi")
                     .activate();
             }
         }
@@ -105,7 +111,14 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic().and(not(isConstructor())).and(not(isStatic()));
+        return isPublic()
+            .and(not(isConstructor()))
+            .and(not(isStatic()))
+            .and(not(isSetter()))
+            .and(not(isGetter()))
+            .and(not(isHashCode()))
+            .and(not(isEquals()))
+            .and(not(isToString()));
     }
 
     @Override
