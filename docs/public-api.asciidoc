@@ -132,7 +132,22 @@ Example:
 
 [source,java]
 ----
-Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader);
+// Hook into a callback provided by the framework that is called on incoming requests
+public Response onIncomingRequest(Request request) throws Exception {
+    // creates a transaction representing the server-side handling of the request
+    Transaction transaction = ElasticApm.startTransactionWithRemoteParent(key -> request.getHeader(key));
+    try (final Scope scope = transaction.activate()) {
+        String name = "a useful name like ClassName#methodName where the request is handled";
+        transaction.setName(name);
+        transaction.setType(Transaction.TYPE_REQUEST);
+        return request.handle();
+    } catch (Exception e) {
+        transaction.captureException(e);
+        throw e;
+    } finally {
+        transaction.end();
+    }
+}
 ----
 
 NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-headers>>
@@ -153,7 +168,22 @@ Example:
 
 [source,java]
 ----
-Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
+// Hook into a callback provided by the framework that is called on incoming requests
+public Response onIncomingRequest(Request request) throws Exception {
+    // creates a transaction representing the server-side handling of the request
+    Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
+    try (final Scope scope = transaction.activate()) {
+        String name = "a useful name like ClassName#methodName where the request is handled";
+        transaction.setName(name);
+        transaction.setType(Transaction.TYPE_REQUEST);
+        return request.handle();
+    } catch (Exception e) {
+        transaction.captureException(e);
+        throw e;
+    } finally {
+        transaction.end();
+    }
+}
 ----
 
 
@@ -497,7 +527,22 @@ Example:
 
 [source,java]
 ----
-span.injectTraceHeaders(request::addHeader);
+// Hook into a callback provided by the RPC framework that is called on outgoing requests
+public Response onOutgoingRequest(Request request) throws Exception {
+    // creates a span representing the external call
+    Span span = ElasticApm.currentSpan()
+            .startSpan("external", "http", null)
+            .setName(request.getMethod() + " " + request.getHost());
+    try (final Scope scope = transaction.activate()) {
+        span.injectTraceHeaders((name, value) -> request.addHeader(name, value));
+        return request.execute();
+    } catch (Exception e) {
+        span.captureException(e);
+        throw e;
+    } finally {
+        span.end();
+    }
+}
 ----
 
 since 1.3.0
@@ -700,7 +745,22 @@ Example:
 
 [source,java]
 ----
-span.injectTraceHeaders(request::addHeader);
+// Hook into a callback provided by the RPC framework that is called on outgoing requests
+public Response onOutgoingRequest(Request request) throws Exception {
+    // creates a span representing the external call
+    Span span = ElasticApm.currentSpan()
+            .startSpan("external", "http", null)
+            .setName(request.getMethod() + " " + request.getHost());
+    try (final Scope scope = transaction.activate()) {
+        span.injectTraceHeaders((name, value) -> request.addHeader(name, value));
+        return request.execute();
+    } catch (Exception e) {
+        span.captureException(e);
+        throw e;
+    } finally {
+        span.end();
+    }
+}
 ----
 
 since 1.3.0
