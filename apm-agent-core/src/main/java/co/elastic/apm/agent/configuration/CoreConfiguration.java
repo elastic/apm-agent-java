@@ -104,7 +104,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
-            "We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.")
+            "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.")
         .dynamic(true)
         .addValidator(isInRange(0d, 1d))
         .buildWithDefault(1.0);

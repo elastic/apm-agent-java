@@ -98,6 +98,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, String value);
@@ -118,6 +119,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, Number value);
@@ -138,6 +140,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, boolean value);

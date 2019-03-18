@@ -282,6 +282,8 @@ transaction.addLabel("foo", "bar");
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
 
+Since 1.5.0
+
 [float]
 [[api-transaction-set-user]]
 ==== `Transaction setUser(String id, String email, String username)`
@@ -550,6 +552,8 @@ span.addLabel("foo", "bar");
 
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
+
+Since 1.5.0
 
 [float]
 [[api-span-capture-exception]]
