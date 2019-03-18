@@ -42,6 +42,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
@@ -100,7 +101,7 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isPublic().and(not(isConstructor()));
+        return isPublic().and(not(isConstructor())).and(not(isStatic()));
     }
 
     @Override
