@@ -82,7 +82,8 @@ public class OkHttp3ClientAsyncInstrumentation extends ElasticApmInstrumentation
                 return;
             }
 
-            if (originalRequest == null || callback == null) {
+            final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
+            if (originalRequest == null || callback == null || wrapperCreator == null) {
                 return;
             }
 
@@ -91,12 +92,9 @@ public class OkHttp3ClientAsyncInstrumentation extends ElasticApmInstrumentation
             okhttp3.Request request = originalRequest;
             span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host());
             if (span != null) {
-                final WrapperCreator<Callback> wrapperCreator = callbackWrapperCreator.getForClassLoaderOfClass(clazz);
-                if (wrapperCreator != null) {
-                    span.activate().markLifecycleManagingThreadSwitchExpected();
-                    originalRequest = originalRequest.newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
-                    callback = wrapperCreator.wrap(callback, span);
-                }
+                span.activate().markLifecycleManagingThreadSwitchExpected();
+                originalRequest = originalRequest.newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+                callback = wrapperCreator.wrap(callback, span);
             }
         }
 
