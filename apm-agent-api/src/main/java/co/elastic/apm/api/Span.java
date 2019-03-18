@@ -324,7 +324,7 @@ public interface Span {
      * // Hook into a callback provided by the RPC framework that is called on outgoing requests
      * public Response onOutgoingRequest(Request request) throws Exception {
      *     // creates a span representing the external call
-     *     Span span = ElasticApm.currentTransaction()
+     *     Span span = ElasticApm.currentSpan()
      *             .startSpan("external", "http", null)
      *             .setName(request.getMethod() + " " + request.getHost());
      *     try (final Scope scope = transaction.activate()) {
