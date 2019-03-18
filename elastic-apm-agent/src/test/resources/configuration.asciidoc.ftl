@@ -1,4 +1,5 @@
 <#-- @ftlvariable name="config" type="java.util.Map<java.lang.String,java.util.List<org.stagemonitor.configuration.ConfigurationOption<?>>>" -->
+<#-- @ftlvariable name="keys" type="java.util.Collection<java.lang.String>" -->
 [[configuration]]
 == Configuration
 To adapt the Elastic APM agent to your needs,
@@ -48,11 +49,23 @@ ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
 ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
 
+[float]
+=== Option reference
+
+This is a list of all configuration options grouped by their category.
+Click on a key to get more information.
+
+<#list config as category, options>
+* <<config-${category?lower_case?replace(" ", "-")}>>
+    <#list options as option>
+** <<config-${option.key?replace("[^a-z]", "-", "r")}>>
+    </#list>
+</#list>
+
 <#list config as category, options>
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
     <#list options as option>
-        <#if !option.tags?seq_contains("internal")>
 [float]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`
@@ -81,7 +94,6 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 | `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
 
-        </#if>
     </#list>
 </#list>
 
