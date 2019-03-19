@@ -328,7 +328,7 @@ public interface Span {
      *             .startSpan("external", "http", null)
      *             .setName(request.getMethod() + " " + request.getHost());
      *     try (final Scope scope = transaction.activate()) {
-     *         span.injectTraceHeaders((name, value) -> request.addHeader(name, value));
+     *         span.injectTraceHeaders((name, value) -&gt; request.addHeader(name, value));
      *         return request.execute();
      *     } catch (Exception e) {
      *         span.captureException(e);
