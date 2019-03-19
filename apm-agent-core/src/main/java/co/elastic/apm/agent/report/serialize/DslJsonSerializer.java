@@ -162,6 +162,10 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeTransactionNdJson(Transaction transaction) {
+        // Important to invoke this method as it read a volatile and ensures visibility to transaction's contents
+        if (!transaction.isFinished()) {
+            logger.error("Serializing unfinished transaction");
+        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("transaction");
         serializeTransaction(transaction);
@@ -171,6 +175,10 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeSpanNdJson(Span span) {
+        // Important to invoke this method as it read a volatile and ensures visibility to span's contents
+        if (!span.isFinished()) {
+            logger.error("Serializing unfinished span");
+        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("span");
         serializeSpan(span);
@@ -180,6 +188,10 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     @Override
     public void serializeErrorNdJson(ErrorCapture error) {
+        // Important to invoke this method as it read a volatile and ensures visibility to error's contents
+        if (!error.isFinished()) {
+            logger.error("Serializing unfinished ErrorCapture");
+        }
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("error");
         serializeError(error);

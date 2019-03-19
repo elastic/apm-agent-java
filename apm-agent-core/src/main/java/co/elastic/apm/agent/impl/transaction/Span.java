@@ -32,13 +32,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private static final Logger logger = LoggerFactory.getLogger(Span.class);
 
     /**
-     * General type describing this span (eg: 'db', 'ext', 'template', etc)
-     * (Required)
-     */
-    @Nullable
-    private String type;
-
-    /**
      * A subtype describing this span (eg 'mysql', 'elasticsearch', 'jsf' etc)
      * (Optional)
      */
@@ -168,15 +161,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void doEnd() {
         if (logger.isDebugEnabled()) {
             logger.debug("} endSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }
-        }
-        if (type == null) {
-            type = "custom";
         }
         this.tracer.endSpan(this);
     }
@@ -186,7 +176,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super.resetState();
         context.resetState();
         stacktrace = null;
-        type = null;
         subtype = null;
         action = null;
     }

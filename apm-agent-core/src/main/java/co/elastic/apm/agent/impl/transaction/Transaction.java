@@ -51,13 +51,6 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private boolean noop;
 
-    /**
-     * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
-     * (Required)
-     */
-    @Nullable
-    private volatile String type;
-
     public Transaction(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -164,12 +157,9 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void doEnd() {
         if (!isSampled()) {
             context.resetState();
-        }
-        if (type == null) {
-            type = "custom";
         }
         this.tracer.endTransaction(this);
     }

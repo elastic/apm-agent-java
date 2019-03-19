@@ -46,6 +46,14 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     protected double duration;
 
+    /**
+     * For Spans: general type describing this span (eg: 'db', 'ext', 'template', etc)
+     * For Transactions: keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
+     * (Required)
+     */
+    @Nullable
+    protected String type;
+
     private volatile boolean finished = true;
 
     public AbstractSpan(ElasticApmTracer tracer) {
@@ -59,6 +67,10 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     public double getDuration() {
         return duration;
+    }
+
+    public boolean isFinished() {
+        return finished;
     }
 
     /**
@@ -112,6 +124,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         name.setLength(0);
         timestamp = 0;
         duration = 0;
+        type = null;
         isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
         // don't reset previouslyActive, as deactivate can be called after end
@@ -146,19 +159,29 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.finished = true;
             this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
             if (name.length() == 0) {
                 name.append("unnamed");
             }
-            doEnd(epochMicros);
+            if (type == null) {
+                type = "custom";
+            }
+            // updating this volatile should be the last update of this AbstractSpan's contents for visibility reasons
+            this.finished = true;
+
+            doEnd();
         } else {
             logger.warn("End has already been called: {}", this);
             assert false;
         }
     }
 
-    protected abstract void doEnd(long epochMicros);
+    /**
+     * Do type-specific ending actions, including sending to reporting.
+     * <p>
+     * NOTE: IMPLEMENTATIONS SHOULD NOT UPDATE FIELDS OTHERWISE VISIBILITY PROBLEMS MAY OCCUR
+     */
+    protected abstract void doEnd();
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {

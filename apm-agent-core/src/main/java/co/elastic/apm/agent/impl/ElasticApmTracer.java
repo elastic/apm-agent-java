@@ -288,6 +288,9 @@ public class ElasticApmTracer {
             } else {
                 error.getTraceContext().getId().setToRandomValue();
             }
+
+            // updating this volatile should be the last update of this ErrorCapture's contents for visibility reasons
+            error.finish();
             reporter.report(error);
         }
     }

@@ -88,6 +88,8 @@ public class ErrorCapture implements Recyclable {
         return exception;
     }
 
+    private volatile boolean finished;
+
     /**
      * Recorded time of the error, UTC based and formatted as YYYY-MM-DDTHH:mm:ss.sssZ
      * (Required)
@@ -109,6 +111,7 @@ public class ErrorCapture implements Recyclable {
         transactionInfo.resetState();
         traceContext.resetState();
         culprit.setLength(0);
+        finished = false;
     }
 
     public void recycle() {
@@ -191,6 +194,14 @@ public class ErrorCapture implements Recyclable {
             }
         }
         culprit.append(')');
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void finish() {
+        this.finished = true;
     }
 
     public static class TransactionInfo implements Recyclable {
