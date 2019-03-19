@@ -108,8 +108,8 @@ public class Slf4JMdcActivationListener implements ActivationListener {
 
                 MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
                 if (remove != null) {
-                    remove.invokeExact(SPAN_ID);
                     if (active == null) {
+                        remove.invokeExact(SPAN_ID);
                         remove.invokeExact(TRACE_ID);
                         remove.invokeExact(TRANSACTION_ID);
                     }

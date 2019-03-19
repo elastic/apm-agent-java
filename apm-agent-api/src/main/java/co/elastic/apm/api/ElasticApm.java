@@ -91,7 +91,22 @@ public class ElasticApm {
      * Example:
      * </p>
      * <pre>
-     * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader);
+     * // Hook into a callback provided by the framework that is called on incoming requests
+     * public Response onIncomingRequest(Request request) throws Exception {
+     *     // creates a transaction representing the server-side handling of the request
+     *     Transaction transaction = ElasticApm.startTransactionWithRemoteParent(key -&gt; request.getHeader(key));
+     *     try (final Scope scope = transaction.activate()) {
+     *         String name = "a useful name like ClassName#methodName where the request is handled";
+     *         transaction.setName(name);
+     *         transaction.setType(Transaction.TYPE_REQUEST);
+     *         return request.handle();
+     *     } catch (Exception e) {
+     *         transaction.captureException(e);
+     *         throw e;
+     *     } finally {
+     *         transaction.end();
+     *     }
+     * }
      * </pre>
      * <p>
      * Note: If the protocol supports multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)}
@@ -113,7 +128,22 @@ public class ElasticApm {
      * Example:
      * </p>
      * <pre>
-     * Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
+     * // Hook into a callback provided by the framework that is called on incoming requests
+     * public Response onIncomingRequest(Request request) throws Exception {
+     *     // creates a transaction representing the server-side handling of the request
+     *     Transaction transaction = ElasticApm.startTransactionWithRemoteParent(request::getHeader, request::getHeaders);
+     *     try (final Scope scope = transaction.activate()) {
+     *         String name = "a useful name like ClassName#methodName where the request is handled";
+     *         transaction.setName(name);
+     *         transaction.setType(Transaction.TYPE_REQUEST);
+     *         return request.handle();
+     *     } catch (Exception e) {
+     *         transaction.captureException(e);
+     *         throw e;
+     *     } finally {
+     *         transaction.end();
+     *     }
+     * }
      * </pre>
      * <p>
      * Note: If the protocol does not support multi-value headers, use {@link #startTransactionWithRemoteParent(HeaderExtractor)}

@@ -52,6 +52,54 @@ ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
 ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
 
+[float]
+=== Option reference
+
+This is a list of all configuration options grouped by their category.
+Click on a key to get more information.
+
+* <<config-core>>
+** <<config-active>>
+** <<config-instrument>>
+** <<config-service-name>>
+** <<config-service-version>>
+** <<config-environment>>
+** <<config-transaction-sample-rate>>
+** <<config-transaction-max-spans>>
+** <<config-sanitize-field-names>>
+** <<config-disable-instrumentations>>
+** <<config-unnest-exceptions>>
+** <<config-trace-methods>>
+* <<config-http>>
+** <<config-capture-body>>
+** <<config-capture-headers>>
+** <<config-ignore-urls>>
+** <<config-ignore-user-agents>>
+** <<config-use-path-as-transaction-name>>
+** <<config-url-groups>>
+* <<config-jax-rs>>
+** <<config-enable-jaxrs-annotation-inheritance>>
+* <<config-logging>>
+** <<config-log-level>>
+** <<config-log-file>>
+** <<config-enable-log-correlation>>
+* <<config-reporter>>
+** <<config-secret-token>>
+** <<config-server-urls>>
+** <<config-server-timeout>>
+** <<config-verify-server-cert>>
+** <<config-flush-interval>>
+** <<config-max-queue-size>>
+** <<config-include-process-args>>
+** <<config-api-request-time>>
+** <<config-api-request-size>>
+** <<config-metrics-interval>>
+** <<config-disable-metrics>>
+* <<config-stacktrace>>
+** <<config-application-packages>>
+** <<config-stack-trace-limit>>
+** <<config-span-frames-min-duration>>
+
 [[config-core]]
 === Core configuration options
 [float]
