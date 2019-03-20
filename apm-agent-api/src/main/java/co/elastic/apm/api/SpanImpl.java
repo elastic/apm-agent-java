@@ -75,4 +75,10 @@ class SpanImpl extends AbstractSpanImpl {
         return this;
     }
 
+    @Override
+    public Span setStartTimestamp(long epochMicros) {
+        doSetStartTimestamp(epochMicros);
+        return this;
+    }
+
 }

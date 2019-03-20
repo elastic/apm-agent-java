@@ -7,6 +7,8 @@
    As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
    Previously, they were stored under `context.tags`.
  * Support async queries made by Elasticsearch REST client 
+ * Added `setStartTimestamp(long epochMicros)` and `end(long epochMicros)` API methods to `Span` and `Transaction`,
+   allowing to set custom start and end timestamps.
 
 ## Bug Fixes
 

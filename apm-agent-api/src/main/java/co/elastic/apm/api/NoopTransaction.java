@@ -83,6 +83,11 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
+    public void end(long epochMicros) {
+        // noop
+    }
+
+    @Override
     public void captureException(Throwable throwable) {
         // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
     }
@@ -133,6 +138,10 @@ enum NoopTransaction implements Transaction {
         return NoopSpan.INSTANCE;
     }
 
+    @Override
+    public Transaction setStartTimestamp(long epochMicros) {
+        return this;
+    }
 
     @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {

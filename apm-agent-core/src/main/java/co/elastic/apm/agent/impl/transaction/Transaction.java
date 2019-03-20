@@ -68,9 +68,9 @@ public class Transaction extends AbstractSpan<Transaction> {
             traceContext.asRootSpan(sampler);
         }
         if (epochMicros >= 0) {
-            this.timestamp = epochMicros;
+            setStartTimestamp(epochMicros);
         } else {
-            this.timestamp = traceContext.getClock().getEpochMicros();
+            setStartTimestamp(traceContext.getClock().getEpochMicros());
         }
         return this;
     }

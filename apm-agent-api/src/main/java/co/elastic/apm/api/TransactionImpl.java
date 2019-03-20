@@ -96,4 +96,10 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
         return "";
     }
 
+    @Override
+    public Transaction setStartTimestamp(long epochMicros) {
+        doSetStartTimestamp(epochMicros);
+        return this;
+    }
+
 }
