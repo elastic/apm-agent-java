@@ -73,8 +73,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
-            "NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name " +
-            "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
+            "The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`. In less regexy terms: Your service name " +
+            "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.\n" +
+            "\n" +
+            "NOTE: When relying on auto-discovery of the service name in Servlet environments,\n" +
+            "there is currently a caveat related to metrics.\n" +
+            "The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization" +
+            "if the corresponding service name has been auto-discovered based on the `web.xml`'s `display-name` or the servlet context path.\n" +
+            "The reason is that metrics are reported with the detected default service name,\n" +
+            "for example `tomcat-application`.\n" +
+            "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
+            "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());

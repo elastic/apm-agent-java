@@ -153,7 +153,17 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 This is used to keep all the errors and transactions of your service together
 and is the primary filter in the Elastic APM user interface.
 
-NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+
+NOTE: When relying on auto-discovery of the service name in Servlet environments,
+there is currently a caveat related to metrics.
+ +
+The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilizationif the corresponding service name has been auto-discovered based on the `web.xml`'s `display-name` or the servlet context path.
+The reason is that metrics are reported with the detected default service name,
+for example `tomcat-application`.
+ +
+Future versions of the Elastic APM stack will have better support for that scenario.
+A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name.
 
 
 [options="header"]
@@ -223,7 +233,7 @@ Also keep that in mind when creating alerts.
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate`
 
-By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
+By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 
 
 [options="header"]
@@ -1061,7 +1071,17 @@ The default unit for this option is `ms`
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
 # 
-# NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+# The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+# 
+# NOTE: When relying on auto-discovery of the service name in Servlet environments,
+# there is currently a caveat related to metrics.
+#  +
+# The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilizationif the corresponding service name has been auto-discovered based on the `web.xml`'s `display-name` or the servlet context path.
+# The reason is that metrics are reported with the detected default service name,
+# for example `tomcat-application`.
+#  +
+# Future versions of the Elastic APM stack will have better support for that scenario.
+# A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -1100,7 +1120,7 @@ If the service name is set explicitly, it overrides all of the above.
 #
 # environment=
 
-# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, tags, or spans.
+# By default, the agent will sample every transaction (e.g. request to your service). To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.
 #
 # This setting can be changed at runtime
 # Type: Double
