@@ -30,6 +30,7 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> enableJaxrsAnnotationInheritance = ConfigurationOption.booleanOption()
         .key("enable_jaxrs_annotation_inheritance")
+        .tags("added[1.5.0]")
         .configurationCategory(JAXRS_CATEGORY)
         .tags("performance")
         .description(
