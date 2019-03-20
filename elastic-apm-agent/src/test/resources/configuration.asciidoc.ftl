@@ -68,7 +68,7 @@ Click on a key to get more information.
     <#list options as option>
 [float]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
-==== `${option.key}`
+==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}
 
 ${option.description}
 
