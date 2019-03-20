@@ -168,6 +168,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         isLifecycleManagingThreadSwitch = true;
     }
 
+    @Override
+    public T activate() {
+        if (isLifecycleManagingThreadSwitch) {
+            // This serves two goals:
+            // 1. resets the lifecycle management flag, so that the executing thread will remain in charge until set otherwise
+            // by setting this flag once more
+            // 2. reading this volatile field when span is activated on a new thread ensures proper visibility of other span data
+            isLifecycleManagingThreadSwitch = false;
+        }
+        return super.activate();
+    }
+
     /**
      * Wraps the provided runnable and makes this {@link AbstractSpan} active in the {@link Runnable#run()} method.
      *
@@ -179,9 +191,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     @Override
     public Runnable withActive(Runnable runnable) {
         if (isLifecycleManagingThreadSwitch) {
-            // reset the lifecycle management flag, so that the executing thread will remain in charge until set otherwise by setting
-            // this flag once more
-            isLifecycleManagingThreadSwitch = false;
             return tracer.wrapRunnable(runnable, this);
         } else {
             return tracer.wrapRunnable(runnable, traceContext);
@@ -199,9 +208,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
         if (isLifecycleManagingThreadSwitch) {
-            // reset the lifecycle management flag, so that the executing thread will remain in charge until set otherwise by setting
-            // this flag once more
-            isLifecycleManagingThreadSwitch = false;
             return tracer.wrapCallable(callable, this);
         } else {
             return tracer.wrapCallable(callable, traceContext);

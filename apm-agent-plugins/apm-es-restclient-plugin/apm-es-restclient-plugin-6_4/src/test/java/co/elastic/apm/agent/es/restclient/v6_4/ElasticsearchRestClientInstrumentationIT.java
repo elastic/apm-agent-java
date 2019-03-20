@@ -32,9 +32,12 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -42,6 +45,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -55,20 +59,26 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import static co.elastic.apm.agent.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.SEARCH_QUERY_PATH_SUFFIX;
-import static co.elastic.apm.agent.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.SPAN_ACTION;
-import static co.elastic.apm.agent.es.restclient.v6_4.ElasticsearchRestClientInstrumentation.SPAN_TYPE;
+import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
+import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SEARCH_QUERY_PATH_SUFFIX;
+import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
+import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
+@RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrumentationTest {
     private static final String USER_NAME = "elastic-user";
     private static final String PASSWORD = "elastic-pass";
@@ -85,6 +95,17 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     private static final String FOO = "foo";
     private static final String BAR = "bar";
     private static final String BAZ = "baz";
+
+    private boolean async;
+
+    public ElasticsearchRestClientInstrumentationIT(boolean async) {
+        this.async = async;
+    }
+
+    @Parameterized.Parameters(name = "Async={0}")
+    public static Iterable<Object[]> data() {
+        return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
+    }
 
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
@@ -129,12 +150,16 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     }
 
     @Test
-    public void testTryToDeleteNonExistingIndex() throws IOException {
+    public void testTryToDeleteNonExistingIndex() throws IOException, InterruptedException {
         ElasticsearchStatusException ese = null;
         try {
-            client.indices().delete(new DeleteIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
+            doDeleteIndex(new DeleteIndexRequest(SECOND_INDEX));
         } catch (ElasticsearchStatusException e) {
+            // sync scenario
             ese = e;
+        } catch (ExecutionException e) {
+            // async scenario
+            ese = (ElasticsearchStatusException) e.getCause();
         }
         assertThat(ese).isNotNull();
         assertThat(ese.status().getStatus()).isEqualTo(404);
@@ -184,9 +209,9 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     }
 
     @Test
-    public void testCreateAndDeleteIndex() throws IOException {
+    public void testCreateAndDeleteIndex() throws IOException, ExecutionException, InterruptedException {
         // Create an Index
-        client.indices().create(new CreateIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
+        doCreateIndex(new CreateIndexRequest(SECOND_INDEX));
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
@@ -197,7 +222,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         // Delete the index
         reporter.reset();
 
-        client.indices().delete(new DeleteIndexRequest(SECOND_INDEX), RequestOptions.DEFAULT);
+        doDeleteIndex(new DeleteIndexRequest(SECOND_INDEX));
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
@@ -207,14 +232,14 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     }
 
     @Test
-    public void testDocumentScenario() throws IOException {
+    public void testDocumentScenario() throws Exception {
         // Index a document
-        IndexResponse ir = client.index(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
+        IndexResponse ir = doIndex(new IndexRequest(INDEX, DOC_TYPE, DOC_ID).source(
             jsonBuilder()
                 .startObject()
                 .field(FOO, BAR)
                 .endObject()
-        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE), RequestOptions.DEFAULT);
+        ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ir.status().getStatus()).isEqualTo(201);
 
         System.out.println(reporter.generateTransactionPayloadJson());
@@ -232,7 +257,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         sourceBuilder.from(0);
         sourceBuilder.size(5);
         searchRequest.source(sourceBuilder);
-        SearchResponse sr = client.search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse sr = doSearch(searchRequest);
         assertThat(sr.getHits().totalHits).isEqualTo(1L);
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAR);
 
@@ -249,10 +274,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put(FOO, BAZ);
-        UpdateResponse ur = client.update(new UpdateRequest(INDEX, DOC_TYPE, DOC_ID).doc(jsonMap)
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE), RequestOptions.DEFAULT);
+        UpdateRequest updateRequest = new UpdateRequest(INDEX, DOC_TYPE, DOC_ID).doc(jsonMap).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        UpdateResponse ur = doUpdate(updateRequest);
         assertThat(ur.status().getStatus()).isEqualTo(200);
-        sr = client.search(new SearchRequest(INDEX), RequestOptions.DEFAULT);
+        sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
         System.out.println(reporter.generateTransactionPayloadJson());
@@ -270,7 +295,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         // Finally - delete the document
         reporter.reset();
-        DeleteResponse dr = client.delete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID), RequestOptions.DEFAULT);
+        DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         assertThat(dr.status().getStatus()).isEqualTo(200);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
 
@@ -278,26 +303,103 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     }
 
     @Test
-    public void testScenarioAsBulkRequest() throws IOException {
-        client.bulk(new BulkRequest()
+    public void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException {
+        doBulk(new BulkRequest()
             .add(new IndexRequest(INDEX, DOC_TYPE, "2").source(
                 jsonBuilder()
                     .startObject()
                     .field(FOO, BAR)
                     .endObject()
             ))
-            .add(new IndexRequest(INDEX, DOC_TYPE, "3").source(
-                jsonBuilder()
-                    .startObject()
-                    .field(FOO, BAR)
-                    .endObject()
-            ))
-        , RequestOptions.DEFAULT);
+            .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         assertThat(spans.get(0).getName().toString()).isEqualTo("Elasticsearch: POST /_bulk");
+    }
+
+    private interface ClientMethod<Req, Res> {
+        void invoke(Req request, RequestOptions options, ActionListener<Res> listener);
+    }
+
+    private <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
+        final CompletableFuture<Res> resultFuture = new CompletableFuture<>();
+        method.invoke(request, RequestOptions.DEFAULT, new ActionListener<>() {
+            @Override
+            public void onResponse(Res response) {
+                resultFuture.complete(response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
+        });
+        return resultFuture.get();
+    }
+
+    private CreateIndexResponse doCreateIndex(CreateIndexRequest createIndexRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<CreateIndexRequest, CreateIndexResponse> method =
+                (request, options, listener) -> client.indices().createAsync(request, options, listener);
+            return invokeAsync(createIndexRequest, method);
+        }
+        return client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+    }
+
+    private AcknowledgedResponse doDeleteIndex(DeleteIndexRequest deleteIndexRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<DeleteIndexRequest, AcknowledgedResponse> method =
+                (request, options, listener) -> client.indices().deleteAsync(request, options, listener);
+            return invokeAsync(deleteIndexRequest, method);
+        }
+        return client.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+    }
+
+    private IndexResponse doIndex(IndexRequest indexRequest) throws ExecutionException, InterruptedException, IOException {
+        if (async) {
+            ClientMethod<IndexRequest, IndexResponse> method =
+                (request, options, listener) -> client.indexAsync(request, options, listener);
+            return invokeAsync(indexRequest, method);
+        }
+        return client.index(indexRequest, RequestOptions.DEFAULT);
+    }
+
+    private SearchResponse doSearch(SearchRequest searchRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<SearchRequest, SearchResponse> method =
+                (request, options, listener) -> client.searchAsync(request, options, listener);
+            return invokeAsync(searchRequest, method);
+        }
+        return client.search(searchRequest, RequestOptions.DEFAULT);
+    }
+
+    private UpdateResponse doUpdate(UpdateRequest updateRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<UpdateRequest, UpdateResponse> method =
+                (request, options, listener) -> client.updateAsync(request, options, listener);
+            return invokeAsync(updateRequest, method);
+        }
+        return client.update(updateRequest, RequestOptions.DEFAULT);
+    }
+
+    private DeleteResponse doDelete(DeleteRequest deleteRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<DeleteRequest, DeleteResponse> method =
+                (request, options, listener) -> client.deleteAsync(request, options, listener);
+            return invokeAsync(deleteRequest, method);
+        }
+        return client.delete(deleteRequest, RequestOptions.DEFAULT);
+    }
+
+    private BulkResponse doBulk(BulkRequest bulkRequest) throws IOException, ExecutionException, InterruptedException {
+        if (async) {
+            ClientMethod<BulkRequest, BulkResponse> method =
+                (request, options, listener) -> client.bulkAsync(request, options, listener);
+            return invokeAsync(bulkRequest, method);
+        }
+        return client.bulk(bulkRequest, RequestOptions.DEFAULT);
     }
 }

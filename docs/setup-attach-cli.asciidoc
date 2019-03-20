@@ -8,8 +8,17 @@ You can use the attacher as a standalone application on the command line or incl
 This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
 
 The `apm-agent-attach.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
-This requires that the OS user executing `apm-agent-attach.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) is the same.
 
+[float]
+[[setup-attach-cli-caveats]]
+==== Caveats
+
+This method of attachment is only supported on HotSpot-based JVMs like the OpenJDK and Oracle JDK.
+It also requires the JDK, specifically the `tools.jar` to be present - a JRE is not sufficient.
+
+The OS user executing `apm-agent-attach.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) has to be the same.
+
+It's recommended to use the same JDK to start the `apm-agent-attach.jar` that is used to run the applications you want to attach to.
 
 [float]
 [[setup-attach-cli-download]]

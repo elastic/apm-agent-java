@@ -86,7 +86,7 @@ public class TransactionUtils {
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
         Span span = new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParent(), t)
+            .start(TraceContext.fromParent(), t, -1, false)
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")
@@ -101,20 +101,20 @@ public class TransactionUtils {
         spans.add(span);
 
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParent(), t)
+            .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParent(), t)
+            .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
         spans.add(new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParent(), t)
+            .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
 
         span = new Span(mock(ElasticApmTracer.class))
-            .start(TraceContext.fromParent(), t)
+            .start(TraceContext.fromParent(), t, -1, false)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
             .withType("ext")

@@ -70,7 +70,7 @@
 
         <version.plugin.compiler>3.7.0</version.plugin.compiler>
         <version.plugin.jar>3.1.0</version.plugin.jar>
-        <version.plugin.javadoc>3.0.1</version.plugin.javadoc>
+        <version.plugin.javadoc>3.1.0</version.plugin.javadoc>
         <version.plugin.surefire>2.19.1</version.plugin.surefire>
         <version.byte-buddy>1.9.3</version.byte-buddy>
 
@@ -273,6 +273,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${version.plugin.javadoc}</version>
+                <configuration>
+                    <additionalOptions>-html5</additionalOptions>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -413,7 +416,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>1.15</version>
+                <version>1.19</version>
                 <configuration>
                     <verbose>false</verbose>
                     <licenseName>apache_v2</licenseName>

@@ -258,7 +258,11 @@ public class ElasticApmTracer {
      * @return a new started span
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        return spanPool.createInstance().start(childContextCreator, parentContext);
+        return startSpan(childContextCreator, parentContext, -1);
+    }
+
+    public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
+        return startSpan(TraceContext.fromParent(), parent, epochMicros);
     }
 
     /**
@@ -268,12 +272,7 @@ public class ElasticApmTracer {
      * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        return spanPool.createInstance().start(childContextCreator, parentContext, epochMicros);
-    }
-
-    public Span startSpan(AbstractSpan<?> parent, long epochMicros) {
-        Span span;
-        span = spanPool.createInstance();
+        Span span = spanPool.createInstance();
         final boolean dropped;
         Transaction transaction = currentTransaction();
         if (transaction != null) {
@@ -287,7 +286,7 @@ public class ElasticApmTracer {
         } else {
             dropped = false;
         }
-        span.start(TraceContext.fromParent(), parent, epochMicros, dropped);
+        span.start(childContextCreator, parentContext, epochMicros, dropped);
         return span;
     }
 

@@ -98,6 +98,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, String value);
@@ -118,6 +119,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, Number value);
@@ -138,6 +140,7 @@ public interface Span {
      *
      * @param key   The label key.
      * @param value The label value.
+     * @since 1.5.0
      */
     @Nonnull
     Span addLabel(String key, boolean value);
@@ -318,7 +321,22 @@ public interface Span {
      * Example:
      * </p>
      * <pre>
-     * span.injectTraceHeaders(request::addHeader);
+     * // Hook into a callback provided by the RPC framework that is called on outgoing requests
+     * public Response onOutgoingRequest(Request request) throws Exception {
+     *     // creates a span representing the external call
+     *     Span span = ElasticApm.currentSpan()
+     *             .startSpan("external", "http", null)
+     *             .setName(request.getMethod() + " " + request.getHost());
+     *     try (final Scope scope = transaction.activate()) {
+     *         span.injectTraceHeaders((name, value) -&gt; request.addHeader(name, value));
+     *         return request.execute();
+     *     } catch (Exception e) {
+     *         span.captureException(e);
+     *         throw e;
+     *     } finally {
+     *         span.end();
+     *     }
+     * }
      * </pre>
      *
      * @param headerInjector tells the agent how to inject a header into the request object

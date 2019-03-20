@@ -72,6 +72,7 @@ import java.util.WeakHashMap;
  *
  * @param <T> the type of the helper interface
  */
+@VisibleForAdvice
 public abstract class HelperClassManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(HelperClassManager.class);
 
@@ -97,6 +98,15 @@ public abstract class HelperClassManager<T> {
         return ret;
     }
 
+    /**
+     * Implementations of this method are expected to load helper classes lazily, meaning when invoked for the first time.
+     * By delaying the helper class loading only to when actually required (normally from the injected code) we ensure proper classpath
+     * is already in place.
+     *
+     * @param classOfTargetClassLoader a class loaded by the class loader we want to load the helper class from
+     * @return helper instance
+     * @throws Exception most likely related to first time loading error
+     */
     @Nullable
     protected abstract T doGetForClassLoaderOfClass(Class<?> classOfTargetClassLoader) throws Exception;
 
@@ -140,6 +150,9 @@ public abstract class HelperClassManager<T> {
             super(tracer, implementation, additionalHelpers);
         }
 
+        /**
+         * Not loading and instantiating helper class yet, just prepares the manager
+         */
         public static <T> ForSingleClassLoader<T> of(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             return new ForSingleClassLoader<>(tracer, implementation, additionalHelpers);
         }
@@ -194,6 +207,9 @@ public abstract class HelperClassManager<T> {
             clId2helperMap = new WeakConcurrentMap<>(false);
         }
 
+        /**
+         * Not loading and instantiating helper class yet, just prepares the manager
+         */
         public static <T> ForAnyClassLoader<T> of(ElasticApmTracer tracer, String implementation, String... additionalHelpers) {
             return new ForAnyClassLoader<>(tracer, implementation, additionalHelpers);
         }

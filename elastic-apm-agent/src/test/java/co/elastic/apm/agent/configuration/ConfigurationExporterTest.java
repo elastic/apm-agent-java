@@ -25,6 +25,7 @@ import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
@@ -32,8 +33,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This is not an actual test.
@@ -86,7 +92,19 @@ class ConfigurationExporterTest {
             "\n" +
             "Please only make changes in configuration.asciidoc.ftl\n" +
             "////\n");
-        temp.process(Collections.singletonMap("config", new TreeMap<>(configurationRegistry.getConfigurationOptionsByCategory())), out);
+        final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
+            .values()
+            .stream()
+            .flatMap(List::stream)
+            .filter(option -> !option.getTags().contains("internal"))
+            .collect(Collectors.toList());
+        final Map<String, List<ConfigurationOption<?>>> optionsByCategory = nonInternalOptions.stream()
+            .collect(Collectors.groupingBy(ConfigurationOption::getConfigurationCategory, TreeMap::new, Collectors.toList()));
+        temp.process(Map.of(
+            "config", optionsByCategory,
+            "keys", nonInternalOptions.stream().map(ConfigurationOption::getKey).sorted().collect(Collectors.toList())
+        ), out);
+
     }
 
 }
