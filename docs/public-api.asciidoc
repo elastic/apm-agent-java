@@ -123,7 +123,7 @@ See <<api-transaction-activate, `transaction.activate()`>> on how to achieve tha
 
 [float]
 [[api-start-transaction-with-remote-parent-header]]
-==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)`
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)` added[1.3.0]
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
 * `headerExtractor`: a functional interface which receives a header name and returns the fist header with that name
@@ -152,12 +152,9 @@ public Response onIncomingRequest(Request request) throws Exception {
 
 NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-headers>>
 
-
-since 1.3.0
-
 [float]
 [[api-start-transaction-with-remote-parent-headers]]
-==== `Transaction startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)`
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)` added[1.3.0]
 
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
@@ -188,9 +185,6 @@ public Response onIncomingRequest(Request request) throws Exception {
 
 
 NOTE: If the protocol does not support multi-value headers, use <<api-start-transaction-with-remote-parent-header>>
-
-since 1.3.0
-
 
 //----------------------------
 [float]
@@ -292,7 +286,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `Transaction addLabel(String key, value)`
+==== `Transaction addLabel(String key, value)` added[1.5.0]
 A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
@@ -311,8 +305,6 @@ transaction.addLabel("foo", "bar");
 
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
-
-Since 1.5.0
 
 [float]
 [[api-transaction-set-user]]
@@ -512,7 +504,7 @@ Returns true if this transaction is recorded and sent to the APM Server
 
 [float]
 [[api-transaction-inject-trace-headers]]
-==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+==== `void injectTraceHeaders(HeaderInjector headerInjector)` added[1.3.0]
 
 * `headerInjector`: tells the agent how to inject a header into the request object
 
@@ -545,8 +537,6 @@ public Response onOutgoingRequest(Request request) throws Exception {
 }
 ----
 
-since 1.3.0
-
 
 //----------------------------
 [float]
@@ -578,7 +568,7 @@ span.setName("SELECT FROM customer");
 
 [float]
 [[api-span-add-tag]]
-==== `Span addLabel(String key, value)`
+==== `Span addLabel(String key, value)` added[1.5.0]
 A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
@@ -597,8 +587,6 @@ span.addLabel("foo", "bar");
 
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
-
-Since 1.5.0
 
 [float]
 [[api-span-capture-exception]]
@@ -730,7 +718,7 @@ Returns true if this span is recorded and sent to the APM Server
 
 [float]
 [[api-span-inject-trace-headers]]
-==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+==== `void injectTraceHeaders(HeaderInjector headerInjector)` added[1.3.0]
 
 * `headerInjector`: tells the agent how to inject a header into the request object
 
@@ -762,5 +750,3 @@ public Response onOutgoingRequest(Request request) throws Exception {
     }
 }
 ----
-
-since 1.3.0
