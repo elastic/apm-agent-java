@@ -167,7 +167,7 @@ public class ServletTransactionHelper {
                 }
             }
         } else {
-            transactionName.append(method);
+            transactionName.append(method).append(" unknown route");
         }
     }
 

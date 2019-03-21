@@ -15,6 +15,8 @@
    As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
    Previously, they were stored under `context.tags`.
  * Support async queries made by Elasticsearch REST client 
+ * Added `setStartTimestamp(long epochMicros)` and `end(long epochMicros)` API methods to `Span` and `Transaction`,
+   allowing to set custom start and end timestamps.
  * Auto-detection of the `service_name` based on the `<display-name>` element of the `web.xml` with a fallback to the servlet context path.
    If you are using a spring-based application, the agent will use the setting for `spring.application.name` for its `service_name`.
    See the documentation for [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)

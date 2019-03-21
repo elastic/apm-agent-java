@@ -20,6 +20,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
@@ -270,6 +272,27 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testManualTimestamps() {
+        final Transaction transaction = ElasticApm.startTransaction().setStartTimestamp(0);
+        transaction.startSpan().setStartTimestamp(1000).end(2000);
+        transaction.end(3000);
+
+        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(3);
+        assertThat(reporter.getFirstSpan().getDuration()).isEqualTo(1);
+    }
+
+    @Test
+    void testManualTimestampsDeactivated() {
+        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        final Transaction transaction = ElasticApm.startTransaction().setStartTimestamp(0);
+        transaction.startSpan().setStartTimestamp(1000).end(2000);
+        transaction.end(3000);
+
+        assertThat(reporter.getTransactions()).hasSize(0);
+        assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
     void testOverrideServiceNameForClassLoader() {
         tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
         ElasticApm.startTransaction().end();
@@ -282,5 +305,4 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         ElasticApm.startTransactionWithRemoteParent(key -> null).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
-
 }

@@ -70,9 +70,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             traceContext.setRecorded(false);
         }
         if (epochMicros >= 0) {
-            timestamp = epochMicros;
+            setStartTimestamp(epochMicros);
         } else {
-            timestamp = getTraceContext().getClock().getEpochMicros();
+            setStartTimestamp(getTraceContext().getClock().getEpochMicros());
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", this);
