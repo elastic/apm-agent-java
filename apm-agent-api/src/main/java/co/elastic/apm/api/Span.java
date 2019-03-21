@@ -190,7 +190,7 @@ public interface Span {
      * <p>
      * The type, subtype and action strings are used to group similar spans together, with increasing resolution.
      * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
-     * describing queries are give the action `query`.
+     * describing queries are given the action `query`.
      * </p>
      * <p>
      * In the above example `db` is considered the general type. Though there are no naming restrictions for the general types,
