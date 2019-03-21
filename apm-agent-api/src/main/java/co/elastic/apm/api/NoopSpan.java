@@ -70,6 +70,11 @@ enum NoopSpan implements Span {
     }
 
     @Override
+    public void end(long epochMicros) {
+        // noop
+    }
+
+    @Override
     public void captureException(Throwable throwable) {
         // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
     }
@@ -111,6 +116,11 @@ enum NoopSpan implements Span {
     @Nonnull
     @Override
     public Span startSpan() {
+        return INSTANCE;
+    }
+
+    @Override
+    public Span setStartTimestamp(long epochMicros) {
         return INSTANCE;
     }
 

@@ -146,6 +146,15 @@ public interface Span {
     Span addLabel(String key, boolean value);
 
     /**
+     * Sets the start timestamp of this event.
+     *
+     * @param epochMicros the timestamp of when this event happened, in microseconds (µs) since epoch
+     * @return {@code this} for chaining
+     * @since 1.5.0
+     */
+    Span setStartTimestamp(long epochMicros);
+
+    /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, start a new span through {@link #startSpan()} or {@link #startSpan(String, String, String)}.
      *
@@ -180,8 +189,8 @@ public interface Span {
      * </p>
      * <p>
      * The type, subtype and action strings are used to group similar spans together, with increasing resolution.
-     * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans 
-     * describing queries are give the action `query`.
+     * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
+     * describing queries are given the action `query`.
      * </p>
      * <p>
      * In the above example `db` is considered the general type. Though there are no naming restrictions for the general types,
@@ -223,7 +232,7 @@ public interface Span {
      * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
      * See {@link #activate()} on how to achieve that.
      * </p>
-     * 
+     *
      * @return the started span, never {@code null}
      */
     @Nonnull
@@ -235,6 +244,15 @@ public interface Span {
      * This also includes this method and {@link #startSpan()}.
      */
     void end();
+
+    /**
+     * Ends the span and schedules it to be reported to the APM Server.
+     * It is illegal to call any methods on a span instance which has already ended.
+     * This also includes this method and {@link #startSpan()}.
+     *
+     * @param epochMicros the timestamp of when this event ended, in microseconds (µs) since epoch
+     */
+    void end(long epochMicros);
 
     /**
      * Captures an exception and reports it to the APM server.

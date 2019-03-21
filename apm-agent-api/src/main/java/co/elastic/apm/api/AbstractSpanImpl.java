@@ -57,6 +57,10 @@ public abstract class AbstractSpanImpl implements Span {
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
+    public void doSetStartTimestamp(long epochMicros) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    }
+
     private Object doCreateSpan() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
@@ -94,7 +98,12 @@ public abstract class AbstractSpanImpl implements Span {
 
     @Override
     public void end() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation.end
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
+    }
+
+    @Override
+    public void end(long epochMicros) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
     }
 
     @Override
