@@ -236,7 +236,7 @@ class TransactionPayloadJsonSchemaTest {
                     assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
                 }
                 else {
-                    assertThat(tags).isNull();
+                    assertThat(tags).isNullOrEmpty();
                 }
             }
         }

@@ -233,12 +233,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(JsonWriter.OBJECT_START);
 
         writeTimestamp(errorCapture.getTimestamp());
-        serializeServiceName(errorCapture.getTraceContext().getServiceName());
         serializeErrorTransactionInfo(errorCapture.getTransactionInfo());
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
         }
-        serializeContext(errorCapture.getContext());
+        serializeContext(errorCapture.getContext(), errorCapture.getTraceContext());
         writeField("culprit", errorCapture.getCulprit());
         serializeException(errorCapture.getException());
 
@@ -483,8 +482,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
-        serializeServiceName(transaction.getTraceContext().getServiceName());
-        serializeContext(transaction.getContext());
+        serializeContext(transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
@@ -524,18 +522,16 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeTimestamp(span.getTimestamp());
         serializeTraceContext(span.getTraceContext(), true);
         writeField("duration", span.getDuration());
-        serializeServiceName(span.getTraceContext().getServiceName());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
-        if (span.getContext().hasContent()) {
-            serializeSpanContext(span.getContext());
-        }
+        serializeSpanContext(span.getContext(), span.getTraceContext());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
     }
 
-    private void serializeServiceName(@Nullable String serviceName) {
+    private void serializeServiceName(TraceContext traceContext) {
+        String serviceName = traceContext.getServiceName();
         if (serviceName != null) {
             writeFieldName("service");
             jw.writeByte(OBJECT_START);
@@ -647,66 +643,56 @@ public class DslJsonSerializer implements PayloadSerializer {
         return true;
     }
 
-    private void serializeSpanContext(SpanContext context) {
+    private void serializeSpanContext(SpanContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        boolean spanContextWritten = false;
-        Db db = context.getDb();
-        if (db.hasContent()) {
-            serializeDbContext(db);
-            spanContextWritten = true;
-        }
-        Http http = context.getHttp();
-        if (http.hasContent()) {
-            if (spanContextWritten) {
-                jw.writeByte(COMMA);
-            }
-            serializeHttpContext(http);
-            spanContextWritten = true;
-        }
+        serializeServiceName(traceContext);
+        serializeDbContext(context.getDb());
+        serializeHttpContext(context.getHttp());
 
-        if (context.hasLabels()) {
-            if (spanContextWritten) {
-                jw.writeByte(COMMA);
-            }
-            writeFieldName("tags");
-            serializeLabels(context);
-        }
+        writeFieldName("tags");
+        serializeLabels(context);
 
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
 
     private void serializeDbContext(final Db db) {
-        writeFieldName("db");
-        jw.writeByte(OBJECT_START);
-        writeField("instance", db.getInstance());
-        if (db.getStatement() != null) {
-            writeLongStringField("statement", db.getStatement());
-        } else {
-            final CharBuffer statementBuffer = db.getStatementBuffer();
-            if (statementBuffer != null && statementBuffer.length() > 0) {
-                writeFieldName("statement");
-                jw.writeString(statementBuffer);
-                jw.writeByte(COMMA);
+        if (db.hasContent()) {
+            writeFieldName("db");
+            jw.writeByte(OBJECT_START);
+            writeField("instance", db.getInstance());
+            if (db.getStatement() != null) {
+                writeLongStringField("statement", db.getStatement());
+            } else {
+                final CharBuffer statementBuffer = db.getStatementBuffer();
+                if (statementBuffer != null && statementBuffer.length() > 0) {
+                    writeFieldName("statement");
+                    jw.writeString(statementBuffer);
+                    jw.writeByte(COMMA);
+                }
             }
+            writeField("type", db.getType());
+            writeLastField("user", db.getUser());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        writeField("type", db.getType());
-        writeLastField("user", db.getUser());
-        jw.writeByte(OBJECT_END);
     }
 
     private void serializeHttpContext(final Http http) {
-        writeFieldName("http");
-        jw.writeByte(OBJECT_START);
-        writeField("method", http.getMethod());
-        int statusCode = http.getStatusCode();
-        if (statusCode > 0) {
-            writeField("status_code", http.getStatusCode());
+        if (http.hasContent()) {
+            writeFieldName("http");
+            jw.writeByte(OBJECT_START);
+            writeField("method", http.getMethod());
+            int statusCode = http.getStatusCode();
+            if (statusCode > 0) {
+                writeField("status_code", http.getStatusCode());
+            }
+            writeLastField("url", http.getUrl());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        writeLastField("url", http.getUrl());
-        jw.writeByte(OBJECT_END);
     }
 
     private void serializeSpanCount(final SpanCount spanCount) {
@@ -718,9 +704,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void serializeContext(final TransactionContext context) {
+    private void serializeContext(final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
+        serializeServiceName(traceContext);
 
         if (context.getUser().hasContent()) {
             serializeUser(context.getUser());

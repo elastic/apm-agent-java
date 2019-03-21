@@ -381,10 +381,10 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private void validateServiceName(JsonNode event) {
         if (currentTestApp.getExpectedServiceName() != null && event != null) {
-            assertThat(event.get("service"))
+            assertThat(event.get("context").get("service"))
                 .withFailMessage("No service name set. Expected '%s'. Event was %s", currentTestApp.getExpectedServiceName(), event)
                 .isNotNull();
-            assertThat(event.get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
+            assertThat(event.get("context").get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
         }
     }
 
