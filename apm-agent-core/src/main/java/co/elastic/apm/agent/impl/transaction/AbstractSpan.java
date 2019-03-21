@@ -114,7 +114,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         duration = 0;
         isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
-        // don't reset previouslyActive, as deactivate can be called after end
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {

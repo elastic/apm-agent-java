@@ -87,7 +87,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testCreateChildSpanOfCurrentTransaction() {
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("transaction").activate();
         final Span span = ElasticApm.currentSpan().startSpan("db", "mysql", "query");
         span.setName("span");
         span.end();
@@ -103,7 +103,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testLegacySpanCreationAndTyping() {
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("transaction").activate();
         final Span span = ElasticApm.currentSpan().createSpan();
         span.setName("span");
         span.setType("db.mysql.query.etc");
@@ -121,7 +121,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     // https://github.com/elastic/apm-agent-java/issues/132
     @Test
     void testAutomaticAndManualTransactions() {
-        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType("request").withName("transaction").activate();
+        final co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("transaction").activate();
         final Transaction manualTransaction = ElasticApm.startTransaction();
         manualTransaction.setName("manual transaction");
         manualTransaction.setType("request");
@@ -132,7 +132,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testGetId_distributedTracingEnabled() {
-        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction().withType(Transaction.TYPE_REQUEST);
+        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType(Transaction.TYPE_REQUEST);
         try (Scope scope = transaction.activateInScope()) {
             assertThat(ElasticApm.currentTransaction().getId()).isEqualTo(transaction.getTraceContext().getId().toString());
             assertThat(ElasticApm.currentTransaction().getTraceId()).isEqualTo(transaction.getTraceContext().getTraceId().toString());
@@ -210,7 +210,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testTraceContextScopes() {
-        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction();
+        co.elastic.apm.agent.impl.transaction.Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         tracer.activate(transaction.getTraceContext());
         final Span span = ElasticApm.currentSpan();
         assertThat(tracer.getActive()).isInstanceOf(TraceContext.class);
@@ -290,5 +290,19 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
 
         assertThat(reporter.getTransactions()).hasSize(0);
         assertThat(reporter.getSpans()).hasSize(0);
+    }
+
+    @Test
+    void testOverrideServiceNameForClassLoader() {
+        tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        ElasticApm.startTransaction().end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
+    }
+
+    @Test
+    void testOverrideServiceNameForClassLoaderWithRemoteParent() {
+        tracer.overrideServiceNameForClassLoader(Transaction.class.getClassLoader(), "overridden");
+        ElasticApm.startTransactionWithRemoteParent(key -> null).end();
+        assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 }

@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JsfApplicationServerTestApp extends TestApp {
 
     public JsfApplicationServerTestApp() {
-        super("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html");
+        super("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
     }
 
     @Override

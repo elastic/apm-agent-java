@@ -153,13 +153,32 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 This is used to keep all the errors and transactions of your service together
 and is the primary filter in the Elastic APM user interface.
 
-NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
+In less regexy terms:
+Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+
+NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
+there is currently a caveat related to metrics.
+The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
+The reason is that metrics are reported with the detected default service name for the JVM,
+for example `tomcat-application`.
+That is because there may be multiple web applications deployed to a single JVM/servlet container.
+However, you can view those metrics by selecting the `tomcat-application` service name, for example.
+Future versions of the Elastic APM stack will have better support for that scenario.
+A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
+or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 
 
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| Name of main class or jar | String | false
+| For Spring-based application, uses the `spring.application.name` property, if set.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Note: the above service name auto discovery mechanisms require APM Server 7.0+.
+Falls back to the name of the main class or jar file.
+If the service name is set explicitly, it overrides all of the above.
+ | String | false
 |============
 
 
@@ -300,7 +319,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1054,13 +1073,38 @@ The default unit for this option is `ms`
 # This is used to keep all the errors and transactions of your service together
 # and is the primary filter in the Elastic APM user interface.
 # 
-# NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+# The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.
+# In less regexy terms:
+# Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.
+# 
+# NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),
+# there is currently a caveat related to metrics.
+# The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.
+# The reason is that metrics are reported with the detected default service name for the JVM,
+# for example `tomcat-application`.
+# That is because there may be multiple web applications deployed to a single JVM/servlet container.
+# However, you can view those metrics by selecting the `tomcat-application` service name, for example.
+# Future versions of the Elastic APM stack will have better support for that scenario.
+# A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
+# or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
-# Default value: Name of main class or jar
+# Default value: For Spring-based application, uses the `spring.application.name` property, if set.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Note: the above service name auto discovery mechanisms require APM Server 7.0+.
+Falls back to the name of the main class or jar file.
+If the service name is set explicitly, it overrides all of the above.
+
 #
-# service_name=Name of main class or jar
+# service_name=For Spring-based application, uses the `spring.application.name` property, if set.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Note: the above service name auto discovery mechanisms require APM Server 7.0+.
+Falls back to the name of the main class or jar file.
+If the service name is set explicitly, it overrides all of the above.
+
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #
@@ -1129,7 +1173,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `spring-mvc`, `spring-resttemplate`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #

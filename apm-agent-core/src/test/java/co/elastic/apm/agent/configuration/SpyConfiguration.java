@@ -47,7 +47,7 @@ public class SpyConfiguration {
             builder.addOptionProvider(spy(options));
         }
         return builder
-            .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME).add("service_name", "elastic-apm-test"))
+            .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME))
             .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
             .build();
     }

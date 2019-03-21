@@ -85,6 +85,7 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
+        tracer.resetServiceNameOverrides();
         assertThat(tracer.getActive()).isNull();
     }
 }
