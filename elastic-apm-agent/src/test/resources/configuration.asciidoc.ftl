@@ -51,7 +51,8 @@ ELASTIC_APM_SERVER_URLS=http://localhost:8200
 <#assign defaultServiceName>
 For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the context path the application is mapped to (unless mapped to the root context).
+Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Note: the above service name auto discovery mechanisms require APM Server 7.0+.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
 </#assign>

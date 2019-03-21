@@ -29,8 +29,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.servlet.ServletInstrumentation.SERVLET_API;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -68,7 +68,7 @@ public class ServletContextServiceNameInstrumentation extends ElasticApmInstrume
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(SERVLET_API);
+        return Arrays.asList(SERVLET_API, "servlet-service-name");
     }
 
     public static class ServletContextServiceNameAdvice {

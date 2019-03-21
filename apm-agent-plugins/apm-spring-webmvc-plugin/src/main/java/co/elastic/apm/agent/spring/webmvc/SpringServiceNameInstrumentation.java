@@ -54,7 +54,7 @@ public class SpringServiceNameInstrumentation extends ElasticApmInstrumentation 
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("spring-application-name");
+        return Collections.singletonList("spring-service-name");
     }
 
     @Override
