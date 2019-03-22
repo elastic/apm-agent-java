@@ -43,13 +43,33 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.\n" +
             "\n" +
-            "NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.\n" +
-            "Forms which include a file upload (`multipart/form-data`) are not supported.\n" +
+            "NOTE: Currently, only UTF-8 encoded plain text content types are supported.\n" +
+            "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
             "\n" +
-            "WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc." +
-            "If your service handles data like this, we advise to only enable this feature with care.")
+            "WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.\n" +
+            "If your service handles data like this, we advise to only enable this feature with care.\n" +
+            "Turning on body capturing can also significantly increase the overhead in terms of heap usage,\n" +
+            "network utilisation and Elasticsearch index size.")
         .dynamic(true)
         .buildWithDefault(EventType.OFF);
+
+    private final ConfigurationOption<List<WildcardMatcher>> captureContentTypes = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("capture_body_content_types")
+        .configurationCategory(HTTP_CATEGORY)
+        .tags("added[1.5.0]", "performance")
+        .description("Configures which content types should be recorded.\n" +
+            "\n" +
+            "The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Arrays.asList(
+            WildcardMatcher.valueOf("application/x-www-form-urlencoded*"),
+            WildcardMatcher.valueOf("text/*"),
+            WildcardMatcher.valueOf("application/json*"),
+            WildcardMatcher.valueOf("application/xml*")
+        ));
 
     private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
         .key("capture_headers")
@@ -155,6 +175,10 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public boolean isCaptureHeaders() {
         return captureHeaders.get();
+    }
+
+    public List<WildcardMatcher> getCaptureContentTypes() {
+        return captureContentTypes.get();
     }
 
     public enum EventType {

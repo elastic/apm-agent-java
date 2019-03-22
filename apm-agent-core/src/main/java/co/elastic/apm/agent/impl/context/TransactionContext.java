@@ -92,4 +92,8 @@ public class TransactionContext extends AbstractContext {
         request.resetState();
         user.resetState();
     }
+
+    public void onTransactionEnd() {
+        request.onTransactionEnd();
+    }
 }

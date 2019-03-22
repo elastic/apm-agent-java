@@ -42,7 +42,6 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
                 .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
                 .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
                 .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
-                .withLogConsumer(new StandardOutLogConsumer().withPrefix("jetty"))
                 .withExposedPorts(8080),
             "jetty-application",
             "/var/lib/jetty/webapps",

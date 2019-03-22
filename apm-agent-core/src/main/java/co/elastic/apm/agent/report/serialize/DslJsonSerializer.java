@@ -816,10 +816,15 @@ public class DslJsonSerializer implements PayloadSerializer {
             // only one of those can be non-empty
             if (!request.getFormUrlEncodedParameters().isEmpty()) {
                 writeField("body", request.getFormUrlEncodedParameters());
-            } else if (request.getBodyBuffer() != null && request.getBodyBuffer().length() > 0) {
-                writeFieldName("body");
-                jw.writeString(request.getBodyBuffer());
-                jw.writeByte(COMMA);
+            } else if (request.getRawBody() != null) {
+                writeField("body", request.getRawBody());
+            } else {
+                final CharBuffer bodyBuffer = request.getBodyBufferForSerialization();
+                if (bodyBuffer != null && bodyBuffer.length() > 0) {
+                    writeFieldName("body");
+                    jw.writeString(bodyBuffer);
+                    jw.writeByte(COMMA);
+                }
             }
             if (request.getUrl().hasContent()) {
                 serializeUrl(request.getUrl());

@@ -55,6 +55,7 @@ public class ServletTransactionHelper {
     public static final String TRANSACTION_ATTRIBUTE = ServletApiAdvice.class.getName() + ".transaction";
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
+    private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -111,10 +112,28 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void fillRequestContext(Transaction transaction, String protocol, String method, boolean secure,
                                    String scheme, String serverName, int serverPort, String requestURI, String queryString,
-                                   String remoteAddr) {
+                                   String remoteAddr, @Nullable String contentTypeHeader) {
 
         final Request request = transaction.getContext().getRequest();
+        startCaptureBody(transaction, method, contentTypeHeader);
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
+    }
+
+
+    private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
+        Request request = transaction.getContext().getRequest();
+        if (hasBody(contentTypeHeader, method)) {
+            if (webConfiguration.getCaptureBody() != OFF
+                && contentTypeHeader != null
+                // form parameters are recorded via ServletRequest.getParameterMap
+                // as the container might not call ServletRequest.getInputStream
+                && !contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
+                && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader)) {
+                request.withBodyBuffer();
+            } else {
+                request.redactBody();
+            }
+        }
     }
 
     @VisibleForAdvice
@@ -182,9 +201,7 @@ public class ServletTransactionHelper {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
             if (webConfiguration.getCaptureBody() != OFF && parameterMap != null) {
-                captureBody(request, parameterMap, contentTypeHeader);
-            } else {
-                request.redactBody();
+                captureParameters(request, parameterMap, contentTypeHeader);
             }
         }
     }
@@ -192,9 +209,10 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public boolean captureParameters(String method, @Nullable String contentTypeHeader) {
         return contentTypeHeader != null
-            && contentTypeHeader.startsWith("application/x-www-form-urlencoded")
+            && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
-            && webConfiguration.getCaptureBody() != OFF;
+            && webConfiguration.getCaptureBody() != OFF
+            && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
@@ -242,14 +260,11 @@ public class ServletTransactionHelper {
         return METHODS_WITH_BODY.contains(method) && contentTypeHeader != null;
     }
 
-    private void captureBody(Request request, Map<String, String[]> params, @Nullable String contentTypeHeader) {
-        if (contentTypeHeader != null && contentTypeHeader.startsWith("application/x-www-form-urlencoded")) {
+    private void captureParameters(Request request, Map<String, String[]> params, @Nullable String contentTypeHeader) {
+        if (contentTypeHeader != null && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)) {
             for (Map.Entry<String, String[]> param : params.entrySet()) {
                 request.addFormUrlEncodedParameters(param.getKey(), param.getValue());
             }
-        } else {
-            // this content-type is not supported (yet)
-            request.redactBody();
         }
     }
 

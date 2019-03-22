@@ -122,6 +122,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -220,7 +221,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
-        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions, 1);
+        final List<JsonNode> reportedTransactions = getAllReported(this::getReportedTransactions, 1);
         JsonNode transaction = reportedTransactions.iterator().next();
         assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(pathToTest);
         assertThat(transaction.get("context").get("response").get("status_code").intValue()).isEqualTo(expectedResponseCode);
@@ -248,23 +249,25 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    public List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier, int expected) {
+    public List<JsonNode> getAllReported(Supplier<List<JsonNode>> supplier, int expected) {
+        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
             reportedTransactions = supplier.get();
-        } while (reportedTransactions.size() != expected && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedTransactions.size() != expected && System.currentTimeMillis() - start < timeout);
         assertThat(reportedTransactions).hasSize(expected);
         return reportedTransactions;
     }
 
     @Nonnull
-    public List<JsonNode> assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
+    public List<JsonNode> assertSpansTransactionId(Supplier<List<JsonNode>> supplier, String transactionId) {
+        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedSpans;
         do {
             reportedSpans = supplier.get();
-        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
         assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
@@ -318,7 +321,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         return !path.equals("/async-start-servlet");
     }
 
-    private String getBaseUrl() {
+    public String getBaseUrl() {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort);
     }
 
@@ -411,5 +414,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .forStatusCode(200)
             .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? 1_000 : 5))
             .waitUntilReady(servletContainer);
+    }
+
+    public OkHttpClient getHttpClient() {
+        return httpClient;
     }
 }
