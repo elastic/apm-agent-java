@@ -22,6 +22,10 @@
    See the documentation for [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
    for more information.
    Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
+ * Previously, enabling [`capture_body`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body) could only capture form parameters.
+   Now it supports all UTF-8 encoded plain-text content types.
+   The option [`capture_body_content_types`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types)
+   controls which `Content-Type`s should be captured.
 
 ## Bug Fixes
 
