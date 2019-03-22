@@ -32,6 +32,9 @@ class AgentArgumentsConfigurationSourceTest {
         assertThat(AgentArgumentsConfigurationSource.parse("foo = bar ; baz =qux, quux ").getConfig())
             .containsEntry("foo", "bar")
             .containsEntry("baz", "qux, quux");
+        assertThat(AgentArgumentsConfigurationSource.parse("foo = bar ; baz =qux=quux,foo=bar ").getConfig())
+            .containsEntry("foo", "bar")
+            .containsEntry("baz", "qux=quux,foo=bar");
         assertThatThrownBy(() -> AgentArgumentsConfigurationSource.parse("foo")).isInstanceOf(IllegalArgumentException.class);
 
     }

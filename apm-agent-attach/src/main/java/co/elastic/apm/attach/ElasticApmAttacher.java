@@ -26,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Attaches the Elastic Apm agent to the current or a remote JVM
@@ -42,6 +44,41 @@ public class ElasticApmAttacher {
      */
     public static void attach() {
         ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE);
+    }
+
+    /**
+     * Attaches the Elastic Apm agent to the current JVM.
+     * <p>
+     * This method may only be invoked once.
+     * </p>
+     *
+     * @param configuration the agent configuration
+     * @throws IllegalStateException if there was a problem while attaching the agent to this VM
+     */
+    public static void attach(Map<String, String> configuration) {
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration));
+    }
+
+    static String toAgentArgs(Map<String, String> configuration) {
+        StringBuilder args = new StringBuilder();
+        for (Iterator<Map.Entry<String, String>> iterator = configuration.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, String> entry = iterator.next();
+            args.append(entry.getKey()).append('=').append(entry.getValue());
+            if (iterator.hasNext()) {
+                args.append(';');
+            }
+        }
+        return args.toString();
+    }
+
+    /**
+     * Attaches the agent to a remote JVM
+     *
+     * @param pid           the PID of the JVM the agent should be attached on
+     * @param configuration the agent configuration
+     */
+    public static void attach(String pid, Map<String, String> configuration) {
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, toAgentArgs(configuration));
     }
 
     /**

@@ -36,11 +36,11 @@ public class AgentArgumentsConfigurationSource extends AbstractConfigurationSour
     public static AgentArgumentsConfigurationSource parse(String agentAgruments) {
         final Map<String, String> configs = new HashMap<>();
         for (String config : StringUtils.split(agentAgruments, ';')) {
-            final String[] split = StringUtils.split(config, '=');
-            if (split.length != 2) {
+            final int indexOfEquals = config.indexOf('=');
+            if (indexOfEquals < 1) {
                 throw new IllegalArgumentException(String.format("%s is not a '=' separated key/value pair", config));
             }
-            configs.put(split[0].trim(), split[1].trim());
+            configs.put(config.substring(0, indexOfEquals).trim(), config.substring(indexOfEquals + 1).trim());
         }
         return new AgentArgumentsConfigurationSource(configs);
     }
