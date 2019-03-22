@@ -72,6 +72,7 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 * <<config-http>>
 ** <<config-capture-body>>
+** <<config-capture-body-content-types>>
 ** <<config-capture-headers>>
 ** <<config-ignore-urls>>
 ** <<config-ignore-user-agents>>
@@ -319,7 +320,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -426,10 +427,13 @@ If the request has a body and this setting is disabled, the body will be shown a
 
 This option is case-insensitive.
 
-NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
-Forms which include a file upload (`multipart/form-data`) are not supported.
+NOTE: Currently, only UTF-8 encoded plain text content types are supported.
+The option <<config-capture-body-content-types>> determines which content types are captured.
 
-WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc.If your service handles data like this, we advise to only enable this feature with care.
+WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+If your service handles data like this, we advise to only enable this feature with care.
+Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+network utilisation and Elasticsearch index size.
 
 Valid options: `off`, `errors`, `transactions`, `all`
 
@@ -444,6 +448,33 @@ Valid options: `off`, `errors`, `transactions`, `all`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
+|============
+
+[float]
+[[config-capture-body-content-types]]
+==== `capture_body_content_types` (added[1.5.0] performance)
+
+Configures which content types should be recorded.
+
+The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `application/x-www-form-urlencoded*, text/*, application/json*, application/xml*` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_body_content_types` | `capture_body_content_types` | `ELASTIC_APM_CAPTURE_BODY_CONTENT_TYPES`
 |============
 
 [float]
@@ -1173,7 +1204,7 @@ If the service name is set explicitly, it overrides all of the above.
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1246,10 +1277,13 @@ If the service name is set explicitly, it overrides all of the above.
 # 
 # This option is case-insensitive.
 # 
-# NOTE: Currently, only `application/x-www-form-urlencoded` (form parameters) are supported.
-# Forms which include a file upload (`multipart/form-data`) are not supported.
+# NOTE: Currently, only UTF-8 encoded plain text content types are supported.
+# The option <<config-capture-body-content-types>> determines which content types are captured.
 # 
-# WARNING: request bodies often contain sensitive values like passwords, credit card numbers etc.If your service handles data like this, we advise to only enable this feature with care.
+# WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+# If your service handles data like this, we advise to only enable this feature with care.
+# Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+# network utilisation and Elasticsearch index size.
 #
 # Valid options: off, errors, transactions, all
 # This setting can be changed at runtime
@@ -1257,6 +1291,21 @@ If the service name is set explicitly, it overrides all of the above.
 # Default value: OFF
 #
 # capture_body=OFF
+
+# Configures which content types should be recorded.
+# 
+# The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
+#
+# capture_body_content_types=application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
 
 # If set to `true`,
 # the agent will capture request and response headers, including cookies.

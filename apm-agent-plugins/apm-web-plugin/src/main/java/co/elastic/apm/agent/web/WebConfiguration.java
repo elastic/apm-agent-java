@@ -44,7 +44,7 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             "This option is case-insensitive.\n" +
             "\n" +
             "NOTE: Currently, only UTF-8 encoded plain text content types are supported.\n" +
-            "The option <<capture-content-types>> determines which content types are captured.\n" +
+            "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
             "\n" +
             "WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.\n" +
             "If your service handles data like this, we advise to only enable this feature with care.\n" +
@@ -55,9 +55,9 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<List<WildcardMatcher>> captureContentTypes = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
-        .key("capture_content_types")
+        .key("capture_body_content_types")
         .configurationCategory(HTTP_CATEGORY)
-        .tags("performance")
+        .tags("added[1.5.0]", "performance")
         .description("Configures which content types should be recorded.\n" +
             "\n" +
             "The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.\n" +
