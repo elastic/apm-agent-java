@@ -28,12 +28,15 @@ import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeSet;
@@ -200,6 +203,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("global_labels")
+        .tags("added[1.5.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
+            "Any labels set by application via the API will override global labels with the same keys.")
+        .dynamic(false)
+        .buildWithDefault(Collections.emptyMap());
+
     public static String getAllInstrumentationGroupNames() {
         Set<String> instrumentationGroupNames = new TreeSet<>();
         instrumentationGroupNames.add("incubating");
@@ -365,5 +378,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<MethodMatcher> getTraceMethods() {
         return traceMethods.get();
+    }
+
+    public Map<String, String> getGlobalLabels() {
+        return globalLabels.get();
     }
 }

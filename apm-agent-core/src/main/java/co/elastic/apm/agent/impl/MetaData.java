@@ -23,26 +23,34 @@ import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 
+import java.util.ArrayList;
+import java.util.Map;
+
 public class MetaData {
 
     /**
      * Service
      * (Required)
      */
-    protected final Service service;
+    private final Service service;
     /**
      * Process
      */
-    protected final ProcessInfo process;
+    private final ProcessInfo process;
     /**
      * System
      */
-    protected final SystemInfo system;
+    private final SystemInfo system;
 
-    public MetaData(ProcessInfo process, Service service, SystemInfo system) {
+    private final ArrayList<String> globalLabelKeys;
+    private final ArrayList<String> globalLabelValues;
+
+    public MetaData(ProcessInfo process, Service service, SystemInfo system, Map<String, String> globalLabels) {
         this.process = process;
         this.service = service;
         this.system = system;
+        globalLabelKeys = new ArrayList<>(globalLabels.keySet());
+        globalLabelValues = new ArrayList<>(globalLabels.values());
     }
 
     /**
@@ -73,4 +81,11 @@ public class MetaData {
         return system;
     }
 
+    public ArrayList<String> getGlobalLabelKeys() {
+        return globalLabelKeys;
+    }
+
+    public ArrayList<String> getGlobalLabelValues() {
+        return globalLabelValues;
+    }
 }

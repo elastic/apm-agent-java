@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Future;
@@ -86,17 +87,17 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
     public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                          ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer) {
-        this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration));
+                                         PayloadSerializer payloadSerializer, Map<String, String> globalLabels) {
+        this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration), globalLabels);
     }
 
     IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
                                   ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                  PayloadSerializer payloadSerializer, List<URL> serverUrls) {
+                                  PayloadSerializer payloadSerializer, List<URL> serverUrls, Map<String, String> globalLabels) {
         this.reporterConfiguration = reporterConfiguration;
         this.processorEventHandler = processorEventHandler;
         this.payloadSerializer = payloadSerializer;
-        this.metaData = new MetaData(process, service, system);
+        this.metaData = new MetaData(process, service, system, globalLabels);
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
         this.timeoutTimer = new Timer("apm-request-timeout-timer", true);
         this.serverUrlIterator = new CyclicIterator<>(serverUrls);

@@ -72,6 +72,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -134,7 +135,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)));
+            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), Collections.emptyMap());
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
 
         tracer = new ElasticApmTracerBuilder()

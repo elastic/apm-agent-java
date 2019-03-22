@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -100,14 +101,14 @@ class IntakeV2ReportingEventHandlerTest {
                 new URL(HTTP_LOCALHOST + mockApmServer1.port()),
                 // testing ability to configure a server url with additional path (ending with "/" in this case)
                 new URL(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + "/")
-            ));
+            ), Collections.emptyMap());
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(new Service(), new ProcessInfo("title"), system,
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
             List.of(
                 new URL("http://non.existing:8080")
-            ));
+            ), Collections.emptyMap());
     }
 
     @AfterEach

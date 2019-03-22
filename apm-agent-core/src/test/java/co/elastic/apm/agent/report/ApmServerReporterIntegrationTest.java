@@ -95,7 +95,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)));
+            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), Collections.emptyMap());
         reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
     }
 
