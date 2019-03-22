@@ -46,8 +46,31 @@ enum NoopSpan implements Span {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Span addLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addLabel(String key, boolean value) {
+        return this;
+    }
+
     @Override
     public void end() {
+        // noop
+    }
+
+    @Override
+    public void end(long epochMicros) {
         // noop
     }
 
@@ -93,6 +116,11 @@ enum NoopSpan implements Span {
     @Nonnull
     @Override
     public Span startSpan() {
+        return INSTANCE;
+    }
+
+    @Override
+    public Span setStartTimestamp(long epochMicros) {
         return INSTANCE;
     }
 

@@ -120,9 +120,24 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class SetStartTimestampInstrumentation extends AbstractSpanInstrumentation {
+        public SetStartTimestampInstrumentation() {
+            super(named("doSetStartTimestamp").and(takesArguments(long.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void setStartTimestamp(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                             @Advice.Argument(value = 0) long epochMicros) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan) context).setStartTimestamp(epochMicros);
+            }
+        }
+    }
+
     public static class EndInstrumentation extends AbstractSpanInstrumentation {
         public EndInstrumentation() {
-            super(named("end"));
+            super(named("end").and(takesArguments(0)));
         }
 
         @VisibleForAdvice
@@ -130,6 +145,21 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context) {
             if (context instanceof AbstractSpan) {
                 ((AbstractSpan) context).end();
+            }
+        }
+    }
+
+    public static class EndWithTimestampInstrumentation extends AbstractSpanInstrumentation {
+        public EndWithTimestampInstrumentation() {
+            super(named("end").and(takesArguments(long.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                               @Advice.Argument(value = 0) long epochMicros) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan) context).end(epochMicros);
             }
         }
     }
@@ -173,17 +203,47 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
-    public static class AddTagInstrumentation extends AbstractSpanInstrumentation {
-        public AddTagInstrumentation() {
-            super(named("doAddTag"));
+    public static class AddStringLabelInstrumentation extends AbstractSpanInstrumentation {
+        public AddStringLabelInstrumentation() {
+            super(named("doAddTag").or(named("doAddStringLabel")));
         }
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void addTag(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
-                                  @Advice.Argument(0) String key, @Advice.Argument(1) String value) {
-            if (context instanceof AbstractSpan) {
-                ((AbstractSpan) context).addTag(key, value);
+        public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) String value) {
+            if (value != null && context instanceof AbstractSpan) {
+                ((AbstractSpan) context).addLabel(key, value);
+            }
+        }
+    }
+
+    public static class AddNumberLabelInstrumentation extends AbstractSpanInstrumentation {
+        public AddNumberLabelInstrumentation() {
+            super(named("doAddNumberLabel"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Number value) {
+            if (value != null && context instanceof AbstractSpan) {
+                ((AbstractSpan) context).addLabel(key, value);
+            }
+        }
+    }
+
+    public static class AddBooleanLabelInstrumentation extends AbstractSpanInstrumentation {
+        public AddBooleanLabelInstrumentation() {
+            super(named("doAddBooleanLabel"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void addLabel(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Boolean value) {
+            if (value != null && context instanceof AbstractSpan) {
+                ((AbstractSpan) context).addLabel(key, value);
             }
         }
     }

@@ -25,6 +25,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.junit.jupiter.api.AfterAll;
@@ -50,6 +51,8 @@ import java.util.function.Predicate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AsyncServletTest extends AbstractServletTest {
+
+    private static final String ACTIVE_TRANSACTION_ATTRIBUTE = "active-transaction";
 
     private static ElasticApmTracer tracer;
 
@@ -130,8 +133,10 @@ public class AsyncServletTest extends AbstractServletTest {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             final AsyncContext asyncContext = req.startAsync();
+            final Transaction transaction = tracer.currentTransaction();
             asyncContext.start(() -> {
                 try {
+                    assertThat(tracer.getActive()).isSameAs(transaction);
                     asyncContext.getResponse().getWriter().append("async response");
                     asyncContext.complete();
                 } catch (IOException e) {
@@ -151,6 +156,7 @@ public class AsyncServletTest extends AbstractServletTest {
     public static class AsyncDispatchServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.setAttribute(ACTIVE_TRANSACTION_ATTRIBUTE, tracer.currentTransaction());
             final AsyncContext ctx = req.startAsync();
             ctx.start(() -> ctx.dispatch("/plain"));
         }
@@ -159,6 +165,7 @@ public class AsyncServletTest extends AbstractServletTest {
     public static class DispatchServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.setAttribute(ACTIVE_TRANSACTION_ATTRIBUTE, tracer.currentTransaction());
             req.startAsync().dispatch("/plain");
         }
     }
@@ -180,7 +187,7 @@ public class AsyncServletTest extends AbstractServletTest {
     public static class PlainServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            assertThat(tracer.currentTransaction()).isNotNull();
+            assertThat(tracer.currentTransaction()).isSameAs(req.getAttribute(ACTIVE_TRANSACTION_ATTRIBUTE));
             resp.getWriter().append("plain response");
         }
     }

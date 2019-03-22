@@ -198,7 +198,7 @@ public class SystemInfo {
             }
         }
         if (container == null) {
-            logger.info("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
+            logger.debug("Could not parse container ID from '/proc/self/cgroup' line: {}", line);
         }
         return this;
     }

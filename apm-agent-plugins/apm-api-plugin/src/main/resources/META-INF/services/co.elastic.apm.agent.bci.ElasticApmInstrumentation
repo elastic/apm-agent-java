@@ -10,11 +10,15 @@ co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentati
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$CaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetIdInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$GetTraceIdInstrumentation
-co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberLabelInstrumentation
+co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddBooleanLabelInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$ActivateInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$IsSampledInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$InjectTraceHeadersInstrumentation

@@ -47,6 +47,24 @@ enum NoopTransaction implements Transaction {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Transaction addLabel(String key, String value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addLabel(String key, Number value) {
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Transaction addLabel(String key, boolean value) {
+        return this;
+    }
+
     @Override
     public Transaction setUser(String id, String email, String username) {
         // noop
@@ -61,6 +79,11 @@ enum NoopTransaction implements Transaction {
 
     @Override
     public void end() {
+        // noop
+    }
+
+    @Override
+    public void end(long epochMicros) {
         // noop
     }
 
@@ -115,6 +138,10 @@ enum NoopTransaction implements Transaction {
         return NoopSpan.INSTANCE;
     }
 
+    @Override
+    public Transaction setStartTimestamp(long epochMicros) {
+        return this;
+    }
 
     @Override
     public void injectTraceHeaders(HeaderInjector headerInjector) {

@@ -18,6 +18,8 @@ Talk about what you would like to do.
 It may be that somebody is already working on it,
 or that there are particular issues that you should know about before implementing the change.
 
+Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through. 
+
 ### Submitting your changes
 
 Generally, we require that you test any code you are adding or modifying.
@@ -244,3 +246,4 @@ If you have access to make releases, the process is as follows:
 1. Update [`CHANGELOG.md`](CHANGELOG.md) to reflect version release. Go over PRs or git log and add bug fixes and features.
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
+1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)

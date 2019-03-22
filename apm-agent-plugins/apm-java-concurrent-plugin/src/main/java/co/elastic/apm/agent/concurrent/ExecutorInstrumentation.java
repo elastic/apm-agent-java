@@ -38,7 +38,9 @@ import java.util.concurrent.Future;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -57,7 +59,9 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("java.util.concurrent.Executor"));
+        return hasSuperType(named("java.util.concurrent.Executor"))
+            // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
+            .and(not(nameStartsWith("com.hazelcast")));
     }
 
     @Override
@@ -73,7 +77,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && runnable != null && !excluded.contains(thiz)) {
                 original = runnable;
-                runnable = active.withActiveContext(runnable);
+                runnable = active.withActive(runnable);
             }
         }
 
@@ -115,7 +119,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && callable != null && !excluded.contains(thiz)) {
                 original = callable;
-                callable = active.withActiveContext(callable);
+                callable = active.withActive(callable);
             }
         }
 

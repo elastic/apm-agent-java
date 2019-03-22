@@ -21,32 +21,58 @@ package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractContext implements Recyclable {
     /**
-     * A flat mapping of user-defined tags with string values.
+     * A flat mapping of user-defined labels with {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values
+     * (formerly known as tags).
+     * <p>
+     * See also https://github.com/elastic/ecs#-base-fields
+     * </p>
      */
-    private final Map<String, String> tags = new ConcurrentHashMap<>();
+    private final Map<String, Object> labels = new ConcurrentHashMap<>();
 
-    /**
-     * A flat mapping of user-defined tags with string values.
-     */
-    public Map<String, String> getTags() {
-        return tags;
+    public Iterator<? extends Map.Entry<String, ?>> getLabelIterator() {
+        return labels.entrySet().iterator();
+    }
+
+    public void addLabel(String key, String value) {
+        labels.put(key, value);
+    }
+
+    public void addLabel(String key, Number value) {
+        labels.put(key, value);
+    }
+
+    public void addLabel(String key, boolean value) {
+        labels.put(key, value);
+    }
+
+    public Object getLabel(String key) {
+        return labels.get(key);
+    }
+
+    public void clearLabels() {
+        labels.clear();
+    }
+
+    public boolean hasLabels() {
+        return !labels.isEmpty();
     }
 
     @Override
     public void resetState() {
-        tags.clear();
+        labels.clear();
     }
 
     public boolean hasContent() {
-        return !tags.isEmpty();
+        return !labels.isEmpty();
     }
 
     public void copyFrom(AbstractContext other) {
-        tags.putAll(other.tags);
+        labels.putAll(other.labels);
     }
 }

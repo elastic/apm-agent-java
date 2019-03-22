@@ -57,6 +57,10 @@ public abstract class AbstractSpanImpl implements Span {
         return span != null ? new SpanImpl(span) : NoopSpan.INSTANCE;
     }
 
+    public void doSetStartTimestamp(long epochMicros) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetStartTimestampInstrumentation
+    }
+
     private Object doCreateSpan() {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$DoCreateSpanInstrumentation.doCreateSpan
         return null;
@@ -74,13 +78,32 @@ public abstract class AbstractSpanImpl implements Span {
         // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation.doSetType
     }
 
+    // keep for backwards compatibility reasons
+    @Deprecated
     void doAddTag(String key, String value) {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddTagInstrumentation.doAddTag
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
+    }
+
+    void doAddStringLabel(String key, String value) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddStringLabelInstrumentation
+    }
+
+    void doAddNumberLabel(String key, Number value) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddNumberTagInstrumentation
+    }
+
+    void doAddBooleanLabel(String key, Boolean value) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$AddBooleanTagInstrumentation
     }
 
     @Override
     public void end() {
-        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation.end
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndInstrumentation
+    }
+
+    @Override
+    public void end(long epochMicros) {
+        // co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$EndWithTimestampInstrumentation
     }
 
     @Override

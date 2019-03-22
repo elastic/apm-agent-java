@@ -62,7 +62,7 @@ class TransactionPayloadJsonSchemaTest {
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
         Span span = new Span(mock(ElasticApmTracer.class));
-        span.start(TraceContext.fromParent(), transaction)
+        span.start(TraceContext.fromParent(), transaction, -1, false)
             .withType("type")
             .withSubtype("subtype")
             .withAction("action")
@@ -200,7 +200,7 @@ class TransactionPayloadJsonSchemaTest {
 
         for (Span span : payload.getSpans()) {
             if (span.getType() != null && span.getType().equals("db")) {
-                span.getContext().getTags().clear();
+                span.getContext().clearLabels();
                 validateDbSpanSchema(getSerializedSpans(payload), false);
                 break;
             }
@@ -236,7 +236,7 @@ class TransactionPayloadJsonSchemaTest {
                     assertThat(tags.get("framework").textValue()).isEqualTo("some-framework");
                 }
                 else {
-                    assertThat(tags).isNull();
+                    assertThat(tags).isNullOrEmpty();
                 }
             }
         }

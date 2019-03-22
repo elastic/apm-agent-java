@@ -20,7 +20,6 @@
 package co.elastic.apm.spring.boot;
 
 import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -28,9 +27,12 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.api.ElasticApm;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.SpringApplication;
@@ -62,22 +64,26 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 public abstract class AbstractSpringBootTest {
 
-    private MockReporter reporter;
-    private ConfigurationRegistry config;
+    private static MockReporter reporter;
+    private static ConfigurationRegistry config;
     @LocalServerPort
     private int port;
     private TestRestTemplate restTemplate;
 
-    @Before
-    public void setUp() {
+    @BeforeClass
+    public static void beforeClass() {
         config = SpyConfiguration.createSpyConfig();
-        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         reporter = new MockReporter();
         ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    }
+
+    @Before
+    public void setUp() {
+        when(config.getConfig(ReporterConfiguration.class).isReportSynchronously()).thenReturn(true);
         restTemplate = new TestRestTemplate(new RestTemplateBuilder()
             .setConnectTimeout(0)
             .setReadTimeout(0)
@@ -85,8 +91,8 @@ public abstract class AbstractSpringBootTest {
         reporter.reset();
     }
 
-    @After
-    public void tearDown() {
+    @AfterClass
+    public static void tearDown() {
         ElasticApmAgent.reset();
     }
 
@@ -102,6 +108,7 @@ public abstract class AbstractSpringBootTest {
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
+        assertThat(transaction.getTraceContext().getServiceName()).isEqualTo("spring-boot-test");
     }
 
     @Test

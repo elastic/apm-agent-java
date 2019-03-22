@@ -22,6 +22,9 @@ package co.elastic.apm.agent.slf4j;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,9 +50,19 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testMdcIntegration() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction().withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsSet(transaction);
+            Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsSet(child);
+                Span grandchild = child.createSpan();
+                try (Scope grandchildScope = grandchild.activateInScope()) {
+                    assertMdcIsSet(grandchild);
+                }
+                assertMdcIsSet(child);
+            }
             assertMdcIsSet(transaction);
         }
         assertMdcIsEmpty();
@@ -57,9 +70,9 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testMdcIntegrationScopeInDifferentThread() throws Exception {
+    void testMdcIntegrationTransactionScopeInDifferentThread() throws Exception {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction().withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
         assertMdcIsEmpty();
         Thread thread = new Thread(() -> {
             assertMdcIsEmpty();
@@ -75,6 +88,33 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testMdcIntegrationContextScopeInDifferentThread() throws Exception {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        assertMdcIsEmpty();
+        try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsSet(transaction);
+            final Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsSet(child);
+                Thread thread = new Thread(() -> {
+                    assertMdcIsEmpty();
+                    try (Scope otherThreadScope = child.getTraceContext().activateInScope()) {
+                        assertMdcIsSet(child);
+                    }
+                    assertMdcIsEmpty();
+                });
+                thread.start();
+                thread.join();
+                assertMdcIsSet(child);
+            }
+            assertMdcIsSet(transaction);
+        }
+        assertMdcIsEmpty();
+        transaction.end();
+    }
+
+    @Test
     void testDisablingAtRuntimeNotPossible() throws IOException {
         assertThat(loggingConfiguration.isLogCorrelationEnabled()).isFalse();
         config.save("enable_log_correlation", "true", SpyConfiguration.CONFIG_SOURCE_NAME);
@@ -85,9 +125,10 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
         assertThat(loggingConfiguration.isLogCorrelationEnabled()).isTrue();
     }
 
-    private void assertMdcIsSet(Transaction transaction) {
-        assertThat(MDC.get("trace.id")).isEqualTo(transaction.getTraceContext().getTraceId().toString());
-        assertThat(MDC.get("transaction.id")).isEqualTo(transaction.getTraceContext().getId().toString());
+    private void assertMdcIsSet(AbstractSpan span) {
+        assertThat(MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
+        assertThat(MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
+        assertThat(MDC.get("span.id")).isEqualTo(span.getTraceContext().getId().toString());
     }
 
     private void assertMdcIsEmpty() {

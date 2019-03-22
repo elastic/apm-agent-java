@@ -24,19 +24,15 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class CaptureExceptionInstrumentation extends ApiInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void captureException(@Advice.Argument(0) Throwable t) {
+    public static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) Throwable t) {
         if (tracer != null) {
-            tracer.captureException(t);
+            tracer.captureException(t, clazz.getClassLoader());
         }
     }
 

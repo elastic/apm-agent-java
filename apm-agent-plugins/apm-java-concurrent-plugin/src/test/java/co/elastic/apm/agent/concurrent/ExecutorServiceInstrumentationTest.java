@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.junit.After;
@@ -27,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +58,7 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     @Before
     public void setUp() {
-        transaction = tracer.startTransaction().withName("Transaction").activate();
+        transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withName("Transaction").activate();
     }
 
     @After

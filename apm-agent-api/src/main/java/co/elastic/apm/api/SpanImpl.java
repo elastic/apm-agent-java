@@ -54,4 +54,31 @@ class SpanImpl extends AbstractSpanImpl {
         return this;
     }
 
+    @Nonnull
+    @Override
+    public Span addLabel(String key, String value) {
+        doAddStringLabel(key, value);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addLabel(String key, Number value) {
+        doAddNumberLabel(key, value);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public Span addLabel(String key, boolean value) {
+        doAddBooleanLabel(key, value);
+        return this;
+    }
+
+    @Override
+    public Span setStartTimestamp(long epochMicros) {
+        doSetStartTimestamp(epochMicros);
+        return this;
+    }
+
 }

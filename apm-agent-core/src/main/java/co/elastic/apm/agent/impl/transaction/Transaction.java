@@ -68,9 +68,9 @@ public class Transaction extends AbstractSpan<Transaction> {
             traceContext.asRootSpan(sampler);
         }
         if (epochMicros >= 0) {
-            this.timestamp = epochMicros;
+            setStartTimestamp(epochMicros);
         } else {
-            this.timestamp = traceContext.getClock().getEpochMicros();
+            setStartTimestamp(traceContext.getClock().getEpochMicros());
         }
         return this;
     }
@@ -139,11 +139,21 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void addTag(String key, String value) {
+    public void addLabel(String key, String value) {
         if (!isSampled()) {
             return;
         }
-        getContext().getTags().put(key, value);
+        getContext().addLabel(key, value);
+    }
+
+    @Override
+    public void addLabel(String key, Number value) {
+        context.addLabel(key, value);
+    }
+
+    @Override
+    public void addLabel(String key, Boolean value) {
+        context.addLabel(key, value);
     }
 
     public void setUser(String id, String email, String username) {

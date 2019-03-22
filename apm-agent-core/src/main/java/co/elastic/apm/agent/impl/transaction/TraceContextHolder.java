@@ -63,17 +63,17 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     public abstract boolean isChildOf(TraceContextHolder other);
 
     public T activate() {
-        tracer.activate(this);
         List<ActivationListener> activationListeners = tracer.getActivationListeners();
         for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                activationListeners.get(i).onActivate(this);
+                activationListeners.get(i).beforeActivate(this);
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onActivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                logger.warn("Exception while calling {}#beforeActivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
+        tracer.activate(this);
         return (T) this;
     }
 
@@ -82,11 +82,11 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         List<ActivationListener> activationListeners = tracer.getActivationListeners();
         for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                activationListeners.get(i).onDeactivate();
+                activationListeners.get(i).afterDeactivate();
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {
-                logger.warn("Exception while calling {}#onDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
+                logger.warn("Exception while calling {}#afterDeactivate", activationListeners.get(i).getClass().getSimpleName(), t);
             }
         }
         return (T) this;
@@ -122,27 +122,13 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
     }
 
     /**
-     * Wraps the provided {@link Runnable} and makes this {@link TraceContext} active in the {@link Runnable#run()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link Runnable} is executed in.
-     * </p>
+     * Wraps the provided {@link Runnable} and makes this {@link TraceContextHolder} active in the {@link Runnable#run()} method.
      */
-    public Runnable withActiveContext(Runnable runnable) {
-        return tracer.wrapRunnable(runnable, getTraceContext());
-    }
+    public abstract Runnable withActive(Runnable runnable);
 
     /**
      * Wraps the provided {@link Callable} and makes this {@link TraceContext} active in the {@link Callable#call()} method.
-     *
-     * <p>
-     * Note: does not activate the {@link AbstractSpan} but only the {@link TraceContext}.
-     * This is useful if this span is closed in a different thread than the provided {@link java.util.concurrent.Callable} is executed in.
-     * </p>
      */
-    public <V> Callable<V> withActiveContext(Callable<V> runnable) {
-        return tracer.wrapCallable(runnable, getTraceContext());
-    }
+    public abstract <V> Callable<V> withActive(Callable<V> callable);
 
 }

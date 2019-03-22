@@ -63,15 +63,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext) {
-        // we can't get the timestamp here as the clock has not yet been initialized
-        return start(childContextCreator, parentContext, -1);
-    }
-
-    public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        return start(childContextCreator, parentContext, epochMicros, false);
-    }
-
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         onStart();
         childContextCreator.asChildOf(traceContext, parentContext);
@@ -79,9 +70,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             traceContext.setRecorded(false);
         }
         if (epochMicros >= 0) {
-            timestamp = epochMicros;
+            setStartTimestamp(epochMicros);
         } else {
-            timestamp = getTraceContext().getClock().getEpochMicros();
+            setStartTimestamp(getTraceContext().getClock().getEpochMicros());
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startSpan {} {", this);
@@ -201,8 +192,18 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void addTag(String key, String value) {
-        context.getTags().put(key, value);
+    public void addLabel(String key, String value) {
+        context.addLabel(key, value);
+    }
+
+    @Override
+    public void addLabel(String key, Number value) {
+        context.addLabel(key, value);
+    }
+
+    @Override
+    public void addLabel(String key, Boolean value) {
+        context.addLabel(key, value);
     }
 
     public void recycle() {

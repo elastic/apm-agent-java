@@ -23,7 +23,10 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
@@ -116,10 +119,21 @@ public class ErrorCapture implements Recyclable {
      * Creates a reference to a {@link TraceContext}
      *
      * @return {@code this}, for chaining
-     * @param traceContext parent trace context
+     * @param parent parent trace context
      */
-    public ErrorCapture asChildOf(TraceContext traceContext) {
-        this.traceContext.asChildOf(traceContext);
+    public ErrorCapture asChildOf(TraceContextHolder<?> parent) {
+        this.traceContext.asChildOf(parent.getTraceContext());
+        if (parent instanceof Transaction) {
+            Transaction transaction = (Transaction) parent;
+            // The error might have occurred in a different thread than the one the transaction was recorded
+            // That's why we have to ensure the visibility of the transaction properties
+            context.copyFrom(transaction.getContextEnsureVisibility());
+        } else if (parent instanceof Span) {
+            Span span = (Span) parent;
+            // TODO copy into SpanContext
+            //  https://github.com/elastic/apm-agent-java/issues/279
+            context.copyFrom(span.getContext());
+        }
         return this;
     }
 

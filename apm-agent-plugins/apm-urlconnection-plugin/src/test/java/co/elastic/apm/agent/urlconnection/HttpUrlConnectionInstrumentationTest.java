@@ -54,7 +54,7 @@ public class HttpUrlConnectionInstrumentationTest extends AbstractHttpClientInst
     public void testEndInDifferentThread() throws Exception {
         final HttpURLConnection urlConnection = new HttpURLConnectionWrapper(new HttpURLConnectionWrapper((HttpURLConnection) new URL(getBaseUrl() + "/").openConnection()));
         urlConnection.connect();
-        final Thread thread = new Thread(tracer.getActive().withActiveContext(() -> {
+        final Thread thread = new Thread(tracer.getActive().withActive(() -> {
             try {
                 urlConnection.getInputStream();
             } catch (IOException e) {

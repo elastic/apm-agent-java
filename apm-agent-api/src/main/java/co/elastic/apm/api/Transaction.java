@@ -58,8 +58,26 @@ public interface Transaction extends Span {
     @Nonnull
     Transaction setType(String type);
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #addLabel(String, String)} instead
+     */
     @Nonnull
+    @Deprecated
     Transaction addTag(String key, String value);
+
+    @Nonnull
+    @Override
+    Transaction addLabel(String key, String value);
+
+    @Nonnull
+    @Override
+    Transaction addLabel(String key, Number value);
+
+    @Nonnull
+    @Override
+    Transaction addLabel(String key, boolean value);
 
     /**
      * Call this to enrich collected performance data and errors with information about the user/client.
@@ -84,6 +102,9 @@ public interface Transaction extends Span {
      * @param result a string describing the result of the transaction
      */
     Transaction setResult(String result);
+
+    @Override
+    Transaction setStartTimestamp(long epochMicros);
 
     /**
      * End tracking the transaction.

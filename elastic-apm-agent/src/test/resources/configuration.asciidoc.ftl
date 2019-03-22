@@ -1,4 +1,5 @@
 <#-- @ftlvariable name="config" type="java.util.Map<java.lang.String,java.util.List<org.stagemonitor.configuration.ConfigurationOption<?>>>" -->
+<#-- @ftlvariable name="keys" type="java.util.Collection<java.lang.String>" -->
 [[configuration]]
 == Configuration
 To adapt the Elastic APM agent to your needs,
@@ -47,15 +48,35 @@ ELASTIC_APM_SERVICE_NAME=my-cool-service
 ELASTIC_APM_APPLICATION_PACKAGES=org.example,org.another.example
 ELASTIC_APM_SERVER_URLS=http://localhost:8200
 ----
+<#assign defaultServiceName>
+For Spring-based application, uses the `spring.application.name` property, if set.
+For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+Note: the above service name auto discovery mechanisms require APM Server 7.0+.
+Falls back to the name of the main class or jar file.
+If the service name is set explicitly, it overrides all of the above.
+</#assign>
+
+[float]
+=== Option reference
+
+This is a list of all configuration options grouped by their category.
+Click on a key to get more information.
+
+<#list config as category, options>
+* <<config-${category?lower_case?replace(" ", "-")}>>
+    <#list options as option>
+** <<config-${option.key?replace("[^a-z]", "-", "r")}>>
+    </#list>
+</#list>
 
 <#list config as category, options>
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
     <#list options as option>
-        <#if !option.tags?seq_contains("internal")>
 [float]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
-==== `${option.key}`
+==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}
 
 ${option.description}
 
@@ -71,7 +92,7 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| <#if option.key?matches("service_name")>Name of main class or jar<#else>`<@defaultValue option/>`</#if> | ${option.valueType} | ${option.dynamic?c}
+| <#if option.key?matches("service_name")>${defaultServiceName}<#else>`<@defaultValue option/>`</#if> | ${option.valueType} | ${option.dynamic?c}
 |============
 
 
@@ -81,7 +102,6 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 | `elastic.apm.${option.key}` | `${option.key}` | `ELASTIC_APM_${option.key?upper_case?replace(".", "_")}`
 |============
 
-        </#if>
     </#list>
 </#list>
 
@@ -116,9 +136,9 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
 # The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
 </#if>
-# Default value: ${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
+# Default value: ${option.key?matches("service_name")?then(defaultServiceName, option.defaultValueAsString!)}
 #
-# ${option.key}=${option.key?matches("service_name")?then("Name of main class or jar", option.defaultValueAsString!)}
+# ${option.key}=${option.key?matches("service_name")?then(defaultServiceName, option.defaultValueAsString!)}
 
         </#if>
     </#list>

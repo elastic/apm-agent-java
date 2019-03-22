@@ -96,14 +96,14 @@ public class ServletTransactionHelper {
      */
     @Nullable
     @VisibleForAdvice
-    public Transaction onBefore(String servletPath, @Nullable String pathInfo,
+    public Transaction onBefore(ClassLoader classLoader, String servletPath, @Nullable String pathInfo,
                                 @Nullable String userAgentHeader,
                                 @Nullable String traceContextHeader) {
         if (coreConfiguration.isActive() &&
             // only create a transaction if there is not already one
             tracer.currentTransaction() == null &&
             !isExcluded(servletPath, pathInfo, userAgentHeader)) {
-            return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader).activate();
+            return tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceContextHeader, classLoader).activate();
         } else {
             return null;
         }
@@ -186,7 +186,7 @@ public class ServletTransactionHelper {
                 }
             }
         } else {
-            transactionName.append(method);
+            transactionName.append(method).append(" unknown route");
         }
     }
 

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018-2019 Elastic and contributors
+ * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,31 +17,33 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.agent.impl;
+package co.elastic.apm.agent.impl.async;
 
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.Callable;
 
 @VisibleForAdvice
-public class ContextInScopeRunnableWrapper implements Runnable, Recyclable {
-    private static final Logger logger = LoggerFactory.getLogger(ContextInScopeRunnableWrapper.class);
+public class ContextInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
+    private static final Logger logger = LoggerFactory.getLogger(ContextInScopeCallableWrapper.class);
     private final ElasticApmTracer tracer;
     private final TraceContext context;
     @Nullable
-    private volatile Runnable delegate;
+    private volatile Callable<V> delegate;
 
-    ContextInScopeRunnableWrapper(ElasticApmTracer tracer) {
+    public ContextInScopeCallableWrapper(ElasticApmTracer tracer) {
         this.tracer = tracer;
         context = TraceContext.with64BitId(tracer);
     }
 
-    ContextInScopeRunnableWrapper wrap(Runnable delegate, TraceContext context) {
+    public ContextInScopeCallableWrapper<V> wrap(Callable<V> delegate, TraceContext context) {
         this.context.copyFrom(context);
         // ordering is important: volatile write has to be after copying the TraceContext to ensure visibility in #run
         this.delegate = delegate;
@@ -52,7 +54,7 @@ public class ContextInScopeRunnableWrapper implements Runnable, Recyclable {
     // normally, advices act as the boundary of user and agent code and exceptions are handled via @Advice.OnMethodEnter(suppress = Throwable.class)
     // In this case, this class acts as the boundary of user and agent code so we have to do the tedious exception handling here
     @Override
-    public void run() {
+    public V call() throws Exception {
         try {
             context.activate();
         } catch (Throwable t) {
@@ -63,7 +65,7 @@ public class ContextInScopeRunnableWrapper implements Runnable, Recyclable {
         }
         try {
             //noinspection ConstantConditions
-            delegate.run();
+            return delegate.call();
         } finally {
             try {
                 context.deactivate();

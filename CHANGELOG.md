@@ -1,6 +1,27 @@
 # next (1.5.0)
 
+## Potentially breaking changes
+ * If you didn't explicitly set the [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
+   previously and you are dealing with a servlet-based application (including Spring Boot),
+   your `service_name` will change.
+   See the documentation for [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
+   and the corresponding section in _Features_ for more information.
+   Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
+
 ## Features
+ * Support for number and boolean labels in the public API (#497).
+   This change also renames `tag` to `label` on the API level to be compliant with the [Elastic Common Schema (ECS)](https://github.com/elastic/ecs#-base-fields).
+   The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
+   As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
+   Previously, they were stored under `context.tags`.
+ * Support async queries made by Elasticsearch REST client 
+ * Added `setStartTimestamp(long epochMicros)` and `end(long epochMicros)` API methods to `Span` and `Transaction`,
+   allowing to set custom start and end timestamps.
+ * Auto-detection of the `service_name` based on the `<display-name>` element of the `web.xml` with a fallback to the servlet context path.
+   If you are using a spring-based application, the agent will use the setting for `spring.application.name` for its `service_name`.
+   See the documentation for [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
+   for more information.
+   Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
 
 ## Bug Fixes
 

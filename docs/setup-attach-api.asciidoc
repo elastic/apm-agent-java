@@ -3,6 +3,18 @@
 
 NOTE: This installation method is experimental.
 
+[float]
+[[setup-attach-api-caveats]]
+==== Caveats
+
+This method of attachment is only supported on HotSpot-based JVMs like the OpenJDK and Oracle JDK.
+It also requires the JDK, specifically the `tools.jar` to be present - a JRE is not sufficient.
+
+
+[float]
+[[setup-attach-api-usage]]
+==== Usage
+
 Declare a dependency to the link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[`apm-agent-attach`] artifact.
 
 [source,xml]

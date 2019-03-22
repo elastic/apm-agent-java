@@ -45,6 +45,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Integer> stackTraceLimit = ConfigurationOption.integerOption()
         .key("stack_trace_limit")
+        .tags("performance")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("Setting it to 0 will disable stack trace collection. " +
             "Any positive integer value will be used as the maximum number of frames to collect. " +
@@ -55,6 +56,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> spanFramesMinDurationMs = TimeDurationValueConverter.durationOption("ms")
         .key("span_frames_min_duration")
         .aliasKeys("span_frames_min_duration_ms")
+        .tags("performance")
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("In its default settings, the APM agent will collect a stack trace with every recorded span.\n" +
             "While this is very helpful to find the exact place in your code that causes the span, " +

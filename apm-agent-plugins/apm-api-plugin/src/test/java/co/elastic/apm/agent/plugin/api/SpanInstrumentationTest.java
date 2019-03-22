@@ -73,11 +73,11 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testChaining() {
-        Span span = transaction.startSpan("foo", null, null).setName("foo").addTag("foo", "bar");
+        Span span = transaction.startSpan("foo", null, null).setName("foo").addLabel("foo", "bar");
         endSpan(span);
         assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
-        assertThat(reporter.getFirstSpan().getContext().getTags()).containsEntry("foo", "bar");
+        assertThat(reporter.getFirstSpan().getContext().getLabel("foo")).isEqualTo("bar");
     }
 
     private void endSpan(Span span) {

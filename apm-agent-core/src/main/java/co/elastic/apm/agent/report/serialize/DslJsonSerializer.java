@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
+import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
@@ -86,7 +87,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
-    private static final String[] DISALLOWED_IN_TAG_KEY = new String[]{".", "*", "\""};
+    private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
     // visible for testing
     final JsonWriter jw;
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
@@ -236,7 +237,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (errorCapture.getTraceContext().hasContent()) {
             serializeTraceContext(errorCapture.getTraceContext(), true);
         }
-        serializeContext(errorCapture.getContext());
+        serializeContext(errorCapture.getContext(), errorCapture.getTraceContext());
         writeField("culprit", errorCapture.getCulprit());
         serializeException(errorCapture.getException());
 
@@ -481,7 +482,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDuration());
         writeField("result", transaction.getResult());
-        serializeContext(transaction.getContext());
+        serializeContext(transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
         writeLastField("sampled", transaction.isSampled());
         jw.writeByte(OBJECT_END);
@@ -524,11 +525,20 @@ public class DslJsonSerializer implements PayloadSerializer {
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
-        if (span.getContext().hasContent()) {
-            serializeSpanContext(span.getContext());
-        }
+        serializeSpanContext(span.getContext(), span.getTraceContext());
         serializeSpanType(span);
         jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeServiceName(TraceContext traceContext) {
+        String serviceName = traceContext.getServiceName();
+        if (serviceName != null) {
+            writeFieldName("service");
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", serviceName);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     /**
@@ -633,67 +643,56 @@ public class DslJsonSerializer implements PayloadSerializer {
         return true;
     }
 
-    private void serializeSpanContext(SpanContext context) {
+    private void serializeSpanContext(SpanContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
 
-        boolean spanContextWritten = false;
-        Db db = context.getDb();
-        if (db.hasContent()) {
-            serializeDbContext(db);
-            spanContextWritten = true;
-        }
-        Http http = context.getHttp();
-        if (http.hasContent()) {
-            if (spanContextWritten) {
-                jw.writeByte(COMMA);
-            }
-            serializeHttpContext(http);
-            spanContextWritten = true;
-        }
+        serializeServiceName(traceContext);
+        serializeDbContext(context.getDb());
+        serializeHttpContext(context.getHttp());
 
-        Map<String, String> tags = context.getTags();
-        if (!tags.isEmpty()) {
-            if (spanContextWritten) {
-                jw.writeByte(COMMA);
-            }
-            writeFieldName("tags");
-            serializeTags(tags);
-        }
+        writeFieldName("tags");
+        serializeLabels(context);
 
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
 
     private void serializeDbContext(final Db db) {
-        writeFieldName("db");
-        jw.writeByte(OBJECT_START);
-        writeField("instance", db.getInstance());
-        if (db.getStatement() != null) {
-            writeLongStringField("statement", db.getStatement());
-        } else {
-            final CharBuffer statementBuffer = db.getStatementBuffer();
-            if (statementBuffer != null && statementBuffer.length() > 0) {
-                writeFieldName("statement");
-                jw.writeString(statementBuffer);
-                jw.writeByte(COMMA);
+        if (db.hasContent()) {
+            writeFieldName("db");
+            jw.writeByte(OBJECT_START);
+            writeField("instance", db.getInstance());
+            if (db.getStatement() != null) {
+                writeLongStringField("statement", db.getStatement());
+            } else {
+                final CharBuffer statementBuffer = db.getStatementBuffer();
+                if (statementBuffer != null && statementBuffer.length() > 0) {
+                    writeFieldName("statement");
+                    jw.writeString(statementBuffer);
+                    jw.writeByte(COMMA);
+                }
             }
+            writeField("type", db.getType());
+            writeLastField("user", db.getUser());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        writeField("type", db.getType());
-        writeLastField("user", db.getUser());
-        jw.writeByte(OBJECT_END);
     }
 
     private void serializeHttpContext(final Http http) {
-        writeFieldName("http");
-        jw.writeByte(OBJECT_START);
-        writeField("method", http.getMethod());
-        int statusCode = http.getStatusCode();
-        if (statusCode > 0) {
-            writeField("status_code", http.getStatusCode());
+        if (http.hasContent()) {
+            writeFieldName("http");
+            jw.writeByte(OBJECT_START);
+            writeField("method", http.getMethod());
+            int statusCode = http.getStatusCode();
+            if (statusCode > 0) {
+                writeField("status_code", http.getStatusCode());
+            }
+            writeLastField("url", http.getUrl());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
         }
-        writeLastField("url", http.getUrl());
-        jw.writeByte(OBJECT_END);
     }
 
     private void serializeSpanCount(final SpanCount spanCount) {
@@ -705,9 +704,10 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
     }
 
-    private void serializeContext(final TransactionContext context) {
+    private void serializeContext(final TransactionContext context, TraceContext traceContext) {
         writeFieldName("context");
         jw.writeByte(OBJECT_START);
+        serializeServiceName(traceContext);
 
         if (context.getUser().hasContent()) {
             serializeUser(context.getUser());
@@ -715,43 +715,61 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
-        // TODO custom context
         writeFieldName("tags");
-        final Map<String, String> value = context.getTags();
-        serializeTags(value);
+        serializeLabels(context);
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
     }
 
     // visible for testing
-    void serializeTags(Map<String, String> value) {
-        serializeTags(value, replaceBuilder, jw);
+    void serializeLabels(AbstractContext context) {
+        if (context.hasLabels()) {
+            serializeLabels(context.getLabelIterator(), replaceBuilder, jw);
+        } else {
+            jw.writeByte(OBJECT_START);
+            jw.writeByte(OBJECT_END);
+        }
     }
 
-    public static void serializeTags(Map<String, String> value, StringBuilder replaceBuilder, JsonWriter jw) {
+    static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
+        serializeLabels(iterator, replaceBuilder, jw);
+    }
+
+    private static void serializeLabels(Iterator<? extends Map.Entry<String, ?>> it, StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(OBJECT_START);
-        final int size = value.size();
-        if (size > 0) {
-            final Iterator<Map.Entry<String, String>> iterator = value.entrySet().iterator();
-            Map.Entry<String, String> kv = iterator.next();
-            writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+        if (it.hasNext()) {
+            Map.Entry<String, ?> kv = it.next();
+            writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            writeStringValue(kv.getValue(), replaceBuilder, jw);
-            for (int i = 1; i < size; i++) {
+            serializeLabelValue(replaceBuilder, jw, kv.getValue());
+            while (it.hasNext()) {
                 jw.writeByte(COMMA);
-                kv = iterator.next();
-                writeStringValue(sanitizeTagKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
+                kv = it.next();
+                writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                writeStringValue(kv.getValue(), replaceBuilder, jw);
+                serializeLabelValue(replaceBuilder, jw, kv.getValue());
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private static CharSequence sanitizeTagKey(String key, StringBuilder replaceBuilder) {
-        for (int i = 0; i < DISALLOWED_IN_TAG_KEY.length; i++) {
-            if (key.contains(DISALLOWED_IN_TAG_KEY[i])) {
-                return replaceAll(key, DISALLOWED_IN_TAG_KEY, "_", replaceBuilder);
+    private static void serializeLabelValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+        if (value instanceof String) {
+            writeStringValue((String) value, replaceBuilder, jw);
+        } else if (value instanceof Number) {
+            NumberConverter.serialize(((Number) value).doubleValue(), jw);
+        } else if (value instanceof Boolean) {
+            BoolConverter.serialize((Boolean) value, jw);
+        } else {
+            // can't happen, as AbstractContext enforces the values to be either String, Number or boolean
+            jw.writeString("invalid value");
+        }
+    }
+
+    private static CharSequence sanitizeLabelKey(String key, StringBuilder replaceBuilder) {
+        for (int i = 0; i < DISALLOWED_IN_LABEL_KEY.length; i++) {
+            if (key.contains(DISALLOWED_IN_LABEL_KEY[i])) {
+                return replaceAll(key, DISALLOWED_IN_LABEL_KEY, "_", replaceBuilder);
             }
         }
         return key;

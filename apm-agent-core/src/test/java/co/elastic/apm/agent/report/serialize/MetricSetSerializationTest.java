@@ -55,14 +55,34 @@ class MetricSetSerializationTest {
         metricSet.add("infinite", () -> Double.POSITIVE_INFINITY);
         metricSet.add("NaN", () -> Double.NaN);
         metricSet.add("negative.infinite", () -> Double.NEGATIVE_INFINITY);
+        metricSet.add("also.valid", () -> 5.0);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
         final String metricSetAsString = jw.toString();
         System.out.println(metricSetAsString);
         final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
         JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.size()).isEqualTo(2);
         assertThat(samples.get("valid").get("value").doubleValue()).isEqualTo(4.0);
-        assertThat(samples.get("infinite").get("value").isNull()).isTrue();
-        assertThat(samples.get("NaN").get("value").isNull()).isTrue();
-        assertThat(samples.get("negative.infinite").get("value").isNull()).isTrue();
+        assertThat(samples.get("also.valid").get("value").doubleValue()).isEqualTo(5.0);
+    }
+
+    @Test
+    void testNonFiniteCornerCasesSerialization() throws IOException {
+        final MetricSet metricSet = new MetricSet(Collections.emptyMap());
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        String metricSetAsString = jw.toString();
+        System.out.println(metricSetAsString);
+        JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
+        JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.size()).isEqualTo(0);
+
+        metricSet.add("infinite", () -> Double.POSITIVE_INFINITY);
+        metricSet.add("NaN", () -> Double.NaN);
+        metricSet.add("negative.infinite", () -> Double.NEGATIVE_INFINITY);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        metricSetAsString = jw.toString();
+        jsonNode = objectMapper.readTree(metricSetAsString);
+        samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.size()).isEqualTo(0);
     }
 }

@@ -36,8 +36,8 @@ import javax.annotation.Nullable;
  * <p>
  * Note: Calling any methods after {@link #end()} has been called is illegal.
  * You may only interact with spans when you have control over its lifecycle.
- * For example, if a span is ended on another thread you must not add tags if there is a chance for a race between the {@link #end()}
- * and the {@link #addTag(String, String)} method.
+ * For example, if a span is ended on another thread you must not add labels if there is a chance for a race between the {@link #end()}
+ * and the {@link #addLabel(String, String)} method.
  * </p>
  */
 public interface Span {
@@ -61,20 +61,98 @@ public interface Span {
     Span setType(String type);
 
     /**
-     * A flat mapping of user-defined tags with string values.
+     * A flat mapping of user-defined labels with string values.
      * <p>
-     * Note: the tags are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
      * By all means,
      * you should avoid that user specified data,
      * like URL parameters,
-     * is used as a tag key as it can lead to mapping explosions.
+     * is used as a label key as it can lead to mapping explosions.
      * </p>
      *
-     * @param key   The tag key.
-     * @param value The tag value.
+     * @param key   The label key.
+     * @param value The label value.
+     * @deprecated use {@link #addLabel(String, String)} instead
      */
     @Nonnull
+    @Deprecated
     Span addTag(String key, String value);
+
+    /**
+     * A flat mapping of user-defined labels with string values.
+     * <p>
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a label key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0
+     */
+    @Nonnull
+    Span addLabel(String key, String value);
+
+    /**
+     * A flat mapping of user-defined labels with number values.
+     * <p>
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a label key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0
+     */
+    @Nonnull
+    Span addLabel(String key, Number value);
+
+    /**
+     * A flat mapping of user-defined labels with boolean values.
+     * <p>
+     * Note: in version 6.x, labels are stored under {@code context.tags} in Elasticsearch.
+     * As of version 7.x, they are stored as {@code labels} to comply with ECS (https://github.com/elastic/ecs).
+     * </p>
+     * <p>
+     * Note: the labels are indexed in Elasticsearch so that they are searchable and aggregatable.
+     * By all means,
+     * you should avoid that user specified data,
+     * like URL parameters,
+     * is used as a label key as it can lead to mapping explosions.
+     * </p>
+     *
+     * @param key   The label key.
+     * @param value The label value.
+     * @since 1.5.0
+     */
+    @Nonnull
+    Span addLabel(String key, boolean value);
+
+    /**
+     * Sets the start timestamp of this event.
+     *
+     * @param epochMicros the timestamp of when this event happened, in microseconds (µs) since epoch
+     * @return {@code this} for chaining
+     * @since 1.5.0
+     */
+    Span setStartTimestamp(long epochMicros);
 
     /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
@@ -111,8 +189,8 @@ public interface Span {
      * </p>
      * <p>
      * The type, subtype and action strings are used to group similar spans together, with increasing resolution.
-     * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans 
-     * describing queries are give the action `query`.
+     * For instance, all DB spans are given the type `db`; all spans of MySQL queries are given the subtype `mysql` and all spans
+     * describing queries are given the action `query`.
      * </p>
      * <p>
      * In the above example `db` is considered the general type. Though there are no naming restrictions for the general types,
@@ -154,7 +232,7 @@ public interface Span {
      * NOTE: Spans created via this method can not be retrieved by calling {@link ElasticApm#currentSpan()}.
      * See {@link #activate()} on how to achieve that.
      * </p>
-     * 
+     *
      * @return the started span, never {@code null}
      */
     @Nonnull
@@ -166,6 +244,15 @@ public interface Span {
      * This also includes this method and {@link #startSpan()}.
      */
     void end();
+
+    /**
+     * Ends the span and schedules it to be reported to the APM Server.
+     * It is illegal to call any methods on a span instance which has already ended.
+     * This also includes this method and {@link #startSpan()}.
+     *
+     * @param epochMicros the timestamp of when this event ended, in microseconds (µs) since epoch
+     */
+    void end(long epochMicros);
 
     /**
      * Captures an exception and reports it to the APM server.
@@ -252,7 +339,22 @@ public interface Span {
      * Example:
      * </p>
      * <pre>
-     * span.injectTraceHeaders(request::addHeader);
+     * // Hook into a callback provided by the RPC framework that is called on outgoing requests
+     * public Response onOutgoingRequest(Request request) throws Exception {
+     *     // creates a span representing the external call
+     *     Span span = ElasticApm.currentSpan()
+     *             .startSpan("external", "http", null)
+     *             .setName(request.getMethod() + " " + request.getHost());
+     *     try (final Scope scope = transaction.activate()) {
+     *         span.injectTraceHeaders((name, value) -&gt; request.addHeader(name, value));
+     *         return request.execute();
+     *     } catch (Exception e) {
+     *         span.captureException(e);
+     *         throw e;
+     *     } finally {
+     *         span.end();
+     *     }
+     * }
      * </pre>
      *
      * @param headerInjector tells the agent how to inject a header into the request object
