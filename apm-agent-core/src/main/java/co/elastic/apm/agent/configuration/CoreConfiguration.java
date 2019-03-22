@@ -211,7 +211,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
             "Any labels set by application via the API will override global labels with the same keys.")
         .dynamic(false)
-        .buildWithDefault(Collections.emptyMap());
+        .buildWithDefault(Collections.<String, String>emptyMap());
 
     public static String getAllInstrumentationGroupNames() {
         Set<String> instrumentationGroupNames = new TreeSet<>();
