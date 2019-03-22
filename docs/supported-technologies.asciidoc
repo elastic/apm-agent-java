@@ -174,9 +174,9 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 
 |OkHttp
 |2, 3
-|Currently, only synchronous calls via `Call#execute()` are supported.
- `Call#enquene(Callback)` is not yet supported.
-| 1.4.0
+|
+|1.4.0 (synchronous calls via `Call#execute()`)
+ 1.5.0 (async calls via `Call#enquene(Callback)`)
 
 |HttpUrlConnection
 |

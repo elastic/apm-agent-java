@@ -26,6 +26,7 @@
    Now it supports all UTF-8 encoded plain-text content types.
    The option [`capture_body_content_types`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types)
    controls which `Content-Type`s should be captured.
+ * Support async calls made by OkHttp client (`Call#enqueue`)
 
 ## Bug Fixes
 
