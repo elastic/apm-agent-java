@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.ServiceNameUtil;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.async.ContextInScopeCallableWrapper;
 import co.elastic.apm.agent.impl.async.ContextInScopeRunnableWrapper;
@@ -40,6 +41,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +99,7 @@ public class ElasticApmTracer {
     private final MetricRegistry metricRegistry;
     private Sampler sampler;
     boolean assertionsEnabled = false;
+    private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
     ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
@@ -178,15 +181,33 @@ public class ElasticApmTracer {
         assert assertionsEnabled = true;
     }
 
-    public Transaction startTransaction() {
-        return startTransaction(TraceContext.asRoot(), null);
+    /**
+     * Starts a transaction as a child of the provided parent
+     *
+     * @param childContextCreator   used to make the transaction a child of the provided parent
+     * @param parent                the parent of the transaction. May be a traceparent header.
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name.
+     * @param <T>                   the type of the parent. {@code String} in case of a traceparent header.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
+        return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
     }
 
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent) {
-        return startTransaction(childContextCreator, parent, sampler, -1);
-    }
-
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler, long epochMicros) {
+    /**
+     * Starts a transaction as a child of the provided parent
+     *
+     * @param childContextCreator   used to make the transaction a child of the provided parent
+     * @param parent                the parent of the transaction. May be a traceparent header.
+     * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
+     * @param epochMicros           the start timestamp
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction
+     *                              Used to determine the service name.
+     * @param <T>                   the type of the parent. {@code String} in case of a traceparent header.
+     * @return a transaction which is a child of the provided parent
+     */
+    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
@@ -199,6 +220,10 @@ public class ElasticApmTracer {
                 logger.trace("starting transaction at",
                     new RuntimeException("this exception is just used to record where the transaction has been started from"));
             }
+        }
+        final String serviceName = getServiceName(initiatingClassLoader);
+        if (serviceName != null) {
+            transaction.getTraceContext().setServiceName(serviceName);
         }
         return transaction;
     }
@@ -269,11 +294,21 @@ public class ElasticApmTracer {
         return coreConfiguration.getTransactionMaxSpans() <= transaction.getSpanCount().getStarted().get();
     }
 
-    public void captureException(@Nullable Throwable e) {
-        captureException(System.currentTimeMillis() * 1000, e, getActive());
+    /**
+     * Captures an exception without providing an explicit reference to a parent {@link TraceContextHolder}
+     *
+     * @param e                     the exception to capture
+     * @param initiatingClassLoader the class
+     */
+    public void captureException(@Nullable Throwable e, ClassLoader initiatingClassLoader) {
+        captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
+    public void captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        captureException(epochMicros, e, parent, null);
+    }
+
+    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         if (e != null) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
@@ -287,6 +322,7 @@ public class ElasticApmTracer {
                 error.asChildOf(parent);
             } else {
                 error.getTraceContext().getId().setToRandomValue();
+                error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
             reporter.report(error);
         }
@@ -462,5 +498,41 @@ public class ElasticApmTracer {
 
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
+    }
+
+    /**
+     * Overrides the service name for all {@link Transaction}s,
+     * {@link Span}s and {@link ErrorCapture}s which are created by the service which corresponds to the provided {@link ClassLoader}.
+     * <p>
+     * The main use case is being able to differentiate between multiple services deployed to the same application server.
+     * </p>
+     *
+     * @param classLoader the class loader which corresponds to a particular service
+     * @param serviceName the service name for this class loader
+     */
+    public void overrideServiceNameForClassLoader(@Nullable ClassLoader classLoader, @Nullable String serviceName) {
+        // overriding the service name for the bootstrap class loader is not an actual use-case
+        // null may also mean we don't know about the initiating class loader
+        if (classLoader == null
+            || serviceName == null || serviceName.isEmpty()
+            // if the service name is set explicitly, don't override it
+            || !coreConfiguration.getServiceNameConfig().isDefault()) {
+            return;
+        }
+        if (!serviceNameByClassLoader.containsKey(classLoader)) {
+            serviceNameByClassLoader.putIfAbsent(classLoader, ServiceNameUtil.replaceDisallowedChars(serviceName));
+        }
+    }
+
+    @Nullable
+    private String getServiceName(@Nullable ClassLoader initiatingClassLoader) {
+        if (initiatingClassLoader == null) {
+            return null;
+        }
+        return serviceNameByClassLoader.get(initiatingClassLoader);
+    }
+
+    public void resetServiceNameOverrides() {
+        serviceNameByClassLoader.clear();
     }
 }

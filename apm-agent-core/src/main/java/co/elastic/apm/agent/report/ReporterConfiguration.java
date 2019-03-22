@@ -142,6 +142,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> metricsInterval = TimeDurationValueConverter.durationOption("s")
         .key("metrics_interval")
+        .tags("added[1.3.0]")
         .configurationCategory(REPORTER_CATEGORY)
         .description("The interval at which the agent sends metrics to the APM Server.\n" +
             "Must be at least `1s`.\n" +
@@ -152,6 +153,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<WildcardMatcher>> disableMetrics = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("disable_metrics")
+        .tags("added[1.3.0]")
         .configurationCategory(REPORTER_CATEGORY)
         .description("Disables the collection of certain metrics.\n" +
             "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +

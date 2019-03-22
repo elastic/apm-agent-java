@@ -120,9 +120,24 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class SetStartTimestampInstrumentation extends AbstractSpanInstrumentation {
+        public SetStartTimestampInstrumentation() {
+            super(named("doSetStartTimestamp").and(takesArguments(long.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void setStartTimestamp(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                             @Advice.Argument(value = 0) long epochMicros) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan) context).setStartTimestamp(epochMicros);
+            }
+        }
+    }
+
     public static class EndInstrumentation extends AbstractSpanInstrumentation {
         public EndInstrumentation() {
-            super(named("end"));
+            super(named("end").and(takesArguments(0)));
         }
 
         @VisibleForAdvice
@@ -130,6 +145,21 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context) {
             if (context instanceof AbstractSpan) {
                 ((AbstractSpan) context).end();
+            }
+        }
+    }
+
+    public static class EndWithTimestampInstrumentation extends AbstractSpanInstrumentation {
+        public EndWithTimestampInstrumentation() {
+            super(named("end").and(takesArguments(long.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void end(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                               @Advice.Argument(value = 0) long epochMicros) {
+            if (context instanceof AbstractSpan) {
+                ((AbstractSpan) context).end(epochMicros);
             }
         }
     }

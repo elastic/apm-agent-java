@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JsfApplicationServerTestApp extends TestApp {
 
     public JsfApplicationServerTestApp() {
-        super("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html");
+        super("../jsf-app/jsf-app-dependent", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
     }
 
     @Override
@@ -51,7 +51,6 @@ public class JsfApplicationServerTestApp extends TestApp {
         assertThat(transaction.get("name").textValue()).isEqualTo(testedPath);
         String transactionId = transaction.get("id").textValue();
         List<JsonNode> spans = containerIntegrationTest.assertSpansTransactionId(
-            500,
             containerIntegrationTest::getReportedSpans,
             transactionId);
         assertThat(spans.size()).isEqualTo(2);

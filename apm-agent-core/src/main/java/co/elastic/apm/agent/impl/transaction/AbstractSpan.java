@@ -39,7 +39,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
-    protected long timestamp;
+    private long timestamp;
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
@@ -114,7 +114,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         duration = 0;
         isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
-        // don't reset previouslyActive, as deactivate can be called after end
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
@@ -214,4 +213,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
             return tracer.wrapCallable(callable, traceContext);
         }
     }
+
+    public void setStartTimestamp(long epochMicros) {
+        timestamp = epochMicros;
+    }
+
 }

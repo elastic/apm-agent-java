@@ -123,7 +123,7 @@ See <<api-transaction-activate, `transaction.activate()`>> on how to achieve tha
 
 [float]
 [[api-start-transaction-with-remote-parent-header]]
-==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)`
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor)` added[1.3.0]
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
 * `headerExtractor`: a functional interface which receives a header name and returns the fist header with that name
@@ -152,12 +152,9 @@ public Response onIncomingRequest(Request request) throws Exception {
 
 NOTE: If the protocol supports multi-value headers, use <<api-start-transaction-with-remote-parent-headers>>
 
-
-since 1.3.0
-
 [float]
 [[api-start-transaction-with-remote-parent-headers]]
-==== `Transaction startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)`
+==== `Transaction startTransactionWithRemoteParent(HeaderExtractor, HeadersExtractor)` added[1.3.0]
 
 Similar to <<api-start-transaction>> but creates this transaction as the child of a remote parent.
 
@@ -188,9 +185,6 @@ public Response onIncomingRequest(Request request) throws Exception {
 
 
 NOTE: If the protocol does not support multi-value headers, use <<api-start-transaction-with-remote-parent-header>>
-
-since 1.3.0
-
 
 //----------------------------
 [float]
@@ -292,7 +286,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `Transaction addLabel(String key, value)`
+==== `Transaction addLabel(String key, value)` added[1.5.0]
 A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
@@ -311,8 +305,6 @@ transaction.addLabel("foo", "bar");
 
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
-
-Since 1.5.0
 
 [float]
 [[api-transaction-set-user]]
@@ -462,18 +454,40 @@ This is typically the HTTP status code, or e.g. "success" for a background task
 
 * `result`: a string describing the result of the transaction
 
+[float]
+[[api-transaction-set-start-timestamp]]
+==== `Transaction setStartTimestamp(long epochMicros)` added[1.5.0]
+Sets the start timestamp of this event.
+
+* `epochMicros`: the timestamp of when this event started, in microseconds (µs) since epoch
 
 [float]
 [[api-transaction-end]]
 ==== `void end()`
 Ends the transaction and schedules it to be reported to the APM Server.
-It is illegal to call any methods on a span instance which has already ended.
+It is illegal to call any methods on a transaction instance which has already ended.
 This also includes this method and <<api-transaction-start-span>>.
 Example:
 
 [source,java]
 ----
 transaction.end();
+----
+
+[float]
+[[api-transaction-end-timestamp]]
+==== `void end(long epochMicros)` added[1.5.0]
+Ends the transaction and schedules it to be reported to the APM Server.
+It is illegal to call any methods on a transaction instance which has already ended.
+This also includes this method and <<api-transaction-start-span>>.
+
+* `epochMicros`: the timestamp of when this event ended, in microseconds (µs) since epoch
+
+Example:
+
+[source,java]
+----
+transaction.end(System.currentTimeMillis() * 1000);
 ----
 
 [float]
@@ -512,7 +526,7 @@ Returns true if this transaction is recorded and sent to the APM Server
 
 [float]
 [[api-transaction-inject-trace-headers]]
-==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+==== `void injectTraceHeaders(HeaderInjector headerInjector)` added[1.3.0]
 
 * `headerInjector`: tells the agent how to inject a header into the request object
 
@@ -545,8 +559,6 @@ public Response onOutgoingRequest(Request request) throws Exception {
 }
 ----
 
-since 1.3.0
-
 
 //----------------------------
 [float]
@@ -578,7 +590,7 @@ span.setName("SELECT FROM customer");
 
 [float]
 [[api-span-add-tag]]
-==== `Span addLabel(String key, value)`
+==== `Span addLabel(String key, value)` added[1.5.0]
 A flat mapping of user-defined labels with string, number or boolean values.
 
 NOTE: In version 6.x, labels are stored under `context.tags` in Elasticsearch.
@@ -597,8 +609,6 @@ span.addLabel("foo", "bar");
 
 * `String key`:   The tag key
 * `String|Number|boolean value`: The tag value
-
-Since 1.5.0
 
 [float]
 [[api-span-capture-exception]]
@@ -625,11 +635,35 @@ If this span represents a noop,
 this method returns an empty string.
 
 [float]
+[[api-span-set-start-timestamp]]
+==== `Span setStartTimestamp(long epochMicros)` added[1.5.0]
+Sets the start timestamp of this event.
+
+* `epochMicros`: the timestamp of when this event started, in microseconds (µs) since epoch
+
+
+[float]
 [[api-span-end]]
 ==== `void end()`
 Ends the span and schedules it to be reported to the APM Server.
 It is illegal to call any methods on a span instance which has already ended.
 This also includes this method and <<api-span-start-span>>.
+
+[float]
+[[api-span-end-timestamp]]
+==== `void end(long epochMicros)` added[1.5.0]
+Ends the span and schedules it to be reported to the APM Server.
+It is illegal to call any methods on a span instance which has already ended.
+This also includes this method and <<api-span-start-span>>.
+
+* `epochMicros`: the timestamp of when this event ended, in microseconds (µs) since epoch
+
+Example:
+
+[source,java]
+----
+span.end(System.currentTimeMillis() * 1000);
+----
 
 [float]
 [[api-span-start-span-with-type]]
@@ -730,7 +764,7 @@ Returns true if this span is recorded and sent to the APM Server
 
 [float]
 [[api-span-inject-trace-headers]]
-==== `void injectTraceHeaders(HeaderInjector headerInjector)`
+==== `void injectTraceHeaders(HeaderInjector headerInjector)` added[1.3.0]
 
 * `headerInjector`: tells the agent how to inject a header into the request object
 
@@ -762,5 +796,3 @@ public Response onOutgoingRequest(Request request) throws Exception {
     }
 }
 ----
-
-since 1.3.0

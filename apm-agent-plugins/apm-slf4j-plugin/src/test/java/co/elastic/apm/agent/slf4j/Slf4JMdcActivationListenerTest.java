@@ -24,6 +24,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testMdcIntegration() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction().withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);
@@ -71,7 +72,7 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testMdcIntegrationTransactionScopeInDifferentThread() throws Exception {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction().withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
         assertMdcIsEmpty();
         Thread thread = new Thread(() -> {
             assertMdcIsEmpty();
@@ -89,7 +90,7 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testMdcIntegrationContextScopeInDifferentThread() throws Exception {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        final Transaction transaction = tracer.startTransaction().withType("request").withName("test");
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);

@@ -73,8 +73,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("This is used to keep all the errors and transactions of your service together\n" +
             "and is the primary filter in the Elastic APM user interface.\n" +
             "\n" +
-            "NOTE: The service name must conform to this regular expression: ^[a-zA-Z0-9 _-]+$. In less regexy terms: Your service name " +
-            "must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.")
+            "The service name must conform to this regular expression: `^[a-zA-Z0-9 _-]+$`.\n" +
+            "In less regexy terms:\n" +
+            "Your service name must only contain characters from the ASCII alphabet, numbers, dashes, underscores and spaces.\n" +
+            "\n" +
+            "NOTE: When relying on auto-discovery of the service name in Servlet environments (including Spring Boot),\n" +
+            "there is currently a caveat related to metrics.\n" +
+            "The consequence is that the 'Metrics' tab of a service does not show process-global metrics like CPU utilization.\n" +
+            "The reason is that metrics are reported with the detected default service name for the JVM,\n" +
+            "for example `tomcat-application`.\n" +
+            "That is because there may be multiple web applications deployed to a single JVM/servlet container.\n" +
+            "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
+            "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
+            "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
+            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
@@ -102,6 +114,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key(SAMPLE_RATE)
         .aliasKeys("sample_rate")
         .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
         .description("By default, the agent will sample every transaction (e.g. request to your service). " +
             "To reduce overhead and storage requirements, you can set the sample rate to a value between 0.0 and 1.0. " +
             "We still record overall time and the result for unsampled transactions, but no context information, labels, or spans.")
@@ -112,6 +125,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Integer> transactionMaxSpans = ConfigurationOption.integerOption()
         .key("transaction_max_spans")
         .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
             "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
@@ -255,6 +269,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
+        .tags("added[1.3.0,Enhancements in 1.4.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
@@ -267,7 +282,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "A few examples:\n" +
             "\n" +
-            " - `org.example.*` (omitting the method is possible since 1.4.0)\n" +
+            " - `org.example.*` added[1.4.0,Omitting the method is possible since 1.4.0]\n" +
             " - `org.example.*#*` (before 1.4.0, you need to specify a method matcher)\n" +
             " - `org.example.MyClass#myMethod`\n" +
             " - `org.example.MyClass#myMethod()`\n" +
@@ -285,9 +300,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.\n" +
-            "\n" +
-            "Since 1.3.0")
+            "Consider increasing the threshold or disabling stack trace collection altogether.")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     public boolean isActive() {
@@ -300,6 +313,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public String getServiceName() {
         return serviceName.get();
+    }
+
+    public ConfigurationOption<String> getServiceNameConfig() {
+        return serviceName;
     }
 
     public String getServiceVersion() {

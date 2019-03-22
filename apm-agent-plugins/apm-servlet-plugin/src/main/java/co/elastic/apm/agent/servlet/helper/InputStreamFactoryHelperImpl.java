@@ -17,17 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package co.elastic.apm.servlet.tests;
+package co.elastic.apm.agent.servlet.helper;
 
-import co.elastic.apm.servlet.AbstractServletContainerIntegrationTest;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation;
 
-public class JsfServletContainerTestApp extends TestApp {
-    public JsfServletContainerTestApp() {
-        super("../jsf-app/jsf-app-standalone", "jsf-http-get.war", "/jsf-http-get/status.html", "jsf-http-get");
-    }
+import javax.servlet.ServletInputStream;
 
+public class InputStreamFactoryHelperImpl implements RequestStreamRecordingInstrumentation.InputStreamWrapperFactory {
     @Override
-    public void test(AbstractServletContainerIntegrationTest test) throws Exception {
-        new JsfApplicationServerTestApp().test(test);
+    public ServletInputStream wrap(Request request, ServletInputStream servletInputStream) {
+        return new RecordingServletInputStreamWrapper(request, servletInputStream);
     }
 }

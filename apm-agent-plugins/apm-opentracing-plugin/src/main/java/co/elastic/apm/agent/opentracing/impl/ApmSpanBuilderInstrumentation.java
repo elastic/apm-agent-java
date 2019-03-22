@@ -84,7 +84,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                                                                 @Nullable Iterable<Map.Entry<String, String>> baggage) {
             if (tracer != null) {
                 if (parentContext == null) {
-                    return createTransaction(tags, operationName, microseconds, baggage, tracer);
+                    return createTransaction(tags, operationName, microseconds, baggage, tracer, TraceContext.class.getClassLoader());
                 } else {
                     if (microseconds >= 0) {
                         return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);
@@ -98,7 +98,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Nonnull
         private static AbstractSpan<?> createTransaction(Map<String, Object> tags, String operationName, long microseconds,
-                                                         @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer) {
+                                                         @Nullable Iterable<Map.Entry<String, String>> baggage, ElasticApmTracer tracer, ClassLoader classLoader) {
             if ("client".equals(tags.get("span.kind"))) {
                 logger.info("Ignoring transaction '{}', as a span.kind client can never be a transaction. " +
                     "Consider creating a span for the whole request.", operationName);
@@ -111,7 +111,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
                 } else {
                     sampler = tracer.getSampler();
                 }
-                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds);
+                return tracer.startTransaction(TraceContext.fromTraceparentHeader(), getTraceContextHeader(baggage), sampler, microseconds, classLoader);
             }
         }
 

@@ -103,6 +103,9 @@ public interface Transaction extends Span {
      */
     Transaction setResult(String result);
 
+    @Override
+    Transaction setStartTimestamp(long epochMicros);
+
     /**
      * End tracking the transaction.
      * <p>

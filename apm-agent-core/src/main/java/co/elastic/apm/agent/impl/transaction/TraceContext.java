@@ -25,6 +25,7 @@ import co.elastic.apm.agent.util.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 /**
@@ -100,6 +101,8 @@ public class TraceContext extends TraceContextHolder {
      * @see EpochTickClock
      */
     private EpochTickClock clock = new EpochTickClock();
+    @Nullable
+    private String serviceName;
 
     private TraceContext(ElasticApmTracer tracer, Id id) {
         super(tracer);
@@ -214,6 +217,7 @@ public class TraceContext extends TraceContextHolder {
         flags = parent.flags;
         id.setToRandomValue();
         clock.init(parent.clock);
+        serviceName = parent.serviceName;
         onMutation();
     }
 
@@ -229,6 +233,7 @@ public class TraceContext extends TraceContextHolder {
         outgoingHeader.setLength(0);
         flags = 0;
         clock.resetState();
+        serviceName = null;
     }
 
     /**
@@ -335,6 +340,7 @@ public class TraceContext extends TraceContextHolder {
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
         clock.init(other.clock);
+        serviceName = other.serviceName;
         onMutation();
     }
 
@@ -349,6 +355,20 @@ public class TraceContext extends TraceContextHolder {
 
     public boolean isRoot() {
         return parentId.isEmpty();
+    }
+
+    @Nullable
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    /**
+     * Overrides the {@link co.elastic.apm.agent.impl.payload.Service#name} property sent via the meta data Intake V2 event.
+     *
+     * @param serviceName the service name for this event
+     */
+    public void setServiceName(@Nullable String serviceName) {
+        this.serviceName = serviceName;
     }
 
     @Override

@@ -20,9 +20,8 @@
 package co.elastic.apm.agent.concurrent;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import io.netty.util.concurrent.GlobalEventExecutor;
-import net.bytebuddy.asm.Advice;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,9 +33,6 @@ import org.springframework.core.task.SyncTaskExecutor;
 import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +54,7 @@ public class ExecutorInstrumentationTest extends AbstractInstrumentationTest {
 
     @Before
     public void setUp() {
-        transaction = tracer.startTransaction().withName("Transaction").activate();
+        transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withName("Transaction").activate();
     }
 
     @After

@@ -164,7 +164,7 @@ type: long
 
 labels
 
-* name: The name representing this memory manager
+* name: The name representing this memory manager (for example `G1 Young Generation`, `G1 Old Generation`)
 
 The total number of collections that have occurred.
 --
@@ -179,7 +179,7 @@ format: ms
 
 labels
 
-* name: The name representing this memory manager
+* name: The name representing this memory manager (for example `G1 Young Generation`, `G1 Old Generation`)
 
 The approximate accumulated collection elapsed time in milliseconds.
 --

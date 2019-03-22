@@ -38,7 +38,7 @@ import java.nio.CharBuffer;
  */
 public class Db implements Recyclable {
 
-    private final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
+    private static final ObjectPool<CharBuffer> charBufferPool = QueueBasedObjectPool.of(new MpmcAtomicArrayQueue<CharBuffer>(128), false,
         new Allocator<CharBuffer>() {
             @Override
             public CharBuffer createInstance() {

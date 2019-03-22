@@ -23,6 +23,7 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.asm.Advice;
@@ -58,12 +59,13 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
+    public static void onMethodEnter(@Advice.Origin Class<?> clazz,
+                                     @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @Advice.Local("span") AbstractSpan<?> span) {
         if (tracer != null) {
             final TraceContextHolder<?> parent = tracer.getActive();
             if (parent == null) {
-                span = tracer.startTransaction()
+                span = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
                     .withName(signature)
                     .activate();
             } else {

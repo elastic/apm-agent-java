@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerReporter;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
@@ -36,7 +37,6 @@ import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -69,6 +69,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -158,7 +159,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
     @Before
     public void startTransaction() {
-        Transaction transaction = tracer.startTransaction().activate();
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("transaction");
         transaction.withType("request");
         transaction.withResult("success");

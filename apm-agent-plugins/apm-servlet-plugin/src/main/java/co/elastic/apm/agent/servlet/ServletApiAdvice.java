@@ -90,6 +90,7 @@ public class ServletApiAdvice {
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
+                request.getServletContext().getClassLoader(),
                 request.getServletPath(), request.getPathInfo(),
                 request.getHeader("User-Agent"),
                 request.getHeader(TraceContext.TRACE_PARENT_HEADER));
@@ -116,7 +117,7 @@ public class ServletApiAdvice {
 
             servletTransactionHelper.fillRequestContext(transaction, request.getProtocol(), request.getMethod(), request.isSecure(),
                 request.getScheme(), request.getServerName(), request.getServerPort(), request.getRequestURI(), request.getQueryString(),
-                request.getRemoteAddr());
+                request.getRemoteAddr(), request.getHeader("Content-Type"));
         }
     }
 

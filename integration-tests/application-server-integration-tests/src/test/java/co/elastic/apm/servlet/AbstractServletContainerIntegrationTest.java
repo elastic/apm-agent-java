@@ -101,6 +101,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final String expectedDefaultServiceName;
     @Nullable
     private GenericContainer<?> debugProxy;
+    private TestApp currentTestApp;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
         this(servletContainer, 8080, expectedDefaultServiceName, deploymentPath, containerName);
@@ -121,6 +122,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -207,6 +209,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     @Test
     public void testAllScenarios() throws Exception {
         for (TestApp testApp : getTestApps()) {
+            this.currentTestApp = testApp;
             waitFor(testApp.getStatusEndpoint());
             clearMockServerLog();
             testApp.test(this);
@@ -218,7 +221,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public JsonNode assertTransactionReported(String pathToTest, int expectedResponseCode) {
-        final List<JsonNode> reportedTransactions = getAllReported(500, this::getReportedTransactions, 1);
+        final List<JsonNode> reportedTransactions = getAllReported(this::getReportedTransactions, 1);
         JsonNode transaction = reportedTransactions.iterator().next();
         assertThat(transaction.get("context").get("request").get("url").get("pathname").textValue()).isEqualTo(pathToTest);
         assertThat(transaction.get("context").get("response").get("status_code").intValue()).isEqualTo(expectedResponseCode);
@@ -246,23 +249,25 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     @Nonnull
-    public List<JsonNode> getAllReported(int timeoutMs, Supplier<List<JsonNode>> supplier, int expected) {
+    public List<JsonNode> getAllReported(Supplier<List<JsonNode>> supplier, int expected) {
+        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedTransactions;
         do {
             reportedTransactions = supplier.get();
-        } while (reportedTransactions.size() != expected && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedTransactions.size() != expected && System.currentTimeMillis() - start < timeout);
         assertThat(reportedTransactions).hasSize(expected);
         return reportedTransactions;
     }
 
     @Nonnull
-    public List<JsonNode> assertSpansTransactionId(int timeoutMs, Supplier<List<JsonNode>> supplier, String transactionId) {
+    public List<JsonNode> assertSpansTransactionId(Supplier<List<JsonNode>> supplier, String transactionId) {
+        long timeout = ENABLE_DEBUGGING ? 600_000 : 500;
         long start = System.currentTimeMillis();
         List<JsonNode> reportedSpans;
         do {
             reportedSpans = supplier.get();
-        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeoutMs);
+        } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
         assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
@@ -316,7 +321,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         return !path.equals("/async-start-servlet");
     }
 
-    private String getBaseUrl() {
+    public String getBaseUrl() {
         return "http://" + servletContainer.getContainerIpAddress() + ":" + servletContainer.getMappedPort(webPort);
     }
 
@@ -340,37 +345,57 @@ public abstract class AbstractServletContainerIntegrationTest {
 
     private List<JsonNode> getEvents(String eventType) {
         try {
-            final List<JsonNode> transactions = new ArrayList<>();
+            final List<JsonNode> events = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
             for (HttpRequest httpRequest : mockServerContainer.getClient().retrieveRecordedRequests(request(INTAKE_V2_URL))) {
-                for (String ndJsonLine : httpRequest.getBodyAsString().split("\n")) {
+                final String bodyAsString = httpRequest.getBodyAsString();
+                validateEventMetadata(bodyAsString);
+                for (String ndJsonLine : bodyAsString.split("\n")) {
                     final JsonNode ndJson = objectMapper.readTree(ndJsonLine);
                     if (ndJson.get(eventType) != null) {
-                        transactions.add(ndJson.get(eventType));
+                        events.add(ndJson.get(eventType));
                     }
                 }
             }
-            return transactions;
+            return events;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void validateMetadata() {
+    private void validateEventMetadata(String bodyAsString) {
         try {
             final ObjectMapper objectMapper = new ObjectMapper();
-            final JsonNode payload;
-            payload = objectMapper
-                .readTree(mockServerContainer.getClient()
-                    .retrieveRecordedRequests(request(INTAKE_V2_URL))[0].getBodyAsString().split("\n")[0]);
-            JsonNode metadata = payload.get("metadata");
-            assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
-            JsonNode container = metadata.get("system").get("container");
-            assertThat(container).isNotNull();
-            assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
+            for (String line : bodyAsString.split("\n")) {
+                final JsonNode event = objectMapper.readTree(line);
+                final JsonNode metadata = event.get("metadata");
+                if (metadata != null) {
+                    validataMetadataEvent(metadata);
+                } else {
+                    validateServiceName(event.get("error"));
+                    validateServiceName(event.get("span"));
+                    validateServiceName(event.get("transaction"));
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void validateServiceName(JsonNode event) {
+        if (currentTestApp.getExpectedServiceName() != null && event != null) {
+            assertThat(event.get("context").get("service"))
+                .withFailMessage("No service name set. Expected '%s'. Event was %s", currentTestApp.getExpectedServiceName(), event)
+                .isNotNull();
+            assertThat(event.get("context").get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
+        }
+    }
+
+    private void validataMetadataEvent(JsonNode metadata) {
+        assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
+        JsonNode container = metadata.get("system").get("container");
+        assertThat(container).isNotNull();
+        assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());
     }
 
     private void addSpans(List<JsonNode> spans, JsonNode payload) {
@@ -389,5 +414,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .forStatusCode(200)
             .withStartupTimeout(Duration.ofMinutes(ENABLE_DEBUGGING ? 1_000 : 5))
             .waitUntilReady(servletContainer);
+    }
+
+    public OkHttpClient getHttpClient() {
+        return httpClient;
     }
 }

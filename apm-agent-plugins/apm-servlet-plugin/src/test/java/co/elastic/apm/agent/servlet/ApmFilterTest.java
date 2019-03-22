@@ -95,21 +95,6 @@ class ApmFilterTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testTrackPostParams() throws IOException, ServletException {
-        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
-        request.addParameter("foo", "bar");
-        request.addParameter("baz", "qux", "quux");
-        request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
-
-        filterChain.doFilter(request, new MockHttpServletResponse());
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isInstanceOf(PotentiallyMultiValuedMap.class);
-        PotentiallyMultiValuedMap params = (PotentiallyMultiValuedMap) reporter.getFirstTransaction().getContext().getRequest().getBody();
-        assertThat(params.get("foo")).isEqualTo("bar");
-        assertThat(params.get("baz")).isEqualTo(Arrays.asList("qux", "quux"));
-    }
-
-    @Test
     void captureException() {
         // we can't use mock(Servlet.class) here as the agent would instrument the created mock which confuses mockito
         final HttpServlet servlet = new HttpServlet() {

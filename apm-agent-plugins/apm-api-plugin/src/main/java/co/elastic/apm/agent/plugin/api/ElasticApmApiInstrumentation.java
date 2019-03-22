@@ -61,9 +61,9 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction) {
+        private static void doStartTransaction(@Advice.Origin Class<?> clazz, @Advice.Return(readOnly = false) Object transaction) {
             if (tracer != null) {
-                transaction = tracer.startTransaction();
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
             }
         }
     }
@@ -76,7 +76,8 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void doStartTransaction(@Advice.Return(readOnly = false) Object transaction,
+        private static void doStartTransaction(@Advice.Origin Class<?> clazz,
+                                               @Advice.Return(readOnly = false) Object transaction,
                                                @Advice.Argument(0) MethodHandle getFirstHeader,
                                                @Advice.Argument(1) @Nullable Object headerExtractor,
                                                @Advice.Argument(2) MethodHandle getAllHeaders,
@@ -84,17 +85,17 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
             if (tracer != null) {
                 if (headerExtractor != null) {
                     final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_HEADER);
-                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader);
+                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader, clazz.getClassLoader());
                 } else if (headersExtractor != null) {
                     final Iterable<String> traceparentHeader = (Iterable<String>) getAllHeaders.invoke(headersExtractor, TraceContext.TRACE_PARENT_HEADER);
                     final Iterator<String> iterator = traceparentHeader.iterator();
                     if (iterator.hasNext()) {
-                        transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), iterator.next());
+                        transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), iterator.next(), clazz.getClassLoader());
                     } else {
-                        transaction = tracer.startTransaction();
+                        transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
                     }
                 } else {
-                    transaction = tracer.startTransaction();
+                    transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
                 }
             }
         }
@@ -135,9 +136,9 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
 
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void captureException(@Advice.Argument(0) @Nullable Throwable e) {
+        private static void captureException(@Advice.Origin Class<?> clazz, @Advice.Argument(0) @Nullable Throwable e) {
             if (tracer != null) {
-                tracer.captureException(e);
+                tracer.captureException(e, clazz.getClassLoader());
             }
         }
     }
