@@ -19,6 +19,8 @@
  */
 package co.elastic.apm.agent.benchmark;
 
+import org.springframework.mock.web.MockServletContext;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
@@ -56,6 +58,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
     private String requestURI;
     private String servletPath;
     private String serverName;
+    private MockServletContext servletContext = new MockServletContext();
 
     public MockHttpServletRequest(String method, String requestUrl) {
         this.method = method;
@@ -372,7 +375,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public ServletContext getServletContext() {
-        return null;
+        return servletContext;
     }
 
     @Override
