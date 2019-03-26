@@ -35,14 +35,14 @@
    controls which `Content-Type`s should be captured.
  * Support async calls made by OkHttp client (`Call#enqueue`)
  * Added support for providing config options on agent attach.
- CLI example: `--config server_urls=http://localhost:8200,http://localhost:8201`
- API example: `ElasticApmAttacher.attach(Map.of("server_urls", "http://localhost:8200,http://localhost:8201"));`
+   * CLI example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+   * API example: `ElasticApmAttacher.attach(Map.of("server_urls", "http://localhost:8200,http://localhost:8201"));`
 
 ## Bug Fixes
  * Logging integration through MDC is not working properly - [#499](https://github.com/elastic/apm-agent-java/issues/499)
  * ClassCastException with adoptopenjdk/openjdk11-openj9 - [#505](https://github.com/elastic/apm-agent-java/issues/505)
  * Span count limitation is not working properly - reported [in our forum](https://discuss.elastic.co/t/kibana-apm-not-showing-spans-which-are-visible-in-discover-too-many-spans/171690)
- * Java agent fails in Alfresco cluster environment - reported [in our forum](https://discuss.elastic.co/t/cant-run-apm-java-agent-in-alfresco-cluster-environment/172962)
+ * Java agent causes Exceptions in Alfresco cluster environment due to failure in the instrumentation of Hazelcast `Executor`s - reported [in our forum](https://discuss.elastic.co/t/cant-run-apm-java-agent-in-alfresco-cluster-environment/172962)
 
 # 1.4.0
 
