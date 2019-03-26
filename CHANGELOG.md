@@ -34,7 +34,9 @@
    The option [`capture_body_content_types`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types)
    controls which `Content-Type`s should be captured.
  * Support async calls made by OkHttp client (`Call#enqueue`)
- * Added support for providing a config option on agent attach, for example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+ * Added support for providing config options on agent attach.
+ CLI example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+ API example: `ElasticApmAttacher.attach(Map.of("server_urls", "http://localhost:8200,http://localhost:8201"));`
 
 ## Bug Fixes
  * Logging integration through MDC is not working properly - [#499](https://github.com/elastic/apm-agent-java/issues/499)
