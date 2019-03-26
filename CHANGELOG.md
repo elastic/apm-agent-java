@@ -1,4 +1,10 @@
-# next (1.5.0)
+# next (1.6.0)
+
+## Features
+
+## Bug Fixes
+
+# 1.5.0
 
 ## Potentially breaking changes
  * If you didn't explicitly set the [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
@@ -9,6 +15,7 @@
    Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
 
 ## Features
+ * Added property "allow_path_on_hierarchy" to JAX-RS plugin, to lookup inherited usage of `@path`
  * Support for number and boolean labels in the public API (#497).
    This change also renames `tag` to `label` on the API level to be compliant with the [Elastic Common Schema (ECS)](https://github.com/elastic/ecs#-base-fields).
    The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
@@ -27,8 +34,13 @@
    The option [`capture_body_content_types`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types)
    controls which `Content-Type`s should be captured.
  * Support async calls made by OkHttp client (`Call#enqueue`)
+ * Added support for providing a config option on agent attach, for example: `--config server_urls=http://localhost:8200,http://localhost:8201`
 
 ## Bug Fixes
+ * Logging integration through MDC is not working properly - [#499](https://github.com/elastic/apm-agent-java/issues/499)
+ * ClassCastException with adoptopenjdk/openjdk11-openj9 - [#505](https://github.com/elastic/apm-agent-java/issues/505)
+ * Span count limitation is not working properly - reported [in our forum](https://discuss.elastic.co/t/kibana-apm-not-showing-spans-which-are-visible-in-discover-too-many-spans/171690)
+ * Java agent fails in Alfresco cluster environment - reported [in our forum](https://discuss.elastic.co/t/cant-run-apm-java-agent-in-alfresco-cluster-environment/172962)
 
 # 1.4.0
 
