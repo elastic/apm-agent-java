@@ -110,7 +110,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer();
+        container = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:6.7.0");
         container.start();
 
         // Create the client
