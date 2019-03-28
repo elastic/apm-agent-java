@@ -164,6 +164,7 @@ public class ElasticApmAgent {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying advice {}", advice.getClass().getName());
         advice.init(tracer);
+        final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = advice.getTypeMatcherPreFilter();
@@ -175,7 +176,7 @@ public class ElasticApmAgent {
                 public boolean matches(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module, Class<?> classBeingRedefined, ProtectionDomain protectionDomain) {
                     long start = System.nanoTime();
                     try {
-                        if (!classLoaderMatcher.matches(classLoader)) {
+                        if (classLoadingMatchingPreFilter && !classLoaderMatcher.matches(classLoader)) {
                             return false;
                         }
                         if (typeMatchingWithNamePreFilter && !typeMatcherPreFilter.matches(typeDescription)) {
