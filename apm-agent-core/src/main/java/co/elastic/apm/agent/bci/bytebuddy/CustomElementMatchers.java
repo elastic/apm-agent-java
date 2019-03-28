@@ -24,14 +24,20 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.net.URL;
+import java.security.CodeSource;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
 public class CustomElementMatchers {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomElementMatchers.class);
 
     public static ElementMatcher.Junction<NamedElement> isInAnyPackage(Collection<String> includedPackages,
                                                                        ElementMatcher.Junction<NamedElement> defaultIfEmpty) {
@@ -81,7 +87,17 @@ public class CustomElementMatchers {
     private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
         boolean result;
         try {
-            Class.forName(className, false, target);
+            Class<?> clazz = Class.forName(className, false, target);
+            if (logger.isDebugEnabled()) {
+                String classLoaderName = (target == null) ? "Bootstrap ClassLoader" : target.getClass().getName();
+                String codeSourceString = "";
+                CodeSource codeSource = clazz.getProtectionDomain().getCodeSource();
+                if (codeSource != null) {
+                    URL classLocation = codeSource.getLocation();
+                    codeSourceString = " from " + codeSource.getLocation();
+                }
+                logger.debug("{} was loaded by {}{}", className, classLoaderName, codeSourceString);
+            }
             result = true;
         } catch (Exception ignore) {
             result = false;
