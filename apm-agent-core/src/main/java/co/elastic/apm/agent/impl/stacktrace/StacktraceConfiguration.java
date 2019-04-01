@@ -62,11 +62,11 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
             "\n" +
-            "When setting this option to `-1`, stack traces will be collected for all spans. " +
+            "When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. " +
             "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
             "with durations equal or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
-            "To disable stack trace collection for spans completely, set the value to 0.")
+            "To disable stack trace collection for spans completely, set the value to `0ms`.")
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
