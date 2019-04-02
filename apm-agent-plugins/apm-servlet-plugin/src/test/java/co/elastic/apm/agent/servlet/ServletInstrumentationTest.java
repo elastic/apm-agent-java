@@ -52,6 +52,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 class ServletInstrumentationTest extends AbstractServletTest {
@@ -114,11 +115,15 @@ class ServletInstrumentationTest extends AbstractServletTest {
     @Test
     void testForward() throws Exception {
         callServlet(1, "/forward");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertEquals("FORWARD /test", reporter.getSpans().get(0).getName().toString());
     }
 
     @Test
     void testInclude() throws Exception {
         callServlet(1, "/include");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
+        assertEquals("INCLUDE /test", reporter.getSpans().get(0).getName().toString());
     }
 
     private void callServlet(int expectedTransactions, String path) throws IOException, InterruptedException {

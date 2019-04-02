@@ -42,7 +42,7 @@ public class SoapTestApp extends TestApp {
 
         final List<JsonNode> reportedTransactions = test.getReportedTransactions();
         // there will also be another transaction for getting the WSDL but we don't need to assert on that
-        assertThat(reportedTransactions.stream().map(node -> node.get("name").textValue())).contains("HelloWorldServiceImpl#sayHello", "SoapClientServlet#doGet");
+        assertThat(reportedTransactions.stream().map(node -> node.get("name").textValue())).contains("HelloWorldServiceImpl#sayHello", "GET SoapClientServlet");
         final Set<String> traceIds = reportedTransactions.stream().map(node -> node.get("trace_id").textValue()).collect(Collectors.toSet());
         assertThat(traceIds).hasSize(1);
 
