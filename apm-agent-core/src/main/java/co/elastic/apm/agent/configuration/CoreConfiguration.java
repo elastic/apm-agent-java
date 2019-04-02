@@ -233,6 +233,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "for example when a javax.servlet.Servlet does not contain the word 'Servlet' in the class name.")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> classLoadingMatchingPreFilter = ConfigurationOption.booleanOption()
+        .key("enable_class_loading_pre_filtering")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description("When enabled, applies class loader match before checking the type hierarchy that relies on CL cache.\n" +
+            "This speeds up matching but can lead to class-loading-related side effects, for example when a class \n" +
+            "is available somewhere in the classpath where it never gets loaded unless this matching is applied.")
+        .buildWithDefault(true);
+
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -353,6 +362,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isTypeMatchingWithNamePreFilter() {
         return typeMatchingWithNamePreFilter.get();
+    }
+
+    public boolean isClassLoadingMatchingPreFilter() {
+        return classLoadingMatchingPreFilter.get();
     }
 
     public List<WildcardMatcher> getClassesExcludedFromInstrumentation() {
