@@ -27,8 +27,8 @@ import javax.annotation.Nullable;
 import java.net.URI;
 
 public class HttpClientHelper {
-    private static final String EXTERNAL_TYPE = "external";
-    private static final String HTTP_SUBTYPE = "http";
+    public static final String EXTERNAL_TYPE = "external";
+    public static final String HTTP_SUBTYPE = "http";
 
     @Nullable
     @VisibleForAdvice
@@ -40,9 +40,10 @@ public class HttpClientHelper {
     @VisibleForAdvice
     public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri, String hostName) {
         Span span = null;
-        if (!isAlreadyMonitored(parent)) {
+        if (!isExit(parent)) {
             span = parent
                 .createSpan()
+                .asExit()
                 .withType(EXTERNAL_TYPE)
                 .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName);
@@ -55,16 +56,12 @@ public class HttpClientHelper {
     }
 
     /*
-     * typically, more than one ClientExecChain implementation is invoked during an HTTP request
+     * Identify nested invocations
      */
-    private static boolean isAlreadyMonitored(TraceContextHolder<?> parent) {
-        if (!(parent instanceof Span)) {
-            return false;
+    public static boolean isExit(TraceContextHolder<?> parent) {
+        if (parent instanceof Span) {
+            return ((Span) parent).isExit();
         }
-        Span parentSpan = (Span) parent;
-        // a http client span can't be the child of another http client span
-        // this means the span has already been created for this db call
-        return parentSpan.getType() != null && parentSpan.getType().equals(EXTERNAL_TYPE) &&
-            parentSpan.getSubtype() != null && parentSpan.getSubtype().equals(HTTP_SUBTYPE);
+        return false;
     }
 }

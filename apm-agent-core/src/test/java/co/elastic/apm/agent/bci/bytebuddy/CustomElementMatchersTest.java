@@ -20,11 +20,14 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.description.type.TypeDescription;
+import org.apache.http.client.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.security.ProtectionDomain;
 import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,5 +47,22 @@ class CustomElementMatchersTest {
         assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(ClassLoader.getSystemClassLoader())).isTrue();
         assertThat(classLoaderCanLoadClass(Object.class.getName()).matches(null)).isTrue();
         assertThat(classLoaderCanLoadClass("not.Here").matches(ClassLoader.getSystemClassLoader())).isFalse();
+    }
+
+    @Test
+    void testSemVerLteMatcher() {
+        // Relying on Apache httpclient-4.3.2.jar
+        ProtectionDomain protectionDomain = HttpClient.class.getProtectionDomain();
+        assertThat(implementationVersionLte("3").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3.2").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3.15.10").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.2.19").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.3.1").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.3.2").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.3.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.7.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5.7.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5.0").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("5").matches(protectionDomain)).isTrue();
     }
 }

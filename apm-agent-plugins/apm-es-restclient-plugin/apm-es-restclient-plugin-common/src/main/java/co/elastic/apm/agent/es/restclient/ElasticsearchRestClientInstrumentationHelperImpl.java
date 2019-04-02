@@ -76,11 +76,12 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
         }
 
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
-        if (activeSpan instanceof Span && ELASTICSEARCH.equals(((Span) activeSpan).getSubtype())) {
+        if (activeSpan instanceof Span && ((Span) activeSpan).isExit()) {
             return null;
         }
 
         Span span = activeSpan.createSpan()
+            .asExit()
             .withType(SPAN_TYPE)
             .withSubtype(ELASTICSEARCH)
             .withAction(SPAN_ACTION)
