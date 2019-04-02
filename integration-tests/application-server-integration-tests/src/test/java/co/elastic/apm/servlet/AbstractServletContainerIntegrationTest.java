@@ -41,6 +41,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -127,12 +128,28 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
-        for (TestApp testApp : getTestApps()) {
-            String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(pathToAppFile);
-            servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
+        if (isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
+            }
         }
         this.servletContainer.start();
+        if (!isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
+            }
+        }
+    }
+
+    /**
+     * If set to true, the war files are {@code --mount}ed into the container instead of copied, which is faster.
+     */
+    protected boolean isDeployViaFileSystemBind() {
+        return true;
     }
 
     private static String getPathToJavaagent() {

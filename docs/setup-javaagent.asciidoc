@@ -189,6 +189,38 @@ Update the `domain.xml` file to add the `-javaagent` flag and system properties.
 ----
 
 [float]
+[[setup-weblogic]]
+==== Oracle WebLogic
+
+[float]
+[[setup-weblogic-unix]]
+===== Unix
+Edit the `startWebLogic.sh` file and add the following lines after the `setDomainEnv.sh` call:
+
+[source,bash]
+.$DOMAIN_HOME/bin/startWebLogic.sh
+----
+export JAVA_OPTIONS="$JAVA_OPTIONS -javaagent:/path/to/elastic-apm-agent-<version>.jar"
+export JAVA_OPTIONS="$JAVA_OPTIONS -Delastic.apm.service_name=my-cool-service"
+export JAVA_OPTIONS="$JAVA_OPTIONS -Delastic.apm.application_packages=org.example,org.another.example"
+export JAVA_OPTIONS="$JAVA_OPTIONS -Delastic.apm.server_urls=http://localhost:8200"
+----
+
+[float]
+[[setup-weblogic-windows]]
+===== Windows
+Edit the `startWebLogic.cmd` file and add the following lines after the `setDomainEnv.cmd` call:
+
+[source,batch]
+.%DOMAIN_HOME%\bin\startWebLogic.cmd
+----
+set JAVA_OPTIONS=%JAVA_OPTIONS% -javaagent:C:/path/to/elastic-apm-agent-<version>.jar
+set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.service_name=my-cool-service
+set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.application_packages=org.example,org.another.example
+set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.server_urls=http://localhost:8200
+----
+
+[float]
 [[setup-cloud-foundry]]
 ==== Cloud Foundry
 Inject the `elastic-apm-agent-<version>.jar` into the root path of the deployable application, e.g. `my-application.jar`. Update the `manifest.yml` file to add the `-javaagent` flag and system properties as part of `JAVA_OPTS`.
