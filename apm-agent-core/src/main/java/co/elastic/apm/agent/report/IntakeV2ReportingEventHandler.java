@@ -354,7 +354,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
 
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
-        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
