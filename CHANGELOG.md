@@ -3,6 +3,7 @@
 ## Features
 
 ## Bug Fixes
+* Avoid that the agent blocks server shutdown in case the APM Server is not available
 
 # 1.5.0
 
