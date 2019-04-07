@@ -160,7 +160,10 @@ public class ApmServerReporter implements Reporter {
      */
     @Override
     public Future<Void> flush() {
-        disruptor.publishEvent(FLUSH_EVENT_TRANSLATOR);
+        final boolean success = disruptor.getRingBuffer().tryPublishEvent(FLUSH_EVENT_TRANSLATOR);
+        if (!success) {
+            throw new IllegalStateException("Ring buffer has no available slots");
+        }
         final long cursor = disruptor.getCursor();
         return new Future<Void>() {
             private volatile boolean cancelled = false;
@@ -216,7 +219,7 @@ public class ApmServerReporter implements Reporter {
 
     @Override
     public void close() {
-        disruptor.publishEvent(SHUTDOWN_EVENT_TRANSLATOR);
+        disruptor.getRingBuffer().tryPublishEvent(SHUTDOWN_EVENT_TRANSLATOR);
         try {
             disruptor.shutdown(5, TimeUnit.SECONDS);
         } catch (com.lmax.disruptor.TimeoutException e) {
@@ -245,7 +248,7 @@ public class ApmServerReporter implements Reporter {
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    disruptor.publishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
+                    disruptor.getRingBuffer().tryPublishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
                         @Override
                         public void translateTo(ReportingEvent event, long sequence, MetricRegistry metricRegistry) {
                             event.reportMetrics(metricRegistry);

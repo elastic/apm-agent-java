@@ -354,7 +354,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
 
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
-        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
@@ -398,9 +398,10 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
         @Override
         public void run() {
-            // if the ring buffer is full this waits until a slot becomes available
-            // as this happens on a different thread,
-            // the reporting does not block and thus there is no danger of deadlocks
+            // If the ring buffer is full this throws an exception.
+            // In case it's full due to a traffic spike it means that it will eventually flush anyway because of the max request size
+            // If the APM Server is down for a longer period and the ring buffer is full because of that,
+            // the timeout task will not be started as the connection attempt resulted in an exception
             logger.debug("Request flush because the request timeout occurred");
             flush = reporter.flush();
         }

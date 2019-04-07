@@ -8,6 +8,8 @@ pipeline {
     BASE_DIR="src/github.com/elastic/apm-agent-java"
     NOTIFY_TO = credentials('notify-to')
     JOB_GCS_BUCKET = credentials('gcs-bucket')
+    DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
+    CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -103,10 +105,7 @@ pipeline {
           }
           post {
             always {
-              junit(allowEmptyResults: true,
-                keepLongStdio: true,
-                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}")
+              reportTestResults()
             }
           }
         }
@@ -129,15 +128,13 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
+              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
               sh './scripts/jenkins/smoketests-01.sh'
             }
           }
           post {
             always {
-              junit(allowEmptyResults: true,
-                keepLongStdio: true,
-                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}")
+              reportTestResults()
             }
           }
         }
@@ -160,15 +157,13 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
+              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
               sh './scripts/jenkins/smoketests-02.sh'
             }
           }
           post {
             always {
-              junit(allowEmptyResults: true,
-                keepLongStdio: true,
-                testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-              codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}")
+              reportTestResults()
             }
           }
         }
@@ -189,9 +184,6 @@ pipeline {
             beforeAgent true
             allOf {
               anyOf {
-                not {
-                  changeRequest()
-                }
                 branch 'master'
                 branch "\\d+\\.\\d+"
                 branch "v\\d?"
@@ -291,4 +283,11 @@ pipeline {
       echoColor(text: '[UNSTABLE]', colorfg: 'yellow', colorbg: 'default')
     }
   }
+}
+
+def reportTestResults(){
+  junit(allowEmptyResults: true,
+    keepLongStdio: true,
+    testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
+  codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
