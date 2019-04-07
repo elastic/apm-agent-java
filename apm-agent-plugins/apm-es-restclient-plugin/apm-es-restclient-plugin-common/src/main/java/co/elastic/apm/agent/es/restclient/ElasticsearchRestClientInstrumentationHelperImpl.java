@@ -75,14 +75,14 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
             return null;
         }
 
+        Span span = activeSpan.createExitSpan();
+
         // Don't record nested spans. In 5.x clients the instrumented sync method is calling the instrumented async method
-        if (activeSpan instanceof Span && ((Span) activeSpan).isExit()) {
+        if (span == null) {
             return null;
         }
 
-        Span span = activeSpan.createSpan()
-            .asExit()
-            .withType(SPAN_TYPE)
+        span.withType(SPAN_TYPE)
             .withSubtype(ELASTICSEARCH)
             .withAction(SPAN_ACTION)
             .appendToName("Elasticsearch: ").appendToName(method).appendToName(" ").appendToName(endpoint);

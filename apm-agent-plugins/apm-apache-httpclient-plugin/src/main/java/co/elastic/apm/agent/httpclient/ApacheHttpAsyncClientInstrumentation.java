@@ -58,16 +58,12 @@ public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentat
                 return;
             }
             final TraceContextHolder<?> parent = tracer.getActive();
-            if (!HttpClientHelper.isExit(parent)) {
-                span = parent.createSpan()
-                    .asExit()
-                    .withType(HttpClientHelper.EXTERNAL_TYPE)
+            span = parent.createExitSpan();
+            if (span != null) {
+                span.withType(HttpClientHelper.EXTERNAL_TYPE)
                     .withSubtype(HttpClientHelper.HTTP_SUBTYPE)
                     .activate();
-            }
 
-            // wrap
-            if (span != null) {
                 ApacheHttpAsyncClientHelper<HttpAsyncRequestProducer, FutureCallback<?>, HttpContext> helper =
                     helperManager.getForClassLoaderOfClass(HttpAsyncRequestProducer.class);
                 if (helper != null) {
@@ -119,10 +115,10 @@ public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentat
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("execute")
             .and(takesArguments(4))
-            .and(takesArgument(0, hasSuperType(named("org.apache.http.nio.protocol.HttpAsyncRequestProducer"))))
-            .and(takesArgument(1, hasSuperType(named("org.apache.http.nio.protocol.HttpAsyncResponseConsumer"))))
-            .and(takesArgument(2, hasSuperType(named("org.apache.http.protocol.HttpContext"))))
-            .and(takesArgument(3, hasSuperType(named("org.apache.http.concurrent.FutureCallback"))));
+            .and(takesArgument(0, named("org.apache.http.nio.protocol.HttpAsyncRequestProducer")))
+            .and(takesArgument(1, named("org.apache.http.nio.protocol.HttpAsyncResponseConsumer")))
+            .and(takesArgument(2, named("org.apache.http.protocol.HttpContext")))
+            .and(takesArgument(3, named("org.apache.http.concurrent.FutureCallback")));
     }
 
     @Override

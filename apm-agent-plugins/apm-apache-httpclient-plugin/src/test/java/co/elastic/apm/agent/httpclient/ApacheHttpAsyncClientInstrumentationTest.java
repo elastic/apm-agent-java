@@ -73,6 +73,6 @@ public class ApacheHttpAsyncClientInstrumentationTest extends AbstractHttpClient
             }
         });
 
-        responseFuture.get().getStatusLine().getStatusCode();
+        responseFuture.get();
     }
 }

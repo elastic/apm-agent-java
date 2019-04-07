@@ -108,6 +108,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     @Override
     public void resetState() {
+        super.resetState();
         finished = true;
         name.setLength(0);
         timestamp = 0;

@@ -22,6 +22,7 @@ package co.elastic.apm.agent.httpclient;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
@@ -35,6 +36,7 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
@@ -49,6 +51,7 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInst
             if (tracer == null || redirect == null) {
                 return;
             }
+            // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
             if (original.containsHeader(TraceContext.TRACE_PARENT_HEADER) && !redirect.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
                 String traceContext = original.getFirstHeader(TraceContext.TRACE_PARENT_HEADER).getValue();
                 if (traceContext != null) {
@@ -61,6 +64,11 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInst
     @Override
     public Class<?> getAdviceClass() {
         return ApacheHttpAsyncClientRedirectAdvice.class;
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("RedirectStrategy");
     }
 
     @Override

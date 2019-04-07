@@ -53,11 +53,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private String action;
 
     /**
-     * Flag to mark a span as representing an exit event
-     */
-    private boolean isExit;
-
-    /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
     private final SpanContext context = new SpanContext();
@@ -125,11 +120,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return this;
     }
 
-    public Span asExit() {
-        isExit = true;
-        return this;
-    }
-
     /**
      * Sets span.type, span.subtype and span.action. If no subtype and action are provided, assumes the legacy usage of hierarchical
      * typing system and attempts to split the type by dots to discover subtype and action.
@@ -177,10 +167,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return action;
     }
 
-    public boolean isExit() {
-        return isExit;
-    }
-
     @Override
     public void doEnd(long epochMicros) {
         if (logger.isDebugEnabled()) {
@@ -203,7 +189,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         type = null;
         subtype = null;
         action = null;
-        isExit = false;
     }
 
     @Override

@@ -39,12 +39,9 @@ public class HttpClientHelper {
     @Nullable
     @VisibleForAdvice
     public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri, String hostName) {
-        Span span = null;
-        if (!isExit(parent)) {
-            span = parent
-                .createSpan()
-                .asExit()
-                .withType(EXTERNAL_TYPE)
+        Span span = parent.createExitSpan();
+        if (span != null) {
+            span.withType(EXTERNAL_TYPE)
                 .withSubtype(HTTP_SUBTYPE)
                 .appendToName(method).appendToName(" ").appendToName(hostName);
 
@@ -53,15 +50,5 @@ public class HttpClientHelper {
             }
         }
         return span;
-    }
-
-    /*
-     * Identify nested invocations
-     */
-    public static boolean isExit(TraceContextHolder<?> parent) {
-        if (parent instanceof Span) {
-            return ((Span) parent).isExit();
-        }
-        return false;
     }
 }
