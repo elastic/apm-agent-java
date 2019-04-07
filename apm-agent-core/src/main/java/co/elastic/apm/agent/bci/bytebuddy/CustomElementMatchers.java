@@ -87,18 +87,19 @@ public class CustomElementMatchers {
     private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
         boolean result;
         try {
-            Class<?> clazz = Class.forName(className, false, target);
+            if (target == null) {
+                target = ClassLoader.getSystemClassLoader();
+            }
+            final URL resource = target.getResource(className.replace('.', '/') + ".class");
+            result = resource != null;
             if (logger.isDebugEnabled()) {
-                String classLoaderName = (target == null) ? "Bootstrap ClassLoader" : target.getClass().getName();
+                String classLoaderName = target.getClass().getName();
                 String codeSourceString = "";
-                CodeSource codeSource = clazz.getProtectionDomain().getCodeSource();
-                if (codeSource != null) {
-                    URL classLocation = codeSource.getLocation();
-                    codeSourceString = " from " + codeSource.getLocation();
+                if (resource != null) {
+                    codeSourceString = " from " + resource;
                 }
                 logger.debug("{} was loaded by {}{}", className, classLoaderName, codeSourceString);
             }
-            result = true;
         } catch (Exception ignore) {
             result = false;
         }
