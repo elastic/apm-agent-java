@@ -51,15 +51,15 @@ class CustomElementMatchersTest {
 
     @Test
     void testSemVerLteMatcher() {
-        // Relying on Apache httpclient-4.3.2.jar
+        // Relying on Apache httpclient-4.5.6.jar
         ProtectionDomain protectionDomain = HttpClient.class.getProtectionDomain();
         assertThat(implementationVersionLte("3").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("3.2").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("3.15.10").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("4.2.19").matches(protectionDomain)).isFalse();
-        assertThat(implementationVersionLte("4.3.1").matches(protectionDomain)).isFalse();
-        assertThat(implementationVersionLte("4.3.2").matches(protectionDomain)).isTrue();
-        assertThat(implementationVersionLte("4.3.3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.5").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.6").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.7").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("4.7.3").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("5.7.3").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("5.0").matches(protectionDomain)).isTrue();
