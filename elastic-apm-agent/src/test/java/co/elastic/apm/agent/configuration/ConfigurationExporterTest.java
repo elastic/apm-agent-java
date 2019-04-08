@@ -19,6 +19,9 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -32,14 +35,16 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collections;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * This is not an actual test.
@@ -86,25 +91,48 @@ class ConfigurationExporterTest {
         cfg.setLogTemplateExceptions(false);
 
         Template temp = cfg.getTemplate("configuration.asciidoc.ftl");
-        Writer out = new FileWriter("../docs/configuration.asciidoc");
-        out.write("////\n" +
-            "This file is auto generated\n" +
-            "\n" +
-            "Please only make changes in configuration.asciidoc.ftl\n" +
-            "////\n");
-        final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
-            .values()
-            .stream()
-            .flatMap(List::stream)
-            .filter(option -> !option.getTags().contains("internal"))
-            .collect(Collectors.toList());
-        final Map<String, List<ConfigurationOption<?>>> optionsByCategory = nonInternalOptions.stream()
-            .collect(Collectors.groupingBy(ConfigurationOption::getConfigurationCategory, TreeMap::new, Collectors.toList()));
-        temp.process(Map.of(
-            "config", optionsByCategory,
-            "keys", nonInternalOptions.stream().map(ConfigurationOption::getKey).sorted().collect(Collectors.toList())
-        ), out);
+        try (Writer out = new FileWriter("../docs/configuration.asciidoc")) {
+            out.write("////\n" +
+                "This file is auto generated\n" +
+                "\n" +
+                "Please only make changes in configuration.asciidoc.ftl\n" +
+                "////\n");
+            final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
+                .values()
+                .stream()
+                .flatMap(List::stream)
+                .filter(option -> !option.getTags().contains("internal"))
+                .collect(Collectors.toList());
+            final Map<String, List<ConfigurationOption<?>>> optionsByCategory = nonInternalOptions.stream()
+                .collect(Collectors.groupingBy(ConfigurationOption::getConfigurationCategory, TreeMap::new, Collectors.toList()));
+            temp.process(Map.of(
+                "config", optionsByCategory,
+                "keys", nonInternalOptions.stream().map(ConfigurationOption::getKey).sorted().collect(Collectors.toList())
+            ), out);
+        }
+        // re-process the rendered template to resolve the ${allInstrumentationGroupNames} placeholder
+        final String sourceCode = new String(Files.readAllBytes(Paths.get("../docs/configuration.asciidoc")));
+        try (Writer out = new FileWriter("../docs/configuration.asciidoc")) {
+            new Template("", sourceCode, cfg)
+                .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
+        }
+    }
 
+    public static String getAllInstrumentationGroupNames() {
+        Set<String> instrumentationGroupNames = new TreeSet<>();
+        instrumentationGroupNames.add("incubating");
+        for (ElasticApmInstrumentation instrumentation : DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, MockTracer.create())) {
+            instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
+        }
+
+        StringBuilder allGroups = new StringBuilder();
+        for (Iterator<String> iterator = instrumentationGroupNames.iterator(); iterator.hasNext(); ) {
+            allGroups.append('`').append(iterator.next()).append('`');
+            if (iterator.hasNext()) {
+                allGroups.append(", ");
+            }
+        }
+        return allGroups.toString();
     }
 
 }

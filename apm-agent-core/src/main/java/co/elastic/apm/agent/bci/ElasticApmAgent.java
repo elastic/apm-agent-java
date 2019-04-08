@@ -32,6 +32,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -52,10 +53,8 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -96,10 +95,7 @@ public class ElasticApmAgent {
 
     @Nonnull
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
-        final ArrayList<ElasticApmInstrumentation> instrumentations = new ArrayList<ElasticApmInstrumentation>();
-        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader())) {
-            instrumentations.add(instrumentation);
-        }
+        final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
             instrumentations.add(new TraceMethodInstrumentation(traceMethod));
         }
@@ -163,7 +159,6 @@ public class ElasticApmAgent {
                                             final ElasticApmInstrumentation advice) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying advice {}", advice.getClass().getName());
-        advice.init(tracer);
         final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();

@@ -24,19 +24,15 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 /**
- * A processor is executed right before a event (a {@link Transaction} or {@link Error}) gets reported.
+ * A processor is executed right before a event (a {@link Transaction} or {@link ErrorCapture}) gets reported.
  * <p>
  * You can use this for example to sanitize certain information.
  * </p>
+ * <p>
+ * The constructor can optionally have a {@link ConfigurationRegistry} parameter.
+ * </p>
  */
 public interface Processor {
-
-    /**
-     * This method is called so that the processor can initialize configuration before the {@link #processBeforeReport} methods are called.
-     *
-     * @param configurationRegistry A reference to the {@link ConfigurationRegistry} which can be used to get configuration options.
-     */
-    void init(ConfigurationRegistry configurationRegistry);
 
     /**
      * This method is executed before the provided {@link Transaction} is reported.

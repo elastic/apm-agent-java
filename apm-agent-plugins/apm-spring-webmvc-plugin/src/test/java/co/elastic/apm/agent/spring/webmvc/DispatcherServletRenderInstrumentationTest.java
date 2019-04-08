@@ -61,7 +61,7 @@ public class DispatcherServletRenderInstrumentationTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(), new DispatcherServletRenderInstrumentation()));
+            Arrays.asList(new ServletInstrumentation(tracer), new DispatcherServletRenderInstrumentation()));
     }
 
     @AfterClass

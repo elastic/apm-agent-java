@@ -65,8 +65,7 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     // referring to AsyncContext is legal because of type erasure
     public static HelperClassManager<AsyncContextAdviceHelper<AsyncContext>> asyncHelperManager;
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public AsyncInstrumentation(ElasticApmTracer tracer) {
         asyncHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl",
             "co.elastic.apm.agent.servlet.helper.AsyncContextAdviceHelperImpl$ApmAsyncListenerAllocator",
@@ -83,6 +82,10 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     public static class StartAsyncInstrumentation extends AsyncInstrumentation {
+        public StartAsyncInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
             return nameContains("Request");
@@ -137,6 +140,10 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
     }
 
     public static class AsyncContextInstrumentation extends AsyncInstrumentation {
+        public AsyncContextInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
         @Override
         public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
             return nameContains("AsyncContext");

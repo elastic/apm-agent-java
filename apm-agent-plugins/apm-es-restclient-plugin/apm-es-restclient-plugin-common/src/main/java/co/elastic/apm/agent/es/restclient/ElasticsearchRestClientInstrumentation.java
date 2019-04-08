@@ -39,8 +39,7 @@ public abstract class ElasticsearchRestClientInstrumentation extends ElasticApmI
     // Referencing ES classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
     public static HelperClassManager<ElasticsearchRestClientInstrumentationHelper<HttpEntity, Response, ResponseListener>> esClientInstrHelperManager;
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public ElasticsearchRestClientInstrumentation(ElasticApmTracer tracer) {
         esClientInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl",
             "co.elastic.apm.agent.es.restclient.ResponseListenerWrapper",

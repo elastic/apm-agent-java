@@ -182,7 +182,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .aliasKeys("disabled_instrumentations")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
-            "Valid options are " + getAllInstrumentationGroupNames() + ".\n" +
+            "Valid options are ${allInstrumentationGroupNames}.\n" +
             "If you want to try out incubating features,\n" +
             "set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
@@ -199,23 +199,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
-
-    public static String getAllInstrumentationGroupNames() {
-        Set<String> instrumentationGroupNames = new TreeSet<>();
-        instrumentationGroupNames.add("incubating");
-        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class)) {
-            instrumentationGroupNames.addAll(instrumentation.getInstrumentationGroupNames());
-        }
-
-        StringBuilder allGroups = new StringBuilder();
-        for (Iterator<String> iterator = instrumentationGroupNames.iterator(); iterator.hasNext(); ) {
-            allGroups.append('`').append(iterator.next()).append('`');
-            if (iterator.hasNext()) {
-                allGroups.append(", ");
-            }
-        }
-        return allGroups.toString();
-    }
 
     private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
         .key("enable_type_pool_cache")

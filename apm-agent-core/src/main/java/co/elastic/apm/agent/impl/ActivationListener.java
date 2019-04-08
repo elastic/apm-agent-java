@@ -24,10 +24,11 @@ import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 
 /**
  * A callback for {@link TraceContextHolder} activation and deactivaiton events
+ * <p>
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
+ * </p>
  */
 public interface ActivationListener {
-
-    void init(ElasticApmTracer tracer);
 
     /**
      * A callback for {@link TraceContextHolder#activate()}
