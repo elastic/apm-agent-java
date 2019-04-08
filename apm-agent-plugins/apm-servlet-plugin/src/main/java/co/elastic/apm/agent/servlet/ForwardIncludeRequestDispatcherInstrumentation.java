@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -82,6 +83,14 @@ public class ForwardIncludeRequestDispatcherInstrumentation extends ElasticApmIn
                 if (pathInfo != null && !pathInfo.isEmpty()) {
                     span.appendToName("#").appendToName(pathInfo);
                 }
+
+                if (parent instanceof AbstractSpan) {
+                    AbstractSpan parentSpan = (AbstractSpan) parent;
+                    if (parentSpan.getName().toString().equals(span.getName().toString())) {
+                        return;
+                    }
+                }
+
                 span.activate();
             }
         }
