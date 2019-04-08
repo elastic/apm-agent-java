@@ -40,9 +40,11 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class ForwardIncludeRequestDispatcherInstrumentation extends ElasticApmInstrumentation {
 
-    private static final String SPAN_TYPE_REQUEST_DISPATCHER_FORWARD = "servlet.request-dispatcher.forward";
+    private static final String SPAN_TYPE = "servlet";
+    private static final String SPAN_SUBTYPE = "request-dispatcher";
+    private static final String FORWARD_SPAN_ACTION = "forward";
+    private static final String INCLUDE_SPAN_ACTION = "include";
     private static final String FORWARD = "FORWARD";
-    private static final String SPAN_TYPE_REQUEST_DISPATCHER_INCLUDE = "servlet.request-dispatcher.include";
     private static final String INCLUDE = "INCLUDE";
 
     @Override
@@ -63,15 +65,22 @@ public class ForwardIncludeRequestDispatcherInstrumentation extends ElasticApmIn
             if (request != null && request instanceof HttpServletRequest) {
                 HttpServletRequest httpServletRequest = (HttpServletRequest) request;
                 String servletPath = "";
+                String pathInfo = "";
+
                 if (FORWARD.equalsIgnoreCase(method)) {
                     servletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.FORWARD_SERVLET_PATH);
-                    span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER_FORWARD).withName(FORWARD);
+                    pathInfo = (String) httpServletRequest.getAttribute(RequestDispatcher.FORWARD_PATH_INFO);
+                    span = parent.createSpan().withType(SPAN_TYPE).withSubtype(SPAN_SUBTYPE).withAction(FORWARD_SPAN_ACTION).withName(FORWARD);
                 } else {
                     servletPath = (String) httpServletRequest.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-                    span = parent.createSpan().withType(SPAN_TYPE_REQUEST_DISPATCHER_INCLUDE).withName(INCLUDE);
+                    pathInfo = (String) httpServletRequest.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+                    span = parent.createSpan().withType(SPAN_TYPE).withSubtype(SPAN_SUBTYPE).withAction(INCLUDE_SPAN_ACTION).withName(INCLUDE);
                 }
-                if (servletPath != null) {
+                if (servletPath != null && !servletPath.isEmpty()) {
                     span.appendToName(" ").appendToName(servletPath);
+                }
+                if (pathInfo != null && !pathInfo.isEmpty()) {
+                    span.appendToName("#").appendToName(pathInfo);
                 }
                 span.activate();
             }
@@ -90,12 +99,12 @@ public class ForwardIncludeRequestDispatcherInstrumentation extends ElasticApmIn
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContainsIgnoreCase("dispatcher");
+        return nameContains("Dispatcher");
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameContainsIgnoreCase("dispatcher");
+        return hasSuperType(named("javax.servlet.RequestDispatcher"));
     }
 
     @Override

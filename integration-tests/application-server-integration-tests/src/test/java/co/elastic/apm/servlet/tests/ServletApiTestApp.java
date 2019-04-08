@@ -27,6 +27,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +42,8 @@ public class ServletApiTestApp extends TestApp {
     public void test(AbstractServletContainerIntegrationTest test) throws Exception {
         testTransactionReporting(test);
         testTransactionErrorReporting(test);
+        testTransactionReportingWithForward(test);
+        testTransactionReportingWithInclude(test);
         testSpanErrorReporting(test);
         testExecutorService(test);
         testHttpUrlConnection(test);
@@ -93,6 +96,42 @@ public class ServletApiTestApp extends TestApp {
         assertThat(span.get("context").get("http").get("status_code").intValue()).isEqualTo(200);
     }
 
+    private void testTransactionReportingWithForward(AbstractServletContainerIntegrationTest test) throws Exception {
+        String pathToTest = "/simple-webapp" + "/forward";
+        List<String> spanTypes = Arrays.asList("db.h2.query", "servlet.request-dispatcher.forward");
+        test.clearMockServerLog();
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        String transactionId = transaction.get("id").textValue();
+
+        assert test.getReportedSpans().size() == 2;
+        for (JsonNode span : test.getReportedSpans()) {
+            String spanType = span.get("type").textValue();
+            spanTypes.contains(spanType);
+            if ("servlet.request-dispatcher.forward".equals(spanType)) {
+                assert span.get("name").textValue().equals("FORWARD /servlet");
+            }
+        }
+    }
+
+    private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
+        String pathToTest = "/simple-webapp" + "/include";
+        List<String> spanTypes = Arrays.asList("db.h2.query", "servlet.request-dispatcher.include");
+        test.clearMockServerLog();
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        String transactionId = transaction.get("id").textValue();
+
+        assert test.getReportedSpans().size() == 2;
+        for (JsonNode span : test.getReportedSpans()) {
+            String spanType = span.get("type").textValue();
+            spanTypes.contains(spanType);
+            if ("servlet.request-dispatcher.include".equals(spanType)) {
+                assert span.get("name").textValue().equals("INCLUDE /servlet");
+            }
+        }
+    }
+
     private void testTransactionReporting(AbstractServletContainerIntegrationTest test) throws Exception {
         for (String pathToTest : test.getPathsToTest()) {
             pathToTest = "/simple-webapp" + pathToTest;
@@ -100,6 +139,7 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(pathToTest, "Hello World", 200);
             JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
+            System.out.println("pathToTest= "+pathToTest);
             List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             for (JsonNode span : spans) {
                 assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
@@ -114,6 +154,7 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(pathToTest + "?cause_db_error=true", "DB Error", 200);
             JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
+            System.out.println("pathToTest= "+pathToTest);
             test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             test.assertErrorContent(500, test::getReportedErrors, transactionId, "Column \"NON_EXISTING_COLUMN\" not found");
         }

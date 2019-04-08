@@ -310,8 +310,33 @@ public class ServletTransactionHelper {
             return;
         }
         String servletClassName = servletClass.getName();
-        transactionName.append(method).append(" ");
         transactionName.append(servletClassName, servletClassName.lastIndexOf('.') + 1, servletClassName.length());
+        transactionName.append('#');
+        switch (method) {
+            case "DELETE":
+                transactionName.append("doDelete");
+                break;
+            case "HEAD":
+                transactionName.append("doHead");
+                break;
+            case "GET":
+                transactionName.append("doGet");
+                break;
+            case "OPTIONS":
+                transactionName.append("doOptions");
+                break;
+            case "POST":
+                transactionName.append("doPost");
+                break;
+            case "PUT":
+                transactionName.append("doPut");
+                break;
+            case "TRACE":
+                transactionName.append("doTrace");
+                break;
+            default:
+                transactionName.append(method);
+        }
     }
 
     public boolean isCaptureHeaders() {
