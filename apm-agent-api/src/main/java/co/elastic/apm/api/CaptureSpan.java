@@ -19,6 +19,9 @@
  */
 package co.elastic.apm.api;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
 /**
  * Annotating a method with {@code @}{@link CaptureSpan} creates a {@link Span} as the child of the currently active span or transaction
  * ({@link ElasticApm#currentSpan()}).
@@ -30,6 +33,7 @@ package co.elastic.apm.api;
  * Note: it is required to configure the {@code application_packages}, otherwise this annotation will be ignored.
  * </p>
  */
+@Retention(RetentionPolicy.RUNTIME)
 public @interface CaptureSpan {
 
     /**
