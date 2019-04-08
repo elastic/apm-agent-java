@@ -167,6 +167,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 0.7.0
 
+|Apache HttpAsyncClient
+|4.0+
+|
+| 1.6.0
+
 |Spring RestTemplate
 |4+
 |

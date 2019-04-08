@@ -23,8 +23,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.3.6</version>
+            <artifactId>httpasyncclient</artifactId>
+            <version>4.1.4</version>
             <scope>provided</scope>
         </dependency>
 
