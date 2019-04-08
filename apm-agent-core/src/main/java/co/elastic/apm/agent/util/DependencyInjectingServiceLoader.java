@@ -72,9 +72,10 @@ public class DependencyInjectingServiceLoader<T> {
             final URL url = resources.nextElement();
             try (InputStream inputStream = url.openStream()) {
                 final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-                for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                    if (!isComment(line.trim())) {
-                        implementations.add(line.trim());
+                while (reader.ready()) {
+                    String line = reader.readLine().trim();
+                    if (!isComment(line) && !line.isEmpty()) {
+                        implementations.add(line);
                     }
                 }
             }

@@ -1,2 +1,4 @@
 co.elastic.apm.agent.util.DependencyInjectingServiceLoaderTest$ServiceImpl
+# comment
+
 co.elastic.apm.agent.util.DependencyInjectingServiceLoaderTest$ServiceImpl2
