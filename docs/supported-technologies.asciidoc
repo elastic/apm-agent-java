@@ -127,6 +127,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |<<setup-payara,Payara>>
 |4.x, 5.x
 
+|<<setup-weblogic,Oracle WebLogic>>
+|12.2
+
 |===
 
 [float]

@@ -197,6 +197,13 @@ public class Transaction extends AbstractSpan<Transaction> {
         return noop;
     }
 
+    /**
+     * Ignores this transaction, which makes it a noop so that it will not be reported to the APM Server.
+     */
+    public void ignoreTransaction() {
+        noop = true;
+    }
+
     @Nullable
     public String getType() {
         return type;
