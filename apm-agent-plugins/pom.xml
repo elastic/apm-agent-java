@@ -25,6 +25,7 @@
         <module>apm-java-concurrent-plugin</module>
         <module>apm-urlconnection-plugin</module>
         <module>apm-jaxws-plugin</module>
+        <module>apm-spring-scheduled-plugin</module>
     </modules>
 
     <properties>
