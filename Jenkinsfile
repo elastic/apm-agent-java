@@ -128,7 +128,6 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
-              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
               sh './scripts/jenkins/smoketests-01.sh'
             }
           }
