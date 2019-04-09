@@ -19,8 +19,10 @@
  */
 package co.elastic.apm.api;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Annotating a method with {@code @}{@link CaptureTransaction} creates a {@link Transaction} for that method.
@@ -32,6 +34,7 @@ import java.lang.annotation.RetentionPolicy;
  * </p>
  */
 @Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
 public @interface CaptureTransaction {
 
     /**
