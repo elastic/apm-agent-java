@@ -232,7 +232,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-spring-scheduled-plugin</artifactId>
+            <artifactId>apm-scheduled-annotation-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

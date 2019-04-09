@@ -48,10 +48,10 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class SpringScheduledTransactionNameInstrumentation extends ElasticApmInstrumentation {
+public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(SpringScheduledTransactionNameInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(ScheduledTransactionNameInstrumentation.class);
 
     private Collection<String> applicationPackages = Collections.emptyList();
 
@@ -94,7 +94,12 @@ public class SpringScheduledTransactionNameInstrumentation extends ElasticApmIns
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isAnnotatedWith(named("org.springframework.scheduling.annotation.Scheduled"));
+        return isAnnotatedWith(
+                named("org.springframework.scheduling.annotation.Scheduled")
+                        .or(named("org.springframework.scheduling.annotation.Schedules"))
+                        .or(named("javax.ejb.Schedule"))
+                        .or(named("javax.ejb.Schedule"))
+        );
     }
 
     @Override
