@@ -39,6 +39,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -69,6 +71,8 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
+
+    private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
 
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
     // Don't init logger as a static field, logging needs to be initialized first
@@ -297,9 +301,21 @@ public class ElasticApmAgent {
 
     private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
+
+        AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.STRONG;
+        if (agentJarFile != null) {
+            try {
+                locationStrategy =
+                    ((AgentBuilder.LocationStrategy.ForClassLoader)locationStrategy).withFallbackTo(ClassFileLocator.ForJarFile.of(agentJarFile));
+            } catch (IOException e) {
+                logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
+            }
+        }
+
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
+            .with(locationStrategy)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(coreConfiguration.isTypePoolCacheEnabled()
