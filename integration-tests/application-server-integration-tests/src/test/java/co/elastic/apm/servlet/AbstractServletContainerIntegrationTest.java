@@ -28,7 +28,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
@@ -46,7 +45,6 @@ import org.testcontainers.utility.MountableFile;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -92,7 +90,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = getPathToJavaagent();
+        pathToJavaagent = AgentFileIT.getPathToJavaagent();
         checkFilePresent(pathToJavaagent);
     }
 
@@ -150,17 +148,6 @@ public abstract class AbstractServletContainerIntegrationTest {
      */
     protected boolean isDeployViaFileSystemBind() {
         return true;
-    }
-
-    private static String getPathToJavaagent() {
-        File agentBuildDir = new File("../../elastic-apm-agent/target/");
-        FileFilter fileFilter = new WildcardFileFilter("elastic-apm-agent-*.jar");
-        for (File file : agentBuildDir.listFiles(fileFilter)) {
-            if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
-                return file.getAbsolutePath();
-            }
-        }
-        return null;
     }
 
     private static void checkFilePresent(String pathToWar) {
