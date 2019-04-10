@@ -91,8 +91,7 @@ public class ApacheHttpAsyncClientInstrumentation extends ElasticApmInstrumentat
         }
     }
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public ApacheHttpAsyncClientInstrumentation(ElasticApmTracer tracer) {
         helperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.httpclient.ApacheHttpAsyncClientHelperImpl",
             "co.elastic.apm.agent.httpclient.HttpAsyncRequestProducerWrapper",
