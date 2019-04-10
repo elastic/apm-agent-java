@@ -104,6 +104,6 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("concurrent", "spring-scheduled");
+        return Arrays.asList("concurrent", "scheduled");
     }
 }
