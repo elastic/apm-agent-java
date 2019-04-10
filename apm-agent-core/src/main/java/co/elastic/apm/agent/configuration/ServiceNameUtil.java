@@ -66,6 +66,8 @@ public class ServiceNameUtil {
             return "websphere-application";
         } else if (command.contains("jboss-modules.jar")) {
             return "jboss-application";
+        } else if (command.contains("weblogic")) {
+            return "weblogic-application";
         }
         return null;
     }

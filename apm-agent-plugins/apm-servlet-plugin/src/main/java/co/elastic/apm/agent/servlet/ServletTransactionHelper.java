@@ -148,19 +148,11 @@ public class ServletTransactionHelper {
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         try {
-            fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
-            if(exception != null && status == 200) {
-                // Probably shouldn't be 200 but 5XX, but we are going to miss this...
-                status = 500;
-            }
-            fillResponse(transaction.getContext().getResponse(), committed, status);
-            transaction.withResult(ResultUtil.getResultByHttpStatus(status));
-            transaction.withType("request");
-            if (transaction.getName().length() == 0) {
-                applyDefaultTransactionName(method, servletPath, pathInfo, transaction.getName());
-            }
-            if (exception != null) {
-                transaction.captureException(exception);
+            // thrown the first time a JSP is invoked in order to register it
+            if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
+                transaction.ignoreTransaction();
+            } else {
+                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -172,6 +164,24 @@ public class ServletTransactionHelper {
             transaction.deactivate();
         }
         transaction.end();
+    }
+
+    private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
+                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+        fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
+        if(exception != null && status == 200) {
+            // Probably shouldn't be 200 but 5XX, but we are going to miss this...
+            status = 500;
+        }
+        fillResponse(transaction.getContext().getResponse(), committed, status);
+        transaction.withResult(ResultUtil.getResultByHttpStatus(status));
+        transaction.withType("request");
+        if (transaction.getName().length() == 0) {
+            applyDefaultTransactionName(method, servletPath, pathInfo, transaction.getName());
+        }
+        if (exception != null) {
+            transaction.captureException(exception);
+        }
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {

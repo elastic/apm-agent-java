@@ -163,6 +163,7 @@ public class ElasticApmAgent {
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = advice.getTypeMatcherPreFilter();
+        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = advice.getImplementationVersionPostFilter();
         final ElementMatcher<? super TypeDescription> typeMatcher = advice.getTypeMatcher();
         final ElementMatcher<? super MethodDescription> methodMatcher = advice.getMethodMatcher();
         return agentBuilder
@@ -179,7 +180,7 @@ public class ElasticApmAgent {
                         }
                         boolean typeMatches;
                         try {
-                            typeMatches = typeMatcher.matches(typeDescription);
+                            typeMatches = typeMatcher.matches(typeDescription) && versionPostFilter.matches(protectionDomain);
                         } catch (Exception ignored) {
                             // could be because of a missing type
                             typeMatches = false;
