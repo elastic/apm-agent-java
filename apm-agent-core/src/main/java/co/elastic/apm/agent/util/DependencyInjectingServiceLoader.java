@@ -50,12 +50,20 @@ public class DependencyInjectingServiceLoader<T> {
         }
         constructorTypes = types.toArray(new Class[]{});
         try {
-            final Enumeration<URL> resources = DependencyInjectingServiceLoader.class.getClassLoader().getResources("META-INF/services/" + clazz.getName());
+            final Enumeration<URL> resources = getServiceDescriptors(clazz);
             Set<String> implementations = getImplementations(resources);
             instantiate(implementations);
         } catch (IOException e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
+    }
+
+    private Enumeration<URL> getServiceDescriptors(Class<T> clazz) throws IOException {
+        ClassLoader classLoader = clazz.getClassLoader();
+        if (classLoader == null) {
+            classLoader = ClassLoader.getSystemClassLoader();
+        }
+        return classLoader.getResources("META-INF/services/" + clazz.getName());
     }
 
     public static <T> List<T> load(Class<T> clazz, Object... constructorArguments) {
