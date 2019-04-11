@@ -70,6 +70,7 @@ Click on a key to get more information.
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-trace-methods>>
+** <<config-trace-methods-duration-threshold>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -368,7 +369,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0])
+==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0 and 1.6.0])
 
 A list of methods for with to create a transaction or span.
 
@@ -413,6 +414,41 @@ Consider increasing the threshold or disabling stack trace collection altogether
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS`
+|============
+
+[float]
+[[config-trace-methods-duration-threshold]]
+==== `trace_methods_duration_threshold` (added[1.6.0])
+
+If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
+Such methods will be traced and reported if one of the following applies:
+ - This method's duration crossed the configured threshold.
+ - This method ended with Exception.
+ - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+ - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+Set to 0 to disable.
+
+NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
+In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+of their duration.
+
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
 |============
 
 [[config-http]]
@@ -1266,6 +1302,28 @@ If the service name is set explicitly, it overrides all of the above.
 # Default value: 
 #
 # trace_methods=
+
+# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+# duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
+# Such methods will be traced and reported if one of the following applies:
+#  - This method's duration crossed the configured threshold.
+#  - This method ended with Exception.
+#  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+#  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# Set to 0 to disable.
+# 
+# NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
+# In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+# of their duration.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# trace_methods_duration_threshold=0ms
 
 ############################################
 # HTTP                                     #

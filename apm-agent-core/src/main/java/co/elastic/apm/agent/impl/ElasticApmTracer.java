@@ -353,7 +353,7 @@ public class ElasticApmTracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
-        if (span.isSampled()) {
+        if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled()) {
                 if (span.getDuration() >= spanFramesMinDurationMs) {
@@ -475,6 +475,10 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
+        if (!stack.isEmpty() && !holder.isDiscard()) {
+            //noinspection ConstantConditions
+            stack.peek().setDiscard(false);
+        }
         if (holder == stack.peekLast()) {
             // if this is the bottom of the stack
             // clear to avoid potential leaks in case some spans didn't deactivate properly

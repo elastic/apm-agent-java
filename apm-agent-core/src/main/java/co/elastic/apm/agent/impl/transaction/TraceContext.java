@@ -95,6 +95,8 @@ public class TraceContext extends TraceContextHolder {
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
+    private boolean discard;
+
     /**
      * Avoids clock drifts within a transaction.
      *
@@ -233,6 +235,7 @@ public class TraceContext extends TraceContextHolder {
         parentId.resetState();
         outgoingHeader.setLength(0);
         flags = 0;
+        discard = false;
         clock.resetState();
         serviceName = null;
     }
@@ -293,6 +296,14 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
+    public void setDiscard(boolean discard) {
+        this.discard = discard;
+    }
+
+    public boolean isDiscard() {
+        return discard;
+    }
+
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
      */
@@ -340,6 +351,7 @@ public class TraceContext extends TraceContextHolder {
         transactionId.copyFrom(other.transactionId);
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
+        discard = other.discard;
         clock.init(other.clock);
         serviceName = other.serviceName;
         onMutation();

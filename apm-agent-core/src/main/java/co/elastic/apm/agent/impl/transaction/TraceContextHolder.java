@@ -138,6 +138,14 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         return isExit;
     }
 
+    public void setDiscard(boolean discard) {
+        getTraceContext().setDiscard(discard);
+    }
+
+    public boolean isDiscard() {
+        return getTraceContext().isDiscard();
+    }
+
     public void captureException(long epochMicros, Throwable t) {
         tracer.captureException(epochMicros, t, this);
     }
