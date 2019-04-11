@@ -23,6 +23,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,13 +88,16 @@ public class CustomElementMatchers {
     private static boolean canLoadClass(@Nullable ClassLoader target, String className) {
         boolean result;
         try {
+            final URL resource;
+            final String classResource = className.replace('.', '/') + ".class";
             if (target == null) {
-                target = ClassLoader.getSystemClassLoader();
+                resource = Object.class.getResource("/" + classResource);
+            } else {
+                resource = target.getResource(classResource);
             }
-            final URL resource = target.getResource(className.replace('.', '/') + ".class");
             result = resource != null;
             if (logger.isDebugEnabled()) {
-                String classLoaderName = target.getClass().getName();
+                String classLoaderName = (target == null) ? "Bootstrap ClassLoader" : target.getClass().getName();
                 String codeSourceString = "";
                 if (resource != null) {
                     codeSourceString = " from " + resource;
