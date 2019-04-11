@@ -54,6 +54,11 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     @VisibleForAdvice
     public static HelperClassManager<JdbcHelper> jdbcHelperManager;
 
+    public PreparedStatementInstrumentation(ElasticApmTracer tracer) {
+        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
+    }
+
     // not inlining as we can then set breakpoints into this method
     // also, we don't have class loader issues when doing so
     // another benefit of not inlining is that the advice methods are included in coverage reports
@@ -79,12 +84,6 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
                 .deactivate()
                 .end();
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
     @Override

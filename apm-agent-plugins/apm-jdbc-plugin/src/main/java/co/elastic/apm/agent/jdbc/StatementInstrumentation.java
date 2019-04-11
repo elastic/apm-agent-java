@@ -56,6 +56,11 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static HelperClassManager<JdbcHelper> jdbcHelperManager;
 
+    public StatementInstrumentation(ElasticApmTracer tracer) {
+        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
+    }
+
     @Nullable
     @VisibleForAdvice
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -69,7 +74,6 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
         return null;
     }
 
-
     @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
@@ -78,12 +82,6 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
                 .deactivate()
                 .end();
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
     @Override

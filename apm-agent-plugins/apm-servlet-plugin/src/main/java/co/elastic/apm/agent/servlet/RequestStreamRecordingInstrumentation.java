@@ -51,8 +51,7 @@ public class RequestStreamRecordingInstrumentation extends ElasticApmInstrumenta
     // referring to InputStreamWrapperFactory is legal because of type erasure
     public static HelperClassManager<InputStreamWrapperFactory> wrapperHelperClassManager;
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public RequestStreamRecordingInstrumentation(ElasticApmTracer tracer) {
         wrapperHelperClassManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.servlet.helper.InputStreamFactoryHelperImpl",
             "co.elastic.apm.agent.servlet.helper.RecordingServletInputStreamWrapper");

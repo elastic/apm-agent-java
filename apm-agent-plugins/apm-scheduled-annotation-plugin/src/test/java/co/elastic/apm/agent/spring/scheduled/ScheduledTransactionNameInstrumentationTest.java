@@ -54,7 +54,7 @@ class ScheduledTransactionNameInstrumentationTest {
                 .reporter(reporter)
                 .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-                Collections.singletonList(new ScheduledTransactionNameInstrumentation()));
+                Collections.singletonList(new ScheduledTransactionNameInstrumentation(tracer)));
     }
 
 

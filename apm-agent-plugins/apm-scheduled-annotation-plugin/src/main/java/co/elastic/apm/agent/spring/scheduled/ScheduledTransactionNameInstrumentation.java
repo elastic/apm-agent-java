@@ -21,7 +21,6 @@ package co.elastic.apm.agent.spring.scheduled;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import javax.annotation.Nullable;
 
@@ -53,7 +52,11 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ScheduledTransactionNameInstrumentation.class);
 
-    private Collection<String> applicationPackages = Collections.emptyList();
+    private final Collection<String> applicationPackages;
+
+    public ScheduledTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) {
@@ -61,9 +64,9 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
             TraceContextHolder<?> active = tracer.getActive();
             if (active == null) {
                 transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                        .withName(signature)
-                        .withType("scheduled")
-                        .activate();
+                    .withName(signature)
+                    .withType("scheduled")
+                    .activate();
 
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
@@ -76,29 +79,24 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
                                     @Advice.Thrown Throwable t) {
         if (transaction != null) {
             transaction.captureException(t)
-                    .deactivate()
-                    .end();
+                .deactivate()
+                .end();
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-                .and(declaresMethod(getMethodMatcher()));
+            .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return isAnnotatedWith(
-                named("org.springframework.scheduling.annotation.Scheduled")
-                        .or(named("org.springframework.scheduling.annotation.Schedules"))
-                        .or(named("javax.ejb.Schedule"))
-                        .or(named("javax.ejb.Schedules"))
+            named("org.springframework.scheduling.annotation.Scheduled")
+                .or(named("org.springframework.scheduling.annotation.Schedules"))
+                .or(named("javax.ejb.Schedule"))
+                .or(named("javax.ejb.Schedules"))
         );
     }
 

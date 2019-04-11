@@ -41,6 +41,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
@@ -101,13 +102,12 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
-        this.activationListeners = activationListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -172,9 +172,7 @@ public class ElasticApmTracer {
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
-        for (ActivationListener activationListener : activationListeners) {
-            activationListener.init(this);
-        }
+        this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
 
         // sets the assertionsEnabled flag to true if indeed enabled

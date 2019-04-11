@@ -50,8 +50,7 @@ public class ServletInstrumentation extends ElasticApmInstrumentation {
 
     static final String SERVLET_API = "servlet-api";
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public ServletInstrumentation(ElasticApmTracer tracer) {
         ServletApiAdvice.init(tracer);
     }
 

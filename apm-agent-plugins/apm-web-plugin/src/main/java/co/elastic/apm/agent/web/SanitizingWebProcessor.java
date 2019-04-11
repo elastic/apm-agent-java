@@ -29,19 +29,15 @@ import co.elastic.apm.agent.report.processor.Processor;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import javax.annotation.Nullable;
-
 /**
  * Sanitizes web-related fields according to the {@link CoreConfiguration#sanitizeFieldNames} setting
  */
 public class SanitizingWebProcessor implements Processor {
 
     static final String REDACTED = "[REDACTED]";
-    @Nullable
-    private CoreConfiguration config;
+    private final CoreConfiguration config;
 
-    @Override
-    public void init(ConfigurationRegistry configurationRegistry) {
+    public SanitizingWebProcessor(ConfigurationRegistry configurationRegistry) {
         config = configurationRegistry.getConfig(CoreConfiguration.class);
     }
 

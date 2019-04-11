@@ -46,8 +46,13 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    private Collection<String> applicationPackages = Collections.emptyList();
-    private JaxRsConfiguration configuration;
+    private final Collection<String> applicationPackages;
+    private final JaxRsConfiguration configuration;
+
+    public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        configuration = tracer.getConfig(JaxRsConfiguration.class);
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
@@ -57,12 +62,6 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                 transaction.withName(signature);
             }
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
-        configuration = tracer.getConfig(JaxRsConfiguration.class);
     }
 
     @Override

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,7 +52,11 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureTransactionInstrumentation.class);
 
-    private StacktraceConfiguration config;
+    private final StacktraceConfiguration config;
+
+    public CaptureTransactionInstrumentation(ElasticApmTracer tracer) {
+        config = tracer.getConfig(StacktraceConfiguration.class);
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@Advice.Origin Class<?> clazz,
@@ -81,11 +85,6 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
                 .deactivate()
                 .end();
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     @Override

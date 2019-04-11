@@ -40,6 +40,9 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
  * </p>
+ * <p>
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
+ * </p>
  */
 public abstract class ElasticApmInstrumentation {
 
@@ -67,9 +70,6 @@ public abstract class ElasticApmInstrumentation {
             return tracer.getActive();
         }
         return null;
-    }
-
-    public void init(ElasticApmTracer tracer) {
     }
 
     /**

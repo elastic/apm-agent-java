@@ -21,6 +21,7 @@ package co.elastic.apm.agent.es.restclient.v5_6;
 
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentation;
 import co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -39,6 +40,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestClientInstrumentation {
+
+    public ElasticsearchClientAsyncInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
+
     @Override
     public Class<?> getAdviceClass() {
         return ElasticsearchRestClientAsyncAdvice.class;

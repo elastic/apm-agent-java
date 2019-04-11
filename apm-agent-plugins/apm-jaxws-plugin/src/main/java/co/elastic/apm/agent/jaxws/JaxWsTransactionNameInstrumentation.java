@@ -45,7 +45,11 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    private Collection<String> applicationPackages = Collections.emptyList();
+    private final Collection<String> applicationPackages;
+
+    public JaxWsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
@@ -55,11 +59,6 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
                 transaction.withName(signature);
             }
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
     @Override
