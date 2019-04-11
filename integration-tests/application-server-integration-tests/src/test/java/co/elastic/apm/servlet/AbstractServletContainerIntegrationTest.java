@@ -28,7 +28,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
@@ -41,11 +40,11 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -91,7 +90,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = getPathToJavaagent();
+        pathToJavaagent = AgentFileIT.getPathToJavaagent();
         checkFilePresent(pathToJavaagent);
     }
 
@@ -127,23 +126,28 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
-        for (TestApp testApp : getTestApps()) {
-            String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(pathToAppFile);
-            servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
-        }
-        this.servletContainer.start();
-    }
-
-    private static String getPathToJavaagent() {
-        File agentBuildDir = new File("../../elastic-apm-agent/target/");
-        FileFilter fileFilter = new WildcardFileFilter("elastic-apm-agent-*.jar");
-        for (File file : agentBuildDir.listFiles(fileFilter)) {
-            if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
-                return file.getAbsolutePath();
+        if (isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
             }
         }
-        return null;
+        this.servletContainer.start();
+        if (!isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
+            }
+        }
+    }
+
+    /**
+     * If set to true, the war files are {@code --mount}ed into the container instead of copied, which is faster.
+     */
+    protected boolean isDeployViaFileSystemBind() {
+        return true;
     }
 
     private static void checkFilePresent(String pathToWar) {

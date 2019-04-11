@@ -28,6 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -84,6 +85,13 @@ public abstract class ElasticApmInstrumentation {
      * </p>
      */
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return any();
+    }
+
+    /**
+     * Post filters classes that pass the {@link #getTypeMatcher()} by version.
+     */
+    public ElementMatcher.Junction<ProtectionDomain> getImplementationVersionPostFilter() {
         return any();
     }
 

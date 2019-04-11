@@ -1,9 +1,10 @@
 # next (1.6.0)
 
 ## Features
+ * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
 
 ## Bug Fixes
-* Avoid that the agent blocks server shutdown in case the APM Server is not available
+ * Avoid that the agent blocks server shutdown in case the APM Server is not available
 
 # 1.5.0
 
