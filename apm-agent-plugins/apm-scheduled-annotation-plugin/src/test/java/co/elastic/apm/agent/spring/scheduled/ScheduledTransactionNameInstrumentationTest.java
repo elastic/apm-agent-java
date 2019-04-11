@@ -28,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Schedules;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
@@ -56,11 +57,11 @@ class ScheduledTransactionNameInstrumentationTest {
                 Collections.singletonList(new ScheduledTransactionNameInstrumentation()));
     }
 
-    private SpringCounter springCounter = new SpringCounter();
-    private JeeCounter jeeCounter = new JeeCounter();
+
     @Test
     void testSpringScheduledAnnotatedMethodsAreTraced() {
         reporter.reset();
+        SpringCounter springCounter = new SpringCounter();
         springCounter.scheduled();
         springCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
@@ -68,19 +69,65 @@ class ScheduledTransactionNameInstrumentationTest {
     }
 
     @Test
+    void testSpringJ8RepeatableScheduledAnnotatedMethodsAreTraced() {
+        reporter.reset();
+        SpringCounter springCounter = new SpringCounter();
+        springCounter.scheduledJava8Repeatable();
+        springCounter.scheduledJava8Repeatable();
+        assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
+        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava8Repeatable");
+    }
+
+    @Test
+    void testSpringJ7RepeatableScheduledAnnotatedMethodsAreTraced() {
+        reporter.reset();
+        SpringCounter springCounter = new SpringCounter();
+        springCounter.scheduledJava7Repeatable();
+        springCounter.scheduledJava7Repeatable();
+        assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
+        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava7Repeatable");
+    }
+
+    @Test
     void testJeeScheduledAnnotatedMethodsAreTraced() {
         reporter.reset();
+        JeeCounter jeeCounter = new JeeCounter();
         jeeCounter.scheduled();
         jeeCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
         assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduled");
     }
 
+    @Test
+    void testJeeJ7RepeatableScheduledAnnotatedMethodsAreTraced() {
+        reporter.reset();
+        JeeCounter jeeCounter = new JeeCounter();
+        jeeCounter.scheduledJava7Repeatable();
+        jeeCounter.scheduledJava7Repeatable();
+        assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
+        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduledJava7Repeatable");
+    }
+
+
     private class SpringCounter {
         private AtomicInteger count = new AtomicInteger(0);
 
         @Scheduled(fixedDelay = 5)
         public void scheduled() {
+            this.count.incrementAndGet();
+        }
+
+        @Scheduled(fixedDelay = 5)
+        @Scheduled(fixedDelay = 10)
+        public void scheduledJava8Repeatable() {
+            this.count.incrementAndGet();
+        }
+
+        @Schedules({
+                @Scheduled(fixedDelay = 5),
+                @Scheduled(fixedDelay = 10)
+        })
+        public void scheduledJava7Repeatable() {
             this.count.incrementAndGet();
         }
 
@@ -94,6 +141,14 @@ class ScheduledTransactionNameInstrumentationTest {
 
         @Schedule(minute = "5")
         public void scheduled() {
+            this.count.incrementAndGet();
+        }
+
+        @javax.ejb.Schedules({
+                @Schedule(minute = "5"),
+                @Schedule(minute = "10")
+        })
+        public void scheduledJava7Repeatable() {
             this.count.incrementAndGet();
         }
 

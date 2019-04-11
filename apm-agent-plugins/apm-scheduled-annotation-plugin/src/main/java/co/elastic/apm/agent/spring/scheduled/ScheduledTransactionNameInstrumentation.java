@@ -98,7 +98,7 @@ public class ScheduledTransactionNameInstrumentation extends ElasticApmInstrumen
                 named("org.springframework.scheduling.annotation.Scheduled")
                         .or(named("org.springframework.scheduling.annotation.Schedules"))
                         .or(named("javax.ejb.Schedule"))
-                        .or(named("javax.ejb.Schedule"))
+                        .or(named("javax.ejb.Schedules"))
         );
     }
 
