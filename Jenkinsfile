@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 @Library('apm@current') _
-  
+
 pipeline {
   agent any
   environment {
@@ -26,11 +26,12 @@ pipeline {
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")
-    booleanParam(name: 'Run_As_Master_Branch', defaultValue: false, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
-    booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
-    booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
-    booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
-    booleanParam(name: 'doc_ci', defaultValue: true, description: 'Enable build documentation')
+    /** TODO revert changes after tests*/
+    booleanParam(name: 'Run_As_Master_Branch', defaultValue: true, description: 'Allow to run any steps on a PR, some steps normally only run on master branch.')
+    booleanParam(name: 'test_ci', defaultValue: false, description: 'Enable test')
+    booleanParam(name: 'smoketests_ci', defaultValue: false, description: 'Enable Smoke tests')
+    booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
+    booleanParam(name: 'doc_ci', defaultValue: false, description: 'Enable build documentation')
   }
 
   stages {
@@ -69,7 +70,7 @@ pipeline {
             }
             stash allowEmpty: true, name: 'build', useDefaultExcludes: false
             archiveArtifacts allowEmptyArchive: true,
-              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar", 
+              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar",
               onlyIfSuccessful: true
           }
         }
@@ -267,6 +268,41 @@ pipeline {
         }
       }
     }
+    stage('Release') {
+      agent { label 'linux && immutable' }
+      options { skipDefaultCheckout() }
+      environment {
+        HOME = "${env.WORKSPACE}"
+        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        TMP_WORKSPACE="${env.WORKSPACE}/@tmp"
+        KEY_FILE="${env.WORKSPACE}/private.key"
+        GNUPGHOME="${env.TMP_WORKSPACE}/keyring"
+      }
+      input {
+        message 'Should we release a new version?'
+        ok 'Yes, we should.'
+      }
+      when {
+        beforeAgent true
+        anyOf {
+          tag "v\\d+\\.\\d+\\.\\d+*"
+          expression { return params.Run_As_Master_Branch }
+        }
+      }
+      steps {
+        deleteDir()
+        unstash 'build'
+        dir("${BASE_DIR}"){
+          releasePackages()
+        }
+      }
+      post {
+        always {
+          deleteDir()
+        }
+      }
+    }
   }
   post {
     success {
@@ -290,4 +326,55 @@ def reportTestResults(){
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
   codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+}
+
+def releasePackages(){
+  //Prepare a secure temp folder not shared between other jobs to store the key ring
+  sh(label: "Prepare a secure temp folder", script: """
+  mkdir -p ${GNUPGHOME}
+  chmod -R 700 ${TMP_WORKSPACE}
+  """)
+
+  //Signing keys
+  def jsonKey = getVaultSecret(secret: 'secret/release/signing')
+  writeFile(file: "${KEY_FILE}",text: jsonKey.data.key)
+
+  //Nexus credentials
+  def jsonValue = getVaultSecret(secret: 'secret/release/nexus')
+
+  //Username to release
+  def jsonReleaseUser = getVaultSecret(secret: 'secret/apm-team/ci/apm-agent-java-release')
+
+  wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [
+    [var: 'AUTH_USER', password: jsonValue.data.username],
+    [var: 'AUTH_PASSWORD', password: jsonValue.data.password],
+    [var: 'KEYPASS', password: jsonKey.data.passphrase],
+    [var: 'RELEASE_USER', password: jsonReleaseUser.data.user]
+  ]]) {
+    withEnv([
+      "AUTH_USER=${jsonValue.data.user}",
+      "AUTH_PASSWORD=${jsonValue.data.password}"],
+      "KEYPASS=${jsonKey.data.passphrase}",
+      "RELEASE_USER=${jsonReleaseUser.data.user}") {
+      sh(label: "Release packages", script: '''
+      set +x
+      # Jenkins checks out a detached HEAD but the maven release plugin requires to be on a branch
+      git checkout -f ${BRANCH_NAME}
+
+      # Import the key into the keyring
+      echo ${KEYPASS} | gpg --batch --import ${KEY_FILE}
+
+      # Enable this job to push the tags and commits created by the maven-release-plugin
+      /usr/local/bin/ssh-add-from-vault ${RELEASE_USER}
+
+      # load keychain environment variables
+      [[ -z ${HOSTNAME} ]] && HOSTNAME=$(uname -n)
+      source "${HOME}/.keychain/${HOSTNAME}-sh" 2> /dev/null
+
+      # Release the binaries
+      # providing settings in arguments to make sure they are propagated to the forked maven release process
+      ./mvnw release:prepare release:perform --settings .ci/settings.xml -Darguments="--settings .ci/settings.xml" --batch-mode
+      ''')
+    }
+  }
 }
