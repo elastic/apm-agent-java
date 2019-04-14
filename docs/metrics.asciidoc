@@ -157,6 +157,15 @@ If the maximum memory size is undefined, the value is `-1`.
 --
 
 
+*`jvm.thread.count`*::
++
+--
+type: int
+
+The current number of live threads in the JVM, including both daemon and non-daemon threads.
+--
+
+
 *`jvm.gc.count`*::
 +
 --
