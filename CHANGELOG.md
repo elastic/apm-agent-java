@@ -1,11 +1,24 @@
-# next (1.6.0)
+# next (1.7.0)
 
+## Features
+
+## Bug Fixes
+
+# 1.6.0
+
+## Related Announcements
+ * Java APM Agent became part of the Cloud Foundry Java Buildpack as of [Release v4.19](https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19)
+ 
 ## Features
  * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
  * Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
+ * Added support for WebLogic
+ * Added support for Spring `@Scheduled` and EJB `@Schedule` annotations - [#569](https://github.com/elastic/apm-agent-java/pull/569)
 
 ## Bug Fixes
- * Avoid that the agent blocks server shutdown in case the APM Server is not available
+ * Avoid that the agent blocks server shutdown in case the APM Server is not available - [#554](https://github.com/elastic/apm-agent-java/pull/554)
+ * Public API annotations improper retention prevents it from being used with Groovy - [#567](https://github.com/elastic/apm-agent-java/pull/567)
+ * Eliminate side effects of class loading related to Instrumentation matching mechanism
 
 # 1.5.0
 
