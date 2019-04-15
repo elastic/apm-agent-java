@@ -2,6 +2,7 @@
 
 ## Features
  * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
+ * Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
 
 ## Bug Fixes
  * Avoid that the agent blocks server shutdown in case the APM Server is not available
