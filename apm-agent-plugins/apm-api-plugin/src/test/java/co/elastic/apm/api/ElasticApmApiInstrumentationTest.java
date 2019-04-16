@@ -277,8 +277,8 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         transaction.startSpan().setStartTimestamp(1000).end(2000);
         transaction.end(3000);
 
-        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(3000);
-        assertThat(reporter.getFirstSpan().getDuration()).isEqualTo(1000);
+        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(3);
+        assertThat(reporter.getFirstSpan().getDuration()).isEqualTo(1);
     }
 
     @Test

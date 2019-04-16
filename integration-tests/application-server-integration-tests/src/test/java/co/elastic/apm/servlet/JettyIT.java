@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.jetbrains.annotations.NotNull;
@@ -72,6 +73,6 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
     }
 }

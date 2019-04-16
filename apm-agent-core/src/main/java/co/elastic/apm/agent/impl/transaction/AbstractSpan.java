@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
@@ -41,68 +40,16 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     protected final StringBuilder name = new StringBuilder();
     private long timestamp;
 
-    // in microseconds
-    protected long duration;
-    protected ReentrantTimer childDurations = new ReentrantTimer();
+    /**
+     * How long the transaction took to complete, in ms with 3 decimal points
+     * (Required)
+     */
+    protected double duration;
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
 
     public int getReferenceCount() {
         return references.get();
-    }
-
-    public static class ReentrantTimer implements Recyclable {
-
-        private AtomicInteger nestingLevel = new AtomicInteger();
-        private AtomicLong start = new AtomicLong();
-        private AtomicLong duration = new AtomicLong();
-
-        /**
-         * Starts the timer if it has not been started already.
-         *
-         * @param startTimestamp
-         */
-        public void start(long startTimestamp) {
-            if (nestingLevel.incrementAndGet() == 1) {
-                start.set(startTimestamp);
-            }
-        }
-
-        /**
-         * Stops the timer and increments the duration if no other direct children are still running
-         * @param endTimestamp
-         */
-        public void stop(long endTimestamp) {
-            if (nestingLevel.decrementAndGet() == 0) {
-                incrementDuration(endTimestamp);
-            }
-        }
-
-        /**
-         * Stops the timer and increments the duration even if there are direct children which are still running
-         *
-         * @param endTimestamp
-         */
-        public void forceStop(long endTimestamp) {
-            if (nestingLevel.getAndSet(0) != 0) {
-                incrementDuration(endTimestamp);
-            }
-        }
-
-        private void incrementDuration(long epochMicros) {
-            duration.addAndGet(epochMicros - start.get());
-        }
-
-        @Override
-        public void resetState() {
-            nestingLevel.set(0);
-            start.set(0);
-            duration.set(0);
-        }
-
-        public long getDuration() {
-            return duration.get();
-        }
     }
 
     public AbstractSpan(ElasticApmTracer tracer) {
@@ -115,18 +62,11 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     /**
-     * How long the transaction took to complete, in µs
+     * How long the transaction took to complete, in ms with 3 decimal points
+     * (Required)
      */
-    public long getDuration() {
+    public double getDuration() {
         return duration;
-    }
-
-    public long getSelfDuration() {
-        return duration - childDurations.getDuration();
-    }
-
-    public double getDurationMs() {
-        return duration / AbstractSpan.MS_IN_MICROS;
     }
 
     /**
@@ -182,7 +122,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         timestamp = 0;
         duration = 0;
         traceContext.resetState();
-        childDurations.resetState();
         references.set(0);
     }
 
@@ -225,11 +164,10 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration = (epochMicros - timestamp);
+            this.duration = (epochMicros - timestamp)  / AbstractSpan.MS_IN_MICROS;
             if (name.length() == 0) {
                 name.append("unnamed");
             }
-            childDurations.forceStop(epochMicros);
             doEnd(epochMicros);
             // has to be set last so doEnd callbacks don't think it has already been finished
             this.finished = true;
@@ -293,11 +231,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     private void onChildStart(Span span, long epochMicros) {
         incrementReferences();
-        childDurations.start(epochMicros);
     }
 
     void onChildEnd(Span span, long epochMicros) {
-        childDurations.stop(epochMicros);
         decrementReferences();
     }
 
