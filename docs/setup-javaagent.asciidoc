@@ -1,5 +1,5 @@
 [[setup-javaagent]]
-=== Manual setup with `--javaagent` flag
+=== Manual setup with `-javaagent` flag
 
 [float]
 [[setup-javaagent-download]]
