@@ -19,11 +19,10 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -37,12 +36,12 @@ class JvmMemoryMetricsTest {
         final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
         System.out.println(registry.toString());
-        assertThat(registry.get("jvm.memory.heap.used", Collections.emptyMap())).isNotZero();
-        assertThat(registry.get("jvm.memory.heap.committed", Collections.emptyMap())).isNotZero();
-        assertThat(registry.get("jvm.memory.heap.max", Collections.emptyMap())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.used", Collections.emptyMap())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.committed", Collections.emptyMap())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.max", Collections.emptyMap())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.used", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.committed", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.max", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.used", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.committed", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.max", Labels.empty())).isNotZero();
         final long[] longs = new long[1000000];
         System.out.println(registry.toString());
     }

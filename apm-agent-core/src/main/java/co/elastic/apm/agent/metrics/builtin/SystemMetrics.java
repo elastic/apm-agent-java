@@ -22,6 +22,7 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import javax.annotation.Nullable;
@@ -29,7 +30,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -90,35 +90,35 @@ public class SystemMetrics implements LifecycleListener {
     }
 
     void bindTo(MetricRegistry metricRegistry) {
-        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Labels.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(systemCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Labels.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(processCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNan("system.memory.total", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNan("system.memory.total", Labels.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(totalMemory);
             }
         });
 
-        metricRegistry.addUnlessNan("system.memory.actual.free", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNan("system.memory.actual.free", Labels.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(freeMemory);
             }
         });
 
-        metricRegistry.addUnlessNegative("system.process.memory.size", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.memory.size", Labels.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(virtualProcessMemory);

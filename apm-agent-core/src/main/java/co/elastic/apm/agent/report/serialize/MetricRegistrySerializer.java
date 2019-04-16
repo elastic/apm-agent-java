@@ -35,8 +35,11 @@ public class MetricRegistrySerializer {
     public static void serialize(MetricRegistry metricRegistry, StringBuilder replaceBuilder, JsonWriter jw) {
         final long timestamp = System.currentTimeMillis() * 1000;
         for (MetricSet metricSet : metricRegistry.getMetricSets().values()) {
-            serializeMetricSet(metricSet, timestamp, replaceBuilder, jw);
-            jw.writeByte(NEW_LINE);
+            if (metricSet.hasContent()) {
+                serializeMetricSet(metricSet, timestamp, replaceBuilder, jw);
+                metricSet.onAfterReport();
+                jw.writeByte(NEW_LINE);
+            }
         }
     }
 
@@ -49,26 +52,21 @@ public class MetricRegistrySerializer {
                 DslJsonSerializer.writeFieldName("timestamp", jw);
                 NumberConverter.serialize(epochMicros, jw);
                 jw.writeByte(JsonWriter.COMMA);
-
-                if (!metricSet.getLabels().isEmpty()) {
-                    DslJsonSerializer.writeFieldName("tags", jw);
-                    DslJsonSerializer.serializeStringLabels(metricSet.getLabels().entrySet().iterator(), replaceBuilder, jw);
-                    jw.writeByte(JsonWriter.COMMA);
-                }
-
+                DslJsonSerializer.serializeLabels(metricSet.getLabels(), replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
-                serializeSamples(metricSet.getSamples(), jw);
+                jw.writeByte(JsonWriter.OBJECT_START);
+                serializeGauges(metricSet.getGauges(), jw);
+                jw.writeByte(JsonWriter.OBJECT_END);
             }
             jw.writeByte(JsonWriter.OBJECT_END);
         }
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    private static void serializeSamples(Map<String, DoubleSupplier> samples, JsonWriter jw) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        final int size = samples.size();
+    private static boolean serializeGauges(Map<String, DoubleSupplier> gauges, JsonWriter jw) {
+        final int size = gauges.size();
         if (size > 0) {
-            final Iterator<Map.Entry<String, DoubleSupplier>> iterator = samples.entrySet().iterator();
+            final Iterator<Map.Entry<String, DoubleSupplier>> iterator = gauges.entrySet().iterator();
 
             // serialize first valid value
             double value = Double.NaN;
@@ -76,7 +74,7 @@ public class MetricRegistrySerializer {
                 Map.Entry<String, DoubleSupplier> kv = iterator.next();
                 value = kv.getValue().get();
                 if (isValid(value)) {
-                    serializeSample(kv.getKey(), value, jw);
+                    serializeValue(kv.getKey(), value, jw);
                 }
             }
 
@@ -86,23 +84,44 @@ public class MetricRegistrySerializer {
                 value = kv.getValue().get();
                 if (isValid(value)) {
                     jw.writeByte(JsonWriter.COMMA);
-                    serializeSample(kv.getKey(), value, jw);
+                    serializeValue(kv.getKey(), value, jw);
                 }
             }
+            return true;
         }
-        jw.writeByte(JsonWriter.OBJECT_END);
+        return false;
     }
 
     private static boolean isValid(double value) {
         return !Double.isInfinite(value) && !Double.isNaN(value);
     }
 
-    private static void serializeSample(String key, double value, JsonWriter jw) {
-        jw.writeString(key);
-        jw.writeByte(JsonWriter.SEMI);
-        jw.writeByte(JsonWriter.OBJECT_START);
-        DslJsonSerializer.writeFieldName("value", jw);
+    private static void serializeValue(String key, double value, JsonWriter jw) {
+        serializeValue(key, "", value, jw);
+    }
+
+    private static void serializeValue(String key, String suffix, double value, JsonWriter jw) {
+        serializeValueStart(key, suffix, jw);
         NumberConverter.serialize(value, jw);
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static void serializeValue(String key, String suffix, long value, JsonWriter jw) {
+        serializeValueStart(key, suffix, jw);
+        NumberConverter.serialize(value, jw);
+        jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    private static void serializeValueStart(String key, String suffix, JsonWriter jw) {
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeAscii(key);
+        jw.writeAscii(suffix);
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeByte(JsonWriter.SEMI);
+        jw.writeByte(JsonWriter.OBJECT_START);
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeAscii("value");
+        jw.writeByte(JsonWriter.QUOTE);
+        jw.writeByte(JsonWriter.SEMI);
     }
 }

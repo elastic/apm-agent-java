@@ -19,6 +19,7 @@
  */
 package co.elastic.apm.agent.metrics.builtin;
 
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ class ThreadMetricsTest {
     @Test
     void testThreadCount() {
         threadMetrics.bindTo(registry);
-        double numThreads = registry.get("jvm.thread.count", Collections.emptyMap());
+        double numThreads = registry.get("jvm.thread.count", Labels.empty());
         assertThat(numThreads).isNotZero();
         for (int i = 0; i < NUM_ADDED_THREADS; i++) {
             Thread thread = new Thread(() -> {
@@ -51,6 +52,6 @@ class ThreadMetricsTest {
             thread.setDaemon(true);
             thread.start();
         }
-        assertThat(registry.get("jvm.thread.count", Collections.emptyMap())).isEqualTo(numThreads + NUM_ADDED_THREADS);
+        assertThat(registry.get("jvm.thread.count", Labels.empty())).isEqualTo(numThreads + NUM_ADDED_THREADS);
     }
 }

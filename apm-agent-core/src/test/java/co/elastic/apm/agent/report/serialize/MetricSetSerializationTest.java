@@ -19,7 +19,10 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,9 +30,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class MetricSetSerializationTest {
 
@@ -37,8 +40,8 @@ class MetricSetSerializationTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void testSerialization() throws IOException {
-        final MetricSet metricSet = new MetricSet(Collections.singletonMap("foo.bar", "baz"));
+    void testSerializeGauges() throws IOException {
+        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
         metricSet.add("foo.bar", () -> 42);
         metricSet.add("bar.baz", () -> 42);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
@@ -50,7 +53,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testNonFiniteSerialization() throws IOException {
-        final MetricSet metricSet = new MetricSet(Collections.emptyMap());
+        final MetricSet metricSet = new MetricSet(Labels.empty());
         metricSet.add("valid", () -> 4.0);
         metricSet.add("infinite", () -> Double.POSITIVE_INFINITY);
         metricSet.add("NaN", () -> Double.NaN);
@@ -68,7 +71,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testNonFiniteCornerCasesSerialization() throws IOException {
-        final MetricSet metricSet = new MetricSet(Collections.emptyMap());
+        final MetricSet metricSet = new MetricSet(Labels.empty());
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
         String metricSetAsString = jw.toString();
         System.out.println(metricSetAsString);

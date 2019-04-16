@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,9 +47,9 @@ class MetricRegistryTest {
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };
-        metricRegistry.addUnlessNegative("jvm.gc.count", emptyMap(), problematicMetric);
-        metricRegistry.addUnlessNan("jvm.gc.count", emptyMap(), problematicMetric);
-        metricRegistry.add("jvm.gc.count", emptyMap(), problematicMetric);
+        metricRegistry.addUnlessNegative("jvm.gc.count", Labels.empty(), problematicMetric);
+        metricRegistry.addUnlessNan("jvm.gc.count", Labels.empty(), problematicMetric);
+        metricRegistry.add("jvm.gc.count", Labels.empty(), problematicMetric);
         assertThat(metricRegistry.getMetricSets()).isEmpty();
     }
 }
