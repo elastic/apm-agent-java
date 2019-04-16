@@ -62,7 +62,7 @@ class ElasticApmTracerTest {
         Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
-            Span span = tracerImpl.getActive().createSpan();
+            Span span = tracerImpl.getActive().createSpan().withType("app");
             try (Scope spanScope = span.activateInScope()) {
                 assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
                 assertThat(tracerImpl.getActive()).isSameAs(span);
@@ -346,9 +346,9 @@ class ElasticApmTracerTest {
         transaction.end(30);
 
         assertThat(transaction.getTimestamp()).isEqualTo(0);
-        assertThat(transaction.getDuration()).isEqualTo(0.03);
+        assertThat(transaction.getDuration()).isEqualTo(30);
         assertThat(span.getTimestamp()).isEqualTo(10);
-        assertThat(span.getDuration()).isEqualTo(0.01);
+        assertThat(span.getDuration()).isEqualTo(10);
     }
 
     @Test
@@ -356,7 +356,8 @@ class ElasticApmTracerTest {
         final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
         transaction.end();
-        transaction.resetState();
+
+        reporter.assertRecycledAfterDecrementingReferences();
 
         tracerImpl.activate(transactionTraceContext);
         try {

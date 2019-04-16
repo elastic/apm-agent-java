@@ -24,10 +24,13 @@ import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.PayloadUtils;
 import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReportingEvent;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -242,5 +245,24 @@ public class MockReporter implements Reporter {
         transactions.clear();
         errors.clear();
         spans.clear();
+    }
+
+    /**
+     * Calls {@link AbstractSpan#decrementReferences()} for all reported transactions and spans to emulate the references being decremented
+     * after reporting to the APM Server.
+     * See {@link IntakeV2ReportingEventHandler#writeEvent(ReportingEvent)}
+     */
+    public void decrementReferences() {
+        transactions.forEach(Transaction::decrementReferences);
+        spans.forEach(Span::decrementReferences);
+    }
+
+    public void assertRecycledAfterDecrementingReferences() {
+        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isFalse());
+        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isFalse());
+        transactions.forEach(Transaction::decrementReferences);
+        spans.forEach(Span::decrementReferences);
+        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isTrue());
+        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isTrue());
     }
 }

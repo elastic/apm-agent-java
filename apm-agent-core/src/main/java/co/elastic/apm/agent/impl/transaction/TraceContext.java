@@ -382,6 +382,11 @@ public class TraceContext extends TraceContextHolder {
         return tracer.startSpan(fromParent(), this);
     }
 
+    @Override
+    public Span createSpan(long epochMicros) {
+        return tracer.startSpan(fromParent(), this, epochMicros);
+    }
+
     public interface ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
     }

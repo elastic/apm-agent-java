@@ -175,7 +175,6 @@ public abstract class AsyncInstrumentation extends ElasticApmInstrumentation {
                 if (tracer != null && runnable != null) {
                     final Transaction transaction = tracer.currentTransaction();
                     if (transaction != null) {
-                        transaction.markLifecycleManagingThreadSwitchExpected();
                         runnable = transaction.withActive(runnable);
                     }
                 }

@@ -70,6 +70,8 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
 
     public abstract Span createSpan();
 
+    public abstract Span createSpan(long epochMicros);
+
     /**
      * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
      * If current TraceContextHolder is representing an Exit- returns null

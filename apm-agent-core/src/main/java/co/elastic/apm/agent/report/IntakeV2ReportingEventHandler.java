@@ -187,11 +187,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (event.getTransaction() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
-            event.getTransaction().recycle();
+            event.getTransaction().decrementReferences();
         } else if (event.getSpan() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
-            event.getSpan().recycle();
+            event.getSpan().decrementReferences();
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());

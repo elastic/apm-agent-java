@@ -58,14 +58,25 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private final SpanContext context = new SpanContext();
     @Nullable
     private Throwable stacktrace;
+    @Nullable
+    private AbstractSpan<?> parent;
+    @Nullable
+    private Transaction transaction;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
-        onStart();
         childContextCreator.asChildOf(traceContext, parentContext);
+        if (parentContext instanceof Transaction) {
+            this.transaction = (Transaction) parentContext;
+            this.parent = this.transaction;
+        } else if (parentContext instanceof Span) {
+            final Span parentSpan = (Span) parentContext;
+            this.parent = parentSpan;
+            this.transaction = parentSpan.transaction;
+        }
         if (dropped) {
             traceContext.setRecorded(false);
         }
@@ -81,6 +92,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     new RuntimeException("this exception is just used to record where the span has been started from"));
             }
         }
+        onAfterStart();
         return this;
     }
 
@@ -178,6 +190,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+        if (parent != null) {
+            parent.onChildEnd(this, epochMicros);
+        }
         this.tracer.endSpan(this);
     }
 
@@ -189,6 +204,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         type = null;
         subtype = null;
         action = null;
+        parent = null;
+        transaction = null;
     }
 
     @Override
@@ -206,10 +223,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         context.addLabel(key, value);
     }
 
-    public void recycle() {
-        tracer.recycle(this);
-    }
-
     @Override
     public String toString() {
         return String.format("'%s' %s", name, traceContext);
@@ -218,5 +231,25 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     public Span withStacktrace(Throwable stacktrace) {
         this.stacktrace = stacktrace;
         return this;
+    }
+
+    @Override
+    public void incrementReferences() {
+        if (transaction != null) {
+            transaction.incrementReferences();
+        }
+        super.incrementReferences();
+    }
+
+    @Override
+    public void decrementReferences() {
+        if (transaction != null) {
+            transaction.decrementReferences();
+        }
+        final int referenceCount = references.decrementAndGet();
+        if (referenceCount == 0) {
+            tracer.recycle(this);
+        }
+        logger.trace("decrement references to {} ({})", this, referenceCount);
     }
 }

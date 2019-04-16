@@ -73,13 +73,4 @@ public class TransactionPayload extends Payload {
         return transactions.size() + spans.size();
     }
 
-    @Override
-    public void recycle() {
-        for (int i = 0; i < transactions.size(); i++) {
-            transactions.get(i).recycle();
-        }
-        for (int i = 0; i < spans.size(); i++) {
-            spans.get(i).recycle();
-        }
-    }
 }

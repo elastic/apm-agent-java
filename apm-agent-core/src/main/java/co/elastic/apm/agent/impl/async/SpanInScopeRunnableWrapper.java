@@ -45,6 +45,7 @@ public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
     public SpanInScopeRunnableWrapper wrap(Runnable delegate, AbstractSpan<?> span) {
         this.delegate = delegate;
         this.span = span;
+        span.incrementReferences();
         return this;
     }
 
@@ -73,6 +74,7 @@ public class SpanInScopeRunnableWrapper implements Runnable, Recyclable {
             try {
                 if (localSpan != null) {
                     localSpan.deactivate();
+                    localSpan.decrementReferences();
                 }
                 tracer.recycle(this);
             } catch (Throwable t) {

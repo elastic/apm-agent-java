@@ -64,13 +64,6 @@ public class ErrorPayload extends Payload {
     }
 
     @Override
-    public void recycle() {
-        for (ErrorCapture error : errors) {
-            error.recycle();
-        }
-    }
-
-    @Override
     public void resetState() {
         errors.clear();
     }
