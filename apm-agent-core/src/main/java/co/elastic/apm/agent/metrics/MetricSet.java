@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentMap;
 public class MetricSet {
     private final Labels labels;
     private final ConcurrentMap<String, DoubleSupplier> gauges = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>();
     private volatile boolean hasNonEmptyTimer;
 
     public MetricSet(Labels labels) {
@@ -60,6 +61,20 @@ public class MetricSet {
 
     public Map<String, DoubleSupplier> getGauges() {
         return gauges;
+    }
+
+    public Timer timer(String timerName) {
+        hasNonEmptyTimer = true;
+        Timer timer = timers.get(timerName);
+        if (timer == null) {
+            timers.putIfAbsent(timerName, new Timer());
+            timer = timers.get(timerName);
+        }
+        return timer;
+    }
+
+    public Map<String, Timer> getTimers() {
+        return timers;
     }
 
     public boolean hasContent() {

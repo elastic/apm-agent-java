@@ -190,6 +190,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+        if (transaction != null) {
+            transaction.incrementTimer(getType(), getSelfDuration());
+        }
         if (parent != null) {
             parent.onChildEnd(this, epochMicros);
         }

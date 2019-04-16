@@ -121,6 +121,10 @@ public class MetricRegistry {
         return metricSets;
     }
 
+    public Timer timer(String timerName, Labels labels) {
+        return getOrCreateMetricSet(labels).timer(timerName);
+    }
+
     private MetricSet getOrCreateMetricSet(Labels labels) {
         MetricSet metricSet = metricSets.get(labels);
         if (metricSet == null) {

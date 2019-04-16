@@ -22,10 +22,15 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -43,6 +48,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    private final ConcurrentMap<String, Timer> spanTimings = new ConcurrentHashMap<>();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
@@ -169,6 +175,7 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public void doEnd(long epochMicros) {
+        incrementTimer("transaction", getSelfDuration());
         if (!isSampled()) {
             context.resetState();
         }
@@ -176,11 +183,16 @@ public class Transaction extends AbstractSpan<Transaction> {
             type = "custom";
         }
         context.onTransactionEnd();
+        trackMetrics();
         this.tracer.endTransaction(this);
     }
 
     public SpanCount getSpanCount() {
         return spanCount;
+    }
+
+    public ConcurrentMap<String, Timer> getSpanTimings() {
+        return spanTimings;
     }
 
     @Override
@@ -224,6 +236,45 @@ public class Transaction extends AbstractSpan<Transaction> {
         logger.trace("decrement references to {} ({})", this, referenceCount);
         if (referenceCount == 0) {
             tracer.recycle(this);
+        }
+    }
+
+    void incrementTimer(@Nullable String type, long duration) {
+        if (type != null && !finished) {
+            Timer timer = spanTimings.get(type);
+            if (timer == null) {
+                timer = new Timer();
+                Timer racyTimer = spanTimings.putIfAbsent(type, timer);
+                if (racyTimer != null) {
+                    timer = racyTimer;
+                }
+            }
+            timer.update(duration);
+            if (finished) {
+                // in case end()->trackMetrics() has been called concurrently
+                // don't leak timers
+                timer.resetState();
+            }
+        }
+    }
+
+    private void trackMetrics() {
+        final String type = getType();
+        if (type == null) {
+            return;
+        }
+        final StringBuilder transactionName = getName();
+        final Labels labels = new Labels();
+        for (Map.Entry<String, Timer> entry : getSpanTimings().entrySet()) {
+            final Timer timer = entry.getValue();
+            if (timer.getCount() > 0) {
+                labels.resetState();
+                labels.transactionName(transactionName)
+                    .transactionType(type)
+                    .spanType(entry.getKey());
+                tracer.getMetricRegistry().timer("self_time", labels).update(timer.getTotalTimeNs(), timer.getCount());
+                timer.resetState();
+            }
         }
     }
 }

@@ -374,7 +374,7 @@ public class ElasticApmTracer {
         if (span.isSampled()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled()) {
-                if (span.getDuration() >= spanFramesMinDurationMs) {
+                if (span.getDurationMs() >= spanFramesMinDurationMs) {
                     span.withStacktrace(new Throwable());
                 }
             }

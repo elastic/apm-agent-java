@@ -22,6 +22,7 @@ package co.elastic.apm.agent.report.serialize;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
+import co.elastic.apm.agent.metrics.Timer;
 import com.dslplatform.json.JsonWriter;
 import com.dslplatform.json.NumberConverter;
 
@@ -55,7 +56,8 @@ public class MetricRegistrySerializer {
                 DslJsonSerializer.serializeLabels(metricSet.getLabels(), replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
-                serializeGauges(metricSet.getGauges(), jw);
+                final boolean hasSamples = serializeGauges(metricSet.getGauges(), jw);
+                serializeTimers(metricSet.getTimers(), hasSamples, jw);
                 jw.writeByte(JsonWriter.OBJECT_END);
             }
             jw.writeByte(JsonWriter.OBJECT_END);
@@ -92,8 +94,46 @@ public class MetricRegistrySerializer {
         return false;
     }
 
+    private static void serializeTimers(Map<String, Timer> timers, boolean hasSamples, JsonWriter jw) {
+
+        final int size = timers.size();
+        if (size > 0) {
+            final Iterator<Map.Entry<String, Timer>> iterator = timers.entrySet().iterator();
+
+            // serialize first valid value
+            Timer value = null;
+            while (iterator.hasNext() && value == null) {
+                Map.Entry<String, Timer> kv = iterator.next();
+                if (kv.getValue().hasContent()) {
+                    value = kv.getValue();
+                    if (hasSamples) {
+                        jw.writeByte(JsonWriter.COMMA);
+                    }
+                    serializeTimer(kv.getKey(), value, jw);
+                }
+            }
+
+            // serialize rest
+            while (iterator.hasNext()) {
+                Map.Entry<String, Timer> kv = iterator.next();
+                value = kv.getValue();
+                if (value.hasContent()) {
+                    jw.writeByte(JsonWriter.COMMA);
+                    serializeTimer(kv.getKey(), value, jw);
+                }
+            }
+        }
+    }
+
     private static boolean isValid(double value) {
         return !Double.isInfinite(value) && !Double.isNaN(value);
+    }
+
+    private static void serializeTimer(String key, Timer timer, JsonWriter jw) {
+        serializeValue(key, ".count", timer.getCount(), jw);
+        jw.writeByte(JsonWriter.COMMA);
+        serializeValue(key, ".sum", timer.getTotalTimeMs(), jw);
+        timer.resetState();
     }
 
     private static void serializeValue(String key, double value, JsonWriter jw) {

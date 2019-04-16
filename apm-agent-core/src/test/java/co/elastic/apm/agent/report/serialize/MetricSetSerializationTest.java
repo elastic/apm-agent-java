@@ -52,6 +52,71 @@ class MetricSetSerializationTest {
     }
 
     @Test
+    void testSerializeTimers() throws IOException {
+        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
+        metricSet.timer("foo.bar").update(42);
+        metricSet.timer("bar.baz").update(42, 2);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        final String metricSetAsString = jw.toString();
+        System.out.println(metricSetAsString);
+        final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
+        final JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("foo.bar.count").get("value").doubleValue()).isEqualTo(1);
+        assertThat(samples.get("bar.baz.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("bar.baz.count").get("value").doubleValue()).isEqualTo(2);
+    }
+
+    @Test
+    void testSerializeTimersWithTopLevelLabels() throws IOException {
+        final MetricSet metricSet = new MetricSet(Labels.of("foo", "bar")
+            .transactionName("foo")
+            .transactionType("bar")
+            .spanType("baz"));
+        metricSet.timer("foo.bar").update(42);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        final String metricSetAsString = jw.toString();
+        System.out.println(metricSetAsString);
+        final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
+        final JsonNode metricset = jsonNode.get("metricset");
+        assertThat(metricset.get("tags").get("foo").textValue()).isEqualTo("bar");
+        assertThat(metricset.get("tags").get("transaction_name")).isNull();
+        assertThat(metricset.get("tags").get("transaction.name")).isNull();
+        assertThat(metricset.get("transaction").get("name").textValue()).isEqualTo("foo");
+        assertThat(metricset.get("transaction").get("type").textValue()).isEqualTo("bar");
+        assertThat(metricset.get("span").get("type").textValue()).isEqualTo("baz");
+        assertThat(metricset.get("samples").get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+    }
+
+    @Test
+    void testSerializeTimersReset() throws IOException {
+        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
+        metricSet.timer("foo.bar").update(42);
+        metricSet.timer("bar.baz").update(42, 2);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        jw.reset();
+        metricSet.timer("foo.bar").update(42);
+        MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
+        final String metricSetAsString = jw.toString();
+        System.out.println(metricSetAsString);
+        final JsonNode jsonNode = objectMapper.readTree(metricSetAsString);
+        final JsonNode samples = jsonNode.get("metricset").get("samples");
+        assertThat(samples.get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("foo.bar.count").get("value").doubleValue()).isEqualTo(1);
+    }
+
+    @Test
+    void testSerializeEmptyMetricSet() {
+        final MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
+        metricRegistry.timer("foo.bar", Labels.of("foo.bar", "baz")).update(42);
+        MetricRegistrySerializer.serialize(metricRegistry, new StringBuilder(), jw);
+        assertThat(jw.toString()).isNotEmpty();
+        jw.reset();
+        MetricRegistrySerializer.serialize(metricRegistry, new StringBuilder(), jw);
+        assertThat(jw.toString()).isEmpty();
+    }
+
+    @Test
     void testNonFiniteSerialization() throws IOException {
         final MetricSet metricSet = new MetricSet(Labels.empty());
         metricSet.add("valid", () -> 4.0);
