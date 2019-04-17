@@ -61,7 +61,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(named("java.util.concurrent.Executor"))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
-            .and(not(nameStartsWith("com.hazelcast")));
+            .and(not(nameStartsWith("com.hazelcast")))
+            // this pool relies on the task to be an instance of org.glassfish.enterprise.concurrent.internal.ManagedFutureTask
+            // the wrapping is done in org.glassfish.enterprise.concurrent.ManagedExecutorServiceImpl.execute
+            // so this pool only works when called directly from ManagedExecutorServiceImpl
+            .and(not(named("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor")));
     }
 
     @Override
