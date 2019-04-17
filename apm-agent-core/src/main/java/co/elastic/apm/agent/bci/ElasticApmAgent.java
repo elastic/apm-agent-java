@@ -71,10 +71,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    // Don't init logger as a static field, logging needs to be initialized first see also issue #593
+    // private static final Logger doNotUseThisLogger = LoggerFactory.getLogger(ElasticApmAgent.class);
 
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
-    // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -128,7 +128,7 @@ public class ElasticApmAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -294,7 +294,7 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.STRONG;
