@@ -307,6 +307,26 @@ transaction.addLabel("foo", "bar");
 * `String|Number|boolean value`: The tag value
 
 [float]
+[[api-transaction-add-custom-context]]
+==== `Transaction addCustomContext(String key, value)` added[1.7.0]
+Custom context is used to add non-indexed,
+custom contextual information to transactions.
+Non-indexed means the data is not searchable or aggregatable in Elasticsearch,
+and you cannot build dashboards on top of the data.
+However, non-indexed information is useful for other reasons,
+like providing contextual information to help you quickly debug performance issues or errors.
+
+The value can be a `String`, `Number` or `boolean`.
+
+[source,java]
+----
+transaction.addCustomContext("foo", "bar");
+----
+
+* `String key`:   The tag key
+* `String|Number|boolean value`: The tag value
+
+[float]
 [[api-transaction-set-user]]
 ==== `Transaction setUser(String id, String email, String username)`
 Call this to enrich collected performance data and errors with information about the user/client.

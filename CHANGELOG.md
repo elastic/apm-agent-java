@@ -1,4 +1,11 @@
-# next
+# next (1.7.0)
+
+## Features
+ * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
+
+## Bug Fixes
+
+# next (1.6.1)
 
 ## Features
 

@@ -186,6 +186,24 @@ public class Transaction extends AbstractSpan<Transaction> {
         return type;
     }
 
+    public void addCustomContext(String key, String value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
+    public void addCustomContext(String key, Number value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
+    public void addCustomContext(String key, Boolean value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
     @Override
     public String toString() {
         return String.format("'%s' %s", name, traceContext);

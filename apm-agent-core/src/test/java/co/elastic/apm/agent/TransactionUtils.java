@@ -28,14 +28,11 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
 
 public class TransactionUtils {
-
-    private static final List<String> STRINGS = Arrays.asList("bar", "baz");
 
     public static void fillTransaction(Transaction t) {
         t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
@@ -78,9 +75,8 @@ public class TransactionUtils {
             .withEmail("foo@example.com");
 
         context.addLabel("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
-        context.getCustom().put("my_key", 1);
-        context.getCustom().put("some_other_value", "foo bar");
-        context.getCustom().put("and_objects", STRINGS);
+        context.addCustom("my_key", 1);
+        context.addCustom("some_other_value", "foo bar");
     }
 
     public static List<Span> getSpans(Transaction t) {

@@ -715,6 +715,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
+        if (context.hasCustom()) {
+            writeFieldName("custom");
+            serializeLabels(context.getCustomIterator(), replaceBuilder, jw);
+            jw.writeByte(COMMA);
+        }
         writeFieldName("tags");
         serializeLabels(context);
         jw.writeByte(OBJECT_END);

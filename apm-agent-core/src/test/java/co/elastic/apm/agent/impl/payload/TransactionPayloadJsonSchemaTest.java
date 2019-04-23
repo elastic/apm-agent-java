@@ -193,6 +193,19 @@ class TransactionPayloadJsonSchemaTest {
             .isEqualTo(objectMapper.readTree(serializer.toJsonString(transaction)).get("context"));
     }
 
+    @Test
+    void testCustomContext() throws Exception {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        transaction.addCustomContext("string", "foo");
+        transaction.addCustomContext("number", 42);
+        transaction.addCustomContext("boolean", true);
+
+        final JsonNode customContext = objectMapper.readTree(serializer.toJsonString(transaction)).get("context").get("custom");
+        assertThat(customContext.get("string").textValue()).isEqualTo("foo");
+        assertThat(customContext.get("number").intValue()).isEqualTo(42);
+        assertThat(customContext.get("boolean").booleanValue()).isEqualTo(true);
+    }
+
     private void validateJsonStructure(TransactionPayload payload) throws IOException {
         JsonNode serializedSpans = getSerializedSpans(payload);
         validateDbSpanSchema(serializedSpans, true);
