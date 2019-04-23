@@ -21,6 +21,7 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -38,6 +39,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
+import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -118,6 +120,17 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
     }
 
+    @Test
+    public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
+        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+    }
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.

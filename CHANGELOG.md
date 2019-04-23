@@ -1,8 +1,10 @@
-# next (1.7.0)
+# next
 
 ## Features
 
 ## Bug Fixes
+ * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
+ * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
 
 # 1.6.0
 
