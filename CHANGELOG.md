@@ -1,8 +1,9 @@
-# next (1.7.0)
+# next
 
 ## Features
 
 ## Bug Fixes
+ * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
 
 # 1.6.0
 

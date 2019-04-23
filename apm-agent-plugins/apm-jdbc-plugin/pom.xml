@@ -9,14 +9,6 @@
 
     <artifactId>apm-jdbc-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <!--Required for the oracle driver-->
-    <repositories>
-        <repository>
-            <id>atlassian</id>
-            <url>https://maven.atlassian.com/3rdparty/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -77,12 +69,6 @@
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <version>6.4.0.jre9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.oracle</groupId>
-            <artifactId>ojdbc6</artifactId>
-            <version>12.1.0.1-atlassian-hosted</version>
             <scope>test</scope>
         </dependency>
 
