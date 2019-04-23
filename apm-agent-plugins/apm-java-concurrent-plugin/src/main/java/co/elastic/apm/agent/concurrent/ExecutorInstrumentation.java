@@ -32,6 +32,8 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -48,6 +50,16 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
 
     @VisibleForAdvice
     public static final WeakConcurrentSet<Executor> excluded = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.THREAD);
+    @VisibleForAdvice
+    public static final Set<String> excludedClasses = new HashSet<>();
+
+    static {
+        // this pool relies on the task to be an instance of org.glassfish.enterprise.concurrent.internal.ManagedFutureTask
+        // the wrapping is done in org.glassfish.enterprise.concurrent.ManagedExecutorServiceImpl.execute
+        // so this pool only works when called directly from ManagedExecutorServiceImpl
+        // excluding this class from instrumentation does not work as it inherits the execute and submit methods
+        excludedClasses.add("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor");
+    }
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
@@ -71,13 +83,18 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         return Arrays.asList("concurrent", "executor");
     }
 
+    @VisibleForAdvice
+    public static boolean isExcluded(@Advice.This Executor executor) {
+        return excluded.contains(executor) || excludedClasses.contains(executor.getClass().getName());
+    }
+
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.This Executor thiz,
                                      @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
                                      @Advice.Local("original") Runnable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && runnable != null && !excluded.contains(thiz)) {
+            if (active != null && runnable != null && !isExcluded(thiz)) {
                 original = runnable;
                 runnable = active.withActive(runnable);
             }
@@ -119,7 +136,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
                                     @Advice.Local("original") Callable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && callable != null && !excluded.contains(thiz)) {
+            if (active != null && callable != null && !isExcluded(thiz)) {
                 original = callable;
                 callable = active.withActive(callable);
             }
