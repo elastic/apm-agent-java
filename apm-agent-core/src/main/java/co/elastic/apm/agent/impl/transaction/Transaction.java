@@ -87,6 +87,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      * <p>
      * Any arbitrary contextual information regarding the event, captured by the agent, optionally provided by the user
      */
+    @Override
     public TransactionContext getContext() {
         return context;
     }
@@ -104,9 +105,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public Transaction withName(@Nullable String name) {
-        if (!isSampled()) {
-            return this;
-        }
         setName(name);
         return this;
     }
@@ -131,29 +129,8 @@ public class Transaction extends AbstractSpan<Transaction> {
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     public Transaction withResult(@Nullable String result) {
-        if (!isSampled()) {
-            return this;
-        }
         this.result = result;
         return this;
-    }
-
-    @Override
-    public void addLabel(String key, String value) {
-        if (!isSampled()) {
-            return;
-        }
-        getContext().addLabel(key, value);
-    }
-
-    @Override
-    public void addLabel(String key, Number value) {
-        context.addLabel(key, value);
-    }
-
-    @Override
-    public void addLabel(String key, Boolean value) {
-        context.addLabel(key, value);
     }
 
     public void setUser(String id, String email, String username) {
