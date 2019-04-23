@@ -142,7 +142,7 @@ public class Labels implements Recyclable {
     }
 
     public boolean isEmpty() {
-        return keys.isEmpty();
+        return keys.isEmpty() && transactionName == null && transactionType == null && spanType == null;
     }
 
     public int size() {
@@ -162,11 +162,11 @@ public class Labels implements Recyclable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Labels labels = (Labels) o;
-        return keys.equals(labels.keys) &&
-            isEqual(values, labels.values) &&
-            contentEquals(transactionName, labels.transactionName) &&
+        return Objects.equals(spanType, labels.spanType) &&
             Objects.equals(transactionType, labels.transactionType) &&
-            Objects.equals(spanType, labels.spanType);
+            contentEquals(transactionName, labels.transactionName) &&
+            keys.equals(labels.keys) &&
+            isEqual(values, labels.values);
     }
 
     @Override
@@ -179,8 +179,8 @@ public class Labels implements Recyclable {
             h = 31 * h + hash(i);
         }
         h = 31 * h + hash(transactionName);
-        h = 31 * h + Objects.hashCode(transactionType);
-        h = 31 * h + Objects.hashCode(spanType);
+        h = 31 * h + (transactionType != null ? transactionType.hashCode() : 0);
+        h = 31 * h + (spanType != null ? spanType.hashCode() : 0);
         return h;
     }
 

@@ -30,16 +30,16 @@ public class Timer implements Recyclable {
     private AtomicLong totalTime = new AtomicLong();
     private AtomicLong count = new AtomicLong();
 
-    public void update(long durationNs) {
-        update(durationNs, 1);
+    public void update(long durationUs) {
+        update(durationUs, 1);
     }
 
-    public void update(long durationNs, long count) {
-        this.totalTime.addAndGet(durationNs);
+    public void update(long durationUs, long count) {
+        this.totalTime.addAndGet(durationUs);
         this.count.addAndGet(count);
     }
 
-    public long getTotalTimeNs() {
+    public long getTotalTimeUs() {
         return totalTime.get();
     }
 

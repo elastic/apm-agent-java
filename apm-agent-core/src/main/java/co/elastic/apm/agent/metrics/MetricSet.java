@@ -40,7 +40,8 @@ import java.util.concurrent.ConcurrentMap;
 public class MetricSet {
     private final Labels labels;
     private final ConcurrentMap<String, DoubleSupplier> gauges = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>();
+    // low load factor as hash collisions are quite costly when tracking breakdown metrics
+    private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private volatile boolean hasNonEmptyTimer;
 
     public MetricSet(Labels labels) {

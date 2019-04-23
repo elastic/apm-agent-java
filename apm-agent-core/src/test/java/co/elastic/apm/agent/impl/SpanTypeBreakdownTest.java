@@ -28,6 +28,10 @@ import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonWriter;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,13 +60,14 @@ class SpanTypeBreakdownTest {
             .withName("test transaction")
             .withType("request")
             .end(30);
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
     }
 
     /*
      * ██████████░░░░░░░░░░██████████
-     * ╰─────────██████████
+     * └─────────██████████
      *          10        20        30
      */
     @Test
@@ -73,16 +78,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("db").end(20);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(20);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(10);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
      * ██████████░░░░░░░░░░██████████
      * ├─────────██████████
-     * ╰─────────██████████
+     * └─────────██████████
      *          10        20        30
      */
     @Test
@@ -96,16 +102,17 @@ class SpanTypeBreakdownTest {
         span2.end(20);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(20);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(2);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(20);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(2);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
      * ██████████░░░░░░░░░░░░░░░█████
      * ├─────────██████████
-     * ╰──────────────██████████
+     * └──────────────██████████
      *          10        20        30
      */
     @Test
@@ -119,16 +126,17 @@ class SpanTypeBreakdownTest {
         span2.end(25);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(15);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(2);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(20);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(15);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(2);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
      * █████░░░░░░░░░░░░░░░░░░░░█████
      * ├────██████████
-     * ╰──────────────██████████
+     * └──────────────██████████
      *          10        20        30
      */
     @Test
@@ -140,16 +148,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(15).withType("db").end(25);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(10);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(2);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(20);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(2);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
      * ██████████░░░░░█████░░░░░█████
      * ├─────────█████
-     * ╰───────────────────█████
+     * └───────────────────█████
      *          10        20        30
      */
     @Test
@@ -161,16 +170,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(20).withType("db").end(25);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(20);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(2);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(10);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(2);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
      * ██████████░░░░░░░░░░██████████
-     * ╰─────────█████░░░░░ <- all child timers are force-stopped when a span finishes
-     *           ╰────██████████      <- does not influence the transaction's self-time as it's not a direct child
+     * └─────────█████░░░░░ <- all child timers are force-stopped when a span finishes
+     *           └────██████████      <- does not influence the transaction's self-time as it's not a direct child
      *          10        20        30
      */
     @Test
@@ -184,12 +194,13 @@ class SpanTypeBreakdownTest {
         db.end(25);
         transaction.end(30);
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(20);
-        assertThat(getSelfTimer("app").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("app").getTotalTimeNs()).isEqualTo(5);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("db").getTotalTimeNs()).isEqualTo(10);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("self_time", "app").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "app").getTotalTimeUs()).isEqualTo(5);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "db").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
@@ -197,8 +208,8 @@ class SpanTypeBreakdownTest {
      * any spans which outlive the transaction are not included in the breakdown
      *                    v
      * ██████████░░░░░░░░░░
-     * ╰─────────██████████░░░░░░░░░░
-     *           ╰─────────██████████
+     * └─────────██████████░░░░░░░░░░
+     *           └─────────██████████
      *          10        20        30
      */
     @Test
@@ -222,10 +233,11 @@ class SpanTypeBreakdownTest {
         assertThat(app.isReferenced()).isFalse();
         assertThat(db.isReferenced()).isFalse();
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(10);
-        assertThat(getSelfTimer("app").getCount()).isEqualTo(0);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(0);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("self_time", "app").getCount()).isEqualTo(0);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(0);
     }
 
     /*
@@ -233,7 +245,7 @@ class SpanTypeBreakdownTest {
      * any spans which outlive the transaction are not included in the breakdown
      *                    v
      * ██████████░░░░░░░░░░
-     * ╰─────────████████████████████
+     * └─────────████████████████████
      *          10        20        30
      */
     @Test
@@ -249,9 +261,10 @@ class SpanTypeBreakdownTest {
         reporter.assertRecycledAfterDecrementingReferences();
         assertThat(reporter.getFirstTransaction().getSpanTimings().get("db")).isNull();
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(10);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(0);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(0);
     }
 
     /*
@@ -259,7 +272,7 @@ class SpanTypeBreakdownTest {
      * any spans which outlive the transaction are not included in the breakdown
      *          v
      * ██████████
-     * ╰───────────────────██████████
+     * └───────────────────██████████
      *          10        20        30
      */
     @Test
@@ -278,13 +291,14 @@ class SpanTypeBreakdownTest {
 
         reporter.assertRecycledAfterDecrementingReferences();
 
-        assertThat(getSelfTimer("transaction").getCount()).isEqualTo(1);
-        assertThat(getSelfTimer("transaction").getTotalTimeNs()).isEqualTo(10);
-        assertThat(getSelfTimer("db").getCount()).isEqualTo(0);
+        assertThat(getTimer("self_time", "transaction").getCount()).isEqualTo(1);
+        assertThat(getTimer("self_time", "transaction").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("duration", "transaction").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("self_time", "db").getCount()).isEqualTo(0);
     }
 
     @Nonnull
-    private Timer getSelfTimer(String spanType) {
-        return tracer.getMetricRegistry().timer("self_time", Labels.of().transactionName("test transaction").transactionType("request").spanType(spanType));
+    private Timer getTimer(String timerName, String spanType) {
+        return tracer.getMetricRegistry().timer(timerName, Labels.of().transactionName("test transaction").transactionType("request").spanType(spanType));
     }
 }

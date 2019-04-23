@@ -145,6 +145,7 @@ public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
 
     @TearDown
     public void tearDown() throws ExecutionException, InterruptedException {
+        Thread.sleep(1000);
         tracer.getReporter().flush().get();
         server.stop();
         System.out.println("Reported: " + tracer.getReporter().getReported());

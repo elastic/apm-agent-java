@@ -24,13 +24,12 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.List;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -38,6 +37,12 @@ import java.util.concurrent.ConcurrentMap;
 public class Transaction extends AbstractSpan<Transaction> {
 
     private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+    private static final ThreadLocal<Labels> labelsThreadLocal = new ThreadLocal<>() {
+        @Override
+        protected Labels initialValue() {
+            return new Labels();
+        }
+    };
 
     public static final String TYPE_REQUEST = "request";
 
@@ -48,7 +53,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
-    private final ConcurrentMap<String, Timer> spanTimings = new ConcurrentHashMap<>();
+    private final KeyListConcurrentHashMap<String, Timer> spanTimings = new KeyListConcurrentHashMap<>();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
@@ -175,7 +180,6 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public void doEnd(long epochMicros) {
-        incrementTimer("transaction", getSelfDuration());
         if (!isSampled()) {
             context.resetState();
         }
@@ -191,7 +195,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
-    public ConcurrentMap<String, Timer> getSpanTimings() {
+    public KeyListConcurrentHashMap<String, Timer> getSpanTimings() {
         return spanTimings;
     }
 
@@ -263,18 +267,20 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (type == null) {
             return;
         }
-        final StringBuilder transactionName = getName();
-        final Labels labels = new Labels();
-        for (Map.Entry<String, Timer> entry : getSpanTimings().entrySet()) {
-            final Timer timer = entry.getValue();
+        final Labels labels = labelsThreadLocal.get();
+        labels.resetState();
+        labels.transactionName(name).transactionType(type);
+        final KeyListConcurrentHashMap<String, Timer> spanTimings = getSpanTimings();
+        List<String> keyList = spanTimings.keyList();
+        for (int i = 0; i < keyList.size(); i++) {
+            String spanType = keyList.get(i);
+            final Timer timer = spanTimings.get(spanType);
             if (timer.getCount() > 0) {
-                labels.resetState();
-                labels.transactionName(transactionName)
-                    .transactionType(type)
-                    .spanType(entry.getKey());
-                tracer.getMetricRegistry().timer("self_time", labels).update(timer.getTotalTimeNs(), timer.getCount());
+                tracer.getMetricRegistry().timer("self_time", labels.spanType(spanType)).update(timer.getTotalTimeUs(), timer.getCount());
                 timer.resetState();
             }
         }
+        tracer.getMetricRegistry().timer("self_time", labels.spanType("transaction")).update(getSelfDuration());
+        tracer.getMetricRegistry().timer("duration", labels.spanType("transaction")).update(getDuration());
     }
 }
