@@ -75,8 +75,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             // executes on same thread, no need to wrap to activate again
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
-            .and(not(nameStartsWith("com.hazelcast")))
-            .and(not(named("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor")));
+            .and(not(nameStartsWith("com.hazelcast")));
     }
 
     @Override
