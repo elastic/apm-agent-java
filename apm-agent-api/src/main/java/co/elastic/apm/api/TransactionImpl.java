@@ -80,18 +80,21 @@ class TransactionImpl extends AbstractSpanImpl implements Transaction {
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, String value) {
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, Number value) {
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 
     @Nonnull
     @Override
     public Transaction addCustomContext(String key, boolean value) {
+        // co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
         return this;
     }
 

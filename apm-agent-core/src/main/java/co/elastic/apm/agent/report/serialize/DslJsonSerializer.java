@@ -717,7 +717,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeResponse(context.getResponse());
         if (context.hasCustom()) {
             writeFieldName("custom");
-            serializeLabels(context.getCustomIterator(), replaceBuilder, jw);
+            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw);
             jw.writeByte(COMMA);
         }
         writeFieldName("tags");
@@ -729,7 +729,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeLabels(context.getLabelIterator(), replaceBuilder, jw);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw);
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
@@ -737,28 +737,30 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
-        serializeLabels(iterator, replaceBuilder, jw);
+        serializeStringKeyScalarValueMap(iterator, replaceBuilder, jw);
     }
 
-    private static void serializeLabels(Iterator<? extends Map.Entry<String, ?>> it, StringBuilder replaceBuilder, JsonWriter jw) {
+    
+    private static void serializeStringKeyScalarValueMap(Iterator<? extends Map.Entry<String, ? /* String|Number|Boolean */>> it,
+                                                         StringBuilder replaceBuilder, JsonWriter jw) {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
             writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeLabelValue(replaceBuilder, jw, kv.getValue());
+            serializeScalarValue(replaceBuilder, jw, kv.getValue());
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
                 writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeLabelValue(replaceBuilder, jw, kv.getValue());
+                serializeScalarValue(replaceBuilder, jw, kv.getValue());
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private static void serializeLabelValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
         if (value instanceof String) {
             writeStringValue((String) value, replaceBuilder, jw);
         } else if (value instanceof Number) {
