@@ -296,7 +296,7 @@ Multiple labels can be defined with different key-value pairs.
 * Elasticsearch field: `labels` (previously `context.tags` in <v.7.0)
 
 Label values can be a string, boolean, or number.
-Because labels are stored in the same place in Elasticsearch, each value must have the same data type.
+Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
 Multiple data types per key will throw an exception, e.g. `{foo: bar}` and `{foo: 42}`
 
 NOTE: Number and boolean labels were only introduced in APM Server 6.7+.
