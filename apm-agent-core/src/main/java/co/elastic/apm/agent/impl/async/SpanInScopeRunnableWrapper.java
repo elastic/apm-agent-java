@@ -50,7 +50,6 @@ public class SpanInScopeRunnableWrapper extends SpanInScopeBaseWrapper implement
     // In this case, this class acts as the boundary of user and agent code so we have to do the tedious exception handling here
     @Override
     public void run() {
-        System.out.println("Wrapper run");
         // minimize volatile reads
         AbstractSpan<?> localSpan = span;
         boolean activated = beforeDelegation(localSpan);
