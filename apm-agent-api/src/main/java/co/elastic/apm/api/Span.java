@@ -80,7 +80,7 @@ public interface Span {
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
-     * Because labels are stored in the same place in Elasticsearch, each value must have the same data type.
+     * Because labels for a given key are stored in the same place in Elasticsearch, all label values of a given key must have the same data type.
      * Multiple data types per key will throw an exception, e.g. {@code {foo: bar}} and {@code {foo: 42}}
      * </p>
      * <p>
