@@ -286,7 +286,7 @@ transaction.setType(Transaction.TYPE_REQUEST);
 
 [float]
 [[api-transaction-add-tag]]
-==== `Transaction addLabel(String key, value)` added[1.5.0]
+==== `Transaction addLabel(String key, value)` added[1.5.0,Number and boolean labels require APM Server 6.7]
 Labels are used to add *indexed* information to transactions, spans, and errors.
 Indexed means the data is searchable and aggregatable in Elasticsearch.
 Multiple labels can be defined with different key-value pairs.
