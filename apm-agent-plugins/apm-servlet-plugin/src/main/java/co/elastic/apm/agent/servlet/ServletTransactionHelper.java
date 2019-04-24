@@ -146,7 +146,8 @@ public class ServletTransactionHelper {
 
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+                        @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
+                        @Nullable String contentTypeHeader, boolean deactivate) {
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
@@ -158,9 +159,7 @@ public class ServletTransactionHelper {
             // in case we screwed up, don't bring down the monitored application with us
             logger.warn("Exception while capturing Elastic APM transaction", e);
         }
-        if (tracer.getActive() == transaction) {
-            // when calling javax.servlet.AsyncContext#start, the transaction is not activated,
-            // as neither javax.servlet.Filter.doFilter nor javax.servlet.AsyncListener.onStartAsync will be invoked
+        if (deactivate) {
             transaction.deactivate();
         }
         transaction.end();

@@ -173,7 +173,7 @@ public class ServletApiAdvice {
                     parameterMap = null;
                 }
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader);
+                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
             }
         }
     }
