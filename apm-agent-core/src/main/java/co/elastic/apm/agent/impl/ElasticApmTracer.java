@@ -495,12 +495,6 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
-        if (holder == stack.peekLast()) {
-            // if this is the bottom of the stack
-            // clear to avoid potential leaks in case some spans didn't deactivate properly
-            // makes all leaked spans eligible for GC
-            stack.clear();
-        }
     }
 
     private void assertIsActive(Object span, @Nullable Object currentlyActive) {
