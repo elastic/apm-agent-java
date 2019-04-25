@@ -72,10 +72,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
             this.parent = this.transaction;
+            this.parent.incrementReferences();
         } else if (parentContext instanceof Span) {
             final Span parentSpan = (Span) parentContext;
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
+            this.parent.incrementReferences();
         }
         if (dropped) {
             traceContext.setRecorded(false);
@@ -191,7 +193,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             type = "custom";
         }
         if (parent != null) {
-            parent.onChildEnd(this, epochMicros);
+            parent.decrementReferences();
         }
         this.tracer.endSpan(this);
     }
@@ -225,7 +227,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, traceContext);
+        return String.format("'%s' %s (%s)", name, traceContext, Integer.toHexString(System.identityHashCode(this)));
     }
 
     public Span withStacktrace(Throwable stacktrace) {
@@ -247,9 +249,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             transaction.decrementReferences();
         }
         final int referenceCount = references.decrementAndGet();
+        super.decrementReferences();
         if (referenceCount == 0) {
             tracer.recycle(this);
         }
-        logger.trace("decrement references to {} ({})", this, referenceCount);
     }
 }

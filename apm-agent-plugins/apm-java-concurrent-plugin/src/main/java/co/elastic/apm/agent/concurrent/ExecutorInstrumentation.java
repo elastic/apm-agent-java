@@ -61,8 +61,7 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return hasSuperType(named("java.util.concurrent.Executor"))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
-            .and(not(nameStartsWith("com.hazelcast")))
-            .and(not(nameStartsWith("org.apache.felix.resolver")));
+            .and(not(nameStartsWith("com.hazelcast")));
     }
 
     @Override
