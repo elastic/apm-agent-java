@@ -81,6 +81,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
                 .and(not(ElementMatchers.<TypeDescription>nameContains("$Proxy")))
+                .and(not(ElementMatchers.<TypeDescription>nameContains("$view")))
                 .and(isAnnotatedWith(named("javax.ws.rs.Path"))
                     .or(hasSuperType(isAnnotatedWith(named("javax.ws.rs.Path"))))
                 );
