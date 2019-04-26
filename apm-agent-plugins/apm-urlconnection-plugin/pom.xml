@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.6.1</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <name>${project.groupId}:${project.artifactId}</name>
     <modelVersion>4.0.0</modelVersion>
