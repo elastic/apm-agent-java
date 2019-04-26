@@ -139,7 +139,6 @@ public class ServletApiTestApp extends TestApp {
             test.executeAndValidateRequest(pathToTest, "Hello World", 200);
             JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
             String transactionId = transaction.get("id").textValue();
-            System.out.println("pathToTest= "+pathToTest);
             List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
             for (JsonNode span : spans) {
                 assertThat(span.get("type").textValue()).isEqualTo("db.h2.query");
