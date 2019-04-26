@@ -38,6 +38,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -75,7 +76,8 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             // executes on same thread, no need to wrap to activate again
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
-            .and(not(nameStartsWith("com.hazelcast")));
+            .and(not(nameStartsWith("com.hazelcast")))
+            .and(not(isProxy()));
     }
 
     @Override

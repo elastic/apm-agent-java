@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
@@ -229,5 +230,9 @@ public class CustomElementMatchers {
                 return "matches(" + matcher + ")";
             }
         };
+    }
+
+    public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
+        return nameContains("$Proxy").or(nameContains("$$"));
     }
 }

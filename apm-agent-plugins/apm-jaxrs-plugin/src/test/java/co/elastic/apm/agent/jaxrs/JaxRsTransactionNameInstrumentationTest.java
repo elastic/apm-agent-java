@@ -138,10 +138,10 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Override
     protected Application configure() {
         return new ResourceConfig(ResourceWithPath.class,
-                ResourceWithPathOnInterface.class,
-                ResourceWithPathOnAbstract.class,
-                ProxiedClass$view.class,
-                ProxiedClass$Proxy.class);
+            ResourceWithPathOnInterface.class,
+            ResourceWithPathOnAbstract.class,
+            ProxiedClass$$$view.class,
+            ProxiedClass$Proxy.class);
     }
 
     /**
@@ -180,7 +180,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     @Path("testViewProxy")
-    public static class ProxiedClass$view implements SuperResourceInterface {
+    public static class ProxiedClass$$$view implements SuperResourceInterface {
         public String testMethod() {
             return "ok";
         }
