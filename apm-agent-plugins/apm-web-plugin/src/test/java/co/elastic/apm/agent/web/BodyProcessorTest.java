@@ -39,9 +39,8 @@ class BodyProcessorTest {
 
     @BeforeEach
     void setUp() {
-        bodyProcessor = new BodyProcessor();
         ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
-        bodyProcessor.init(configurationRegistry);
+        bodyProcessor = new BodyProcessor(configurationRegistry);
         config = configurationRegistry.getConfig(WebConfiguration.class);
         tracer = MockTracer.create(configurationRegistry);
     }

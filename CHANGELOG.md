@@ -1,8 +1,34 @@
-# next (1.6.0)
+# next
 
 ## Features
 
 ## Bug Fixes
+ * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
+ * Makes log_file option work again [#594](https://github.com/elastic/apm-agent-java/issues/594)
+ * Async context propagation fixes
+    * Fixing some async mechanisms lifecycle issues [#605](https://github.com/elastic/apm-agent-java/issues/605)
+    * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
+    * Exclude glassfish Executor which does not permit wrapped runnables [#596](https://github.com/elastic/apm-agent-java/issues/596)
+    * Exclude DumbExecutor [#598](https://github.com/elastic/apm-agent-java/issues/598)
+ * Fixes Manifest version reading error to support `jar:file` protocol [#601](https://github.com/elastic/apm-agent-java/issues/601)
+ * Fixes transaction name for non-sampled transactions [#597](https://github.com/elastic/apm-agent-java/issues/597)
+ * Fixes potential classloader deadlock by preloading `FileSystems.getDefault()` [#603](https://github.com/elastic/apm-agent-java/issues/603)
+
+# 1.6.0
+
+## Related Announcements
+ * Java APM Agent became part of the Cloud Foundry Java Buildpack as of [Release v4.19](https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19)
+ 
+## Features
+ * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
+ * Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
+ * Added support for WebLogic
+ * Added support for Spring `@Scheduled` and EJB `@Schedule` annotations - [#569](https://github.com/elastic/apm-agent-java/pull/569)
+
+## Bug Fixes
+ * Avoid that the agent blocks server shutdown in case the APM Server is not available - [#554](https://github.com/elastic/apm-agent-java/pull/554)
+ * Public API annotations improper retention prevents it from being used with Groovy - [#567](https://github.com/elastic/apm-agent-java/pull/567)
+ * Eliminate side effects of class loading related to Instrumentation matching mechanism
 
 # 1.5.0
 

@@ -227,6 +227,7 @@ public class TraceContext extends TraceContextHolder {
 
     @Override
     public void resetState() {
+        super.resetState();
         traceId.resetState();
         id.resetState();
         parentId.resetState();

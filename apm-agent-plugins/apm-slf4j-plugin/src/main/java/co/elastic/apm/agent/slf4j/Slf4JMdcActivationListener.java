@@ -68,31 +68,26 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                 }
             }
         });
-    @Nullable
-    private LoggingConfiguration config;
-    @Nullable
-    private ElasticApmTracer tracer;
+    private final LoggingConfiguration config;
+    private final ElasticApmTracer tracer;
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public Slf4JMdcActivationListener(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        config = tracer.getConfig(LoggingConfiguration.class);
+        this.config = tracer.getConfig(LoggingConfiguration.class);
     }
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled()) {
+        if (config.isLogCorrelationEnabled()) {
             ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
             MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
             if (put != null) {
                 TraceContext traceContext = context.getTraceContext();
-                if (tracer != null) {
-                    put.invokeExact(SPAN_ID, traceContext.getId().toString());
-                    if (tracer.getActive() == null) {
-                        put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
-                        put.invokeExact(TRANSACTION_ID, traceContext.getTransactionId().toString());
-                    }
+                put.invokeExact(SPAN_ID, traceContext.getId().toString());
+                if (tracer.getActive() == null) {
+                    put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
+                    put.invokeExact(TRANSACTION_ID, traceContext.getTransactionId().toString());
                 }
             }
         }
@@ -100,26 +95,24 @@ public class Slf4JMdcActivationListener implements ActivationListener {
 
     @Override
     public void afterDeactivate() throws Throwable {
-        if (config != null && config.isLogCorrelationEnabled()) {
+        if (config.isLogCorrelationEnabled()) {
 
             ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-            if (tracer != null) {
-                TraceContextHolder active = tracer.getActive();
+            TraceContextHolder active = tracer.getActive();
 
-                MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
-                if (remove != null) {
-                    if (active == null) {
-                        remove.invokeExact(SPAN_ID);
-                        remove.invokeExact(TRACE_ID);
-                        remove.invokeExact(TRANSACTION_ID);
-                    }
+            MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
+            if (remove != null) {
+                if (active == null) {
+                    remove.invokeExact(SPAN_ID);
+                    remove.invokeExact(TRACE_ID);
+                    remove.invokeExact(TRANSACTION_ID);
                 }
+            }
 
-                if (active != null) {
-                    MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-                    if (put != null) {
-                        put.invokeExact(SPAN_ID, active.getTraceContext().getId().toString());
-                    }
+            if (active != null) {
+                MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
+                if (put != null) {
+                    put.invokeExact(SPAN_ID, active.getTraceContext().getId().toString());
                 }
             }
         }

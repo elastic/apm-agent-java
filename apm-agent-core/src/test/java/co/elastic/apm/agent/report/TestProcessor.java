@@ -22,7 +22,6 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.Processor;
-import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,11 +29,6 @@ public class TestProcessor implements Processor {
 
     private static AtomicInteger transactionCounter = new AtomicInteger();
     private static AtomicInteger errorCounter = new AtomicInteger();
-
-    @Override
-    public void init(ConfigurationRegistry configurationRegistry) {
-
-    }
 
     @Override
     public void processBeforeReport(Transaction transaction) {

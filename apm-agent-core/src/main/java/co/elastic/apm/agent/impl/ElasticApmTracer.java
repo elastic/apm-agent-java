@@ -41,6 +41,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
@@ -94,6 +95,14 @@ public class ElasticApmTracer {
             return new ArrayDeque<TraceContextHolder<?>>();
         }
     };
+
+    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.TRUE;
+        }
+    };
+
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -101,13 +110,12 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners, List<ActivationListener> activationListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         this.lifecycleListeners = lifecycleListeners;
-        this.activationListeners = activationListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -172,9 +180,7 @@ public class ElasticApmTracer {
         for (LifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.start(this);
         }
-        for (ActivationListener activationListener : activationListeners) {
-            activationListener.init(this);
-        }
+        this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
 
         // sets the assertionsEnabled flag to true if indeed enabled
@@ -193,6 +199,18 @@ public class ElasticApmTracer {
      */
     public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
         return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
+    }
+
+    public void avoidWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.FALSE);
+    }
+
+    public void allowWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.TRUE);
+    }
+
+    public boolean isWrappingAllowedOnThread() {
+        return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
     /**
@@ -477,12 +495,6 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
-        if (holder == stack.peekLast()) {
-            // if this is the bottom of the stack
-            // clear to avoid potential leaks in case some spans didn't deactivate properly
-            // makes all leaked spans eligible for GC
-            stack.clear();
-        }
     }
 
     private void assertIsActive(Object span, @Nullable Object currentlyActive) {

@@ -36,8 +36,7 @@ class SanitizingWebProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new SanitizingWebProcessor();
-        processor.init(SpyConfiguration.createSpyConfig());
+        processor = new SanitizingWebProcessor(SpyConfiguration.createSpyConfig());
     }
 
     @Test

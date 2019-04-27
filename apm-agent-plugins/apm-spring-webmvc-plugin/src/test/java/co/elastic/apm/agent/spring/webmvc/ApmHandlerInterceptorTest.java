@@ -52,7 +52,7 @@ class ApmHandlerInterceptorTest {
             .configurationRegistry(SpyConfiguration.createSpyConfig())
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(), new SpringTransactionNameInstrumentation()));
+            Arrays.asList(new ServletInstrumentation(tracer), new SpringTransactionNameInstrumentation()));
     }
 
     @AfterAll

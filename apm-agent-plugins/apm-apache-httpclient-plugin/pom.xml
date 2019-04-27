@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -23,8 +23,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.3.6</version>
+            <artifactId>httpasyncclient</artifactId>
+            <version>4.1.4</version>
             <scope>provided</scope>
         </dependency>
 

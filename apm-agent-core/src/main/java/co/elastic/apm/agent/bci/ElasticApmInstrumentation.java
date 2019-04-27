@@ -28,6 +28,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -38,6 +39,9 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * <p>
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
+ * </p>
+ * <p>
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
  * </p>
  */
 public abstract class ElasticApmInstrumentation {
@@ -68,9 +72,6 @@ public abstract class ElasticApmInstrumentation {
         return null;
     }
 
-    public void init(ElasticApmTracer tracer) {
-    }
-
     /**
      * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
      * at the expense of potential false negative matches.
@@ -84,6 +85,13 @@ public abstract class ElasticApmInstrumentation {
      * </p>
      */
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return any();
+    }
+
+    /**
+     * Post filters classes that pass the {@link #getTypeMatcher()} by version.
+     */
+    public ElementMatcher.Junction<ProtectionDomain> getImplementationVersionPostFilter() {
         return any();
     }
 

@@ -87,6 +87,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     /**
      * Any other arbitrary data captured by the agent, optionally provided by the user
      */
+    @Override
     public SpanContext getContext() {
         return context;
     }
@@ -189,21 +190,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         type = null;
         subtype = null;
         action = null;
-    }
-
-    @Override
-    public void addLabel(String key, String value) {
-        context.addLabel(key, value);
-    }
-
-    @Override
-    public void addLabel(String key, Number value) {
-        context.addLabel(key, value);
-    }
-
-    @Override
-    public void addLabel(String key, Boolean value) {
-        context.addLabel(key, value);
     }
 
     public void recycle() {

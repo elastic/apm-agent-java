@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,16 +52,20 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(CaptureSpanInstrumentation.class);
 
-    private StacktraceConfiguration config;
+    private final StacktraceConfiguration config;
+
+    public CaptureSpanInstrumentation(ElasticApmTracer tracer) {
+        config = tracer.getConfig(StacktraceConfiguration.class);
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(
-                @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-                @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
-                @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
-                @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-                @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
-                @Advice.Local("span") Span span) {
+        @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
+        @Advice.Local("span") Span span) {
         if (tracer != null) {
             final TraceContextHolder<?> parent = tracer.getActive();
             if (parent != null) {
@@ -84,11 +88,6 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
                 .deactivate()
                 .end();
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        config = tracer.getConfig(StacktraceConfiguration.class);
     }
 
     @Override

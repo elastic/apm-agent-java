@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
@@ -25,6 +25,7 @@
         <module>apm-java-concurrent-plugin</module>
         <module>apm-urlconnection-plugin</module>
         <module>apm-jaxws-plugin</module>
+        <module>apm-scheduled-annotation-plugin</module>
     </modules>
 
     <properties>

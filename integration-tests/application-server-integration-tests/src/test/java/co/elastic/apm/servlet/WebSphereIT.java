@@ -48,10 +48,7 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
     @Parameterized.Parameters(name = "WebSphere {0}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {"8.5.5"}
-//            {"webProfile7"}
-        });
+        return Arrays.asList(new Object[][]{{"8.5.5"}, {"webProfile7"}});
     }
 
     @Override

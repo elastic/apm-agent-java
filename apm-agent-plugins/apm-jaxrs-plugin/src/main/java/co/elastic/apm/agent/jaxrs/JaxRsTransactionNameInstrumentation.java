@@ -36,6 +36,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
@@ -46,8 +47,13 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
-    private Collection<String> applicationPackages = Collections.emptyList();
-    private JaxRsConfiguration configuration;
+    private final Collection<String> applicationPackages;
+    private final JaxRsConfiguration configuration;
+
+    public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
+        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        configuration = tracer.getConfig(JaxRsConfiguration.class);
+    }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature) {
@@ -57,12 +63,6 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                 transaction.withName(signature);
             }
         }
-    }
-
-    @Override
-    public void init(ElasticApmTracer tracer) {
-        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
-        configuration = tracer.getConfig(JaxRsConfiguration.class);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         // (matching on the class hierarchy vs matching one class)
         if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
-                .and(not(ElementMatchers.<TypeDescription>nameContains("$Proxy")))
+                .and(not(isProxy()))
                 .and(isAnnotatedWith(named("javax.ws.rs.Path"))
                     .or(hasSuperType(isAnnotatedWith(named("javax.ws.rs.Path"))))
                 );

@@ -32,6 +32,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
@@ -39,6 +40,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -50,12 +52,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -70,8 +71,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
 
+    // Don't init logger as a static field, logging needs to be initialized first see also issue #593
+    // private static final Logger doNotUseThisLogger = LoggerFactory.getLogger(ElasticApmAgent.class);
+
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
-    // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -96,10 +99,7 @@ public class ElasticApmAgent {
 
     @Nonnull
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
-        final ArrayList<ElasticApmInstrumentation> instrumentations = new ArrayList<ElasticApmInstrumentation>();
-        for (ElasticApmInstrumentation instrumentation : ServiceLoader.load(ElasticApmInstrumentation.class, ElasticApmInstrumentation.class.getClassLoader())) {
-            instrumentations.add(instrumentation);
-        }
+        final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
             instrumentations.add(new TraceMethodInstrumentation(traceMethod));
         }
@@ -128,7 +128,7 @@ public class ElasticApmAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -163,11 +163,11 @@ public class ElasticApmAgent {
                                             final ElasticApmInstrumentation advice) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying advice {}", advice.getClass().getName());
-        advice.init(tracer);
         final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = advice.getTypeMatcherPreFilter();
+        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = advice.getImplementationVersionPostFilter();
         final ElementMatcher<? super TypeDescription> typeMatcher = advice.getTypeMatcher();
         final ElementMatcher<? super MethodDescription> methodMatcher = advice.getMethodMatcher();
         return agentBuilder
@@ -184,7 +184,7 @@ public class ElasticApmAgent {
                         }
                         boolean typeMatches;
                         try {
-                            typeMatches = typeMatcher.matches(typeDescription);
+                            typeMatches = typeMatcher.matches(typeDescription) && versionPostFilter.matches(protectionDomain);
                         } catch (Exception ignored) {
                             // could be because of a missing type
                             typeMatches = false;
@@ -294,11 +294,23 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
+
+        AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
+        if (agentJarFile != null) {
+            try {
+                locationStrategy =
+                    ((AgentBuilder.LocationStrategy.ForClassLoader)locationStrategy).withFallbackTo(ClassFileLocator.ForJarFile.of(agentJarFile));
+            } catch (IOException e) {
+                logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
+            }
+        }
+
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
             .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
+            .with(locationStrategy)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
             .with(coreConfiguration.isTypePoolCacheEnabled()

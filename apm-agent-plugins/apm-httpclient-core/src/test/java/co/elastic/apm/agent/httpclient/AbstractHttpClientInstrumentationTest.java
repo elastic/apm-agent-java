@@ -69,14 +69,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCall() {
+    public void testHttpCall() throws Exception {
         String path = "/";
         performGetWithinTransaction(path);
 
         verifyHttpSpan(path);
     }
 
-    protected void verifyHttpSpan(String path) {
+    protected void verifyHttpSpan(String path) throws Exception {
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -90,30 +91,33 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testNonExistingHttpCall() {
+    public void testNonExistingHttpCall() throws Exception {
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
     }
 
     @Test
-    public void testErrorHttpCall() {
+    public void testErrorHttpCall() throws Exception {
         String path = "/error";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
     @Test
-    public void testHttpCallRedirect() {
+    public void testHttpCallRedirect() throws Exception {
         String path = "/redirect";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -126,10 +130,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCallCircularRedirect() {
+    public void testHttpCallCircularRedirect() throws Exception {
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();

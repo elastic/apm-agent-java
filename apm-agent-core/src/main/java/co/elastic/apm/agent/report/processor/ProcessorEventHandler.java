@@ -20,12 +20,11 @@
 package co.elastic.apm.agent.report.processor;
 
 import co.elastic.apm.agent.report.ReportingEvent;
+import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import com.lmax.disruptor.EventHandler;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.ServiceLoader;
 
 /**
  * Invokes all registered {@link Processor}s before a {@link ReportingEvent} is processed by
@@ -35,19 +34,12 @@ public class ProcessorEventHandler implements EventHandler<ReportingEvent> {
 
     private final List<Processor> processors;
 
-    public ProcessorEventHandler(Iterable<Processor> processors) {
-        this.processors = new ArrayList<>();
-        for (Processor processor : processors) {
-            this.processors.add(processor);
-        }
+    private ProcessorEventHandler(List<Processor> processors) {
+        this.processors = processors;
     }
 
     public static ProcessorEventHandler loadProcessors(ConfigurationRegistry configurationRegistry) {
-        final ServiceLoader<Processor> processors = ServiceLoader.load(Processor.class, ProcessorEventHandler.class.getClassLoader());
-        for (Processor processor : processors) {
-            processor.init(configurationRegistry);
-        }
-        return new ProcessorEventHandler(processors);
+        return new ProcessorEventHandler(DependencyInjectingServiceLoader.load(Processor.class, configurationRegistry));
     }
 
     @Override

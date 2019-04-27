@@ -127,6 +127,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |<<setup-payara,Payara>>
 |4.x, 5.x
 
+|<<setup-weblogic,Oracle WebLogic>>
+|12.2
+
 |===
 
 [float]
@@ -166,6 +169,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |4.3+
 |
 | 0.7.0
+
+|Apache HttpAsyncClient
+|4.0+
+|
+| 1.6.0
 
 |Spring RestTemplate
 |4+
