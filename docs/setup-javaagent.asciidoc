@@ -1,5 +1,5 @@
 [[setup-javaagent]]
-=== Manual setup with `--javaagent` flag
+=== Manual setup with `-javaagent` flag
 
 [float]
 [[setup-javaagent-download]]
@@ -223,7 +223,21 @@ set JAVA_OPTIONS=%JAVA_OPTIONS% -Delastic.apm.server_urls=http://localhost:8200
 [float]
 [[setup-cloud-foundry]]
 ==== Cloud Foundry
-Inject the `elastic-apm-agent-<version>.jar` into the root path of the deployable application, e.g. `my-application.jar`. Update the `manifest.yml` file to add the `-javaagent` flag and system properties as part of `JAVA_OPTS`.
+The Elastic Java APM Agent Framework is now part of the Cloud Foundry Java Buildpack as of link:https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19[Release v4.19].
+
+A user provided Elastic APM service must have a name or tag with `elastic-apm` in it so that the Elastic APM Agent Framework will automatically configure the application to work with the service.
+
+Create a user provided service:
+
+`cf cups my-elastic-apm-service -p '{"server_urls":"https://my-apm-server:8200","secret_token":"my-secret-token"}'`
+
+Bind the application to the service:
+
+`cf bind-service my-application my-elastic-apm-service`
+
+or use the `services` block in the application manifest file.
+
+For more details on the Elastic Java APM Agent Framework for Cloud Foundry see link:https://github.com/cloudfoundry/java-buildpack/blob/master/docs/framework-elastic_apm_agent.md[here].
 
 [source,yml]
 .manifest.yml
@@ -232,10 +246,6 @@ applications:
 - name: my-application
   memory: 1G
   path: ./target/my-application.jar
-  env:
-    JAVA_OPTS: >
-      -javaagent:./elastic-apm-agent-<version>.jar
-      -Delastic.apm.server_urls=http://localhost:8200
-      -Delastic.apm.service_name=my-cool-service
-      -Delastic.apm.application_packages=org.example,org.another.example
+  services:
+    - my-elastic-apm-service
 ----

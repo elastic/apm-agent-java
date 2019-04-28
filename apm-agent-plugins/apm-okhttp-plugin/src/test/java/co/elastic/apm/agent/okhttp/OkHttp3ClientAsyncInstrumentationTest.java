@@ -28,7 +28,7 @@ import okhttp3.Response;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -46,21 +46,20 @@ public class OkHttp3ClientAsyncInstrumentationTest extends AbstractHttpClientIns
             .url(path)
             .build();
 
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                countDownLatch.countDown();
+                future.completeExceptionally(e);
             }
 
             @Override
             public void onResponse(Call call, Response response) {
-                countDownLatch.countDown();
                 response.body().close();
+                future.complete(null);
             }
         });
-        countDownLatch.await(1, TimeUnit.SECONDS);
-
+        future.get(1, TimeUnit.SECONDS);
     }
 
 }
