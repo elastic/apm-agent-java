@@ -103,19 +103,19 @@ class AsyncTraceMethodInstrumentationTest {
 
         /**
          * Calling this method results in this method call tree:
-         * <p>
-         * main thread                         |           worker thread
+         *
+         *                      main thread                         |           worker thread
          * -------------------------------------------------------------------------------------------
          * invokeAsync                                              |
-         * |                                                   |
-         * --- blockingMethodOnMainThread                      |
-         * |                                    |
-         * --- nonBlockingMethodOnMainThread    |
-         * |                   |
-         * --------------------------> methodOnWorkerThread
-         * |                |
-         * |                --- longMethod
-         * |
+         *      |                                                   |
+         *      --- blockingMethodOnMainThread                      |
+         *                     |                                    |
+         *                     --- nonBlockingMethodOnMainThread    |
+         *                                      |                   |
+         *                                      --------------------------> methodOnWorkerThread
+         *                                                          |                |
+         *                                                          |                --- longMethod
+         *                                                          |
          */
         private void invokeAsync() {
             blockingMethodOnMainThread();

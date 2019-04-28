@@ -216,20 +216,20 @@ class TraceMethodInstrumentationTest {
          * Calling root(true) results in the following method call tree:
          * <p>
          * root
-         * |
-         * --- decide
-         * |     |
-         * |     --- mainMethod
-         * |              |
-         * |              --- manuallyTraced
-         * |              |
-         * |              --- beforeLongMethod
-         * |                          |
-         * |                          --- longMethod
-         * |
-         * --- decide
-         * |
-         * --- sideMethod
+         *  |
+         *  --- decide
+         *  |     |
+         *  |     --- mainMethod
+         *  |              |
+         *  |              --- manuallyTraced
+         *  |              |
+         *  |              --- beforeLongMethod
+         *  |                          |
+         *  |                          --- longMethod
+         *  |
+         *  --- decide
+         *        |
+         *        --- sideMethod
          * <p>
          * <p>
          * Calling root(false) will result in the same method call tree, except from the manuallyTraced() method
