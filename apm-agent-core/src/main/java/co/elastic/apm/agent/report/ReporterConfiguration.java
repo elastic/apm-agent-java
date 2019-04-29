@@ -80,17 +80,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
 
-    private final ConfigurationOption<TimeDuration> flushInterval = TimeDurationValueConverter.durationOption("s")
-        .key("flush_interval")
-        .configurationCategory(REPORTER_CATEGORY)
-        .description("Interval with which transactions should be sent to the APM server.\n" +
-            "\n" +
-            "A lower value will increase the load on your APM server,\n" +
-            "while a higher value can increase the memory pressure on your app.\n" +
-            "\n" +
-            "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
-        .buildWithDefault(TimeDuration.of("1s"));
-
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
         .configurationCategory(REPORTER_CATEGORY)
@@ -178,10 +167,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isVerifyServerCert() {
         return verifyServerCert.get();
-    }
-
-    public TimeDuration getFlushInterval() {
-        return flushInterval.get();
     }
 
     public int getMaxQueueSize() {

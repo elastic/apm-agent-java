@@ -49,7 +49,6 @@ class ApmServerReporterTest {
     void setUp() {
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1ms"));
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         reportingEventHandler = mock(ReportingEventHandler.class);
         reporter = new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);

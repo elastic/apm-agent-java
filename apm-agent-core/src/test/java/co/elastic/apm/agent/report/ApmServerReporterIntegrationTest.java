@@ -88,7 +88,6 @@ class ApmServerReporterIntegrationTest {
         receivedHttpRequests.set(0);
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1s"));
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();

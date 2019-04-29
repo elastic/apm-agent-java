@@ -125,7 +125,6 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
 
         final ConfigurationRegistry configurationRegistry = SpyConfiguration.createSpyConfig();
         ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("1ms"));
         when(reporterConfiguration.getMaxQueueSize()).thenReturn(0);
         StacktraceConfiguration stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(30);
