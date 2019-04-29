@@ -258,7 +258,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
-        .tags("added[1.3.0,Enhancements in 1.4.0 and 1.6.0]")
+        .tags("added[1.3.0,Enhancements in 1.4.0 and 1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
@@ -294,7 +294,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
         .key("trace_methods_duration_threshold")
-        .tags("added[1.6.0]")
+        .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on \n" +
             "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +

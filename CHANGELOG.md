@@ -1,6 +1,13 @@
-# next
+# next (1.7.0)
 
 ## Features
+ * Added the `trace_methods_duration_threshold` config option. When using the `trace_methods` config option with wild cards, this 
+ enables considerable reduction of overhead by limiting the number of spans captured and reported (see more details in config 
+ documentation).
+ NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
+## Bug Fixes
+
+# 1.6.1
 
 ## Bug Fixes
  * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
