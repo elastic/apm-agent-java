@@ -95,6 +95,14 @@ public class ElasticApmTracer {
             return new ArrayDeque<TraceContextHolder<?>>();
         }
     };
+
+    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.TRUE;
+        }
+    };
+
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -191,6 +199,18 @@ public class ElasticApmTracer {
      */
     public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
         return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
+    }
+
+    public void avoidWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.FALSE);
+    }
+
+    public void allowWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.TRUE);
+    }
+
+    public boolean isWrappingAllowedOnThread() {
+        return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
     /**
@@ -478,12 +498,6 @@ public class ElasticApmTracer {
         if (!stack.isEmpty() && !holder.isDiscard()) {
             //noinspection ConstantConditions
             stack.peek().setDiscard(false);
-        }
-        if (holder == stack.peekLast()) {
-            // if this is the bottom of the stack
-            // clear to avoid potential leaks in case some spans didn't deactivate properly
-            // makes all leaked spans eligible for GC
-            stack.clear();
         }
     }
 

@@ -36,6 +36,7 @@ import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
@@ -80,7 +81,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         // (matching on the class hierarchy vs matching one class)
         if (configuration.isEnableJaxrsAnnotationInheritance()) {
             return not(isInterface())
-                .and(not(ElementMatchers.<TypeDescription>nameContains("$Proxy")))
+                .and(not(isProxy()))
                 .and(isAnnotatedWith(named("javax.ws.rs.Path"))
                     .or(hasSuperType(isAnnotatedWith(named("javax.ws.rs.Path"))))
                 );

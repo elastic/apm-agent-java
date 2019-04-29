@@ -24,23 +24,20 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.objectpool.Recyclable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 @VisibleForAdvice
-public class SpanInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
-    private static final Logger logger = LoggerFactory.getLogger(SpanInScopeCallableWrapper.class);
-    private final ElasticApmTracer tracer;
+public class SpanInScopeCallableWrapper<V> extends SpanInScopeBaseWrapper implements Callable<V>, Recyclable {
+
     @Nullable
     private volatile Callable<V> delegate;
     @Nullable
     private volatile AbstractSpan<?> span;
 
     public SpanInScopeCallableWrapper(ElasticApmTracer tracer) {
-        this.tracer = tracer;
+        super(tracer);
     }
 
     public SpanInScopeCallableWrapper<V> wrap(Callable<V> delegate, AbstractSpan<?> span) {
@@ -56,32 +53,13 @@ public class SpanInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
     public V call() throws Exception {
         // minimize volatile reads
         AbstractSpan<?> localSpan = span;
-        if (localSpan != null) {
-            try {
-                localSpan.activate();
-            } catch (Throwable t) {
-                try {
-                    logger.error("Unexpected error while activating span", t);
-                } catch (Throwable ignore) {
-                }
-            }
-        }
+        boolean activated = beforeDelegation(localSpan);
         try {
             //noinspection ConstantConditions
             return delegate.call();
             // the span may be ended at this point
         } finally {
-            try {
-                if (localSpan != null) {
-                    localSpan.deactivate();
-                }
-                tracer.recycle(this);
-            } catch (Throwable t) {
-                try {
-                    logger.error("Unexpected error while deactivating or recycling span", t);
-                } catch (Throwable ignore) {
-                }
-            }
+            afterDelegation(localSpan, activated);
         }
     }
 
@@ -89,5 +67,10 @@ public class SpanInScopeCallableWrapper<V> implements Callable<V>, Recyclable {
     public void resetState() {
         delegate = null;
         span = null;
+    }
+
+    @Override
+    protected void doRecycle() {
+        tracer.recycle(this);
     }
 }
