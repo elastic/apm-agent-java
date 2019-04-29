@@ -42,7 +42,6 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
     @Before
     public void setUp() {
         transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withName("Transaction").activate();
-        transaction.markLifecycleManagingThreadSwitchExpected();
     }
 
     @After
