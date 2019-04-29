@@ -77,6 +77,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
+        <license.dir></license.dir>
     </properties>
 
     <modules>
@@ -419,7 +420,8 @@
                 <version>1.19</version>
                 <configuration>
                     <verbose>false</verbose>
-                    <licenseName>apache_v2</licenseName>
+                    <licenseName>apache2_license</licenseName>
+                    <licenseResolver>file:/Users/eyal/projects/apm-agent-java/license</licenseResolver>
                     <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
                     <failOnMissingHeader>true</failOnMissingHeader>
                     <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
