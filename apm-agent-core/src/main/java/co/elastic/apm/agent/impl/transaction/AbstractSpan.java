@@ -228,7 +228,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     public void incrementReferences() {
         references.incrementAndGet();
         if (logger.isDebugEnabled()) {
-            logger.trace("increment references to {} ({})", this, references);
+            logger.debug("increment references to {} ({})", this, references);
             if (logger.isTraceEnabled()) {
                 logger.trace("incrementing references at",
                     new RuntimeException("This is an expected exception. Is just used to record where the reference count has been incremented."));
@@ -238,7 +238,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public void decrementReferences() {
         if (logger.isDebugEnabled()) {
-            logger.trace("decrement references to {} ({})", this, references);
+            logger.debug("decrement references to {} ({})", this, references);
             if (logger.isTraceEnabled()) {
                 logger.trace("decrementing references at",
                     new RuntimeException("This is an expected exception. Is just used to record where the reference count has been decremented."));
