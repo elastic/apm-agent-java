@@ -107,9 +107,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             this.os = new ByteArrayOutputStream() {
                 @Override
                 public void flush() throws IOException {
-                    os.write(buf);
+                    os.write(buf, 0, size());
                     os.flush();
-                    logger.trace(new String(buf, Charset.forName("UTF-8")));
+                    logger.trace(new String(buf, 0, size(), Charset.forName("UTF-8")));
                 }
             };
         } else {
