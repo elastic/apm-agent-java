@@ -22,7 +22,9 @@ package co.elastic.apm.agent.bci.methodmatching;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -52,10 +54,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
 
+    public static long traceMethodThresholdMicros;
+
     protected final MethodMatcher methodMatcher;
 
-    public TraceMethodInstrumentation(MethodMatcher methodMatcher) {
+    public TraceMethodInstrumentation(ElasticApmTracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
+        traceMethodThresholdMicros = tracer.getConfig(CoreConfiguration.class).getTraceMethodsDurationThreshold().getMillis() * 1000;
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -72,16 +77,26 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
                 span = parent.createSpan()
                     .withName(signature)
                     .activate();
+
+                // by default discard such spans
+                span.setDiscard(true);
             }
         }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan<?> span,
-                                    @Advice.Thrown Throwable t) {
+    public static void onMethodExit(@Advice.Local("span") @Nullable AbstractSpan<?> span,
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
             span.captureException(t);
-            span.deactivate().end();
+            final long endTime = span.getTraceContext().getClock().getEpochMicros();
+            if (span instanceof Span) {
+                long durationMicros = endTime - span.getTimestamp();
+                if (traceMethodThresholdMicros <= 0 || durationMicros >= traceMethodThresholdMicros || t != null) {
+                    span.setDiscard(false);
+                }
+            }
+            span.deactivate().end(endTime);
         }
     }
 

@@ -100,6 +100,8 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             if (active != null && runnable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 //noinspection UnusedAssignment
                 original = runnable;
+                // Do no discard branches leading to async operations so not to break span references
+                active.setDiscard(false);
                 runnable = active.withActive(runnable);
                 tracer.avoidWrappingOnThread();
             }
@@ -150,6 +152,8 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
             if (active != null && callable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 original = callable;
+                // Do no discard branches leading to async operations so not to break span references
+                active.setDiscard(false);
                 callable = active.withActive(callable);
                 tracer.avoidWrappingOnThread();
             }

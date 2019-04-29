@@ -101,7 +101,7 @@ public class ElasticApmAgent {
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
         final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
-            instrumentations.add(new TraceMethodInstrumentation(traceMethod));
+            instrumentations.add(new TraceMethodInstrumentation(tracer, traceMethod));
         }
 
         return instrumentations;

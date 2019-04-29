@@ -19,6 +19,10 @@
  */
 package co.elastic.apm.agent.bci.methodmatching;
 
+import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,11 @@ import java.lang.reflect.Method;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MethodMatcherInstrumentationTest {
+
+    private static final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
+        .configurationRegistry(SpyConfiguration.createSpyConfig())
+        .reporter(new MockReporter())
+        .build();
 
     @Test
     void testMethodMatching() throws Exception {
@@ -67,7 +76,7 @@ class MethodMatcherInstrumentationTest {
     private void assertDoesNotMatch(MethodMatcher methodMatcher, Method method) {
         assertThat(method).isNotNull();
         assertThat(methodMatcher).isNotNull();
-        final TraceMethodInstrumentation methodMatcherInstrumentation = new TraceMethodInstrumentation(methodMatcher);
+        final TraceMethodInstrumentation methodMatcherInstrumentation = new TraceMethodInstrumentation(tracer, methodMatcher);
         assertThat(
             methodMatcherInstrumentation.getTypeMatcher().matches(TypeDescription.ForLoadedType.of(method.getDeclaringClass()))
                 && methodMatcherInstrumentation.getMethodMatcher().matches(new MethodDescription.ForLoadedMethod(method)))
@@ -77,7 +86,7 @@ class MethodMatcherInstrumentationTest {
     private void assertMatches(MethodMatcher methodMatcher, Method method) {
         assertThat(method).isNotNull();
         assertThat(methodMatcher).isNotNull();
-        final TraceMethodInstrumentation methodMatcherInstrumentation = new TraceMethodInstrumentation(methodMatcher);
+        final TraceMethodInstrumentation methodMatcherInstrumentation = new TraceMethodInstrumentation(tracer, methodMatcher);
         assertThat(methodMatcherInstrumentation.getTypeMatcher().matches(TypeDescription.ForLoadedType.of(method.getDeclaringClass()))).isTrue();
         assertThat(methodMatcherInstrumentation.getMethodMatcher().matches(new MethodDescription.ForLoadedMethod(method))).isTrue();
     }
