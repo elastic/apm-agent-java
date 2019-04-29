@@ -21,6 +21,7 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -38,6 +39,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
+import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,12 +106,42 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
     }
 
+    @Test
+    public void testProxyClassInstrumentationExclusion() {
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testViewProxy");
+        doRequest("testProxyProxy");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
+        config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+    }
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
+    @Override
     protected Application configure() {
-        return new ResourceConfig(ResourceWithPath.class, ResourceWithPathOnInterface.class, ResourceWithPathOnAbstract.class);
+        return new ResourceConfig(ResourceWithPath.class,
+            ResourceWithPathOnInterface.class,
+            ResourceWithPathOnAbstract.class,
+            ProxiedClass$$$view.class,
+            ProxiedClass$Proxy.class);
     }
 
     /**
@@ -134,7 +166,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Path("testInterface")
     public interface ResourceInterfaceWithPath extends SuperResourceInterface {
         String testMethod();
-
     }
 
     public interface ResourceInterfaceWithoutPath extends SuperResourceInterface {
@@ -142,13 +173,24 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     public abstract static class AbstractResourceClassWithoutPath implements ResourceInterfaceWithoutPath {
-
     }
 
     @Path("testAbstract")
     public abstract static class AbstractResourceClassWithPath implements ResourceInterfaceWithoutPath {
+    }
 
+    @Path("testViewProxy")
+    public static class ProxiedClass$$$view implements SuperResourceInterface {
+        public String testMethod() {
+            return "ok";
+        }
+    }
 
+    @Path("testProxyProxy")
+    public static class ProxiedClass$Proxy implements SuperResourceInterface {
+        public String testMethod() {
+            return "ok";
+        }
     }
 
     @Path("test")
@@ -156,7 +198,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         public String testMethod() {
             return "ok";
         }
-
     }
 
     public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {

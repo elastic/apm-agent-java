@@ -23,19 +23,22 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
@@ -135,14 +138,21 @@ public class CustomElementMatchers {
 
     private static @Nullable Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) {
         Version version = null;
+        JarFile jarFile = null;
         try {
             if (protectionDomain != null) {
                 CodeSource codeSource = protectionDomain.getCodeSource();
                 if (codeSource != null) {
                     URL jarUrl = codeSource.getLocation();
                     if (jarUrl != null) {
-                        JarFile jar = new JarFile(jarUrl.getFile());
-                        Manifest manifest = jar.getManifest();
+                        // does not yet establish an actual connection
+                        URLConnection urlConnection = jarUrl.openConnection();
+                        if (urlConnection instanceof JarURLConnection) {
+                            jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        } else {
+                            jarFile = new JarFile(jarUrl.getFile());
+                        }
+                        Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
                             if (implementationVersion != null) {
@@ -156,6 +166,14 @@ public class CustomElementMatchers {
             }
         } catch (Exception e) {
             logger.error("Cannot read implementation version based on ProtectionDomain " + protectionDomain, e);
+        } finally {
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException e) {
+                    logger.error("Error closing JarFile", e);
+                }
+            }
         }
         return version;
     }
@@ -212,5 +230,9 @@ public class CustomElementMatchers {
                 return "matches(" + matcher + ")";
             }
         };
+    }
+
+    public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
+        return nameContains("$Proxy").or(nameContains("$$"));
     }
 }

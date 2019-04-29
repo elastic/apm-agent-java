@@ -377,6 +377,23 @@ class ElasticApmTracerTest {
     }
 
     @Test
+    void testActivateDeactivateTwice() {
+        final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        assertThat(tracerImpl.getActive()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.getActive()).isNull();
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        transaction.end();
+    }
+
+    @Test
     void testOverrideServiceNameWithoutExplicitServiceName() {
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .reporter(reporter)

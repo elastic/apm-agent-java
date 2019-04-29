@@ -23,6 +23,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import org.apache.http.client.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.CodeSigner;
+import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.List;
 
@@ -50,9 +54,19 @@ class CustomElementMatchersTest {
     }
 
     @Test
-    void testSemVerLteMatcher() {
+    void testSemVerLteWithFileUrl() {
         // Relying on Apache httpclient-4.5.6.jar
-        ProtectionDomain protectionDomain = HttpClient.class.getProtectionDomain();
+        testSemVerLteMatcher(HttpClient.class.getProtectionDomain());
+    }
+
+    @Test
+    void testSemVerLteWithJarFileUrl() throws MalformedURLException {
+        URL originalUrl = HttpClient.class.getProtectionDomain().getCodeSource().getLocation();
+        URL jarFileUrl = new URL("jar:" + originalUrl.toString() + "!/");
+        testSemVerLteMatcher(new ProtectionDomain(new CodeSource(jarFileUrl, new CodeSigner[0]), null));
+    }
+
+    private void testSemVerLteMatcher(ProtectionDomain protectionDomain) {
         assertThat(implementationVersionLte("3").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("3.2").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("3.15.10").matches(protectionDomain)).isFalse();

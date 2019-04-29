@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.AbstractContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,9 +80,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     public void setName(@Nullable String name) {
-        if (!isSampled()) {
-            return;
-        }
         this.name.setLength(0);
         this.name.append(name);
     }
@@ -138,11 +136,25 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return tracer.startSpan(this, epochMicros);
     }
 
-    public abstract void addLabel(String key, String value);
+    public void addLabel(String key, String value) {
+        if (isSampled()) {
+            getContext().addLabel(key, value);
+        }
+    }
 
-    public abstract void addLabel(String key, Number value);
+    public void addLabel(String key, Number value) {
+        if (isSampled()) {
+            getContext().addLabel(key, value);
+        }
+    }
 
-    public abstract void addLabel(String key, Boolean value);
+    public void addLabel(String key, Boolean value) {
+        if (isSampled()) {
+            getContext().addLabel(key, value);
+        }
+    }
+
+    public abstract AbstractContext getContext();
 
     /**
      * Called after the span has been started and its parent references are set

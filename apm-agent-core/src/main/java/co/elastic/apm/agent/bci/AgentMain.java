@@ -22,6 +22,7 @@ package co.elastic.apm.agent.bci;
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.util.jar.JarFile;
 
 /**
@@ -67,6 +68,7 @@ public class AgentMain {
             return;
         }
         try {
+            FileSystems.getDefault();
             final File agentJarFile = getAgentJarFile();
             try (JarFile jarFile = new JarFile(agentJarFile)) {
                 instrumentation.appendToBootstrapClassLoaderSearch(jarFile);

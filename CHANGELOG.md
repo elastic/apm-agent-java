@@ -1,8 +1,18 @@
-# next (1.7.0)
+# next
 
 ## Features
 
 ## Bug Fixes
+ * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
+ * Makes log_file option work again [#594](https://github.com/elastic/apm-agent-java/issues/594)
+ * Async context propagation fixes
+    * Fixing some async mechanisms lifecycle issues [#605](https://github.com/elastic/apm-agent-java/issues/605)
+    * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
+    * Exclude glassfish Executor which does not permit wrapped runnables [#596](https://github.com/elastic/apm-agent-java/issues/596)
+    * Exclude DumbExecutor [#598](https://github.com/elastic/apm-agent-java/issues/598)
+ * Fixes Manifest version reading error to support `jar:file` protocol [#601](https://github.com/elastic/apm-agent-java/issues/601)
+ * Fixes transaction name for non-sampled transactions [#597](https://github.com/elastic/apm-agent-java/issues/597)
+ * Fixes potential classloader deadlock by preloading `FileSystems.getDefault()` [#603](https://github.com/elastic/apm-agent-java/issues/603)
 
 # 1.6.0
 

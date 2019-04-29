@@ -93,12 +93,15 @@ class ScopeManagementTest {
     }
 
     @Test
-    void testRedundantActivation() {
-        tracer.startTransaction(TraceContext.asRoot(), null, null)
-            .activate().activate()
-            .deactivate().deactivate();
-
-        assertThat(tracer.getActive()).isNull();
+    void testMissingDeactivation() {
+        runTestWithAssertionsDisabled(() -> {
+            final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+            transaction.createSpan().activate();
+            transaction.deactivate();
+            assertThat(tracer.getActive()).isEqualTo(transaction);
+            transaction.deactivate();
+            assertThat(tracer.getActive()).isNull();
+        });
     }
 
     @Test

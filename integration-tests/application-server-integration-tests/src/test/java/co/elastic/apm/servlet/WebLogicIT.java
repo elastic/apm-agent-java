@@ -24,6 +24,7 @@ import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.BindMode;
@@ -32,6 +33,7 @@ import org.testcontainers.containers.GenericContainer;
 import java.util.Arrays;
 import java.util.List;
 
+@Ignore("Requires docker login which is not available on the CI performing the releases")
 @RunWith(Parameterized.class)
 public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
