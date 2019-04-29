@@ -169,6 +169,8 @@ Future versions of the Elastic APM stack will have better support for that scena
 A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 
+NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
+
 
 [options="header"]
 |============
@@ -176,7 +178,6 @@ or to disable the corresponding `*-service-name` detecting instrumentations via 
 | For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
  | String | false
@@ -1118,24 +1119,19 @@ The default unit for this option is `ms`
 # Future versions of the Elastic APM stack will have better support for that scenario.
 # A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 # or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
+# 
+# NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
 # Default value: For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
-
+# For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+# Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+# Falls back to the name of the main class or jar file.
+# If the service name is set explicitly, it overrides all of the above.
+# 
 #
-# service_name=For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
-
+# service_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #

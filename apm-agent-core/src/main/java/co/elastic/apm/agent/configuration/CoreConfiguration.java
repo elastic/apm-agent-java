@@ -86,7 +86,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
             "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
             "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
-            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.")
+            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
