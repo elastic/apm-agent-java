@@ -73,6 +73,36 @@ pipeline {
               onlyIfSuccessful: true
           }
         }
+        /**
+         Create a dependency list (requires to install maven artifacts).
+        */
+        stage('Create dependency list') {
+          agent { label 'linux && immutable' }
+          options { skipDefaultCheckout() }
+          environment {
+            HOME = "${env.WORKSPACE}"
+            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+          }
+          when {
+            beforeAgent true
+            expression { return params.test_ci }
+          }
+          steps {
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh """#!/bin/bash
+              set -euxo pipefail
+              ./mvnw install
+              ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+              """
+            }
+            archiveArtifacts allowEmptyArchive: true,
+              artifacts: "${BASE_DIR}/target/site/aggregate-third-party-report.html",
+              onlyIfSuccessful: true
+          }
+        }
       }
     }
     stage('Tests') {
