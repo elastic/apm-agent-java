@@ -90,7 +90,6 @@ Click on a key to get more information.
 ** <<config-server-urls>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
-** <<config-flush-interval>>
 ** <<config-max-queue-size>>
 ** <<config-include-process-args>>
 ** <<config-api-request-time>>
@@ -854,34 +853,6 @@ Verification can be disabled by changing this setting to false.
 |============
 
 [float]
-[[config-flush-interval]]
-==== `flush_interval`
-
-Interval with which transactions should be sent to the APM server.
-
-A lower value will increase the load on your APM server,
-while a higher value can increase the memory pressure on your app.
-
-A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
-
-Supports the duration suffixes `ms`, `s` and `m`.
-Example: `1s`.
-The default unit for this option is `s`
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `1s` | TimeDuration | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.flush_interval` | `flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL`
-|============
-
-[float]
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
@@ -1552,21 +1523,6 @@ The default unit for this option is `ms`
 # Default value: true
 #
 # verify_server_cert=true
-
-# Interval with which transactions should be sent to the APM server.
-# 
-# A lower value will increase the load on your APM server,
-# while a higher value can increase the memory pressure on your app.
-# 
-# A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: TimeDuration
-# Supports the duration suffixes ms, s and m. Example: 1s.
-# The default unit for this option is s.
-# Default value: 1s
-#
-# flush_interval=1s
 
 # The maximum size of buffered events.
 # 
