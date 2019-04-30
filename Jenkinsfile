@@ -57,7 +57,7 @@ pipeline {
         /**
         Build on a linux environment.
         */
-        stage('build') {
+        stage('Build') {
           steps {
             deleteDir()
             unstash 'source'
