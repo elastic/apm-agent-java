@@ -8,6 +8,10 @@
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
     <modules>
         <module>apm-es-restclient-plugin-common</module>
         <module>apm-es-restclient-plugin-5_6</module>

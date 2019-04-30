@@ -8,6 +8,10 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <modelVersion>4.0.0</modelVersion>
 
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
     <artifactId>apm-urlconnection-plugin</artifactId>
     <dependencies>
         <dependency>

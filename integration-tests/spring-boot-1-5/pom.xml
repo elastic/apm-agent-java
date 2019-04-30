@@ -12,9 +12,10 @@
 
     <properties>
         <version.spring-boot-1.5>1.5.14.RELEASE</version.spring-boot-1.5>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
-    <dependencies>
 
+    <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webmvc-plugin</artifactId>
