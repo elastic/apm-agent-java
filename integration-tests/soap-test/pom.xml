@@ -9,6 +9,10 @@
     <artifactId>soap-test</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
     <packaging>war</packaging>
 
     <build>

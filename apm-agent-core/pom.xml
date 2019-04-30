@@ -3,6 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
