@@ -3,6 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
