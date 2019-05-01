@@ -81,7 +81,7 @@ public class ForwardIncludeRequestDispatcherInstrumentation extends ElasticApmIn
                     span.appendToName(" ").appendToName(servletPath);
                 }
                 if (pathInfo != null && !pathInfo.isEmpty()) {
-                    span.appendToName("#").appendToName(pathInfo);
+                    span.appendToName(" ").appendToName(pathInfo);
                 }
 
                 if (parent instanceof AbstractSpan) {

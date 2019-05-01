@@ -29,7 +29,7 @@ public class IncludingServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.getRequestDispatcher("/echo").include(req, resp);
+        req.getRequestDispatcher("/servlet").include(req, resp);
     }
 
 }

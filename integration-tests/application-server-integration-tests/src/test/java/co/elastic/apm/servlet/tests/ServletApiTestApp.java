@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 public class ServletApiTestApp extends TestApp {
 
@@ -46,8 +47,8 @@ public class ServletApiTestApp extends TestApp {
         testExecutorService(test);
         testHttpUrlConnection(test);
         testCaptureBody(test);
-//        testTransactionReportingWithForward(test);
-//        testTransactionReportingWithInclude(test);
+        testTransactionReportingWithForward(test);
+        testTransactionReportingWithInclude(test);
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -98,38 +99,59 @@ public class ServletApiTestApp extends TestApp {
 
     private void testTransactionReportingWithForward(AbstractServletContainerIntegrationTest test) throws Exception {
         String pathToTest = "/simple-webapp" + "/forward";
+        boolean isExistForwardSpan = false;
+        boolean isExistDbH2QuerySpan = false;
         List<String> spanTypes = Arrays.asList("db.h2.query", "servlet.request-dispatcher.forward");
+        List<String> expectedValues = Arrays.asList("FORWARD", "FORWARD /echo");
         test.clearMockServerLog();
-        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
-        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
-        String transactionId = transaction.get("id").textValue();
 
-        assert test.getReportedSpans().size() == 2;
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
+
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+
+        assertEquals(2, test.getReportedSpans().size());
+
         for (JsonNode span : test.getReportedSpans()) {
             String spanType = span.get("type").textValue();
             spanTypes.contains(spanType);
             if ("servlet.request-dispatcher.forward".equals(spanType)) {
-                assert span.get("name").textValue().equals("FORWARD /echo");
+                isExistForwardSpan = true;
+                assertThat(expectedValues).contains(span.get("name").textValue());
+            } else if ("db.h2.query".equals(spanType)) {
+                isExistDbH2QuerySpan = true;
             }
         }
+        assertEquals(true, isExistForwardSpan);
+        assertEquals(true, isExistDbH2QuerySpan);
     }
 
     private void testTransactionReportingWithInclude(AbstractServletContainerIntegrationTest test) throws Exception {
         String pathToTest = "/simple-webapp" + "/include";
+        boolean isExistIncludeSpan = false;
+        boolean isExistDbH2QuerySpan = false;
         List<String> spanTypes = Arrays.asList("db.h2.query", "servlet.request-dispatcher.include");
+        List<String> expectedValues = Arrays.asList("INCLUDE", "INCLUDE /echo");
         test.clearMockServerLog();
-        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
-        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
-        String transactionId = transaction.get("id").textValue();
 
-        assert test.getReportedSpans().size() == 2;
+        test.executeAndValidateRequest(pathToTest, "Hello World", 200);
+
+        JsonNode transaction = test.assertTransactionReported(pathToTest, 200);
+        assertEquals(2, test.getReportedSpans().size());
+
         for (JsonNode span : test.getReportedSpans()) {
             String spanType = span.get("type").textValue();
-            spanTypes.contains(spanType);
+
+            assertThat(spanTypes).contains(spanType);
+
             if ("servlet.request-dispatcher.include".equals(spanType)) {
-                assert span.get("name").textValue().equals("INCLUDE /echo");
+                isExistIncludeSpan = true;
+                assertThat(expectedValues).contains(span.get("name").textValue());
+            } else if ("db.h2.query".equals(spanType)) {
+                isExistDbH2QuerySpan = true;
             }
         }
+        assertEquals(true, isExistDbH2QuerySpan);
+        assertEquals(true, isExistIncludeSpan);
     }
 
     private void testTransactionReporting(AbstractServletContainerIntegrationTest test) throws Exception {

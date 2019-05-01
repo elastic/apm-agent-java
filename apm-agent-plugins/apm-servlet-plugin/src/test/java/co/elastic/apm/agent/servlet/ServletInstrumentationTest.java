@@ -29,6 +29,7 @@ import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import okhttp3.Response;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -114,16 +116,18 @@ class ServletInstrumentationTest extends AbstractServletTest {
 
     @Test
     void testForward() throws Exception {
+        List<String> expectedValues = Arrays.asList("FORWARD", "FORWARD /test");
         callServlet(1, "/forward");
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("FORWARD /test", reporter.getSpans().get(0).getName().toString());
+        assertThat(expectedValues).contains(reporter.getSpans().get(0).getName().toString());
     }
 
     @Test
     void testInclude() throws Exception {
+        List<String> expectedValues = Arrays.asList("INCLUDE", "INCLUDE /test");
         callServlet(1, "/include");
         assertThat(reporter.getSpans().size()).isEqualTo(1);
-        assertEquals("INCLUDE /test", reporter.getSpans().get(0).getName().toString());
+        assertThat(expectedValues).contains(reporter.getSpans().get(0).getName().toString());
     }
 
     private void callServlet(int expectedTransactions, String path) throws IOException, InterruptedException {
