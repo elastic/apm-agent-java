@@ -1,9 +1,8 @@
 Elastic APM Java Agent Attach Tool
 Copyright 2018-2019 Elasticsearch B.V.
 
-This product includes software licensed under the Apache License 2.0 from the following sources:
- - ByteBuddy - Copyright 2014 - 2019 Rafael Winterhalter
- - https://github.com/kohlschutter/junixsocket - Copyright (c) 2009-2018 Dr. Christian Kohlschütter
+This tool includes software from Byte Buddy, under the Apache License 2.0
+Copyright 2014 - 2019 Rafael Winterhalter
 
 
                                  Apache License
