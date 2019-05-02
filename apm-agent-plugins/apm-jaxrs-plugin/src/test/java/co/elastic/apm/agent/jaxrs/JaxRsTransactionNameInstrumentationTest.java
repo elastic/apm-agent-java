@@ -30,10 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
@@ -99,6 +96,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         doRequest("test");
         doRequest("testInterface");
         doRequest("testAbstract");
+
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
@@ -123,13 +121,49 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Test
     public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameWithUsingTransactionNameFromPathAnnotationValue_1() {
+        when(config.getConfig(JaxRsConfiguration.class).isUsePathAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequest("test");
+        doRequest("testInterface");
+        doRequest("testAbstract");
+
         List<Transaction> actualTransactions = reporter.getTransactions();
-        assertThat(actualTransactions).hasSize(1);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("test");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameWithUsingTransactionNameFromPathAnnotationValue_2() {
+        when(config.getConfig(JaxRsConfiguration.class).isUsePathAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        doRequest("testInterface");
+        doRequest("testAbstract");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("test");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
     }
 
     /**

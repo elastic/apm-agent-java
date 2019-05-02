@@ -20,6 +20,7 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -31,6 +32,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import javax.annotation.Nullable;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -49,18 +54,25 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
+    @Nullable
+    @VisibleForAdvice
+    public static JaxRsTransactionHelper jaxRsTransactionHelper;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
+        jaxRsTransactionHelper = new JaxRsTransactionHelper(tracer);
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignature String signature) {
+    private static void setTransactionName(@Advice.This Object thiz,
+                                           @SimpleMethodSignature String signature) throws InvocationTargetException, IllegalAccessException {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
+
+
             if (transaction != null) {
-                transaction.withName(signature);
+                jaxRsTransactionHelper.setTransactionName(transaction, signature, thiz);
             }
         }
     }
@@ -116,4 +128,5 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-rs");
     }
+
 }
