@@ -158,8 +158,6 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
-              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
-              sh(label: 'pull weblogic Docker image', script: 'docker pull store/oracle/weblogic:12.2.1.3-dev')
               sh './scripts/jenkins/smoketests-02.sh'
             }
           }
