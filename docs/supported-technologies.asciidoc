@@ -197,10 +197,10 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
  inherently support context propagation as they are using `HttpUrlConnection` underneath.
 |1.4.0
 
-|Asynchronous Http Client
+|AsyncHttpClient
+| 2.x
 |
-|
-| 2.8.1
+| 1.7.0
 
 |===
 
