@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl;
@@ -95,6 +100,14 @@ public class ElasticApmTracer {
             return new ArrayDeque<TraceContextHolder<?>>();
         }
     };
+
+    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.TRUE;
+        }
+    };
+
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -191,6 +204,18 @@ public class ElasticApmTracer {
      */
     public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, @Nullable ClassLoader initiatingClassLoader) {
         return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
+    }
+
+    public void avoidWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.FALSE);
+    }
+
+    public void allowWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.TRUE);
+    }
+
+    public boolean isWrappingAllowedOnThread() {
+        return allowWrappingOnThread.get() == Boolean.TRUE;
     }
 
     /**
@@ -371,7 +396,7 @@ public class ElasticApmTracer {
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
-        if (span.isSampled()) {
+        if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled()) {
                 if (span.getDurationMs() >= spanFramesMinDurationMs) {
@@ -493,6 +518,10 @@ public class ElasticApmTracer {
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
+        if (!stack.isEmpty() && !holder.isDiscard()) {
+            //noinspection ConstantConditions
+            stack.peek().setDiscard(false);
+        }
     }
 
     private void assertIsActive(Object span, @Nullable Object currentlyActive) {

@@ -70,6 +70,7 @@ Click on a key to get more information.
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-trace-methods>>
+** <<config-trace-methods-duration-threshold>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -89,7 +90,6 @@ Click on a key to get more information.
 ** <<config-server-urls>>
 ** <<config-server-timeout>>
 ** <<config-verify-server-cert>>
-** <<config-flush-interval>>
 ** <<config-max-queue-size>>
 ** <<config-include-process-args>>
 ** <<config-api-request-time>>
@@ -169,6 +169,8 @@ Future versions of the Elastic APM stack will have better support for that scena
 A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
 
+NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
+
 
 [options="header"]
 |============
@@ -176,7 +178,6 @@ or to disable the corresponding `*-service-name` detecting instrumentations via 
 | For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
  | String | false
@@ -368,7 +369,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0])
+==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0 and 1.7.0])
 
 A list of methods for with to create a transaction or span.
 
@@ -413,6 +414,41 @@ Consider increasing the threshold or disabling stack trace collection altogether
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS`
+|============
+
+[float]
+[[config-trace-methods-duration-threshold]]
+==== `trace_methods_duration_threshold` (added[1.7.0])
+
+If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
+Such methods will be traced and reported if one of the following applies:
+ - This method's duration crossed the configured threshold.
+ - This method ended with Exception.
+ - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+ - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+Set to 0 to disable.
+
+NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
+In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+of their duration.
+
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
 |============
 
 [[config-http]]
@@ -817,34 +853,6 @@ Verification can be disabled by changing this setting to false.
 |============
 
 [float]
-[[config-flush-interval]]
-==== `flush_interval`
-
-Interval with which transactions should be sent to the APM server.
-
-A lower value will increase the load on your APM server,
-while a higher value can increase the memory pressure on your app.
-
-A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
-
-Supports the duration suffixes `ms`, `s` and `m`.
-Example: `1s`.
-The default unit for this option is `s`
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `1s` | TimeDuration | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.flush_interval` | `flush_interval` | `ELASTIC_APM_FLUSH_INTERVAL`
-|============
-
-[float]
 [[config-max-queue-size]]
 ==== `max_queue_size`
 
@@ -1118,24 +1126,19 @@ The default unit for this option is `ms`
 # Future versions of the Elastic APM stack will have better support for that scenario.
 # A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 # or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
+# 
+# NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
 # Default value: For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
-
+# For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
+# Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
+# Falls back to the name of the main class or jar file.
+# If the service name is set explicitly, it overrides all of the above.
+# 
 #
-# service_name=For Spring-based application, uses the `spring.application.name` property, if set.
-For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
-Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
-Falls back to the name of the main class or jar file.
-If the service name is set explicitly, it overrides all of the above.
-
+# service_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #
@@ -1266,6 +1269,28 @@ If the service name is set explicitly, it overrides all of the above.
 # Default value: 
 #
 # trace_methods=
+
+# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+# duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
+# Such methods will be traced and reported if one of the following applies:
+#  - This method's duration crossed the configured threshold.
+#  - This method ended with Exception.
+#  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+#  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# Set to 0 to disable.
+# 
+# NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
+# In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+# of their duration.
+# 
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# trace_methods_duration_threshold=0ms
 
 ############################################
 # HTTP                                     #
@@ -1498,21 +1523,6 @@ If the service name is set explicitly, it overrides all of the above.
 # Default value: true
 #
 # verify_server_cert=true
-
-# Interval with which transactions should be sent to the APM server.
-# 
-# A lower value will increase the load on your APM server,
-# while a higher value can increase the memory pressure on your app.
-# 
-# A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.
-#
-# This setting can not be changed at runtime. Changes require a restart of the application.
-# Type: TimeDuration
-# Supports the duration suffixes ms, s and m. Example: 1s.
-# The default unit for this option is s.
-# Default value: 1s
-#
-# flush_interval=1s
 
 # The maximum size of buffered events.
 # 

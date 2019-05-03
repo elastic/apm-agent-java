@@ -3,12 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <packaging>jar</packaging>
 

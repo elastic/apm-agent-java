@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
@@ -23,19 +28,22 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
@@ -135,14 +143,21 @@ public class CustomElementMatchers {
 
     private static @Nullable Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) {
         Version version = null;
+        JarFile jarFile = null;
         try {
             if (protectionDomain != null) {
                 CodeSource codeSource = protectionDomain.getCodeSource();
                 if (codeSource != null) {
                     URL jarUrl = codeSource.getLocation();
                     if (jarUrl != null) {
-                        JarFile jar = new JarFile(jarUrl.getFile());
-                        Manifest manifest = jar.getManifest();
+                        // does not yet establish an actual connection
+                        URLConnection urlConnection = jarUrl.openConnection();
+                        if (urlConnection instanceof JarURLConnection) {
+                            jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        } else {
+                            jarFile = new JarFile(jarUrl.getFile());
+                        }
+                        Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
                             if (implementationVersion != null) {
@@ -156,6 +171,14 @@ public class CustomElementMatchers {
             }
         } catch (Exception e) {
             logger.error("Cannot read implementation version based on ProtectionDomain " + protectionDomain, e);
+        } finally {
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException e) {
+                    logger.error("Error closing JarFile", e);
+                }
+            }
         }
         return version;
     }
@@ -212,5 +235,9 @@ public class CustomElementMatchers {
                 return "matches(" + matcher + ")";
             }
         };
+    }
+
+    public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
+        return nameContains("$Proxy").or(nameContains("$$"));
     }
 }
