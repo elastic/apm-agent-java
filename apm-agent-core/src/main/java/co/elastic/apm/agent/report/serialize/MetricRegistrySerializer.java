@@ -33,6 +33,7 @@ import com.dslplatform.json.NumberConverter;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MetricRegistrySerializer {
 
@@ -61,8 +62,9 @@ public class MetricRegistrySerializer {
                 DslJsonSerializer.serializeLabels(metricSet.getLabels(), replaceBuilder, jw);
                 DslJsonSerializer.writeFieldName("samples", jw);
                 jw.writeByte(JsonWriter.OBJECT_START);
-                final boolean hasSamples = serializeGauges(metricSet.getGauges(), jw);
-                serializeTimers(metricSet.getTimers(), hasSamples, jw);
+                boolean hasSamples = serializeGauges(metricSet.getGauges(), jw);
+                hasSamples |= serializeTimers(metricSet.getTimers(), hasSamples, jw);
+                serializeCounters(metricSet.getCounters(), hasSamples, jw);
                 jw.writeByte(JsonWriter.OBJECT_END);
             }
             jw.writeByte(JsonWriter.OBJECT_END);
@@ -99,8 +101,7 @@ public class MetricRegistrySerializer {
         return false;
     }
 
-    private static void serializeTimers(Map<String, Timer> timers, boolean hasSamples, JsonWriter jw) {
-
+    private static boolean serializeTimers(Map<String, Timer> timers, boolean hasSamples, JsonWriter jw) {
         final int size = timers.size();
         if (size > 0) {
             final Iterator<Map.Entry<String, Timer>> iterator = timers.entrySet().iterator();
@@ -114,6 +115,7 @@ public class MetricRegistrySerializer {
                     if (hasSamples) {
                         jw.writeByte(JsonWriter.COMMA);
                     }
+                    hasSamples = true;
                     serializeTimer(kv.getKey(), value, jw);
                 }
             }
@@ -128,6 +130,45 @@ public class MetricRegistrySerializer {
                 }
             }
         }
+        return hasSamples;
+    }
+
+    private static void serializeCounters(Map<String, AtomicLong> timers, boolean hasSamples, JsonWriter jw) {
+
+        final int size = timers.size();
+        if (size > 0) {
+            final Iterator<Map.Entry<String, AtomicLong>> iterator = timers.entrySet().iterator();
+
+            // serialize first valid value
+            AtomicLong value = null;
+            while (iterator.hasNext() && value == null) {
+                Map.Entry<String, AtomicLong> kv = iterator.next();
+                if (kv.getValue().get() > 0) {
+                    value = kv.getValue();
+                    if (hasSamples) {
+                        jw.writeByte(JsonWriter.COMMA);
+                    }
+                    serializeCounter(kv.getKey(), value, jw);
+                }
+            }
+
+            // serialize rest
+            while (iterator.hasNext()) {
+                Map.Entry<String, AtomicLong> kv = iterator.next();
+                value = kv.getValue();
+                if (kv.getValue().get() > 0) {
+                    jw.writeByte(JsonWriter.COMMA);
+                    serializeCounter(kv.getKey(), value, jw);
+                }
+            }
+        }
+    }
+
+    private static void serializeCounter(String key, AtomicLong value, JsonWriter jw) {
+        serializeValueStart(key, "", jw);
+        NumberConverter.serialize(value.get(), jw);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        value.set(0);
     }
 
     private static boolean isValid(double value) {

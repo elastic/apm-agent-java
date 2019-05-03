@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * It can be used to iterate over the map's keys without allocating an {@link java.util.Iterator}
  */
 public class KeyListConcurrentHashMap<K, V> extends ConcurrentHashMap<K, V> {
-    private final List<K> keyList = Collections.synchronizedList(new ArrayList<>());
+    private final List<K> keyList = Collections.synchronizedList(new ArrayList<K>());
 
     @Override
     public V put(K key, V value) {

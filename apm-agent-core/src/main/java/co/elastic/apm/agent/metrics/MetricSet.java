@@ -27,6 +27,7 @@ package co.elastic.apm.agent.metrics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A metric set is a collection of metrics which have the same labels.
@@ -47,7 +48,9 @@ public class MetricSet {
     private final ConcurrentMap<String, DoubleSupplier> gauges = new ConcurrentHashMap<>();
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
     private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
+    private final ConcurrentMap<String, AtomicLong> counters = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private volatile boolean hasNonEmptyTimer;
+    private volatile boolean hasNonEmptyCounter;
 
     public MetricSet(Labels labels) {
         this.labels = labels;
@@ -79,15 +82,30 @@ public class MetricSet {
         return timer;
     }
 
+    public void incrementCounter(String name) {
+        hasNonEmptyCounter = true;
+        AtomicLong counter = counters.get(name);
+        if (counter == null) {
+            counters.putIfAbsent(name, new AtomicLong());
+            counter = counters.get(name);
+        }
+        counter.incrementAndGet();
+    }
+
     public Map<String, Timer> getTimers() {
         return timers;
     }
 
     public boolean hasContent() {
-        return !gauges.isEmpty() || hasNonEmptyTimer;
+        return !gauges.isEmpty() || hasNonEmptyTimer || hasNonEmptyCounter;
     }
 
     public void onAfterReport() {
         hasNonEmptyTimer = false;
+        hasNonEmptyCounter = false;
+    }
+
+    public Map<String, AtomicLong> getCounters() {
+        return counters;
     }
 }

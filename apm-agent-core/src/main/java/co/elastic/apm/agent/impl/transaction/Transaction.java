@@ -42,7 +42,7 @@ import java.util.List;
 public class Transaction extends AbstractSpan<Transaction> {
 
     private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
-    private static final ThreadLocal<Labels> labelsThreadLocal = new ThreadLocal<>() {
+    private static final ThreadLocal<Labels> labelsThreadLocal = new ThreadLocal<Labels>() {
         @Override
         protected Labels initialValue() {
             return new Labels();
@@ -169,6 +169,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             type = "custom";
         }
         context.onTransactionEnd();
+        incrementTimer("app", getSelfDuration());
         trackMetrics();
         this.tracer.endTransaction(this);
     }
@@ -258,11 +259,12 @@ public class Transaction extends AbstractSpan<Transaction> {
             String spanType = keyList.get(i);
             final Timer timer = spanTimings.get(spanType);
             if (timer.getCount() > 0) {
-                tracer.getMetricRegistry().timer("self_time", labels.spanType(spanType)).update(timer.getTotalTimeUs(), timer.getCount());
+                tracer.getMetricRegistry().timer("span.self_time", labels.spanType(spanType)).update(timer.getTotalTimeUs(), timer.getCount());
                 timer.resetState();
             }
         }
-        tracer.getMetricRegistry().timer("self_time", labels.spanType("transaction")).update(getSelfDuration());
-        tracer.getMetricRegistry().timer("duration", labels.spanType("transaction")).update(getDuration());
+        labels.spanType(null);
+        tracer.getMetricRegistry().incrementCounter("transaction.breakdown.count", labels);
+        tracer.getMetricRegistry().timer("transaction.duration", labels).update(getDuration());
     }
 }

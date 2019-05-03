@@ -86,19 +86,19 @@ public class Labels implements Recyclable {
         return this;
     }
 
-    public Labels transactionName(CharSequence transactionName) {
+    public Labels transactionName(@Nullable CharSequence transactionName) {
         assertMutable();
         this.transactionName = transactionName;
         return this;
     }
 
-    public Labels transactionType(String transactionType) {
+    public Labels transactionType(@Nullable String transactionType) {
         assertMutable();
         this.transactionType = transactionType;
         return this;
     }
 
-    public Labels spanType(String spanType) {
+    public Labels spanType(@Nullable String spanType) {
         assertMutable();
         this.spanType = spanType;
         return this;

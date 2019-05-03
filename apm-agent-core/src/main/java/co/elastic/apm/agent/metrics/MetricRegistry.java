@@ -139,4 +139,12 @@ public class MetricRegistry {
         }
         return metricSet;
     }
+
+    public void incrementCounter(String name, Labels labels) {
+        getOrCreateMetricSet(labels).incrementCounter(name);
+    }
+
+    public long getCount(String name, Labels labels) {
+        return getOrCreateMetricSet(labels).getCounters().get(name).get();
+    }
 }
