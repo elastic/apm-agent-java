@@ -39,17 +39,6 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
         .dynamic(false)
         .buildWithDefault(true);
 
-    private final ConfigurationOption<Boolean> usePathAnnotationValueForTransactionName = ConfigurationOption.booleanOption()
-        .key("use_path_annotation_value_for_transaction_name")
-        .configurationCategory(JAXRS_CATEGORY)
-        .tags("internal")
-        .description(
-            "By default, the agent will use ClassName#methodName for transaction name.\n" +
-                "If you need use in transaction name value from @Path annotation, you should set to 'true'.\n")
-        .dynamic(false)
-        .buildWithDefault(false);
-
-
     /**
      * @return if true, the jax-rs plugin must scan for @Path annotations in the class hierarchy of classes.
      * if false, only @Path annotations on implementation classes are considered.
@@ -58,5 +47,4 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
         return enableJaxrsAnnotationInheritance.get();
     }
 
-    public boolean isUsePathAnnotationValueForTransactionName() { return usePathAnnotationValueForTransactionName.get(); }
 }

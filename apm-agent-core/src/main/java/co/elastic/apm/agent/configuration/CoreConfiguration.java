@@ -313,6 +313,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    private final ConfigurationOption<Boolean> useAnnotationValueForTransactionName = ConfigurationOption.booleanOption()
+        .key("use_annotation_value_for_transaction_name")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("internal")
+        .description(
+            "By default, the agent will use ClassName#methodName for transaction name of JAX-RS.\n" +
+                "If you need use in transaction name value from @Path annotation, you should set value to 'true'.\n")
+        .dynamic(false)
+        .buildWithDefault(false);
+
     public boolean isActive() {
         return active.get();
     }
@@ -384,4 +394,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public TimeDuration getTraceMethodsDurationThreshold() {
         return traceMethodsDurationThreshold.get();
     }
+
+    public boolean isUseAnnotationValueForTransactionName() { return useAnnotationValueForTransactionName.get(); }
 }

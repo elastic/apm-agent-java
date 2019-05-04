@@ -71,6 +71,7 @@ Click on a key to get more information.
 ** <<config-unnest-exceptions>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
+** <<config-use-annotation-value-for-transaction-name>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -452,6 +453,30 @@ The default unit for this option is `ms`
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
 |============
 
+
+[float]
+[[config-use-annotation-value-for-transaction-name]]
+==== `use_annotation_value_for_transaction_name` (internal)
+
+By default, the agent will use ClassName#methodName for transaction name of JAX-RS.
+If you need use in transaction name value from @javax.ws.rs.Path annotation, you should set value to 'true'.
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_annotation_value_for_transaction_name` | `use_annotation_value_for_transaction_name` | `ELASTIC_APM_USE_ANNOTATION_VALUE_FOR_TRANSACTION_NAME`
+|============
+
+
 [[config-http]]
 === HTTP configuration options
 [float]
@@ -675,27 +700,6 @@ If your application does not use @Path annotation inheritance, set this property
 | `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
 |============
 
-[float]
-[[config-use-path-annotation-value-for-transaction-name]]
-==== `use_path_annotation_value_for_transaction_name` (internal)
-
-By default, the agent will use ClassName#methodName for transaction name.
-If you need use in transaction name value from @Path annotation, you should set to 'true'.
-
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `false` | Boolean | false
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.use_path_annotation_value_for_transaction_name` | `use_path_annotation_value_for_transaction_name` | `ELASTIC_APM_USE_PATH_ANNOTATION_VALUE_FOR_TRANSACTION_NAME`
-|============
 
 [[config-logging]]
 === Logging configuration options

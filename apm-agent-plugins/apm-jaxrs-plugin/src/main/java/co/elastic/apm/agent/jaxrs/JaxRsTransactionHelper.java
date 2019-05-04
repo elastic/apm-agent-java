@@ -1,6 +1,7 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
@@ -10,11 +11,11 @@ import javax.annotation.Nullable;
 @VisibleForAdvice
 public class JaxRsTransactionHelper {
 
-    private final JaxRsConfiguration jaxRsConfiguration;
+    private final CoreConfiguration coreConfiguration;
 
     @VisibleForAdvice
     public JaxRsTransactionHelper(ElasticApmTracer tracer) {
-        this.jaxRsConfiguration = tracer.getConfig(JaxRsConfiguration.class);
+        this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
     }
 
     @VisibleForAdvice
@@ -22,7 +23,7 @@ public class JaxRsTransactionHelper {
                                    @Nonnull String signature,
                                    @Nullable String pathAnnotationValue)  {
         currentTransaction.withName(signature);
-        if (jaxRsConfiguration.isUsePathAnnotationValueForTransactionName()) {
+        if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
             if (pathAnnotationValue != null && !pathAnnotationValue.isEmpty()) {
                 currentTransaction.setName(pathAnnotationValue);
             }
