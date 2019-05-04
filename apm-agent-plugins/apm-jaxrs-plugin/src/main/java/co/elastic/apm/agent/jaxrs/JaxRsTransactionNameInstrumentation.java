@@ -22,6 +22,7 @@ package co.elastic.apm.agent.jaxrs;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
+import co.elastic.apm.agent.bci.bytebuddy.ClassAnnotationValueOffsetMappingFactory.ClassAnnotationValueExtractor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -33,9 +34,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -65,14 +63,13 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@Advice.This Object thiz,
-                                           @SimpleMethodSignature String signature) throws InvocationTargetException, IllegalAccessException {
+    private static void setTransactionName(@SimpleMethodSignature String signature,
+                                           @ClassAnnotationValueExtractor(annotationClassName = "javax.ws.rs.Path", method = "value") String pathAnnotationValue) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
 
-
             if (transaction != null) {
-                jaxRsTransactionHelper.setTransactionName(transaction, signature, thiz);
+                jaxRsTransactionHelper.setTransactionName(transaction, signature, pathAnnotationValue);
             }
         }
     }
