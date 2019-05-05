@@ -65,11 +65,16 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         // so this pool only works when called directly from ManagedExecutorServiceImpl
         // excluding this class from instrumentation does not work as it inherits the execute and submit methods
         excludedClasses.add("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor");
+
         // Used in Tomcat 7
         // Especially the wrapping of org.apache.tomcat.util.net.AprEndpoint$SocketProcessor is problematic
         // because that is the Runnable for the actual request processor thread.
         // Wrapping that leaks transactions and spans to other requests.
         excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
+
+        // This pool relies on the task to be an instance of com.pilotfish.eip.server.ntm.transact.StageTransactionRunner
+        // in its beforeExecute implementation.
+        excludedClasses.add("com.pilotfish.eip.server.ntm.pool.NTMThreadPool");
     }
 
     @Override
