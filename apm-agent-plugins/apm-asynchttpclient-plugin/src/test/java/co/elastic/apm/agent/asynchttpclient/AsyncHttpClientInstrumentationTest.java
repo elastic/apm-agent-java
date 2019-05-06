@@ -25,19 +25,39 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import org.asynchttpclient.AsyncCompletionHandlerBase;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.RequestBuilder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
+@RunWith(Parameterized.class)
 public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
+    private final RequestExecutor requestExecutor;
     private AsyncHttpClient client;
+
+    public AsyncHttpClientInstrumentationTest(RequestExecutor requestExecutor) {
+        this.requestExecutor = requestExecutor;
+    }
+
+    @Parameterized.Parameters()
+    public static Iterable<RequestExecutor> data() {
+        return Arrays.asList(
+            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build()).get(),
+            (client, path) -> client.executeRequest(new RequestBuilder().setUrl(path).build(), new AsyncCompletionHandlerBase()).get(),
+            (client, path) -> client.prepareGet(path).execute(new AsyncCompletionHandlerBase()).get(),
+            (client, path) -> client.prepareGet(path).execute().get()
+        );
+    }
 
     @Before
     public void setUp() {
@@ -53,9 +73,11 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
 
     @Override
     protected void performGet(String path) throws Exception {
-        client.executeRequest(new RequestBuilder()
-            .setUrl(path)
-            .build()).get();
+        requestExecutor.execute(client, path);
+    }
+
+    interface RequestExecutor {
+        void execute(AsyncHttpClient client, String path) throws Exception;
     }
 
 }
