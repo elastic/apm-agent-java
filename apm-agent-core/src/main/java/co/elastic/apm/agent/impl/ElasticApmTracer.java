@@ -507,14 +507,14 @@ public class ElasticApmTracer {
 
     public void activate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", holder, Thread.currentThread().getId());
         }
         activeStack.get().push(holder);
     }
 
     public void deactivate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
+            logger.debug("Deactivating {} on thread {}", holder, Thread.currentThread().getId());
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());

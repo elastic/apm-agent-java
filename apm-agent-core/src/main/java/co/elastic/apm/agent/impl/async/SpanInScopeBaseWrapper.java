@@ -59,8 +59,10 @@ abstract class SpanInScopeBaseWrapper {
 
     protected void afterDelegation(final AbstractSpan<?> localSpan, boolean activated) {
         try {
-            if (localSpan != null && activated) {
-                localSpan.deactivate();
+            if (localSpan != null) {
+                if (activated) {
+                    localSpan.deactivate();
+                }
                 localSpan.decrementReferences();
             }
             doRecycle();
