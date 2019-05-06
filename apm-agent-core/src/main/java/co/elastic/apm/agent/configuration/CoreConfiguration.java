@@ -4,24 +4,30 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
@@ -32,11 +38,7 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.TreeSet;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 
@@ -86,7 +88,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
             "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
             "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
-            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.")
+            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
@@ -261,7 +265,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
-        .tags("added[1.3.0,Enhancements in 1.4.0]")
+        .tags("added[1.3.0,Enhancements in 1.4.0 and 1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
@@ -294,6 +298,25 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "this may lead to high overhead.\n" +
             "Consider increasing the threshold or disabling stack trace collection altogether.")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
+
+    private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
+        .key("trace_methods_duration_threshold")
+        .tags("added[1.7.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on \n" +
+            "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
+            "by default.\n" +
+            "Such methods will be traced and reported if one of the following applies:\n" +
+            " - This method's duration crossed the configured threshold.\n" +
+            " - This method ended with Exception.\n" +
+            " - A method executed as part of the execution of this method crossed the threshold or ended with Exception.\n" +
+            " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
+            "Set to 0 to disable.\n" +
+            "\n" +
+            "NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.\n" +
+            "In order not to break span references, all spans leading to an async operations are never discarded, regardless \n" +
+            "of their duration.\n")
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     public boolean isActive() {
         return active.get();
@@ -361,5 +384,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<MethodMatcher> getTraceMethods() {
         return traceMethods.get();
+    }
+
+    public TimeDuration getTraceMethodsDurationThreshold() {
+        return traceMethodsDurationThreshold.get();
     }
 }

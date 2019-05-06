@@ -7,6 +7,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+    </properties>
+
     <artifactId>apm-jdbc-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <dependencies>
