@@ -88,8 +88,6 @@ public class ElasticsearchClientAsyncInstrumentation extends ElasticsearchRestCl
                 span = helper.createClientSpan(method, endpoint, entity);
                 if (span != null) {
                     responseListener = helper.<ResponseListener>wrapResponseListener(responseListener, span);
-                    // write to the span's volatile field to ensure proper visibility on the executing thread
-                    span.markLifecycleManagingThreadSwitchExpected();
                     wrapped = true;
                 }
             }

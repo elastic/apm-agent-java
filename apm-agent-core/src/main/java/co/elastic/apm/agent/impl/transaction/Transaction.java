@@ -27,6 +27,8 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +36,8 @@ import javax.annotation.Nullable;
  * Data captured by an agent representing an event occurring in a monitored service
  */
 public class Transaction extends AbstractSpan<Transaction> {
+
+    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
 
     public static final String TYPE_REQUEST = "request";
 
@@ -68,7 +72,6 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
-        onStart();
         if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
             traceContext.asRootSpan(sampler);
         }
@@ -77,13 +80,14 @@ public class Transaction extends AbstractSpan<Transaction> {
         } else {
             setStartTimestamp(traceContext.getClock().getEpochMicros());
         }
+        onAfterStart();
         return this;
     }
 
     public Transaction startNoop() {
-        onStart();
         this.name.append("noop");
         this.noop = true;
+        onAfterStart();
         return this;
     }
 
@@ -171,10 +175,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         type = null;
     }
 
-    public void recycle() {
-        tracer.recycle(this);
-    }
-
     public boolean isNoop() {
         return noop;
     }
@@ -193,6 +193,19 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, traceContext);
+        return String.format("'%s' %s (%s)", name, traceContext, Integer.toHexString(System.identityHashCode(this)));
+    }
+
+    @Override
+    public void incrementReferences() {
+        super.incrementReferences();
+    }
+
+    public void decrementReferences() {
+        final int referenceCount = this.references.decrementAndGet();
+        super.decrementReferences();
+        if (referenceCount == 0) {
+            tracer.recycle(this);
+        }
     }
 }

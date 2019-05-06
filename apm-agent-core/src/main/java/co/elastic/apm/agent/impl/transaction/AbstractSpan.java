@@ -32,31 +32,38 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
 
-    // used to mark this span as expected to switch lifecycle-managing-thread, eg span created by one thread and ended by another
-    private volatile boolean isLifecycleManagingThreadSwitch;
-
     /**
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
     private long timestamp;
+
     /**
      * How long the transaction took to complete, in ms with 3 decimal points
      * (Required)
      */
     protected double duration;
+    protected AtomicInteger references = new AtomicInteger();
+    protected volatile boolean finished = true;
 
-    private volatile boolean finished = true;
+    public int getReferenceCount() {
+        return references.get();
+    }
 
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
+    }
+
+    public boolean isReferenced() {
+        return references.get() > 0;
     }
 
     /**
@@ -116,8 +123,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         name.setLength(0);
         timestamp = 0;
         duration = 0;
-        isLifecycleManagingThreadSwitch = false;
         traceContext.resetState();
+        references.set(0);
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
@@ -129,6 +136,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return createSpan(traceContext.getClock().getEpochMicros());
     }
 
+    @Override
     public Span createSpan(long epochMicros) {
         return tracer.startSpan(this, epochMicros);
     }
@@ -153,8 +161,14 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public abstract AbstractContext getContext();
 
-    protected void onStart() {
+    /**
+     * Called after the span has been started and its parent references are set
+     */
+    protected void onAfterStart() {
         this.finished = false;
+        // this final reference is decremented when the span is reported
+        // or even after its reported and the last child span is ended
+        incrementReferences();
     }
 
     public void end() {
@@ -163,12 +177,13 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.finished = true;
-            this.duration = (epochMicros - timestamp) / AbstractSpan.MS_IN_MICROS;
+            this.duration = (epochMicros - timestamp)  / AbstractSpan.MS_IN_MICROS;
             if (name.length() == 0) {
                 name.append("unnamed");
             }
             doEnd(epochMicros);
+            // has to be set last so doEnd callbacks don't think it has already been finished
+            this.finished = true;
         } else {
             logger.warn("End has already been called: {}", this);
             assert false;
@@ -182,20 +197,19 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return getTraceContext().isChildOf(other);
     }
 
-    public void markLifecycleManagingThreadSwitchExpected() {
-        isLifecycleManagingThreadSwitch = true;
+    @Override
+    public T activate() {
+        incrementReferences();
+        return super.activate();
     }
 
     @Override
-    public T activate() {
-        if (isLifecycleManagingThreadSwitch) {
-            // This serves two goals:
-            // 1. resets the lifecycle management flag, so that the executing thread will remain in charge until set otherwise
-            // by setting this flag once more
-            // 2. reading this volatile field when span is activated on a new thread ensures proper visibility of other span data
-            isLifecycleManagingThreadSwitch = false;
+    public T deactivate() {
+        try {
+            return super.deactivate();
+        } finally {
+            decrementReferences();
         }
-        return super.activate();
     }
 
     /**
@@ -208,11 +222,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     @Override
     public Runnable withActive(Runnable runnable) {
-        if (isLifecycleManagingThreadSwitch) {
-            return tracer.wrapRunnable(runnable, this);
-        } else {
-            return tracer.wrapRunnable(runnable, traceContext);
-        }
+        return tracer.wrapRunnable(runnable, this);
     }
 
     /**
@@ -225,15 +235,32 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      */
     @Override
     public <V> Callable<V> withActive(Callable<V> callable) {
-        if (isLifecycleManagingThreadSwitch) {
-            return tracer.wrapCallable(callable, this);
-        } else {
-            return tracer.wrapCallable(callable, traceContext);
-        }
+        return tracer.wrapCallable(callable, this);
     }
 
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    public void incrementReferences() {
+        references.incrementAndGet();
+        if (logger.isDebugEnabled()) {
+            logger.debug("increment references to {} ({})", this, references);
+            if (logger.isTraceEnabled()) {
+                logger.trace("incrementing references at",
+                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been incremented."));
+            }
+        }
+    }
+
+    public void decrementReferences() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("decrement references to {} ({})", this, references);
+            if (logger.isTraceEnabled()) {
+                logger.trace("decrementing references at",
+                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been decremented."));
+            }
+        }
     }
 
 }

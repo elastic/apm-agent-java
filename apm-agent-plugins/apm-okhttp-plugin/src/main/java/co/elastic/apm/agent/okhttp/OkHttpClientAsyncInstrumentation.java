@@ -94,7 +94,7 @@ public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation 
             Request request = originalRequest;
             span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().getHost());
             if (span != null) {
-                span.activate().markLifecycleManagingThreadSwitchExpected();
+                span.activate();
                 originalRequest = originalRequest.newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
                 callback = wrapperCreator.wrap(callback, span);
             }

@@ -120,7 +120,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void report(Transaction transaction) {
         if (!tryAddEventToRingBuffer(transaction, TRANSACTION_EVENT_TRANSLATOR)) {
-            transaction.recycle();
+            transaction.decrementReferences();
         }
         if (syncReport) {
             waitForFlush();
@@ -130,7 +130,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void report(Span span) {
         if (!tryAddEventToRingBuffer(span, SPAN_EVENT_TRANSLATOR)) {
-            span.recycle();
+            span.decrementReferences();
         }
         if (syncReport) {
             waitForFlush();

@@ -63,14 +63,27 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private final SpanContext context = new SpanContext();
     @Nullable
     private Throwable stacktrace;
+    @Nullable
+    private AbstractSpan<?> parent;
+    @Nullable
+    private Transaction transaction;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
     }
 
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
-        onStart();
         childContextCreator.asChildOf(traceContext, parentContext);
+        if (parentContext instanceof Transaction) {
+            this.transaction = (Transaction) parentContext;
+            this.parent = this.transaction;
+            this.parent.incrementReferences();
+        } else if (parentContext instanceof Span) {
+            final Span parentSpan = (Span) parentContext;
+            this.parent = parentSpan;
+            this.transaction = parentSpan.transaction;
+            this.parent.incrementReferences();
+        }
         if (dropped) {
             traceContext.setRecorded(false);
         }
@@ -86,6 +99,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
                     new RuntimeException("this exception is just used to record where the span has been started from"));
             }
         }
+        onAfterStart();
         return this;
     }
 
@@ -184,6 +198,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+        if (parent != null) {
+            parent.decrementReferences();
+        }
         this.tracer.endSpan(this);
     }
 
@@ -195,19 +212,37 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         type = null;
         subtype = null;
         action = null;
-    }
-
-    public void recycle() {
-        tracer.recycle(this);
+        parent = null;
+        transaction = null;
     }
 
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, traceContext);
+        return String.format("'%s' %s (%s)", name, traceContext, Integer.toHexString(System.identityHashCode(this)));
     }
 
     public Span withStacktrace(Throwable stacktrace) {
         this.stacktrace = stacktrace;
         return this;
+    }
+
+    @Override
+    public void incrementReferences() {
+        if (transaction != null) {
+            transaction.incrementReferences();
+        }
+        super.incrementReferences();
+    }
+
+    @Override
+    public void decrementReferences() {
+        if (transaction != null) {
+            transaction.decrementReferences();
+        }
+        final int referenceCount = references.decrementAndGet();
+        super.decrementReferences();
+        if (referenceCount == 0) {
+            tracer.recycle(this);
+        }
     }
 }
