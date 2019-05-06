@@ -128,6 +128,7 @@ pipeline {
           }
           steps {
             deleteDir()
+            unstash 'build'
             dir("${BASE_DIR}"){
               sh './scripts/jenkins/smoketests-01.sh'
             }
