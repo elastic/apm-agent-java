@@ -6,6 +6,7 @@
  documentation).
  NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
  * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
+ * Added support for AsyncHttpClient 2.x
 
 ## Bug Fixes
 
