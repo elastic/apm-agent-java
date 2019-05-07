@@ -6,6 +6,9 @@
  documentation).
  NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
  * Added support for AsyncHttpClient 2.x
+ * Added [`global_labels`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#global-labels) configuration option.
+   This requires APM Server 7.2+.
+
 ## Bug Fixes
 
 # 1.6.1

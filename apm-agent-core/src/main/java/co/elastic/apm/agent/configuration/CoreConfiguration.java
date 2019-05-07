@@ -210,10 +210,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("global_labels")
-        .tags("added[1.5.0]")
+        .tags("added[1.7.0, Requires APM Server 7.2+]")
         .configurationCategory(CORE_CATEGORY)
         .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
-            "Any labels set by application via the API will override global labels with the same keys.")
+            "Any labels set by application via the API will override global labels with the same keys.\n" +
+            "\n" +
+            "NOTE: This feature requires APM Server 7.2+")
         .dynamic(false)
         .buildWithDefault(Collections.<String, String>emptyMap());
 
