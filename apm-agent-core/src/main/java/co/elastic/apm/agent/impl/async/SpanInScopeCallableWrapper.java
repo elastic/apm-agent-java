@@ -48,6 +48,7 @@ public class SpanInScopeCallableWrapper<V> extends SpanInScopeBaseWrapper implem
     public SpanInScopeCallableWrapper<V> wrap(Callable<V> delegate, AbstractSpan<?> span) {
         this.delegate = delegate;
         this.span = span;
+        span.incrementReferences();
         return this;
     }
 

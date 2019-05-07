@@ -47,6 +47,7 @@ public class SpanInScopeRunnableWrapper extends SpanInScopeBaseWrapper implement
     public SpanInScopeRunnableWrapper wrap(Runnable delegate, AbstractSpan<?> span) {
         this.delegate = delegate;
         this.span = span;
+        span.incrementReferences();
         return this;
     }
 

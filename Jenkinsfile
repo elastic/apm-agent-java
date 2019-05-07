@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 @Library('apm@current') _
-  
+
 pipeline {
   agent any
   environment {
@@ -22,7 +22,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
+    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")
@@ -158,8 +158,6 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
-              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
-              sh(label: 'pull weblogic Docker image', script: 'docker pull store/oracle/weblogic:12.2.1.3-dev')
               sh './scripts/jenkins/smoketests-02.sh'
             }
           }

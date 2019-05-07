@@ -321,7 +321,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -820,7 +820,7 @@ The default unit for this option is `s`
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `5s` | TimeDuration | false
+| `5s` | TimeDuration | true
 |============
 
 
@@ -916,7 +916,7 @@ The default unit for this option is `s`
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `10s` | TimeDuration | false
+| `10s` | TimeDuration | true
 |============
 
 
@@ -939,7 +939,7 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `768kb` | ByteValue | false
+| `768kb` | ByteValue | true
 |============
 
 
@@ -1207,7 +1207,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1506,7 +1506,7 @@ The default unit for this option is `ms`
 # 
 # WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times out.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 5s.
 # The default unit for this option is s.
@@ -1553,7 +1553,7 @@ The default unit for this option is `ms`
 # 
 # NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 10s.
 # The default unit for this option is s.
@@ -1566,7 +1566,7 @@ The default unit for this option is `ms`
 # 
 # Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: ByteValue
 # Default value: 768kb
 #

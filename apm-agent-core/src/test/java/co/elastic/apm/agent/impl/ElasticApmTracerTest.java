@@ -361,7 +361,8 @@ class ElasticApmTracerTest {
         final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
         transaction.end();
-        transaction.resetState();
+
+        reporter.assertRecycledAfterDecrementingReferences();
 
         tracerImpl.activate(transactionTraceContext);
         try {
