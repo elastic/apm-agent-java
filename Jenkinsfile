@@ -57,19 +57,21 @@ pipeline {
         /**
         Build on a linux environment.
         */
-        stage('build') {
+        stage('Build') {
           steps {
             deleteDir()
             unstash 'source'
             dir("${BASE_DIR}"){
               sh """#!/bin/bash
               set -euxo pipefail
-              ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
+              ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+              ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
               """
             }
             stash allowEmpty: true, name: 'build', useDefaultExcludes: false
             archiveArtifacts allowEmptyArchive: true,
-              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar", 
+              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                    ${BASE_DIR}/target/site/aggregate-third-party-report.html",
               onlyIfSuccessful: true
           }
         }
@@ -156,8 +158,6 @@ pipeline {
             deleteDir()
             unstash 'build'
             dir("${BASE_DIR}"){
-              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
-              sh(label: 'pull weblogic Docker image', script: 'docker pull store/oracle/weblogic:12.2.1.3-dev')
               sh './scripts/jenkins/smoketests-02.sh'
             }
           }

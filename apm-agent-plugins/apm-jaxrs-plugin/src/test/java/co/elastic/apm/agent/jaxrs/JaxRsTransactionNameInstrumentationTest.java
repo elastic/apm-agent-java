@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.jaxrs;
@@ -107,6 +112,20 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     @Test
+    public void testProxyClassInstrumentationExclusion() {
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testViewProxy");
+        doRequest("testProxyProxy");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+    }
+
+    @Test
     public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
 
@@ -121,8 +140,13 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
+    @Override
     protected Application configure() {
-        return new ResourceConfig(ResourceWithPath.class, ResourceWithPathOnInterface.class, ResourceWithPathOnAbstract.class);
+        return new ResourceConfig(ResourceWithPath.class,
+            ResourceWithPathOnInterface.class,
+            ResourceWithPathOnAbstract.class,
+            ProxiedClass$$$view.class,
+            ProxiedClass$Proxy.class);
     }
 
     /**
@@ -147,7 +171,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Path("testInterface")
     public interface ResourceInterfaceWithPath extends SuperResourceInterface {
         String testMethod();
-
     }
 
     public interface ResourceInterfaceWithoutPath extends SuperResourceInterface {
@@ -155,13 +178,24 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     public abstract static class AbstractResourceClassWithoutPath implements ResourceInterfaceWithoutPath {
-
     }
 
     @Path("testAbstract")
     public abstract static class AbstractResourceClassWithPath implements ResourceInterfaceWithoutPath {
+    }
 
+    @Path("testViewProxy")
+    public static class ProxiedClass$$$view implements SuperResourceInterface {
+        public String testMethod() {
+            return "ok";
+        }
+    }
 
+    @Path("testProxyProxy")
+    public static class ProxiedClass$Proxy implements SuperResourceInterface {
+        public String testMethod() {
+            return "ok";
+        }
     }
 
     @Path("test")
@@ -169,7 +203,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         public String testMethod() {
             return "ok";
         }
-
     }
 
     public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {

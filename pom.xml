@@ -5,7 +5,7 @@
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <version>1.6.1-SNAPSHOT</version>
+    <version>1.6.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <inceptionYear>2018</inceptionYear>
     <organization>
@@ -77,6 +77,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
+
+        <apm-agent-parent.base.dir>${project.basedir}</apm-agent-parent.base.dir>
+        <license.dir.uri>file://${apm-agent-parent.base.dir}/license</license.dir.uri>
     </properties>
 
     <modules>
@@ -419,7 +422,8 @@
                 <version>1.19</version>
                 <configuration>
                     <verbose>false</verbose>
-                    <licenseName>apache_v2</licenseName>
+                    <licenseName>apache2_license</licenseName>
+                    <licenseResolver>${license.dir.uri}</licenseResolver>
                     <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
                     <failOnMissingHeader>true</failOnMissingHeader>
                     <failOnNotUptodateHeader>true</failOnNotUptodateHeader>

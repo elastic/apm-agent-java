@@ -3,12 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.6.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -131,7 +132,7 @@
         <dependency>
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>
-            <version>1.0</version>
+            <version>1.2</version>
             <scope>test</scope>
         </dependency>
         <!--For setting environment variables-->

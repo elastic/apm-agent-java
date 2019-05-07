@@ -1,17 +1,27 @@
 # next (1.7.0)
 
 ## Features
+ * Added the `trace_methods_duration_threshold` config option. When using the `trace_methods` config option with wild cards, this 
+ enables considerable reduction of overhead by limiting the number of spans captured and reported (see more details in config 
+ documentation).
+ NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
  * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
 
 ## Bug Fixes
 
-# next (1.6.1)
-
-## Features
+# 1.6.1
 
 ## Bug Fixes
  * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
- * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
+ * Makes log_file option work again [#594](https://github.com/elastic/apm-agent-java/issues/594)
+ * Async context propagation fixes
+    * Fixing some async mechanisms lifecycle issues [#605](https://github.com/elastic/apm-agent-java/issues/605)
+    * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
+    * Exclude glassfish Executor which does not permit wrapped runnables [#596](https://github.com/elastic/apm-agent-java/issues/596)
+    * Exclude DumbExecutor [#598](https://github.com/elastic/apm-agent-java/issues/598)
+ * Fixes Manifest version reading error to support `jar:file` protocol [#601](https://github.com/elastic/apm-agent-java/issues/601)
+ * Fixes transaction name for non-sampled transactions [#597](https://github.com/elastic/apm-agent-java/issues/597)
+ * Fixes potential classloader deadlock by preloading `FileSystems.getDefault()` [#603](https://github.com/elastic/apm-agent-java/issues/603)
 
 # 1.6.0
 

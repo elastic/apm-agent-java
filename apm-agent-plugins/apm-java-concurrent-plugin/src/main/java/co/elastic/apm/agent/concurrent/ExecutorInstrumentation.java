@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.concurrent;
@@ -38,6 +43,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -59,6 +65,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         // so this pool only works when called directly from ManagedExecutorServiceImpl
         // excluding this class from instrumentation does not work as it inherits the execute and submit methods
         excludedClasses.add("org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor");
+        // Used in Tomcat 7
+        // Especially the wrapping of org.apache.tomcat.util.net.AprEndpoint$SocketProcessor is problematic
+        // because that is the Runnable for the actual request processor thread.
+        // Wrapping that leaks transactions and spans to other requests.
+        excludedClasses.add("org.apache.tomcat.util.threads.ThreadPoolExecutor");
     }
 
     @Override
@@ -75,7 +86,8 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             // executes on same thread, no need to wrap to activate again
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
-            .and(not(nameStartsWith("com.hazelcast")));
+            .and(not(nameStartsWith("com.hazelcast")))
+            .and(not(isProxy()));
     }
 
     @Override
@@ -89,14 +101,19 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorRunnableInstrumentation extends ExecutorInstrumentation {
+        @SuppressWarnings("Duplicates")
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onExecute(@Advice.This Executor thiz,
                                      @Advice.Argument(value = 0, readOnly = false) @Nullable Runnable runnable,
                                      @Advice.Local("original") Runnable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && runnable != null && !isExcluded(thiz)) {
+            if (active != null && runnable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
+                //noinspection UnusedAssignment
                 original = runnable;
+                // Do no discard branches leading to async operations so not to break span references
+                active.setDiscard(false);
                 runnable = active.withActive(runnable);
+                tracer.avoidWrappingOnThread();
             }
         }
 
@@ -111,14 +128,20 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                       @Nullable @Advice.Argument(value = 0, readOnly = false) Runnable runnable,
                                       @Advice.Local("original") @Nullable Runnable original) {
 
-            if (original != null && (exception instanceof ClassCastException || exception instanceof IllegalArgumentException)) {
-                // seems like this executor expects a specific subtype of Callable
-                runnable = original;
-                // repeat only if submitting a task fails for the first time
-                return excluded.add(thiz);
-            } else {
-                // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
-                return false;
+            try {
+                if (original != null && (exception instanceof ClassCastException || exception instanceof IllegalArgumentException)) {
+                    // seems like this executor expects a specific subtype of Callable
+                    runnable = original;
+                    // repeat only if submitting a task fails for the first time
+                    return excluded.add(thiz);
+                } else {
+                    // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
+                    return false;
+                }
+            } finally {
+                if (tracer != null) {
+                    tracer.allowWrappingOnThread();
+                }
             }
         }
 
@@ -131,14 +154,18 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
     }
 
     public static class ExecutorCallableInstrumentation extends ExecutorInstrumentation {
+        @SuppressWarnings("Duplicates")
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onSubmit(@Advice.This Executor thiz,
                                     @Advice.Argument(value = 0, readOnly = false) @Nullable Callable<?> callable,
                                     @Advice.Local("original") Callable original) {
             final TraceContextHolder<?> active = ExecutorInstrumentation.getActive();
-            if (active != null && callable != null && !isExcluded(thiz)) {
+            if (active != null && callable != null && !isExcluded(thiz) && tracer != null && tracer.isWrappingAllowedOnThread()) {
                 original = callable;
+                // Do no discard branches leading to async operations so not to break span references
+                active.setDiscard(false);
                 callable = active.withActive(callable);
+                tracer.avoidWrappingOnThread();
             }
         }
 
@@ -150,14 +177,20 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
                                       @Nullable @Advice.Thrown Exception exception,
                                       @Nullable @Advice.Argument(value = 0, readOnly = false) Callable callable,
                                       @Advice.Local("original") Callable original) {
-            if (exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
-                // seems like this executor expects a specific subtype of Callable
-                callable = original;
-                // repeat only if submitting a task fails for the first time
-                return excluded.add(thiz);
-            } else {
-                // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
-                return false;
+            try {
+                if (exception instanceof ClassCastException || exception instanceof IllegalArgumentException) {
+                    // seems like this executor expects a specific subtype of Callable
+                    callable = original;
+                    // repeat only if submitting a task fails for the first time
+                    return excluded.add(thiz);
+                } else {
+                    // don't repeat on exceptions which don't seem to be caused by wrapping the runnable
+                    return false;
+                }
+            } finally {
+                if (tracer != null) {
+                    tracer.allowWrappingOnThread();
+                }
             }
         }
 

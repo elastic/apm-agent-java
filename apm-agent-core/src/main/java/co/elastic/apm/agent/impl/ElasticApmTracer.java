@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl;
@@ -95,6 +100,14 @@ public class ElasticApmTracer {
             return new ArrayDeque<TraceContextHolder<?>>();
         }
     };
+
+    private final ThreadLocal<Boolean> allowWrappingOnThread = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return Boolean.TRUE;
+        }
+    };
+
     private final CoreConfiguration coreConfiguration;
     private final List<ActivationListener> activationListeners;
     private final MetricRegistry metricRegistry;
@@ -193,6 +206,18 @@ public class ElasticApmTracer {
         return startTransaction(childContextCreator, parent, sampler, -1, initiatingClassLoader);
     }
 
+    public void avoidWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.FALSE);
+    }
+
+    public void allowWrappingOnThread() {
+        allowWrappingOnThread.set(Boolean.TRUE);
+    }
+
+    public boolean isWrappingAllowedOnThread() {
+        return allowWrappingOnThread.get() == Boolean.TRUE;
+    }
+
     /**
      * Starts a transaction as a child of the provided parent
      *
@@ -210,7 +235,7 @@ public class ElasticApmTracer {
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = transactionPool.createInstance().start(childContextCreator, parent, epochMicros, sampler);
+            transaction = createTransaction().start(childContextCreator, parent, epochMicros, sampler);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -227,7 +252,16 @@ public class ElasticApmTracer {
     }
 
     public Transaction noopTransaction() {
-        return transactionPool.createInstance().startNoop();
+        return createTransaction().startNoop();
+    }
+
+    private Transaction createTransaction() {
+        Transaction transaction = transactionPool.createInstance();
+        while (transaction.getReferenceCount() != 0) {
+            logger.warn("Tried to start a transaction with a non-zero reference count {} {}", transaction.getReferenceCount(), transaction);
+            transaction = transactionPool.createInstance();
+        }
+        return transaction;
     }
 
     @Nullable
@@ -270,7 +304,7 @@ public class ElasticApmTracer {
      * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
-        Span span = spanPool.createInstance();
+        Span span = createSpan();
         final boolean dropped;
         Transaction transaction = currentTransaction();
         if (transaction != null) {
@@ -285,6 +319,15 @@ public class ElasticApmTracer {
             dropped = false;
         }
         span.start(childContextCreator, parentContext, epochMicros, dropped);
+        return span;
+    }
+
+    private Span createSpan() {
+        Span span = spanPool.createInstance();
+        while (span.getReferenceCount() != 0) {
+            logger.warn("Tried to start a span with a non-zero reference count {} {}", span.getReferenceCount(), span);
+            span = spanPool.createInstance();
+        }
         return span;
     }
 
@@ -347,13 +390,13 @@ public class ElasticApmTracer {
             // we do report non-sampled transactions (without the context)
             reporter.report(transaction);
         } else {
-            transaction.recycle();
+            transaction.decrementReferences();
         }
     }
 
     @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
-        if (span.isSampled()) {
+        if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled()) {
                 if (span.getDuration() >= spanFramesMinDurationMs) {
@@ -362,7 +405,7 @@ public class ElasticApmTracer {
             }
             reporter.report(span);
         } else {
-            span.recycle();
+            span.decrementReferences();
         }
     }
 
@@ -464,22 +507,20 @@ public class ElasticApmTracer {
 
     public void activate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Activating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
+            logger.debug("Activating {} on thread {}", holder, Thread.currentThread().getId());
         }
         activeStack.get().push(holder);
     }
 
     public void deactivate(TraceContextHolder<?> holder) {
         if (logger.isDebugEnabled()) {
-            logger.debug("Deactivating {} on thread {}", holder.getTraceContext(), Thread.currentThread().getId());
+            logger.debug("Deactivating {} on thread {}", holder, Thread.currentThread().getId());
         }
         final Deque<TraceContextHolder<?>> stack = activeStack.get();
         assertIsActive(holder, stack.poll());
-        if (holder == stack.peekLast()) {
-            // if this is the bottom of the stack
-            // clear to avoid potential leaks in case some spans didn't deactivate properly
-            // makes all leaked spans eligible for GC
-            stack.clear();
+        if (!stack.isEmpty() && !holder.isDiscard()) {
+            //noinspection ConstantConditions
+            stack.peek().setDiscard(false);
         }
     }
 
