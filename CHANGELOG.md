@@ -5,6 +5,7 @@
  enables considerable reduction of overhead by limiting the number of spans captured and reported (see more details in config 
  documentation).
  NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
+ * Added support for AsyncHttpClient 2.x
 ## Bug Fixes
 
 # 1.6.1
