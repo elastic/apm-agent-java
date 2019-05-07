@@ -4,3 +4,4 @@ co.elastic.apm.agent.bci.MatcherTimerLifecycleListener
 co.elastic.apm.agent.metrics.builtin.JvmMemoryMetrics
 co.elastic.apm.agent.metrics.builtin.SystemMetrics
 co.elastic.apm.agent.metrics.builtin.JvmGcMetrics
+co.elastic.apm.agent.metrics.builtin.ThreadMetrics

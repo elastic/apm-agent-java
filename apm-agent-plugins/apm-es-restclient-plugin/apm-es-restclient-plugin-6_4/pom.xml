@@ -5,14 +5,15 @@
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-6_4</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <version.elasticsearch>6.6.1</version.elasticsearch>
+        <version.elasticsearch>6.7.0</version.elasticsearch>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
     <dependencies>

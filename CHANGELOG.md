@@ -1,4 +1,44 @@
-# next (1.5.0)
+# next (1.7.0)
+
+## Features
+ * Added the `trace_methods_duration_threshold` config option. When using the `trace_methods` config option with wild cards, this 
+ enables considerable reduction of overhead by limiting the number of spans captured and reported (see more details in config 
+ documentation).
+ NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
+ * Added support for AsyncHttpClient 2.x
+## Bug Fixes
+
+# 1.6.1
+
+## Bug Fixes
+ * Fixes transaction name for non-sampled transactions [#581](https://github.com/elastic/apm-agent-java/issues/581)
+ * Makes log_file option work again [#594](https://github.com/elastic/apm-agent-java/issues/594)
+ * Async context propagation fixes
+    * Fixing some async mechanisms lifecycle issues [#605](https://github.com/elastic/apm-agent-java/issues/605)
+    * Fixes exceptions when using WildFly managed executor services [#589](https://github.com/elastic/apm-agent-java/issues/589)
+    * Exclude glassfish Executor which does not permit wrapped runnables [#596](https://github.com/elastic/apm-agent-java/issues/596)
+    * Exclude DumbExecutor [#598](https://github.com/elastic/apm-agent-java/issues/598)
+ * Fixes Manifest version reading error to support `jar:file` protocol [#601](https://github.com/elastic/apm-agent-java/issues/601)
+ * Fixes transaction name for non-sampled transactions [#597](https://github.com/elastic/apm-agent-java/issues/597)
+ * Fixes potential classloader deadlock by preloading `FileSystems.getDefault()` [#603](https://github.com/elastic/apm-agent-java/issues/603)
+
+# 1.6.0
+
+## Related Announcements
+ * Java APM Agent became part of the Cloud Foundry Java Buildpack as of [Release v4.19](https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19)
+ 
+## Features
+ * Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
+ * Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
+ * Added support for WebLogic
+ * Added support for Spring `@Scheduled` and EJB `@Schedule` annotations - [#569](https://github.com/elastic/apm-agent-java/pull/569)
+
+## Bug Fixes
+ * Avoid that the agent blocks server shutdown in case the APM Server is not available - [#554](https://github.com/elastic/apm-agent-java/pull/554)
+ * Public API annotations improper retention prevents it from being used with Groovy - [#567](https://github.com/elastic/apm-agent-java/pull/567)
+ * Eliminate side effects of class loading related to Instrumentation matching mechanism
+
+# 1.5.0
 
 ## Potentially breaking changes
  * If you didn't explicitly set the [`service_name`](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name)
@@ -9,6 +49,7 @@
    Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
 
 ## Features
+ * Added property "allow_path_on_hierarchy" to JAX-RS plugin, to lookup inherited usage of `@path`
  * Support for number and boolean labels in the public API (#497).
    This change also renames `tag` to `label` on the API level to be compliant with the [Elastic Common Schema (ECS)](https://github.com/elastic/ecs#-base-fields).
    The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
@@ -26,8 +67,16 @@
    Now it supports all UTF-8 encoded plain-text content types.
    The option [`capture_body_content_types`](https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types)
    controls which `Content-Type`s should be captured.
+ * Support async calls made by OkHttp client (`Call#enqueue`)
+ * Added support for providing config options on agent attach.
+   * CLI example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+   * API example: `ElasticApmAttacher.attach(Map.of("server_urls", "http://localhost:8200,http://localhost:8201"));`
 
 ## Bug Fixes
+ * Logging integration through MDC is not working properly - [#499](https://github.com/elastic/apm-agent-java/issues/499)
+ * ClassCastException with adoptopenjdk/openjdk11-openj9 - [#505](https://github.com/elastic/apm-agent-java/issues/505)
+ * Span count limitation is not working properly - reported [in our forum](https://discuss.elastic.co/t/kibana-apm-not-showing-spans-which-are-visible-in-discover-too-many-spans/171690)
+ * Java agent causes Exceptions in Alfresco cluster environment due to failure in the instrumentation of Hazelcast `Executor`s - reported [in our forum](https://discuss.elastic.co/t/cant-run-apm-java-agent-in-alfresco-cluster-environment/172962)
 
 # 1.4.0
 

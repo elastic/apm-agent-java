@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl.transaction;
@@ -95,6 +100,8 @@ public class TraceContext extends TraceContextHolder {
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
+    private boolean discard;
+
     /**
      * Avoids clock drifts within a transaction.
      *
@@ -227,11 +234,13 @@ public class TraceContext extends TraceContextHolder {
 
     @Override
     public void resetState() {
+        super.resetState();
         traceId.resetState();
         id.resetState();
         parentId.resetState();
         outgoingHeader.setLength(0);
         flags = 0;
+        discard = false;
         clock.resetState();
         serviceName = null;
     }
@@ -292,6 +301,14 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
+    public void setDiscard(boolean discard) {
+        this.discard = discard;
+    }
+
+    public boolean isDiscard() {
+        return discard;
+    }
+
     /**
      * Returns the value of the {@code traceparent} header, as it was received.
      */
@@ -339,6 +356,7 @@ public class TraceContext extends TraceContextHolder {
         transactionId.copyFrom(other.transactionId);
         outgoingHeader.append(other.outgoingHeader);
         flags = other.flags;
+        discard = other.discard;
         clock.init(other.clock);
         serviceName = other.serviceName;
         onMutation();
@@ -379,6 +397,11 @@ public class TraceContext extends TraceContextHolder {
     @Override
     public Span createSpan() {
         return tracer.startSpan(fromParent(), this);
+    }
+
+    @Override
+    public Span createSpan(long epochMicros) {
+        return tracer.startSpan(fromParent(), this, epochMicros);
     }
 
     public interface ChildContextCreator<T> {

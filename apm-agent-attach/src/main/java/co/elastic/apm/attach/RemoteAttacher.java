@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.attach;
@@ -27,8 +32,10 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
@@ -61,7 +68,7 @@ public class RemoteAttacher {
             System.out.println(getJpsOutput());
         } else if (arguments.getPid() != null) {
             log("INFO", "Attaching the Elastic APM agent to %s", arguments.getPid());
-            ElasticApmAttacher.attach(arguments.getPid(), arguments.getArgs());
+            ElasticApmAttacher.attach(arguments.getPid(), arguments.getConfig());
             log("INFO", "Done");
         } else {
             do {
@@ -136,7 +143,7 @@ public class RemoteAttacher {
     }
 
     private String getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        return arguments.getArgsProvider() != null ? getArgsProviderOutput(jvmInfo) : arguments.getArgs();
+        return arguments.getArgsProvider() != null ? getArgsProviderOutput(jvmInfo) : ElasticApmAttacher.toAgentArgs(arguments.getConfig());
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
@@ -211,18 +218,18 @@ public class RemoteAttacher {
         private final String pid;
         private final List<String> includes;
         private final List<String> excludes;
-        private final String args;
+        private final Map<String, String> config;
         private final String argsProvider;
         private final boolean help;
         private final boolean list;
         private final boolean continuous;
 
-        private Arguments(String pid, List<String> includes, List<String> excludes, String args, String argsProvider, boolean help, boolean list, boolean continuous) {
+        private Arguments(String pid, List<String> includes, List<String> excludes, Map<String, String> config, String argsProvider, boolean help, boolean list, boolean continuous) {
             this.help = help;
             this.list = list;
             this.continuous = continuous;
-            if (args != null && argsProvider != null) {
-                throw new IllegalArgumentException("Providing both --args and --args-provider is illegal");
+            if (!config.isEmpty() && argsProvider != null) {
+                throw new IllegalArgumentException("Providing both --config and --args-provider is illegal");
             }
             if (pid != null && (!includes.isEmpty() || !excludes.isEmpty() || continuous)) {
                 throw new IllegalArgumentException("Providing --pid and either of --include, --exclude or --continuous is illegal");
@@ -230,7 +237,7 @@ public class RemoteAttacher {
             this.pid = pid;
             this.includes = includes;
             this.excludes = excludes;
-            this.args = args;
+            this.config = config;
             this.argsProvider = argsProvider;
         }
 
@@ -238,7 +245,7 @@ public class RemoteAttacher {
             String pid = null;
             List<String> includes = new ArrayList<>();
             List<String> excludes = new ArrayList<>();
-            String agentArgs = null;
+            Map<String, String> config = new HashMap<>();
             String argsProvider = null;
             boolean help = args.length == 0;
             boolean list = false;
@@ -264,6 +271,8 @@ public class RemoteAttacher {
                         case "--pid":
                         case "-a":
                         case "--args":
+                        case "-C":
+                        case "--config":
                         case "-A":
                         case "--args-provider":
                         case "-e":
@@ -290,7 +299,14 @@ public class RemoteAttacher {
                             break;
                         case "-a":
                         case "--args":
-                            agentArgs = arg;
+                            System.err.println("--args is deprecated in favor of --config");
+                            for (String conf : arg.split(";")) {
+                                config.put(conf.substring(0, conf.indexOf('=')), conf.substring(conf.indexOf('=') + 1));
+                            }
+                            break;
+                        case "-C":
+                        case "--config":
+                            config.put(arg.substring(0, arg.indexOf('=')), arg.substring(arg.indexOf('=') + 1));
                             break;
                         case "-A":
                         case "--args-provider":
@@ -301,7 +317,7 @@ public class RemoteAttacher {
                     }
                 }
             }
-            return new Arguments(pid, includes, excludes, agentArgs, argsProvider, help, list, continuous);
+            return new Arguments(pid, includes, excludes, config, argsProvider, help, list, continuous);
         }
 
         // -ab -> -a -b
@@ -323,7 +339,7 @@ public class RemoteAttacher {
             out.println("SYNOPSIS");
             out.println("    java -jar apm-agent-attach.jar -p <pid> [--args <agent_arguments>]");
             out.println("    java -jar apm-agent-attach.jar [-i <include_pattern>...] [-e <exclude_pattern>...] [--continuous]");
-            out.println("                                   [--args <agent_arguments> | --args-provider <args_provider_script>]");
+            out.println("                                   [--config <key=value>... | --args-provider <args_provider_script>]");
             out.println("    java -jar apm-agent-attach.jar (--list | --help)");
             out.println();
             out.println("DESCRIPTION");
@@ -348,8 +364,13 @@ public class RemoteAttacher {
             out.println("        (Matches the output of 'jps -l')");
             out.println();
             out.println("    -a, --args <agent_arguments>");
+            out.println("        Deprecated in favor of --config.");
             out.println("        If set, the arguments are used to configure the agent on the attached JVM (agentArguments of agentmain).");
             out.println("        The syntax of the arguments is 'key1=value1;key2=value1,value2'.");
+            out.println();
+            out.println("    -C --config <key=value>...");
+            out.println("        This repeatable option sets one agent configuration option.");
+            out.println("        Example: --config server_urls=http://localhost:8200,http://localhost:8201.");
             out.println();
             out.println("    -A, --args-provider <args_provider_script>");
             out.println("        The name of a program which is called when a new JVM starts up.");
@@ -372,8 +393,8 @@ public class RemoteAttacher {
             return excludes;
         }
 
-        String getArgs() {
-            return args;
+        Map<String, String> getConfig() {
+            return config;
         }
 
         String getArgsProvider() {

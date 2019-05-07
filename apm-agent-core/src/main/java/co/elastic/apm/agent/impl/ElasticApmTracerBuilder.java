@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl;
@@ -56,7 +61,6 @@ public class ElasticApmTracerBuilder {
     @Nullable
     private Iterable<LifecycleListener> lifecycleListeners;
     private Map<String, String> inlineConfig = new HashMap<>();
-    private List<ActivationListener> activationListeners = new ArrayList<>();
     @Nullable
     private final String agentArguments;
 
@@ -69,9 +73,6 @@ public class ElasticApmTracerBuilder {
         final List<ConfigurationSource> configSources = getConfigSources(this.agentArguments);
         LoggingConfiguration.init(configSources);
         logger = LoggerFactory.getLogger(getClass());
-        for (ActivationListener activationListener : ServiceLoader.load(ActivationListener.class, ElasticApmTracerBuilder.class.getClassLoader())) {
-            activationListeners.add(activationListener);
-        }
     }
 
     public ElasticApmTracerBuilder configurationRegistry(ConfigurationRegistry configurationRegistry) {
@@ -105,7 +106,7 @@ public class ElasticApmTracerBuilder {
         if (lifecycleListeners == null) {
             lifecycleListeners = ServiceLoader.load(LifecycleListener.class, getClass().getClassLoader());
         }
-        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners, activationListeners);
+        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {

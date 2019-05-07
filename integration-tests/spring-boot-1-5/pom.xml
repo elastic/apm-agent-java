@@ -3,7 +3,7 @@
     <parent>
         <artifactId>integration-tests</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,9 +12,10 @@
 
     <properties>
         <version.spring-boot-1.5>1.5.14.RELEASE</version.spring-boot-1.5>
+        <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
-    <dependencies>
 
+    <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-spring-webmvc-plugin</artifactId>

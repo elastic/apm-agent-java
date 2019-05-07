@@ -3,9 +3,13 @@
     <parent>
         <artifactId>spring-boot-2</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
+
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
+    </properties>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>spring-boot-2-jetty</artifactId>

@@ -4,7 +4,7 @@
     <parent>
         <artifactId>apm-agent-parent</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-benchmarks</artifactId>
@@ -41,6 +41,11 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${version.spring}</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -112,6 +117,7 @@
         <maven.compiler.errorprone>false</maven.compiler.errorprone>
         <animal.sniffer.skip>true</animal.sniffer.skip>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <build>

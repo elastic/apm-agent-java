@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.bci;
@@ -28,6 +33,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.any;
@@ -38,6 +44,9 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
  * <p>
  * The actual instrumentation of the matched methods is performed by static methods within this class,
  * which are annotated by {@link net.bytebuddy.asm.Advice.OnMethodEnter} or {@link net.bytebuddy.asm.Advice.OnMethodExit}.
+ * </p>
+ * <p>
+ * The constructor can optionally have a {@link ElasticApmTracer} parameter.
  * </p>
  */
 public abstract class ElasticApmInstrumentation {
@@ -68,9 +77,6 @@ public abstract class ElasticApmInstrumentation {
         return null;
     }
 
-    public void init(ElasticApmTracer tracer) {
-    }
-
     /**
      * Pre-select candidates solely based on the class name for the slower {@link #getTypeMatcher()},
      * at the expense of potential false negative matches.
@@ -84,6 +90,13 @@ public abstract class ElasticApmInstrumentation {
      * </p>
      */
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return any();
+    }
+
+    /**
+     * Post filters classes that pass the {@link #getTypeMatcher()} by version.
+     */
+    public ElementMatcher.Junction<ProtectionDomain> getImplementationVersionPostFilter() {
         return any();
     }
 

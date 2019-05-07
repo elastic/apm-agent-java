@@ -1,2 +1,4 @@
 co.elastic.apm.agent.okhttp.OkHttpClientInstrumentation
 co.elastic.apm.agent.okhttp.OkHttp3ClientInstrumentation
+co.elastic.apm.agent.okhttp.OkHttpClientAsyncInstrumentation
+co.elastic.apm.agent.okhttp.OkHttp3ClientAsyncInstrumentation

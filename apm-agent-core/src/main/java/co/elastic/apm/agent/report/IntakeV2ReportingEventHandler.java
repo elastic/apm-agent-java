@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report;
@@ -188,11 +193,11 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         if (event.getTransaction() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeTransactionNdJson(event.getTransaction());
-            event.getTransaction().recycle();
+            event.getTransaction().decrementReferences();
         } else if (event.getSpan() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeSpanNdJson(event.getSpan());
-            event.getSpan().recycle();
+            event.getSpan().decrementReferences();
         } else if (event.getError() != null) {
             currentlyTransmitting++;
             payloadSerializer.serializeErrorNdJson(event.getError());
@@ -355,7 +360,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
 
         long backoffTimeSeconds = getBackoffTimeSeconds(errorCount++);
-        logger.info("Backing off for {} seconds (±10%)", backoffTimeSeconds);
+        logger.info("Backing off for {} seconds (+/-10%)", backoffTimeSeconds);
         final long backoffTimeMillis = TimeUnit.SECONDS.toMillis(backoffTimeSeconds);
         if (backoffTimeMillis > 0) {
             // back off because there are connection issues with the apm server
@@ -399,9 +404,10 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
         @Override
         public void run() {
-            // if the ring buffer is full this waits until a slot becomes available
-            // as this happens on a different thread,
-            // the reporting does not block and thus there is no danger of deadlocks
+            // If the ring buffer is full this throws an exception.
+            // In case it's full due to a traffic spike it means that it will eventually flush anyway because of the max request size
+            // If the APM Server is down for a longer period and the ring buffer is full because of that,
+            // the timeout task will not be started as the connection attempt resulted in an exception
             logger.debug("Request flush because the request timeout occurred");
             flush = reporter.flush();
         }

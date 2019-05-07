@@ -3,12 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <maven-deploy-plugin.skip>true</maven-deploy-plugin.skip>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.6.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-agent-core</artifactId>
@@ -131,7 +132,7 @@
         <dependency>
             <groupId>commons-math</groupId>
             <artifactId>commons-math</artifactId>
-            <version>1.0</version>
+            <version>1.2</version>
             <scope>test</scope>
         </dependency>
         <!--For setting environment variables-->
@@ -140,6 +141,12 @@
             <artifactId>system-rules</artifactId>
             <!-- Latest version (1.19.0) doesn't work at the moment - https://github.com/stefanbirkner/system-rules/issues/70 -->
             <version>1.17.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.6</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

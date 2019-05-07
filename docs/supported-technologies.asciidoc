@@ -127,6 +127,9 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |<<setup-payara,Payara>>
 |4.x, 5.x
 
+|<<setup-weblogic,Oracle WebLogic>>
+|12.2
+
 |===
 
 [float]
@@ -167,6 +170,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |
 | 0.7.0
 
+|Apache HttpAsyncClient
+|4.0+
+|
+| 1.6.0
+
 |Spring RestTemplate
 |4+
 |
@@ -174,9 +182,9 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 
 |OkHttp
 |2, 3
-|Currently, only synchronous calls via `Call#execute()` are supported.
- `Call#enquene(Callback)` is not yet supported.
-| 1.4.0
+|
+|1.4.0 (synchronous calls via `Call#execute()`)
+ 1.5.0 (async calls via `Call#enquene(Callback)`)
 
 |HttpUrlConnection
 |
@@ -188,6 +196,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |JAX-WS clients created via link:https://docs.oracle.com/javaee/7/api/javax/xml/ws/Service.html[`javax.xml.ws.Service`]
  inherently support context propagation as they are using `HttpUrlConnection` underneath.
 |1.4.0
+
+|AsyncHttpClient
+| 2.x
+|
+| 1.7.0
 
 |===
 

@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.servlet;
@@ -28,7 +33,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
@@ -41,11 +45,11 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.SocatContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -91,7 +95,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .addInterceptor(loggingInterceptor)
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
-        pathToJavaagent = getPathToJavaagent();
+        pathToJavaagent = AgentFileIT.getPathToJavaagent();
         checkFilePresent(pathToJavaagent);
     }
 
@@ -118,32 +122,37 @@ public abstract class AbstractServletContainerIntegrationTest {
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         servletContainer
             .withNetwork(Network.SHARED)
-            .withEnv("ELASTIC_APM_SERVER_URL", "http://apm-server:1080")
+            .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
-            .withEnv("ELASTIC_APM_LOGGING_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
-        for (TestApp testApp : getTestApps()) {
-            String pathToAppFile = testApp.getAppFilePath();
-            checkFilePresent(pathToAppFile);
-            servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
-        }
-        this.servletContainer.start();
-    }
-
-    private static String getPathToJavaagent() {
-        File agentBuildDir = new File("../../elastic-apm-agent/target/");
-        FileFilter fileFilter = new WildcardFileFilter("elastic-apm-agent-*.jar");
-        for (File file : agentBuildDir.listFiles(fileFilter)) {
-            if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
-                return file.getAbsolutePath();
+        if (isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.withFileSystemBind(pathToAppFile, deploymentPath + "/" + testApp.getAppFileName());
             }
         }
-        return null;
+        this.servletContainer.start();
+        if (!isDeployViaFileSystemBind()) {
+            for (TestApp testApp : getTestApps()) {
+                String pathToAppFile = testApp.getAppFilePath();
+                checkFilePresent(pathToAppFile);
+                servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
+            }
+        }
+    }
+
+    /**
+     * If set to true, the war files are {@code --mount}ed into the container instead of copied, which is faster.
+     */
+    protected boolean isDeployViaFileSystemBind() {
+        return true;
     }
 
     private static void checkFilePresent(String pathToWar) {

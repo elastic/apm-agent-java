@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl.stacktrace;
@@ -62,11 +67,11 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "While this is very helpful to find the exact place in your code that causes the span, " +
             "collecting this stack trace does have some overhead. " +
             "\n" +
-            "When setting this option to `-1`, stack traces will be collected for all spans. " +
+            "When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. " +
             "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
             "with durations equal or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
-            "To disable stack trace collection for spans completely, set the value to 0.")
+            "To disable stack trace collection for spans completely, set the value to `0ms`.")
         .dynamic(true)
         .buildWithDefault(TimeDuration.of("5ms"));
 
