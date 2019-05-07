@@ -30,7 +30,11 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
-import org.junit.*;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
@@ -131,7 +135,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     @Test
-    public void testJaxRsTransactionNameWithUsingTransactionNameFromPathAnnotationValue_1() {
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
         when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
@@ -149,7 +153,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     }
 
     @Test
-    public void testJaxRsTransactionNameWithUsingTransactionNameFromPathAnnotationValue_2() {
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled() {
         when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
 

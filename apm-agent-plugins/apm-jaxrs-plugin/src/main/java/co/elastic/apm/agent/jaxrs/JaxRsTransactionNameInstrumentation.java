@@ -21,8 +21,8 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
-import co.elastic.apm.agent.bci.bytebuddy.ClassAnnotationValueOffsetMappingFactory.ClassAnnotationValueExtractor;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -64,7 +64,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature,
-                                           @ClassAnnotationValueExtractor(annotationClassName = "javax.ws.rs.Path", method = "value") String pathAnnotationValue) {
+                                           @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "javax.ws.rs.Path", method = "value", type = AnnotationValueOffsetMappingFactory.AnnotationType.CLASS) String pathAnnotationValue) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
 

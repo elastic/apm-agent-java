@@ -21,6 +21,7 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.AnnotationValueExtractor;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -61,8 +62,8 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@Advice.Origin Class<?> clazz,
                                      @SimpleMethodSignature String signature,
-                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value") String transactionName,
-                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type") String type,
+                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "value", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String transactionName,
+                                     @AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureTransaction", method = "type", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String type,
                                      @Advice.Local("transaction") Transaction transaction) {
         if (tracer != null) {
             final Object active = tracer.getActive();

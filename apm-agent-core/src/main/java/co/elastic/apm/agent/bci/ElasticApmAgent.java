@@ -19,7 +19,13 @@
  */
 package co.elastic.apm.agent.bci;
 
-import co.elastic.apm.agent.bci.bytebuddy.*;
+import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
+import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
+import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
+import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentation;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -199,8 +205,7 @@ public class ElasticApmAgent {
             .transform(new AgentBuilder.Transformer.ForAdvice(Advice
                 .withCustomMapping()
                 .bind(new SimpleMethodSignatureOffsetMappingFactory())
-                .bind(new AnnotationValueOffsetMappingFactory())
-                .bind(new ClassAnnotationValueOffsetMappingFactory()))
+                .bind(new AnnotationValueOffsetMappingFactory()))
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {

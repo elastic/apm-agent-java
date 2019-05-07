@@ -21,6 +21,7 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
+import net.bytebuddy.description.annotation.AnnotationList;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -48,18 +49,27 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         return new Advice.OffsetMapping() {
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
-                return Target.ForStackManipulation.of(getAnnotationValue(instrumentedMethod, annotation.loadSilent()));
+                return Target.ForStackManipulation.of(getAnnotationValue(instrumentedType, instrumentedMethod, annotation.loadSilent()));
             }
         };
     }
 
     @Nullable
-    private Object getAnnotationValue(MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
-        for (TypeDescription typeDescription : instrumentedMethod.getDeclaredAnnotations().asTypeList()) {
+    private Object getAnnotationValue(TypeDescription instrumentedType, MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
+        if (AnnotationType.CLASS.equals(annotationValueExtractor.type())) {
+            return getAnnotationValue(instrumentedType.getDeclaredAnnotations(), annotationValueExtractor);
+        } else {
+            return getAnnotationValue(instrumentedMethod.getDeclaredAnnotations(), annotationValueExtractor);
+        }
+    }
+
+    @Nullable
+    private Object getAnnotationValue(AnnotationList annotationList, AnnotationValueExtractor annotationValueExtractor) {
+        for (TypeDescription typeDescription : annotationList.asTypeList()) {
             if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
                 for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
                     if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
-                        return instrumentedMethod.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
+                        return annotationList.ofType(typeDescription).getValue(annotationMethod).resolve();
                     }
                 }
             }
@@ -73,6 +83,13 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         String annotationClassName();
 
         String method();
+
+        AnnotationType type();
+    }
+
+    public enum AnnotationType {
+        METHOD,
+        CLASS
     }
 
 }

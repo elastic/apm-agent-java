@@ -61,10 +61,10 @@ public class CaptureSpanInstrumentation extends ElasticApmInstrumentation {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(
         @SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value") String spanName,
-        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type") String type,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype") String subtype,
-        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action") String action,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "value", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String spanName,
+        @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "type", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String type,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "subtype", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String subtype,
+        @Nullable @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "co.elastic.apm.api.CaptureSpan", method = "action", type = AnnotationValueOffsetMappingFactory.AnnotationType.METHOD) String action,
         @Advice.Local("span") Span span) {
         if (tracer != null) {
             final TraceContextHolder<?> parent = tracer.getActive();
