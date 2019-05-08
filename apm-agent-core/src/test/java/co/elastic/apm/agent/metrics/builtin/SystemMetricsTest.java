@@ -27,7 +27,10 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.File;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +52,17 @@ class SystemMetricsTest {
         assertThat(metricRegistry.get("system.memory.total", Collections.emptyMap())).isGreaterThan(0.0);
         assertThat(metricRegistry.get("system.memory.actual.free", Collections.emptyMap())).isGreaterThan(0.0);
         assertThat(metricRegistry.get("system.process.memory.size", Collections.emptyMap())).isGreaterThan(0.0);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "/proc/meminfo,     6235127808",
+        "/proc/meminfo-3.14, 556630016"
+    })
+    void testFreeMemoryMeminfo(String file, long value) throws Exception {
+        SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()));
+        systemMetrics.bindTo(metricRegistry);
+        assertThat(metricRegistry.get("system.memory.actual.free", Collections.emptyMap())).isEqualTo(value);
     }
 
     private void consumeCpu() {
