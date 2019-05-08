@@ -87,13 +87,13 @@ public class SystemMetrics implements LifecycleListener {
 
     @Nullable
     private final Method virtualProcessMemory;
-    private final File meminfo;
+    private final File memInfoFile;
 
     public SystemMetrics() {
         this(new File("/proc/meminfo"));
     }
 
-    SystemMetrics(File meminfo) {
+    SystemMetrics(File memInfoFile) {
         this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
         this.operatingSystemBeanClass = getFirstClassFound(OPERATING_SYSTEM_BEAN_CLASS_NAMES);
         this.systemCpuUsage = detectMethod("getSystemCpuLoad");
@@ -101,7 +101,7 @@ public class SystemMetrics implements LifecycleListener {
         this.freeMemory = detectMethod("getFreePhysicalMemorySize");
         this.totalMemory = detectMethod("getTotalPhysicalMemorySize");
         this.virtualProcessMemory = detectMethod("getCommittedVirtualMemorySize");
-        this.meminfo = meminfo;
+        this.memInfoFile = memInfoFile;
     }
 
     @Override
@@ -131,7 +131,7 @@ public class SystemMetrics implements LifecycleListener {
             }
         });
 
-        if (meminfo.canRead()) {
+        if (memInfoFile.canRead()) {
             metricRegistry.addUnlessNan("system.memory.actual.free", Collections.<String, String>emptyMap(), new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
                     caseSensitiveMatcher("MemAvailable:*kB"),
@@ -142,7 +142,7 @@ public class SystemMetrics implements LifecycleListener {
                 @Override
                 public double get() {
                     Map<String, Long> memInfo = new HashMap<>();
-                    try (BufferedReader fileReader = new BufferedReader(new FileReader(meminfo))) {
+                    try (BufferedReader fileReader = new BufferedReader(new FileReader(memInfoFile))) {
                         for (String memInfoLine = fileReader.readLine(); memInfoLine != null && !memInfoLine.isEmpty(); memInfoLine = fileReader.readLine()) {
                             if (WildcardMatcher.isAnyMatch(relevantLines, memInfoLine)) {
                                 final String[] memInfoSplit = StringUtils.split(memInfoLine, ' ');
