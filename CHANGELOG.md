@@ -9,6 +9,8 @@
  * Added support for AsyncHttpClient 2.x
 
 ## Bug Fixes
+ * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
+ * NullPointerException when computing Servlet transaction name with null HTTP method name
 
 # 1.6.1
 
