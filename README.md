@@ -34,3 +34,7 @@ Download the latest snapshot from master
 
 Execute `./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true` to build the artifacts and to install them to your local maven repository. The build process requires JDK 9.
 The agent jar is in the folder `elastic-apm-agent/target`.
+
+## License
+
+Elastic APM Java Agent is licensed under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
