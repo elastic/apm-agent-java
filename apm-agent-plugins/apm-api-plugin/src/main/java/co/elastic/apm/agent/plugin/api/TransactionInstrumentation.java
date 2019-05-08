@@ -26,6 +26,7 @@ package co.elastic.apm.agent.plugin.api;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -33,9 +34,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
  * Injects the actual implementation of the public API class co.elastic.apm.api.TransactionImpl.
@@ -99,6 +100,27 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
             transaction.withResult(result);
+        }
+    }
+
+    public static class AddCustomContextInstrumentation extends TransactionInstrumentation {
+        public AddCustomContextInstrumentation() {
+            super(named("addCustomContext"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void addCustomContext(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                    @Advice.Argument(0) String key, @Nullable @Advice.Argument(1) Object value) {
+            if (value != null && context instanceof Transaction) {
+                if (value instanceof String) {
+                    ((Transaction) context).addCustomContext(key, (String) value);
+                } else if (value instanceof Number) {
+                    ((Transaction) context).addCustomContext(key, (Number) value);
+                } else if (value instanceof Boolean) {
+                    ((Transaction) context).addCustomContext(key, (Boolean) value);
+                }
+            }
         }
     }
 }

@@ -51,10 +51,10 @@ class TransactionContextTest {
     @Test
     void testCopyFromDoNotCopyCustom() {
         TransactionContext context = new TransactionContext();
-        context.getCustom().put("foo", "bar");
+        context.addCustom("foo", "bar");
         TransactionContext copyOfContext = new TransactionContext();
         copyOfContext.copyFrom(context);
-        assertThat(copyOfContext.getCustom()).isEmpty();
+        assertThat(copyOfContext.hasCustom()).isFalse();
     }
 
     private TransactionContext createContext() {
