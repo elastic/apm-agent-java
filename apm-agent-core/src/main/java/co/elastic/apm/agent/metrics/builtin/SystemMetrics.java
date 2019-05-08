@@ -134,10 +134,10 @@ public class SystemMetrics implements LifecycleListener {
         if (meminfo.canRead()) {
             metricRegistry.addUnlessNan("system.memory.actual.free", Collections.<String, String>emptyMap(), new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
-                    caseSensitiveMatcher("MemAvailable:*"),
-                    caseSensitiveMatcher("MemFree:*"),
-                    caseSensitiveMatcher("Buffers:*"),
-                    caseSensitiveMatcher("Cached:*"));
+                    caseSensitiveMatcher("MemAvailable:*kB"),
+                    caseSensitiveMatcher("MemFree:*kB"),
+                    caseSensitiveMatcher("Buffers:*kB"),
+                    caseSensitiveMatcher("Cached:*kB"));
 
                 @Override
                 public double get() {
@@ -146,13 +146,15 @@ public class SystemMetrics implements LifecycleListener {
                         for (String memInfoLine = fileReader.readLine(); memInfoLine != null && !memInfoLine.isEmpty(); memInfoLine = fileReader.readLine()) {
                             if (WildcardMatcher.isAnyMatch(relevantLines, memInfoLine)) {
                                 final String[] memInfoSplit = StringUtils.split(memInfoLine, ' ');
-                                memInfo.put(memInfoSplit[0], Long.parseLong(memInfoSplit[1]));
+                                memInfo.put(memInfoSplit[0], Long.parseLong(memInfoSplit[1]) * 1024);
                             }
                         }
                         if (memInfo.containsKey("MemAvailable:")) {
                             return memInfo.get("MemAvailable:");
-                        } else {
+                        } else if (memInfo.containsKey("MemFree:")) {
                             return memInfo.get("MemFree:") + memInfo.get("Buffers:") + memInfo.get("Cached:");
+                        } else {
+                            return Double.NaN;
                         }
                     } catch (Exception e) {
                         return Double.NaN;

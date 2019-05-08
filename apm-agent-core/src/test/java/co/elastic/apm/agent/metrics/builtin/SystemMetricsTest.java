@@ -57,8 +57,8 @@ class SystemMetricsTest {
 
     @ParameterizedTest
     @CsvSource({
-        "/proc/meminfo, 6088992",
-        "/proc/meminfo-3.14,  543584"
+        "/proc/meminfo,     6235127808",
+        "/proc/meminfo-3.14, 556630016"
     })
     void testFreeMemoryMeminfo(String file, long value) throws Exception {
         SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()));
