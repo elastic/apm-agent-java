@@ -37,6 +37,7 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>**/NOTICE</exclude>
                                     </excludes>
                                 </filter>
                             </filters>

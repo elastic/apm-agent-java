@@ -45,7 +45,7 @@
                 <executions>
                     <execution>
                         <id>generate-source-jar</id>
-                        <phase>package</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>jar-no-fork</goal>
                         </goals>
