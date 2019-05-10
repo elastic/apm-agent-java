@@ -62,7 +62,7 @@ class ApmServerHealthChecker implements Runnable {
             if (reporterConfiguration.getSecretToken() != null) {
                 connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
             }
-            connection.setRequestProperty("User-Agent", "java-agent/" + VersionUtils.getAgentVersion());
+            connection.setRequestProperty("User-Agent", "elasticapm-java/" + VersionUtils.getAgentVersion());
             connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
             connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
             connection.connect();
