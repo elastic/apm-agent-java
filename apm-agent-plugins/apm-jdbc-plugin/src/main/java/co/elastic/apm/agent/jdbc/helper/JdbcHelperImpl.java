@@ -24,8 +24,10 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,14 @@ public class JdbcHelperImpl implements JdbcHelper {
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
     private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = new WeakConcurrentMap<Connection, ConnectionMetaData>(true);
 
+    @VisibleForAdvice
+    public static final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
+        @Override
+        protected SignatureParser initialValue() {
+            return new SignatureParser();
+        }
+    };
+
     @Override
     @Nullable
     public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent) {
@@ -49,7 +59,7 @@ public class JdbcHelperImpl implements JdbcHelper {
             return null;
         }
         Span span = parent.createSpan().activate();
-        span.setName(getMethod(sql));
+        SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, span.getName());
         // setting the type here is important
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError

@@ -63,6 +63,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     public StatementInstrumentation(ElasticApmTracer tracer) {
         jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1",
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 

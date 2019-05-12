@@ -60,7 +60,9 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
     public static HelperClassManager<JdbcHelper> jdbcHelperManager;
 
     public PreparedStatementInstrumentation(ElasticApmTracer tracer) {
-        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+        jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1",
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
