@@ -42,10 +42,9 @@ public class JaxRsTransactionHelper {
                                    @Nonnull String signature,
                                    @Nullable String pathAnnotationValue)  {
         currentTransaction.withName(signature);
-        System.out.println("Path annotation value = "+pathAnnotationValue);
         if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
             if (pathAnnotationValue != null && !pathAnnotationValue.isEmpty()) {
-                currentTransaction.setName(pathAnnotationValue);
+                currentTransaction.withName("/").appendToName(pathAnnotationValue);
             }
         }
     }

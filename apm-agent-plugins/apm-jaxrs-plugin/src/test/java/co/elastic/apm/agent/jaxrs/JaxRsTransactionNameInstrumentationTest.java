@@ -147,7 +147,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("test");
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("/test");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
     }
@@ -165,7 +165,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("test");
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("/test");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
     }

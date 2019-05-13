@@ -22,6 +22,7 @@ package co.elastic.apm.agent.bci.bytebuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationList;
+import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -49,27 +50,20 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         return new Advice.OffsetMapping() {
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
-                return Target.ForStackManipulation.of(getAnnotationValue(instrumentedType, instrumentedMethod, annotation.loadSilent()));
+                AnnotationValueExtractor annotationValueExtractor = annotation.loadSilent();
+                AnnotationSource annotationSource = (AnnotationType.CLASS.equals(annotationValueExtractor.type()))? instrumentedType: instrumentedMethod;
+                return Target.ForStackManipulation.of(getAnnotationValue(annotationSource, annotation.loadSilent()));
             }
         };
     }
 
     @Nullable
-    private Object getAnnotationValue(TypeDescription instrumentedType, MethodDescription instrumentedMethod, AnnotationValueExtractor annotationValueExtractor) {
-        if (AnnotationType.CLASS.equals(annotationValueExtractor.type())) {
-            return getAnnotationValue(instrumentedType.getDeclaredAnnotations(), annotationValueExtractor);
-        } else {
-            return getAnnotationValue(instrumentedMethod.getDeclaredAnnotations(), annotationValueExtractor);
-        }
-    }
-
-    @Nullable
-    private Object getAnnotationValue(AnnotationList annotationList, AnnotationValueExtractor annotationValueExtractor) {
-        for (TypeDescription typeDescription : annotationList.asTypeList()) {
+    private Object getAnnotationValue(AnnotationSource annotationSource, AnnotationValueExtractor annotationValueExtractor) {
+        for (TypeDescription typeDescription : annotationSource.getDeclaredAnnotations().asTypeList()) {
             if (named(annotationValueExtractor.annotationClassName()).matches(typeDescription)) {
                 for (MethodDescription.InDefinedShape annotationMethod : typeDescription.getDeclaredMethods()) {
                     if (annotationMethod.getName().equals(annotationValueExtractor.method())) {
-                        return annotationList.ofType(typeDescription).getValue(annotationMethod).resolve();
+                        return annotationSource.getDeclaredAnnotations().ofType(typeDescription).getValue(annotationMethod).resolve();
                     }
                 }
             }
