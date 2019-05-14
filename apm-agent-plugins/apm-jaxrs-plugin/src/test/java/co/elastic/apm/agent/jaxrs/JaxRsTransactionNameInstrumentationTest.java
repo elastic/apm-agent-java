@@ -39,6 +39,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.util.List;
@@ -142,14 +143,14 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequest("test");
-        doRequest("testInterface");
         doRequest("testAbstract");
+        doRequest("testInterface");
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("/test");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("/testAbstract");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("/testInterface");
     }
 
     @Test
@@ -175,7 +176,8 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
      */
     @Override
     protected Application configure() {
-        return new ResourceConfig(ResourceWithPath.class,
+        return new ResourceConfig(
+            ResourceWithPath.class,
             ResourceWithPathOnInterface.class,
             ResourceWithPathOnAbstract.class,
             ProxiedClass$$$view.class,
@@ -249,5 +251,4 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             return "ok";
         }
     }
-    
 }

@@ -21,11 +21,11 @@ package co.elastic.apm.agent.bci.bytebuddy;
 
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
-import net.bytebuddy.description.annotation.AnnotationList;
 import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.description.type.TypeList;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 import javax.annotation.Nullable;
@@ -52,7 +52,20 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
                 AnnotationValueExtractor annotationValueExtractor = annotation.loadSilent();
                 AnnotationSource annotationSource = (AnnotationType.CLASS.equals(annotationValueExtractor.type()))? instrumentedType: instrumentedMethod;
-                return Target.ForStackManipulation.of(getAnnotationValue(annotationSource, annotation.loadSilent()));
+                Object object = getAnnotationValue(annotationSource, annotationValueExtractor);
+                // FIXME should we check here on JaxRsConfiguration.isEnableJaxrsAnnotationInheritance() ?
+                AnnotationSource superClassAnnotationSource = instrumentedType.getSuperClass().asErasure();
+                while (object == null && !"java.lang.Object".equals(((TypeDescription) superClassAnnotationSource).getCanonicalName())) {
+                    object = getAnnotationValue(superClassAnnotationSource, annotationValueExtractor);
+                    superClassAnnotationSource = ((TypeDescription) superClassAnnotationSource).getSuperClass().asErasure();
+                }
+
+                TypeList.Generic interfaces = instrumentedType.getInterfaces();
+                for (int i = 0; object == null && i < interfaces.size(); i++) {
+                    TypeDescription.Generic typeDescription = interfaces.get(i);
+                    object = getAnnotationValue(typeDescription.asErasure(), annotationValueExtractor);
+                }
+                return Target.ForStackManipulation.of(object);
             }
         };
     }
