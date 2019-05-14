@@ -53,16 +53,16 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
                 AnnotationValueExtractor annotationValueExtractor = annotation.loadSilent();
                 AnnotationSource annotationSource = (AnnotationType.CLASS.equals(annotationValueExtractor.type()))? instrumentedType: instrumentedMethod;
                 Object object = getAnnotationValue(annotationSource, annotationValueExtractor);
-                // FIXME should we check here on JaxRsConfiguration.isEnableJaxrsAnnotationInheritance() ?
+                // FIXME should we check here on CoreConfiguration.isUseAnnotationValueForTransactionName() ?
                 AnnotationSource superClassAnnotationSource = instrumentedType.getSuperClass().asErasure();
                 while (object == null && !"java.lang.Object".equals(((TypeDescription) superClassAnnotationSource).getCanonicalName())) {
                     object = getAnnotationValue(superClassAnnotationSource, annotationValueExtractor);
                     superClassAnnotationSource = ((TypeDescription) superClassAnnotationSource).getSuperClass().asErasure();
                 }
 
-                TypeList.Generic interfaces = instrumentedType.getInterfaces();
+                TypeList interfaces = instrumentedType.getInterfaces().asErasures();
                 for (int i = 0; object == null && i < interfaces.size(); i++) {
-                    TypeDescription.Generic typeDescription = interfaces.get(i);
+                    TypeDescription typeDescription = interfaces.get(i);
                     object = getAnnotationValue(typeDescription.asErasure(), annotationValueExtractor);
                 }
                 return Target.ForStackManipulation.of(object);
