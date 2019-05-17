@@ -6,6 +6,7 @@ co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CaptureExceptionIns
 co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation
 co.elastic.apm.agent.plugin.api.TransactionInstrumentation$EnsureParentIdInstrumentation
 co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetResultInstrumentation
+co.elastic.apm.agent.plugin.api.TransactionInstrumentation$AddCustomContextInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetNameInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypeInstrumentation
 co.elastic.apm.agent.plugin.api.AbstractSpanInstrumentation$SetTypesInstrumentation

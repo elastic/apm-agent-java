@@ -3,6 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
@@ -17,6 +18,20 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>generate-source-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -36,6 +51,7 @@
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
+                                        <exclude>**/NOTICE</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -84,9 +100,6 @@
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                                    <addHeader>false</addHeader>
-                                </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Premain-Class>${elastic.apm.agent}</Premain-Class>
@@ -96,6 +109,14 @@
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
                                     </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/NOTICE</resource>
+                                    <file>${apm-agent-parent.base.dir}/NOTICE</file>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/LICENSE</resource>
+                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
                                 </transformer>
                             </transformers>
                         </configuration>
@@ -148,6 +169,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-api-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-asynchttpclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

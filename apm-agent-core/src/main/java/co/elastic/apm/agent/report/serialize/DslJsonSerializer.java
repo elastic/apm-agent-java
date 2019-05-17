@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report.serialize;
@@ -107,9 +112,9 @@ public class DslJsonSerializer implements PayloadSerializer {
             this.os = new ByteArrayOutputStream() {
                 @Override
                 public void flush() throws IOException {
-                    os.write(buf);
+                    os.write(buf, 0, size());
                     os.flush();
-                    logger.trace(new String(buf, Charset.forName("UTF-8")));
+                    logger.trace(new String(buf, 0, size(), Charset.forName("UTF-8")));
                 }
             };
         } else {
@@ -715,6 +720,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
+        if (context.hasCustom()) {
+            writeFieldName("custom");
+            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true);
+            jw.writeByte(COMMA);
+        }
         writeFieldName("tags");
         serializeLabels(context);
         jw.writeByte(OBJECT_END);
@@ -724,7 +734,7 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeLabels(context.getLabelIterator(), replaceBuilder, jw);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false);
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
@@ -732,30 +742,35 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
-        serializeLabels(iterator, replaceBuilder, jw);
+        serializeStringKeyScalarValueMap(iterator, replaceBuilder, jw, false);
     }
 
-    private static void serializeLabels(Iterator<? extends Map.Entry<String, ?>> it, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void serializeStringKeyScalarValueMap(Iterator<? extends Map.Entry<String, ? /* String|Number|Boolean */>> it,
+                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit) {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
             writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeLabelValue(replaceBuilder, jw, kv.getValue());
+            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
                 writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeLabelValue(replaceBuilder, jw, kv.getValue());
+                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private static void serializeLabelValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit) {
         if (value instanceof String) {
-            writeStringValue((String) value, replaceBuilder, jw);
+            if (extendedStringLimit) {
+                writeLongStringValue((String) value, replaceBuilder, jw);
+            } else {
+                writeStringValue((String) value, replaceBuilder, jw);
+            }
         } else if (value instanceof Number) {
             NumberConverter.serialize(((Number) value).doubleValue(), jw);
         } else if (value instanceof Boolean) {
@@ -956,7 +971,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void writeLongStringBuilderValue(StringBuilder value) {
+    private static void writeLongStringBuilderValue(StringBuilder value, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
             value.append('…');
@@ -965,10 +980,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeLongStringValue(String value) {
+        writeLongStringValue(value, replaceBuilder, jw);
+    }
+
+    private static void writeLongStringValue(String value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
-            writeLongStringBuilderValue(replaceBuilder);
+            writeLongStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);
         }

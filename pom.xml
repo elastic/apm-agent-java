@@ -77,6 +77,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
+
+        <apm-agent-parent.base.dir>${project.basedir}</apm-agent-parent.base.dir>
     </properties>
 
     <modules>
@@ -296,18 +298,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <!-- Check that we don't accidentally use features only available in Java 8+ -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -419,7 +409,8 @@
                 <version>1.19</version>
                 <configuration>
                     <verbose>false</verbose>
-                    <licenseName>apache_v2</licenseName>
+                    <licenseName>apache2_license</licenseName>
+                    <licenseResolver>file://${apm-agent-parent.base.dir}/licenses</licenseResolver>
                     <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
                     <failOnMissingHeader>true</failOnMissingHeader>
                     <failOnNotUptodateHeader>true</failOnNotUptodateHeader>

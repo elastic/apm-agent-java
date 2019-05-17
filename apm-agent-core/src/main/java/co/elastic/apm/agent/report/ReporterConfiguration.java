@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report;
@@ -70,6 +75,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times " +
             "out.")
+        .dynamic(true)
         .buildWithDefault(TimeDuration.of("5s"));
 
     private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
@@ -79,17 +85,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
-
-    private final ConfigurationOption<TimeDuration> flushInterval = TimeDurationValueConverter.durationOption("s")
-        .key("flush_interval")
-        .configurationCategory(REPORTER_CATEGORY)
-        .description("Interval with which transactions should be sent to the APM server.\n" +
-            "\n" +
-            "A lower value will increase the load on your APM server,\n" +
-            "while a higher value can increase the memory pressure on your app.\n" +
-            "\n" +
-            "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
-        .buildWithDefault(TimeDuration.of("1s"));
 
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
@@ -125,6 +120,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
+        .dynamic(true)
         .description("Maximum time to keep an HTTP request to the APM Server open for.\n" +
             "\n" +
             "NOTE: This value has to be lower than the APM Server's `read_timeout` setting.")
@@ -133,6 +129,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
         .key("api_request_size")
         .configurationCategory(REPORTER_CATEGORY)
+        .dynamic(true)
         .description("The maximum total compressed size of the request body which is sent to the APM server intake api via a " +
             "chunked encoding (HTTP streaming).\n" +
             "Note that a small overshoot is possible.\n" +
@@ -178,10 +175,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
 
     public boolean isVerifyServerCert() {
         return verifyServerCert.get();
-    }
-
-    public TimeDuration getFlushInterval() {
-        return flushInterval.get();
     }
 
     public int getMaxQueueSize() {
