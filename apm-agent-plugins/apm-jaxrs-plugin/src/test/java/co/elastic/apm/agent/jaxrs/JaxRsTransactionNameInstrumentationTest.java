@@ -44,6 +44,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.util.List;
@@ -175,6 +176,23 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
     }
 
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation() {
+        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testWithPathMethod");
+        doRequest("testWithPathMethod/15");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethod/{id}");
+
+    }
+
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
@@ -185,7 +203,8 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ResourceWithPathOnInterface.class,
             ResourceWithPathOnAbstract.class,
             ProxiedClass$$$view.class,
-            ProxiedClass$Proxy.class);
+            ProxiedClass$Proxy.class,
+            ResourceWithPathOnMethod.class);
     }
 
     /**
@@ -244,20 +263,20 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         }
     }
 
-//    @Path("testWithMethod")
-//    public static class ResourceWithMethod extends AbstractResourceClassWithoutPath {
-//
-//        @Override
-//        public String testMethod() {
-//            return "ok";
-//        }
-//
-//        @GET
-//        @Path("/{id}")
-//        public String getById(@PathParam("id") String id) {
-//            return "ok" + id;
-//        }
-//    }
+    @Path("testWithPathMethod")
+    public static class ResourceWithPathOnMethod extends AbstractResourceClassWithoutPath {
+
+        @Override
+        public String testMethod() {
+            return "ok";
+        }
+
+        @GET
+        @Path("{id}")
+        public String testMethodById(@PathParam("id") String id) {
+            return "ok";
+        }
+    }
 
     public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {
         public String testMethod() {

@@ -111,12 +111,11 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
             String canonicalName = classMethodTypeDescription.getCanonicalName();
             switch (canonicalName) {
                 case "javax.ws.rs.Path":
-                    if (transactionAnnotationValue.path == null) {
-                        for (MethodDescription.InDefinedShape annotationMethod : classMethodTypeDescription.getDeclaredMethods().filter(named("value"))) {
-                            Object pathValue = annotationSource.getDeclaredAnnotations().ofType(classMethodTypeDescription).getValue(annotationMethod).resolve();
-                            if (pathValue != null) {
-                                transactionAnnotationValue.path = (String) pathValue;
-                            }
+                    for (MethodDescription.InDefinedShape annotationMethod : classMethodTypeDescription.getDeclaredMethods().filter(named("value"))) {
+                        Object pathValue = annotationSource.getDeclaredAnnotations().ofType(classMethodTypeDescription).getValue(annotationMethod).resolve();
+                        if (pathValue != null) {
+                            transactionAnnotationValue.appendToPath("/");
+                            transactionAnnotationValue.appendToPath((String) pathValue);
                         }
                     }
                     break;
@@ -177,40 +176,24 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
     public static class TransactionAnnotationValue {
 
         private String method;
-        private String path;
-        private String args;
+        private StringBuilder path;
 
-        public String getMethod() {
-            return method;
+        public TransactionAnnotationValue() {
+            this.path = new StringBuilder();
         }
 
-        public void setMethod(String method) {
-            this.method = method;
-        }
-
-        public String getPath() { return path; }
-
-        public void setPath(String path) { this.path = path; }
-
-        public String getArgs() {
-            return args;
-        }
-
-        public void setArgs(String args) {
-            this.args = args;
+        public void appendToPath(String newPath) {
+            this.path.append(newPath);
         }
 
         String buildTransactionName() {
             StringBuilder signature = new StringBuilder();
+
             if (this.method != null) {
                 signature.append(this.method).append(" ");
             }
-            if (this.path != null) {
-                signature.append("/").append(this.path);
-            }
-            if (this.args != null) {
-                signature.append("/").append(this.args);
-            }
+            signature.append(this.path);
+
             return signature.toString();
         }
     }
