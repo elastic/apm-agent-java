@@ -26,6 +26,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 @VisibleForAdvice
 public class JaxRsTransactionHelper {
@@ -41,10 +42,12 @@ public class JaxRsTransactionHelper {
     public void setTransactionName(@Nonnull Transaction currentTransaction,
                                    @Nonnull String signature,
                                    @Nullable String pathAnnotationValue)  {
-        currentTransaction.withName(signature);
+        if (signature != null) {
+            currentTransaction.withName( signature);
+        }
         if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
-            if (pathAnnotationValue != null && !pathAnnotationValue.isEmpty()) {
-                currentTransaction.withName("/").appendToName(pathAnnotationValue);
+            if (pathAnnotationValue != null) {
+                currentTransaction.withName(pathAnnotationValue);
             }
         }
     }

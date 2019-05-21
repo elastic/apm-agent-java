@@ -29,6 +29,7 @@ import java.util.Collection;
 
 import javax.annotation.Nullable;
 
+import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

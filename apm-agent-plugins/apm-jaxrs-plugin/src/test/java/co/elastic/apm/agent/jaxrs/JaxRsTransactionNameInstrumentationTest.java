@@ -44,7 +44,6 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.util.List;
@@ -153,9 +152,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("/test");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("/testAbstract");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("/testInterface");
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testAbstract");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("GET /testInterface");
     }
 
     @Test
@@ -171,7 +170,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("/test");
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
         assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
     }
@@ -244,6 +243,21 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             return "ok";
         }
     }
+
+//    @Path("testWithMethod")
+//    public static class ResourceWithMethod extends AbstractResourceClassWithoutPath {
+//
+//        @Override
+//        public String testMethod() {
+//            return "ok";
+//        }
+//
+//        @GET
+//        @Path("/{id}")
+//        public String getById(@PathParam("id") String id) {
+//            return "ok" + id;
+//        }
+//    }
 
     public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {
         public String testMethod() {

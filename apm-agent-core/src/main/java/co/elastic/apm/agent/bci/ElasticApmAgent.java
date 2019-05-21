@@ -210,7 +210,7 @@ public class ElasticApmAgent {
             .transform(new AgentBuilder.Transformer.ForAdvice(Advice
                 .withCustomMapping()
                 .bind(new SimpleMethodSignatureOffsetMappingFactory())
-                .bind(new AnnotationValueOffsetMappingFactory()))
+                .bind(new AnnotationValueOffsetMappingFactory(tracer)))
                 .advice(new ElementMatcher<MethodDescription>() {
                     @Override
                     public boolean matches(MethodDescription target) {
