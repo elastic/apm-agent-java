@@ -24,27 +24,20 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
-import co.elastic.apm.agent.impl.payload.ProcessFactory;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.ServiceFactory;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
-import co.elastic.apm.agent.util.VersionUtils;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 public class ReporterFactory {
 
-    public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
-                                   @Nullable String frameworkVersion) {
+    public Reporter createReporter(ConfigurationRegistry configurationRegistry, ApmServerClient apmServerClient, MetaData metaData) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
         ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
             @Override
@@ -55,34 +48,20 @@ public class ReporterFactory {
                 return thread;
             }
         });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration));
+        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration, apmServerClient));
         healthCheckExecutorService.shutdown();
-        final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
-            frameworkVersion, reporterConfiguration);
+        final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry,
+            reporterConfiguration, metaData, apmServerClient);
         return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
     }
 
     @Nonnull
-    private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
-                                                           @Nullable String frameworkVersion, ReporterConfiguration reporterConfiguration) {
+    private ReportingEventHandler getReportingEventHandler(ConfigurationRegistry configurationRegistry,
+                                                           ReporterConfiguration reporterConfiguration, MetaData metaData, ApmServerClient apmServerClient) {
 
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(
-            configurationRegistry.getConfig(StacktraceConfiguration.class));
-        final co.elastic.apm.agent.impl.payload.Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
-        final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class));
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        if (!reporterConfiguration.isIncludeProcessArguments()) {
-            processInformation.getArgv().clear();
-        }
-        return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
-            processorEventHandler, payloadSerializer);
+        return new IntakeV2ReportingEventHandler(reporterConfiguration, processorEventHandler, payloadSerializer, metaData, apmServerClient);
     }
 
-    private String getUserAgent() {
-        String agentVersion = VersionUtils.getAgentVersion();
-        if (agentVersion != null) {
-            return "apm-agent-java " + agentVersion;
-        }
-        return "apm-agent-java";
-    }
 }

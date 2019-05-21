@@ -47,6 +47,8 @@ public interface PayloadSerializer {
 
     void serializeMetaDataNdJson(MetaData metaData);
 
+    void serializeMetadata(MetaData metaData);
+
     void serializeTransactionNdJson(Transaction transaction);
 
     void serializeSpanNdJson(Span span);

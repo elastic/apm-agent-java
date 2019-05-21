@@ -25,18 +25,13 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.impl.MetaData;
-import co.elastic.apm.agent.impl.payload.ProcessInfo;
-import co.elastic.apm.agent.impl.payload.Service;
-import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
-import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -44,12 +39,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Future;
@@ -65,7 +54,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
-    private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private static final Object WAIT_LOCK = new Object();
 
     private final ReporterConfiguration reporterConfiguration;
@@ -73,7 +61,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private final MetaData metaData;
     private final PayloadSerializer payloadSerializer;
     private final Timer timeoutTimer;
-    private final CyclicIterator<URL> serverUrlIterator;
+    private final ApmServerClient apmServerClient;
     private Deflater deflater;
     private long currentlyTransmitting = 0;
     private long reported = 0;
@@ -89,30 +77,15 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     private int errorCount;
     private volatile boolean shutDown;
 
-    public IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
-                                         ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                         PayloadSerializer payloadSerializer) {
-        this(service, process, system, reporterConfiguration, processorEventHandler, payloadSerializer, shuffleUrls(reporterConfiguration));
-    }
-
-    IntakeV2ReportingEventHandler(Service service, ProcessInfo process, SystemInfo system,
-                                  ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
-                                  PayloadSerializer payloadSerializer, List<URL> serverUrls) {
+    public IntakeV2ReportingEventHandler(ReporterConfiguration reporterConfiguration, ProcessorEventHandler processorEventHandler,
+                                         PayloadSerializer payloadSerializer, MetaData metaData, ApmServerClient apmServerClient) {
         this.reporterConfiguration = reporterConfiguration;
         this.processorEventHandler = processorEventHandler;
         this.payloadSerializer = payloadSerializer;
-        this.metaData = new MetaData(process, service, system);
+        this.metaData = metaData;
+        this.apmServerClient = apmServerClient;
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
         this.timeoutTimer = new Timer("apm-request-timeout-timer", true);
-        this.serverUrlIterator = new CyclicIterator<>(serverUrls);
-    }
-
-    private static List<URL> shuffleUrls(ReporterConfiguration reporterConfiguration) {
-        List<URL> serverUrls = new ArrayList<>(reporterConfiguration.getServerUrls());
-        // shuffling the URL list helps to distribute the load across the apm servers
-        // when there are multiple agents, they should not all start connecting to the same apm server
-        Collections.shuffle(serverUrls);
-        return serverUrls;
     }
 
     /*
@@ -216,28 +189,16 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     }
 
     private HttpURLConnection startRequest() throws IOException {
-        URL url = getUrl();
+        final HttpURLConnection connection = apmServerClient.startRequest(INTAKE_V2_URL);
         if (logger.isDebugEnabled()) {
-            logger.debug("Starting new request to {}", url);
-        }
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        if (!reporterConfiguration.isVerifyServerCert()) {
-            if (connection instanceof HttpsURLConnection) {
-                trustAll((HttpsURLConnection) connection);
-            }
+            logger.debug("Starting new request to {}", connection.getURL());
         }
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
-        if (reporterConfiguration.getSecretToken() != null) {
-            connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
-        }
         connection.setChunkedStreamingMode(DslJsonSerializer.BUFFER_SIZE);
-        connection.setRequestProperty("User-Agent", USER_AGENT);
         connection.setRequestProperty("Content-Encoding", "deflate");
         connection.setRequestProperty("Content-Type", "application/x-ndjson");
         connection.setUseCaches(false);
-        connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-        connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
         connection.connect();
         os = new DeflaterOutputStream(connection.getOutputStream(), deflater);
         payloadSerializer.setOutputStream(os);
@@ -249,20 +210,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
             timeoutTimer.schedule(timeoutTask, reporterConfiguration.getApiRequestTime().getMillis());
         }
         return connection;
-    }
-
-    @Nonnull
-    URL getUrl() throws MalformedURLException {
-        URL serverUrl = serverUrlIterator.get();
-        String path = serverUrl.getPath();
-        if (path.endsWith("/")) {
-            path = path.substring(0, path.length() - 1);
-        }
-        return new URL(serverUrl, path + INTAKE_V2_URL);
-    }
-
-    void switchToNextServerUrl() {
-        serverUrlIterator.next();
     }
 
     private void trustAll(HttpsURLConnection connection) {
@@ -352,7 +299,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
-            switchToNextServerUrl();
+            apmServerClient.switchToNextServerUrl();
         } else if (responseCode == 404) {
             logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
                 "Please use APM Server 6.5.0 or newer.");
@@ -422,26 +369,4 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
     }
 
-    private static class CyclicIterator<T> {
-        private final Iterable<T> iterable;
-        private Iterator<T> iterator;
-        private T current;
-
-        public CyclicIterator(Iterable<T> iterable) {
-            this.iterable = iterable;
-            iterator = this.iterable.iterator();
-            current = iterator.next();
-        }
-
-        public T get() {
-            return current;
-        }
-
-        public void next() {
-            if (!iterator.hasNext()) {
-                iterator = iterable.iterator();
-            }
-            current = iterator.next();
-        }
-    }
 }
