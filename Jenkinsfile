@@ -64,6 +64,7 @@ pipeline {
             dir("${BASE_DIR}"){
               sh """#!/bin/bash
               set -euxo pipefail
+              ./mvnw --version
               ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
               ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
               """
