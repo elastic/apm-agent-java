@@ -26,6 +26,8 @@
 package co.elastic.apm.agent.impl.payload;
 
 
+import java.util.UUID;
+
 /**
  * Name and version of the Elastic APM agent
  */
@@ -41,6 +43,12 @@ public class Agent {
      * (Required)
      */
     private final String version;
+
+    /**
+     * A unique agent ID, non-persistent (i.e. changes on restart).
+     * <a href="https://www.elastic.co/guide/en/ecs/master/ecs-agent.html#_agent_field_details">See ECS for reference</a>.
+     */
+    private final String ephemeralId = UUID.randomUUID().toString();
 
     public Agent(String name, String version) {
         this.name = name;
@@ -63,4 +71,10 @@ public class Agent {
         return version;
     }
 
+    /**
+     * @return A unique agent ID, non-persistent (i.e. changes on restart).
+     */
+    public String getEphemeralId() {
+        return ephemeralId;
+    }
 }
