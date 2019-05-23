@@ -31,8 +31,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Attaches the Elastic Apm agent to the current or a remote JVM
@@ -48,7 +50,23 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach() {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE);
+        attach(loadProperties());
+    }
+
+    private static Map<String, String> loadProperties() {
+        Map<String, String> propertyMap = new HashMap<>();
+        final Properties props = new Properties();
+        try (InputStream resourceStream = ElasticApmAttacher.class.getClassLoader().getResourceAsStream("elasticapm.properties")) {
+            if (resourceStream != null) {
+                props.load(resourceStream);
+                for (String propertyName : props.stringPropertyNames()) {
+                    propertyMap.put(propertyName, props.getProperty(propertyName));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return propertyMap;
     }
 
     /**
