@@ -35,9 +35,9 @@ public class Scanner {
 
     @Nullable
     private String input;
-    private int start; // text start pos in bytes
-    private int end; // text end pos in bytes
-    private int pos; // read pos in bytes
+    private int start; // text start char offset
+    private int end; // text end char offset
+    private int pos; // read position char offset
 
     public void setQuery(String sql) {
         this.input = sql;
