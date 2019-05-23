@@ -26,6 +26,7 @@ package co.elastic.apm.agent.metrics.builtin;
 
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -35,7 +36,7 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-
+@Disabled
 class SystemMetricsTest {
 
     private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
