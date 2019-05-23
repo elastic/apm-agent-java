@@ -388,6 +388,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("agent");
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("name", agent.getName());
+        writeField("ephemeral_id", agent.getEphemeralId());
         writeLastField("version", agent.getVersion());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);

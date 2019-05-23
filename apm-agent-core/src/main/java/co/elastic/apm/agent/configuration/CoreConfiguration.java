@@ -37,6 +37,7 @@ import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -332,6 +333,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
+        .key("boot_delegation_packages")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
+            "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
+            "Values to set in known environments:\n\n" +
+            "Nexus:\n" +
+            "boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*\n\n" +
+            "Pentaho:\n" +
+            "boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*")
+        .buildWithDefault("co.elastic.apm.agent.*");
+
     public boolean isActive() {
         return active.get();
     }
@@ -402,6 +415,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getTraceMethodsDurationThreshold() {
         return traceMethodsDurationThreshold.get();
+    }
+
+    public @Nullable String getPackagesToAppendToBootdelegationProperty() {
+        String value = appendPackagesToBootDelagationProperty.get();
+        if (value != null) {
+            value = value.trim();
+            if (value.isEmpty()) {
+                value = null;
+            }
+        }
+        return value;
     }
 
     public Map<String, String> getGlobalLabels() {

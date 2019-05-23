@@ -26,7 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -60,6 +60,7 @@ class ApmServerReporterIntegrationTest {
     private static int port;
     private static AtomicInteger receivedHttpRequests = new AtomicInteger();
     private static HttpHandler handler;
+    private final ElasticApmTracer tracer = MockTracer.create();
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
     private ConfigurationRegistry config;
@@ -105,7 +106,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction(MockTracer.create()));
+        reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -113,7 +114,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportSpan() throws ExecutionException, InterruptedException {
-        reporter.report(new Span(MockTracer.create()));
+        reporter.report(new Span(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -127,7 +128,7 @@ class ApmServerReporterIntegrationTest {
             receivedHttpRequests.incrementAndGet();
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction(MockTracer.create()));
+        reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);
@@ -135,7 +136,7 @@ class ApmServerReporterIntegrationTest {
 
     @Test
     void testReportErrorCapture() throws ExecutionException, InterruptedException {
-        reporter.report(new ErrorCapture(MockTracer.create()));
+        reporter.report(new ErrorCapture(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
         assertThat(receivedHttpRequests.get()).isEqualTo(1);

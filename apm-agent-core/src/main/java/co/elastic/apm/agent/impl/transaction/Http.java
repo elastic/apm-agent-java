@@ -27,6 +27,8 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class Http implements Recyclable {
 
@@ -68,8 +70,28 @@ public class Http implements Recyclable {
      * URL used for the outgoing HTTP call
      */
     public Http withUrl(@Nullable String url) {
-        this.url = url;
+        if (url != null) {
+            this.url = sanitize(url);
+        }
         return this;
+    }
+
+    @Nullable
+    private static String sanitize(String uriString) {
+        if (uriString.indexOf('@') < 0) {
+            return uriString;
+        }
+        final URI uri;
+        try {
+            uri = new URI(uriString);
+            if (uri.getUserInfo() != null) {
+                return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
+            } else {
+                return uri.toString();
+            }
+        } catch (URISyntaxException e) {
+            return null;
+        }
     }
 
     public Http withMethod(String method) {
