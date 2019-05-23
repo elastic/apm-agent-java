@@ -66,7 +66,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
     public static final String INTAKE_V2_URL = "/intake/v2/events";
     private static final Logger logger = LoggerFactory.getLogger(IntakeV2ReportingEventHandler.class);
     private static final int GZIP_COMPRESSION_LEVEL = 1;
-    private static final String USER_AGENT = "java-agent/" + VersionUtils.getAgentVersion();
+    private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private static final Object WAIT_LOCK = new Object();
 
     private final ReporterConfiguration reporterConfiguration;

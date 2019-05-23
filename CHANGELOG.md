@@ -5,11 +5,14 @@
  enables considerable reduction of overhead by limiting the number of spans captured and reported (see more details in config 
  documentation).
  NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
+ * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
  * Added support for AsyncHttpClient 2.x
  * Added [`global_labels`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#global-labels) configuration option.
    This requires APM Server 7.2+.
 
 ## Bug Fixes
+ * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
+ * NullPointerException when computing Servlet transaction name with null HTTP method name
 
 # 1.6.1
 

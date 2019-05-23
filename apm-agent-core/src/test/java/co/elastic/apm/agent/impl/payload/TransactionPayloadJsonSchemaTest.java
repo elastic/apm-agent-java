@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -196,6 +197,22 @@ class TransactionPayloadJsonSchemaTest {
 
         assertThat(objectMapper.readTree(serializer.toJsonString(copy)).get("context"))
             .isEqualTo(objectMapper.readTree(serializer.toJsonString(transaction)).get("context"));
+    }
+
+    @Test
+    void testCustomContext() throws Exception {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        transaction.addCustomContext("string", "foo");
+        final String longString = RandomStringUtils.randomAlphanumeric(10001);
+        transaction.addCustomContext("long_string", longString);
+        transaction.addCustomContext("number", 42);
+        transaction.addCustomContext("boolean", true);
+
+        final JsonNode customContext = objectMapper.readTree(serializer.toJsonString(transaction)).get("context").get("custom");
+        assertThat(customContext.get("string").textValue()).isEqualTo("foo");
+        assertThat(customContext.get("long_string").textValue()).isEqualTo(longString.substring(0, 9999) + "…");
+        assertThat(customContext.get("number").intValue()).isEqualTo(42);
+        assertThat(customContext.get("boolean").booleanValue()).isEqualTo(true);
     }
 
     private void validateJsonStructure(TransactionPayload payload) throws IOException {

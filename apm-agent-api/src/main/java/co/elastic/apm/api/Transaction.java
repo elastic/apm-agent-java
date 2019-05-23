@@ -85,6 +85,48 @@ public interface Transaction extends Span {
     Transaction addLabel(String key, boolean value);
 
     /**
+     * Custom context is used to add non-indexed,
+     * custom contextual information to transactions.
+     * Non-indexed means the data is not searchable or aggregatable in Elasticsearch,
+     * and you cannot build dashboards on top of the data.
+     * However, non-indexed information is useful for other reasons,
+     * like providing contextual information to help you quickly debug performance issues or errors.
+     *
+     * @param key   The custom context key.
+     * @param value The custom context value.
+     */
+    @Nonnull
+    Transaction addCustomContext(String key, String value);
+
+    /**
+     * Custom context is used to add non-indexed,
+     * custom contextual information to transactions.
+     * Non-indexed means the data is not searchable or aggregatable in Elasticsearch,
+     * and you cannot build dashboards on top of the data.
+     * However, non-indexed information is useful for other reasons,
+     * like providing contextual information to help you quickly debug performance issues or errors.
+     *
+     * @param key   The custom context key.
+     * @param value The custom context value.
+     */
+    @Nonnull
+    Transaction addCustomContext(String key, Number value);
+
+    /**
+     * Custom context is used to add non-indexed,
+     * custom contextual information to transactions.
+     * Non-indexed means the data is not searchable or aggregatable in Elasticsearch,
+     * and you cannot build dashboards on top of the data.
+     * However, non-indexed information is useful for other reasons,
+     * like providing contextual information to help you quickly debug performance issues or errors.
+     *
+     * @param key   The custom context key.
+     * @param value The custom context value.
+     */
+    @Nonnull
+    Transaction addCustomContext(String key, boolean value);
+
+    /**
      * Call this to enrich collected performance data and errors with information about the user/client.
      * <p>
      * This method can be called at any point during the request/response life cycle (i.e. while a transaction is active).

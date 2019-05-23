@@ -62,6 +62,13 @@ class ServletTransactionHelperTest {
     }
 
     @Test
+    void setTransactionNameByServletClassNullMethod() {
+        StringBuilder transactionName = new StringBuilder();
+        ServletTransactionHelper.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transactionName);
+        assertThat(transactionName.toString()).isEqualTo("ServletTransactionHelperTest");
+    }
+
+    @Test
     void testGroupUrls() {
         when(webConfig.isUsePathAsName()).thenReturn(true);
         when(webConfig.getUrlGroups()).thenReturn(List.of(
