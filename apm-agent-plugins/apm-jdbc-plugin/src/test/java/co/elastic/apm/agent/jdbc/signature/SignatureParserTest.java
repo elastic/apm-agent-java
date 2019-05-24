@@ -52,7 +52,7 @@ class SignatureParserTest {
 
     String getSignature(String query) {
         final StringBuilder sb = new StringBuilder();
-        signatureParser.querySignature(query, sb);
+        signatureParser.querySignature(query, sb, false);
         return sb.toString();
     }
 }

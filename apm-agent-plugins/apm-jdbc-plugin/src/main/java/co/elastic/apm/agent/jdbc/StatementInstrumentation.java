@@ -74,7 +74,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
         if (tracer != null && jdbcHelperManager != null) {
             JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
             if (helperImpl != null) {
-                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), false);
             }
         }
         return null;

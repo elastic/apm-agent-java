@@ -54,12 +54,12 @@ public class JdbcHelperImpl implements JdbcHelper {
 
     @Override
     @Nullable
-    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent) {
+    public Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement) {
         if (sql == null || isAlreadyMonitored(parent) || parent == null || !parent.isSampled()) {
             return null;
         }
         Span span = parent.createSpan().activate();
-        SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, span.getName());
+        SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, span.getName(), preparedStatement);
         // setting the type here is important
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError

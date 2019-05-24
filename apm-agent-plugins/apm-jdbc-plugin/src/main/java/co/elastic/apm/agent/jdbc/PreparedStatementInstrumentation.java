@@ -77,7 +77,7 @@ public class PreparedStatementInstrumentation extends ElasticApmInstrumentation 
             final @Nullable String sql = ConnectionInstrumentation.getSqlForStatement(statement);
             JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
             if (helperImpl != null) {
-                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
             }
         }
         return null;
