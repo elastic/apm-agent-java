@@ -24,18 +24,17 @@
  */
 package co.elastic.apm.agent.jdbc.signature;
 
-import javax.annotation.Nullable;
-
 public class Scanner {
 
-    @Nullable
-    private String input;
+    private String input = "";
     private int start; // text start char offset
     private int end; // text end char offset
     private int pos; // read position char offset
+    private int inputLength;
 
     public void setQuery(String sql) {
         this.input = sql;
+        inputLength = sql.length();
         start = 0;
         end = 0;
         pos = 0;
@@ -310,7 +309,7 @@ public class Scanner {
     }
 
     private boolean hasNext() {
-        return pos < input.length();
+        return pos < inputLength;
     }
 
     private boolean isTextEqualIgnoreCase(String name) {
