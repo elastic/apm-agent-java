@@ -51,6 +51,7 @@ class ScannerTest {
                 assertThat(scanner.scan()).isEqualTo(Scanner.Token.valueOf(token.get("kind").textValue()));
                 assertThat(scanner.text()).isEqualTo(token.get("text").textValue());
             }
+            assertThat(scanner.scan()).isEqualTo(Scanner.Token.EOF);
         }
     }
 }
