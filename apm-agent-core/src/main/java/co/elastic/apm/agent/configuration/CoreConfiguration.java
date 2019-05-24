@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,12 +34,15 @@ import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 
@@ -205,6 +208,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("global_labels")
+        .tags("added[1.7.0, Requires APM Server 7.2+]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
+            "Any labels set by application via the API will override global labels with the same keys.\n" +
+            "\n" +
+            "NOTE: This feature requires APM Server 7.2+")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
         .key("enable_type_pool_cache")
         .configurationCategory(CORE_CATEGORY)
@@ -229,7 +244,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "This speeds up matching but can lead to class-loading-related side effects, for example when a class \n" +
             "is available somewhere in the classpath where it never gets loaded unless this matching is applied.")
         .buildWithDefault(true);
-
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -412,5 +426,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         }
         return value;
+    }
+
+    public Map<String, String> getGlobalLabels() {
+        return globalLabels.get();
     }
 }

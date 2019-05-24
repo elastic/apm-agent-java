@@ -69,6 +69,7 @@ Click on a key to get more information.
 ** <<config-sanitize-field-names>>
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
+** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
@@ -366,6 +367,29 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
+|============
+
+[float]
+[[config-global-labels]]
+==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
+
+Labels added to all events, with the format `key=value[,key=value[,...]]`.
+Any labels set by application via the API will override global labels with the same keys.
+
+NOTE: This feature requires APM Server 7.2+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Map | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
 |============
 
 [float]
@@ -1261,6 +1285,17 @@ The default unit for this option is `ms`
 # Default value: (?-i)*Nested*Exception
 #
 # unnest_exceptions=(?-i)*Nested*Exception
+
+# Labels added to all events, with the format `key=value[,key=value[,...]]`.
+# Any labels set by application via the API will override global labels with the same keys.
+# 
+# NOTE: This feature requires APM Server 7.2+
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Map
+# Default value: 
+#
+# global_labels=
 
 # A list of methods for with to create a transaction or span.
 # 
