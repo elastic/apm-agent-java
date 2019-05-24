@@ -376,7 +376,7 @@ public class Scanner {
         UPDATE;
 
         private static final Token[] EMPTY = {};
-        private static final Token[][] keywordsByLength = {
+        private static final Token[][] KEYWORDS_BY_LENGTH = {
             {},
             {},
             {AS, OR},
@@ -389,9 +389,8 @@ public class Scanner {
         };
 
         public static Token[] getKeywordsByLength(int length) {
-            final Token[] tokens = keywordsByLength[length];
-            if (tokens != null) {
-                return tokens;
+            if (length < KEYWORDS_BY_LENGTH.length) {
+                return KEYWORDS_BY_LENGTH[length];
             }
             return EMPTY;
         }
