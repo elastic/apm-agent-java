@@ -209,5 +209,23 @@
         "text": "3"
       }
     ]
+  },
+  {
+    "name": "unicode",
+    "input": "选择 FROM foo",
+    "tokens": [
+      {
+        "kind": "IDENT",
+        "text": "选择"
+      },
+      {
+        "kind": "FROM",
+        "text": "FROM"
+      },
+      {
+        "kind": "IDENT",
+        "text": "foo"
+      }
+    ]
   }
 ]
