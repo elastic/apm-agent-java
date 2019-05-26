@@ -36,7 +36,7 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-@Disabled
+
 class SystemMetricsTest {
 
     private MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
