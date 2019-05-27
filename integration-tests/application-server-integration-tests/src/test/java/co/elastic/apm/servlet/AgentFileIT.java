@@ -27,6 +27,7 @@ package co.elastic.apm.servlet;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -38,8 +39,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AgentFileIT {
 
     static String getPathToJavaagent() {
-        File agentBuildDir = new File("../../elastic-apm-agent/target/");
-        FileFilter fileFilter = new WildcardFileFilter("elastic-apm-agent-*.jar");
+        return getTargetJar("elastic-apm-agent");
+    }
+
+    static String getPathToAttacher() {
+        return getTargetJar("apm-agent-attach");
+    }
+
+    @Nullable
+    private static String getTargetJar(String project) {
+        File agentBuildDir = new File("../../" + project + "/target/");
+        FileFilter fileFilter = new WildcardFileFilter(project + "-*.jar");
         for (File file : agentBuildDir.listFiles(fileFilter)) {
             if (!file.getAbsolutePath().endsWith("javadoc.jar") && !file.getAbsolutePath().endsWith("sources.jar")) {
                 return file.getAbsolutePath();
