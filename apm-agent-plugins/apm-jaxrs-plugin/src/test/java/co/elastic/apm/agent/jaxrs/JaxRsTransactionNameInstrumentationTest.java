@@ -86,6 +86,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Test
     public void testJaxRsTransactionNameWithoutJaxrsAnnotationInheritance() {
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
+        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(false);
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequest("test");

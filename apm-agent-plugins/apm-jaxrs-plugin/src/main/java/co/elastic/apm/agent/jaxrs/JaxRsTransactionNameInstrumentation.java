@@ -26,7 +26,7 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
+import co.elastic.apm.agent.bci.bytebuddy.JaxRsOffsetMappingFactory.JaxRsPath;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -69,10 +69,11 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature,
-                                           @AnnotationValueOffsetMappingFactory.AnnotationValueExtractor(annotationClassName = "javax.ws.rs.Path", method = "value", type = AnnotationValueOffsetMappingFactory.AnnotationType.CLASS) String pathAnnotationValue) {
+                                           @JaxRsPath @Nullable String pathAnnotationValue) {
+        System.out.println("Trying to set transactionName");
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
-
+            System.out.println("Trying to set transaction name.");
             if (transaction != null) {
                 jaxRsTransactionHelper.setTransactionName(transaction, signature, pathAnnotationValue);
             }
@@ -130,5 +131,4 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-rs");
     }
-
 }
