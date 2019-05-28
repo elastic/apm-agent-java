@@ -41,6 +41,8 @@ import java.util.Properties;
  */
 public class ElasticApmAttacher {
 
+    private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.DEFAULT);
+
     /**
      * Attaches the Elastic Apm agent to the current JVM.
      * <p>
@@ -101,7 +103,7 @@ public class ElasticApmAttacher {
      * @param configuration the agent configuration
      */
     public static void attach(String pid, Map<String, String> configuration) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, toAgentArgs(configuration));
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, toAgentArgs(configuration), ATTACHMENT_PROVIDER);
     }
 
     /**
@@ -111,7 +113,7 @@ public class ElasticApmAttacher {
      * @param agentArgs the agent arguments
      */
     public static void attach(String pid, String agentArgs) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs);
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ATTACHMENT_PROVIDER);
     }
 
     private enum AgentJarFileHolder {
