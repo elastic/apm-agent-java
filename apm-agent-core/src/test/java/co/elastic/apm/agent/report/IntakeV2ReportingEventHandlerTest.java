@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -110,14 +111,14 @@ class IntakeV2ReportingEventHandlerTest {
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
-            new MetaData(title, service, system), apmServerClient);
+            new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
-            new MetaData(title1, service1, system),
+            new MetaData(title1, service1, system, Collections.emptyMap()),
             new ApmServerClient(reporterConfiguration, List.of(new URL("http://non.existing:8080"))));
     }
 

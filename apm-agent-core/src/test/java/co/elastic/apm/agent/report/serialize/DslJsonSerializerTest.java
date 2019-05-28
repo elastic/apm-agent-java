@@ -26,8 +26,13 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -174,6 +179,19 @@ class DslJsonSerializerTest {
         StringBuilder sb = new StringBuilder("this.is.a.string");
         DslJsonSerializer.replace(sb, ".", "_DOT_", 6);
         assertThat(sb.toString()).isEqualTo("this.is_DOT_a_DOT_string");
+    }
+
+    @Test
+    void testSerializeMetadata() throws IOException {
+        Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
+        SystemInfo system = SystemInfo.create();
+        ProcessInfo processInfo = new ProcessInfo("title");
+        processInfo.getArgv().add("test");
+        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, system, Map.of("foo", "bar", "baz", "qux")));
+        JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
+        System.out.println(metaDataJson);
+        assertThat(metaDataJson.get("labels").get("foo").textValue()).isEqualTo("bar");
+        assertThat(metaDataJson.get("labels").get("baz").textValue()).isEqualTo("qux");
     }
 
     private String toJson(Map<String, String> map) {

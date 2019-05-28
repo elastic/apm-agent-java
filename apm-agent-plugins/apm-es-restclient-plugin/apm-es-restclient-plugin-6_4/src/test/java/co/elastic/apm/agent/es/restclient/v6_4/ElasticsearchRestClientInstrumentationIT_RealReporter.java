@@ -78,6 +78,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -138,8 +139,11 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), new MetaData(title, service, system),
+        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
+            reporterConfiguration,
+            processorEventHandler,
+            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            new MetaData(title, service, system, Collections.emptyMap()),
             new ApmServerClient(reporterConfiguration));
         realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
 

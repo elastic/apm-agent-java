@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
@@ -50,7 +51,10 @@ public class OsgiBootDelegationEnabler implements LifecycleListener {
     @Override
     public void start(ElasticApmTracer tracer) {
         // may be problematic as it could override the defaults in a properties file
-        appendToSystemProperty("org.osgi.framework.bootdelegation", APM_BASE_PACKAGE);
+        String packagesToAppendToBootdelegationProperty = tracer.getConfig(CoreConfiguration.class).getPackagesToAppendToBootdelegationProperty();
+        if (packagesToAppendToBootdelegationProperty != null) {
+            appendToSystemProperty("org.osgi.framework.bootdelegation", packagesToAppendToBootdelegationProperty);
+        }
         appendToSystemProperty("atlassian.org.osgi.framework.bootdelegation", ATLASSIAN_BOOTDELEGATION_DEFAULTS, APM_BASE_PACKAGE);
     }
 

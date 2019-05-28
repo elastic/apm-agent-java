@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,11 +34,15 @@ import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
 
@@ -204,6 +208,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("global_labels")
+        .tags("added[1.7.0, Requires APM Server 7.2+]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
+            "Any labels set by application via the API will override global labels with the same keys.\n" +
+            "\n" +
+            "NOTE: This feature requires APM Server 7.2+")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
         .key("enable_type_pool_cache")
         .configurationCategory(CORE_CATEGORY)
@@ -228,7 +244,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "This speeds up matching but can lead to class-loading-related side effects, for example when a class \n" +
             "is available somewhere in the classpath where it never gets loaded unless this matching is applied.")
         .buildWithDefault(true);
-
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -318,6 +333,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
+    private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
+        .key("boot_delegation_packages")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
+            "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
+            "Values to set in known environments:\n\n" +
+            "Nexus:\n" +
+            "boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*\n\n" +
+            "Pentaho:\n" +
+            "boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*")
+        .buildWithDefault("co.elastic.apm.agent.*");
+
     public boolean isActive() {
         return active.get();
     }
@@ -388,5 +415,20 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getTraceMethodsDurationThreshold() {
         return traceMethodsDurationThreshold.get();
+    }
+
+    public @Nullable String getPackagesToAppendToBootdelegationProperty() {
+        String value = appendPackagesToBootDelagationProperty.get();
+        if (value != null) {
+            value = value.trim();
+            if (value.isEmpty()) {
+                value = null;
+            }
+        }
+        return value;
+    }
+
+    public Map<String, String> getGlobalLabels() {
+        return globalLabels.get();
     }
 }
