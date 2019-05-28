@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.jdbc.signature;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -50,42 +49,34 @@ public class SignatureParser {
      * We don't want to keep alive references to huge query strings
      */
     private static final int QUERY_LENGTH_CACHE_UPPER_THRESHOLD = 10_000;
-    private final Scanner scanner = new Scanner();
     /**
-     * Not using weak keys as the DISABLE_CACHE_THRESHOLD may not be reached when clearing stale entries.
-     * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
-     * Another reason is that ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
+     * Not using weak keys because ORMs like Hibernate generate equal SQL strings for the same query but don't reuse the same string instance.
      * When relying on weak keys, we would not leverage any caching benefits if the query string is collected.
+     * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
      */
-    @Nullable
-    private ConcurrentMap<String, String> signatureCache = new ConcurrentHashMap<>(DISABLE_CACHE_THRESHOLD);
+    private final static ConcurrentMap<String, String> signatureCache = new ConcurrentHashMap<String, String>(DISABLE_CACHE_THRESHOLD, 0.5f, Runtime.getRuntime().availableProcessors());
+
+    private final Scanner scanner = new Scanner();
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
-        ConcurrentMap<String, String> localCache = null;
-        // non-prepared statements are likely to be dynamic strings
-        if (preparedStatement && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length() && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD) {
-            // no volatile read needed
-            // the signatureCache = null at the end of this method makes this eventually consistent on all threads
-            localCache = signatureCache;
-            if (localCache != null) {
-                final String cachedSignature = localCache.get(query);
-                if (cachedSignature != null) {
-                    signature.append(cachedSignature);
-                    return;
-                }
+
+        final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
+            && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
+            && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD;
+        if (cacheable) {
+            final String cachedSignature = signatureCache.get(query);
+            if (cachedSignature != null) {
+                signature.append(cachedSignature);
+                return;
             }
         }
 
         scanner.setQuery(query);
         parse(query, signature);
 
-        if (localCache != null) {
-            if (localCache.size() <= DISABLE_CACHE_THRESHOLD) {
-                // we don't mind a small overshoot due to race conditions
-                localCache.put(query, signature.toString());
-            } else {
-                signatureCache = null;
-            }
+        if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
+            // we don't mind a small overshoot due to race conditions
+            signatureCache.put(query, signature.toString());
         }
     }
 
