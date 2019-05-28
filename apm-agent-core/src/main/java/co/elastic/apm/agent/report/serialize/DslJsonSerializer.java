@@ -68,6 +68,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -159,10 +160,29 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
         serializeProcess(metaData.getProcess());
         jw.writeByte(COMMA);
+        serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(NEW_LINE);
+    }
+
+    private void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues) {
+        if (!globalLabelKeys.isEmpty()) {
+            writeFieldName("labels");
+            jw.writeByte(OBJECT_START);
+            writeStringValue(sanitizeLabelKey(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+            writeStringValue(globalLabelValues.get(0), replaceBuilder, jw);
+            for (int i = 0; i < globalLabelKeys.size(); i++) {
+                jw.writeByte(COMMA);
+                writeStringValue(sanitizeLabelKey(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
+                jw.writeByte(JsonWriter.SEMI);
+                writeStringValue(globalLabelValues.get(i), replaceBuilder, jw);
+            }
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     @Override
@@ -368,6 +388,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("agent");
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("name", agent.getName());
+        writeField("ephemeral_id", agent.getEphemeralId());
         writeLastField("version", agent.getVersion());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);

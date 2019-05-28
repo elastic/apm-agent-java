@@ -27,6 +27,7 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
@@ -47,6 +48,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 class InstrumentationTest {
+
+    private final ElasticApmTracer tracer = MockTracer.create();
 
     @AfterEach
     void afterAll() {
@@ -69,7 +72,7 @@ class InstrumentationTest {
 
     @Test
     void testDontInstrumentOldClassFileVersions() {
-        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+        ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new MathInstrumentation()));
         // if the instrumentation applied, it would return 42
@@ -80,7 +83,7 @@ class InstrumentationTest {
 
     @Test
     void testSuppressException() {
-        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+        ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new SuppressExceptionInstrumentation()));
         assertThat(noExceptionPlease("foo")).isEqualTo("foo_no_exception");
@@ -88,7 +91,7 @@ class InstrumentationTest {
 
     @Test
     void testRetainExceptionInUserCode() {
-        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+        ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new SuppressExceptionInstrumentation()));
         assertThatThrownBy(this::exceptionPlease).isInstanceOf(NullPointerException.class);
@@ -96,7 +99,7 @@ class InstrumentationTest {
 
     @Test
     void testNonSuppressedException() {
-        ElasticApmAgent.initInstrumentation(MockTracer.create(),
+        ElasticApmAgent.initInstrumentation(tracer,
             ByteBuddyAgent.install(),
             Collections.singletonList(new ExceptionInstrumentation()));
         assertThatThrownBy(() -> noExceptionPlease("foo")).isInstanceOf(RuntimeException.class);
