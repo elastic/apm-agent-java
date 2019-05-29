@@ -58,7 +58,7 @@ public class DependencyInjectingServiceLoader<T> {
         }
         constructorTypes = types.toArray(new Class[]{});
         try {
-            final Enumeration<URL> resources = getResources(clazz);
+            final Enumeration<URL> resources = getServiceDescriptors(clazz);
             Set<String> implementations = getImplementations(resources);
             instantiate(implementations);
         } catch (IOException e) {
@@ -66,7 +66,7 @@ public class DependencyInjectingServiceLoader<T> {
         }
     }
 
-    private Enumeration<URL> getResources(Class<T> clazz) throws IOException {
+    private Enumeration<URL> getServiceDescriptors(Class<T> clazz) throws IOException {
         if (classLoader != null) {
             return classLoader.getResources("META-INF/services/" + clazz.getName());
         } else {
