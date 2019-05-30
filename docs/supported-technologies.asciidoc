@@ -225,6 +225,24 @@ This section lists all supported asynchronous frameworks.
 
 
 [float]
+[[supported-async-frameworks]]
+=== Messaging frameworks
+When using a messaging framework, sender context is propagated so that receiver events are correlated to the
+same trace.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|JMS
+|1.1, 2.0
+|The agent propagates the context when using `javax.jms.MessageConsumer#send` and `javax.jms.JMSConsumer#send` methods
+through a `Message` property
+|1.7.0 - EXPERIMENTAL (off by default)
+
+|===
+
+
+[float]
 [[supported-technologies-caveats]]
 === Caveats
 * Certain OSGi containers need the following configuration setting in case you see exceptions like

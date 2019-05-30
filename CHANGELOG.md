@@ -9,6 +9,10 @@
  * Added support for AsyncHttpClient 2.x
  * Added [`global_labels`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#global-labels) configuration option.
    This requires APM Server 7.2+.
+ * Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and 
+   `onMessage`. Both Queues and Topics are supported. Async `send` APIs are not supported in this version. 
+   NOTE: This feature is currently marked as "Experimental" and is disabled by default. In order to enable, it is 
+   required to set the `disable_instrumentations` configuration property to an empty string.
 
 ## Bug Fixes
  * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
