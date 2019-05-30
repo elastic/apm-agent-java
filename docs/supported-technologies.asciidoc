@@ -225,7 +225,7 @@ This section lists all supported asynchronous frameworks.
 
 
 [float]
-[[supported-async-frameworks]]
+[[supported-messaging-frameworks]]
 === Messaging frameworks
 When using a messaging framework, sender context is propagated so that receiver events are correlated to the
 same trace.
