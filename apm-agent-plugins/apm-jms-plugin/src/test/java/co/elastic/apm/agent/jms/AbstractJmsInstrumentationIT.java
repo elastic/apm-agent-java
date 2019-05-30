@@ -77,6 +77,7 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
+        reporter.reset();
     }
 
     @Test
