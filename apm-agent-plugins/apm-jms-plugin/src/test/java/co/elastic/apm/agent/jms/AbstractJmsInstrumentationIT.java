@@ -64,6 +64,7 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
 
     @Before
     public void startTransaction() {
+        reporter.reset();
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("JMS-Test Transaction");
         transaction.withType("request");
@@ -76,7 +77,6 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
-        reporter.reset();
     }
 
     @Test
