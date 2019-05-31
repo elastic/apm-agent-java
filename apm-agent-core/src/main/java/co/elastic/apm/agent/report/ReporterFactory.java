@@ -59,7 +59,7 @@ public class ReporterFactory {
         healthCheckExecutorService.shutdown();
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
             frameworkVersion, reporterConfiguration);
-        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
+        return new ApmServerReporter(true, reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class), reportingEventHandler);
     }
 
     @Nonnull

@@ -48,7 +48,6 @@ class SystemMetricsTest {
         // makes sure system.cpu.total.norm.pct does not return NaN
         consumeCpu();
         Thread.sleep(1000);
-        assertThat(metricRegistry.get("system.cpu.total.norm.pct", Collections.emptyMap())).isBetween(0.0, 1.0);
         assertThat(metricRegistry.get("system.process.cpu.total.norm.pct", Collections.emptyMap())).isBetween(0.0, 1.0);
         assertThat(metricRegistry.get("system.memory.total", Collections.emptyMap())).isGreaterThan(0.0);
         assertThat(metricRegistry.get("system.memory.actual.free", Collections.emptyMap())).isGreaterThan(0.0);
