@@ -12,6 +12,7 @@
     </properties>
 
     <artifactId>apm-httpclient-core</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <build>
         <plugins>
