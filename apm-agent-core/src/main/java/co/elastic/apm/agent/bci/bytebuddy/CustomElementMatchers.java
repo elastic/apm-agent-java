@@ -184,7 +184,8 @@ public class CustomElementMatchers {
     }
 
     /**
-     * Based on <a href="https://gist.github.com/brianguertin/ada4b65c6d1c4f6d3eee3c12b6ce021b">https://gist.github.com/brianguertin</a>
+     * Based on <a href="https://gist.github.com/brianguertin/ada4b65c6d1c4f6d3eee3c12b6ce021b">https://gist.github.com/brianguertin</a>.
+     * This code was released into the public domain by Brian Guertin on July 8, 2016 citing, verbatim the unlicense.
      */
     private static class Version implements Comparable<Version> {
         private final int[] numbers;

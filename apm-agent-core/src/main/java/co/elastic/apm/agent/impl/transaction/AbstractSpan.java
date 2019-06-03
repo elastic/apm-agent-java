@@ -200,9 +200,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     @Override
     public Span createSpan(long epochMicros) {
-        final Span span = tracer.startSpan(this, epochMicros);
-        onChildStart(span, epochMicros);
-        return span;
+        return tracer.startSpan(this, epochMicros);
     }
 
     public void addLabel(String key, String value) {
@@ -232,7 +230,6 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         this.finished = false;
         // this final reference is decremented when the span is reported
         // or even after its reported and the last child span is ended
-        references.set(0);
         incrementReferences();
     }
 
@@ -308,21 +305,33 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         timestamp = epochMicros;
     }
 
-    private void onChildStart(Span span, long epochMicros) {
-        incrementReferences();
+    void onChildStart(long epochMicros) {
         childDurations.start(epochMicros);
     }
 
-    void onChildEnd(Span span, long epochMicros) {
+    void onChildEnd(long epochMicros) {
         childDurations.stop(epochMicros);
-        decrementReferences();
     }
 
     public void incrementReferences() {
         references.incrementAndGet();
-        logger.trace("increment references to {} ({})", this, references);
+        if (logger.isDebugEnabled()) {
+            logger.debug("increment references to {} ({})", this, references);
+            if (logger.isTraceEnabled()) {
+                logger.trace("incrementing references at",
+                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been incremented."));
+            }
+        }
     }
 
-    public abstract void decrementReferences();
+    public void decrementReferences() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("decrement references to {} ({})", this, references);
+            if (logger.isTraceEnabled()) {
+                logger.trace("decrementing references at",
+                    new RuntimeException("This is an expected exception. Is just used to record where the reference count has been decremented."));
+            }
+        }
+    }
 
 }

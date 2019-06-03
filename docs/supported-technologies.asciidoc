@@ -110,7 +110,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |7.x, 8.5.x, 9.x
 
 |<<setup-jboss-wildfly,WildFly>>
-|8-15
+|8-16
 
 |<<setup-jboss-wildfly,JBoss EAP>>
 |6.4, 7.0, 7.1, 7.2
@@ -196,6 +196,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
 |JAX-WS clients created via link:https://docs.oracle.com/javaee/7/api/javax/xml/ws/Service.html[`javax.xml.ws.Service`]
  inherently support context propagation as they are using `HttpUrlConnection` underneath.
 |1.4.0
+
+|AsyncHttpClient
+| 2.x
+|
+| 1.7.0
 
 |===
 

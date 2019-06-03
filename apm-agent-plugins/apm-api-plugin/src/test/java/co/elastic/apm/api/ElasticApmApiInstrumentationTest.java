@@ -195,6 +195,25 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testAddCustomContext() {
+        Transaction transaction = ElasticApm.startTransaction();
+        transaction.setName("foo");
+        transaction.setType("bar");
+        transaction.addCustomContext("foo1", "bar1");
+        transaction.addCustomContext("foo", "bar");
+        transaction.addCustomContext("number", 1);
+        transaction.addCustomContext("boolean", true);
+        transaction.addCustomContext("null", (String) null);
+        transaction.end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("foo1")).isEqualTo("bar1");
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("number")).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("boolean")).isEqualTo(true);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("null")).isNull();
+    }
+
+    @Test
     void testScopes() {
         Transaction transaction = ElasticApm.startTransaction();
         try (co.elastic.apm.api.Scope scope = transaction.activate()) {

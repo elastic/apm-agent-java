@@ -208,9 +208,27 @@ public class Transaction extends AbstractSpan<Transaction> {
         return type;
     }
 
+    public void addCustomContext(String key, String value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
+    public void addCustomContext(String key, Number value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
+    public void addCustomContext(String key, Boolean value) {
+        if (isSampled()) {
+            getContext().addCustom(key, value);
+        }
+    }
+
     @Override
     public String toString() {
-        return String.format("'%s' %s", name, traceContext);
+        return String.format("'%s' %s (%s)", name, traceContext, Integer.toHexString(System.identityHashCode(this)));
     }
 
     @Override
@@ -220,7 +238,9 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     public void decrementReferences() {
         final int referenceCount = this.references.decrementAndGet();
-        logger.trace("decrement references to {} ({})", this, referenceCount);
+        if (logger.isTraceEnabled()) {
+            logger.trace("decrement references to {} ({})", this, referenceCount);
+        }
         if (referenceCount == 0) {
             tracer.recycle(this);
         }

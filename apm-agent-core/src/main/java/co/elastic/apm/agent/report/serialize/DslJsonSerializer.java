@@ -69,6 +69,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -160,10 +161,29 @@ public class DslJsonSerializer implements PayloadSerializer {
         jw.writeByte(COMMA);
         serializeProcess(metaData.getProcess());
         jw.writeByte(COMMA);
+        serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(NEW_LINE);
+    }
+
+    private void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues) {
+        if (!globalLabelKeys.isEmpty()) {
+            writeFieldName("labels");
+            jw.writeByte(OBJECT_START);
+            writeStringValue(sanitizeLabelKey(globalLabelKeys.get(0), replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+            writeStringValue(globalLabelValues.get(0), replaceBuilder, jw);
+            for (int i = 0; i < globalLabelKeys.size(); i++) {
+                jw.writeByte(COMMA);
+                writeStringValue(sanitizeLabelKey(globalLabelKeys.get(i), replaceBuilder), replaceBuilder, jw);
+                jw.writeByte(JsonWriter.SEMI);
+                writeStringValue(globalLabelValues.get(i), replaceBuilder, jw);
+            }
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
     }
 
     @Override
@@ -369,6 +389,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         writeFieldName("agent");
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("name", agent.getName());
+        writeField("ephemeral_id", agent.getEphemeralId());
         writeLastField("version", agent.getVersion());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);
@@ -721,6 +742,11 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
+        if (context.hasCustom()) {
+            writeFieldName("custom");
+            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true);
+            jw.writeByte(COMMA);
+        }
         writeFieldName("tags");
         serializeLabels(context);
         jw.writeByte(OBJECT_END);
@@ -730,26 +756,31 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeLabels(context.getLabelIterator(), replaceBuilder, jw);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false);
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
         }
     }
 
-    private static void serializeLabels(Iterator<? extends Map.Entry<String, ?>> it, StringBuilder replaceBuilder, JsonWriter jw) {
+    static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
+        serializeStringKeyScalarValueMap(iterator, replaceBuilder, jw, false);
+    }
+
+    private static void serializeStringKeyScalarValueMap(Iterator<? extends Map.Entry<String, ? /* String|Number|Boolean */>> it,
+                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit) {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
             writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeLabelValue(replaceBuilder, jw, kv.getValue());
+            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
                 writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeLabelValue(replaceBuilder, jw, kv.getValue());
+                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
             }
         }
         jw.writeByte(OBJECT_END);
@@ -789,13 +820,17 @@ public class DslJsonSerializer implements PayloadSerializer {
             }
             writeStringValue(sanitizeLabelKey(labels.getKey(i), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeLabelValue(replaceBuilder, jw, labels.getValue(i));
+            serializeScalarValue(replaceBuilder, jw, labels.getValue(i), false);
         }
     }
 
-    private static void serializeLabelValue(StringBuilder replaceBuilder, JsonWriter jw, Object value) {
+    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit) {
         if (value instanceof String) {
-            writeStringValue((String) value, replaceBuilder, jw);
+            if (extendedStringLimit) {
+                writeLongStringValue((String) value, replaceBuilder, jw);
+            } else {
+                writeStringValue((String) value, replaceBuilder, jw);
+            }
         } else if (value instanceof Number) {
             NumberConverter.serialize(((Number) value).doubleValue(), jw);
         } else if (value instanceof Boolean) {
@@ -1000,7 +1035,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         }
     }
 
-    private void writeLongStringBuilderValue(StringBuilder value) {
+    private static void writeLongStringBuilderValue(StringBuilder value, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             value.setLength(MAX_LONG_STRING_VALUE_LENGTH - 1);
             value.append('…');
@@ -1009,10 +1044,14 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     private void writeLongStringValue(String value) {
+        writeLongStringValue(value, replaceBuilder, jw);
+    }
+
+    private static void writeLongStringValue(String value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
-            writeLongStringBuilderValue(replaceBuilder);
+            writeLongStringBuilderValue(replaceBuilder, jw);
         } else {
             jw.writeString(value);
         }

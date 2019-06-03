@@ -75,7 +75,7 @@ public class ReporterFactory {
             processInformation.getArgv().clear();
         }
         return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
-            processorEventHandler, payloadSerializer);
+            processorEventHandler, payloadSerializer, configurationRegistry.getConfig(CoreConfiguration.class).getGlobalLabels());
     }
 
     private String getUserAgent() {

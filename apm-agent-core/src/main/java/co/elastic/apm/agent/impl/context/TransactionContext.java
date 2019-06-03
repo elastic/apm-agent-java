@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.context;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,7 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TransactionContext extends AbstractContext {
 
     /**
-     * An arbitrary mapping of additional metadata to store with the event.
+     * A flat mapping of user-defined {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values
+     * <p>
+     * In contrast to {@link #labels} these are not indexed in Elasticsearch
+     * </p>
      */
     private final Map<String, Object> custom = new ConcurrentHashMap<>();
     private final Response response = new Response();
@@ -60,15 +64,32 @@ public class TransactionContext extends AbstractContext {
         user.copyFrom(other.user);
     }
 
-    /**
-     * An arbitrary mapping of additional metadata to store with the event.
-     */
-    public Map<String, Object> getCustom() {
-        return custom;
+    public Object getCustom(String key) {
+        return custom.get(key);
     }
 
     public Response getResponse() {
         return response;
+    }
+
+    public void addCustom(String key, String value) {
+        custom.put(key, value);
+    }
+
+    public void addCustom(String key, Number value) {
+        custom.put(key, value);
+    }
+
+    public void addCustom(String key, boolean value) {
+        custom.put(key, value);
+    }
+
+    public boolean hasCustom() {
+        return !custom.isEmpty();
+    }
+
+    public Iterator<? extends Map.Entry<String, ?>> getCustomIterator() {
+        return custom.entrySet().iterator();
     }
 
     /**
