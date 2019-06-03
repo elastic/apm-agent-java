@@ -77,7 +77,8 @@ class MetricSetSerializationTest {
         final MetricSet metricSet = new MetricSet(Labels.Mutable.of("foo", "bar")
             .transactionName("foo")
             .transactionType("bar")
-            .spanType("baz"));
+            .spanType("baz")
+            .spanSubType("qux"));
         metricSet.timer("foo.bar").update(42);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
         final String metricSetAsString = jw.toString();
@@ -90,6 +91,7 @@ class MetricSetSerializationTest {
         assertThat(metricset.get("transaction").get("name").textValue()).isEqualTo("foo");
         assertThat(metricset.get("transaction").get("type").textValue()).isEqualTo("bar");
         assertThat(metricset.get("span").get("type").textValue()).isEqualTo("baz");
+        assertThat(metricset.get("span").get("subtype").textValue()).isEqualTo("qux");
         assertThat(metricset.get("samples").get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
     }
 

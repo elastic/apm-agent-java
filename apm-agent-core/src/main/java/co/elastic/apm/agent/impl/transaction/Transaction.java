@@ -58,7 +58,7 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
-    private final KeyListConcurrentHashMap<String, Timer> spanTimings = new KeyListConcurrentHashMap<>();
+    private final KeyListConcurrentHashMap<Labels, Timer> spanTimings = new KeyListConcurrentHashMap<>();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
@@ -169,7 +169,7 @@ public class Transaction extends AbstractSpan<Transaction> {
             type = "custom";
         }
         context.onTransactionEnd();
-        incrementTimer("app", getSelfDuration());
+        incrementTimer("app", null, getSelfDuration());
         trackMetrics();
         this.tracer.endTransaction(this);
     }
@@ -178,7 +178,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
-    public KeyListConcurrentHashMap<String, Timer> getSpanTimings() {
+    public KeyListConcurrentHashMap<Labels, Timer> getSpanTimings() {
         return spanTimings;
     }
 
@@ -246,12 +246,14 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
     }
 
-    void incrementTimer(@Nullable String type, long duration) {
+    void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
         if (type != null && !finished) {
-            Timer timer = spanTimings.get(type);
+            final Labels.Mutable spanType = labelsThreadLocal.get();
+            spanType.resetState();
+            Timer timer = spanTimings.get(spanType.spanType(type).spanSubType(subtype));
             if (timer == null) {
                 timer = new Timer();
-                Timer racyTimer = spanTimings.putIfAbsent(type, timer);
+                Timer racyTimer = spanTimings.putIfAbsent(spanType.immutableCopy(), timer);
                 if (racyTimer != null) {
                     timer = racyTimer;
                 }
@@ -273,13 +275,14 @@ public class Transaction extends AbstractSpan<Transaction> {
         final Labels.Mutable labels = labelsThreadLocal.get();
         labels.resetState();
         labels.transactionName(name).transactionType(type);
-        final KeyListConcurrentHashMap<String, Timer> spanTimings = getSpanTimings();
-        List<String> keyList = spanTimings.keyList();
+        final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
+        List<Labels> keyList = spanTimings.keyList();
         for (int i = 0; i < keyList.size(); i++) {
-            String spanType = keyList.get(i);
+            Labels spanType = keyList.get(i);
             final Timer timer = spanTimings.get(spanType);
             if (timer.getCount() > 0) {
-                tracer.getMetricRegistry().timer("span.self_time", labels.spanType(spanType)).update(timer.getTotalTimeUs(), timer.getCount());
+                labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
+                tracer.getMetricRegistry().timer("span.self_time", labels).update(timer.getTotalTimeUs(), timer.getCount());
                 timer.resetState();
             }
         }

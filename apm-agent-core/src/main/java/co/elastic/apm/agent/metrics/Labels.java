@@ -44,6 +44,9 @@ public interface Labels {
     @Nullable
     String getSpanType();
 
+    @Nullable
+    String getSpanSubType();
+
     List<String> getKeys();
 
     List<CharSequence> getValues();
@@ -57,6 +60,8 @@ public interface Labels {
     CharSequence getValue(int i);
 
     Labels.Immutable immutableCopy();
+
+    Labels.Mutable mutableCopy();
 
     abstract class AbstractBase implements Labels {
         protected final List<String> keys;
@@ -178,6 +183,21 @@ public interface Labels {
             }
             return h;
         }
+
+        @Override
+        public Mutable mutableCopy() {
+            final Mutable copy = Mutable.of()
+                .transactionName(getTransactionName())
+                .transactionType(getTransactionType())
+                .spanType(getSpanType());
+            List<String> keys = getKeys();
+            List<CharSequence> values = getValues();
+            for (int i = 0; i < keys.size(); i++) {
+                copy.add(keys.get(i), values.get(i));
+            }
+            return copy;
+        }
+
     }
 
     class Mutable extends AbstractBase implements Recyclable {
@@ -188,6 +208,8 @@ public interface Labels {
         private String transactionType;
         @Nullable
         private String spanType;
+        @Nullable
+        private String spanSubType;
 
         private Mutable() {
             this(Collections.<String>emptyList(), Collections.<CharSequence>emptyList());
@@ -238,6 +260,11 @@ public interface Labels {
             return this;
         }
 
+        public Labels.Mutable spanSubType(@Nullable String subtype) {
+            this.spanSubType = subtype;
+            return this;
+        }
+
         @Nullable
         public CharSequence getTransactionName() {
             return transactionName;
@@ -251,6 +278,12 @@ public interface Labels {
         @Nullable
         public String getSpanType() {
             return spanType;
+        }
+
+        @Override
+        @Nullable
+        public String getSpanSubType() {
+            return spanSubType;
         }
 
         public Labels.Immutable immutableCopy() {
@@ -285,6 +318,8 @@ public interface Labels {
         private final String transactionType;
         @Nullable
         private final String spanType;
+        @Nullable
+        private final String spanSubType;
 
         public Immutable(Labels labels) {
             super(new ArrayList<>(labels.getKeys()), copy(labels.getValues()));
@@ -292,6 +327,7 @@ public interface Labels {
             this.transactionName = transactionName != null ? transactionName.toString() : null;
             this.transactionType = labels.getTransactionType();
             this.spanType = labels.getSpanType();
+            this.spanSubType = labels.getSpanSubType();
             this.hash = labels.hashCode();
         }
 
@@ -328,6 +364,12 @@ public interface Labels {
         @Override
         public String getSpanType() {
             return spanType;
+        }
+
+        @Override
+        @Nullable
+        public String getSpanSubType() {
+            return spanSubType;
         }
 
         @Override

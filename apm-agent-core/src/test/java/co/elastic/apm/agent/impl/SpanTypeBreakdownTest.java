@@ -73,9 +73,9 @@ class SpanTypeBreakdownTest {
             .withName("test")
             .withType("request")
             .end(30);
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(30);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
     }
 
@@ -89,15 +89,15 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        transaction.createSpan(10).withType("db").end(20);
+        transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
@@ -113,9 +113,9 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("app").end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(30);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
     }
 
@@ -130,18 +130,18 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        final Span span1 = transaction.createSpan(10).withType("db");
-        final Span span2 = transaction.createSpan(10).withType("db");
+        final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
+        final Span span2 = transaction.createSpan(10).withType("db").withSubtype("mysql");
         span1.end(20);
         span2.end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
@@ -155,18 +155,18 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        final Span span1 = transaction.createSpan(10).withType("db");
-        final Span span2 = transaction.createSpan(15).withType("db");
+        final Span span1 = transaction.createSpan(10).withType("db").withSubtype("mysql");
+        final Span span2 = transaction.createSpan(15).withType("db").withSubtype("mysql");
         span1.end(20);
         span2.end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(15);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(15);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
@@ -180,16 +180,16 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        transaction.createSpan(5).withType("db").end(15);
-        transaction.createSpan(15).withType("db").end(25);
+        transaction.createSpan(5).withType("db").withSubtype("mysql").end(15);
+        transaction.createSpan(15).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
     }
 
     /*
@@ -203,16 +203,16 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        transaction.createSpan(10).withType("db").end(15);
-        transaction.createSpan(20).withType("db").end(25);
+        transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
+        transaction.createSpan(20).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
@@ -227,17 +227,17 @@ class SpanTypeBreakdownTest {
             .withName("test")
             .withType("request");
         final Span app = transaction.createSpan(10).withType("app");
-        final Span db = app.createSpan(15).withType("db");
+        final Span db = app.createSpan(15).withType("db").withSubtype("mysql");
         app.end(20);
         db.end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(25);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(30);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(2);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(25);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "db").getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
     }
 
     /*
@@ -257,7 +257,7 @@ class SpanTypeBreakdownTest {
         final Span app = transaction.createSpan(10).withType("app");
         transaction.end(20);
         reporter.decrementReferences();
-        final Span db = app.createSpan(20).withType("db");
+        final Span db = app.createSpan(20).withType("db").withSubtype("mysql");
         app.end(30);
         db.end(30);
 
@@ -270,11 +270,11 @@ class SpanTypeBreakdownTest {
         assertThat(app.isReferenced()).isFalse();
         assertThat(db.isReferenced()).isFalse();
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(0);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
     }
 
     /*
@@ -290,19 +290,19 @@ class SpanTypeBreakdownTest {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
             .withName("test")
             .withType("request");
-        final Span span = transaction.createSpan(10).withType("db");
+        final Span span = transaction.createSpan(10).withType("db").withSubtype("mysql");
         transaction.end(20);
         span.end(30);
 
         // recycled transactions should not leak child timings
         reporter.assertRecycledAfterDecrementingReferences();
-        assertThat(reporter.getFirstTransaction().getSpanTimings().get("db")).isNull();
+        assertThat(reporter.getFirstTransaction().getSpanTimings().get(Labels.Mutable.of().spanType("db").spanSubType("mysql"))).isNull();
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(20);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(0);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
     }
 
     /*
@@ -322,18 +322,18 @@ class SpanTypeBreakdownTest {
             final TraceContextHolder<?> active = tracer.getActive();
             assertThat(active).isSameAs(transaction);
             assertThat(transaction.getTraceContext().getId().isEmpty()).isFalse();
-            active.createSpan(20).withType("db").end(30);
+            active.createSpan(20).withType("db").withSubtype("mysql").end(30);
         });
         transaction.end(10);
         runnable.run();
 
         reporter.assertRecycledAfterDecrementingReferences();
 
-        assertThat(getTimer("span.self_time", "app").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app").getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null).getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
+        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(10);
         assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db").getCount()).isEqualTo(0);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
     }
 
     private void assertThatTransactionBreakdownCounterCreated() {
@@ -341,7 +341,7 @@ class SpanTypeBreakdownTest {
     }
 
     @Nonnull
-    private Timer getTimer(String timerName, @Nullable String spanType) {
+    private Timer getTimer(String timerName, @Nullable String spanType, @Nullable String spanSubType) {
         return tracer.getMetricRegistry().timer(timerName, Labels.Mutable.of().transactionName("test").transactionType("request").spanType(spanType));
     }
 }

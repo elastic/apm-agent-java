@@ -206,7 +206,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             type = "custom";
         }
         if (transaction != null) {
-            transaction.incrementTimer(getType(), getSelfDuration());
+            transaction.incrementTimer(getType(), subtype, getSelfDuration());
         }
         if (parent != null) {
             parent.decrementReferences();

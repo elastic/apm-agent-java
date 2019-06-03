@@ -797,10 +797,11 @@ public class DslJsonSerializer implements PayloadSerializer {
                 jw.writeByte(COMMA);
             }
 
-            if (labels.getSpanType() != null) {
+            if (labels.getSpanType() != null || labels.getSpanSubType() != null) {
                 writeFieldName("span", jw);
                 jw.writeByte(OBJECT_START);
-                writeLastField("type", labels.getSpanType(), replaceBuilder, jw);
+                writeField("type", labels.getSpanType(), replaceBuilder, jw);
+                writeLastField("subtype", labels.getSpanSubType(), replaceBuilder, jw);
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
             }
