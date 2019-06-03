@@ -331,10 +331,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
     private <Req, Res> Res invokeAsync(Req request, ClientMethod<Req, Res> method) throws InterruptedException, ExecutionException {
         final CompletableFuture<Res> resultFuture = new CompletableFuture<>();
-        method.invoke(request, RequestOptions.DEFAULT, new ActionListener<>() {
+        method.invoke(request, RequestOptions.DEFAULT, new ActionListener<Res>() {
             @Override
-            public void onResponse(Res response) {
-                resultFuture.complete(response);
+            public void onResponse(Res o) {
+                resultFuture.complete(o);
             }
 
             @Override

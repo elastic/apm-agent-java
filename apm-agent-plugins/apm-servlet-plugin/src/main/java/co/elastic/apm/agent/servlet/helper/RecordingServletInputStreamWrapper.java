@@ -95,17 +95,6 @@ public class RecordingServletInputStreamWrapper extends ServletInputStream {
         }
     }
 
-    @Override
-    public byte[] readAllBytes() throws IOException {
-        try {
-            final byte[] bytes = servletInputStream.readAllBytes();
-            decode(bytes, 0, bytes.length);
-            return bytes;
-        } catch (IOException e) {
-            request.endOfBufferInput();
-            throw e;
-        }
-    }
 
     @Override
     public void close() throws IOException {

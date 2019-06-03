@@ -25,6 +25,7 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.opentracing.Scope;
@@ -32,9 +33,8 @@ import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.log.Fields;
-import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMapExtractAdapter;
-import io.opentracing.propagation.TextMapInjectAdapter;
+import io.opentracing.propagation.*;
+import io.opentracing.propagation.Format.Builtin;
 import io.opentracing.tag.Tags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -338,15 +338,48 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testx() {
+        final String traceIdString = "0af7651916cd43dd8448eb211c80319c";
+        final String parentIdString = "b9c7c989f97918e1";
+
+        // --------------------------------------------------------
+        final Id traceId = Id.new128BitId();
+        traceId.fromHexString(traceIdString, 0);
+        assertThat(traceId.toString()).isEqualTo(traceIdString);
+        // --------------------------------------------------------
+        final Id spandId = Id.new64BitId();
+        spandId.fromHexString(parentIdString, 0);
+        assertThat(spandId.toString()).isEqualTo(parentIdString);
+        // --------------------------------------------------------
+
+        TextMap textMapExtractAdapter = new TextMapAdapter(Map.of(
+            TraceContext.TRACE_PARENT_HEADER,
+            "00-" + traceIdString + "-" + parentIdString + "-01",
+            "User-Agent", "curl"));
+        //ExternalProcessSpanContext
+        SpanContext spanContext = apmTracer.extract(Format.Builtin.TEXT_MAP, textMapExtractAdapter);
+
+        assertThat(spanContext.toTraceId()).isEqualTo(traceIdString);
+        assertThat(spanContext.toSpanId()).isEqualTo(parentIdString);
+    }
+
+    @Test
     void testInjectExtract() {
         final String traceId = "0af7651916cd43dd8448eb211c80319c";
         final String parentId = "b9c7c989f97918e1";
 
+        TextMap textMapExtractAdapter = new TextMapAdapter(Map.of(
+            TraceContext.TRACE_PARENT_HEADER,
+            "00-" + traceId + "-" + parentId + "-01",
+            "User-Agent", "curl"));
+
+
+        //ExternalProcessSpanContext
+        SpanContext spanContext = apmTracer.extract(Format.Builtin.TEXT_MAP, textMapExtractAdapter);
+
+
         final Scope scope = apmTracer.buildSpan("span")
-            .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
-                new TextMapExtractAdapter(Map.of(
-                    TraceContext.TRACE_PARENT_HEADER, "00-" + traceId + "-" + parentId + "-01",
-                    "User-Agent", "curl"))))
+            .asChildOf(spanContext)
             .startActive(true);
         assertThat(tracer.currentTransaction()).isNotNull();
         assertThat(tracer.currentTransaction().isSampled()).isTrue();
@@ -354,8 +387,15 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(tracer.currentTransaction().getTraceContext().getParentId().toString()).isEqualTo(parentId);
         assertThat(scope.span().getBaggageItem("User-Agent")).isNull();
 
+        assertThat(apmTracer.activeSpan().context().toTraceId()).isEqualTo(traceId);
+        assertThat(apmTracer.activeSpan().context().toSpanId()).isEqualTo(tracer.currentTransaction().getTraceContext().getId().toString());
+
         final HashMap<String, String> map = new HashMap<>();
-        apmTracer.inject(scope.span().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(map));
+        TextMap textMapInjectAdapter = new TextMapAdapter(map);
+        apmTracer.inject(
+            scope.span().context(),
+            Builtin.TEXT_MAP,
+            textMapInjectAdapter);
         final TraceContext injectedContext = TraceContext.with64BitId(tracer);
         assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER))).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);

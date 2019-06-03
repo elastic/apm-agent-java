@@ -26,6 +26,7 @@ package co.elastic.apm.opentracing;
 
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
+import io.opentracing.tag.Tag;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -75,6 +76,12 @@ class ApmSpan implements Span {
     @Override
     public ApmSpan setTag(String key, Number value) {
         handleTag(key, value);
+        return this;
+    }
+
+    @Override
+    public <T> Span setTag(Tag<T> tag, T value) {
+        handleTag(tag.getKey(), value);
         return this;
     }
 

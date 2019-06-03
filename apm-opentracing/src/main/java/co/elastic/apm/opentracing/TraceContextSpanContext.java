@@ -39,6 +39,16 @@ public class TraceContextSpanContext implements ApmSpanContext {
     }
 
     @Override
+    public String toTraceId() {
+        return null;
+    }
+
+    @Override
+    public String toSpanId() {
+        return null;
+    }
+
+    @Override
     public Iterable<Map.Entry<String, String>> baggageItems() {
         return Collections.emptyList();
     }

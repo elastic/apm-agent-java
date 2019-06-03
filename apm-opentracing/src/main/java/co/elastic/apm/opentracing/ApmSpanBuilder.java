@@ -28,6 +28,7 @@ import io.opentracing.References;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.tag.Tag;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -97,6 +98,12 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     public ApmSpanBuilder withTag(String key, Number value) {
         tags.put(key, value);
         return this;
+    }
+
+    @Override
+    public <T> Tracer.SpanBuilder withTag(Tag<T> tag, T value) {
+        tags.put(tag.getKey(), value);
+        return null;
     }
 
     @Override

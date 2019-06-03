@@ -5,7 +5,7 @@
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
- * license agreements. See the NOTICE file distributed with
+TracingClientTracingClientTracingClient * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
  * ownership. Elasticsearch B.V. licenses this file to you under
  * the Apache License, Version 2.0 (the "License"); you may
@@ -38,6 +38,16 @@ class ExternalProcessSpanContext implements ApmSpanContext {
 
     static ExternalProcessSpanContext of(TextMap textMap) {
         return new ExternalProcessSpanContext(textMap);
+    }
+
+    @Override
+    public String toTraceId() {
+        return null;
+    }
+
+    @Override
+    public String toSpanId() {
+        return null;
     }
 
     @Override

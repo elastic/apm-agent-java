@@ -40,7 +40,7 @@
     </developers>
 
     <properties>
-        <maven.compiler.target>7</maven.compiler.target>
+        <maven.compiler.target>9</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <animal.sniffer.skip>false</animal.sniffer.skip>
         <!--

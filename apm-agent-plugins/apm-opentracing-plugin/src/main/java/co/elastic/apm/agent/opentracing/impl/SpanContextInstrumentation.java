@@ -31,6 +31,8 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -39,6 +41,15 @@ import java.util.Map;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(SpanContextInstrumentation.class);
+
+    private final ElementMatcher<? super MethodDescription> methodMatcher;
+
+    public SpanContextInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
+        this.methodMatcher = methodMatcher;
+    }
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("co.elastic.apm.opentracing.TraceContextSpanContext");
@@ -46,19 +57,72 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("baggageItems");
+        return methodMatcher;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
-                                    @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
-        if (traceContext != null) {
-            baggage = doGetBaggage(traceContext);
+
+    public static class BaggageItemsInstrumentation extends SpanContextInstrumentation {
+
+        public BaggageItemsInstrumentation() {
+            super(named("baggageItems"));
+        }
+
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void baggageItems(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
+                                        @Advice.Return(readOnly = false) Iterable<Map.Entry<String, String>> baggage) {
+            if (traceContext != null) {
+                baggage = doGetBaggage(traceContext);
+            } else {
+                logger.info("The traceContext is null");
+            }
+        }
+
+        @VisibleForAdvice
+        public static Iterable<Map.Entry<String, String>> doGetBaggage(TraceContext traceContext) {
+            return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceContext.getOutgoingTraceParentHeader().toString()).entrySet();
         }
     }
 
-    @VisibleForAdvice
-    public static Iterable<Map.Entry<String, String>> doGetBaggage(TraceContext traceContext) {
-        return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceContext.getOutgoingTraceParentHeader().toString()).entrySet();
+    public static class ToTraceIdInstrumentation extends SpanContextInstrumentation {
+
+        public ToTraceIdInstrumentation() {
+            super(named("toTraceId"));
+        }
+
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
+                                     @Advice.Return(readOnly = false) String traceId) {
+            if (traceContext != null) {
+                traceId = doGetTraceId(traceContext);
+            }
+        }
+
+        @VisibleForAdvice
+        public static String doGetTraceId(TraceContext traceContext) {
+            return traceContext.getTraceId().toString();
+        }
+    }
+
+    public static class ToSpanIdInstrumentation extends SpanContextInstrumentation {
+
+        public ToSpanIdInstrumentation() {
+            super(named("toSpanId"));
+        }
+
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
+                                     @Advice.Return(readOnly = false) String spanId) {
+            if (traceContext != null) {
+                spanId = doGetSpanId(traceContext);
+            }
+        }
+
+        @VisibleForAdvice
+        public static String doGetSpanId(TraceContext traceContext) {
+            return traceContext.getTransactionId().toString();
+        }
     }
 }
