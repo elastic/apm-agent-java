@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,232 +33,307 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class Labels implements Recyclable {
+public interface Labels {
 
-    private static final Labels EMPTY = Labels.of().immutableCopy();
-    private final List<String> keys = new ArrayList<>();
-    private final List<CharSequence> values = new ArrayList<>();
-    private final boolean immutable;
     @Nullable
-    private CharSequence transactionName;
+    CharSequence getTransactionName();
+
     @Nullable
-    private String transactionType;
+    String getTransactionType();
+
     @Nullable
-    private String spanType;
-    private int cachedHash;
+    String getSpanType();
 
-    public Labels() {
-        this(Collections.<String>emptyList(), Collections.<CharSequence>emptyList(), false);
-    }
+    List<String> getKeys();
 
-    private Labels(List<String> keys, List<? extends CharSequence> values, boolean immutable) {
-        this.keys.addAll(keys);
-        this.values.addAll(values);
-        this.immutable = immutable;
-    }
+    List<CharSequence> getValues();
 
-    public static Labels of() {
-        return new Labels();
-    }
+    boolean isEmpty();
 
-    public static Labels of(String key, CharSequence value) {
-        final Labels labels = new Labels();
-        labels.add(key, value);
-        return labels;
-    }
+    int size();
 
-    public static Labels of(Map<String, ? extends CharSequence> labelMap) {
-        Labels labels = new Labels();
-        for (Map.Entry<String, ? extends CharSequence> entry : labelMap.entrySet()) {
-            labels.add(entry.getKey(), entry.getValue());
+    String getKey(int i);
+
+    CharSequence getValue(int i);
+
+    Labels.Immutable immutableCopy();
+
+    abstract class AbstractBase implements Labels {
+        protected final List<String> keys;
+        protected final List<CharSequence> values;
+
+        AbstractBase(List<String> keys, List<CharSequence> values) {
+            this.keys = keys;
+            this.values = values;
         }
-        return labels;
-    }
 
-    public static Labels empty() {
-        return EMPTY;
-    }
-
-    public Labels add(String key, CharSequence value) {
-        assertMutable();
-        keys.add(key);
-        values.add(value);
-        return this;
-    }
-
-    public Labels transactionName(@Nullable CharSequence transactionName) {
-        assertMutable();
-        this.transactionName = transactionName;
-        return this;
-    }
-
-    public Labels transactionType(@Nullable String transactionType) {
-        assertMutable();
-        this.transactionType = transactionType;
-        return this;
-    }
-
-    public Labels spanType(@Nullable String spanType) {
-        assertMutable();
-        this.spanType = spanType;
-        return this;
-    }
-
-    private void assertMutable() {
-        if (immutable) {
-            throw new UnsupportedOperationException("This Labels instance is immutable");
+        public List<String> getKeys() {
+            return keys;
         }
-    }
 
-    @Nullable
-    public CharSequence getTransactionName() {
-        return transactionName;
-    }
-
-    @Nullable
-    public String getTransactionType() {
-        return transactionType;
-    }
-
-    @Nullable
-    public String getSpanType() {
-        return spanType;
-    }
-
-    public Labels immutableCopy() {
-        List<String> immutableValues = new ArrayList<>(values.size());
-        for (int i = 0; i < keys.size(); i++) {
-            immutableValues.add(values.get(i).toString());
+        public List<CharSequence> getValues() {
+            return values;
         }
-        final Labels labels = new Labels(keys, immutableValues, true);
-        labels.transactionName = this.transactionName != null ? this.transactionName.toString() : null;
-        labels.transactionType = this.transactionType;
-        labels.spanType = this.spanType;
-        labels.cachedHash = labels.hashCode();
-        return labels;
-    }
 
-    public List<String> getKeys() {
-        return keys;
-    }
-
-    public List<CharSequence> getValues() {
-        return values;
-    }
-
-    public boolean isEmpty() {
-        return keys.isEmpty() && transactionName == null && transactionType == null && spanType == null;
-    }
-
-    public int size() {
-        return keys.size();
-    }
-
-    public String getKey(int i) {
-        return keys.get(i);
-    }
-
-    public CharSequence getValue(int i) {
-        return values.get(i);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Labels labels = (Labels) o;
-        return Objects.equals(spanType, labels.spanType) &&
-            Objects.equals(transactionType, labels.transactionType) &&
-            contentEquals(transactionName, labels.transactionName) &&
-            keys.equals(labels.keys) &&
-            isEqual(values, labels.values);
-    }
-
-    @Override
-    public int hashCode() {
-        if (cachedHash != 0) {
-            return cachedHash;
+        public boolean isEmpty() {
+            return keys.isEmpty() && getTransactionName() == null && getTransactionType() == null && getSpanType() == null;
         }
-        int h = 0;
-        for (int i = 0; i < values.size(); i++) {
-            h = 31 * h + hash(i);
-        }
-        h = 31 * h + hash(transactionName);
-        h = 31 * h + (transactionType != null ? transactionType.hashCode() : 0);
-        h = 31 * h + (spanType != null ? spanType.hashCode() : 0);
-        return h;
-    }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < keys.size(); i++) {
-            if (i > 0) {
-                sb.append(", ");
+        public int size() {
+            return keys.size();
+        }
+
+        public String getKey(int i) {
+            return keys.get(i);
+        }
+
+        public CharSequence getValue(int i) {
+            return values.get(i);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Labels)) return false;
+            AbstractBase labels = (AbstractBase) o;
+            return Objects.equals(getSpanType(), labels.getSpanType()) &&
+                Objects.equals(getTransactionType(), labels.getTransactionType()) &&
+                contentEquals(getTransactionName(), labels.getTransactionName()) &&
+                keys.equals(labels.keys) &&
+                isEqual(values, labels.values);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = 0;
+            for (int i = 0; i < values.size(); i++) {
+                h = 31 * h + hashEntryAt(i);
             }
-            sb.append(keys.get(i)).append("=").append(values.get(i));
-
+            h = 31 * h + hash(getTransactionName());
+            h = 31 * h + (getTransactionType() != null ? getTransactionType().hashCode() : 0);
+            h = 31 * h + (getSpanType() != null ? getSpanType().hashCode() : 0);
+            return h;
         }
-        return sb.toString();
-    }
 
-    private int hash(int i) {
-        return keys.get(i).hashCode() * 31 + hash(values.get(i));
-    }
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < keys.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append(keys.get(i)).append("=").append(values.get(i));
 
-    private static boolean isEqual(List<CharSequence> values, List<CharSequence> otherValues) {
-        if (values.size() != otherValues.size()) {
-            return false;
+            }
+            return sb.toString();
         }
-        for (int i = 0; i < values.size(); i++) {
-            if (!contentEquals(values.get(i), otherValues.get(i))) {
+
+        private int hashEntryAt(int i) {
+            return keys.get(i).hashCode() * 31 + hash(values.get(i));
+        }
+
+        private static boolean isEqual(List<CharSequence> values, List<CharSequence> otherValues) {
+            if (values.size() != otherValues.size()) {
                 return false;
             }
-        }
-        return true;
-    }
-
-    private static boolean contentEquals(@Nullable CharSequence cs1, @Nullable CharSequence cs2) {
-        if (cs1 == null || cs2 == null) {
-            return cs1 == cs2;
-        }
-        if (cs1 instanceof String) {
-            return ((String) cs1).contentEquals(cs2);
-        } else if (cs2 instanceof String) {
-            return ((String) cs2).contentEquals(cs1);
-        } else {
-            if (cs1.length() == cs2.length()) {
-                for (int i = 0; i < cs1.length(); i++) {
-                    if (cs1.charAt(i) != cs2.charAt(i)) {
-                        return false;
-                    }
+            for (int i = 0; i < values.size(); i++) {
+                if (!contentEquals(values.get(i), otherValues.get(i))) {
+                    return false;
                 }
-                return true;
             }
+            return true;
         }
-        return false;
+
+        private static boolean contentEquals(@Nullable CharSequence cs1, @Nullable CharSequence cs2) {
+            if (cs1 == null || cs2 == null) {
+                return cs1 == cs2;
+            }
+            if (cs1 instanceof String) {
+                return ((String) cs1).contentEquals(cs2);
+            } else if (cs2 instanceof String) {
+                return ((String) cs2).contentEquals(cs1);
+            } else {
+                if (cs1.length() == cs2.length()) {
+                    for (int i = 0; i < cs1.length(); i++) {
+                        if (cs1.charAt(i) != cs2.charAt(i)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static int hash(@Nullable CharSequence cs) {
+            if (cs == null) {
+                return 0;
+            }
+            // this is safe as the hash code calculation is well defined
+            // (see javadoc for String.hashCode())
+            if (cs instanceof String) return cs.hashCode();
+            int h = 0;
+            for (int i = 0; i < cs.length(); i++) {
+                h = 31 * h + cs.charAt(i);
+            }
+            return h;
+        }
     }
 
-    static int hash(@Nullable CharSequence cs) {
-        if (cs == null) {
-            return 0;
+    class Mutable extends AbstractBase implements Recyclable {
+
+        @Nullable
+        private CharSequence transactionName;
+        @Nullable
+        private String transactionType;
+        @Nullable
+        private String spanType;
+
+        private Mutable() {
+            this(Collections.<String>emptyList(), Collections.<CharSequence>emptyList());
         }
-        // this is safe as the hash code calculation is well defined
-        // (see javadoc for String.hashCode())
-        if (cs instanceof String) return cs.hashCode();
-        int h = 0;
-        for (int i = 0; i < cs.length(); i++) {
-            h = 31 * h + cs.charAt(i);
+
+        private Mutable(List<String> keys, List<? extends CharSequence> values) {
+            super(new ArrayList<String>(), new ArrayList<CharSequence>());
+            this.keys.addAll(keys);
+            this.values.addAll(values);
         }
-        return h;
+
+        public static Mutable of() {
+            return new Mutable();
+        }
+
+        public static Mutable of(String key, CharSequence value) {
+            final Mutable labels = new Mutable();
+            labels.add(key, value);
+            return labels;
+        }
+
+        public static Mutable of(Map<String, ? extends CharSequence> labelMap) {
+            Mutable labels = new Mutable();
+            for (Map.Entry<String, ? extends CharSequence> entry : labelMap.entrySet()) {
+                labels.add(entry.getKey(), entry.getValue());
+            }
+            return labels;
+        }
+
+        public Labels add(String key, CharSequence value) {
+            keys.add(key);
+            values.add(value);
+            return this;
+        }
+
+        public Labels.Mutable transactionName(@Nullable CharSequence transactionName) {
+            this.transactionName = transactionName;
+            return this;
+        }
+
+        public Labels.Mutable transactionType(@Nullable String transactionType) {
+            this.transactionType = transactionType;
+            return this;
+        }
+
+        public Labels.Mutable spanType(@Nullable String spanType) {
+            this.spanType = spanType;
+            return this;
+        }
+
+        @Nullable
+        public CharSequence getTransactionName() {
+            return transactionName;
+        }
+
+        @Nullable
+        public String getTransactionType() {
+            return transactionType;
+        }
+
+        @Nullable
+        public String getSpanType() {
+            return spanType;
+        }
+
+        public Labels.Immutable immutableCopy() {
+            return new Immutable(this);
+        }
+
+        @Override
+        public void resetState() {
+            keys.clear();
+            values.clear();
+            transactionName = null;
+            transactionType = null;
+            spanType = null;
+        }
     }
 
-    @Override
-    public void resetState() {
-        keys.clear();
-        values.clear();
-        transactionName = null;
-        transactionType = null;
-        spanType = null;
+    /**
+     * An immutable implementation of the {@link Labels} interface
+     * <p>
+     * To publish a copy of {@link Mutable} in a thread-safe manner,
+     * all properties need to be final.
+     * That's why we can't share the exact same class.
+     * </p>
+     */
+    class Immutable extends AbstractBase {
+        private static final Labels.Immutable EMPTY = new Mutable().immutableCopy();
+
+        private final int hash;
+        @Nullable
+        private final String transactionName;
+        @Nullable
+        private final String transactionType;
+        @Nullable
+        private final String spanType;
+
+        public Immutable(Labels labels) {
+            super(new ArrayList<>(labels.getKeys()), copy(labels.getValues()));
+            final CharSequence transactionName = labels.getTransactionName();
+            this.transactionName = transactionName != null ? transactionName.toString() : null;
+            this.transactionType = labels.getTransactionType();
+            this.spanType = labels.getSpanType();
+            this.hash = labels.hashCode();
+        }
+
+        private static List<CharSequence> copy(List<CharSequence> values) {
+            List<CharSequence> immutableValues = new ArrayList<>(values.size());
+            for (int i = 0; i < values.size(); i++) {
+                immutableValues.add(values.get(i).toString());
+            }
+            return immutableValues;
+        }
+
+        public static Labels.Immutable empty() {
+            return EMPTY;
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Nullable
+        @Override
+        public String getTransactionName() {
+            return transactionName;
+        }
+
+        @Nullable
+        @Override
+        public String getTransactionType() {
+            return transactionType;
+        }
+
+        @Nullable
+        @Override
+        public String getSpanType() {
+            return spanType;
+        }
+
+        @Override
+        public Labels.Immutable immutableCopy() {
+            return this;
+        }
     }
+
 }

@@ -40,7 +40,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,21 +110,21 @@ public class SystemMetrics implements LifecycleListener {
     }
 
     void bindTo(MetricRegistry metricRegistry) {
-        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Labels.empty(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.cpu.total.norm.pct", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(systemCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Labels.empty(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.cpu.total.norm.pct", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(processCpuUsage);
             }
         });
 
-        metricRegistry.addUnlessNan("system.memory.total", Labels.empty(), new DoubleSupplier() {
+        metricRegistry.addUnlessNan("system.memory.total", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(totalMemory);
@@ -133,7 +132,7 @@ public class SystemMetrics implements LifecycleListener {
         });
 
         if (memInfoFile.canRead()) {
-            metricRegistry.addUnlessNan("system.memory.actual.free", Labels.empty(), new DoubleSupplier() {
+            metricRegistry.addUnlessNan("system.memory.actual.free", Labels.Immutable.empty(), new DoubleSupplier() {
                 final List<WildcardMatcher> relevantLines = Arrays.asList(
                     caseSensitiveMatcher("MemAvailable:*kB"),
                     caseSensitiveMatcher("MemFree:*kB"),
@@ -163,7 +162,7 @@ public class SystemMetrics implements LifecycleListener {
                 }
             });
         } else {
-            metricRegistry.addUnlessNan("system.memory.actual.free", Labels.empty(), new DoubleSupplier() {
+            metricRegistry.addUnlessNan("system.memory.actual.free", Labels.Immutable.empty(), new DoubleSupplier() {
                 @Override
                 public double get() {
                     return invoke(freeMemory);
@@ -171,7 +170,7 @@ public class SystemMetrics implements LifecycleListener {
             });
         }
 
-        metricRegistry.addUnlessNegative("system.process.memory.size", Labels.empty(), new DoubleSupplier() {
+        metricRegistry.addUnlessNegative("system.process.memory.size", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return invoke(virtualProcessMemory);

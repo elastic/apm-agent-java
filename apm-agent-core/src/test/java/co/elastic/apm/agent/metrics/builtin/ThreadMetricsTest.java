@@ -29,8 +29,6 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -43,7 +41,7 @@ class ThreadMetricsTest {
     @Test
     void testThreadCount() {
         threadMetrics.bindTo(registry);
-        double numThreads = registry.get("jvm.thread.count", Labels.empty());
+        double numThreads = registry.get("jvm.thread.count", Labels.Immutable.empty());
         assertThat(numThreads).isNotZero();
         for (int i = 0; i < NUM_ADDED_THREADS; i++) {
             Thread thread = new Thread(() -> {
@@ -57,6 +55,6 @@ class ThreadMetricsTest {
             thread.setDaemon(true);
             thread.start();
         }
-        assertThat(registry.get("jvm.thread.count", Labels.empty())).isEqualTo(numThreads + NUM_ADDED_THREADS);
+        assertThat(registry.get("jvm.thread.count", Labels.Immutable.empty())).isEqualTo(numThreads + NUM_ADDED_THREADS);
     }
 }

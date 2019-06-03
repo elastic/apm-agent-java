@@ -32,7 +32,6 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
-import java.util.Collections;
 
 public class ThreadMetrics implements LifecycleListener {
 
@@ -43,7 +42,7 @@ public class ThreadMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        registry.add("jvm.thread.count", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.thread.count", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return threadMXBean.getThreadCount();

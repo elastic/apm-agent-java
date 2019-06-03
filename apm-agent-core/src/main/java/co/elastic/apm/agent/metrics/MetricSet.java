@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * </pre>
  */
 public class MetricSet {
-    private final Labels labels;
+    private final Labels.Immutable labels;
     private final ConcurrentMap<String, DoubleSupplier> gauges = new ConcurrentHashMap<>();
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
     private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
@@ -52,8 +52,12 @@ public class MetricSet {
     private volatile boolean hasNonEmptyTimer;
     private volatile boolean hasNonEmptyCounter;
 
-    public MetricSet(Labels labels) {
+    public MetricSet(Labels.Immutable labels) {
         this.labels = labels;
+    }
+
+    public MetricSet(Labels.Mutable labels) {
+        this(labels.immutableCopy());
     }
 
     public void add(String name, DoubleSupplier metric) {

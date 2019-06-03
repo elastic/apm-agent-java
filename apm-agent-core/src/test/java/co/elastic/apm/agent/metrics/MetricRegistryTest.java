@@ -52,9 +52,9 @@ class MetricRegistryTest {
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };
-        metricRegistry.addUnlessNegative("jvm.gc.count", Labels.empty(), problematicMetric);
-        metricRegistry.addUnlessNan("jvm.gc.count", Labels.empty(), problematicMetric);
-        metricRegistry.add("jvm.gc.count", Labels.empty(), problematicMetric);
+        metricRegistry.addUnlessNegative("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
+        metricRegistry.addUnlessNan("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
+        metricRegistry.add("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
         assertThat(metricRegistry.getMetricSets()).isEmpty();
     }
 }

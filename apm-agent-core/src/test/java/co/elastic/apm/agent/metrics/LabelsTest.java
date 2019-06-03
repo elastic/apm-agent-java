@@ -33,62 +33,54 @@ class LabelsTest {
 
     @Test
     void testCharSequenceHash() {
-        assertThat(Labels.hash("foo")).isEqualTo(Labels.hash(new StringBuilder("foo")));
+        assertThat(Labels.Mutable.hash("foo")).isEqualTo(Labels.Mutable.hash(new StringBuilder("foo")));
     }
 
     @Test
     void testEqualsHashCode() {
         assertEqualsHashCode(
-            Labels.of("foo", "bar"),
-            Labels.of("foo", "bar"));
+            Labels.Mutable.of("foo", "bar"),
+            Labels.Mutable.of("foo", "bar"));
         assertEqualsHashCode(
-            Labels.of().transactionName("foo"),
-            Labels.of().transactionName("foo"));
+            Labels.Mutable.of().transactionName("foo"),
+            Labels.Mutable.of().transactionName("foo"));
         assertEqualsHashCode(
-            Labels.of().transactionName("foo"),
-            Labels.of().transactionName(new StringBuilder("foo")));
+            Labels.Mutable.of().transactionName("foo"),
+            Labels.Mutable.of().transactionName(new StringBuilder("foo")));
         assertEqualsHashCode(
-            Labels.of("foo", "bar"),
-            Labels.of("foo", new StringBuilder("bar")));
+            Labels.Mutable.of("foo", "bar"),
+            Labels.Mutable.of("foo", new StringBuilder("bar")));
         assertEqualsHashCode(
-            Labels.of("foo", new StringBuilder("bar")).add("baz", "qux"),
-            Labels.of("foo", "bar").add("baz", new StringBuilder("qux")));
+            Labels.Mutable.of("foo", new StringBuilder("bar")).add("baz", "qux"),
+            Labels.Mutable.of("foo", "bar").add("baz", new StringBuilder("qux")));
         assertEqualsHashCode(
-            Labels.of("foo", "bar"),
-            Labels.of("foo", new StringBuilder("bar")).immutableCopy());
+            Labels.Mutable.of("foo", "bar"),
+            Labels.Mutable.of("foo", new StringBuilder("bar")).immutableCopy());
     }
 
     @Test
     void testNotEquals() {
         assertNotEqual(
-            Labels.of("foo", "bar"),
-            Labels.of("bar", "foo"));
+            Labels.Mutable.of("foo", "bar"),
+            Labels.Mutable.of("bar", "foo"));
         assertNotEqual(
-            Labels.of("foo", "bar").add("baz", "qux"),
-            Labels.of("baz", "qux").add("foo", "bar"));
+            Labels.Mutable.of("foo", "bar").add("baz", "qux"),
+            Labels.Mutable.of("baz", "qux").add("foo", "bar"));
         assertNotEqual(
-            Labels.of("foo", "bar").add("baz", "qux"),
-            Labels.of("baz", "qux").add("foo", "bar"));
-    }
-
-    @Test
-    void testImmutable() {
-        assertThatThrownBy(() -> Labels.of("foo", "bar").immutableCopy().add("bar", "baz")).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> Labels.of("foo", "bar").immutableCopy().transactionName("bar")).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> Labels.of("foo", "bar").immutableCopy().transactionType("bar")).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> Labels.of("foo", "bar").immutableCopy().spanType("bar")).isInstanceOf(UnsupportedOperationException.class);
+            Labels.Mutable.of("foo", "bar").add("baz", "qux"),
+            Labels.Mutable.of("baz", "qux").add("foo", "bar"));
     }
 
     @Test
     void testRecycle() {
-        final Labels resetLabels = Labels.of("foo", "bar").transactionName(new StringBuilder("baz"));
+        final Labels.Mutable resetLabels = Labels.Mutable.of("foo", "bar").transactionName(new StringBuilder("baz"));
         final Labels immutableLabels = resetLabels.immutableCopy();
         resetLabels.resetState();
         assertEqualsHashCode(
             immutableLabels,
-            Labels.of("foo", "bar").transactionName("baz"));
+            Labels.Mutable.of("foo", "bar").transactionName("baz"));
         assertNotEqual(resetLabels, immutableLabels);
-        assertEqualsHashCode(resetLabels, new Labels());
+        assertEqualsHashCode(resetLabels, Labels.Immutable.empty());
     }
 
     private void assertNotEqual(Labels l1, Labels l2) {

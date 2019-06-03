@@ -42,10 +42,10 @@ import java.util.List;
 public class Transaction extends AbstractSpan<Transaction> {
 
     private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
-    private static final ThreadLocal<Labels> labelsThreadLocal = new ThreadLocal<Labels>() {
+    private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
         @Override
-        protected Labels initialValue() {
-            return new Labels();
+        protected Labels.Mutable initialValue() {
+            return Labels.Mutable.of();
         }
     };
 
@@ -270,7 +270,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         if (type == null) {
             return;
         }
-        final Labels labels = labelsThreadLocal.get();
+        final Labels.Mutable labels = labelsThreadLocal.get();
         labels.resetState();
         labels.transactionName(name).transactionType(type);
         final KeyListConcurrentHashMap<String, Timer> spanTimings = getSpanTimings();

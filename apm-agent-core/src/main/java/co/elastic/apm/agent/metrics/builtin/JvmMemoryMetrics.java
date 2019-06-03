@@ -42,37 +42,37 @@ public class JvmMemoryMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
-        registry.add("jvm.memory.heap.used", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.used", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getUsed();
             }
         });
-        registry.add("jvm.memory.heap.committed", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.committed", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.heap.max", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.max", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getMax();
             }
         });
-        registry.add("jvm.memory.non_heap.used", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.used", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getUsed();
             }
         });
-        registry.add("jvm.memory.non_heap.committed", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.committed", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.non_heap.max", Labels.empty(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.max", Labels.Immutable.empty(), new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getMax();

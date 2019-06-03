@@ -337,11 +337,11 @@ class SpanTypeBreakdownTest {
     }
 
     private void assertThatTransactionBreakdownCounterCreated() {
-        assertThat(tracer.getMetricRegistry().getCount("transaction.breakdown.count", Labels.of().transactionName("test").transactionType("request"))).isEqualTo(1);
+        assertThat(tracer.getMetricRegistry().getCount("transaction.breakdown.count", Labels.Mutable.of().transactionName("test").transactionType("request"))).isEqualTo(1);
     }
 
     @Nonnull
     private Timer getTimer(String timerName, @Nullable String spanType) {
-        return tracer.getMetricRegistry().timer(timerName, Labels.of().transactionName("test").transactionType("request").spanType(spanType));
+        return tracer.getMetricRegistry().timer(timerName, Labels.Mutable.of().transactionName("test").transactionType("request").spanType(spanType));
     }
 }

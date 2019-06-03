@@ -47,7 +47,7 @@ public class JvmGcMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         for (final GarbageCollectorMXBean garbageCollectorMXBean : garbageCollectorMXBeans) {
-            final Labels tags = Labels.of("name", garbageCollectorMXBean.getName());
+            final Labels tags = Labels.Mutable.of("name", garbageCollectorMXBean.getName());
             registry.addUnlessNegative("jvm.gc.count", tags, new DoubleSupplier() {
                 @Override
                 public double get() {
@@ -69,7 +69,7 @@ public class JvmGcMetrics implements LifecycleListener {
             // but the actual MBean it uses (com.ibm.lang.management.internal.ExtendedThreadMXBeanImpl) does not implement it
             if (sunBeanClass.isInstance(ManagementFactory.getThreadMXBean())) {
                 // in reference to JMH's GC profiler (gc.alloc.rate)
-                registry.add("jvm.gc.alloc", Labels.empty(),
+                registry.add("jvm.gc.alloc", Labels.Immutable.empty(),
                     (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0]);
             }
         } catch (ClassNotFoundException ignore) {

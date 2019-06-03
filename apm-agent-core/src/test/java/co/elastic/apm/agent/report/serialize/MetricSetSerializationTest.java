@@ -46,7 +46,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testSerializeGauges() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
+        final MetricSet metricSet = new MetricSet(Labels.Mutable.of("foo.bar", "baz"));
         metricSet.add("foo.bar", () -> 42);
         metricSet.add("bar.baz", () -> 42);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
@@ -58,7 +58,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testSerializeTimers() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
+        final MetricSet metricSet = new MetricSet(Labels.Mutable.of("foo.bar", "baz"));
         metricSet.timer("foo.bar").update(42);
         metricSet.timer("bar.baz").update(42, 2);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
@@ -74,7 +74,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testSerializeTimersWithTopLevelLabels() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.of("foo", "bar")
+        final MetricSet metricSet = new MetricSet(Labels.Mutable.of("foo", "bar")
             .transactionName("foo")
             .transactionType("bar")
             .spanType("baz"));
@@ -95,7 +95,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testSerializeTimersReset() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.of("foo.bar", "baz"));
+        final MetricSet metricSet = new MetricSet(Labels.Mutable.of("foo.bar", "baz"));
         metricSet.timer("foo.bar").update(42);
         metricSet.timer("bar.baz").update(42, 2);
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
@@ -113,7 +113,7 @@ class MetricSetSerializationTest {
     @Test
     void testSerializeEmptyMetricSet() {
         final MetricRegistry metricRegistry = new MetricRegistry(mock(ReporterConfiguration.class));
-        metricRegistry.timer("foo.bar", Labels.of("foo.bar", "baz")).update(42);
+        metricRegistry.timer("foo.bar", Labels.Mutable.of("foo.bar", "baz")).update(42);
         MetricRegistrySerializer.serialize(metricRegistry, new StringBuilder(), jw);
         assertThat(jw.toString()).isNotEmpty();
         jw.reset();
@@ -123,7 +123,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testNonFiniteSerialization() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.empty());
+        final MetricSet metricSet = new MetricSet(Labels.Immutable.empty());
         metricSet.add("valid", () -> 4.0);
         metricSet.add("infinite", () -> Double.POSITIVE_INFINITY);
         metricSet.add("NaN", () -> Double.NaN);
@@ -141,7 +141,7 @@ class MetricSetSerializationTest {
 
     @Test
     void testNonFiniteCornerCasesSerialization() throws IOException {
-        final MetricSet metricSet = new MetricSet(Labels.empty());
+        final MetricSet metricSet = new MetricSet(Labels.Immutable.empty());
         MetricRegistrySerializer.serializeMetricSet(metricSet, System.currentTimeMillis() * 1000, new StringBuilder(), jw);
         String metricSetAsString = jw.toString();
         System.out.println(metricSetAsString);

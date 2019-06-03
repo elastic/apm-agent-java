@@ -43,7 +43,7 @@ public class MetricRegistry {
     /**
      * Groups {@link MetricSet}s by their unique labels.
      */
-    private final ConcurrentMap<Labels, MetricSet> metricSets = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets = new ConcurrentHashMap<>();
     private final ReporterConfiguration config;
 
     public MetricRegistry(ReporterConfiguration config) {
@@ -122,7 +122,7 @@ public class MetricRegistry {
         return Double.NaN;
     }
 
-    public Map<Labels, MetricSet> getMetricSets() {
+    public Map<Labels.Immutable, MetricSet> getMetricSets() {
         return metricSets;
     }
 
@@ -133,7 +133,7 @@ public class MetricRegistry {
     private MetricSet getOrCreateMetricSet(Labels labels) {
         MetricSet metricSet = metricSets.get(labels);
         if (metricSet == null) {
-            final Labels copy = labels.immutableCopy();
+            final Labels.Immutable copy = labels.immutableCopy();
             metricSets.putIfAbsent(copy, new MetricSet(copy));
             metricSet = metricSets.get(copy);
         }

@@ -41,12 +41,12 @@ class JvmMemoryMetricsTest {
         final MetricRegistry registry = new MetricRegistry(mock(ReporterConfiguration.class));
         jvmMemoryMetrics.bindTo(registry);
         System.out.println(registry.toString());
-        assertThat(registry.get("jvm.memory.heap.used", Labels.empty())).isNotZero();
-        assertThat(registry.get("jvm.memory.heap.committed", Labels.empty())).isNotZero();
-        assertThat(registry.get("jvm.memory.heap.max", Labels.empty())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.used", Labels.empty())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.committed", Labels.empty())).isNotZero();
-        assertThat(registry.get("jvm.memory.non_heap.max", Labels.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.used", Labels.Immutable.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.committed", Labels.Immutable.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.heap.max", Labels.Immutable.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.used", Labels.Immutable.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.committed", Labels.Immutable.empty())).isNotZero();
+        assertThat(registry.get("jvm.memory.non_heap.max", Labels.Immutable.empty())).isNotZero();
         final long[] longs = new long[1000000];
         System.out.println(registry.toString());
     }
