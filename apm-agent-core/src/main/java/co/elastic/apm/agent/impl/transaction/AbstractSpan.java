@@ -26,7 +26,9 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +47,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
+    protected final boolean collectBreakdownMetrics;
     private long timestamp;
 
     // in microseconds
@@ -114,6 +117,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
+        collectBreakdownMetrics = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
     }
 
     public boolean isReferenced() {
@@ -306,11 +310,15 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     void onChildStart(long epochMicros) {
-        childDurations.start(epochMicros);
+        if (collectBreakdownMetrics) {
+            childDurations.start(epochMicros);
+        }
     }
 
     void onChildEnd(long epochMicros) {
-        childDurations.stop(epochMicros);
+        if (collectBreakdownMetrics) {
+            childDurations.stop(epochMicros);
+        }
     }
 
     public void incrementReferences() {

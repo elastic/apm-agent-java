@@ -156,6 +156,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "If the name of a metric matches any of the wildcard expressions, it will not be collected.\n" +
             "Example: `foo.*,bar.*`\n" +
             "\n" +
+            "To disable all breakdown metric collection code paths, add `span.self_time` to the list.\n" +
+            "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(false)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());

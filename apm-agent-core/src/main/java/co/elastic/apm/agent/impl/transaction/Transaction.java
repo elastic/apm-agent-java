@@ -247,23 +247,24 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
-        if (type != null && !finished) {
-            final Labels.Mutable spanType = labelsThreadLocal.get();
-            spanType.resetState();
-            Timer timer = spanTimings.get(spanType.spanType(type).spanSubType(subtype));
-            if (timer == null) {
-                timer = new Timer();
-                Timer racyTimer = spanTimings.putIfAbsent(spanType.immutableCopy(), timer);
-                if (racyTimer != null) {
-                    timer = racyTimer;
-                }
+        if (!collectBreakdownMetrics || type == null || finished) {
+            return;
+        }
+        final Labels.Mutable spanType = labelsThreadLocal.get();
+        spanType.resetState();
+        Timer timer = spanTimings.get(spanType.spanType(type).spanSubType(subtype));
+        if (timer == null) {
+            timer = new Timer();
+            Timer racyTimer = spanTimings.putIfAbsent(spanType.immutableCopy(), timer);
+            if (racyTimer != null) {
+                timer = racyTimer;
             }
-            timer.update(duration);
-            if (finished) {
-                // in case end()->trackMetrics() has been called concurrently
-                // don't leak timers
-                timer.resetState();
-            }
+        }
+        timer.update(duration);
+        if (finished) {
+            // in case end()->trackMetrics() has been called concurrently
+            // don't leak timers
+            timer.resetState();
         }
     }
 
@@ -275,19 +276,20 @@ public class Transaction extends AbstractSpan<Transaction> {
         final Labels.Mutable labels = labelsThreadLocal.get();
         labels.resetState();
         labels.transactionName(name).transactionType(type);
-        final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
-        List<Labels> keyList = spanTimings.keyList();
-        for (int i = 0; i < keyList.size(); i++) {
-            Labels spanType = keyList.get(i);
-            final Timer timer = spanTimings.get(spanType);
-            if (timer.getCount() > 0) {
-                labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
-                tracer.getMetricRegistry().timer("span.self_time", labels).update(timer.getTotalTimeUs(), timer.getCount());
-                timer.resetState();
+        tracer.getMetricRegistry().timer("transaction.duration", labels).update(getDuration());
+        if (collectBreakdownMetrics) {
+            tracer.getMetricRegistry().incrementCounter("transaction.breakdown.count", labels);
+            final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
+            List<Labels> keyList = spanTimings.keyList();
+            for (int i = 0; i < keyList.size(); i++) {
+                Labels spanType = keyList.get(i);
+                final Timer timer = spanTimings.get(spanType);
+                if (timer.getCount() > 0) {
+                    labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
+                    tracer.getMetricRegistry().timer("span.self_time", labels).update(timer.getTotalTimeUs(), timer.getCount());
+                    timer.resetState();
+                }
             }
         }
-        labels.spanType(null);
-        tracer.getMetricRegistry().incrementCounter("transaction.breakdown.count", labels);
-        tracer.getMetricRegistry().timer("transaction.duration", labels).update(getDuration());
     }
 }

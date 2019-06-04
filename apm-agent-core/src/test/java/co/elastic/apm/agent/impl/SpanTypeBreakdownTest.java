@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -39,6 +40,7 @@ import com.dslplatform.json.JsonWriter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -98,6 +100,26 @@ class SpanTypeBreakdownTest {
         assertThatTransactionBreakdownCounterCreated();
         assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(1);
         assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+    }
+
+    /*
+     * ██████████░░░░░░░░░░██████████
+     * └─────────██████████
+     *          10        20        30
+     */
+    @Test
+    void testBreakdown_singleDbSpan_breakdownMetricsDisabled() {
+        tracer = MockTracer.createRealTracer(reporter, SpyConfiguration.createSpyConfig(SimpleSource.forTest("disable_metrics", "span.self_time")));
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+            .withName("test")
+            .withType("request");
+        transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
+        transaction.end(30);
+
+        assertThat(transaction.getSpanTimings()).isEmpty();
+        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(0);
+        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
+        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
     }
 
     /*
