@@ -69,6 +69,9 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
+    protected static final String DOC_TYPE = "doc";
+    protected static final String USER_NAME = "elastic";
+    protected static final String PASSWORD = "changeme";
     private static RestHighLevelClient client;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
@@ -78,11 +81,10 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer();
+        container = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:5.6.0");
         container.start();
 
-        // Create the client
-        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(USER_NAME, PASSWORD));
 
         RestClientBuilder builder =  RestClient.builder(HttpHost.create(container.getHttpHostAddress()))
@@ -143,7 +145,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
                 .field(FOO, BAR)
                 .endObject()
         ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
-        assertThat(ir.status().getStatus()).isEqualTo(200);
+        assertThat(ir.status().getStatus()).isEqualTo(201);
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
