@@ -1,2 +1,0 @@
-co.elastic.apm.agent.es.restclient.v7_1.ElasticsearchClientSyncInstrumentation
-co.elastic.apm.agent.es.restclient.v7_1.ElasticsearchClientAsyncInstrumentation

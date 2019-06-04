@@ -24,13 +24,8 @@
  */
 package co.elastic.apm.agent.es.restclient.v5_6;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
-import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.transaction.Db;
-import co.elastic.apm.agent.impl.transaction.Http;
+import co.elastic.apm.agent.es.restclient.AbstractEsClientInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -48,17 +43,13 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,48 +57,22 @@ import org.junit.runners.Parameterized;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SEARCH_QUERY_PATH_SUFFIX;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_ACTION;
-import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SPAN_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @RunWith(Parameterized.class)
-public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrumentationTest {
-    private static final String USER_NAME = "elastic-user";
-    private static final String PASSWORD = "elastic-pass";
+public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
-    @SuppressWarnings("NullableProblems")
-    private static ElasticsearchContainer container;
-    @SuppressWarnings("NullableProblems")
-    private static RestClient lowLevelClient;
     private static RestHighLevelClient client;
-
-    private static final String INDEX = "my-index";
-    private static final String SECOND_INDEX = "my-second-index";
-    private static final String DOC_ID = "38uhjds8s4g";
-    private static final String DOC_TYPE = "_doc";
-    private static final String FOO = "foo";
-    private static final String BAR = "bar";
-    private static final String BAZ = "baz";
-
-    private boolean async;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
         this.async = async;
-    }
-
-    @Parameterized.Parameters(name = "Async={0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{{Boolean.FALSE}, {Boolean.TRUE}});
     }
 
     @BeforeClass
@@ -136,26 +101,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         lowLevelClient.close();
     }
 
-    @Before
-    public void startTransaction() {
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("ES Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
-    }
-
-    @After
-    public void endTransaction() {
-        try {
-            Transaction currentTransaction = tracer.currentTransaction();
-            if (currentTransaction != null) {
-                currentTransaction.deactivate().end();
-            }
-        } finally {
-            reporter.reset();
-        }
-    }
-
     @Test
     public void testTryToDeleteNonExistingIndex() throws IOException {
         ResponseException re = null;
@@ -169,48 +114,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         assertThat(re).isNotNull();
         assertThat(re.getResponse().getStatusLine().getStatusCode()).isEqualTo(400);
 
-        System.out.println(reporter.generateErrorPayloadJson());
-
-        List<ErrorCapture> errorCaptures = reporter.getErrors();
-        assertThat(errorCaptures).hasSize(1);
-        ErrorCapture errorCapture = errorCaptures.get(0);
-        assertThat(errorCapture.getException()).isNotNull();
-/*
-        Map<String, String> tags = errorCapture.getContext().getLabels();
-        assertThat(tags).containsKey(QUERY_STATUS_CODE_KEY);
-        assertThat(tags.get(QUERY_STATUS_CODE_KEY)).isEqualTo("404");
-        assertThat(tags).containsKey(ERROR_REASON_KEY);
-        assertThat(tags).containsKey(ELASTICSEARCH_NODE_URL_KEY);
-        assertThat(tags.get(ELASTICSEARCH_NODE_URL_KEY)).isEqualTo(container.getHost().toURI().toString());
-*/
-    }
-
-    private void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
-        assertThat(span.getType()).isEqualTo(SPAN_TYPE);
-        assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
-        assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
-        assertThat(span.getName().toString()).isEqualTo(expectedName);
-        validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
-
-        assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
-
-        if (!expectedName.contains(SEARCH_QUERY_PATH_SUFFIX)) {
-            assertThat(span.getContext().getDb().getStatement()).isNull();
-        }
-    }
-
-    private void validateHttpContextContent(Http http, int statusCode, String method) {
-        assertThat(http).isNotNull();
-        assertThat(http.getMethod()).isEqualTo(method);
-        assertThat(http.getStatusCode()).isEqualTo(statusCode);
-        assertThat(http.getUrl()).isEqualTo("http://" + container.getHttpHostAddress());
-    }
-
-    private void validateDbContextContent(Span span, String statement) {
-        Db db = span.getContext().getDb();
-        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
-        assertThat((Object) db.getStatementBuffer()).isNotNull();
-        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
+        assertThatErrorsExistWhenDeleteNonExistingIndex();
     }
 
     @Test
@@ -218,11 +122,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
         // Create an Index
         doPerformRequest("PUT", "/" + SECOND_INDEX);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
-
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s", SECOND_INDEX), 200, "PUT");
+        validateSpanContentAfterIndexCreateRequest();
 
         // Delete the index
         reporter.reset();
@@ -231,9 +131,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
 
         System.out.println(reporter.generateTransactionPayloadJson());
 
-        spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s", SECOND_INDEX), 200, "DELETE");
+        validateSpanContentAfterIndexDeleteRequest();
     }
 
     @Test
@@ -317,34 +215,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractInstrument
             ))
             .add(new DeleteRequest(INDEX, DOC_TYPE, "2")));
 
-        System.out.println(reporter.generateTransactionPayloadJson());
-
-        List<Span> spans = reporter.getSpans();
-        assertThat(spans).hasSize(1);
-        assertThat(spans.get(0).getName().toString()).isEqualTo("Elasticsearch: POST /_bulk");
-    }
-
-    private Response doPerformRequest(String method, String path) throws IOException, ExecutionException {
-        if (async) {
-            final CompletableFuture<Response> resultFuture = new CompletableFuture<>();
-            lowLevelClient.performRequestAsync(method, path, new ResponseListener() {
-                @Override
-                public void onSuccess(Response response) {
-                    resultFuture.complete(response);
-                }
-
-                @Override
-                public void onFailure(Exception exception) {
-                    resultFuture.completeExceptionally(exception);
-                }
-            });
-            try {
-                return resultFuture.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        return lowLevelClient.performRequest(method, path);
+        validateSpanContentAfterBulkRequest();
     }
 
     private interface ClientMethod<Req, Res> {
