@@ -63,6 +63,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
 
     public StatementInstrumentation(ElasticApmTracer tracer) {
         jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer, "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1",
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
     }
 
@@ -73,7 +74,7 @@ public class StatementInstrumentation extends ElasticApmInstrumentation {
         if (tracer != null && jdbcHelperManager != null) {
             JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
             if (helperImpl != null) {
-                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive());
+                return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), false);
             }
         }
         return null;

@@ -22,15 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jdbc.helper;
+@NonnullApi
+package co.elastic.apm.agent.jdbc.signature;
 
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-
-import javax.annotation.Nullable;
-import java.sql.Connection;
-
-public interface JdbcHelper {
-    @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
-}
+import co.elastic.apm.agent.annotation.NonnullApi;
