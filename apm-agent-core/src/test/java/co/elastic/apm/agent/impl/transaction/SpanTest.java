@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +35,7 @@ class SpanTest {
 
     @Test
     void resetState() {
-        Span span = new Span(mock(ElasticApmTracer.class))
+        Span span = new Span(MockTracer.create())
             .withName("SELECT FROM product_types")
             .withType("db")
             .withSubtype("postgresql")

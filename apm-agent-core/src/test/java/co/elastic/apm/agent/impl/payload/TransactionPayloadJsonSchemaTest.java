@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -67,7 +68,7 @@ class TransactionPayloadJsonSchemaTest {
         final TransactionPayload payload = createPayload();
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
-        Span span = new Span(mock(ElasticApmTracer.class));
+        Span span = new Span(MockTracer.create());
         span.start(TraceContext.fromParent(), transaction, -1, false)
             .withType("type")
             .withSubtype("subtype")
@@ -78,7 +79,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private Transaction createTransactionWithRequiredValues() {
-        Transaction t = new Transaction(mock(ElasticApmTracer.class));
+        Transaction t = new Transaction(MockTracer.create());
         t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
@@ -87,7 +88,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayloadWithAllValues() {
-        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        final Transaction transaction = new Transaction(MockTracer.create());
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
@@ -109,7 +110,7 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(new Transaction(mock(ElasticApmTracer.class)));
+        payload.getTransactions().add(new Transaction(MockTracer.create()));
         final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class)).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);

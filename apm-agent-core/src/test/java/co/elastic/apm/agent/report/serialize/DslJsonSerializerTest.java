@@ -129,7 +129,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testNullHeaders() throws IOException {
-        Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        Transaction transaction = new Transaction(MockTracer.create());
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
@@ -144,7 +144,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanTypeSerialization() throws IOException {
-        Span span = new Span(mock(ElasticApmTracer.class));
+        Span span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template.jsf.render.view");
         JsonNode spanJson = objectMapper.readTree(serializer.toJsonString(span));
@@ -154,19 +154,19 @@ class DslJsonSerializerTest {
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withAction("jsf.render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withSubtype("jsf.render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withSubtype("jsf").withAction("render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));

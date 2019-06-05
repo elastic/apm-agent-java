@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -111,7 +112,7 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
         final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
 
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
         assertThat(requestHandled).isTrue();
@@ -123,7 +124,7 @@ class ReporterFactoryTest {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
         final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
 
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
         assertThat(requestHandled).isFalse();

@@ -61,7 +61,7 @@ class ApmServerReporterTest {
 
     @Test
     void testTransactionProcessor() throws Exception {
-        reporter.report(new Transaction(mock(ElasticApmTracer.class)));
+        reporter.report(new Transaction(MockTracer.create()));
         reporter.flush().get();
 
         assertThat(reporter.getDropped()).isEqualTo(0);
