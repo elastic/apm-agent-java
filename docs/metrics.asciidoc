@@ -214,7 +214,7 @@ in bytes, allocated in heap memory.
 --
 type: simple timer
 
-This timer tracks the transaction durations and allows to create graphs displaying a weighted average.
+This timer tracks the duration of transactions and allows for the creation of graphs displaying a weighted average.
 
 Fields:
 
