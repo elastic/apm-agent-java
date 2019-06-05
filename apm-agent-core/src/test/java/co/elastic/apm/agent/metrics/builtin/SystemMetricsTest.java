@@ -47,10 +47,10 @@ class SystemMetricsTest {
         // makes sure system.cpu.total.norm.pct does not return NaN
         consumeCpu();
         Thread.sleep(1000);
-        assertThat(metricRegistry.get("system.process.cpu.total.norm.pct", Labels.Immutable.empty())).isBetween(0.0, 1.0);
-        assertThat(metricRegistry.get("system.memory.total", Labels.Immutable.empty())).isGreaterThan(0.0);
-        assertThat(metricRegistry.get("system.memory.actual.free", Labels.Immutable.empty())).isGreaterThan(0.0);
-        assertThat(metricRegistry.get("system.process.memory.size", Labels.Immutable.empty())).isGreaterThan(0.0);
+        assertThat(metricRegistry.getGauge("system.process.cpu.total.norm.pct", Labels.Immutable.empty())).isBetween(0.0, 1.0);
+        assertThat(metricRegistry.getGauge("system.memory.total", Labels.Immutable.empty())).isGreaterThan(0.0);
+        assertThat(metricRegistry.getGauge("system.memory.actual.free", Labels.Immutable.empty())).isGreaterThan(0.0);
+        assertThat(metricRegistry.getGauge("system.process.memory.size", Labels.Immutable.empty())).isGreaterThan(0.0);
     }
 
     @ParameterizedTest
@@ -61,7 +61,7 @@ class SystemMetricsTest {
     void testFreeMemoryMeminfo(String file, long value) throws Exception {
         SystemMetrics systemMetrics = new SystemMetrics(new File(getClass().getResource(file).toURI()));
         systemMetrics.bindTo(metricRegistry);
-        assertThat(metricRegistry.get("system.memory.actual.free", Labels.Immutable.empty())).isEqualTo(value);
+        assertThat(metricRegistry.getGauge("system.memory.actual.free", Labels.Immutable.empty())).isEqualTo(value);
     }
 
     private void consumeCpu() {

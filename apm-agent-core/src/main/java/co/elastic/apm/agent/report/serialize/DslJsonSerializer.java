@@ -54,6 +54,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -82,7 +83,7 @@ import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 
-public class DslJsonSerializer implements PayloadSerializer {
+public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
 
     /**
      * Matches default ZLIB buffer size.
@@ -225,8 +226,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     @Override
+    public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+        MetricRegistrySerializer.serialize(metricSets, replaceBuilder, jw);
+    }
+
+    @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
-        MetricRegistrySerializer.serialize(metricRegistry, replaceBuilder, jw);
+        metricRegistry.report(this);
     }
 
     private void serializeErrorPayload(ErrorPayload payload) {

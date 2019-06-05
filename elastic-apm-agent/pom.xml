@@ -54,6 +54,17 @@
                                         <exclude>**/NOTICE</exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                    <artifact>org.hdrhistogram:HdrHistogram</artifact>
+                                    <!--
+                                    Currently, we only need this single class.
+                                    We need to be careful not to use others.
+                                    But even if we did, the integration tests should catch that there's a missing class.
+                                    -->
+                                    <includes>
+                                        <include>org/HdrHistogram/WriterReaderPhaser.class</include>
+                                    </includes>
+                                </filter>
                             </filters>
                             <relocations>
                                 <relocation>
@@ -96,6 +107,10 @@
                                 <relocation>
                                     <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.HdrHistogram</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

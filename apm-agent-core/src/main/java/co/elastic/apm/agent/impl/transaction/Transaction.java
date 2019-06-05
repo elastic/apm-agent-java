@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
 import org.slf4j.Logger;
@@ -276,20 +277,26 @@ public class Transaction extends AbstractSpan<Transaction> {
         final Labels.Mutable labels = labelsThreadLocal.get();
         labels.resetState();
         labels.transactionName(name).transactionType(type);
-        tracer.getMetricRegistry().timer("transaction.duration", labels).update(getDuration());
-        if (collectBreakdownMetrics) {
-            tracer.getMetricRegistry().incrementCounter("transaction.breakdown.count", labels);
-            final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
-            List<Labels> keyList = spanTimings.keyList();
-            for (int i = 0; i < keyList.size(); i++) {
-                Labels spanType = keyList.get(i);
-                final Timer timer = spanTimings.get(spanType);
-                if (timer.getCount() > 0) {
-                    labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
-                    tracer.getMetricRegistry().timer("span.self_time", labels).update(timer.getTotalTimeUs(), timer.getCount());
-                    timer.resetState();
+        final MetricRegistry metricRegistry = tracer.getMetricRegistry();
+        metricRegistry.doAtomically(new Runnable() {
+            @Override
+            public void run() {
+                metricRegistry.updateTimer("transaction.duration", labels, getDuration());
+                if (collectBreakdownMetrics) {
+                    metricRegistry.incrementCounter("transaction.breakdown.count", labels);
+                    final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
+                    List<Labels> keyList = spanTimings.keyList();
+                    for (int i = 0; i < keyList.size(); i++) {
+                        Labels spanType = keyList.get(i);
+                        final Timer timer = spanTimings.get(spanType);
+                        if (timer.getCount() > 0) {
+                            labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
+                            metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
+                            timer.resetState();
+                        }
+                    }
                 }
             }
-        }
+        });
     }
 }

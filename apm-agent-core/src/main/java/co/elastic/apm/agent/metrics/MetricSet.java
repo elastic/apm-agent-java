@@ -45,26 +45,27 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class MetricSet {
     private final Labels.Immutable labels;
-    private final ConcurrentMap<String, DoubleSupplier> gauges = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, DoubleSupplier> gauges;
     // low load factor as hash collisions are quite costly when tracking breakdown metrics
     private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private final ConcurrentMap<String, AtomicLong> counters = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
     private volatile boolean hasNonEmptyTimer;
     private volatile boolean hasNonEmptyCounter;
 
-    public MetricSet(Labels.Immutable labels) {
+    MetricSet(Labels.Immutable labels) {
+        this(labels, new ConcurrentHashMap<String, DoubleSupplier>());
+    }
+
+    MetricSet(Labels.Immutable labels, ConcurrentMap<String, DoubleSupplier> gauges) {
         this.labels = labels;
+        this.gauges = gauges;
     }
 
-    public MetricSet(Labels.Mutable labels) {
-        this(labels.immutableCopy());
-    }
-
-    public void add(String name, DoubleSupplier metric) {
+    void addGauge(String name, DoubleSupplier metric) {
         gauges.putIfAbsent(name, metric);
     }
 
-    DoubleSupplier get(String name) {
+    DoubleSupplier getGauge(String name) {
         return gauges.get(name);
     }
 
@@ -72,7 +73,7 @@ public class MetricSet {
         return labels;
     }
 
-    public Map<String, DoubleSupplier> getGauges() {
+    public ConcurrentMap<String, DoubleSupplier> getGauges() {
         return gauges;
     }
 

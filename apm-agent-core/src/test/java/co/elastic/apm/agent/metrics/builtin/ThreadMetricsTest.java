@@ -41,7 +41,7 @@ class ThreadMetricsTest {
     @Test
     void testThreadCount() {
         threadMetrics.bindTo(registry);
-        double numThreads = registry.get("jvm.thread.count", Labels.Immutable.empty());
+        double numThreads = registry.getGauge("jvm.thread.count", Labels.Immutable.empty());
         assertThat(numThreads).isNotZero();
         for (int i = 0; i < NUM_ADDED_THREADS; i++) {
             Thread thread = new Thread(() -> {
@@ -55,6 +55,6 @@ class ThreadMetricsTest {
             thread.setDaemon(true);
             thread.start();
         }
-        assertThat(registry.get("jvm.thread.count", Labels.Immutable.empty())).isEqualTo(numThreads + NUM_ADDED_THREADS);
+        assertThat(registry.getGauge("jvm.thread.count", Labels.Immutable.empty())).isEqualTo(numThreads + NUM_ADDED_THREADS);
     }
 }

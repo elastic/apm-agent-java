@@ -35,6 +35,8 @@ import java.util.Objects;
 
 public interface Labels {
 
+    Labels EMPTY = Labels.Immutable.empty();
+
     @Nullable
     CharSequence getTransactionName();
 
@@ -60,8 +62,6 @@ public interface Labels {
     CharSequence getValue(int i);
 
     Labels.Immutable immutableCopy();
-
-    Labels.Mutable mutableCopy();
 
     abstract class AbstractBase implements Labels {
         protected final List<String> keys;
@@ -183,21 +183,6 @@ public interface Labels {
             }
             return h;
         }
-
-        @Override
-        public Mutable mutableCopy() {
-            final Mutable copy = Mutable.of()
-                .transactionName(getTransactionName())
-                .transactionType(getTransactionType())
-                .spanType(getSpanType());
-            List<String> keys = getKeys();
-            List<CharSequence> values = getValues();
-            for (int i = 0; i < keys.size(); i++) {
-                copy.add(keys.get(i), values.get(i));
-            }
-            return copy;
-        }
-
     }
 
     class Mutable extends AbstractBase implements Recyclable {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,6 +33,8 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
 import com.dslplatform.json.DslJson;
@@ -44,6 +46,7 @@ import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,13 +61,6 @@ class SpanTypeBreakdownTest {
         tracer = MockTracer.createRealTracer(reporter);
     }
 
-    @AfterEach
-    void tearDown() {
-        final JsonWriter jw = new DslJson<>().newWriter();
-        MetricRegistrySerializer.serialize(tracer.getMetricRegistry(), new StringBuilder(), jw);
-        System.out.println(jw.toString());
-    }
-
     /*
      * ██████████████████████████████
      *          10        20        30
@@ -75,10 +71,15 @@ class SpanTypeBreakdownTest {
             .withName("test")
             .withType("request")
             .end(30);
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+            }
+        });
     }
 
     /*
@@ -94,12 +95,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+            }
+        });
     }
 
     /*
@@ -117,9 +123,14 @@ class SpanTypeBreakdownTest {
         transaction.end(30);
 
         assertThat(transaction.getSpanTimings()).isEmpty();
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(0);
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null)).isNull();
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql")).isNull();
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+            }
+        });
     }
 
     /*
@@ -135,10 +146,15 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("app").end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+            }
+        });
     }
 
     /*
@@ -158,12 +174,17 @@ class SpanTypeBreakdownTest {
         span2.end(20);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+            }
+        });
     }
 
     /*
@@ -183,12 +204,17 @@ class SpanTypeBreakdownTest {
         span2.end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(15);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(15);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+            }
+        });
     }
 
     /*
@@ -206,12 +232,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(15).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(20);
+            }
+        });
     }
 
     /*
@@ -229,12 +260,17 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(20).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+            }
+        });
     }
 
     /*
@@ -254,12 +290,17 @@ class SpanTypeBreakdownTest {
         db.end(25);
         transaction.end(30);
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(2);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(25);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(2);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(25);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+            }
+        });
     }
 
     /*
@@ -292,11 +333,16 @@ class SpanTypeBreakdownTest {
         assertThat(app.isReferenced()).isFalse();
         assertThat(db.isReferenced()).isFalse();
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql")).isNull();
+            }
+        });
     }
 
     /*
@@ -320,11 +366,16 @@ class SpanTypeBreakdownTest {
         reporter.assertRecycledAfterDecrementingReferences();
         assertThat(reporter.getFirstTransaction().getSpanTimings().get(Labels.Mutable.of().spanType("db").spanSubType("mysql"))).isNull();
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(20);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql")).isNull();
+            }
+        });
     }
 
     /*
@@ -351,19 +402,28 @@ class SpanTypeBreakdownTest {
 
         reporter.assertRecycledAfterDecrementingReferences();
 
-        assertThat(getTimer("span.self_time", "app", null).getCount()).isEqualTo(1);
-        assertThat(getTimer("span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
-        assertThat(getTimer("transaction.duration", null, null).getTotalTimeUs()).isEqualTo(10);
-        assertThatTransactionBreakdownCounterCreated();
-        assertThat(getTimer("span.self_time", "db", "mysql").getCount()).isEqualTo(0);
+        tracer.getMetricRegistry().report(new MetricRegistry.MetricsReporter() {
+            @Override
+            public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+                assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(10);
+                assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(10);
+                assertThatTransactionBreakdownCounterCreated(metricSets);
+                assertThat(getTimer(metricSets, "span.self_time", "db", "mysql")).isNull();
+            }
+        });
     }
 
-    private void assertThatTransactionBreakdownCounterCreated() {
-        assertThat(tracer.getMetricRegistry().getCount("transaction.breakdown.count", Labels.Mutable.of().transactionName("test").transactionType("request"))).isEqualTo(1);
+    private void assertThatTransactionBreakdownCounterCreated(Map<Labels.Immutable, MetricSet> metricSets) {
+        assertThat(metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request")).getCounters().get("transaction.breakdown.count").get()).isEqualTo(1);
     }
 
-    @Nonnull
-    private Timer getTimer(String timerName, @Nullable String spanType, @Nullable String spanSubType) {
-        return tracer.getMetricRegistry().timer(timerName, Labels.Mutable.of().transactionName("test").transactionType("request").spanType(spanType));
+    @Nullable
+    private Timer getTimer(Map<Labels.Immutable, MetricSet> metricSets, String timerName, @Nullable String spanType, @Nullable String spanSubType) {
+        final MetricSet metricSet = metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request").spanType(spanType).spanSubType(spanSubType));
+        if (metricSet == null) {
+            return null;
+        }
+        return metricSet.timer(timerName);
     }
 }
