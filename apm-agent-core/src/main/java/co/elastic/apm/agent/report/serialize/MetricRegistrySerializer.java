@@ -26,7 +26,6 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.metrics.DoubleSupplier;
 import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
 import com.dslplatform.json.JsonWriter;
@@ -40,7 +39,7 @@ public class MetricRegistrySerializer {
 
     private static final byte NEW_LINE = '\n';
 
-    public static void serialize(Map<Labels.Immutable, MetricSet> metricSets, StringBuilder replaceBuilder, JsonWriter jw) {
+    public static void serialize(Map<? extends Labels, MetricSet> metricSets, StringBuilder replaceBuilder, JsonWriter jw) {
         final long timestamp = System.currentTimeMillis() * 1000;
         for (MetricSet metricSet : metricSets.values()) {
             if (metricSet.hasContent()) {

@@ -30,6 +30,8 @@ import org.HdrHistogram.WriterReaderPhaser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +47,7 @@ import java.util.concurrent.ConcurrentMap;
 public class MetricRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricRegistry.class);
+    private static final int METRIC_SET_LIMIT = 1000;
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
     private final ReporterConfiguration config;
     /**
@@ -116,7 +119,10 @@ public class MetricRegistry {
 
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {
-            getOrCreateMetricSet(labels).addGauge(name, metric);
+            final MetricSet metricSet = getOrCreateMetricSet(labels);
+            if (metricSet != null) {
+                metricSet.addGauge(name, metric);
+            }
         } finally {
             phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
@@ -158,7 +164,10 @@ public class MetricRegistry {
     public void updateTimer(String timerName, Labels labels, long durationUs, long count) {
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {
-            getOrCreateMetricSet(labels).timer(timerName).update(durationUs, count);
+            final MetricSet metricSet = getOrCreateMetricSet(labels);
+            if (metricSet != null) {
+                metricSet.timer(timerName).update(durationUs, count);
+            }
         } finally {
             phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
@@ -168,16 +177,32 @@ public class MetricRegistry {
      * Must always be executed in context of a critical section so that the
      * activeMetricSets and inactiveMetricSets reference can't swap while this method runs
      */
+    @Nullable
     private MetricSet getOrCreateMetricSet(Labels labels) {
         MetricSet metricSet = activeMetricSets.get(labels);
-        if (metricSet == null) {
-            final Labels.Immutable labelsCopy = labels.immutableCopy();
-            // Gauges are the only metric types which are not reset after each report (as opposed to counters and timers)
-            // that's why both the activeMetricSet and inactiveMetricSet have to contain the exact same gauges.
-            activeMetricSets.putIfAbsent(labelsCopy, new MetricSet(labelsCopy));
-            metricSet = activeMetricSets.get(labelsCopy);
-            // even if the map already contains this metric set, the gauges reference will be the same
-            inactiveMetricSets.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
+        if (metricSet != null) {
+            return metricSet;
+        }
+        if (activeMetricSets.size() < METRIC_SET_LIMIT) {
+            return createMetricSet(labels.immutableCopy());
+        }
+        return null;
+    }
+
+    @Nonnull
+    private MetricSet createMetricSet(Labels.Immutable labelsCopy) {
+        // Gauges are the only metric types which are not reset after each report (as opposed to counters and timers)
+        // that's why both the activeMetricSet and inactiveMetricSet have to contain the exact same gauges.
+        MetricSet metricSet = new MetricSet(labelsCopy);
+        final MetricSet racyMetricSet = activeMetricSets.putIfAbsent(labelsCopy, metricSet);
+        if (racyMetricSet != null) {
+            metricSet = racyMetricSet;
+        }
+        // even if the map already contains this metric set, the gauges reference will be the same
+        inactiveMetricSets.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
+        if (activeMetricSets.size() >= METRIC_SET_LIMIT) {
+            logger.warn("The limit of 1000 timers has been reached, no new timers will be created. " +
+                "Try to name your transactions so that there are less distinct transaction names.");
         }
         return metricSet;
     }
@@ -185,7 +210,10 @@ public class MetricRegistry {
     public void incrementCounter(String name, Labels labels) {
         long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
         try {
-            getOrCreateMetricSet(labels).incrementCounter(name);
+            final MetricSet metricSet = getOrCreateMetricSet(labels);
+            if (metricSet != null) {
+                metricSet.incrementCounter(name);
+            }
         } finally {
             phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
@@ -201,7 +229,7 @@ public class MetricRegistry {
     }
 
     public interface MetricsReporter {
-        void report(Map<Labels.Immutable, MetricSet> metricSets) throws IOException;
+        void report(Map<? extends Labels, MetricSet> metricSets) throws IOException;
     }
 
 }

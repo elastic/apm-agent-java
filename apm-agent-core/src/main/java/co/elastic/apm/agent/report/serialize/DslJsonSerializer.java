@@ -226,7 +226,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
     @Override
-    public void report(Map<Labels.Immutable, MetricSet> metricSets) {
+    public void report(Map<? extends Labels, MetricSet> metricSets) {
         MetricRegistrySerializer.serialize(metricSets, replaceBuilder, jw);
     }
 
