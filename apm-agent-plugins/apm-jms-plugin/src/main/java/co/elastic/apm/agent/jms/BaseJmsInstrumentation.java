@@ -33,6 +33,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.Message;
+import javax.jms.MessageListener;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -45,10 +46,19 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
     @Nullable
     @VisibleForAdvice
     // Referencing JMS classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<JmsInstrumentationHelper<Destination, Message>> jmsInstrHelperManager;
+    public static HelperClassManager<JmsInstrumentationHelper<Destination, Message, MessageListener>> jmsInstrHelperManager;
+
+    private synchronized static void init(ElasticApmTracer tracer) {
+        if (jmsInstrHelperManager == null) {
+            jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
+                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl",
+                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapperAllocator",
+                "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper");
+        }
+    }
 
     BaseJmsInstrumentation(ElasticApmTracer tracer) {
-        jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer, "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl");
+        init(tracer);
     }
 
     @Override

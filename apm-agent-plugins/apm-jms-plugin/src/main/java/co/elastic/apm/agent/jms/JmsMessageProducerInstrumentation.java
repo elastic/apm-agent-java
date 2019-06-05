@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jms;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
@@ -31,12 +32,14 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -54,6 +57,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * using JMS 2 API, buy this instrumentation of JMS 1 API.
  */
 public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumentation {
+
+    @VisibleForAdvice
+    @SuppressWarnings("WeakerAccess")
+    public static final Logger logger = LoggerFactory.getLogger(JmsMessageProducerInstrumentation.class);
+
     JmsMessageProducerInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -93,15 +101,15 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
                                          @Advice.This final MessageProducer producer) {
 
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
-                JmsInstrumentationHelper<Destination, Message> helper = jmsInstrHelperManager.getForClassLoaderOfClass(MessageProducer.class);
+                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageProducer.class);
                 try {
                     Destination destination = producer.getDestination();
                     if (helper != null) {
-                        return helper.startJmsProducerSpan(destination, message);
+                        return helper.startJmsSendSpan(destination, message);
                     }
                 } catch (JMSException e) {
-                    LoggerFactory.getLogger("JmsMessageProducerNoDestinationInstrumentation")
-                        .warn("Failed to retrieve message's destination", e);
+                    logger.warn("Failed to retrieve message's destination", e);
                 }
                 return null;
             }
@@ -143,9 +151,10 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             public static Span startSpan(@Advice.Argument(0) final Destination destination,
                                          @Advice.Argument(1) final Message message) {
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
-                JmsInstrumentationHelper<Destination, Message> helper = jmsInstrHelperManager.getForClassLoaderOfClass(MessageProducer.class);
+                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageProducer.class);
                 if (helper != null) {
-                    return helper.startJmsProducerSpan(destination, message);
+                    return helper.startJmsSendSpan(destination, message);
                 }
                 return null;
             }

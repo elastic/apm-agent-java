@@ -52,6 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -165,9 +166,36 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     }
 
     @Test
-    public void testQueueSendListen() throws JMSException, ExecutionException, InterruptedException, TimeoutException {
+    public void testRegisterConcreteListenerImpl() {
+        try {
+            testQueueSendListen(this::registerConcreteListenerImplementation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testRegisterListenerLambda() {
+        try {
+            testQueueSendListen(this::registerListenerLambda);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testRegisterListenerMethodReference() {
+        try {
+            testQueueSendListen(this::registerListenerMethodReference);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void testQueueSendListen(Function<Destination, CompletableFuture<Message>> listenerRegistrationFunction)
+        throws JMSException, ExecutionException, InterruptedException, TimeoutException {
         Queue queue = createQueue(TEST_Q_NAME);
-        CompletableFuture<Message> incomingMessageFuture = registerListener(queue);
+        CompletableFuture<Message> incomingMessageFuture = listenerRegistrationFunction.apply(queue);
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = createTextMessage(message);
         send(queue, outgoingMessage);
@@ -181,8 +209,8 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     public void testTopicWithTwoSubscribers() throws JMSException, ExecutionException, InterruptedException, TimeoutException {
         Topic topic = createTopic(TEST_TOPIC_NAME);
 
-        final CompletableFuture<Message> incomingMessageFuture1 = registerListener(topic);
-        final CompletableFuture<Message> incomingMessageFuture2 = registerListener(topic);
+        final CompletableFuture<Message> incomingMessageFuture1 = registerConcreteListenerImplementation(topic);
+        final CompletableFuture<Message> incomingMessageFuture2 = registerConcreteListenerImplementation(topic);
 
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = createTextMessage(message);
@@ -239,7 +267,11 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
 
     protected abstract void send(Destination destination, Message message) throws JMSException;
 
-    protected abstract CompletableFuture<Message> registerListener(Destination destination) throws JMSException;
+    protected abstract CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination);
+
+    protected abstract CompletableFuture<Message> registerListenerLambda(Destination destination);
+
+    protected abstract CompletableFuture<Message> registerListenerMethodReference(Destination destination);
 
     protected abstract Message receive(Destination destination) throws JMSException;
 

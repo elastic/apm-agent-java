@@ -24,12 +24,14 @@
  */
 package co.elastic.apm.agent.jms;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import javax.annotation.Nullable;
 
-public interface JmsInstrumentationHelper<D, M> {
+@VisibleForAdvice
+public interface JmsInstrumentationHelper<D, M, L> {
 
     /**
      * In some cases, dashes are not allowed in JMS Message property names
@@ -37,5 +39,8 @@ public interface JmsInstrumentationHelper<D, M> {
     public static final String JMS_TRACE_PARENT_HEADER = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
 
     @Nullable
-    Span startJmsProducerSpan(D destination, M message);
+    Span startJmsSendSpan(D destination, M message);
+
+    @Nullable
+    L wrapLambda(@Nullable L listener);
 }

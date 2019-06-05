@@ -39,6 +39,7 @@ import javax.jms.Destination;
 import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
 import javax.jms.Message;
+import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Topic;
 import java.io.File;
@@ -109,11 +110,36 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListener(Destination destination) {
+    protected CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
         JMSConsumer consumer = context.createConsumer(destination);
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
-        // Works with method reference because ActiveMQ Artemis wraps listeners with actual MessageListener instances
-        // of org.apache.activemq.artemis.jms.client.ActiveMQJMSConsumer$MessageListenerWrapper
+        //noinspection Convert2Lambda,Anonymous2MethodRef
+        consumer.setMessageListener(new MessageListener() {
+            @Override
+            public void onMessage(Message message) {
+                incomingMessageFuture.complete(message);
+            }
+        });
+        return incomingMessageFuture;
+    }
+
+    @Override
+    protected CompletableFuture<Message> registerListenerLambda(Destination destination) {
+        JMSConsumer consumer = context.createConsumer(destination);
+        final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
+        // ActiveMQ Artemis wraps listeners with actual MessageListener instances
+        // of org.apache.activemq.artemis.jms.client.ActiveMQJMSConsumer$MessageListenerWrapper anyway..
+        //noinspection Convert2MethodRef
+        consumer.setMessageListener(message -> incomingMessageFuture.complete(message));
+        return incomingMessageFuture;
+    }
+
+    @Override
+    protected CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
+        JMSConsumer consumer = context.createConsumer(destination);
+        final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
+        // ActiveMQ Artemis wraps listeners with actual MessageListener instances
+        // of org.apache.activemq.artemis.jms.client.ActiveMQJMSConsumer$MessageListenerWrapper anyway..
         consumer.setMessageListener(incomingMessageFuture::complete);
         return incomingMessageFuture;
     }

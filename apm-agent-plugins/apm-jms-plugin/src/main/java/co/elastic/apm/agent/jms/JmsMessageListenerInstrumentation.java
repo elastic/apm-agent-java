@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jms;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -31,6 +32,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
@@ -50,6 +52,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
+
+    @VisibleForAdvice
+    @SuppressWarnings("WeakerAccess")
+    public static final Logger logger = LoggerFactory.getLogger(JmsMessageListenerInstrumentation.class);
+
     public JmsMessageListenerInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -90,15 +97,13 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                                 traceParentProperty, clazz.getClassLoader());
                         }
                     } catch (JMSException e) {
-                        LoggerFactory.getLogger("JmsMessageListenerInstrumentation")
-                            .warn("Failed to retrieve trace context property from JMS message", e);
+                        logger.warn("Failed to retrieve trace context property from JMS message", e);
                     }
 
                     try {
                         destination = message.getJMSDestination();
                     } catch (JMSException e) {
-                        LoggerFactory.getLogger("JmsMessageListenerInstrumentation")
-                            .warn("Failed to retrieve message's destination", e);
+                        logger.warn("Failed to retrieve message's destination", e);
                     }
                 }
 
@@ -114,8 +119,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                         transaction.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
                     }
                 } catch (JMSException e) {
-                    LoggerFactory.getLogger("JmsMessageListenerInstrumentation")
-                        .warn("Failed to retrieve message's destination", e);
+                    logger.warn("Failed to retrieve message's destination", e);
                 }
 
                 transaction.activate();

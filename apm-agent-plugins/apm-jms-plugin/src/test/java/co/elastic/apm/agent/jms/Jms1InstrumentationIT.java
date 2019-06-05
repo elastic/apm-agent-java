@@ -97,16 +97,45 @@ public class Jms1InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListener(Destination destination) throws JMSException {
-        MessageConsumer consumer = session.createConsumer(destination);
+    protected CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
-        //noinspection Convert2Lambda,Anonymous2MethodRef - we don't instrument lamdas or method references
-        consumer.setMessageListener(new MessageListener() {
-            @Override
-            public void onMessage(Message message) {
-                incomingMessageFuture.complete(message);
-            }
-        });
+        try {
+            MessageConsumer consumer = session.createConsumer(destination);
+            //noinspection Convert2Lambda,Anonymous2MethodRef
+            consumer.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(Message message) {
+                    incomingMessageFuture.complete(message);
+                }
+            });
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+        return incomingMessageFuture;
+    }
+
+    @Override
+    protected CompletableFuture<Message> registerListenerLambda(Destination destination) {
+        final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
+        try {
+            MessageConsumer consumer = session.createConsumer(destination);
+            //noinspection Convert2MethodRef
+            consumer.setMessageListener(message -> incomingMessageFuture.complete(message));
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+        return incomingMessageFuture;
+    }
+
+    @Override
+    protected CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
+        final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
+        try {
+            MessageConsumer consumer = session.createConsumer(destination);
+            consumer.setMessageListener(incomingMessageFuture::complete);
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
         return incomingMessageFuture;
     }
 
