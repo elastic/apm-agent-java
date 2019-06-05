@@ -42,7 +42,7 @@ public class ThreadMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        registry.add("jvm.thread.count", Labels.Immutable.empty(), new DoubleSupplier() {
+        registry.add("jvm.thread.count", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return threadMXBean.getThreadCount();

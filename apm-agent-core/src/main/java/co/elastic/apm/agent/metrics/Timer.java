@@ -29,6 +29,9 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This timer track the total time and the count of invocations so that it allows for calculating weighted averages.
+ */
 public class Timer implements Recyclable {
     private static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
 
@@ -50,10 +53,6 @@ public class Timer implements Recyclable {
 
     public double getTotalTimeMs() {
         return totalTime.get() / MS_IN_MICROS;
-    }
-
-    public double getAverageMs() {
-        return totalTime.get() / MS_IN_MICROS / count.get();
     }
 
     public long getCount() {

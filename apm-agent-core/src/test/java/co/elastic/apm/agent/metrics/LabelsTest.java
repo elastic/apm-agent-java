@@ -80,7 +80,7 @@ class LabelsTest {
             immutableLabels,
             Labels.Mutable.of("foo", "bar").transactionName("baz"));
         assertNotEqual(resetLabels, immutableLabels);
-        assertEqualsHashCode(resetLabels, Labels.Immutable.empty());
+        assertEqualsHashCode(resetLabels, Labels.EMPTY);
     }
 
     private void assertNotEqual(Labels l1, Labels l2) {

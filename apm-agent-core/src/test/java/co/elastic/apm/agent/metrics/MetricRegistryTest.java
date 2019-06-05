@@ -53,15 +53,15 @@ class MetricRegistryTest {
         final DoubleSupplier problematicMetric = () -> {
             throw new RuntimeException("Huston, we have a problem");
         };
-        metricRegistry.addUnlessNegative("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
-        metricRegistry.addUnlessNan("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
-        metricRegistry.add("jvm.gc.count", Labels.Immutable.empty(), problematicMetric);
+        metricRegistry.addUnlessNegative("jvm.gc.count", Labels.EMPTY, problematicMetric);
+        metricRegistry.addUnlessNan("jvm.gc.count", Labels.EMPTY, problematicMetric);
+        metricRegistry.add("jvm.gc.count", Labels.EMPTY, problematicMetric);
         metricRegistry.report(metricSets -> assertThat(metricSets).isEmpty());
     }
 
     @Test
     void testReportGaugeTwice() {
-        metricRegistry.add("foo", Labels.Immutable.empty(), () -> 42);
+        metricRegistry.add("foo", Labels.EMPTY, () -> 42);
         metricRegistry.report(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));
         // the active and inactive metricSets are now switched, verify that the previous inactive metricSets also contain the same gauges
         metricRegistry.report(metricSets -> assertThat(metricSets.get(Labels.EMPTY).getGauge("foo").get()).isEqualTo(42));

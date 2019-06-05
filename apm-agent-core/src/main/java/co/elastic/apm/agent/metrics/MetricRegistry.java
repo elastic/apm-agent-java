@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -147,11 +146,7 @@ public class MetricRegistry {
             inactiveMetricSets = activeMetricSets;
             activeMetricSets = temp;
             phaser.flipPhase();
-            try {
-                metricsReporter.report(inactiveMetricSets);
-            } catch (IOException e) {
-                logger.error("Error while reporting metrics", e);
-            }
+            metricsReporter.report(inactiveMetricSets);
         } finally {
             phaser.readerUnlock();
         }
@@ -229,7 +224,12 @@ public class MetricRegistry {
     }
 
     public interface MetricsReporter {
-        void report(Map<? extends Labels, MetricSet> metricSets) throws IOException;
+        /**
+         * Don't hold a reference to metricSets after this method ends as it will be reused.
+         *
+         * @param metricSets the metrics to report
+         */
+        void report(Map<? extends Labels, MetricSet> metricSets);
     }
 
 }
