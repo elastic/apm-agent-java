@@ -278,25 +278,24 @@ public class Transaction extends AbstractSpan<Transaction> {
         labels.resetState();
         labels.transactionName(name).transactionType(type);
         final MetricRegistry metricRegistry = tracer.getMetricRegistry();
-        metricRegistry.doAtomically(new Runnable() {
-            @Override
-            public void run() {
-                metricRegistry.updateTimer("transaction.duration", labels, getDuration());
-                if (collectBreakdownMetrics) {
-                    metricRegistry.incrementCounter("transaction.breakdown.count", labels);
-                    final KeyListConcurrentHashMap<Labels, Timer> spanTimings = getSpanTimings();
-                    List<Labels> keyList = spanTimings.keyList();
-                    for (int i = 0; i < keyList.size(); i++) {
-                        Labels spanType = keyList.get(i);
-                        final Timer timer = spanTimings.get(spanType);
-                        if (timer.getCount() > 0) {
-                            labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
-                            metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
-                            timer.resetState();
-                        }
+        long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
+        try {
+            metricRegistry.updateTimer("transaction.duration", labels, getDuration());
+            if (collectBreakdownMetrics) {
+                metricRegistry.incrementCounter("transaction.breakdown.count", labels);
+                List<Labels> keyList = spanTimings.keyList();
+                for (int i = 0; i < keyList.size(); i++) {
+                    Labels spanType = keyList.get(i);
+                    final Timer timer = spanTimings.get(spanType);
+                    if (timer.getCount() > 0) {
+                        labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
+                        metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
+                        timer.resetState();
                     }
                 }
             }
-        });
+        } finally {
+            metricRegistry.writerCriticalSectionExit(criticalValueAtEnter);
+        }
     }
 }

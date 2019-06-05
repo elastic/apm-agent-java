@@ -214,13 +214,18 @@ public class MetricRegistry {
         }
     }
 
-    public void doAtomically(Runnable r) {
-        long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
-        try {
-            r.run();
-        } finally {
-            phaser.writerCriticalSectionExit(criticalValueAtEnter);
-        }
+    /**
+     * @see WriterReaderPhaser#writerCriticalSectionEnter()
+     */
+    public long writerCriticalSectionEnter() {
+        return phaser.writerCriticalSectionEnter();
+    }
+
+    /**
+     * @see WriterReaderPhaser#writerCriticalSectionExit(long)
+     */
+    public void writerCriticalSectionExit(long criticalValueAtEnter) {
+        phaser.writerCriticalSectionExit(criticalValueAtEnter);
     }
 
     public interface MetricsReporter {
