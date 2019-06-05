@@ -236,7 +236,7 @@ type: long
 
 format: count (delta)
 
-Tracks for how many transactions breakdown metrics (`span.self_time`) have been created.
+The number of transactions for which breakdown metrics (`span.self_time`) have been created.
 As the Java agent tracks the breakdown for both sampled and non-sampled transactions,
 this metric is equivalent to `transaction.duration.count`
 
