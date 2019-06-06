@@ -82,8 +82,8 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @Nullable
-        public static Transaction startTransaction(@Advice.Argument(0) @Nullable final Message message,
-                                                   @Advice.Origin Class<?> clazz) {
+        public static Transaction beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
+                                                  @Advice.Origin Class<?> clazz) {
 
             // Create a transaction - even if running on same JVM as the sender
             Transaction transaction = null;
@@ -128,7 +128,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void endTransaction(@Advice.Enter @Nullable final Transaction transaction,
+        public static void afterOnMessage(@Advice.Enter @Nullable final Transaction transaction,
                                           @Advice.Thrown final Throwable throwable) {
 
             if (transaction != null) {

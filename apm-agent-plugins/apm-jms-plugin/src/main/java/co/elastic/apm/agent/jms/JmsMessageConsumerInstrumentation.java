@@ -67,10 +67,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         super(tracer);
     }
 
-    // todo - check about this filter...
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("MessageConsumer");
+        return nameContains("Message").or(nameContains("Consumer"));
     }
 
     @Override
@@ -98,7 +97,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
             @Nullable
-            public static AbstractSpan startSpan(@Advice.Origin Class<?> clazz) {
+            public static AbstractSpan beforeReceive(@Advice.Origin Class<?> clazz) {
                 AbstractSpan abstractSpan = null;
                 if (tracer != null) {
                     final TraceContextHolder<?> parent = tracer.getActive();
@@ -130,9 +129,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             }
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-            public static void endSpan(@Advice.Enter @Nullable final AbstractSpan abstractSpan,
-                                       @Advice.Return @Nullable final Message message,
-                                       @Advice.Thrown final Throwable throwable) {
+            public static void afterReceive(@Advice.Enter @Nullable final AbstractSpan abstractSpan,
+                                            @Advice.Return @Nullable final Message message,
+                                            @Advice.Thrown final Throwable throwable) {
 
                 if (abstractSpan != null) {
                     try {
@@ -186,7 +185,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
         public static class ListenerWrappingAdvice {
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
-            public static void startSpan(@Advice.Argument(value = 0, readOnly = false) @Nullable MessageListener original) {
+            public static void beforeSetListener(@Advice.Argument(value = 0, readOnly = false) @Nullable MessageListener original) {
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
                 JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
                     jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);

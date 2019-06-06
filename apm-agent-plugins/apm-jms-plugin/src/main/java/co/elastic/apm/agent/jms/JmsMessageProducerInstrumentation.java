@@ -66,11 +66,9 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         super(tracer);
     }
 
-    // todo - check about this filter...
-
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("MessageProducer");
+        return nameContains("Message").or(nameContains("Producer"));
     }
 
     @Override
@@ -97,8 +95,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
         public static class MessageProducerNoDestinationAdvice {
             @Advice.OnMethodEnter(suppress = Throwable.class)
             @Nullable
-            public static Span startSpan(@Advice.Argument(0) final Message message,
-                                         @Advice.This final MessageProducer producer) {
+            public static Span beforeSend(@Advice.Argument(0) final Message message,
+                                          @Advice.This final MessageProducer producer) {
 
                 //noinspection ConstantConditions - the Advice must be invoked only if the BaseJmsInstrumentation constructor was invoked
                 JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
@@ -115,8 +113,8 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
             }
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-            public static void endSpan(@Advice.Enter @Nullable final Span span,
-                                       @Advice.Thrown final Throwable throwable) {
+            public static void afterSend(@Advice.Enter @Nullable final Span span,
+                                         @Advice.Thrown final Throwable throwable) {
 
                 if (span != null) {
                     span.captureException(throwable);

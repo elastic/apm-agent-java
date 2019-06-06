@@ -199,11 +199,11 @@ class JulBridgeLoggerTest {
         assertThat(logger.isLoggable(WARNING)).isTrue();
         assertThat(logger.isLoggable(INFO)).isTrue();
         assertThat(logger.isLoggable(CONFIG)).isTrue();
-        // debug logging should be enabled for tests
+        // trace logging should be enabled for tests
         assertThat(logger.isLoggable(FINE)).isTrue();
         assertThat(logger.isLoggable(FINER)).isTrue();
-        assertThat(logger.isLoggable(FINEST)).isFalse();
-        assertThat(logger.getLevel()).isSameAs(FINE);
+        assertThat(logger.isLoggable(FINEST)).isTrue();
+        assertThat(logger.getLevel()).isSameAs(FINEST);
     }
 
     @Test
