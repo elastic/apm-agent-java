@@ -28,11 +28,6 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.objectpool.Allocator;
-import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,31 +39,14 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Topic;
 
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
-
 @SuppressWarnings("unused")
 public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<Destination, Message, MessageListener> {
 
-    private static final int MAX_POOLED_ELEMENTS = 256;
-
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelperImpl.class);
     private final ElasticApmTracer tracer;
-    private final ObjectPool<MessageListenerWrapper> messageListenerWrapperObjectPool;
 
     public JmsInstrumentationHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        //noinspection RedundantTypeArguments
-        messageListenerWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
-            AtomicQueueFactory.<MessageListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
-            false,
-            new MessageListenerWrapperAllocator());
-    }
-
-    private class MessageListenerWrapperAllocator implements Allocator<MessageListenerWrapper> {
-        @Override
-        public MessageListenerWrapper createInstance() {
-            return new MessageListenerWrapper();
-        }
     }
 
     @SuppressWarnings("Duplicates")
@@ -116,42 +94,22 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     public MessageListener wrapLambda(@Nullable MessageListener listener) {
         // the name check also prevents from wrapping twice
         if (listener != null && listener.getClass().getName().contains("/")) {
-            return messageListenerWrapperObjectPool.createInstance().wrap(listener);
+            return new MessageListenerWrapper(listener);
         }
         return listener;
     }
 
-    private void recycle(MessageListenerWrapper messageListenerWrapper) {
-        messageListenerWrapperObjectPool.recycle(messageListenerWrapper);
-    }
+    public class MessageListenerWrapper implements MessageListener {
 
-    public class MessageListenerWrapper implements MessageListener, Recyclable {
+        private final MessageListener delegate;
 
-        @Nullable
-        private MessageListener delegate;
-
-        MessageListenerWrapper() {
-        }
-
-        MessageListenerWrapper wrap(MessageListener delegate) {
+        MessageListenerWrapper(MessageListener delegate) {
             this.delegate = delegate;
-            return this;
         }
 
         @Override
         public void onMessage(Message message) {
-            try {
-                if (delegate != null) {
-                    delegate.onMessage(message);
-                }
-            } finally {
-                JmsInstrumentationHelperImpl.this.recycle(this);
-            }
-        }
-
-        @Override
-        public void resetState() {
-            delegate = null;
+            delegate.onMessage(message);
         }
     }
 }
