@@ -66,6 +66,7 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
 
         File targetDir = new File(System.getProperty("user.dir") + "/target");
         configuration.setBrokerInstance(targetDir);
+        configuration.setPersistenceEnabled(false);
 
         activeMQServer = new ActiveMQServerImpl(configuration);
         activeMQServer.start();
