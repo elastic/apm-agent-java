@@ -55,6 +55,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     @Nullable
     public Span startJmsSendSpan(Destination destination, Message message) {
 
+        System.out.println("Starting a JMS send span. Tracer instance: " + tracer);
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return null;
