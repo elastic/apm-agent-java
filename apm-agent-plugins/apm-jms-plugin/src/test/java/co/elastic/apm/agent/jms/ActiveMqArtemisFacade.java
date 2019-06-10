@@ -30,10 +30,6 @@ import org.apache.activemq.artemis.core.config.impl.ConfigurationImpl;
 import org.apache.activemq.artemis.core.remoting.impl.invm.InVMAcceptorFactory;
 import org.apache.activemq.artemis.core.server.impl.ActiveMQServerImpl;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 
 import javax.jms.Destination;
 import javax.jms.JMSConsumer;
@@ -49,14 +45,14 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ActiveMQ Artemis tests for JMS 2 API
  */
-public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
+public class ActiveMqArtemisFacade implements BrokerFacade {
 
-    private static ActiveMQConnectionFactory connectionFactory;
-    private static ActiveMQServerImpl activeMQServer;
+    private ActiveMQConnectionFactory connectionFactory;
+    private ActiveMQServerImpl activeMQServer;
     private JMSContext context;
 
-    @BeforeClass
-    public static void startQueueAndClient() throws Exception {
+    @Override
+    public void prepareResources() throws Exception {
         Configuration configuration = new ConfigurationImpl();
 
         HashSet<TransportConfiguration> transports = new HashSet<>();
@@ -74,44 +70,44 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
         connectionFactory = new ActiveMQConnectionFactory("vm://0");
     }
 
-    @AfterClass
-    public static void stopQueueAndClient() throws Exception {
+    @Override
+    public void closeResources() throws Exception {
         activeMQServer.stop();
     }
 
-    @Before
-    public void startContext() {
+    @Override
+    public void beforeTest() {
         context = connectionFactory.createContext();
     }
 
-    @After
-    public void closeContext() {
+    @Override
+    public void afterTest() {
         // This should also close underlying producers and consumers
         context.close();
     }
 
     @Override
-    protected Queue createQueue(String queueName) {
+    public Queue createQueue(String queueName) {
         return context.createQueue(queueName);
     }
 
     @Override
-    protected Topic createTopic(String topicName) {
+    public Topic createTopic(String topicName) {
         return context.createTopic(topicName);
     }
 
     @Override
-    protected Message createTextMessage(String messageText) {
+    public Message createTextMessage(String messageText) {
         return context.createTextMessage(messageText);
     }
 
     @Override
-    protected void send(Destination destination, Message message) {
+    public void send(Destination destination, Message message) {
         context.createProducer().send(destination, message);
     }
 
     @Override
-    protected CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
+    public CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
         JMSConsumer consumer = context.createConsumer(destination);
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         //noinspection Convert2Lambda,Anonymous2MethodRef
@@ -125,7 +121,7 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListenerLambda(Destination destination) {
+    public CompletableFuture<Message> registerListenerLambda(Destination destination) {
         JMSConsumer consumer = context.createConsumer(destination);
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         // ActiveMQ Artemis wraps listeners with actual MessageListener instances
@@ -136,7 +132,7 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
+    public CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
         JMSConsumer consumer = context.createConsumer(destination);
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         // ActiveMQ Artemis wraps listeners with actual MessageListener instances
@@ -146,17 +142,17 @@ public class Jms2InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected Message receive(Destination destination) {
+    public Message receive(Destination destination) {
         return context.createConsumer(destination).receive();
     }
 
     @Override
-    protected Message receive(Destination destination, long timeout) {
+    public Message receive(Destination destination, long timeout) {
         return context.createConsumer(destination).receive(timeout);
     }
 
     @Override
-    protected Message receiveNoWait(Destination destination) {
+    public Message receiveNoWait(Destination destination) {
         return context.createConsumer(destination).receiveNoWait();
     }
 }

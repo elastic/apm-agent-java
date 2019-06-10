@@ -31,8 +31,11 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -41,78 +44,103 @@ import javax.jms.Queue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentationTest {
+@RunWith(Parameterized.class)
+public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private static final String TEST_Q_NAME = "TestQ";
     private static final String TEST_TOPIC_NAME = "Test-Topic";
 
+    // Keeping a static reference for resource cleaning
+    private static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
+
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    private final BrokerFacade brokerFacade;
+
+    public JmsInstrumentationIT(BrokerFacade brokerFacade) throws Exception {
+        this.brokerFacade = brokerFacade;
+        if (staticBrokerFacade.add(brokerFacade)) {
+            brokerFacade.prepareResources();
+        }
+    }
+
+    @Parameterized.Parameters(name = "BrokerFacade={0}")
+    public static Iterable<Object[]> brokerFacades() {
+        return Arrays.asList(new Object[][]{{new ActiveMqFacade()}, {new ActiveMqArtemisFacade()}});
+    }
+
+    @AfterClass
+    public static void closeResources() throws Exception {
+        for (BrokerFacade brokerFacade : staticBrokerFacade) {
+            brokerFacade.closeResources();
+        }
+        staticBrokerFacade.clear();
+    }
+
     @Before
-    public void startTransaction() {
+    public void startTransaction() throws Exception {
         reporter.reset();
-        System.out.println("Starting transaction. Tracer instance: " + tracer);
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("JMS-Test Transaction");
         transaction.withType("request");
         transaction.withResult("success");
+        brokerFacade.beforeTest();
     }
 
     @After
-    public void endTransaction() {
+    public void endTransaction() throws Exception {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();
         }
+        brokerFacade.afterTest();
         reporter.reset();
     }
 
     @Test
-    public void testQueueSendReceiveOnTracedThread() throws JMSException, ExecutionException,
-        InterruptedException, TimeoutException {
-        final Queue queue = createQueue(TEST_Q_NAME);
-        testQueueSendReceiveOnTracedThread(() -> receive(queue), queue);
+    public void testQueueSendReceiveOnTracedThread() throws Exception {
+        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        testQueueSendReceiveOnTracedThread(() -> brokerFacade.receive(queue), queue);
     }
 
     @Test
-    public void testQueueSendReceiveNoWaitOnTracedThread() throws JMSException, ExecutionException, InterruptedException, TimeoutException {
-        final Queue queue = createQueue(TEST_Q_NAME);
-        testQueueSendReceiveOnTracedThread(() -> receiveNoWait(queue), queue);
+    public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
+        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        testQueueSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue);
     }
 
     @Test
-    public void testQueueSendReceiveOnNonTracedThread() throws JMSException, ExecutionException,
-        InterruptedException, TimeoutException {
-        final Queue queue = createQueue(TEST_Q_NAME);
-        testQueueSendReceiveOnNonTracedThread(() -> receive(queue), queue);
+    public void testQueueSendReceiveOnNonTracedThread() throws Exception {
+        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue), queue);
     }
 
     @Test
-    public void testQueueSendReceiveNoWaitOnNonTracedThread() throws JMSException, ExecutionException, InterruptedException, TimeoutException {
-        final Queue queue = createQueue(TEST_Q_NAME);
-        testQueueSendReceiveOnNonTracedThread(() -> receiveNoWait(queue), queue);
+    public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
+        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue);
     }
 
-    private void testQueueSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue)
-        throws JMSException, ExecutionException, InterruptedException, TimeoutException {
+    private void testQueueSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue) throws Exception {
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = createTextMessage(message);
-        send(queue, outgoingMessage);
+        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = receiveOnTracedThread(receiveMethod).get(1, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
 
@@ -136,10 +164,10 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     }
 
     private void testQueueSendReceiveOnNonTracedThread(Callable<Message> receiveMethod, Queue queue)
-        throws JMSException, ExecutionException, InterruptedException, TimeoutException {
+        throws Exception {
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = createTextMessage(message);
-        send(queue, outgoingMessage);
+        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = receiveOnNonTracedThread(receiveMethod).get(1, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
@@ -169,7 +197,7 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     @Test
     public void testRegisterConcreteListenerImpl() {
         try {
-            testQueueSendListen(this::registerConcreteListenerImplementation);
+            testQueueSendListen(brokerFacade::registerConcreteListenerImplementation);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -178,7 +206,7 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     @Test
     public void testRegisterListenerLambda() {
         try {
-            testQueueSendListen(this::registerListenerLambda);
+            testQueueSendListen(brokerFacade::registerListenerLambda);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -187,19 +215,19 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     @Test
     public void testRegisterListenerMethodReference() {
         try {
-            testQueueSendListen(this::registerListenerMethodReference);
+            testQueueSendListen(brokerFacade::registerListenerMethodReference);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     private void testQueueSendListen(Function<Destination, CompletableFuture<Message>> listenerRegistrationFunction)
-        throws JMSException, ExecutionException, InterruptedException, TimeoutException {
-        Queue queue = createQueue(TEST_Q_NAME);
+        throws Exception {
+        Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
         CompletableFuture<Message> incomingMessageFuture = listenerRegistrationFunction.apply(queue);
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = createTextMessage(message);
-        send(queue, outgoingMessage);
+        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = incomingMessageFuture.get(1, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
@@ -207,15 +235,15 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
     }
 
     @Test
-    public void testTopicWithTwoSubscribers() throws JMSException, ExecutionException, InterruptedException, TimeoutException {
-        Topic topic = createTopic(TEST_TOPIC_NAME);
+    public void testTopicWithTwoSubscribers() throws Exception {
+        Topic topic = brokerFacade.createTopic(TEST_TOPIC_NAME);
 
-        final CompletableFuture<Message> incomingMessageFuture1 = registerConcreteListenerImplementation(topic);
-        final CompletableFuture<Message> incomingMessageFuture2 = registerConcreteListenerImplementation(topic);
+        final CompletableFuture<Message> incomingMessageFuture1 = brokerFacade.registerConcreteListenerImplementation(topic);
+        final CompletableFuture<Message> incomingMessageFuture2 = brokerFacade.registerConcreteListenerImplementation(topic);
 
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = createTextMessage(message);
-        send(topic, outgoingMessage);
+        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        brokerFacade.send(topic, outgoingMessage);
 
         Message incomingMessage1 = incomingMessageFuture1.get(1, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage1);
@@ -259,24 +287,4 @@ public abstract class AbstractJmsInstrumentationIT extends AbstractInstrumentati
             return message;
         });
     }
-
-    protected abstract Queue createQueue(String queueName) throws JMSException;
-
-    protected abstract Topic createTopic(String topicName) throws JMSException;
-
-    protected abstract Message createTextMessage(String messageText) throws JMSException;
-
-    protected abstract void send(Destination destination, Message message) throws JMSException;
-
-    protected abstract CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination);
-
-    protected abstract CompletableFuture<Message> registerListenerLambda(Destination destination);
-
-    protected abstract CompletableFuture<Message> registerListenerMethodReference(Destination destination);
-
-    protected abstract Message receive(Destination destination) throws JMSException;
-
-    protected abstract Message receive(Destination destination, long timeout) throws JMSException;
-
-    protected abstract Message receiveNoWait(Destination destination) throws JMSException;
 }

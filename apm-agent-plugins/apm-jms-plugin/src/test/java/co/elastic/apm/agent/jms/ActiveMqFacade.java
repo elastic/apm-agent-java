@@ -26,10 +26,6 @@ package co.elastic.apm.agent.jms;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.pool.PooledConnectionFactory;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -47,57 +43,57 @@ import java.util.concurrent.CompletableFuture;
  * ActiveMQ tests for JMS 1 API.
  * Testing with the Pooled connection factory adds testing for name-based pre-matcher-filter, and tests for nested receives
  */
-public class Jms1InstrumentationIT extends AbstractJmsInstrumentationIT {
+class ActiveMqFacade implements BrokerFacade {
 
-    private static Connection connection;
+    private Connection connection;
     private Session session;
 
-    @BeforeClass
-    public static void startQueueAndClient() throws JMSException {
+    @Override
+    public void prepareResources() throws JMSException {
         ConnectionFactory connectionFactory = new PooledConnectionFactory(
             new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false"));
         connection = connectionFactory.createConnection();
         connection.start();
     }
 
-    @AfterClass
-    public static void stopQueueAndClient() throws JMSException {
+    @Override
+    public void closeResources() throws JMSException {
         connection.stop();
     }
 
-    @Before
-    public void startSession() throws JMSException {
+    @Override
+    public void beforeTest() throws JMSException {
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
     }
 
-    @After
-    public void closeSession() throws JMSException {
+    @Override
+    public void afterTest() throws JMSException {
         // This should also close underlying producers and consumers
         session.close();
     }
 
     @Override
-    protected Queue createQueue(String queueName) throws JMSException {
+    public Queue createQueue(String queueName) throws JMSException {
         return session.createQueue(queueName);
     }
 
     @Override
-    protected Topic createTopic(String topicName) throws JMSException {
+    public Topic createTopic(String topicName) throws JMSException {
         return session.createTopic(topicName);
     }
 
     @Override
-    protected Message createTextMessage(String messageText) throws JMSException {
+    public Message createTextMessage(String messageText) throws JMSException {
         return session.createTextMessage(messageText);
     }
 
     @Override
-    protected void send(Destination destination, Message message) throws JMSException {
+    public void send(Destination destination, Message message) throws JMSException {
         session.createProducer(destination).send(message);
     }
 
     @Override
-    protected CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
+    public CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination) {
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         try {
             MessageConsumer consumer = session.createConsumer(destination);
@@ -115,7 +111,7 @@ public class Jms1InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListenerLambda(Destination destination) {
+    public CompletableFuture<Message> registerListenerLambda(Destination destination) {
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         try {
             MessageConsumer consumer = session.createConsumer(destination);
@@ -128,7 +124,7 @@ public class Jms1InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
+    public CompletableFuture<Message> registerListenerMethodReference(Destination destination) {
         final CompletableFuture<Message> incomingMessageFuture = new CompletableFuture<>();
         try {
             MessageConsumer consumer = session.createConsumer(destination);
@@ -140,17 +136,17 @@ public class Jms1InstrumentationIT extends AbstractJmsInstrumentationIT {
     }
 
     @Override
-    protected Message receive(Destination destination) throws JMSException {
+    public Message receive(Destination destination) throws JMSException {
         return session.createConsumer(destination).receive();
     }
 
     @Override
-    protected Message receive(Destination destination, long timeout) throws JMSException {
+    public Message receive(Destination destination, long timeout) throws JMSException {
         return session.createConsumer(destination).receive(timeout);
     }
 
     @Override
-    protected Message receiveNoWait(Destination destination) throws JMSException {
+    public Message receiveNoWait(Destination destination) throws JMSException {
         return session.createConsumer(destination).receiveNoWait();
     }
 }
