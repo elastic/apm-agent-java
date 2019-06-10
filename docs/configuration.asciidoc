@@ -218,11 +218,9 @@ A version string for the currently deployed version of the service. If you donâ€
 
 The name of the environment this service is deployed in, e.g. "production" or "staging".
 
-NOTE: The APM UI does not fully support the environment setting yet.
-You can use the query bar to filter for a specific environment,
-but by default the environments will be mixed together.
-Also keep that in mind when creating alerts.
-
+Environments allow you to easily filter data on a global level in the APM UI.
+It's important to be consistent when naming environments across agents.
+See {kib}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
 
 [options="header"]
 |============
