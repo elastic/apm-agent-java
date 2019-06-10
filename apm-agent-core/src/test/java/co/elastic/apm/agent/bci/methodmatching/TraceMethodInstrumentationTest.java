@@ -133,7 +133,7 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("2000ms")
+    @Tag("200ms")
     void testDiscardMethods_DiscardAll() {
         new TestDiscardableMethods(tracer).root(false);
         assertThat(reporter.getTransactions()).hasSize(1);
@@ -141,7 +141,7 @@ class TraceMethodInstrumentationTest {
     }
 
     @Test
-    @Tag("2000ms")
+    @Tag("200ms")
     void testDiscardMethods_Manual() {
         new TestDiscardableMethods(tracer).root(true);
         assertThat(reporter.getTransactions()).hasSize(1);
