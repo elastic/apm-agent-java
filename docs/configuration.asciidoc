@@ -222,6 +222,9 @@ Environments allow you to easily filter data on a global level in the APM UI.
 It's important to be consistent when naming environments across agents.
 See {kib}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
 
+NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
+You must use the query bar to filter for a specific environment in versions prior to 7.2.
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
