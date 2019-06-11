@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -140,7 +141,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
             processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), Collections.emptyMap());
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class), v2handler);
 
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)

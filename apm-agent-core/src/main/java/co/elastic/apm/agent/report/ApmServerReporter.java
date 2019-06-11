@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -92,13 +93,14 @@ public class ApmServerReporter implements Reporter {
     private final Disruptor<ReportingEvent> disruptor;
     private final AtomicLong dropped = new AtomicLong();
     private final boolean dropTransactionIfQueueFull;
+    private final CoreConfiguration coreConfiguration;
     private final ReportingEventHandler reportingEventHandler;
     private final boolean syncReport;
     @Nullable
     private ScheduledThreadPoolExecutor metricsReportingScheduler;
 
     public ApmServerReporter(boolean dropTransactionIfQueueFull, ReporterConfiguration reporterConfiguration,
-                             ReportingEventHandler reportingEventHandler) {
+                             CoreConfiguration coreConfiguration, ReportingEventHandler reportingEventHandler) {
         this.dropTransactionIfQueueFull = dropTransactionIfQueueFull;
         this.syncReport = reporterConfiguration.isReportSynchronously();
         disruptor = new Disruptor<>(new TransactionEventFactory(), MathUtils.getNextPowerOf2(reporterConfiguration.getMaxQueueSize()), new ThreadFactory() {
@@ -110,6 +112,7 @@ public class ApmServerReporter implements Reporter {
                 return thread;
             }
         }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
+        this.coreConfiguration = coreConfiguration;
         this.reportingEventHandler = reportingEventHandler;
         disruptor.setDefaultExceptionHandler(new IgnoreExceptionHandler());
         disruptor.handleEventsWith(this.reportingEventHandler);
@@ -253,6 +256,9 @@ public class ApmServerReporter implements Reporter {
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
+                    if (!coreConfiguration.isActive()) {
+                        return;
+                    }
                     disruptor.getRingBuffer().tryPublishEvent(new EventTranslatorOneArg<ReportingEvent, MetricRegistry>() {
                         @Override
                         public void translateTo(ReportingEvent event, long sequence, MetricRegistry metricRegistry) {
