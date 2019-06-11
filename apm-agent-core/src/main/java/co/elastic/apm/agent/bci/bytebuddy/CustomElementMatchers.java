@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
@@ -136,7 +137,7 @@ public class CustomElementMatchers {
                 if (pdVersion != null) {
                     return pdVersion.compareTo(limitVersion) <= 0;
                 }
-                return false;
+                return true;
             }
         };
     }
@@ -155,7 +156,13 @@ public class CustomElementMatchers {
                         if (urlConnection instanceof JarURLConnection) {
                             jarFile = ((JarURLConnection) urlConnection).getJarFile();
                         } else {
-                            jarFile = new JarFile(jarUrl.getFile());
+                            try {
+                                jarFile = new JarFile(jarUrl.getFile());
+                            } catch (IOException e) {
+                                // Maybe the URL is encoded- try to decode
+                                //noinspection CharsetObjectCanBeUsed - can't use this API as it is from Java 10 only
+                                jarFile = new JarFile(URLDecoder.decode(jarUrl.getFile(), "UTF-8"));
+                            }
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {

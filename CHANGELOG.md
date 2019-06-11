@@ -18,6 +18,7 @@
 ## Bug Fixes
  * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
  * NullPointerException when computing Servlet transaction name with null HTTP method name
+ * FileNotFoundException when trying to find implementation version of jar with encoded URL
 
 # 1.6.1
 
