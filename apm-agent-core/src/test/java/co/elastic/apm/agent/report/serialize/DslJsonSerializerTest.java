@@ -52,6 +52,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 class DslJsonSerializerTest {
@@ -61,7 +62,9 @@ class DslJsonSerializerTest {
 
     @BeforeEach
     void setUp() {
-        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
+        serializer = new DslJsonSerializer(stacktraceConfiguration);
         objectMapper = new ObjectMapper();
     }
 
@@ -97,7 +100,15 @@ class DslJsonSerializerTest {
         assertThat(context.get("tags").get("foo").textValue()).isEqualTo("bar");
         JsonNode exception = errorTree.get("exception");
         assertThat(exception.get("message").textValue()).isEqualTo("test");
-        assertThat(exception.get("stacktrace")).isNotNull();
+        JsonNode stacktrace = exception.get("stacktrace");
+        assertThat(stacktrace).isNotNull();
+        assertThat(stacktrace).hasSize(15);
+        JsonNode stackTraceElement = stacktrace.get(0);
+        assertThat(stackTraceElement.get("filename")).isNotNull();
+        assertThat(stackTraceElement.get("function")).isNotNull();
+        assertThat(stackTraceElement.get("library_frame")).isNotNull();
+        assertThat(stackTraceElement.get("lineno")).isNotNull();
+        assertThat(stackTraceElement.get("module")).isNotNull();
         assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
