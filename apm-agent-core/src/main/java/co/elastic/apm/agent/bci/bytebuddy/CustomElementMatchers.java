@@ -137,7 +137,7 @@ public class CustomElementMatchers {
                 if (pdVersion != null) {
                     return pdVersion.compareTo(limitVersion) <= 0;
                 }
-                return false;
+                return true;
             }
         };
     }
