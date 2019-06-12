@@ -141,7 +141,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
-        Message incomingMessage = receiveOnTracedThread(receiveMethod).get(1, TimeUnit.SECONDS);
+        Message incomingMessage = receiveOnTracedThread(receiveMethod).get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
 
         List<Span> spans = reporter.getSpans();
@@ -168,7 +168,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
-        Message incomingMessage = receiveOnNonTracedThread(receiveMethod).get(1, TimeUnit.SECONDS);
+        Message incomingMessage = receiveOnNonTracedThread(receiveMethod).get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
     }
@@ -228,7 +228,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
-        Message incomingMessage = incomingMessageFuture.get(1, TimeUnit.SECONDS);
+        Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
         verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
@@ -245,10 +245,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(topic, outgoingMessage);
 
-        Message incomingMessage1 = incomingMessageFuture1.get(1, TimeUnit.SECONDS);
+        Message incomingMessage1 = incomingMessageFuture1.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage1);
 
-        Message incomingMessage2 = incomingMessageFuture2.get(1, TimeUnit.SECONDS);
+        Message incomingMessage2 = incomingMessageFuture2.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage2);
 
         Thread.sleep(500);
