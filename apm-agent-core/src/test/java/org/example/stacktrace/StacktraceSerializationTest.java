@@ -73,9 +73,9 @@ class StacktraceSerializationTest {
     void fillStackTrace() {
         assertThat(stacktrace).isNotEmpty();
         // even though the stacktrace is captured within our tracer class, the first method should be getStackTrace
-        assertThat(stacktrace.get(0).get("abs_path").textValue()).doesNotStartWith("co.elastic");
+        assertThat(stacktrace.get(0).get("module").textValue()).doesNotStartWith("co.elastic");
         assertThat(stacktrace.get(0).get("function").textValue()).isEqualTo("getStackTrace");
-        assertThat(stacktrace.stream().filter(st -> st.get("abs_path").textValue().endsWith("StacktraceSerializationTest"))).isNotEmpty();
+        assertThat(stacktrace.stream().filter(st -> st.get("filename").textValue().equals("StacktraceSerializationTest.java"))).isNotEmpty();
     }
 
     @Test
@@ -83,7 +83,7 @@ class StacktraceSerializationTest {
         when(stacktraceConfiguration.getApplicationPackages()).thenReturn(Collections.singletonList("org.example.stacktrace"));
         stacktrace = getStackTrace();
         Optional<JsonNode> thisMethodsFrame = stacktrace.stream()
-            .filter(st -> st.get("abs_path").textValue().startsWith(getClass().getName()))
+            .filter(st -> st.get("module").textValue().equals(getClass().getPackageName()))
             .findAny();
         assertThat(thisMethodsFrame).isPresent();
         assertThat(thisMethodsFrame.get().get("library_frame").booleanValue()).isFalse();
@@ -92,7 +92,7 @@ class StacktraceSerializationTest {
     @Test
     void testNoAppFrame() {
         Optional<JsonNode> thisMethodsFrame = stacktrace.stream()
-            .filter(st -> st.get("abs_path").textValue().startsWith(getClass().getName()))
+            .filter(st -> st.get("module").textValue().startsWith(getClass().getPackageName()))
             .findAny();
         assertThat(thisMethodsFrame).isPresent();
         assertThat(thisMethodsFrame.get().get("library_frame").booleanValue()).isTrue();
@@ -106,10 +106,45 @@ class StacktraceSerializationTest {
     @Test
     void testNoInternalStackFrames() {
         assertSoftly(softly -> {
-            softly.assertThat(stacktrace.stream().filter(st -> st.get("abs_path").textValue().contains("java.lang.reflect."))).isEmpty();
-            softly.assertThat(stacktrace.stream().filter(st -> st.get("abs_path").textValue().contains("sun."))).isEmpty();
+            softly.assertThat(stacktrace.stream().filter(st -> st.get("module").textValue().startsWith("java.lang."))).isEmpty();
+            softly.assertThat(stacktrace.stream().filter(st -> st.get("module").textValue().startsWith("sun."))).isEmpty();
         });
     }
+
+    @Test
+    void testStackTraceElementSerialization() throws IOException {
+        when(stacktraceConfiguration.getApplicationPackages()).thenReturn(Collections.singletonList("co.elastic.apm"));
+
+        StackTraceElement stackTraceElement = new StackTraceElement("co.elastic.apm.test.TestClass",
+            "testMethod", "TestClass.java", 34);
+        String json = serializer.toJsonString(stackTraceElement);
+        JsonNode stackTraceElementParsed = objectMapper.readTree(json);
+        assertThat(stackTraceElementParsed.get("filename").textValue()).isEqualTo("TestClass.java");
+        assertThat(stackTraceElementParsed.get("function").textValue()).isEqualTo("testMethod");
+        assertThat(stackTraceElementParsed.get("library_frame").booleanValue()).isFalse();
+        assertThat(stackTraceElementParsed.get("lineno").intValue()).isEqualTo(34);
+        assertThat(stackTraceElementParsed.get("module").textValue()).isEqualTo("co.elastic.apm.test");
+
+        stackTraceElement = new StackTraceElement("co.elastic.TestClass",
+            "testMethod", "TestClass.java", 34);
+        json = serializer.toJsonString(stackTraceElement);
+        stackTraceElementParsed = objectMapper.readTree(json);
+        assertThat(stackTraceElementParsed.get("library_frame").booleanValue()).isTrue();
+        assertThat(stackTraceElementParsed.get("module").textValue()).isEqualTo("co.elastic");
+
+        stackTraceElement = new StackTraceElement(".TestClass",
+            "testMethod", "TestClass.java", 34);
+        json = serializer.toJsonString(stackTraceElement);
+        stackTraceElementParsed = objectMapper.readTree(json);
+        assertThat(stackTraceElementParsed.get("module").textValue()).isEqualTo("");
+
+        stackTraceElement = new StackTraceElement("TestClass",
+            "testMethod", "TestClass.java", 34);
+        json = serializer.toJsonString(stackTraceElement);
+        stackTraceElementParsed = objectMapper.readTree(json);
+        assertThat(stackTraceElementParsed.get("module").textValue()).isEqualTo("");
+    }
+
 
     private List<JsonNode> getStackTrace() throws IOException {
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
