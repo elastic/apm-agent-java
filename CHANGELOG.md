@@ -19,6 +19,7 @@
  * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
  * NullPointerException when computing Servlet transaction name with null HTTP method name
  * FileNotFoundException when trying to find implementation version of jar with encoded URL
+ * NullPointerException when closing Apache AsyncHttpClient request producer
 
 # 1.6.1
 
