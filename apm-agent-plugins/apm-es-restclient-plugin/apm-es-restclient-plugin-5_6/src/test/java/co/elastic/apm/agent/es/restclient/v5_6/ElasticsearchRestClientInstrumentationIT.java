@@ -77,6 +77,8 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
 
     protected static final String DOC_TYPE = "doc";
     private static RestHighLevelClient client;
+    @SuppressWarnings("NullableProblems")
+    protected static RestClient lowLevelClient;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
         this.async = async;
