@@ -112,10 +112,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".\n" +
             "\n" +
-            "NOTE: The APM UI does not fully support the environment setting yet.\n" +
-            "You can use the query bar to filter for a specific environment,\n" +
-            "but by default the environments will be mixed together.\n" +
-            "Also keep that in mind when creating alerts.")
+            "Environments allow you to easily filter data on a global level in the APM UI.\n" +
+            "It's important to be consistent when naming environments across agents.\n" +
+            "See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.\n\n" +
+            "NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.\n" +
+            "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
