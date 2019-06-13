@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 @Library('apm@current') _
-  
+
 pipeline {
   agent any
   environment {
@@ -59,20 +59,22 @@ pipeline {
         */
         stage('Build') {
           steps {
-            deleteDir()
-            unstash 'source'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
-              ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
-              """
+            withGithubNotify(context: 'Build', tab: 'artifacts') {
+              deleteDir()
+              unstash 'source'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+                ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+                """
+              }
+              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              archiveArtifacts allowEmptyArchive: true,
+                artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                      ${BASE_DIR}/target/site/aggregate-third-party-report.html",
+                onlyIfSuccessful: true
             }
-            stash allowEmpty: true, name: 'build', useDefaultExcludes: false
-            archiveArtifacts allowEmptyArchive: true,
-              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
-                    ${BASE_DIR}/target/site/aggregate-third-party-report.html",
-              onlyIfSuccessful: true
           }
         }
       }
@@ -96,13 +98,15 @@ pipeline {
             expression { return params.test_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw test
-              """
+            withGithubNotify(context: 'Unit Tests', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw test
+                """
+              }
             }
           }
           post {
@@ -127,10 +131,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh './scripts/jenkins/smoketests-01.sh'
+            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh './scripts/jenkins/smoketests-01.sh'
+              }
             }
           }
           post {
@@ -155,10 +161,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh './scripts/jenkins/smoketests-02.sh'
+            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh './scripts/jenkins/smoketests-02.sh'
+              }
             }
           }
           post {
@@ -194,16 +202,18 @@ pipeline {
             }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              script {
-                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+            withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                script {
+                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+                }
+                sh './scripts/jenkins/run-benchmarks.sh'
               }
-              sh './scripts/jenkins/run-benchmarks.sh'
             }
           }
           post {
@@ -231,13 +241,15 @@ pipeline {
             expression { return params.doc_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw compile javadoc:javadoc
-              """
+            withGithubNotify(context: 'Javadoc') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw compile javadoc:javadoc
+                """
+              }
             }
           }
         }
@@ -260,10 +272,12 @@ pipeline {
         expression { return params.doc_ci }
       }
       steps {
-        deleteDir()
-        unstash 'source'
-        dir("${BASE_DIR}"){
-          buildDocs(docsDir: "docs", archive: true)
+        withGithubNotify(context: 'Documentation', tab: 'artifacts') {
+          deleteDir()
+          unstash 'source'
+          dir("${BASE_DIR}"){
+            buildDocs(docsDir: "docs", archive: true)
+          }
         }
       }
     }
