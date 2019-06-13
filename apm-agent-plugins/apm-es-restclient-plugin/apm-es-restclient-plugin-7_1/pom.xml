@@ -49,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-es-restclient-plugin-common</artifactId>
+            <artifactId>apm-es-restclient-plugin-6_4</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

@@ -43,7 +43,9 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
+import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -69,9 +71,11 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @RunWith(Parameterized.class)
 public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientInstrumentationTest {
 
-    protected static final String DOC_TYPE = "doc";
+    protected static final String ELASTICSEARCH_CONTAINER_VERSION = "docker.elastic.co/elasticsearch/elasticsearch:5.6.0";
     protected static final String USER_NAME = "elastic";
     protected static final String PASSWORD = "changeme";
+
+    protected static final String DOC_TYPE = "doc";
     private static RestHighLevelClient client;
 
     public ElasticsearchRestClientInstrumentationIT(boolean async) {
@@ -81,7 +85,7 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
     @BeforeClass
     public static void startElasticsearchContainerAndClient() throws IOException {
         // Start the container
-        container = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:5.6.0");
+        container = new ElasticsearchContainer(ELASTICSEARCH_CONTAINER_VERSION);
         container.start();
 
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -283,6 +287,30 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
             return invokeAsync(bulkRequest, method);
         }
         return client.bulk(bulkRequest);
+    }
+
+
+    private Response doPerformRequest(String method, String path) throws IOException, ExecutionException {
+        if (async) {
+            final CompletableFuture<Response> resultFuture = new CompletableFuture<>();
+            lowLevelClient.performRequestAsync(method, path, new ResponseListener() {
+                @Override
+                public void onSuccess(Response response) {
+                    resultFuture.complete(response);
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    resultFuture.completeExceptionally(exception);
+                }
+            });
+            try {
+                return resultFuture.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return lowLevelClient.performRequest(method, path);
     }
 
 }

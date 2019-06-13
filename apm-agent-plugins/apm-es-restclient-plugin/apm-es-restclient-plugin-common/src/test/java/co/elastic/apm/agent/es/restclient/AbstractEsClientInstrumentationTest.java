@@ -29,9 +29,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractEsClientInstrumentationTest extends AbstractInstrumentationTest {
 
-    protected static final String USER_NAME = "elastic-user";
-    protected static final String PASSWORD = "elastic-pass";
-
     @SuppressWarnings("NullableProblems")
     protected static ElasticsearchContainer container;
     @SuppressWarnings("NullableProblems")
@@ -138,50 +135,5 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(spans).hasSize(1);
         assertThat(spans.get(0).getName().toString()).isEqualTo("Elasticsearch: POST /_bulk");
     }
-
-    protected Response doPerformRequest(String method, String path) throws IOException, ExecutionException {
-        if (async) {
-            final CompletableFuture<Response> resultFuture = new CompletableFuture<>();
-            lowLevelClient.performRequestAsync(method, path, new ResponseListener() {
-                @Override
-                public void onSuccess(Response response) {
-                    resultFuture.complete(response);
-                }
-
-                @Override
-                public void onFailure(Exception exception) {
-                    resultFuture.completeExceptionally(exception);
-                }
-            });
-            try {
-                return resultFuture.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        return lowLevelClient.performRequest(method, path);
-    }
-
-//    private void validateHttpContextContent(Http http, int statusCode, String method, String url) {
-//        assertThat(http).isNotNull();
-//        assertThat(http.getMethod()).isEqualTo(method);
-//        assertThat(http.getStatusCode()).isEqualTo(statusCode);
-//        assertThat(http.getUrl()).isEqualTo(url);
-//    }
-//
-//    private void validateDbContextContent(Span span, String statement) {
-//        Db db = span.getContext().getDb();
-//        assertThat(db.getType()).isEqualTo(ELASTICSEARCH);
-//        assertThat((Object) db.getStatementBuffer()).isNotNull();
-//        assertThat(db.getStatementBuffer().toString()).isEqualTo(statement);
-//    }
-
-
-    public abstract void testCreateAndDeleteIndex() throws IOException, ExecutionException, InterruptedException;
-
-    public abstract void testDocumentScenario() throws IOException, ExecutionException, InterruptedException, Exception;
-
-    public abstract void testScenarioAsBulkRequest() throws IOException, ExecutionException, InterruptedException;
-
 
 }
