@@ -31,9 +31,6 @@ import co.elastic.apm.agent.impl.transaction.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.client.RestClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runners.Parameterized;
@@ -42,8 +39,6 @@ import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.ELASTICSEARCH;
 import static co.elastic.apm.agent.es.restclient.ElasticsearchRestClientInstrumentationHelperImpl.SEARCH_QUERY_PATH_SUFFIX;
