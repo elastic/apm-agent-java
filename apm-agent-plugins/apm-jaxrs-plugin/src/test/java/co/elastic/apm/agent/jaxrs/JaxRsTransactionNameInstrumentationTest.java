@@ -190,7 +190,36 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions).hasSize(2);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethod");
         assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethod/{id}");
+    }
 
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash() {
+        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testWithPathMethodSlash");
+        doRequest("testWithPathMethodSlash/15");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethodSlash");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethodSlash/{id}");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath() {
+        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("/foo/bar");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /foo/bar");
     }
 
     /**
@@ -204,7 +233,10 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ResourceWithPathOnAbstract.class,
             ProxiedClass$$$view.class,
             ProxiedClass$Proxy.class,
-            ResourceWithPathOnMethod.class);
+            ResourceWithPathOnMethod.class,
+            ResourceWithPathOnMethodSlash.class,
+            FooResource.class,
+            FooBarResource.class);
     }
 
     /**
@@ -263,6 +295,21 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         }
     }
 
+    @Path("/foo")
+    public static class FooResource {
+        @GET
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
+    public static class FooBarResource extends FooResource {
+        @GET @Path("/bar")
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
     @Path("testWithPathMethod")
     public static class ResourceWithPathOnMethod extends AbstractResourceClassWithoutPath {
 
@@ -273,6 +320,21 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         @GET
         @Path("{id}")
+        public String testMethodById(@PathParam("id") String id) {
+            return "ok";
+        }
+    }
+
+    @Path("testWithPathMethodSlash")
+    public static class ResourceWithPathOnMethodSlash extends AbstractResourceClassWithoutPath {
+
+        @Override
+        public String testMethod() {
+            return "ok";
+        }
+
+        @GET
+        @Path("/{id}")
         public String testMethodById(@PathParam("id") String id) {
             return "ok";
         }

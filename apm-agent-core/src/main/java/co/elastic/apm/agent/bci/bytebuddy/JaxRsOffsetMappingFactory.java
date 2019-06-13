@@ -62,41 +62,40 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
                 Object value = null;
                 if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
-                    TransactionAnnotationValue transactionAnnotationValue = getTransactionAnnotationValueFromAnnotations(instrumentedMethod, instrumentedType);
-                    value= transactionAnnotationValue.buildTransactionName();
+                    value = getTransactionAnnotationValueFromAnnotations(instrumentedMethod, instrumentedType);
                 }
                 return Target.ForStackManipulation.of(value);
             }
         };
     }
 
-    private TransactionAnnotationValue getTransactionAnnotationValueFromAnnotations(MethodDescription instrumentedMethod, TypeDescription instrumentedType) {
+    private String getTransactionAnnotationValueFromAnnotations(MethodDescription instrumentedMethod, TypeDescription instrumentedType) {
         TransactionAnnotationValue transactionAnnotationValue = new TransactionAnnotationValue();
         String methodName = instrumentedMethod.getName();
-        while (transactionAnnotationValue.method == null && !"java.lang.Object".equals(instrumentedType.getCanonicalName())) {
-            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, instrumentedType);
+        while (!"java.lang.Object".equals(instrumentedType.getCanonicalName())) {
+            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, instrumentedType, true);
             for (MethodDescription.InDefinedShape annotationMethod : instrumentedType.getDeclaredMethods().filter(named(methodName)).asDefined()) {
-                getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod);
+                getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod, false);
             }
             findInInterfaces(transactionAnnotationValue, instrumentedType, methodName);
             instrumentedType = instrumentedType.getSuperClass().asErasure();
         }
-        return transactionAnnotationValue;
+        return transactionAnnotationValue.buildTransactionName();
     }
 
     private void findInInterfaces(TransactionAnnotationValue transactionAnnotationValue, TypeDescription classTypeDescription, String methodName) {
         TypeList interfaces = classTypeDescription.getInterfaces().asErasures();
         for (int i = 0; transactionAnnotationValue.method == null && i < interfaces.size(); i++) {
             TypeDescription interfaceDescription = interfaces.get(i);
-            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, interfaceDescription);
+            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, interfaceDescription, false);
             for (MethodDescription.InDefinedShape annotationMethod : interfaceDescription.getDeclaredMethods().filter(named(methodName))) {
-                getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod);
+                getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod, false);
             }
             findInInterfaces(transactionAnnotationValue, interfaceDescription, methodName);
         }
     }
 
-    public void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource) {
+    public void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource, Boolean isSuperclass) {
         for (TypeDescription classMethodTypeDescription : annotationSource.getDeclaredAnnotations().asTypeList()) {
             String canonicalName = classMethodTypeDescription.getCanonicalName();
             switch (canonicalName) {
@@ -104,8 +103,13 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
                     for (MethodDescription.InDefinedShape annotationMethod : classMethodTypeDescription.getDeclaredMethods().filter(named("value"))) {
                         Object pathValue = annotationSource.getDeclaredAnnotations().ofType(classMethodTypeDescription).getValue(annotationMethod).resolve();
                         if (pathValue != null) {
-                            transactionAnnotationValue.appendToPath("/");
-                            transactionAnnotationValue.appendToPath((String) pathValue);
+                            if (isSuperclass) {
+                                transactionAnnotationValue.prependToPath((String) pathValue);
+                                transactionAnnotationValue.prependToPath("/");
+                            } else {
+                                transactionAnnotationValue.appendToPath("/");
+                                transactionAnnotationValue.appendToPath((String) pathValue);
+                            }
                         }
                     }
                     break;
@@ -153,15 +157,12 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
             this.path.append(newPath);
         }
 
+        public void prependToPath(String newPath) {
+            this.path.insert(0, newPath);
+        }
+
         String buildTransactionName() {
-            StringBuilder signature = new StringBuilder();
-
-            if (this.method != null) {
-                signature.append(this.method).append(" ");
-            }
-            signature.append(this.path);
-
-            return signature.toString();
+            return ((this.method != null ? this.method + " " : "") + this.path).replaceAll("/+", "/");
         }
     }
 }

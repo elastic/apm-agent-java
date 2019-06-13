@@ -70,10 +70,8 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void setTransactionName(@SimpleMethodSignature String signature,
                                            @JaxRsPath @Nullable String pathAnnotationValue) {
-        System.out.println("Trying to set transactionName");
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
-            System.out.println("Trying to set transaction name.");
             if (transaction != null) {
                 jaxRsTransactionHelper.setTransactionName(transaction, signature, pathAnnotationValue);
             }

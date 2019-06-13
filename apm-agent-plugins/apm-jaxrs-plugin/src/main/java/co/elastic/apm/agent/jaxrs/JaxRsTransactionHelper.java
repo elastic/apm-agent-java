@@ -47,15 +47,16 @@ public class JaxRsTransactionHelper {
     public void setTransactionName(@Nonnull Transaction currentTransaction,
                                    @Nonnull String signature,
                                    @Nullable String pathAnnotationValue)  {
-        System.out.println("Signature = " + signature);
+        String transactionName = "";
         if (signature != null) {
-            currentTransaction.withName(signature);
+            transactionName = signature;
         }
         if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
             if (pathAnnotationValue != null) {
-                currentTransaction.withName(pathAnnotationValue);
+                transactionName = pathAnnotationValue;
             }
         }
+        currentTransaction.withName(transactionName);
     }
 
 }

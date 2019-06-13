@@ -339,7 +339,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("internal")
         .description(
             "By default, the agent will use ClassName#methodName for transaction name of JAX-RS.\n" +
-                "If you need use in transaction name value from @Path annotation, you should set value to 'true'.\n")
+                "If you want to use the URI template from the `@Path` annotation, set the value to `true`.\n")
         .dynamic(false)
         .buildWithDefault(false);
 
