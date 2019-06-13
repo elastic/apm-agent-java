@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URL;
@@ -156,13 +157,7 @@ public class CustomElementMatchers {
                         if (urlConnection instanceof JarURLConnection) {
                             jarFile = ((JarURLConnection) urlConnection).getJarFile();
                         } else {
-                            try {
-                                jarFile = new JarFile(jarUrl.getFile());
-                            } catch (IOException e) {
-                                // Maybe the URL is encoded- try to decode
-                                //noinspection CharsetObjectCanBeUsed - can't use this API as it is from Java 10 only
-                                jarFile = new JarFile(URLDecoder.decode(jarUrl.getFile(), "UTF-8"));
-                            }
+                            jarFile = new JarFile(new File(jarUrl.toURI()));
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
