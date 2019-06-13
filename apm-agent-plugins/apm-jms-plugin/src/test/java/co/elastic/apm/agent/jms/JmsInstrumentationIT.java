@@ -33,7 +33,6 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,12 +61,8 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
-
-    private static final String TEST_Q_NAME = "TestQ";
-    private static final String TEST_TOPIC_NAME = "Test-Topic";
 
     // Keeping a static reference for resource cleaning
     private static Set<BrokerFacade> staticBrokerFacade = new HashSet<>();
@@ -118,26 +113,36 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveOnTracedThread() throws Exception {
-        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        final Queue queue = createQueue();
         testQueueSendReceiveOnTracedThread(() -> brokerFacade.receive(queue), queue);
     }
 
     @Test
     public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
-        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        final Queue queue = createQueue();
         testQueueSendReceiveOnTracedThread(() -> loopReceive(() -> brokerFacade.receiveNoWait(queue), 3000), queue);
     }
 
     @Test
     public void testQueueSendReceiveOnNonTracedThread() throws Exception {
-        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        final Queue queue = createQueue();
         testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue), queue);
     }
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
-        final Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        final Queue queue = createQueue();
         testQueueSendReceiveOnNonTracedThread(() -> loopReceive(() -> brokerFacade.receiveNoWait(queue), 3000), queue);
+    }
+
+    private Queue createQueue() throws Exception {
+        String queueName = UUID.randomUUID().toString();
+        return brokerFacade.createQueue(queueName);
+    }
+
+    private Topic createTopic() throws Exception {
+        String topicName = UUID.randomUUID().toString();
+        return brokerFacade.createTopic(topicName);
     }
 
     // A utility method for testing the receiveNoWait API consistently
@@ -242,7 +247,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private void testQueueSendListen(Function<Destination, CompletableFuture<Message>> listenerRegistrationFunction)
         throws Exception {
-        Queue queue = brokerFacade.createQueue(TEST_Q_NAME);
+        Queue queue = createQueue();
         CompletableFuture<Message> incomingMessageFuture = listenerRegistrationFunction.apply(queue);
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
@@ -255,7 +260,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testTopicWithTwoSubscribers() throws Exception {
-        Topic topic = brokerFacade.createTopic(TEST_TOPIC_NAME);
+        Topic topic = createTopic();
 
         final CompletableFuture<Message> incomingMessageFuture1 = brokerFacade.registerConcreteListenerImplementation(topic);
         final CompletableFuture<Message> incomingMessageFuture2 = brokerFacade.registerConcreteListenerImplementation(topic);
