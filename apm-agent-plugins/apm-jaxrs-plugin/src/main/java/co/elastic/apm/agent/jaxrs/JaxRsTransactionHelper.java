@@ -47,10 +47,7 @@ public class JaxRsTransactionHelper {
     public void setTransactionName(@Nonnull Transaction currentTransaction,
                                    @Nonnull String signature,
                                    @Nullable String pathAnnotationValue)  {
-        String transactionName = "";
-        if (signature != null) {
-            transactionName = signature;
-        }
+        String transactionName = signature;
         if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
             if (pathAnnotationValue != null) {
                 transactionName = pathAnnotationValue;

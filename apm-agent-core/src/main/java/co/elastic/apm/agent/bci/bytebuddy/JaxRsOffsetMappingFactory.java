@@ -35,6 +35,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.description.type.TypeList;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
+import javax.annotation.Nullable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -85,7 +86,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
 
     private void findInInterfaces(TransactionAnnotationValue transactionAnnotationValue, TypeDescription classTypeDescription, String methodName) {
         TypeList interfaces = classTypeDescription.getInterfaces().asErasures();
-        for (int i = 0; transactionAnnotationValue.method == null && i < interfaces.size(); i++) {
+        for (int i = 0; i < interfaces.size(); i++) {
             TypeDescription interfaceDescription = interfaces.get(i);
             getAnnotationValueFromAnnotationSource(transactionAnnotationValue, interfaceDescription, false);
             for (MethodDescription.InDefinedShape annotationMethod : interfaceDescription.getDeclaredMethods().filter(named(methodName))) {
@@ -95,7 +96,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         }
     }
 
-    public void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource, Boolean isSuperclass) {
+    public void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource, Boolean isClassLevelPath) {
         for (TypeDescription classMethodTypeDescription : annotationSource.getDeclaredAnnotations().asTypeList()) {
             String canonicalName = classMethodTypeDescription.getCanonicalName();
             switch (canonicalName) {
@@ -103,36 +104,34 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
                     for (MethodDescription.InDefinedShape annotationMethod : classMethodTypeDescription.getDeclaredMethods().filter(named("value"))) {
                         Object pathValue = annotationSource.getDeclaredAnnotations().ofType(classMethodTypeDescription).getValue(annotationMethod).resolve();
                         if (pathValue != null) {
-                            if (isSuperclass) {
-                                transactionAnnotationValue.prependToPath((String) pathValue);
-                                transactionAnnotationValue.prependToPath("/");
+                            if (isClassLevelPath) {
+                                transactionAnnotationValue.setClassLevelPath((String) pathValue);
                             } else {
-                                transactionAnnotationValue.appendToPath("/");
-                                transactionAnnotationValue.appendToPath((String) pathValue);
+                                transactionAnnotationValue.setMethodLevelPath((String) pathValue);
                             }
                         }
                     }
                     break;
                 case "javax.ws.rs.GET":
-                    transactionAnnotationValue.method = "GET";
+                    transactionAnnotationValue.setMethodIfNotNull("GET");
                     break;
                 case "javax.ws.rs.POST":
-                    transactionAnnotationValue.method = "POST";
+                    transactionAnnotationValue.setMethodIfNotNull("POST");
                     break;
                 case "javax.ws.rs.PUT":
-                    transactionAnnotationValue.method = "PUT";
+                    transactionAnnotationValue.setMethodIfNotNull("PUT");
                     break;
                 case "javax.ws.rs.DELETE":
-                    transactionAnnotationValue.method = "DELETE";
+                    transactionAnnotationValue.setMethodIfNotNull("DELETE");
                     break;
                 case "javax.ws.rs.HEAD":
-                    transactionAnnotationValue.method = "HEAD";
+                    transactionAnnotationValue.setMethodIfNotNull("HEAD");
                     break;
                 case "javax.ws.rs.OPTIONS":
-                    transactionAnnotationValue.method = "OPTIONS";
+                    transactionAnnotationValue.setMethodIfNotNull("OPTIONS");
                     break;
                 case "javax.ws.rs.HttpMethod":
-                    transactionAnnotationValue.method = "HttpMethod";
+                    transactionAnnotationValue.setMethodIfNotNull("HttpMethod");
                     break;
             }
         }
@@ -146,23 +145,28 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
 
     public static class TransactionAnnotationValue {
 
-        private String method;
-        private StringBuilder path;
+        private String classLevelPath = "";
+        private String method = "";
+        private String methodLevelPath = "";
 
-        public TransactionAnnotationValue() {
-            this.path = new StringBuilder();
+        private void setClassLevelPath(String value) {
+            this.classLevelPath = "/" + value;
         }
 
-        public void appendToPath(String newPath) {
-            this.path.append(newPath);
+        private void setMethodLevelPath(String value) {
+            this.methodLevelPath += "/" + value;
         }
 
-        public void prependToPath(String newPath) {
-            this.path.insert(0, newPath);
+        private void setMethodIfNotNull(@Nullable String value) {
+            if (value == null) {
+                return;
+            }
+            this.method = value;
         }
 
         String buildTransactionName() {
-            return ((this.method != null ? this.method + " " : "") + this.path).replaceAll("/+", "/");
+            String transactionName = (this.method + " " + this.classLevelPath + this.methodLevelPath);
+            return transactionName.replaceAll("/+", "/");
         }
     }
 }
