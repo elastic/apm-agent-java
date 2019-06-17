@@ -221,6 +221,11 @@ public class ApmServerReporter implements Reporter {
         };
     }
 
+    @Override
+    public void blockingFlush() {
+        waitForFlush();
+    }
+
     private boolean isEventProcessed(long sequence) {
         return disruptor.getSequenceValueFor(reportingEventHandler) >= sequence;
     }

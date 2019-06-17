@@ -227,6 +227,9 @@ public class ElasticApm {
         return null;
     }
 
+    public static void blockingFlush() {
+    }
+
     /**
      * Captures an exception and reports it to the APM server.
      *

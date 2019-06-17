@@ -242,6 +242,10 @@ public class MockReporter implements Reporter {
     }
 
     @Override
+    public void blockingFlush() {
+    }
+
+    @Override
     public void close() {
 
     }

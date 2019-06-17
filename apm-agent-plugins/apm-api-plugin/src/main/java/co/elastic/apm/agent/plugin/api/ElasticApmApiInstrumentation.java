@@ -120,6 +120,20 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
         }
     }
 
+    public static class BlockingFlushInstrumentation extends ElasticApmApiInstrumentation {
+        public BlockingFlushInstrumentation() {
+            super(named("blockingFlush"));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void blockingFlush() {
+            if (tracer != null) {
+                tracer.blockingFlush();
+            }
+        }
+    }
+
     public static class CurrentSpanInstrumentation extends ElasticApmApiInstrumentation {
         public CurrentSpanInstrumentation() {
             super(named("doGetCurrentSpan"));

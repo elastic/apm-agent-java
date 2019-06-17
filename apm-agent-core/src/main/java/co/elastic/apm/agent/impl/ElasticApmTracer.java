@@ -280,6 +280,10 @@ public class ElasticApmTracer {
         return null;
     }
 
+    public void blockingFlush() {
+        reporter.blockingFlush();
+    }
+
     /**
      * Starts a span with a given parent context.
      * <p>

@@ -1,6 +1,7 @@
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$StartTransactionInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$StartTransactionWithRemoteParentInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CurrentTransactionInstrumentation
+co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$BlockingFlushInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation$CaptureExceptionInstrumentation
 co.elastic.apm.agent.plugin.api.TransactionInstrumentation$SetUserInstrumentation

@@ -43,6 +43,8 @@ public interface Reporter extends Closeable {
 
     Future<Void> flush();
 
+    void blockingFlush();
+
     @Override
     void close();
 
