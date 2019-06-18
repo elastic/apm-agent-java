@@ -62,7 +62,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource {
     public void reload() throws IOException {
         HttpURLConnection connection = null;
         try {
-            connection = apmServerClient.startRequest("/config");
+            connection = apmServerClient.startRequest("/config/v1/agents");
             if (logger.isDebugEnabled()) {
                 logger.debug("Reloading configuration from APM Server {}", connection.getURL());
             }
@@ -79,7 +79,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource {
             final int status = connection.getResponseCode();
             if (status == 404) {
                 logger.info("This version of the APM Server does not allow fetching configuration. " +
-                    "Update to APM Server 7.? to take advantage of centralized configuration.");
+                    "Update to APM Server 7.3 to take advantage of centralized configuration.");
             } else if (status == 304) {
                 logger.debug("Configuration did not change");
             } else {

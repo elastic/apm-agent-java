@@ -66,8 +66,8 @@ public class ApmServerConfigurationSourceTest {
     public void setUp() throws Exception {
         config = SpyConfiguration.createSpyConfig();
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
-        mockApmServer.stubFor(post(urlEqualTo("/config")).willReturn(ResponseDefinitionBuilder.okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
-        mockApmServer.stubFor(post(urlEqualTo("/config")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(ResponseDefinitionBuilder.okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
         configurationSource = new ApmServerConfigurationSource(new DslJsonSerializer(mock(StacktraceConfiguration.class)), MetaData.create(config, null, null), apmServerClient);
     }
 
@@ -75,9 +75,9 @@ public class ApmServerConfigurationSourceTest {
     public void testLoadRemoteConfig() throws Exception {
         configurationSource.reload();
         assertThat(configurationSource.getValue("foo")).isEqualTo("bar");
-        mockApmServer.verify(postRequestedFor(urlEqualTo("/config")));
+        mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")));
         configurationSource.reload();
-        mockApmServer.verify(postRequestedFor(urlEqualTo("/config")).withHeader("If-None-Match", equalTo("foo")));
+        mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")));
         for (LoggedRequest request : WireMock.findAll(RequestPatternBuilder.allRequests())) {
             final JsonNode jsonNode = new ObjectMapper().readTree(request.getBodyAsString());
             assertThat(jsonNode.get("service")).isNotNull();
