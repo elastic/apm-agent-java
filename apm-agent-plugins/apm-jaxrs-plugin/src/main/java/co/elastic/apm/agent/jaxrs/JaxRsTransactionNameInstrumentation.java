@@ -26,7 +26,7 @@ package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.bci.bytebuddy.JaxRsOffsetMappingFactory.JaxRsPath;
+import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -60,11 +60,13 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
     @Nullable
     @VisibleForAdvice
     public static JaxRsTransactionHelper jaxRsTransactionHelper;
+    private final ElasticApmTracer elasticApmTracer;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
         jaxRsTransactionHelper = new JaxRsTransactionHelper(tracer);
+        elasticApmTracer = tracer;
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -120,13 +122,18 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     .or(named("javax.ws.rs.PUT"))
                     .or(named("javax.ws.rs.DELETE"))
                     .or(named("javax.ws.rs.HEAD"))
-                    .or(named("javax.ws.rs.OPTIONS"))
-                    .or(named("javax.ws.rs.HttpMethod"))))
+                    .or(named("javax.ws.rs.OPTIONS"))))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-rs");
+    }
+
+    @Nullable
+    @Override
+    public Advice.OffsetMapping.Factory<?> getOffsetMaping() {
+        return new JaxRsOffsetMappingFactory(elasticApmTracer);
     }
 }

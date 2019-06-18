@@ -333,16 +333,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
-    private final ConfigurationOption<Boolean> useAnnotationValueForTransactionName = ConfigurationOption.booleanOption()
-        .key("use_annotation_value_for_transaction_name")
-        .configurationCategory(CORE_CATEGORY)
-        .tags("internal")
-        .description(
-            "By default, the agent will use ClassName#methodName for transaction name of JAX-RS.\n" +
-                "If you want to use the URI template from the `@Path` annotation, set the value to `true`.\n")
-        .dynamic(false)
-        .buildWithDefault(false);
-
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
         .key("boot_delegation_packages")
         .configurationCategory(CORE_CATEGORY)
@@ -426,8 +416,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public TimeDuration getTraceMethodsDurationThreshold() {
         return traceMethodsDurationThreshold.get();
     }
-
-    public boolean isUseAnnotationValueForTransactionName() { return useAnnotationValueForTransactionName.get(); }
 
     public @Nullable String getPackagesToAppendToBootdelegationProperty() {
         String value = appendPackagesToBootDelagationProperty.get();

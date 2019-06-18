@@ -27,7 +27,6 @@ package co.elastic.apm.agent.bci;
 import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
-import co.elastic.apm.agent.bci.bytebuddy.JaxRsOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
@@ -208,35 +207,7 @@ public class ElasticApmAgent {
                     }
                 }
             })
-            .transform(new AgentBuilder.Transformer.ForAdvice(Advice
-                .withCustomMapping()
-                .bind(new SimpleMethodSignatureOffsetMappingFactory())
-                .bind(new AnnotationValueOffsetMappingFactory())
-                .bind(new JaxRsOffsetMappingFactory(tracer)))
-                .advice(new ElementMatcher<MethodDescription>() {
-                    @Override
-                    public boolean matches(MethodDescription target) {
-                        long start = System.nanoTime();
-                        try {
-                            boolean matches;
-                            try {
-                                matches = methodMatcher.matches(target);
-                            } catch (Exception ignored) {
-                                // could be because of a missing type
-                                matches = false;
-                            }
-                            if (matches) {
-                                logger.debug("Method match for advice {}: {} matches {}",
-                                    advice.getClass().getSimpleName(), methodMatcher, target);
-                            }
-                            return matches;
-                        } finally {
-                            getOrCreateTimer(advice.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
-                        }
-                    }
-                }, advice.getAdviceClass().getName())
-                .include(ClassLoader.getSystemClassLoader())
-                .withExceptionHandler(PRINTING))
+            .transform(getTransformer(tracer, advice, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
@@ -244,6 +215,42 @@ public class ElasticApmAgent {
                     return builder.visit(MinimumClassFileVersionValidator.INSTANCE);
                 }
             });
+    }
+
+    private static AgentBuilder.Transformer.ForAdvice getTransformer(ElasticApmTracer tracer, ElasticApmInstrumentation advice, Logger logger, ElementMatcher<? super MethodDescription> methodMatcher) {
+        Advice.WithCustomMapping withCustomMapping = Advice
+            .withCustomMapping()
+            .bind(new SimpleMethodSignatureOffsetMappingFactory())
+            .bind(new AnnotationValueOffsetMappingFactory());
+        Advice.OffsetMapping.Factory<?> offsetMapping = advice.getOffsetMaping();
+        if (offsetMapping != null) {
+            withCustomMapping = withCustomMapping.bind(offsetMapping);
+        }
+        return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
+            .advice(new ElementMatcher<MethodDescription>() {
+                @Override
+                public boolean matches(MethodDescription target) {
+                    long start = System.nanoTime();
+                    try {
+                        boolean matches;
+                        try {
+                            matches = methodMatcher.matches(target);
+                        } catch (Exception ignored) {
+                            // could be because of a missing type
+                            matches = false;
+                        }
+                        if (matches) {
+                            logger.debug("Method match for advice {}: {} matches {}",
+                                advice.getClass().getSimpleName(), methodMatcher, target);
+                        }
+                        return matches;
+                    } finally {
+                        getOrCreateTimer(advice.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
+                    }
+                }
+            }, advice.getAdviceClass().getName())
+            .include(ClassLoader.getSystemClassLoader())
+            .withExceptionHandler(PRINTING);
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {

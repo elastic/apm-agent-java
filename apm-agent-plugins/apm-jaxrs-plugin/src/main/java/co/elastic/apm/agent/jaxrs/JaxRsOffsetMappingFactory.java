@@ -22,10 +22,10 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.bci.bytebuddy;
+package co.elastic.apm.agent.jaxrs;
 
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -35,6 +35,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.description.type.TypeList;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -45,10 +46,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<JaxRsOffsetMappingFactory.JaxRsPath> {
 
-    private final CoreConfiguration coreConfiguration;
+    private final WebConfiguration webConfiguration;
 
     public JaxRsOffsetMappingFactory(ElasticApmTracer tracer) {
-        this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        this.webConfiguration = tracer.getConfig(WebConfiguration.class);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
                 Object value = null;
-                if (coreConfiguration.isUseAnnotationValueForTransactionName()) {
+                if (webConfiguration.isUseAnnotationValueForTransactionName()) {
                     value = getTransactionAnnotationValueFromAnnotations(instrumentedMethod, instrumentedType);
                 }
                 return Target.ForStackManipulation.of(value);
@@ -73,7 +74,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
     private String getTransactionAnnotationValueFromAnnotations(MethodDescription instrumentedMethod, TypeDescription instrumentedType) {
         TransactionAnnotationValue transactionAnnotationValue = new TransactionAnnotationValue();
         String methodName = instrumentedMethod.getName();
-        while (!"java.lang.Object".equals(instrumentedType.getCanonicalName())) {
+        while (!transactionAnnotationValue.isComplete() && !"java.lang.Object".equals(instrumentedType.getCanonicalName())) {
             getAnnotationValueFromAnnotationSource(transactionAnnotationValue, instrumentedType, true);
             for (MethodDescription.InDefinedShape annotationMethod : instrumentedType.getDeclaredMethods().filter(named(methodName)).asDefined()) {
                 getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod, false);
@@ -96,20 +97,16 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         }
     }
 
-    public void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource, Boolean isClassLevelPath) {
+    private void getAnnotationValueFromAnnotationSource(TransactionAnnotationValue transactionAnnotationValue, AnnotationSource annotationSource, Boolean isClassLevelPath) {
         for (TypeDescription classMethodTypeDescription : annotationSource.getDeclaredAnnotations().asTypeList()) {
             String canonicalName = classMethodTypeDescription.getCanonicalName();
             switch (canonicalName) {
                 case "javax.ws.rs.Path":
-                    for (MethodDescription.InDefinedShape annotationMethod : classMethodTypeDescription.getDeclaredMethods().filter(named("value"))) {
-                        Object pathValue = annotationSource.getDeclaredAnnotations().ofType(classMethodTypeDescription).getValue(annotationMethod).resolve();
-                        if (pathValue != null) {
-                            if (isClassLevelPath) {
-                                transactionAnnotationValue.setClassLevelPath((String) pathValue);
-                            } else {
-                                transactionAnnotationValue.setMethodLevelPath((String) pathValue);
-                            }
-                        }
+                    String pathValue = getAnnotationValue(annotationSource, classMethodTypeDescription, "value");
+                    if (isClassLevelPath) {
+                        transactionAnnotationValue.setClassLevelPath(pathValue);
+                    } else {
+                        transactionAnnotationValue.setMethodLevelPath(pathValue);
                     }
                     break;
                 case "javax.ws.rs.GET":
@@ -130,11 +127,16 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
                 case "javax.ws.rs.OPTIONS":
                     transactionAnnotationValue.setMethodIfNotNull("OPTIONS");
                     break;
-                case "javax.ws.rs.HttpMethod":
-                    transactionAnnotationValue.setMethodIfNotNull("HttpMethod");
-                    break;
             }
         }
+    }
+
+    @Nullable
+    private <T> T getAnnotationValue(AnnotationSource annotationSource, TypeDescription annotationType, String method) {
+        for (MethodDescription.InDefinedShape annotationMethod : annotationType.getDeclaredMethods().filter(named(method))) {
+            return (T) annotationSource.getDeclaredAnnotations().ofType(annotationType).getValue(annotationMethod).resolve();
+        }
+        return null;
     }
 
     @Retention(RetentionPolicy.RUNTIME)
@@ -149,24 +151,41 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         private String method = "";
         private String methodLevelPath = "";
 
-        private void setClassLevelPath(String value) {
-            this.classLevelPath = "/" + value;
+        private void setClassLevelPath(@Nullable String value) {
+            if (value != null && classLevelPath.isEmpty()) {
+                this.classLevelPath = ensureStartsWithSlash(value);
+            }
         }
 
-        private void setMethodLevelPath(String value) {
-            this.methodLevelPath += "/" + value;
+        private void setMethodLevelPath(@Nullable String value) {
+            if (value != null && methodLevelPath.isEmpty()) {
+                this.methodLevelPath = ensureStartsWithSlash(value);
+            }
         }
 
         private void setMethodIfNotNull(@Nullable String value) {
-            if (value == null) {
-                return;
+            if (value != null && method.isEmpty()) {
+                this.method = value;
             }
-            this.method = value;
+        }
+
+        @Nonnull
+        private String ensureStartsWithSlash(String value) {
+            if (!value.startsWith("/")) {
+                value = "/" + value;
+            }
+            if (value.endsWith("/")) {
+                value = value.substring(0, value.length() - 1);
+            }
+            return value;
         }
 
         String buildTransactionName() {
-            String transactionName = (this.method + " " + this.classLevelPath + this.methodLevelPath);
-            return transactionName.replaceAll("/+", "/");
+            return this.method + " " + this.classLevelPath + this.methodLevelPath;
+        }
+
+        public boolean isComplete() {
+            return !method.isEmpty() && !classLevelPath.isEmpty() && !methodLevelPath.isEmpty();
         }
     }
 }

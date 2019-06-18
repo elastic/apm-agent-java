@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -46,6 +47,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.List;
 
@@ -142,7 +144,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
-        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -160,7 +162,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled() {
-        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -178,7 +180,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation() {
-        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -194,7 +196,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash() {
-        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -210,7 +212,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath() {
-        when(config.getConfig(CoreConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -235,7 +237,6 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ProxiedClass$Proxy.class,
             ResourceWithPathOnMethod.class,
             ResourceWithPathOnMethodSlash.class,
-            FooResource.class,
             FooBarResource.class);
     }
 
@@ -295,16 +296,19 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         }
     }
 
-    @Path("/foo")
+    @Path("/foo/")
     public static class FooResource {
         @GET
+        @Path("/ignore")
         public String testMethod() {
             return "ok";
         }
     }
 
     public static class FooBarResource extends FooResource {
-        @GET @Path("/bar")
+        @GET
+        @Path("/bar")
+        @Override
         public String testMethod() {
             return "ok";
         }
@@ -319,7 +323,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         }
 
         @GET
-        @Path("{id}")
+        @Path("{id}/")
         public String testMethodById(@PathParam("id") String id) {
             return "ok";
         }
