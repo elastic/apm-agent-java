@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient.v6_4;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
@@ -145,7 +146,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
             new MetaData(title, service, system, Collections.emptyMap()),
             new ApmServerClient(reporterConfiguration));
-        realReporter = new ApmServerReporter(true, reporterConfiguration, v2handler);
+        realReporter = new ApmServerReporter(true, reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class), v2handler);
 
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(configurationRegistry)

@@ -125,7 +125,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
         assertThat(reporter.getSpans()).hasSize(1);
         Span jdbcSpan = reporter.getFirstSpan();
-        assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT");
+        assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT FROM ELASTIC_APM");
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
         assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);

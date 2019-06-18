@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
@@ -106,7 +107,7 @@ class ApmServerReporterIntegrationTest {
             new DslJsonSerializer(mock(StacktraceConfiguration.class)),
             new MetaData(title, service, system, Collections.emptyMap()),
             new ApmServerClient(reporterConfiguration));
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        reporter = new ApmServerReporter(false, reporterConfiguration, config.getConfig(CoreConfiguration.class), v2handler);
     }
 
     @Test

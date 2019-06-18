@@ -45,19 +45,20 @@ public class DependencyInjectingServiceLoader<T> {
     private final Object[] constructorArguments;
     private final Class<?>[] constructorTypes;
     private final List<T> instances = new ArrayList<>();
+    @Nullable
     private final ClassLoader classLoader;
 
     private DependencyInjectingServiceLoader(Class<T> clazz, Object... constructorArguments) {
         this.clazz = clazz;
         this.constructorArguments = constructorArguments;
-        this.classLoader = getClassLoader(clazz);
+        this.classLoader = clazz.getClassLoader();
         List<Class<?>> types = new ArrayList<>(constructorArguments.length);
         for (Object constructorArgument : constructorArguments) {
             types.add(constructorArgument.getClass());
         }
         constructorTypes = types.toArray(new Class[]{});
         try {
-            final Enumeration<URL> resources = classLoader.getResources("META-INF/services/" + clazz.getName());
+            final Enumeration<URL> resources = getServiceDescriptors(clazz);
             Set<String> implementations = getImplementations(resources);
             instantiate(implementations);
         } catch (IOException e) {
@@ -65,12 +66,12 @@ public class DependencyInjectingServiceLoader<T> {
         }
     }
 
-    private ClassLoader getClassLoader(Class<T> clazz) {
-        ClassLoader classLoader = clazz.getClassLoader();
-        if (classLoader == null) {
-            classLoader = ClassLoader.getSystemClassLoader();
+    private Enumeration<URL> getServiceDescriptors(Class<T> clazz) throws IOException {
+        if (classLoader != null) {
+            return classLoader.getResources("META-INF/services/" + clazz.getName());
+        } else {
+            return ClassLoader.getSystemResources("META-INF/services/" + clazz.getName());
         }
-        return classLoader;
     }
 
     public static <T> List<T> load(Class<T> clazz, Object... constructorArguments) {
@@ -106,7 +107,7 @@ public class DependencyInjectingServiceLoader<T> {
 
     private T instantiate(String implementation) {
         try {
-            final Class<?> implementationClass = classLoader.loadClass(implementation);
+            final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
             Constructor<?> constructor = getMatchingConstructor(implementationClass);
             if (constructor != null) {
                 return clazz.cast(constructor.newInstance(constructorArguments));

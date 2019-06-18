@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
@@ -39,20 +40,23 @@ public class ReporterFactory {
 
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, ApmServerClient apmServerClient, MetaData metaData) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = new Thread(r);
-                thread.setName("apm-server-healthcheck");
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration, apmServerClient));
-        healthCheckExecutorService.shutdown();
+        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        if (coreConfiguration.isActive()) {
+            ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    final Thread thread = new Thread(r);
+                    thread.setName("apm-server-healthcheck");
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            });
+            healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration, apmServerClient));
+            healthCheckExecutorService.shutdown();
+        }
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry,
             reporterConfiguration, metaData, apmServerClient);
-        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
+        return new ApmServerReporter(true, reporterConfiguration, coreConfiguration, reportingEventHandler);
     }
 
     @Nonnull

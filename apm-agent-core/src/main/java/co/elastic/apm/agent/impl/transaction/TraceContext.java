@@ -346,7 +346,7 @@ public class TraceContext extends TraceContextHolder {
     }
 
     public boolean hasContent() {
-        return !traceId.isEmpty() && !parentId.isEmpty() && !id.isEmpty();
+        return !id.isEmpty();
     }
 
     public void copyFrom(TraceContext other) {
