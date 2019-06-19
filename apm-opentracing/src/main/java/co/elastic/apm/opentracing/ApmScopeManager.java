@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -74,21 +74,41 @@ class ApmScopeManager implements ScopeManager {
     @Override
     @Nullable
     public ApmScope active() {
-        final Object span = getCurrentSpan();
-        if (span != null) {
-            return new ApmScope(false, new ApmSpan(span));
+        final ApmSpan apmSpan = activeApmSpan();
+        final ApmScope apmScope;
+        if (apmSpan != null) {
+            apmScope = new ApmScope(false, apmSpan);
         } else {
             final Object traceContext = getCurrentTraceContext();
             if (traceContext != null) {
-                return new ApmScope(false, new ApmSpan(new TraceContextSpanContext(traceContext)));
+                apmScope = new ApmScope(false, apmSpan);
+            } else {
+                apmScope = null;
             }
         }
-        return null;
+        return apmScope;
     }
 
     @Override
     public Span activeSpan() {
-        return null;
+        return activeApmSpan();
+    }
+
+    private ApmSpan activeApmSpan() {
+        final Object span = getCurrentSpan();
+        final ApmSpan apmSpan;
+        if (span != null) {
+            apmSpan = new ApmSpan(span);
+        } else {
+            final Object traceContext = getCurrentTraceContext();
+            if (traceContext != null) {
+                apmSpan = new ApmSpan(new TraceContextSpanContext(traceContext));
+            } else {
+                apmSpan = null;
+            }
+        }
+
+        return apmSpan;
     }
 
     @Nullable
