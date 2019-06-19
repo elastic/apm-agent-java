@@ -401,7 +401,11 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private void validataMetadataEvent(JsonNode metadata) {
-        assertThat(metadata.get("service").get("name").textValue()).isEqualTo(expectedDefaultServiceName);
+        JsonNode service = metadata.get("service");
+        assertThat(service.get("name").textValue()).isEqualTo(expectedDefaultServiceName);
+        JsonNode agent = service.get("agent");
+        assertThat(agent).isNotNull();
+        assertThat(agent.get("ephemeral_id")).isNotNull();
         JsonNode container = metadata.get("system").get("container");
         assertThat(container).isNotNull();
         assertThat(container.get("id").textValue()).isEqualTo(servletContainer.getContainerId());

@@ -104,7 +104,10 @@ public class RemoteAttacher {
     private void attachToNewJvms(String jpsOutput) {
         final Set<JvmInfo> currentlyRunningJvms = getJVMs(jpsOutput);
         for (JvmInfo jvmInfo : getStartedJvms(currentlyRunningJvms)) {
-            if (!jvmInfo.packageOrPath.endsWith(".Jps") && !jvmInfo.packageOrPath.isEmpty()) {
+            if (!jvmInfo.packageOrPath.endsWith(".Jps")
+                && !jvmInfo.packageOrPath.isEmpty()
+                && !jvmInfo.packageOrPath.contains("apm-agent-attach")
+                && !jvmInfo.packageOrPath.contains(getClass().getName())) {
                 onJvmStart(jvmInfo);
             }
         }

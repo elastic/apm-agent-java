@@ -81,6 +81,12 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyHttpSpan(path);
     }
 
+    @Test
+    public void testHttpCallWithUserInfo() throws Exception {
+        performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
+        verifyHttpSpan("/");
+    }
+
     protected void verifyHttpSpan(String path) throws Exception {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);

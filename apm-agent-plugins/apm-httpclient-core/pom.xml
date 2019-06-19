@@ -3,7 +3,7 @@
     <parent>
         <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.6.2-SNAPSHOT</version>
+        <version>1.7.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,6 +12,7 @@
     </properties>
 
     <artifactId>apm-httpclient-core</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <build>
         <plugins>

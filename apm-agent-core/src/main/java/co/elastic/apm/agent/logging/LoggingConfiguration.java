@@ -160,7 +160,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     @Nonnull
-    private static String getActualLogFile(@Nullable String agentHome, String logFile) {
+    static String getActualLogFile(@Nullable String agentHome, String logFile) {
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
             if (agentHome == null) {
                 System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
@@ -169,6 +169,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
         }
+        logFile = new File(logFile).getAbsolutePath();
         final File logDir = new File(logFile).getParentFile();
         if (!logDir.exists()) {
             logDir.mkdir();

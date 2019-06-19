@@ -69,8 +69,10 @@ Click on a key to get more information.
 ** <<config-sanitize-field-names>>
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
+** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
+** <<config-boot-delegation-packages>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -216,10 +218,12 @@ A version string for the currently deployed version of the service. If you donâ€
 
 The name of the environment this service is deployed in, e.g. "production" or "staging".
 
-NOTE: The APM UI does not fully support the environment setting yet.
-You can use the query bar to filter for a specific environment,
-but by default the environments will be mixed together.
-Also keep that in mind when creating alerts.
+Environments allow you to easily filter data on a global level in the APM UI.
+It's important to be consistent when naming environments across agents.
+See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
+
+NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
+You must use the query bar to filter for a specific environment in versions prior to 7.2.
 
 
 [options="header"]
@@ -321,7 +325,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -365,6 +369,29 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
+|============
+
+[float]
+[[config-global-labels]]
+==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
+
+Labels added to all events, with the format `key=value[,key=value[,...]]`.
+Any labels set by application via the API will override global labels with the same keys.
+
+NOTE: This feature requires APM Server 7.2+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | Map | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
 |============
 
 [float]
@@ -449,6 +476,34 @@ The default unit for this option is `ms`
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
+|============
+
+[float]
+[[config-boot-delegation-packages]]
+==== `boot_delegation_packages`
+
+A comma-separated list of packages to be appended to the boot delegation system property. 
+If set with an empty string, nothing will be appended to the boot delegation system property.
+Values to set in known environments:
+
+Nexus:
+boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*
+
+Pentaho:
+boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `co.elastic.apm.agent.*` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
 
 [[config-http]]
@@ -1150,10 +1205,12 @@ The default unit for this option is `ms`
 
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
 # 
-# NOTE: The APM UI does not fully support the environment setting yet.
-# You can use the query bar to filter for a specific environment,
-# but by default the environments will be mixed together.
-# Also keep that in mind when creating alerts.
+# Environments allow you to easily filter data on a global level in the APM UI.
+# It's important to be consistent when naming environments across agents.
+# See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
+# 
+# NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
+# You must use the query bar to filter for a specific environment in versions prior to 7.2.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -1207,7 +1264,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1232,6 +1289,17 @@ The default unit for this option is `ms`
 # Default value: (?-i)*Nested*Exception
 #
 # unnest_exceptions=(?-i)*Nested*Exception
+
+# Labels added to all events, with the format `key=value[,key=value[,...]]`.
+# Any labels set by application via the API will override global labels with the same keys.
+# 
+# NOTE: This feature requires APM Server 7.2+
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Map
+# Default value: 
+#
+# global_labels=
 
 # A list of methods for with to create a transaction or span.
 # 
@@ -1291,6 +1359,22 @@ The default unit for this option is `ms`
 # Default value: 0ms
 #
 # trace_methods_duration_threshold=0ms
+
+# A comma-separated list of packages to be appended to the boot delegation system property. 
+# If set with an empty string, nothing will be appended to the boot delegation system property.
+# Values to set in known environments:
+# 
+# Nexus:
+# boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*
+# 
+# Pentaho:
+# boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: co.elastic.apm.agent.*
+#
+# boot_delegation_packages=co.elastic.apm.agent.*
 
 ############################################
 # HTTP                                     #

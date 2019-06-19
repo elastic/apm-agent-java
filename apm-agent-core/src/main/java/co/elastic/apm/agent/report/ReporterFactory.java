@@ -46,20 +46,23 @@ public class ReporterFactory {
     public Reporter createReporter(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName,
                                    @Nullable String frameworkVersion) {
         final ReporterConfiguration reporterConfiguration = configurationRegistry.getConfig(ReporterConfiguration.class);
-        ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread thread = new Thread(r);
-                thread.setName("apm-server-healthcheck");
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
-        healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration));
-        healthCheckExecutorService.shutdown();
+        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        if (coreConfiguration.isActive()) {
+            ExecutorService healthCheckExecutorService = Executors.newFixedThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    final Thread thread = new Thread(r);
+                    thread.setName("apm-server-healthcheck");
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            });
+            healthCheckExecutorService.submit(new ApmServerHealthChecker(reporterConfiguration));
+            healthCheckExecutorService.shutdown();
+        }
         final ReportingEventHandler reportingEventHandler = getReportingEventHandler(configurationRegistry, frameworkName,
             frameworkVersion, reporterConfiguration);
-        return new ApmServerReporter(true, reporterConfiguration, reportingEventHandler);
+        return new ApmServerReporter(true, reporterConfiguration, coreConfiguration, reportingEventHandler);
     }
 
     @Nonnull
@@ -75,7 +78,7 @@ public class ReporterFactory {
             processInformation.getArgv().clear();
         }
         return new IntakeV2ReportingEventHandler(service, processInformation, SystemInfo.create(), reporterConfiguration,
-            processorEventHandler, payloadSerializer);
+            processorEventHandler, payloadSerializer, configurationRegistry.getConfig(CoreConfiguration.class).getGlobalLabels());
     }
 
     private String getUserAgent() {

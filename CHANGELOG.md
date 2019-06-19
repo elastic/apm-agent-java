@@ -7,10 +7,19 @@
  NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature
  * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
  * Added support for AsyncHttpClient 2.x
+ * Added [`global_labels`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#global-labels) configuration option.
+   This requires APM Server 7.2+.
+ * Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and 
+   `onMessage`. Both Queues and Topics are supported. Async `send` APIs are not supported in this version. 
+   NOTE: This feature is currently marked as "Incubating" and is disabled by default. In order to enable, it is 
+   required to set the [`disable_instrumentations`](https://www.elastic.co/guide/en/apm/agent/java/1.x/config-core.html#config-disable-instrumentations) 
+   configuration property to an empty string.
 
 ## Bug Fixes
  * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
  * NullPointerException when computing Servlet transaction name with null HTTP method name
+ * FileNotFoundException when trying to find implementation version of jar with encoded URL
+ * NullPointerException when closing Apache AsyncHttpClient request producer
 
 # 1.6.1
 

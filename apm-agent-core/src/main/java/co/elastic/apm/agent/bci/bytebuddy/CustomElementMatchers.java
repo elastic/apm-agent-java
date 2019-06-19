@@ -33,10 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
@@ -136,7 +138,7 @@ public class CustomElementMatchers {
                 if (pdVersion != null) {
                     return pdVersion.compareTo(limitVersion) <= 0;
                 }
-                return false;
+                return true;
             }
         };
     }
@@ -155,7 +157,7 @@ public class CustomElementMatchers {
                         if (urlConnection instanceof JarURLConnection) {
                             jarFile = ((JarURLConnection) urlConnection).getJarFile();
                         } else {
-                            jarFile = new JarFile(jarUrl.getFile());
+                            jarFile = new JarFile(new File(jarUrl.toURI()));
                         }
                         Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
