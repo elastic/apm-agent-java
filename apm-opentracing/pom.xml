@@ -33,11 +33,6 @@
             <version>0.32.0</version>
         </dependency>
         <dependency>
-            <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-agent-api</artifactId>
-            <version>1.6.2-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
             <version>${project.version}</version>
