@@ -42,11 +42,15 @@ class ExternalProcessSpanContext implements ApmSpanContext {
 
     @Override
     public String toTraceId() {
+        // co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToTraceIdInstrumentation
+
         return null;
     }
 
     @Override
     public String toSpanId() {
+        // co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToSpanIdInstrumentation
+
         return null;
     }
 
