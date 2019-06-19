@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.cdi;
@@ -22,6 +27,7 @@ package co.elastic.apm.agent.cdi;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +57,7 @@ public class CdiIntstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testNormalScopedIsInstrumented() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             applicationScopedClass.doSomething();
         } finally {
@@ -66,7 +72,7 @@ public class CdiIntstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testScopedIsInstrumented() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             singletonScopedClass.doSomething();
         } finally {
@@ -82,7 +88,7 @@ public class CdiIntstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testNonAnnotatedClassIsNotInstrumented() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             nonAnnotatedClass.doSomething();
         } finally {
@@ -94,7 +100,7 @@ public class CdiIntstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testFilterConstructorsAndNonPublic() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             ComplexClass complexClass = new ComplexClass(applicationScopedClass);
             complexClass.doSomething();
@@ -112,7 +118,7 @@ public class CdiIntstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testFilterCommonMethods() {
-        final Transaction transaction = tracer.startTransaction();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null);
         try (Scope scope = transaction.activateInScope()) {
             ComplexClass complexClass = new ComplexClass(applicationScopedClass);
             complexClass.setInternalState("test");

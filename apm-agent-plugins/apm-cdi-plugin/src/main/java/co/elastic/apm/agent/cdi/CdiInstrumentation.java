@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.cdi;
@@ -56,7 +61,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  */
 public class CdiInstrumentation extends ElasticApmInstrumentation {
 
-    private Collection<String> applicationPackages = Collections.emptyList();
+    private Collection<String> applicationPackages;
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
@@ -81,8 +86,7 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
         }
     }
 
-    @Override
-    public void init(ElasticApmTracer tracer) {
+    public CdiInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
     }
 
@@ -114,8 +118,6 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
         return isPublic()
             .and(not(isConstructor()))
             .and(not(isStatic()))
-            .and(not(isSetter()))
-            .and(not(isGetter()))
             .and(not(isHashCode()))
             .and(not(isEquals()))
             .and(not(isToString()));
