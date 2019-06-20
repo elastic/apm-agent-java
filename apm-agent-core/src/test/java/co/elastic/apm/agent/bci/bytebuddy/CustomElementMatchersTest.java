@@ -91,6 +91,8 @@ class CustomElementMatchersTest {
         assertThat(implementationVersionLte("4.2.19").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("4.5.5").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("4.5.6").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.5-SNAPSHOT").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.6-SNAPSHOT").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("4.5.7").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("4.7.3").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("5.7.3").matches(protectionDomain)).isTrue();
