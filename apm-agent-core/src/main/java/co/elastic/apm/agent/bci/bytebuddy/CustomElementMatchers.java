@@ -137,7 +137,8 @@ public class CustomElementMatchers {
              *
              * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
              * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
-             * NOTE: returns true if matching fails, logging a warning message
+             * 
+             * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
              */
             @Override
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
@@ -157,8 +158,8 @@ public class CustomElementMatchers {
         };
     }
 
-    private static @Nullable
-    Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
+    @Nullable
+    private static Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
         Version version = null;
         JarFile jarFile = null;
         try {
