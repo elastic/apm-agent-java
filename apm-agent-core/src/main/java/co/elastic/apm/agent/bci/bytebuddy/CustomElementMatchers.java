@@ -149,7 +149,8 @@ public class CustomElementMatchers {
                     }
                 } catch (Exception e) {
                     logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
-                        "you agent's functionality, but please report. ProtectionDomain: " + protectionDomain, e);
+                        "you agent's functionality. Failed with message: " + e.getMessage());
+                    logger.debug("Implementation version parsing error: " + protectionDomain, e);
                 }
                 return true;
             }
