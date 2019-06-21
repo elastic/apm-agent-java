@@ -64,9 +64,9 @@ class MetricSetSerializationTest {
         registry.updateTimer("bar.baz", labels, 42, 2);
         final JsonNode jsonNode = reportAsJson(labels);
         final JsonNode samples = jsonNode.get("metricset").get("samples");
-        assertThat(samples.get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("foo.bar.sum.us").get("value").doubleValue()).isEqualTo(42);
         assertThat(samples.get("foo.bar.count").get("value").doubleValue()).isEqualTo(1);
-        assertThat(samples.get("bar.baz.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("bar.baz.sum.us").get("value").doubleValue()).isEqualTo(42);
         assertThat(samples.get("bar.baz.count").get("value").doubleValue()).isEqualTo(2);
     }
 
@@ -89,7 +89,7 @@ class MetricSetSerializationTest {
         assertThat(metricset.get("transaction").get("type").textValue()).isEqualTo("bar");
         assertThat(metricset.get("span").get("type").textValue()).isEqualTo("baz");
         assertThat(metricset.get("span").get("subtype").textValue()).isEqualTo("qux");
-        assertThat(metricset.get("samples").get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(metricset.get("samples").get("foo.bar.sum.us").get("value").doubleValue()).isEqualTo(42);
     }
 
     @Test
@@ -103,7 +103,7 @@ class MetricSetSerializationTest {
         registry.updateTimer("foo.bar", labels, 42);
         final JsonNode samples = reportAsJson(labels).get("metricset").get("samples");
 
-        assertThat(samples.get("foo.bar.sum").get("value").doubleValue()).isEqualTo(42 / 1000.0);
+        assertThat(samples.get("foo.bar.sum.us").get("value").doubleValue()).isEqualTo(42);
         assertThat(samples.get("foo.bar.count").get("value").doubleValue()).isEqualTo(1);
     }
 
@@ -165,11 +165,11 @@ class MetricSetSerializationTest {
 
     @Test
     void testTimerReset() throws IOException {
-        registry.updateTimer("foo", Labels.EMPTY, 1000);
+        registry.updateTimer("foo", Labels.EMPTY, 1);
 
         JsonNode samples = reportAsJson(Labels.EMPTY).get("metricset").get("samples");
         assertThat(samples.size()).isEqualTo(2);
-        assertThat(samples.get("foo.sum").get("value").intValue()).isOne();
+        assertThat(samples.get("foo.sum.us").get("value").intValue()).isOne();
         assertThat(samples.get("foo.count").get("value").intValue()).isOne();
 
         assertThat(reportAsJson(Labels.EMPTY).get("metricset").get("samples")).hasSize(0);

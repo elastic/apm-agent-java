@@ -177,7 +177,7 @@ public class MetricRegistrySerializer {
     private static void serializeTimer(String key, Timer timer, JsonWriter jw) {
         serializeValue(key, ".count", timer.getCount(), jw);
         jw.writeByte(JsonWriter.COMMA);
-        serializeValue(key, ".sum", timer.getTotalTimeMs(), jw);
+        serializeValue(key, ".sum.us", timer.getTotalTimeUs(), jw);
         timer.resetState();
     }
 

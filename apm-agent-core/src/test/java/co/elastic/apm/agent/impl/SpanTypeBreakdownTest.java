@@ -82,7 +82,7 @@ class SpanTypeBreakdownTest {
     /*
      * ██████████░░░░░░░░░░██████████
      * └─────────██████████
-     *          10        20        30
+     *          10        20        30g
      */
     @Test
     void testBreakdown_singleDbSpan() {
