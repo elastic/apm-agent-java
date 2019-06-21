@@ -54,6 +54,11 @@ public class MetricRegistry {
      */
     private volatile ConcurrentMap<Labels.Immutable, MetricSet> activeMetricSets = new ConcurrentHashMap<>();
     private ConcurrentMap<Labels.Immutable, MetricSet> inactiveMetricSets = new ConcurrentHashMap<>();
+    /**
+     * Final and thus stable references to the two different metric sets.
+     * See {@link #getOrCreateMetricSet(Labels)}
+     */
+    private final ConcurrentMap<Labels.Immutable, MetricSet> metricSets1 = activeMetricSets, metricSets2 = inactiveMetricSets;
 
     public MetricRegistry(ReporterConfiguration config) {
         this.config = config;
@@ -187,19 +192,21 @@ public class MetricRegistry {
     @Nonnull
     private MetricSet createMetricSet(Labels.Immutable labelsCopy) {
         // Gauges are the only metric types which are not reset after each report (as opposed to counters and timers)
-        // that's why both the activeMetricSet and inactiveMetricSet have to contain the exact same gauges.
+        // that's why both metric sets have to contain the exact same gauges.
+        // we can't access inactiveMetricSets as it might be swapped as this method is executed
+        // inactiveMetricSets is only stable after flipping the phase (phaser.flipPhase)
         MetricSet metricSet = new MetricSet(labelsCopy);
-        final MetricSet racyMetricSet = activeMetricSets.putIfAbsent(labelsCopy, metricSet);
+        final MetricSet racyMetricSet = metricSets1.putIfAbsent(labelsCopy, metricSet);
         if (racyMetricSet != null) {
             metricSet = racyMetricSet;
         }
         // even if the map already contains this metric set, the gauges reference will be the same
-        inactiveMetricSets.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
-        if (activeMetricSets.size() >= METRIC_SET_LIMIT) {
+        metricSets2.putIfAbsent(labelsCopy, new MetricSet(labelsCopy, metricSet.getGauges()));
+        if (metricSets1.size() >= METRIC_SET_LIMIT) {
             logger.warn("The limit of 1000 timers has been reached, no new timers will be created. " +
                 "Try to name your transactions so that there are less distinct transaction names.");
         }
-        return metricSet;
+        return activeMetricSets.get(labelsCopy);
     }
 
     public void incrementCounter(String name, Labels labels) {

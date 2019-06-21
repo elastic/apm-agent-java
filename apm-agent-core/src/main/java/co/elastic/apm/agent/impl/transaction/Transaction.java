@@ -162,7 +162,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void beforeEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
         }
@@ -171,6 +171,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
         context.onTransactionEnd();
         incrementTimer("app", null, getSelfDuration());
+    }
+
+    @Override
+    protected void afterEnd() {
+        // timers are guaranteed to be stable now - no concurrent updates possible as finished is true
         trackMetrics();
         this.tracer.endTransaction(this);
     }
@@ -253,7 +258,8 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
         final Labels.Mutable spanType = labelsThreadLocal.get();
         spanType.resetState();
-        Timer timer = spanTimings.get(spanType.spanType(type).spanSubType(subtype));
+        spanType.spanType(type).spanSubType(subtype);
+        Timer timer = spanTimings.get(spanType);
         if (timer == null) {
             timer = new Timer();
             Timer racyTimer = spanTimings.putIfAbsent(spanType.immutableCopy(), timer);

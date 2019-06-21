@@ -211,13 +211,7 @@ public interface Labels {
         private String spanSubType;
 
         private Mutable() {
-            this(Collections.<String>emptyList(), Collections.<CharSequence>emptyList());
-        }
-
-        private Mutable(List<String> keys, List<? extends CharSequence> values) {
             super(new ArrayList<String>(), new ArrayList<CharSequence>());
-            this.keys.addAll(keys);
-            this.values.addAll(values);
         }
 
         public static Mutable of() {

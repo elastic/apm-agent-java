@@ -133,11 +133,10 @@ public class MetricRegistrySerializer {
         return hasSamples;
     }
 
-    private static void serializeCounters(Map<String, AtomicLong> timers, boolean hasSamples, JsonWriter jw) {
-
-        final int size = timers.size();
+    private static void serializeCounters(Map<String, AtomicLong> counters, boolean hasSamples, JsonWriter jw) {
+        final int size = counters.size();
         if (size > 0) {
-            final Iterator<Map.Entry<String, AtomicLong>> iterator = timers.entrySet().iterator();
+            final Iterator<Map.Entry<String, AtomicLong>> iterator = counters.entrySet().iterator();
 
             // serialize first valid value
             AtomicLong value = null;

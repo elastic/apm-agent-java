@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,48 +39,60 @@ public class KeyListConcurrentHashMap<K, V> extends ConcurrentHashMap<K, V> {
 
     @Override
     public V put(K key, V value) {
-        final V previousValue = super.put(key, value);
-        if (previousValue == null) {
-            keyList.add(key);
+        synchronized (this) {
+            final V previousValue = super.put(key, value);
+            if (previousValue == null) {
+                keyList.add(key);
+            }
+            return previousValue;
         }
-        return previousValue;
     }
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-        for (Entry<? extends K, ? extends V> entry : m.entrySet()) {
-            put(entry.getKey(), entry.getValue());
+        synchronized (this) {
+            for (Entry<? extends K, ? extends V> entry : m.entrySet()) {
+                put(entry.getKey(), entry.getValue());
+            }
         }
     }
 
     @Override
     public V remove(Object key) {
-        keyList.remove(key);
-        return super.remove(key);
+        synchronized (this) {
+            keyList.remove(key);
+            return super.remove(key);
+        }
     }
 
     @Override
     public void clear() {
-        keyList.clear();
-        super.clear();
+        synchronized (this) {
+            keyList.clear();
+            super.clear();
+        }
     }
 
     @Override
     public V putIfAbsent(K key, V value) {
-        final V previousValue = super.putIfAbsent(key, value);
-        if (previousValue == null) {
-            keyList.add(key);
+        synchronized (this) {
+            final V previousValue = super.putIfAbsent(key, value);
+            if (previousValue == null) {
+                keyList.add(key);
+            }
+            return previousValue;
         }
-        return previousValue;
     }
 
     @Override
     public boolean remove(Object key, Object value) {
-        final boolean remove = super.remove(key, value);
-        if (remove) {
-            keyList.remove(key);
+        synchronized (this) {
+            final boolean remove = super.remove(key, value);
+            if (remove) {
+                keyList.remove(key);
+            }
+            return remove;
         }
-        return remove;
     }
 
     /**

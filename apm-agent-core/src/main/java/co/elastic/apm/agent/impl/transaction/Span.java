@@ -195,7 +195,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void beforeEnd(long epochMicros) {
         if (logger.isDebugEnabled()) {
             logger.debug("} endSpan {}", this);
             if (logger.isTraceEnabled()) {
@@ -206,12 +206,16 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             type = "custom";
         }
         if (transaction != null) {
-            transaction.incrementTimer(getType(), subtype, getSelfDuration());
+            transaction.incrementTimer(type, subtype, getSelfDuration());
         }
         if (parent != null) {
-            parent.decrementReferences();
             parent.onChildEnd(epochMicros);
+            parent.decrementReferences();
         }
+    }
+
+    @Override
+    protected void afterEnd() {
         this.tracer.endSpan(this);
     }
 

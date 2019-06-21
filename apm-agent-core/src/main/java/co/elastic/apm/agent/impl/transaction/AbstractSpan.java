@@ -52,7 +52,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     // in microseconds
     protected long duration;
-    protected ReentrantTimer childDurations = new ReentrantTimer();
+    private ReentrantTimer childDurations = new ReentrantTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
 
@@ -60,7 +60,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return references.get();
     }
 
-    public static class ReentrantTimer implements Recyclable {
+    private static class ReentrantTimer implements Recyclable {
 
         private AtomicInteger nestingLevel = new AtomicInteger();
         private AtomicLong start = new AtomicLong();
@@ -248,16 +248,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
                 name.append("unnamed");
             }
             childDurations.forceStop(epochMicros);
-            doEnd(epochMicros);
-            // has to be set last so doEnd callbacks don't think it has already been finished
+            beforeEnd(epochMicros);
             this.finished = true;
+            afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);
             assert false;
         }
     }
 
-    protected abstract void doEnd(long epochMicros);
+    protected abstract void beforeEnd(long epochMicros);
+
+    protected abstract void afterEnd();
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
