@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
@@ -101,7 +102,7 @@ class ApmServerReporterIntegrationTest {
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
             processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), Collections.emptyMap());
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        reporter = new ApmServerReporter(false, reporterConfiguration, config.getConfig(CoreConfiguration.class), v2handler);
     }
 
     @Test

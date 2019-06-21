@@ -334,6 +334,14 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         return s;
     }
 
+    public String toJsonString(final StackTraceElement stackTraceElement) {
+        jw.reset();
+        serializeStackTraceElement(stackTraceElement);
+        final String s = jw.toString();
+        jw.reset();
+        return s;
+    }
+
     public String toString() {
         return jw.toString();
     }
@@ -663,8 +671,18 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("function", stacktrace.getMethodName());
         writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
         writeField("lineno", stacktrace.getLineNumber());
-        writeLastField("abs_path", stacktrace.getClassName());
+        serializeStackFrameModule(stacktrace.getClassName());
         jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeStackFrameModule(final String fullyQualifiedClassName) {
+        writeFieldName("module");
+        replaceBuilder.setLength(0);
+        final int lastDotIndex = fullyQualifiedClassName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            replaceBuilder.append(fullyQualifiedClassName, 0, lastDotIndex);
+        }
+        writeStringBuilderValue(replaceBuilder, jw);
     }
 
     private boolean isLibraryFrame(String className) {

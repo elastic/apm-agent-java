@@ -28,7 +28,9 @@ import net.bytebuddy.description.type.TypeDescription;
 import org.apache.http.client.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.CodeSigner;
 import java.security.CodeSource;
@@ -71,6 +73,17 @@ class CustomElementMatchersTest {
         testSemVerLteMatcher(new ProtectionDomain(new CodeSource(jarFileUrl, new CodeSigner[0]), null));
     }
 
+    @Test
+    void testSemVerLteWithEncodedFileUrl() throws MalformedURLException, URISyntaxException {
+        String jarFileUrl = new File("src/test/resources/lib/version##2/test-module.jar").toURI().toASCIIString();
+        System.out.println("Encoded Jar file URL = " + jarFileUrl);
+        ProtectionDomain protectionDomain = new ProtectionDomain(new CodeSource(new URL(jarFileUrl), new CodeSigner[0]), null);
+        assertThat(implementationVersionLte("2").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("3").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("2.1.8").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("2.1.9").matches(protectionDomain)).isTrue();
+    }
+
     private void testSemVerLteMatcher(ProtectionDomain protectionDomain) {
         assertThat(implementationVersionLte("3").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("3.2").matches(protectionDomain)).isFalse();
@@ -78,6 +91,8 @@ class CustomElementMatchersTest {
         assertThat(implementationVersionLte("4.2.19").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("4.5.5").matches(protectionDomain)).isFalse();
         assertThat(implementationVersionLte("4.5.6").matches(protectionDomain)).isTrue();
+        assertThat(implementationVersionLte("4.5.5-SNAPSHOT").matches(protectionDomain)).isFalse();
+        assertThat(implementationVersionLte("4.5.6-SNAPSHOT").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("4.5.7").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("4.7.3").matches(protectionDomain)).isTrue();
         assertThat(implementationVersionLte("5.7.3").matches(protectionDomain)).isTrue();

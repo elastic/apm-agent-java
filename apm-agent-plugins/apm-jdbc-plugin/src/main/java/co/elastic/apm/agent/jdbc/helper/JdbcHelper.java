@@ -32,5 +32,5 @@ import java.sql.Connection;
 
 public interface JdbcHelper {
     @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent);
+    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
 }

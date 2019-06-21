@@ -218,10 +218,12 @@ A version string for the currently deployed version of the service. If you donâ€
 
 The name of the environment this service is deployed in, e.g. "production" or "staging".
 
-NOTE: The APM UI does not fully support the environment setting yet.
-You can use the query bar to filter for a specific environment,
-but by default the environments will be mixed together.
-Also keep that in mind when creating alerts.
+Environments allow you to easily filter data on a global level in the APM UI.
+It's important to be consistent when naming environments across agents.
+See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
+
+NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
+You must use the query bar to filter for a specific environment in versions prior to 7.2.
 
 
 [options="header"]
@@ -323,7 +325,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1205,10 +1207,12 @@ The default unit for this option is `ms`
 
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
 # 
-# NOTE: The APM UI does not fully support the environment setting yet.
-# You can use the query bar to filter for a specific environment,
-# but by default the environments will be mixed together.
-# Also keep that in mind when creating alerts.
+# Environments allow you to easily filter data on a global level in the APM UI.
+# It's important to be consistent when naming environments across agents.
+# See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
+# 
+# NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
+# You must use the query bar to filter for a specific environment in versions prior to 7.2.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -1262,7 +1266,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
