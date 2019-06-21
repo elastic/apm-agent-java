@@ -340,10 +340,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
             "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
             "Values to set in known environments:\n\n" +
-            "Nexus:\n" +
-            "boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*\n\n" +
-            "Pentaho:\n" +
-            "boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*")
+            "Nexus:\n\n" +
+            "`boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*," +
+            "co.elastic.apm.agent.*`\n\n" +
+            "Pentaho:\n\n" +
+            "`boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, " +
+            "sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, " +
+            "org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, " +
+            "org.apache.xerces.dom, co.elastic.apm.agent.*`")
         .buildWithDefault("co.elastic.apm.agent.*");
 
     public boolean isActive() {
