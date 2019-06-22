@@ -227,6 +227,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-hibernate-search-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-5_6</artifactId>
             <version>${project.version}</version>
