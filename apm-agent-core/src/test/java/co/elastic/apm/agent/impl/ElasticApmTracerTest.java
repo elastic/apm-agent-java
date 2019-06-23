@@ -169,7 +169,8 @@ class ElasticApmTracerTest {
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
-        assertThat(error.getTraceContext().hasContent()).isFalse();
+        assertThat(error.getTraceContext().hasContent()).isTrue();
+        assertThat(error.getTraceContext().getTraceId().isEmpty()).isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isFalse();
     }
 

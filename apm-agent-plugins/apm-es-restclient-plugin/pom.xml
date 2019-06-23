@@ -16,6 +16,7 @@
         <module>apm-es-restclient-plugin-common</module>
         <module>apm-es-restclient-plugin-5_6</module>
         <module>apm-es-restclient-plugin-6_4</module>
+        <module>apm-es-restclient-plugin-7_1</module>
     </modules>
 
     <artifactId>apm-es-restclient-plugin</artifactId>

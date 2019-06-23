@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
@@ -112,6 +113,23 @@ class DslJsonSerializerTest {
         assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+    }
+
+    @Test
+    void testErrorSerializationOutsideTrace() throws IOException {
+        MockReporter reporter = new MockReporter();
+        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
+        tracer.captureException(new Exception("test"), getClass().getClassLoader());
+        String errorJson = serializer.toJsonString(reporter.getFirstError());
+        System.out.println("errorJson = " + errorJson);
+        JsonNode errorTree = objectMapper.readTree(errorJson);
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
+        JsonNode exception = errorTree.get("exception");
+        assertThat(exception.get("message").textValue()).isEqualTo("test");
+        assertThat(exception.get("stacktrace")).isNotNull();
+        assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
+        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isFalse();
     }
 
     @Test
