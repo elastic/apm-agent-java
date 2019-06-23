@@ -56,7 +56,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -114,25 +113,25 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testQueueSendReceiveOnTracedThread() throws Exception {
         final Queue queue = createQueue();
-        testQueueSendReceiveOnTracedThread(() -> brokerFacade.receive(queue), queue);
+        testQueueSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 2000), queue, false);
     }
 
     @Test
     public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
         final Queue queue = createQueue();
-        testQueueSendReceiveOnTracedThread(() -> loopReceive(() -> brokerFacade.receiveNoWait(queue), 3000), queue);
+        testQueueSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
 
     @Test
     public void testQueueSendReceiveOnNonTracedThread() throws Exception {
         final Queue queue = createQueue();
-        testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue), queue);
+        testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 2000), queue, false);
     }
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
         final Queue queue = createQueue();
-        testQueueSendReceiveOnNonTracedThread(() -> loopReceive(() -> brokerFacade.receiveNoWait(queue), 3000), queue);
+        testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
 
     private Queue createQueue() throws Exception {
@@ -145,26 +144,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         return brokerFacade.createTopic(topicName);
     }
 
-    // A utility method for testing the receiveNoWait API consistently
-    private Message loopReceive(Callable<Message> receiveMethod, @SuppressWarnings("SameParameterValue") long timeout) throws Exception {
-        long start = System.currentTimeMillis();
-        long curr = start;
-        while (curr - start < timeout) {
-            Message ret = receiveMethod.call();
-            if (ret != null) {
-                return ret;
-            } else {
-                Thread.sleep(100);
-                curr = System.currentTimeMillis();
-            }
-        }
-        throw new TimeoutException();
-    }
-
-    private void testQueueSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue) throws Exception {
+    private void testQueueSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue, boolean waitAfterSend) throws Exception {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
+        if (waitAfterSend) {
+            Thread.sleep(100);
+        }
         Message incomingMessage = receiveOnTracedThread(receiveMethod).get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
 
@@ -187,11 +173,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     }
 
-    private void testQueueSendReceiveOnNonTracedThread(Callable<Message> receiveMethod, Queue queue)
+    private void testQueueSendReceiveOnNonTracedThread(Callable<Message> receiveMethod, Queue queue, boolean waitAfterSend)
         throws Exception {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
+        if (waitAfterSend) {
+            Thread.sleep(100);
+        }
         Message incomingMessage = receiveOnNonTracedThread(receiveMethod).get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
@@ -303,11 +292,18 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
      */
     private Future<Message> receiveOnTracedThread(final Callable<Message> receiveMethod) {
         return executor.submit(() -> {
-            Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null)
-                .withName("JMS-Test Receiver Transaction")
-                .activate();
-            Message message = receiveMethod.call();
-            transaction.deactivate().end();
+            Transaction transaction = null;
+            Message message = null;
+            try {
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, null)
+                    .withName("JMS-Test Receiver Transaction")
+                    .activate();
+                message = receiveMethod.call();
+            } finally {
+                if (transaction != null) {
+                    transaction.deactivate().end();
+                }
+            }
             return message;
         });
     }
