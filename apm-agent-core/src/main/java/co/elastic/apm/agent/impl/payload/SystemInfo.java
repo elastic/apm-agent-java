@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -165,10 +164,10 @@ public class SystemInfo {
         final String[] fields = line.split(":");
         if (fields.length == 3) {
             String cGroupPath = fields[2];
-            Path idPathPart = Paths.get(cGroupPath).getFileName();
+            int indexOfLastSlash = cGroupPath.lastIndexOf('/');
 
-            if (idPathPart != null) {
-                String idPart = idPathPart.toString();
+            if (indexOfLastSlash >= 0) {
+                String idPart = cGroupPath.substring(indexOfLastSlash + 1);
 
                 // Legacy, e.g.: /system.slice/docker-<CID>.scope
                 if (idPart.endsWith(".scope")) {
@@ -176,9 +175,8 @@ public class SystemInfo {
                 }
 
                 // Looking for kubernetes info
-                Path dirPathPart = Paths.get(cGroupPath).getParent();
-                if (dirPathPart != null) {
-                    String dir = dirPathPart.toString();
+                String dir = cGroupPath.substring(0, indexOfLastSlash);
+                if (dir.length() > 0) {
                     final Pattern pattern = Pattern.compile(POD_REGEX);
                     final Matcher matcher = pattern.matcher(dir);
                     if (matcher.find()) {
