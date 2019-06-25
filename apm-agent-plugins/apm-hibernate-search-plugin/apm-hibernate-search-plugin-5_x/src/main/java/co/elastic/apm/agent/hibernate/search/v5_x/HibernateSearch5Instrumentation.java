@@ -16,7 +16,10 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.hibernate.search.query.hibernate.impl.FullTextQueryImpl;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
 
@@ -27,12 +30,15 @@ public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.hibernate.search.query.hibernate.impl.FullTextQueryImpl");
+        return not(isInterface())
+            .and(hasSuperType(named("org.hibernate.search.FullTextQuery")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("list").or(named("scroll")).or(named("iterate"));
+        return named("list")
+            .or(named("scroll"))
+            .or(named("iterate"));
     }
 
     @Override
