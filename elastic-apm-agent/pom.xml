@@ -228,7 +228,12 @@
         </dependency>
         <dependency>
             <groupId>co.elastic.apm</groupId>
-            <artifactId>apm-hibernate-search-plugin</artifactId>
+            <artifactId>apm-hibernate-search-plugin-5_x</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-hibernate-search-plugin-6_x</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
