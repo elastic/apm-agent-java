@@ -32,7 +32,7 @@ public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("list");
+        return named("list").or(named("scroll")).or(named("iterate"));
     }
 
     @Override
