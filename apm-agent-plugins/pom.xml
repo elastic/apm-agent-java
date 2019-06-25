@@ -26,6 +26,7 @@
         <module>apm-urlconnection-plugin</module>
         <module>apm-jaxws-plugin</module>
         <module>apm-scheduled-annotation-plugin</module>
+        <module>apm-quartz-job-plugin</module>
         <module>apm-asynchttpclient-plugin</module>
         <module>apm-jms-plugin</module>
     </modules>
