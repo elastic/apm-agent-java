@@ -1,13 +1,5 @@
 package co.elastic.apm.agent.hibernate.search.v6_x;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -16,6 +8,13 @@ import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,7 +64,26 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void performMutiResultLuceneIndexSearch() {
+    public void performHitCountLuceneIndexSearch() {
+        saveDogsToIndex();
+
+        SearchSession searchSession = Search.getSearchSession(entityManager);
+        long resultCount = searchSession.search(Dog.class)
+            .predicate(f -> f.match().onField("name").matching("dog1"))
+            .fetchTotalHitCount();
+
+        assertAll(() -> {
+            assertEquals(1, resultCount, "Query hit count is not 1");
+            assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
+            assertEquals("hibernate-search", reporter.getFirstSpan().getSubtype(),
+                "Subtype of span is not 'hibernate-search'");
+            assertEquals("+name:dog1 #__HSEARCH_type:main", reporter.getFirstSpan().getContext().getDb().getStatement(),
+                "Statement is not '+name:dog1 #__HSEARCH_type:main'");
+        });
+    }
+
+    @Test
+    public void performMultiResultLuceneIndexSearch() {
         saveDogsToIndex();
 
         SearchSession searchSession = Search.getSearchSession(entityManager);

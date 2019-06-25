@@ -1,10 +1,5 @@
 package co.elastic.apm.agent.hibernate.search.v6_x;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import javax.annotation.Nullable;
-
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
@@ -16,7 +11,15 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.hibernate.search.backend.lucene.search.query.impl.LuceneSearchQueryImpl;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
+
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
 
@@ -27,12 +30,13 @@ public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.hibernate.search.backend.lucene.search.query.impl.LuceneSearchQueryImpl");
+        return not(isInterface())
+            .and(hasSuperType(named("org.hibernate.search.engine.search.query.SearchFetchable")));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("fetch");
+        return nameStartsWith("fetch");
     }
 
     @Override
