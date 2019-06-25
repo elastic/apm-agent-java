@@ -148,13 +148,14 @@ class JobTransactionNameInstrumentationTest {
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        			SimpleScheduleBuilder.repeatSecondlyForever(1))
+        			SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
         Thread.sleep(2000);
         scheduler.shutdown();
         assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
+        System.out.println(reporter.getTransactions().get(0).getResult());
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
