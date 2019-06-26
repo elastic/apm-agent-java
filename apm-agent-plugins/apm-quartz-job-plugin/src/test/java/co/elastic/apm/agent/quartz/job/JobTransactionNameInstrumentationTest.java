@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -53,6 +54,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.quartz.job.JobTransactionNameInstrumentation;
 import co.elastic.apm.agent.report.ApmServerReporter;
 import net.bytebuddy.agent.ByteBuddyAgent;
+import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,11 +88,11 @@ class JobTransactionNameInstrumentationTest {
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        			SimpleScheduleBuilder.repeatSecondlyForever(1))
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2000);
+        Thread.sleep(2500);
         scheduler.shutdown();
         assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
@@ -112,11 +114,11 @@ class JobTransactionNameInstrumentationTest {
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        			SimpleScheduleBuilder.repeatSecondlyForever(1))
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2000);
+        Thread.sleep(2500);
         scheduler.shutdown();
         assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
@@ -135,7 +137,33 @@ class JobTransactionNameInstrumentationTest {
         assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
         assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("TestJob#execute");
     }
-    
+
+    @Test
+    void testSpringJob() throws SchedulerException, InterruptedException {
+        reporter.reset();
+        resetCounter();
+        Scheduler scheduler=new StdSchedulerFactory().getScheduler();
+        scheduler.clear();
+        JobDetail job = JobBuilder.newJob(TestSpringJob.class)
+    			.withIdentity("dummyJobName", "group1").build();
+        Trigger trigger = TriggerBuilder
+        		.newTrigger()
+        		.withIdentity("myTrigger")
+        		.withSchedule(
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
+        		.build();
+        scheduler.scheduleJob(job, trigger);
+        scheduler.start();
+        Thread.sleep(2500);
+        scheduler.shutdown();
+        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
+        assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
+        assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
+        	.isEqualToIgnoringCase(String.format("%s.%s", trigger.getKey().getGroup(), trigger.getKey().getName()));
+        assertThat(reporter.getTransactions().get(0).getName())
+        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+    }
+
     @Test
     void testJobWithResult() throws SchedulerException, InterruptedException {
     	reporter.reset();
@@ -152,10 +180,9 @@ class JobTransactionNameInstrumentationTest {
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2000);
+        Thread.sleep(2500);
         scheduler.shutdown();
         assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
-        System.out.println(reporter.getTransactions().get(0).getResult());
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
         assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
@@ -183,5 +210,13 @@ class JobTransactionNameInstrumentationTest {
 			context.setResult("this is the result");
 			count.incrementAndGet();
 		}
+    }
+    public static class TestSpringJob extends QuartzJobBean {
+
+		@Override
+		protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
+			count.incrementAndGet();
+		}
+
     }
 }

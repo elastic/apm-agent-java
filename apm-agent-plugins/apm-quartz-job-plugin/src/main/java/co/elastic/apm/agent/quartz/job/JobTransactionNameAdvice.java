@@ -68,14 +68,11 @@ public class JobTransactionNameAdvice {
         }
     }
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExitException(@Advice.Argument(readOnly = true, value = 0) JobExecutionContext context,@Nullable @Advice.Local("transaction") Transaction transaction,
-                                    @Advice.Thrown Throwable t) {
+    public static void onMethodExitException(@Advice.Argument(readOnly = true, value = 0) JobExecutionContext context,
+    		@Nullable @Advice.Local("transaction") Transaction transaction, @Advice.Thrown Throwable t) {
         if (transaction != null) {
 			if(transaction.getResult()==null && context != null && context.getResult() !=null) {
 				transaction.withResult(context.getResult().toString());
-			}
-			if(context != null) {
-				logger.debug("XX: {} || {}",transaction.getResult(), context.getResult());
 			}
             transaction.captureException(t)
                 .deactivate()

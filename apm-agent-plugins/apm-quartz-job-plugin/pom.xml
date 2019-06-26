@@ -21,6 +21,11 @@
             <version>${version.quartz}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+		       <groupId>org.springframework</groupId>
+		       <artifactId>spring-context-support</artifactId>
+		   <version>${version.spring}</version>
+		</dependency>
     </dependencies>
 
 </project>

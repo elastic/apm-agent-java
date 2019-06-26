@@ -60,13 +60,13 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-        	.and(hasSuperType(named("org.quartz.Job")))
+        	.and(hasSuperType(named("org.quartz.Job")).or(hasSuperType(named("org.springframework.scheduling.quartz.QuartzJobBean"))))
             .and(declaresMethod(getMethodMatcher()));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute").and(takesArgument(0, named("org.quartz.JobExecutionContext")));
+        return named("execute").or(named("executeInternal")).and(takesArgument(0, named("org.quartz.JobExecutionContext")));
     }
 
     @Override
