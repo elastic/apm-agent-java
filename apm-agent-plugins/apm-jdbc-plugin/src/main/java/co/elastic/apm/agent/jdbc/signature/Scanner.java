@@ -68,8 +68,10 @@ public class Scanner {
         }
         return false;
     }
-
     public Token scan() {
+    	return scan(true);
+    }
+    public Token scan(boolean skipDoubleQuotes) {
         if (!hasNext()) {
             return Token.EOF;
         }
@@ -98,10 +100,17 @@ public class Scanner {
                 // string literal delimiter by default,
                 // but we assume standard SQL and treat
                 // it as a identifier delimiter.
-                return scanQuotedIdentifier('"');
+            	if(skipDoubleQuotes) {
+            		return scanQuotedIdentifier('"');
+            	}else {
+            		return Token.DQUOT;
+            	}
             case '[':
                 // T-SQL bracket-quoted identifier
                 return scanQuotedIdentifier(']');
+            case '{':
+                // JDBC escapes
+                return scan(skipDoubleQuotes);
             case '`':
                 // MySQL-style backtick-quoted identifier
                 return scanQuotedIdentifier('`');
@@ -125,6 +134,14 @@ public class Scanner {
                 return Token.OTHER;
             case '.':
                 return Token.PERIOD;
+            case '@':
+                return Token.AT;
+            case '?':
+            	//skip JDBC variables
+                return scan(skipDoubleQuotes);
+            case '=':
+            	//skip equals as in ? = call function()
+                return scan(skipDoubleQuotes);
             case '$':
                 if (!hasNext()) {
                     return Token.OTHER;
@@ -360,6 +377,8 @@ public class Scanner {
         PERIOD, // .
         LPAREN, // (
         RPAREN, // )
+        AT, // @
+        DQUOT, // "
 
         AS,
         CALL,
@@ -373,7 +392,9 @@ public class Scanner {
         SET,
         TABLE,
         TRUNCATE, // Cassandra/CQL-specific
-        UPDATE;
+        UPDATE,
+        MERGE,
+        USING;
 
         private static final Token[] EMPTY = {};
         private static final Token[][] KEYWORDS_BY_LENGTH = {
@@ -382,7 +403,7 @@ public class Scanner {
             {AS, OR},
             {SET},
             {CALL, FROM, INTO},
-            {TABLE},
+            {TABLE, MERGE, USING},
             {DELETE, INSERT, SELECT, UPDATE},
             {REPLACE},
             {TRUNCATE}

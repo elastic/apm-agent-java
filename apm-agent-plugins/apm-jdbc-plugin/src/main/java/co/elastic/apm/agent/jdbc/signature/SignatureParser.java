@@ -32,6 +32,7 @@ import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.FROM;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.IDENT;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.LPAREN;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.RPAREN;
+import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.INTO;
 
 public class SignatureParser {
 
@@ -156,6 +157,45 @@ public class SignatureParser {
                                 break;
                             default:
                                 return;
+                        }
+                    }
+                }
+                return;
+            case MERGE:
+                signature.append("MERGE");
+                scanner.scanToken(INTO);
+                if (scanner.scanToken(IDENT)) {
+                    signature.append(' ');
+                    scanner.appendCurrentTokenText(signature);
+                    boolean connectedIdents=false;
+                    boolean inQuotes=false;
+                    for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
+                        switch (t) {
+                            case IDENT:
+                            	//do not add tokens which are separated by a space
+                            	if(connectedIdents) {
+                            		scanner.appendCurrentTokenText(signature);
+                            		connectedIdents=false;
+                            	}else {
+                            		return;
+                            	}
+                            	break;
+                            case PERIOD:
+                                signature.append('.');
+                                connectedIdents=true;
+                                break;
+                            case AT:
+                                signature.append('@');
+                                connectedIdents=true;
+                                break;
+                            case DQUOT:
+                            	signature.append('"');
+                            	inQuotes=!inQuotes;
+                            	break;
+                            case USING:
+                            	return;
+                            default:
+                                break;
                         }
                     }
                 }
