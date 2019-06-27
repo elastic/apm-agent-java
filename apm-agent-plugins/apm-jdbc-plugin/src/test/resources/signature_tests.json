@@ -53,6 +53,10 @@
     "output": "SELECT FROM table1"
   },
   {
+    "input": "SELECT *,(SELECT COUNT(*) FROM table2 WHERE table2.field1 = table1.id) AS count FROM schema.table1@\"DBLINK.FQDN.COM@USER\" WHERE table1.field1 = 'value'",
+    "output": "SELECT FROM schema.table1@\"DBLINK.FQDN.COM@USER\""
+  },
+  {
     "comment": "If the outermost select operates on derived tables, then we just return 'SELECT' (i.e. the fallback)",
     "input": "SELECT * FROM (SELECT foo FROM bar) AS foo_bar",
     "output": "SELECT"
@@ -66,6 +70,10 @@
     "output": "UPDATE foo.bar"
   },
   {
+    "input": "UPDATE IGNORE foo.bar@\"DBLINK.FQDN.COM@USER\" SET bar=1 WHERE baz=2",
+    "output": "UPDATE foo.bar@\"DBLINK.FQDN.COM@USER\""
+  },
+  {
     "input": "UPDATE ONLY foo AS bar SET baz=1",
     "output": "UPDATE foo"
   },
@@ -76,6 +84,10 @@
   {
     "input": "INSERT LOW_PRIORITY IGNORE INTO foo.bar (col) VALUES(?)",
     "output": "INSERT INTO foo.bar"
+  },
+  {
+    "input": "INSERT LOW_PRIORITY IGNORE INTO schema.table1@\"DBLINK.FQDN.COM@USER\" (col) VALUES(?)",
+    "output": "INSERT INTO schema.table1@\"DBLINK.FQDN.COM@USER\""
   },
   {
     "input": "CALL foo(bar, 123)",
@@ -140,36 +152,64 @@
     "output": "DELETE"
   },
   {
+    "input": "DELETE FROM schema.table1@\"DBLINK.FQDN.COM@USER\"",
+    "output": "DELETE FROM schema.table1@\"DBLINK.FQDN.COM@USER\""
+  },
+  {
     "input": "CALL",
     "output": "CALL"
   },
   {
     "input": "MERGE INTO TEST USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
-    "output": "MERGE TEST"
+    "output": "MERGE INTO TEST"
   },
   {
     "input": "MERGE INTO TEST ALIAS USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
-    "output": "MERGE TEST"
+    "output": "MERGE INTO TEST"
   },
   {
     "input": "MERGE INTO SCHEMA.TEST USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
-    "output": "MERGE SCHEMA.TEST"
+    "output": "MERGE INTO SCHEMA.TEST"
   },
   {
     "input": "MERGE INTO SCHEMA.TEST@DBLINK USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
-    "output": "MERGE SCHEMA.TEST@DBLINK"
+    "output": "MERGE INTO SCHEMA.TEST@DBLINK"
   },
   {
     "input": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM\" USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
-    "output": "MERGE SCHEMA.TEST@\"DBLINK.FQDN.COM\""
+    "output": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM\""
+  },
+  {
+    "input": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM@USER\" USING (SELECT * FROM DUAL) SOURCE on (TEST.X=SOURCE.DUMMY) WHEN NOT MATCHED THEN INSERT VALUES(SOURCE.DUMMY)",
+    "output": "MERGE INTO SCHEMA.TEST@\"DBLINK.FQDN.COM@USER\""
+  },
+  {
+    "input": "MERGE",
+    "output": "MERGE"
   },
   {
     "input": "{ ? = call FUNCTION() }",
     "output": "CALL FUNCTION"
   },
   {
+    "input": "{ ? = call SCHEMA.FUNCTION() }",
+    "output": "CALL SCHEMA.FUNCTION"
+  },
+  {
+    "input": "{ ? = call SCHEMA.FUNCTION@\"DBLINK.FQDN.COM@USER\"() }",
+    "output": "CALL SCHEMA.FUNCTION@\"DBLINK.FQDN.COM@USER\""
+  },
+  {
     "input": "{ call PROCEDURE() }",
     "output": "CALL PROCEDURE"
+  },
+  {
+    "input": "{call SCHEMA.PROCEDURE() }",
+    "output": "CALL SCHEMA.PROCEDURE"
+  },
+  {
+    "input": "{call SCHEMA.PROCEDURE@\"DBLINK.FQDN.COM@USER\"() }",
+    "output": "CALL SCHEMA.PROCEDURE@\"DBLINK.FQDN.COM@USER\""
   },
   {
     "input": "{call PROCEDURE() }",

@@ -80,21 +80,19 @@ public class SignatureParser {
             signatureCache.put(query, signature.toString());
         }
     }
-
     private void parse(String query, StringBuilder signature) {
         final Scanner.Token firstToken = scanner.scanWhile(Scanner.Token.COMMENT);
         switch (firstToken) {
             case CALL:
                 signature.append("CALL");
-                if (scanner.scanUntil(Scanner.Token.IDENT)) {
-                    signature.append(' ');
-                    scanner.appendCurrentTokenText(signature);
+                if(scanner.scanUntil(Scanner.Token.IDENT)) {
+                	appendIdentifiers(signature);
                 }
                 return;
             case DELETE:
                 signature.append("DELETE");
                 if (scanner.scanUntil(FROM) && scanner.scanUntil(Scanner.Token.IDENT)) {
-                    signature.append(" FROM ");
+                    signature.append(" FROM");
                     appendIdentifiers(signature);
                 }
                 return;
@@ -102,7 +100,7 @@ public class SignatureParser {
             case REPLACE:
                 signature.append(firstToken.name());
                 if (scanner.scanUntil(Scanner.Token.INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
-                    signature.append(" INTO ");
+                    signature.append(" INTO");
                     appendIdentifiers(signature);
                 }
                 return;
@@ -117,7 +115,7 @@ public class SignatureParser {
                     } else if (t == FROM) {
                         if (level == 0) {
                             if (scanner.scanToken(Scanner.Token.IDENT)) {
-                                signature.append(" FROM ");
+                                signature.append(" FROM");
                                 appendIdentifiers(signature);
                             } else {
                                 return;
@@ -129,18 +127,21 @@ public class SignatureParser {
             case UPDATE:
                 signature.append("UPDATE");
                 // Scan for the table name
-                boolean hasPeriod = false, hasFirstPeriod = false;
+                boolean hasPeriod = false, hasFirstPeriod = false, inQuotes = false;
                 if (scanner.scanToken(IDENT)) {
                     signature.append(' ');
                     scanner.appendCurrentTokenText(signature);
-                    for (Scanner.Token t = scanner.scan(); t != EOF; t = scanner.scan()) {
+                    for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
                         switch (t) {
                             case IDENT:
                                 if (hasPeriod) {
                                     scanner.appendCurrentTokenText(signature);
                                     hasPeriod = false;
                                 }
-                                if (!hasFirstPeriod) {
+                                else if(inQuotes) {
+                                	scanner.appendCurrentTokenText(signature);
+                                }
+                                if (!hasFirstPeriod && !inQuotes) {
                                     // Some dialects allow option keywords before the table name
                                     // example: UPDATE IGNORE foo.bar
                                     signature.setLength(0);
@@ -155,6 +156,15 @@ public class SignatureParser {
                                 hasPeriod = true;
                                 signature.append('.');
                                 break;
+                			case AT:
+                                hasFirstPeriod = true;
+                                hasPeriod = true;
+                				signature.append('@');
+                				break;
+                			case DQUOT:
+                				signature.append('"');
+                				inQuotes = !inQuotes;
+                				break;
                             default:
                                 return;
                         }
@@ -163,41 +173,9 @@ public class SignatureParser {
                 return;
             case MERGE:
                 signature.append("MERGE");
-                scanner.scanToken(INTO);
-                if (scanner.scanToken(IDENT)) {
-                    signature.append(' ');
-                    scanner.appendCurrentTokenText(signature);
-                    boolean connectedIdents=false;
-                    boolean inQuotes=false;
-                    for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
-                        switch (t) {
-                            case IDENT:
-                            	//do not add tokens which are separated by a space
-                            	if(connectedIdents) {
-                            		scanner.appendCurrentTokenText(signature);
-                            		connectedIdents=false;
-                            	}else {
-                            		return;
-                            	}
-                            	break;
-                            case PERIOD:
-                                signature.append('.');
-                                connectedIdents=true;
-                                break;
-                            case AT:
-                                signature.append('@');
-                                connectedIdents=true;
-                                break;
-                            case DQUOT:
-                            	signature.append('"');
-                            	inQuotes=!inQuotes;
-                            	break;
-                            case USING:
-                            	return;
-                            default:
-                                break;
-                        }
-                    }
+                if(scanner.scanToken(INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
+                    signature.append(" INTO");
+                    appendIdentifiers(signature);
                 }
                 return;
             default:
@@ -208,10 +186,38 @@ public class SignatureParser {
     }
 
     private void appendIdentifiers(StringBuilder signature) {
-        scanner.appendCurrentTokenText(signature);
-        while (scanner.scanToken(Scanner.Token.PERIOD) && scanner.scanToken(Scanner.Token.IDENT)) {
-            signature.append('.');
-            scanner.appendCurrentTokenText(signature);
-        }
+    	signature.append(' ');
+		scanner.appendCurrentTokenText(signature);
+		boolean connectedIdents = false;
+		boolean inQuotes = false;
+		for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
+			switch (t) {
+			case IDENT:
+				// do not add tokens which are separated by a space
+				if (connectedIdents) {
+					scanner.appendCurrentTokenText(signature);
+					connectedIdents = false;
+				} else {
+					return;
+				}
+				break;
+			case PERIOD:
+				signature.append('.');
+				connectedIdents = true;
+				break;
+			case AT:
+				signature.append('@');
+				connectedIdents = true;
+				break;
+			case DQUOT:
+				signature.append('"');
+				inQuotes = !inQuotes;
+				break;
+			case USING:
+				return;
+			default:
+				break;
+			}
+		}
     }
 }
