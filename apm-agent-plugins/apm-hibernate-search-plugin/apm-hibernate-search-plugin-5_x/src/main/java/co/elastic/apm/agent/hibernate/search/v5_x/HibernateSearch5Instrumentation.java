@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
+import co.elastic.apm.agent.hibernate.search.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -90,16 +91,7 @@ public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
                     return;
                 }
 
-                final @Nullable String queryString = query.getQueryString();
-                span = active.createSpan().activate();
-
-                span.withType("db")
-                    .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withAction("request");
-                span.getContext().getDb()
-                    .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withStatement(queryString);
-                span.setName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME);
+                span = HibernateSearchHelper.createAndActivateSpan(active, query.getQueryString());
             }
         }
 
