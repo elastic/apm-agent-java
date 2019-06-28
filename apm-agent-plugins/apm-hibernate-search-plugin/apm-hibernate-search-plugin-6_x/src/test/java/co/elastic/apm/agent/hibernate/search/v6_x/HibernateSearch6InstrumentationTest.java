@@ -27,8 +27,10 @@ package co.elastic.apm.agent.hibernate.search.v6_x;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import org.hibernate.search.engine.search.dsl.query.SearchQueryContext;
+import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
-import org.hibernate.search.mapper.orm.session.SearchSession;
+import org.hibernate.search.mapper.orm.search.dsl.query.HibernateOrmSearchQueryResultDefinitionContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,10 +43,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import static co.elastic.apm.agent.hibernate.search.HibernateSearchAssertionHelper.assertApmSpanInformation;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
@@ -81,10 +86,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void performLuceneIndexSearch() {
-        SearchSession searchSession = Search.getSearchSession(entityManager);
-        List<Dog> result = searchSession.search(Dog.class)
-            .predicate(f -> f.match().onField("name").matching("dog1"))
-            .fetchHits();
+        List<Dog> result = createMatchNameSearch("dog1").fetchHits();
 
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
@@ -94,11 +96,40 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void performMultiResultLuceneIndexSearch() {
+        List<Dog> result = createWildcardNameSearch().fetchHits();
+
+        assertAll(() -> {
+            assertEquals(2, result.size(), "Query result is not 2");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performMultiResultLuceneIndexSearchWithLimitedResult() {
+        List<Dog> result = createWildcardNameSearch().fetchHits(1);
+
+        assertAll(() -> {
+            assertEquals(1, result.size(), "Query result is not 1");
+            assertEquals("dog1", result.get(0).getName());
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performMultiResultLuceneIndexSearchWithLimitedResultAndOffset() {
+        List<Dog> result = createWildcardNameSearch().fetchHits(1, 1);
+
+        assertAll(() -> {
+            assertEquals(1, result.size(), "Query result is not 1");
+            assertEquals("dog2", result.get(0).getName());
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
     void performHitCountLuceneIndexSearch() {
-        SearchSession searchSession = Search.getSearchSession(entityManager);
-        long resultCount = searchSession.search(Dog.class)
-            .predicate(f -> f.match().onField("name").matching("dog1"))
-            .fetchTotalHitCount();
+        long resultCount = createMatchNameSearch("dog1").fetchTotalHitCount();
 
         assertAll(() -> {
             assertEquals(1, resultCount, "Query hit count is not 1");
@@ -107,17 +138,86 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void performMultiResultLuceneIndexSearch() {
-        SearchSession searchSession = Search.getSearchSession(entityManager);
-        List<Dog> result = searchSession.search(Dog.class)
-            .predicate(f -> f.wildcard().onField("name").matching("dog*"))
-            .fetchHits();
+    void performLuceneIndexSearchWithSearchResult() {
+        SearchResult<Dog> result = createMatchNameSearch("dog1").fetch();
 
         assertAll(() -> {
-            assertEquals(2, result.size(), "Query result is not 2");
+            assertEquals(1, result.getHits().size(), "Query result is not 1");
+            assertEquals(1, result.getTotalHitCount(), "Total hit count is not 1");
+            assertEquals("dog1", result.getHits().get(0).getName(), "Result is not 'dog1'");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performMultiResultLuceneIndexSearchWithSearchResult() {
+        SearchResult<Dog> result = createWildcardNameSearch().fetch();
+
+        assertAll(() -> {
+            assertEquals(2, result.getHits().size(), "Query result is not 2");
+            assertEquals(2, result.getTotalHitCount(), "Total hit count is no 2");
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
         });
     }
+
+    @Test
+    void performMultiResultLuceneIndexSearchWithLimitedSearchResult() {
+        SearchResult<Dog> result = createWildcardNameSearch().fetch(1);
+
+        assertAll(() -> {
+            assertEquals(1, result.getHits().size(), "Query result is not 1");
+            assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
+            assertEquals("dog1", result.getHits().get(0).getName());
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performMultiResultLuceneIndexSearchWithLimitedSearchResultAndOffset() {
+        SearchResult<Dog> result = createWildcardNameSearch().fetch(1, 1);
+
+        assertAll(() -> {
+            assertEquals(1, result.getHits().size(), "Query result is not 1");
+            assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
+            assertEquals("dog2", result.getHits().get(0).getName());
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performSingleHitLuceneIndexSearchWithResult()    {
+        Optional<Dog> result = createMatchNameSearch("dog1").fetchSingleHit();
+
+        assertTrue(result.isPresent());
+        assertAll(() -> {
+            assertEquals("dog1", result.get().getName(), "Result is not 'dog1'");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+        });
+    }
+
+    @Test
+    void performSingleHitLuceneIndexSearchWithoutResult() {
+        Optional<Dog> result = createMatchNameSearch("dog1234").fetchSingleHit();
+
+        assertFalse(result.isPresent());
+        assertAll(() -> assertApmSpanInformation(reporter, "+name:dog1234 #__HSEARCH_type:main"));
+    }
+
+    private SearchQueryContext<?, Dog, ?> createMatchNameSearch(final String dogName) {
+        return createDogSearch()
+            .predicate(f -> f.match().onField("name").matching(dogName));
+    }
+
+    private SearchQueryContext<?, Dog, ?> createWildcardNameSearch() {
+        return createDogSearch()
+            .predicate(f -> f.wildcard().onField("name").matching("dog*"));
+    }
+
+    private HibernateOrmSearchQueryResultDefinitionContext<Dog> createDogSearch() {
+        return Search.getSearchSession(entityManager)
+            .search(Dog.class);
+    }
+
 
     private static void saveDogsToIndex() {
         entityManager.getTransaction().begin();
