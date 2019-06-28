@@ -35,6 +35,7 @@ import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -42,6 +43,7 @@ import org.hibernate.search.query.hibernate.impl.FullTextQueryImpl;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -50,6 +52,11 @@ public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
     @Override
     public Class<?> getAdviceClass() {
         return HibernateSearch5ExecuteAdvice.class;
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Query");
     }
 
     @Override
