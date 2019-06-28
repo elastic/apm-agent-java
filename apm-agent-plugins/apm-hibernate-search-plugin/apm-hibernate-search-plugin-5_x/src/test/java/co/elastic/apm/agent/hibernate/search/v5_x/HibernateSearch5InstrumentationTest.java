@@ -24,15 +24,6 @@
  */
 package co.elastic.apm.agent.hibernate.search.v5_x;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -49,10 +40,21 @@ import org.hibernate.search.jpa.FullTextQuery;
 import org.hibernate.search.jpa.Search;
 import org.hibernate.search.query.dsl.BooleanJunction;
 import org.hibernate.search.query.dsl.QueryBuilder;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
+
+import static co.elastic.apm.agent.hibernate.search.HibernateSearchAssertionHelper.assertApmSpanInformation;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,59 +62,54 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
-    private Path tempDirectory;
+    private static Path tempDirectory;
 
-    private EntityManagerFactory entityManagerFactory;
+    private static EntityManagerFactory entityManagerFactory;
 
-    private EntityManager entityManager;
+    private static EntityManager entityManager;
 
-    @BeforeEach
-    void setUp() throws IOException {
+    @BeforeAll
+    static void setUp() throws IOException {
         tempDirectory = Files.createTempDirectory("HibernateSearch5InstrumentationTest");
         entityManagerFactory = EntityManagerFactoryHelper.buildEntityManagerFactory(tempDirectory);
         entityManager = entityManagerFactory.createEntityManager();
+        saveDogsToIndex();
+    }
+
+    @BeforeEach
+    void initSingleTest() {
         tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDownTest() {
         tracer.currentTransaction().deactivate().end();
+    }
+
+    @AfterAll
+    static void tearDown() throws IOException {
         entityManager.close();
         entityManagerFactory.close();
         Files.walkFileTree(tempDirectory, new DeleteFileVisitor());
     }
 
     @Test
-    public void performLuceneIndexSearch() {
-        saveDogsToIndex();
-
+    void performLuceneIndexSearch() {
         FullTextEntityManager fullTextSession = Search.getFullTextEntityManager(entityManager);
-        QueryBuilder builder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity(Dog.class).get();
 
-        BooleanJunction<BooleanJunction> bool = builder.bool();
-        bool.should(builder.keyword().onField("name").matching("dog1").createQuery());
-
-        Query query = bool.createQuery();
-
-        FullTextQuery ftq = fullTextSession.createFullTextQuery(query, Dog.class);
+        FullTextQuery ftq = fullTextSession.createFullTextQuery(createQueryForDog1(), Dog.class);
 
         List<Dog> result = (List<Dog>) ftq.getResultList();
 
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
             assertEquals("dog1", result.get(0).getName(), "Result is not 'dog1'");
-            assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
-            assertEquals("hibernate-search", reporter.getFirstSpan().getSubtype(),
-                "Subtype of span is not 'hibernate-search'");
-            assertEquals("name:dog1", reporter.getFirstSpan().getContext().getDb().getStatement(),
-                "Statement is not 'name:dog1'");
+            assertApmSpanInformation(reporter, "name:dog1");
         });
     }
 
     @Test
-    public void performMultiResultLuceneIndexSearch() {
-        saveDogsToIndex();
-
+    void performMultiResultLuceneIndexSearch() {
         FullTextEntityManager fullTextSession = Search.getFullTextEntityManager(entityManager);
         QueryBuilder builder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity(Dog.class).get();
 
@@ -127,27 +124,13 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
         assertAll(() -> {
             assertEquals(2, result.size(), "Query result is not 2");
-            assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
-            assertEquals("hibernate-search", reporter.getFirstSpan().getSubtype(),
-                "Subtype of span is not 'hibernate-search'");
-            assertEquals("name:dog*", reporter.getFirstSpan().getContext().getDb().getStatement(),
-                "Statement is not 'name:dog*'");
+            assertApmSpanInformation(reporter, "name:dog*");
         });
     }
 
     @Test
-    public void performScrollLuceneIndexSearch() {
-        saveDogsToIndex();
-
-        FullTextSession fullTextSession = org.hibernate.search.Search.getFullTextSession(entityManager.unwrap(Session.class));
-
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(new BooleanClause(new TermQuery(new Term("name", "dog1")), BooleanClause.Occur.SHOULD));
-        Query query = builder.build();
-
-        org.hibernate.search.FullTextQuery fullTextQuery = fullTextSession.createFullTextQuery(query, Dog.class);
-
-        try (ScrollableResults scroll = fullTextQuery.scroll()) {
+    void performScrollLuceneIndexSearch() {
+        try (ScrollableResults scroll = createNonJpaFullTextQuery(createQueryForDog1()).scroll()) {
             assertTrue(scroll.next());
 
             assertAll(() -> {
@@ -157,28 +140,14 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
                 assertTrue(scroll.isFirst());
                 assertTrue(scroll.isLast());
 
-                assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
-                assertEquals("hibernate-search", reporter.getFirstSpan().getSubtype(),
-                    "Subtype of span is not 'hibernate-search'");
-                assertEquals("name:dog1", reporter.getFirstSpan().getContext().getDb().getStatement(),
-                    "Statement is not 'name:dog1'");
+                assertApmSpanInformation(reporter, "name:dog1");
             });
         }
     }
 
     @Test
-    public void performIteratorLuceneIndexSearch() {
-        saveDogsToIndex();
-
-        FullTextSession fullTextSession = org.hibernate.search.Search.getFullTextSession(entityManager.unwrap(Session.class));
-
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(new BooleanClause(new TermQuery(new Term("name", "dog1")), BooleanClause.Occur.SHOULD));
-        Query query = builder.build();
-
-        org.hibernate.search.FullTextQuery fullTextQuery = fullTextSession.createFullTextQuery(query, Dog.class);
-
-        Iterator<Dog> iterate = (Iterator<Dog>) fullTextQuery.iterate();
+    void performIteratorLuceneIndexSearch() {
+        Iterator<Dog> iterate = (Iterator<Dog>) createNonJpaFullTextQuery(createQueryForDog1()).iterate();
 
         assertTrue(iterate.hasNext());
         final Dog dog = iterate.next();
@@ -187,20 +156,28 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals("dog1", dog.getName());
 
-            assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
-            assertEquals("hibernate-search", reporter.getFirstSpan().getSubtype(),
-                "Subtype of span is not 'hibernate-search'");
-            assertEquals("name:dog1", reporter.getFirstSpan().getContext().getDb().getStatement(),
-                "Statement is not 'name:dog1'");
+            assertApmSpanInformation(reporter, "name:dog1");
         });
     }
 
-    private void saveDogsToIndex() {
+    private Query createQueryForDog1() {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(new BooleanClause(new TermQuery(new Term("name", "dog1")), BooleanClause.Occur.SHOULD));
+        return builder.build();
+    }
+
+    private static void saveDogsToIndex() {
         entityManager.getTransaction().begin();
         Dog dog1 = new Dog("dog1");
         Dog dog2 = new Dog("dog2");
         entityManager.persist(dog1);
         entityManager.persist(dog2);
         entityManager.getTransaction().commit();
+    }
+
+    private org.hibernate.search.FullTextQuery createNonJpaFullTextQuery(Query query) {
+        FullTextSession fullTextSession = org.hibernate.search.Search.getFullTextSession(entityManager.unwrap(Session.class));
+
+        return fullTextSession.createFullTextQuery(query, Dog.class);
     }
 }
