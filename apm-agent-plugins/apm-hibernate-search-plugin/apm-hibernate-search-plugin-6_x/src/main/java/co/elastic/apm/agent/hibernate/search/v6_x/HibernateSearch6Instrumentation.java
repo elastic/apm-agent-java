@@ -34,11 +34,11 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.hibernate.search.backend.lucene.search.query.impl.LuceneSearchQueryImpl;
+import org.hibernate.search.engine.search.query.SearchQuery;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -72,14 +72,14 @@ public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singleton(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
+        return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "incubating");
     }
 
     @VisibleForAdvice
     public static class Hibernate6ExecuteAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onBeforeExecute(@Advice.This LuceneSearchQueryImpl query,
+        private static void onBeforeExecute(@Advice.This SearchQuery query,
             @Advice.Local("span") Span span) {
             if (tracer != null) {
                 TraceContextHolder<?> active = tracer.getActive();

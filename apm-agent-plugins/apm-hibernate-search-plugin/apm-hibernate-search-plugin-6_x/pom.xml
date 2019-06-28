@@ -30,13 +30,13 @@
             <version>${version.hibernate.search}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.hibernate.search</groupId>
             <artifactId>hibernate-search-backend-lucene</artifactId>
             <version>${version.hibernate.search}</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-hibernate-search-plugin-common</artifactId>
