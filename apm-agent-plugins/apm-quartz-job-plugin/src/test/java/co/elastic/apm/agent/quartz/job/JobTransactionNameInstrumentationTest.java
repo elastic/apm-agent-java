@@ -26,8 +26,11 @@ package co.elastic.apm.agent.quartz.job;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +68,8 @@ class JobTransactionNameInstrumentationTest {
 
     private static MockReporter reporter;
     private static ElasticApmTracer tracer;
-    private Scheduler scheduler = null;
+    private static Scheduler scheduler = null;
+    private static CompletableFuture<Boolean> responseFuture;
 
     @BeforeAll
     static void setUpAll() {
@@ -77,13 +81,14 @@ class JobTransactionNameInstrumentationTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
                 Collections.singletonList(new JobTransactionNameInstrumentation(tracer)));
     }
-    void assertTests(JobDetail job) {
+    void verifyJobDetails(JobDetail job) {
     	assertThat(reporter.getTransactions().size()).isEqualTo(1);
+    	assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("quartz");
         assertThat(reporter.getTransactions().get(0).getName())
         	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }
     @Test
-    void testJobWithGroup() throws SchedulerException, InterruptedException {
+    void testJobWithGroup() throws SchedulerException, InterruptedException, ExecutionException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
     			.withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
@@ -94,13 +99,14 @@ class JobTransactionNameInstrumentationTest {
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(250);
-        scheduler.pauseAll();
-        assertTests(job);
+        responseFuture.get();
+        Thread.sleep(5);
+        scheduler.deleteJob(job.getKey());
+        verifyJobDetails(job);
     }
 
     @Test
-    void testJobWithoutGroup() throws SchedulerException, InterruptedException {
+    void testJobWithoutGroup() throws SchedulerException, InterruptedException, ExecutionException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
     			.withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
@@ -111,9 +117,10 @@ class JobTransactionNameInstrumentationTest {
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(250);
-        scheduler.pauseAll();
-        assertTests(job);
+        responseFuture.get();
+        Thread.sleep(5);
+        scheduler.deleteJob(job.getKey());
+        verifyJobDetails(job);
     }
     
     @Test
@@ -125,7 +132,7 @@ class JobTransactionNameInstrumentationTest {
     }
 
     @Test
-    void testSpringJob() throws SchedulerException, InterruptedException {
+    void testSpringJob() throws SchedulerException, InterruptedException, ExecutionException {
         JobDetail job = JobBuilder.newJob(TestSpringJob.class)
     			.withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
@@ -136,13 +143,14 @@ class JobTransactionNameInstrumentationTest {
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(250);
-        scheduler.pauseAll();
-        assertTests(job);
+        responseFuture.get();
+        Thread.sleep(5);
+        scheduler.deleteJob(job.getKey());
+        verifyJobDetails(job);
     }
 
     @Test
-    void testJobWithResult() throws SchedulerException, InterruptedException {
+    void testJobWithResult() throws SchedulerException, InterruptedException, ExecutionException {
         JobDetail job = JobBuilder.newJob(TestJobWithResult.class)
     			.withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
@@ -153,41 +161,44 @@ class JobTransactionNameInstrumentationTest {
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(250);
-        scheduler.pauseAll();
-        assertTests(job);
+        responseFuture.get();
+        Thread.sleep(5);
+        scheduler.deleteJob(job.getKey());
+        verifyJobDetails(job);
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
     }
-    
-    private static AtomicInteger count = new AtomicInteger(0);
+
+    @BeforeAll
+    private static void ini() throws SchedulerException {
+    	scheduler=new StdSchedulerFactory().getScheduler();
+    }
     @BeforeEach
     private void reset() throws SchedulerException {
     	reporter.reset();
-    	count.set(0);
-    	scheduler=new StdSchedulerFactory().getScheduler();
+    	responseFuture = new CompletableFuture<>();
     }
-    @AfterEach
-    private void cleanup() throws SchedulerException {
+    @AfterAll
+    private static void cleanup() throws SchedulerException {
     	scheduler.shutdown();
     }
     public static class TestJob implements Job {
 		@Override
 		public void execute(JobExecutionContext context) throws JobExecutionException {
-			count.incrementAndGet();
+			responseFuture.complete(Boolean.TRUE);
 		}
     }
     public static class TestJobWithResult implements Job {
 		@Override
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			context.setResult("this is the result");
-			count.incrementAndGet();
+			responseFuture.complete(Boolean.TRUE);
 		}
     }
     public static class TestSpringJob extends QuartzJobBean {
 
 		@Override
 		protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-			count.incrementAndGet();
+			responseFuture.complete(Boolean.TRUE);
 		}
 
     }
