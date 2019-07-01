@@ -25,11 +25,9 @@
 package co.elastic.apm.agent.hibernate.search.v6_x;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchConstants;
 import co.elastic.apm.agent.hibernate.search.HibernateSearchHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -84,21 +82,12 @@ public class HibernateSearch6Instrumentation extends ElasticApmInstrumentation {
         return Arrays.asList(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, "incubating");
     }
 
-    @VisibleForAdvice
     public static class Hibernate6ExecuteAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeExecute(@Advice.This SearchQuery query,
-            @Advice.Local("span") Span span) {
-            if (tracer != null) {
-                TraceContextHolder<?> active = tracer.getActive();
-                if (active == null || active instanceof Span && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
-                    .equals(((Span) active).getSubtype())) {
-                    return;
-                }
-
-                span = HibernateSearchHelper.createAndActivateSpan(active, query.getQueryString());
-            }
+                                            @Advice.Local("span") Span span) {
+            span = HibernateSearchHelper.createAndActivateSpan(tracer, query.getQueryString());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
