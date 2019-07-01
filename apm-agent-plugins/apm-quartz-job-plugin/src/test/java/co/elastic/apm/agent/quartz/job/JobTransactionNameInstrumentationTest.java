@@ -183,25 +183,28 @@ class JobTransactionNameInstrumentationTest {
     private static void cleanup() throws SchedulerException {
     	scheduler.shutdown();
     }
-    public static class TestJob implements Job {
+
+	public static class TestJob implements Job {
 		@Override
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			responseFuture.complete(Boolean.TRUE);
 		}
-    }
-    public static class TestJobWithResult implements Job {
+	}
+
+	public static class TestJobWithResult implements Job {
 		@Override
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			context.setResult("this is the result");
 			responseFuture.complete(Boolean.TRUE);
 		}
-    }
-    public static class TestSpringJob extends QuartzJobBean {
+	}
+
+	public static class TestSpringJob extends QuartzJobBean {
 
 		@Override
 		protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
 			responseFuture.complete(Boolean.TRUE);
 		}
 
-    }
+	}
 }
