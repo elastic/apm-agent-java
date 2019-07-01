@@ -82,6 +82,7 @@ class JobTransactionNameInstrumentationTest {
         assertThat(reporter.getTransactions().get(0).getName())
         	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }
+    
     @Test
     void testJobWithGroup() throws SchedulerException, InterruptedException {
         JobDetail job = JobBuilder.newJob(TestJob.class)
