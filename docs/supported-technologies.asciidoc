@@ -270,10 +270,10 @@ When using a scheduling framework a transaction for every execution will be crea
 `org.springframework.scheduling.annotation.Scheduled`  
 `org.springframework.scheduling.annotation.Schedules`  
 `javax.ejb.Schedule`  
-`javax.ejb.Schedules`  
-|1.8.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+|1.6.0
 |Quartz
 |
-|The agent instruments the `execute` method of any class implementing org.quartz.Job. It also instruments the `executeInternal` method of any class with the supertype of `org.springframework.scheduling.quartz.QuartzJobBean`
-|1.8.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `quartz`, representing the job execution 
+|1.8.0
 |===
