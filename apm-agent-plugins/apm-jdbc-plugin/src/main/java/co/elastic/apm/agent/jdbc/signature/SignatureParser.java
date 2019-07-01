@@ -27,6 +27,8 @@ package co.elastic.apm.agent.jdbc.signature;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import co.elastic.apm.agent.jdbc.signature.filter.FilterChain;
+
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.EOF;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.FROM;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.IDENT;
@@ -73,7 +75,7 @@ public class SignatureParser {
             }
         }
 
-        scanner.setQuery(query);
+        scanner.setQuery(FilterChain.DEFAULT_CHAIN.doFilter(query));
         parse(query, signature);
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {

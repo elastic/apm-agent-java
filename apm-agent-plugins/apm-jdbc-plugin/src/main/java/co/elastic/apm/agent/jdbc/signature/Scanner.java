@@ -68,6 +68,7 @@ public class Scanner {
         }
         return false;
     }
+
     public Token scan() {
     	return scan(true);
     }
@@ -108,9 +109,6 @@ public class Scanner {
             case '[':
                 // T-SQL bracket-quoted identifier
                 return scanQuotedIdentifier(']');
-            case '{':
-                // JDBC escapes
-                return scan(skipDoubleQuotes);
             case '`':
                 // MySQL-style backtick-quoted identifier
                 return scanQuotedIdentifier('`');
@@ -136,12 +134,6 @@ public class Scanner {
                 return Token.PERIOD;
             case '@':
                 return Token.AT;
-            case '?':
-            	//skip JDBC variables
-                return scan(skipDoubleQuotes);
-            case '=':
-            	//skip equals as in ? = call function()
-                return scan(skipDoubleQuotes);
             case '$':
                 if (!hasNext()) {
                     return Token.OTHER;
