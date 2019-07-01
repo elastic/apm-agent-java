@@ -28,7 +28,9 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.quartz.Job;
@@ -63,8 +65,8 @@ class JobTransactionNameInstrumentationTest {
 
     private static MockReporter reporter;
     private static ElasticApmTracer tracer;
+    private Scheduler scheduler = null;
 
-    @BeforeClass
     @BeforeAll
     static void setUpAll() {
         reporter = new MockReporter();
@@ -75,128 +77,98 @@ class JobTransactionNameInstrumentationTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
                 Collections.singletonList(new JobTransactionNameInstrumentation(tracer)));
     }
-
+    void assertTests(JobDetail job) {
+    	assertThat(reporter.getTransactions().size()).isEqualTo(1);
+        assertThat(reporter.getTransactions().get(0).getName())
+        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+    }
     @Test
     void testJobWithGroup() throws SchedulerException, InterruptedException {
-        reporter.reset();
-        resetCounter();
-        Scheduler scheduler=new StdSchedulerFactory().getScheduler();
-        scheduler.clear();
         JobDetail job = JobBuilder.newJob(TestJob.class)
     			.withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2500);
-        scheduler.shutdown();
-        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
-        	.isEqualToIgnoringCase(String.format("%s.%s", trigger.getKey().getGroup(), trigger.getKey().getName()));
-        assertThat(reporter.getTransactions().get(0).getName())
-        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        Thread.sleep(250);
+        scheduler.pauseAll();
+        assertTests(job);
     }
 
     @Test
     void testJobWithoutGroup() throws SchedulerException, InterruptedException {
-        reporter.reset();
-        resetCounter();
-        Scheduler scheduler=new StdSchedulerFactory().getScheduler();
-        scheduler.clear();
         JobDetail job = JobBuilder.newJob(TestJob.class)
     			.withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2500);
-        scheduler.shutdown();
-        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
-        	.isEqualToIgnoringCase(String.format("%s.%s", trigger.getKey().getGroup(), trigger.getKey().getName()));
-        assertThat(reporter.getTransactions().get(0).getName())
-        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        Thread.sleep(250);
+        scheduler.pauseAll();
+        assertTests(job);
     }
     
     @Test
 	void testJobManualCall() throws SchedulerException, InterruptedException {
-        reporter.reset();
-        resetCounter();
         TestJob job=new TestJob();
         job.execute(null);
-        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
+        assertThat(reporter.getTransactions().size()).isEqualTo(1);
         assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("TestJob#execute");
     }
 
     @Test
     void testSpringJob() throws SchedulerException, InterruptedException {
-        reporter.reset();
-        resetCounter();
-        Scheduler scheduler=new StdSchedulerFactory().getScheduler();
-        scheduler.clear();
         JobDetail job = JobBuilder.newJob(TestSpringJob.class)
     			.withIdentity("dummyJobName", "group1").build();
         Trigger trigger = TriggerBuilder
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
+        				SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2500);
-        scheduler.shutdown();
-        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
-        	.isEqualToIgnoringCase(String.format("%s.%s", trigger.getKey().getGroup(), trigger.getKey().getName()));
-        assertThat(reporter.getTransactions().get(0).getName())
-        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
+        Thread.sleep(250);
+        scheduler.pauseAll();
+        assertTests(job);
     }
 
     @Test
     void testJobWithResult() throws SchedulerException, InterruptedException {
-    	reporter.reset();
-        resetCounter();
-        Scheduler scheduler=new StdSchedulerFactory().getScheduler();
-        scheduler.clear();
         JobDetail job = JobBuilder.newJob(TestJobWithResult.class)
     			.withIdentity("dummyJobName").build();
         Trigger trigger = TriggerBuilder
         		.newTrigger()
         		.withIdentity("myTrigger")
         		.withSchedule(
-        			SimpleScheduleBuilder.repeatSecondlyForTotalCount(2, 1))
+        			SimpleScheduleBuilder.repeatSecondlyForTotalCount(1, 1))
         		.build();
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
-        Thread.sleep(2500);
-        scheduler.shutdown();
-        assertThat(reporter.getTransactions().size()).isEqualTo(getInvocationCount());
+        Thread.sleep(250);
+        scheduler.pauseAll();
+        assertTests(job);
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("scheduledTime")).asString().isNotEmpty();
-        assertThat(reporter.getTransactions().get(0).getContext().getCustom("trigger")).asString()
-        	.isEqualToIgnoringCase(String.format("%s.%s", trigger.getKey().getGroup(), trigger.getKey().getName()));
-        assertThat(reporter.getTransactions().get(0).getName())
-        	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }
-
+    
     private static AtomicInteger count = new AtomicInteger(0);
-    private static int getInvocationCount() {
-        return count.get();
-    }
-    private static void resetCounter() {
+    @BeforeEach
+    private void reset() throws SchedulerException {
+    	reporter.reset();
     	count.set(0);
+    	scheduler=new StdSchedulerFactory().getScheduler();
+    }
+    @AfterEach
+    private void cleanup() throws SchedulerException {
+    	scheduler.shutdown();
     }
     public static class TestJob implements Job {
 		@Override

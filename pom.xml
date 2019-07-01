@@ -67,7 +67,6 @@
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.junit-vintage-engine>5.3.2</version.junit-vintage-engine>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
-		<version.quartz>2.3.1</version.quartz>
 
         <version.plugin.compiler>3.7.0</version.plugin.compiler>
         <version.plugin.jar>3.1.0</version.plugin.jar>

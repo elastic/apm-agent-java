@@ -27,11 +27,7 @@ package co.elastic.apm.agent.quartz.job;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import net.bytebuddy.description.NamedElement;
@@ -48,8 +44,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation {
 	public static final String TRANSACTION_TYPE = "quartz";
-    @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
 
     private final Collection<String> applicationPackages;
 
@@ -60,7 +54,7 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-        	.and(hasSuperType(named("org.quartz.Job")).or(hasSuperType(named("org.springframework.scheduling.quartz.QuartzJobBean"))))
+        	.and(hasSuperType(named("org.quartz.Job")))
             .and(declaresMethod(getMethodMatcher()));
     }
 

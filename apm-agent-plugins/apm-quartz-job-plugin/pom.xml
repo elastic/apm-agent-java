@@ -9,6 +9,7 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+		<version.quartz>2.3.1</version.quartz>
     </properties>
 
     <artifactId>apm-quartz-job-plugin</artifactId>

@@ -255,3 +255,25 @@ tracing.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
+
+[float]
+[[supported-scheduling-frameworks]]
+=== Scheduling frameworks
+When using a scheduling framework a transaction for every execution will be created.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|Scheduling Annotation
+|
+|The agent instruments any method annotated with one of the following:  
+`org.springframework.scheduling.annotation.Scheduled`  
+`org.springframework.scheduling.annotation.Schedules`  
+`javax.ejb.Schedule`  
+`javax.ejb.Schedules`  
+|1.8.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+|Quartz
+|
+|The agent instruments the `execute` method of any class implementing org.quartz.Job. It also instruments the `executeInternal` method of any class with the supertype of `org.springframework.scheduling.quartz.QuartzJobBean`
+|1.8.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+|===

@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.quartz.job;
 
-import java.lang.reflect.InvocationTargetException;
-
 import javax.annotation.Nullable;
 
 import org.quartz.JobExecutionContext;
@@ -44,9 +42,9 @@ public class JobTransactionNameAdvice {
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(JobTransactionNameInstrumentation.class);
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@Advice.Argument(readOnly = true, value = 0) JobExecutionContext context,
+    private static void setTransactionName(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
     		@SimpleMethodSignature String signature, @Advice.Origin Class<?> clazz, @Advice.Local("transaction") Transaction transaction) 
-    		throws InvocationTargetException, NoSuchMethodException {
+    {
         if (ElasticApmInstrumentation.tracer != null) {
             TraceContextHolder<?> active = ElasticApmInstrumentation.tracer.getActive();
             if(context == null) {
@@ -55,23 +53,21 @@ public class JobTransactionNameAdvice {
 	                    .withName(signature)
 	                    .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
 	                    .activate();
-            }else if (active == null) {
+            } else if (active == null) {
 				transaction = ElasticApmInstrumentation.tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
 	                    .withName(context.getJobDetail().getKey().toString())
 	                    .withType(JobTransactionNameInstrumentation.TRANSACTION_TYPE)
 	                    .activate();
-				transaction.addCustomContext("trigger", context.getTrigger().getKey().toString());
-				transaction.addCustomContext("scheduledTime", context.getScheduledFireTime().toString());
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
             }
         }
     }
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExitException(@Advice.Argument(readOnly = true, value = 0) JobExecutionContext context,
-    		@Nullable @Advice.Local("transaction") Transaction transaction, @Advice.Thrown Throwable t) {
+    public static void onMethodExitException(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
+    		@Advice.Local("transaction") @Nullable Transaction transaction, @Advice.Thrown Throwable t) {
         if (transaction != null) {
-			if(transaction.getResult()==null && context != null && context.getResult() !=null) {
+			if(transaction.getResult() == null && context != null && context.getResult() !=null) {
 				transaction.withResult(context.getResult().toString());
 			}
             transaction.captureException(t)
