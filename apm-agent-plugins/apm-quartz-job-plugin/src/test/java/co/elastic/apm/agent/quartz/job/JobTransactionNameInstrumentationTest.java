@@ -82,7 +82,8 @@ class JobTransactionNameInstrumentationTest {
                 Collections.singletonList(new JobTransactionNameInstrumentation(tracer)));
     }
     
-    void verifyJobDetails(JobDetail job) {
+    void verifyJobDetails(JobDetail job) throws InterruptedException {
+    	reporter.getFirstTransaction(150);
     	assertThat(reporter.getTransactions().size()).isEqualTo(1);
     	assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("quartz");
         assertThat(reporter.getTransactions().get(0).getName())
@@ -102,7 +103,6 @@ class JobTransactionNameInstrumentationTest {
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
         responseFuture.get();
-        Thread.sleep(5);
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
@@ -120,7 +120,6 @@ class JobTransactionNameInstrumentationTest {
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
         responseFuture.get();
-        Thread.sleep(5);
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
@@ -146,7 +145,6 @@ class JobTransactionNameInstrumentationTest {
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
         responseFuture.get();
-        Thread.sleep(5);
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
     }
@@ -164,7 +162,6 @@ class JobTransactionNameInstrumentationTest {
         scheduler.scheduleJob(job, trigger);
         scheduler.start();
         responseFuture.get();
-        Thread.sleep(5);
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
