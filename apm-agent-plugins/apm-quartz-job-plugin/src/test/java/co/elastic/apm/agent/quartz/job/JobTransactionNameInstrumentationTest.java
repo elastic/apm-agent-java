@@ -77,6 +77,7 @@ class JobTransactionNameInstrumentationTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
                 Collections.singletonList(new JobTransactionNameInstrumentation(tracer)));
     }
+    
     void assertTests(JobDetail job) {
     	assertThat(reporter.getTransactions().size()).isEqualTo(1);
         assertThat(reporter.getTransactions().get(0).getName())
