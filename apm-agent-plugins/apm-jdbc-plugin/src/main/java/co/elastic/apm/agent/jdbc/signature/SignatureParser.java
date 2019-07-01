@@ -58,9 +58,10 @@ public class SignatureParser {
     private final static ConcurrentMap<String, String> signatureCache = new ConcurrentHashMap<String, String>(DISABLE_CACHE_THRESHOLD, 0.5f, Runtime.getRuntime().availableProcessors());
 
     private final Scanner scanner = new Scanner();
+    private final StringBuilder dbLink = new StringBuilder();
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
-
+		dbLink.setLength(0);
         final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
             && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
             && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD;
@@ -127,7 +128,8 @@ public class SignatureParser {
             case UPDATE:
                 signature.append("UPDATE");
                 // Scan for the table name
-                boolean hasPeriod = false, hasFirstPeriod = false, inQuotes = false;
+                boolean hasPeriod = false, hasFirstPeriod = false, inQuotes = false, inDbLink = false;
+        		StringBuilder targetBuilder=signature;
                 if (scanner.scanToken(IDENT)) {
                     signature.append(' ');
                     scanner.appendCurrentTokenText(signature);
@@ -135,18 +137,18 @@ public class SignatureParser {
                         switch (t) {
                             case IDENT:
                                 if (hasPeriod) {
-                                    scanner.appendCurrentTokenText(signature);
+                                    scanner.appendCurrentTokenText(targetBuilder);
                                     hasPeriod = false;
                                 }
                                 else if(inQuotes) {
-                                	scanner.appendCurrentTokenText(signature);
+                                	scanner.appendCurrentTokenText(targetBuilder);
                                 }
                                 if (!hasFirstPeriod && !inQuotes) {
                                     // Some dialects allow option keywords before the table name
                                     // example: UPDATE IGNORE foo.bar
-                                    signature.setLength(0);
-                                    signature.append("UPDATE ");
-                                    scanner.appendCurrentTokenText(signature);
+                                	targetBuilder.setLength(0);
+                                	targetBuilder.append("UPDATE ");
+                                    scanner.appendCurrentTokenText(targetBuilder);
                                 }
                                 // Two adjacent identifiers found after the first period.
                                 // Ignore the secondary ones, in case they are unknown keywords.
@@ -154,15 +156,19 @@ public class SignatureParser {
                             case PERIOD:
                                 hasFirstPeriod = true;
                                 hasPeriod = true;
-                                signature.append('.');
+                                targetBuilder.append('.');
                                 break;
                 			case AT:
                                 hasFirstPeriod = true;
                                 hasPeriod = true;
-                				signature.append('@');
+                				if(inDbLink) {
+	            					targetBuilder.append('@');
+	            				} else {
+	            					targetBuilder = dbLink;
+	            					inDbLink = true;
+	            				}
                 				break;
                 			case DQUOT:
-                				signature.append('"');
                 				inQuotes = !inQuotes;
                 				break;
                             default:
@@ -190,27 +196,33 @@ public class SignatureParser {
 		scanner.appendCurrentTokenText(signature);
 		boolean connectedIdents = false;
 		boolean inQuotes = false;
+		boolean inDbLink = false;
+		StringBuilder targetBuilder=signature;
 		for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
 			switch (t) {
 			case IDENT:
 				// do not add tokens which are separated by a space
 				if (connectedIdents) {
-					scanner.appendCurrentTokenText(signature);
+					scanner.appendCurrentTokenText(targetBuilder);
 					connectedIdents = false;
 				} else {
 					return;
 				}
 				break;
 			case PERIOD:
-				signature.append('.');
+				targetBuilder.append('.');
 				connectedIdents = true;
 				break;
 			case AT:
-				signature.append('@');
 				connectedIdents = true;
+				if(inDbLink) {
+					targetBuilder.append('@');
+				} else {
+					targetBuilder = dbLink;
+					inDbLink = true;
+				}
 				break;
 			case DQUOT:
-				signature.append('"');
 				inQuotes = !inQuotes;
 				break;
 			case USING:
