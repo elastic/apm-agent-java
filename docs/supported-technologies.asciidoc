@@ -246,6 +246,31 @@ tracing.
 
 
 [float]
+[[supported-scheduling-frameworks]]
+=== Scheduling frameworks
+When using a scheduling framework a transaction for every execution will be created.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|Scheduling Annotation
+|
+|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:  
+`org.springframework.scheduling.annotation.Scheduled`  
+`org.springframework.scheduling.annotation.Schedules`  
+`javax.ejb.Schedule`  
+`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+|1.6.0
+|Quartz
+|
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `quartz`, representing the job execution 
+
+NOTE: only classes from packages configured in <<config-application-packages>>  will be instrumented.
+|1.8.0
+|===
+
+
+[float]
 [[supported-technologies-caveats]]
 === Caveats
 * Certain OSGi containers need the following configuration setting in case you see exceptions like
@@ -256,24 +281,3 @@ tracing.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
 
-[float]
-[[supported-scheduling-frameworks]]
-=== Scheduling frameworks
-When using a scheduling framework a transaction for every execution will be created.
-
-|===
-|Framework |Supported versions | Description | Since
-
-|Scheduling Annotation
-|
-|The agent instruments any method annotated with one of the following:  
-`org.springframework.scheduling.annotation.Scheduled`  
-`org.springframework.scheduling.annotation.Schedules`  
-`javax.ejb.Schedule`  
-`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
-|1.6.0
-|Quartz
-|
-|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `quartz`, representing the job execution 
-|1.8.0
-|===
