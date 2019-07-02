@@ -135,7 +135,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Nullable
     @Override
-    public Advice.OffsetMapping.Factory<?> getOffsetMaping(ElasticApmTracer tracer) {
+    public Advice.OffsetMapping.Factory<?> getOffsetMaping() {
         return new JaxRsOffsetMappingFactory(tracer);
     }
 }
