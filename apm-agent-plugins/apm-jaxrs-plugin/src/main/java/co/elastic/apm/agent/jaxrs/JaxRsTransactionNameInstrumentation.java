@@ -31,6 +31,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -57,15 +58,11 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    @Nullable
-    @VisibleForAdvice
-    public static JaxRsTransactionHelper jaxRsTransactionHelper;
     private final ElasticApmTracer elasticApmTracer;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
-        jaxRsTransactionHelper = new JaxRsTransactionHelper(tracer);
         elasticApmTracer = tracer;
     }
 
@@ -75,7 +72,14 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
-                jaxRsTransactionHelper.setTransactionName(transaction, signature, pathAnnotationValue);
+                String transactionName = signature;
+                WebConfiguration webConfiguration = tracer.getConfig(WebConfiguration.class);
+                if (webConfiguration.isUseAnnotationValueForTransactionName()) {
+                    if (pathAnnotationValue != null) {
+                        transactionName = pathAnnotationValue;
+                    }
+                }
+                transaction.withName(transactionName);
             }
         }
     }

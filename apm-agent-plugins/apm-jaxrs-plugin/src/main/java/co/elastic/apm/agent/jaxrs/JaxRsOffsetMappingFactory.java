@@ -89,7 +89,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         TypeList interfaces = classTypeDescription.getInterfaces().asErasures();
         for (int i = 0; i < interfaces.size(); i++) {
             TypeDescription interfaceDescription = interfaces.get(i);
-            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, interfaceDescription, false);
+            getAnnotationValueFromAnnotationSource(transactionAnnotationValue, interfaceDescription, true);
             for (MethodDescription.InDefinedShape annotationMethod : interfaceDescription.getDeclaredMethods().filter(named(methodName))) {
                 getAnnotationValueFromAnnotationSource(transactionAnnotationValue, annotationMethod, false);
             }
@@ -181,7 +181,8 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
         }
 
         String buildTransactionName() {
-            return this.method + " " + this.classLevelPath + this.methodLevelPath;
+            String path = this.classLevelPath + this.methodLevelPath;
+            return this.method + " " + ((path.isEmpty()) ? "/": path);
         }
 
         public boolean isComplete() {

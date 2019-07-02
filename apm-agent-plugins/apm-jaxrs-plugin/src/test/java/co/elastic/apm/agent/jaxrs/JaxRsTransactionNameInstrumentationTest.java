@@ -224,6 +224,35 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /foo/bar");
     }
 
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnEmptyPathResource() {
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnResourceWithPathAndPathOnInterface() {
+        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("/testInterface/test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testInterface/test");
+    }
+
+
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
@@ -237,7 +266,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             ProxiedClass$Proxy.class,
             ResourceWithPathOnMethod.class,
             ResourceWithPathOnMethodSlash.class,
-            FooBarResource.class);
+            FooBarResource.class,
+            EmptyPathResource.class,
+            ResourceWithPathAndWithPathOnInterface.class);
     }
 
     /**
@@ -340,6 +371,23 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         @GET
         @Path("/{id}")
         public String testMethodById(@PathParam("id") String id) {
+            return "ok";
+        }
+    }
+
+    @Path("")
+    public static class EmptyPathResource {
+        @GET
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
+    public static class ResourceWithPathAndWithPathOnInterface implements ResourceInterfaceWithPath {
+        @Override
+        @GET
+        @Path("test")
+        public String testMethod() {
             return "ok";
         }
     }
