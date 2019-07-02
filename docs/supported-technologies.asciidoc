@@ -153,6 +153,10 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |5.0.2+
 |The agent automatically creates Elasticsearch spans for queries done through the official REST client.
 
+|Hibernate Search
+|5.0.0+
+|The agent automatically creates Hibernate Search spans for queries done through the Hibernate Search API.
+
 |===
 
 [float]
