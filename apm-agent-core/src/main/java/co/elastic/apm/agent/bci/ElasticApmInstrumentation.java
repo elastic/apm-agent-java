@@ -152,7 +152,7 @@ public abstract class ElasticApmInstrumentation {
     public abstract Collection<String> getInstrumentationGroupNames();
 
     @Nullable
-    public Advice.OffsetMapping.Factory<?> getOffsetMaping() {
+    public Advice.OffsetMapping.Factory<?> getOffsetMaping(ElasticApmTracer tracer) {
         return null;
     }
 }

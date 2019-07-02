@@ -46,10 +46,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<JaxRsOffsetMappingFactory.JaxRsPath> {
 
-    private final WebConfiguration webConfiguration;
+    public static boolean useAnnotationValueForTransactionName;
 
     public JaxRsOffsetMappingFactory(ElasticApmTracer tracer) {
-        this.webConfiguration = tracer.getConfig(WebConfiguration.class);
+        useAnnotationValueForTransactionName = tracer.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName();
     }
 
     @Override
@@ -63,7 +63,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
                 Object value = null;
-                if (webConfiguration.isUseAnnotationValueForTransactionName()) {
+                if (useAnnotationValueForTransactionName) {
                     value = getTransactionAnnotationValueFromAnnotations(instrumentedMethod, instrumentedType);
                 }
                 return Target.ForStackManipulation.of(value);

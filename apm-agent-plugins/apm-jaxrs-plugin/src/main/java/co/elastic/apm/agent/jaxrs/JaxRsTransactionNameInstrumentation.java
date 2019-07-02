@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,12 +25,11 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
 import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -58,12 +57,12 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    private final ElasticApmTracer elasticApmTracer;
+    public static boolean useAnnotationValueForTransactionName;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
-        elasticApmTracer = tracer;
+        useAnnotationValueForTransactionName = tracer.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName();
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -73,8 +72,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
             final Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
                 String transactionName = signature;
-                WebConfiguration webConfiguration = tracer.getConfig(WebConfiguration.class);
-                if (webConfiguration.isUseAnnotationValueForTransactionName()) {
+                if (useAnnotationValueForTransactionName) {
                     if (pathAnnotationValue != null) {
                         transactionName = pathAnnotationValue;
                     }
@@ -137,7 +135,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Nullable
     @Override
-    public Advice.OffsetMapping.Factory<?> getOffsetMaping() {
-        return new JaxRsOffsetMappingFactory(elasticApmTracer);
+    public Advice.OffsetMapping.Factory<?> getOffsetMaping(ElasticApmTracer tracer) {
+        return new JaxRsOffsetMappingFactory(tracer);
     }
 }

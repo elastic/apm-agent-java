@@ -222,7 +222,7 @@ public class ElasticApmAgent {
             .withCustomMapping()
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
-        Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMaping();
+        Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMaping(tracer);
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
