@@ -217,7 +217,7 @@ public class ElasticApmAgent {
             });
     }
 
-    private static AgentBuilder.Transformer.ForAdvice getTransformer(ElasticApmTracer tracer, ElasticApmInstrumentation instrumentation, Logger logger, ElementMatcher<? super MethodDescription> methodMatcher) {
+    private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
