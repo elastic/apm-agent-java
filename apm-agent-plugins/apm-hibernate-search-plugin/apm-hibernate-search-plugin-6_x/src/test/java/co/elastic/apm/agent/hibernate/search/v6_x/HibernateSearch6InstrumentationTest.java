@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -91,7 +91,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
             assertEquals("dog1", result.get(0).getName(), "Result is not 'dog1'");
-            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchHits");
         });
     }
 
@@ -101,7 +101,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
         assertAll(() -> {
             assertEquals(2, result.size(), "Query result is not 2");
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
 
@@ -112,7 +112,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
             assertEquals("dog1", result.get(0).getName());
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
 
@@ -123,7 +123,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
             assertEquals("dog2", result.get(0).getName());
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
 
@@ -133,7 +133,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
         assertAll(() -> {
             assertEquals(1, resultCount, "Query hit count is not 1");
-            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchTotalHitCount");
         });
     }
 
@@ -145,7 +145,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
             assertEquals(1, result.getHits().size(), "Query result is not 1");
             assertEquals(1, result.getTotalHitCount(), "Total hit count is not 1");
             assertEquals("dog1", result.getHits().get(0).getName(), "Result is not 'dog1'");
-            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetch");
         });
     }
 
@@ -156,7 +156,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals(2, result.getHits().size(), "Query result is not 2");
             assertEquals(2, result.getTotalHitCount(), "Total hit count is no 2");
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
 
@@ -168,7 +168,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
             assertEquals(1, result.getHits().size(), "Query result is not 1");
             assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
             assertEquals("dog1", result.getHits().get(0).getName());
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
 
@@ -180,7 +180,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
             assertEquals(1, result.getHits().size(), "Query result is not 1");
             assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
             assertEquals("dog2", result.getHits().get(0).getName());
-            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
 
@@ -191,7 +191,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         assertTrue(result.isPresent());
         assertAll(() -> {
             assertEquals("dog1", result.get().getName(), "Result is not 'dog1'");
-            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main");
+            assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchSingleHit");
         });
     }
 
@@ -200,7 +200,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         Optional<Dog> result = createMatchNameSearch("dog1234").fetchSingleHit();
 
         assertFalse(result.isPresent());
-        assertAll(() -> assertApmSpanInformation(reporter, "+name:dog1234 #__HSEARCH_type:main"));
+        assertAll(() -> assertApmSpanInformation(reporter, "+name:dog1234 #__HSEARCH_type:main", "fetchSingleHit"));
     }
 
     private SearchQueryContext<?, Dog, ?> createMatchNameSearch(final String dogName) {

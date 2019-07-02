@@ -88,8 +88,9 @@ public class HibernateSearch5Instrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeExecute(@Advice.This FullTextQueryImpl query,
-                                            @Advice.Local("span") Span span) {
-            span = HibernateSearchHelper.createAndActivateSpan(tracer, query.getQueryString());
+                                            @Advice.Local("span") Span span,
+                                            @Advice.Origin("#m") String methodName) {
+            span = HibernateSearchHelper.createAndActivateSpan(tracer, methodName, query.getQueryString());
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)

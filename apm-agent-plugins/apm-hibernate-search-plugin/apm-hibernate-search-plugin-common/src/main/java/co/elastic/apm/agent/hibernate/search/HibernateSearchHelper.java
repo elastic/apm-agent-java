@@ -37,7 +37,8 @@ public final class HibernateSearchHelper {
     }
 
     @VisibleForAdvice
-    public static Span createAndActivateSpan(final ElasticApmTracer tracer, final String query) {
+    public static Span createAndActivateSpan(final ElasticApmTracer tracer, final String methodName,
+                                             final String query) {
         Span span = null;
 
         if (tracer != null) {
@@ -55,8 +56,12 @@ public final class HibernateSearchHelper {
             span.getContext().getDb()
                 .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
                 .withStatement(query);
-            span.setName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME);
+            span.setName(buildSpanName(methodName));
         }
         return span;
+    }
+
+    public static String buildSpanName(final String methodName) {
+        return HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME + " " + methodName + "()";
     }
 }

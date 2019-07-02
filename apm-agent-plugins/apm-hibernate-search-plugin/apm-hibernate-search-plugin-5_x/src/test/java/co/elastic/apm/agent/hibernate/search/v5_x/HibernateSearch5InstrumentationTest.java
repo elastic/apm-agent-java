@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -104,7 +104,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals(1, result.size(), "Query result is not 1");
             assertEquals("dog1", result.get(0).getName(), "Result is not 'dog1'");
-            assertApmSpanInformation(reporter, "name:dog1");
+            assertApmSpanInformation(reporter, "name:dog1", "list");
         });
     }
 
@@ -124,7 +124,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
         assertAll(() -> {
             assertEquals(2, result.size(), "Query result is not 2");
-            assertApmSpanInformation(reporter, "name:dog*");
+            assertApmSpanInformation(reporter, "name:dog*", "list");
         });
     }
 
@@ -140,7 +140,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
                 assertTrue(scroll.isFirst());
                 assertTrue(scroll.isLast());
 
-                assertApmSpanInformation(reporter, "name:dog1");
+                assertApmSpanInformation(reporter, "name:dog1", "scroll");
             });
         }
     }
@@ -156,7 +156,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         assertAll(() -> {
             assertEquals("dog1", dog.getName());
 
-            assertApmSpanInformation(reporter, "name:dog1");
+            assertApmSpanInformation(reporter, "name:dog1", "iterate");
         });
     }
 
