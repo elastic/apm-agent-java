@@ -70,9 +70,6 @@ public class Scanner {
     }
 
     public Token scan() {
-    	return scan(true);
-    }
-    public Token scan(boolean skipDoubleQuotes) {
         if (!hasNext()) {
             return Token.EOF;
         }
@@ -101,11 +98,7 @@ public class Scanner {
                 // string literal delimiter by default,
                 // but we assume standard SQL and treat
                 // it as a identifier delimiter.
-            	if(skipDoubleQuotes) {
-            		return scanQuotedIdentifier('"');
-            	}else {
-            		return Token.DQUOT;
-            	}
+                return scanQuotedIdentifier('"');
             case '[':
                 // T-SQL bracket-quoted identifier
                 return scanQuotedIdentifier(']');
@@ -132,8 +125,6 @@ public class Scanner {
                 return Token.OTHER;
             case '.':
                 return Token.PERIOD;
-            case '@':
-                return Token.AT;
             case '$':
                 if (!hasNext()) {
                     return Token.OTHER;
@@ -369,8 +360,6 @@ public class Scanner {
         PERIOD, // .
         LPAREN, // (
         RPAREN, // )
-        AT, // @
-        DQUOT, // "
 
         AS,
         CALL,

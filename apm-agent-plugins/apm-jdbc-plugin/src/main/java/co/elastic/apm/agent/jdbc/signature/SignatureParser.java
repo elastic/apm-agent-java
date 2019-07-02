@@ -57,46 +57,48 @@ public class SignatureParser {
      * When relying on weak keys, we would not leverage any caching benefits if the query string is collected.
      * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
      */
-    private final static ConcurrentMap<String, String> signatureCache = new ConcurrentHashMap<String, String>(DISABLE_CACHE_THRESHOLD, 0.5f, Runtime.getRuntime().availableProcessors());
+    private final static ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD, 0.5f, Runtime.getRuntime().availableProcessors());
 
     private final Scanner scanner = new Scanner();
-    private final StringBuilder dbLink = new StringBuilder();
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
-		dbLink.setLength(0);
+    	querySignature(query, signature, new StringBuilder(), preparedStatement);
+    }
+    public void querySignature(String query, StringBuilder signature, StringBuilder dbLink, boolean preparedStatement) {
         final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
             && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
             && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD;
         if (cacheable) {
-            final String cachedSignature = signatureCache.get(query);
+            final String[] cachedSignature = signatureCache.get(query);
             if (cachedSignature != null) {
-                signature.append(cachedSignature);
+                signature.append(cachedSignature[0]);
+                dbLink.append(cachedSignature[1]);
                 return;
             }
         }
 
         scanner.setQuery(FilterChain.DEFAULT_CHAIN.doFilter(query));
-        parse(query, signature);
+        parse(query, signature, dbLink);
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
             // we don't mind a small overshoot due to race conditions
-            signatureCache.put(query, signature.toString());
+            signatureCache.put(query, new String[] {signature.toString(), dbLink.toString()});
         }
     }
-    private void parse(String query, StringBuilder signature) {
+    private void parse(String query, StringBuilder signature, StringBuilder dbLink) {
         final Scanner.Token firstToken = scanner.scanWhile(Scanner.Token.COMMENT);
         switch (firstToken) {
             case CALL:
                 signature.append("CALL");
                 if(scanner.scanUntil(Scanner.Token.IDENT)) {
-                	appendIdentifiers(signature);
+                	appendIdentifiers(signature, dbLink);
                 }
                 return;
             case DELETE:
                 signature.append("DELETE");
                 if (scanner.scanUntil(FROM) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" FROM");
-                    appendIdentifiers(signature);
+                    appendIdentifiers(signature, dbLink);
                 }
                 return;
             case INSERT:
@@ -104,7 +106,7 @@ public class SignatureParser {
                 signature.append(firstToken.name());
                 if (scanner.scanUntil(Scanner.Token.INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" INTO");
-                    appendIdentifiers(signature);
+                    appendIdentifiers(signature, dbLink);
                 }
                 return;
             case SELECT:
@@ -119,7 +121,7 @@ public class SignatureParser {
                         if (level == 0) {
                             if (scanner.scanToken(Scanner.Token.IDENT)) {
                                 signature.append(" FROM");
-                                appendIdentifiers(signature);
+                                appendIdentifiers(signature, dbLink);
                             } else {
                                 return;
                             }
@@ -130,51 +132,43 @@ public class SignatureParser {
             case UPDATE:
                 signature.append("UPDATE");
                 // Scan for the table name
-                boolean hasPeriod = false, hasFirstPeriod = false, inQuotes = false, inDbLink = false;
-        		StringBuilder targetBuilder=signature;
+                boolean hasPeriod = false, hasFirstPeriod = false, isDbLink = false;
                 if (scanner.scanToken(IDENT)) {
                     signature.append(' ');
                     scanner.appendCurrentTokenText(signature);
-                    for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
+                    for (Scanner.Token t = scanner.scan(); t != EOF; t = scanner.scan()) {
                         switch (t) {
                             case IDENT:
                                 if (hasPeriod) {
-                                    scanner.appendCurrentTokenText(targetBuilder);
+                                    scanner.appendCurrentTokenText(signature);
                                     hasPeriod = false;
                                 }
-                                else if(inQuotes) {
-                                	scanner.appendCurrentTokenText(targetBuilder);
-                                }
-                                if (!hasFirstPeriod && !inQuotes) {
+                                if (!hasFirstPeriod) {
                                     // Some dialects allow option keywords before the table name
                                     // example: UPDATE IGNORE foo.bar
-                                	targetBuilder.setLength(0);
-                                	targetBuilder.append("UPDATE ");
-                                    scanner.appendCurrentTokenText(targetBuilder);
+                                	signature.setLength(0);
+                                	signature.append("UPDATE ");
+                                    scanner.appendCurrentTokenText(signature);
                                 }
+                                else if(isDbLink) {
+            						scanner.appendCurrentTokenText(dbLink);
+            						isDbLink = false;
+            					}
                                 // Two adjacent identifiers found after the first period.
                                 // Ignore the secondary ones, in case they are unknown keywords.
                                 break;
                             case PERIOD:
                                 hasFirstPeriod = true;
                                 hasPeriod = true;
-                                targetBuilder.append('.');
+                                signature.append('.');
                                 break;
-                			case AT:
-                                hasFirstPeriod = true;
-                                hasPeriod = true;
-                				if(inDbLink) {
-	            					targetBuilder.append('@');
-	            				} else {
-	            					targetBuilder = dbLink;
-	            					inDbLink = true;
-	            				}
-                				break;
-                			case DQUOT:
-                				inQuotes = !inQuotes;
-                				break;
                             default:
-                                return;
+                				if("@".equals(scanner.text())) {
+                					isDbLink = true;
+                					break;
+                				}else {
+                                    return;
+                				}
                         }
                     }
                 }
@@ -183,7 +177,7 @@ public class SignatureParser {
                 signature.append("MERGE");
                 if(scanner.scanToken(INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" INTO");
-                    appendIdentifiers(signature);
+                    appendIdentifiers(signature, dbLink);
                 }
                 return;
             default:
@@ -193,43 +187,35 @@ public class SignatureParser {
         }
     }
 
-    private void appendIdentifiers(StringBuilder signature) {
+    private void appendIdentifiers(StringBuilder signature, StringBuilder dbLink) {
     	signature.append(' ');
 		scanner.appendCurrentTokenText(signature);
-		boolean connectedIdents = false;
-		boolean inQuotes = false;
-		boolean inDbLink = false;
-		StringBuilder targetBuilder=signature;
-		for (Scanner.Token t = scanner.scan(false); t != EOF; t = scanner.scan(false)) {
+		boolean connectedIdents = false, isDbLink = false;
+		for (Scanner.Token t = scanner.scan(); t != EOF; t = scanner.scan()) {
 			switch (t) {
 			case IDENT:
 				// do not add tokens which are separated by a space
 				if (connectedIdents) {
-					scanner.appendCurrentTokenText(targetBuilder);
+					scanner.appendCurrentTokenText(signature);
 					connectedIdents = false;
 				} else {
+					if(isDbLink) {
+						scanner.appendCurrentTokenText(dbLink);
+						isDbLink = false;
+					}
 					return;
 				}
 				break;
 			case PERIOD:
-				targetBuilder.append('.');
+				signature.append('.');
 				connectedIdents = true;
-				break;
-			case AT:
-				connectedIdents = true;
-				if(inDbLink) {
-					targetBuilder.append('@');
-				} else {
-					targetBuilder = dbLink;
-					inDbLink = true;
-				}
-				break;
-			case DQUOT:
-				inQuotes = !inQuotes;
 				break;
 			case USING:
 				return;
 			default:
+				if("@".equals(scanner.text())) {
+					isDbLink = true;
+				}
 				break;
 			}
 		}
