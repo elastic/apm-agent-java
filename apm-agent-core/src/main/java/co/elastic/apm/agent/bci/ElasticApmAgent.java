@@ -217,12 +217,12 @@ public class ElasticApmAgent {
             });
     }
 
-    private static AgentBuilder.Transformer.ForAdvice getTransformer(ElasticApmTracer tracer, ElasticApmInstrumentation advice, Logger logger, ElementMatcher<? super MethodDescription> methodMatcher) {
+    private static AgentBuilder.Transformer.ForAdvice getTransformer(ElasticApmTracer tracer, ElasticApmInstrumentation instrumentation, Logger logger, ElementMatcher<? super MethodDescription> methodMatcher) {
         Advice.WithCustomMapping withCustomMapping = Advice
             .withCustomMapping()
             .bind(new SimpleMethodSignatureOffsetMappingFactory())
             .bind(new AnnotationValueOffsetMappingFactory());
-        Advice.OffsetMapping.Factory<?> offsetMapping = advice.getOffsetMaping();
+        Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMaping();
         if (offsetMapping != null) {
             withCustomMapping = withCustomMapping.bind(offsetMapping);
         }
@@ -240,15 +240,15 @@ public class ElasticApmAgent {
                             matches = false;
                         }
                         if (matches) {
-                            logger.debug("Method match for advice {}: {} matches {}",
-                                advice.getClass().getSimpleName(), methodMatcher, target);
+                            logger.debug("Method match for instrumentation {}: {} matches {}",
+                                instrumentation.getClass().getSimpleName(), methodMatcher, target);
                         }
                         return matches;
                     } finally {
-                        getOrCreateTimer(advice.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
+                        getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
                     }
                 }
-            }, advice.getAdviceClass().getName())
+            }, instrumentation.getAdviceClass().getName())
             .include(ClassLoader.getSystemClassLoader())
             .withExceptionHandler(PRINTING);
     }
