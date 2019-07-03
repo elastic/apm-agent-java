@@ -60,7 +60,9 @@ public class ContainerInfoTest {
         assertContainerInfoIsNull(validLinePrefix.substring(2) + validId);
         assertContainerInfoIsNull(validLinePrefix + validId.replace('a', 'g'));
         assertContainerInfoIsNull(validLinePrefix.substring(0, validLinePrefix.length() - 1) + validId);
-        assertContainerInfoIsNull(validLinePrefix.concat("454345-fd/") + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.substring(0, validId.length() - 1));
+        String uuid = validId.concat("abcd1234");
+        assertContainerId(validLinePrefix + uuid, uuid);
         assertContainerInfoIsNull(validLinePrefix + validId.concat("/"));
         assertContainerId("5:blkio:/system.slice/garden.service/garden/" + validId, validId);
     }
