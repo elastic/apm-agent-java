@@ -38,10 +38,14 @@ public final class HibernateSearchAssertionHelper {
     public static void assertApmSpanInformation(final MockReporter reporter, final String expectedQuery, final String searchMethod) {
         assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
         final Span span = reporter.getFirstSpan();
-        assertEquals(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, span.getSubtype(), "Subtype of span is not 'hibernate-search'");
+        assertEquals(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, span.getSubtype(), "Subtype of span is not 'hibernate'");
         assertEquals(expectedQuery, span.getContext().getDb().getStatement(),"Statement is not '" + expectedQuery + "'");
         assertEquals("db", span.getType());
         assertEquals(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_ACTION, span.getAction());
-        assertEquals(HibernateSearchHelper.buildSpanName(searchMethod), span.getName().toString());
+        assertEquals(buildSpanName(searchMethod), span.getName().toString());
+    }
+
+    private static String buildSpanName(final String methodName) {
+        return HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME + " " + methodName + "()";
     }
 }
