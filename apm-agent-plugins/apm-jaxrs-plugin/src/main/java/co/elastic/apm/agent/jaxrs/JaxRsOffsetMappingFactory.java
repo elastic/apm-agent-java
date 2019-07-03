@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.jaxrs;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.annotation.AnnotationSource;
@@ -49,7 +48,7 @@ public class JaxRsOffsetMappingFactory implements Advice.OffsetMapping.Factory<J
     public static boolean useAnnotationValueForTransactionName;
 
     public JaxRsOffsetMappingFactory(ElasticApmTracer tracer) {
-        useAnnotationValueForTransactionName = tracer.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName();
+        useAnnotationValueForTransactionName = tracer.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName();
     }
 
     @Override
