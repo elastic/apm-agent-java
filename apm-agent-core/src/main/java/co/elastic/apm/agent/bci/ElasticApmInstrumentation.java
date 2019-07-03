@@ -26,6 +26,7 @@ package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -150,4 +151,8 @@ public abstract class ElasticApmInstrumentation {
      */
     public abstract Collection<String> getInstrumentationGroupNames();
 
+    @Nullable
+    public Advice.OffsetMapping.Factory<?> getOffsetMapping() {
+        return null;
+    }
 }
