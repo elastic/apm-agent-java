@@ -158,14 +158,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
-    private final ConfigurationOption<Boolean> useAnnotationValueForTransactionName = ConfigurationOption.booleanOption()
-        .key("use_path_template_as_transaction_name")
-        .configurationCategory(HTTP_CATEGORY)
-        .description("By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.\n" +
-            "If you want to use the URI template from the `@Path` annotation, set the value to `true`.")
-        .dynamic(false)
-        .buildWithDefault(false);
-
     public EventType getCaptureBody() {
         return captureBody.get();
     }
@@ -193,8 +185,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
     public List<WildcardMatcher> getCaptureContentTypes() {
         return captureContentTypes.get();
     }
-
-    public boolean isUseAnnotationValueForTransactionName() { return useAnnotationValueForTransactionName.get(); }
 
     public enum EventType {
         /**

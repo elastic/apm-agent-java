@@ -32,7 +32,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -142,7 +141,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -160,7 +159,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -178,7 +177,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -194,7 +193,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -210,7 +209,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -224,7 +223,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnEmptyPathResource() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
@@ -238,7 +237,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
     @Test
     public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnResourceWithPathAndPathOnInterface() {
-        when(config.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
         when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
 
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());

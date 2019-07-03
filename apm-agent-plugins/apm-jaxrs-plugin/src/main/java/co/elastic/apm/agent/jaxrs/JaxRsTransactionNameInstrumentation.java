@@ -30,7 +30,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
-import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -55,14 +54,15 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
+    public static boolean useAnnotationValueForTransactionName;
+
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
-    public static boolean useAnnotationValueForTransactionName;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
-        useAnnotationValueForTransactionName = tracer.getConfig(WebConfiguration.class).isUseAnnotationValueForTransactionName();
+        useAnnotationValueForTransactionName = configuration.isUseJaxRsPathForTransactionName();
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -135,7 +135,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
 
     @Nullable
     @Override
-    public Advice.OffsetMapping.Factory<?> getOffsetMaping() {
+    public Advice.OffsetMapping.Factory<?> getOffsetMapping() {
         return new JaxRsOffsetMappingFactory(tracer);
     }
 }
