@@ -308,4 +308,36 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         }
     }
 
+    public static class CompareSpanInstrumentation extends ApmSpanInstrumentation {
+
+        public CompareSpanInstrumentation() {
+            super(named("compareSpan"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void compareSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext thisTraceContext,
+                                       @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> otherSpan,
+                                       @Advice.Return(readOnly = false) boolean isSame) {
+            if (thisTraceContext != null && otherSpan != null) {
+                isSame = thisTraceContext.getId().equals(otherSpan.getTraceContext().getId());
+            }
+        }
+    }
+
+    public static class CompareSpanContextInstrumentation extends ApmSpanInstrumentation {
+
+        public CompareSpanContextInstrumentation() {
+            super(named("compareSpanContext"));
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void compareSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext thisTraceContext,
+                                       @Advice.Argument(value = 1, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext otherTraceContext,
+                                       @Advice.Return(readOnly = false) boolean isSame) {
+            if (thisTraceContext != null && otherTraceContext != null) {
+                isSame = thisTraceContext.getId().equals(otherTraceContext.getId());
+            }
+        }
+    }
+
 }

@@ -38,7 +38,7 @@ class ApmSpan implements Span {
     private final TraceContextSpanContext spanContext;
     @Nullable
     // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
-    private Object dispatcher;
+    private volatile Object dispatcher;
 
     ApmSpan(@Nullable Object dispatcher) {
         this.dispatcher = dispatcher;
@@ -53,6 +53,24 @@ class ApmSpan implements Span {
     private Object getTraceContext(@Nullable Object dispatcher) {
         // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation$GetTraceContextInstrumentation
         return null;
+    }
+
+    boolean isSameSpan(Object otherSpan) {
+        return compareSpan(context().getTraceContext(), otherSpan);
+    }
+
+    private boolean compareSpan(Object thisTraceContext, Object otherSpan) {
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation$CompareSpanInstrumentation
+        return false;
+    }
+
+    boolean isSameContext(Object otherSpanContext) {
+        return compareSpanContext(context().getTraceContext(), otherSpanContext);
+    }
+
+    private boolean compareSpanContext(Object thisTraceContext, Object otherTraceContext) {
+        // co.elastic.apm.agent.opentracing.impl.ApmSpanInstrumentation$CompareSpanContextInstrumentation
+        return false;
     }
 
     @Override

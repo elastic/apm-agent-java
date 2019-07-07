@@ -89,7 +89,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testFinishTwice() {
+    void testSpanFinishTwice() {
         final Span span = apmTracer.buildSpan("test").withStartTimestamp(0).start();
 
         span.finish();
@@ -100,6 +100,16 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         } catch (AssertionError ignore) {
         }
 
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testScopeCloseTwice() {
+        Scope scope = apmTracer.buildSpan("span")
+            .asChildOf((SpanContext) null)
+            .startActive(true);
+        scope.close();
+        scope.close();
         assertThat(reporter.getTransactions()).hasSize(1);
     }
 
@@ -374,6 +384,24 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
             .asChildOf((SpanContext) null)
             .start().finish();
         assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testFinishOnCloseTrueWithInheritance() {
+        apmTracer.buildSpan("span")
+            .asChildOf((SpanContext) null)
+            .startActive(true);
+        apmTracer.scopeManager().active().close();
+        assertThat(reporter.getTransactions()).hasSize(1);
+    }
+
+    @Test
+    void testFinishOnCloseFalseWithInheritance() {
+        apmTracer.buildSpan("span")
+            .asChildOf((SpanContext) null)
+            .startActive(false);
+        apmTracer.scopeManager().active().close();
+        assertThat(reporter.getTransactions()).hasSize(0);
     }
 
     @Test

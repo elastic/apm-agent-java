@@ -28,16 +28,19 @@ import io.opentracing.Scope;
 
 class ApmScope implements Scope {
 
+    private final ApmScopeManager apmScopeManager;
     private final boolean finishSpanOnClose;
     private final ApmSpan apmSpan;
 
-    ApmScope(boolean finishSpanOnClose, ApmSpan apmSpan) {
+    ApmScope(ApmScopeManager apmScopeManager, boolean finishSpanOnClose, ApmSpan apmSpan) {
+        this.apmScopeManager = apmScopeManager;
         this.finishSpanOnClose = finishSpanOnClose;
         this.apmSpan = apmSpan;
     }
 
     @Override
     public void close() {
+        apmScopeManager.deactivate(this);
         release(apmSpan.getSpan(), apmSpan.context().getTraceContext());
         if (finishSpanOnClose) {
             apmSpan.finish();
