@@ -17,8 +17,8 @@ The first configuration sources override the configuration values of over the la
   No prefix is required for the configuration keys.
 
 Configuration options marked with Dynamic true can be changed at runtime
-via configuration sources which support dynamic reloading.
-Java system properties can be set from within the application.
+via configuration sources which support dynamic reloading. The `elasticapm.properties` file is
+such source. Java system properties can be dynamic as well by being set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
