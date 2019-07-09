@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.jaxrs.JaxRsOffsetMappingFactory.JaxRsPath;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,6 +37,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -52,20 +54,30 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentation {
 
+    public static boolean useAnnotationValueForTransactionName;
+
     private final Collection<String> applicationPackages;
     private final JaxRsConfiguration configuration;
 
     public JaxRsTransactionNameInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
         configuration = tracer.getConfig(JaxRsConfiguration.class);
+        useAnnotationValueForTransactionName = configuration.isUseJaxRsPathForTransactionName();
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void setTransactionName(@SimpleMethodSignature String signature) {
+    private static void setTransactionName(@SimpleMethodSignature String signature,
+                                           @JaxRsPath @Nullable String pathAnnotationValue) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
             if (transaction != null) {
-                transaction.withName(signature);
+                String transactionName = signature;
+                if (useAnnotationValueForTransactionName) {
+                    if (pathAnnotationValue != null) {
+                        transactionName = pathAnnotationValue;
+                    }
+                }
+                transaction.withName(transactionName);
             }
         }
     }
@@ -112,13 +124,18 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                     .or(named("javax.ws.rs.PUT"))
                     .or(named("javax.ws.rs.DELETE"))
                     .or(named("javax.ws.rs.HEAD"))
-                    .or(named("javax.ws.rs.OPTIONS"))
-                    .or(named("javax.ws.rs.HttpMethod"))))
+                    .or(named("javax.ws.rs.OPTIONS"))))
             .onSuperClassesThat(isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>any()));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Collections.singletonList("jax-rs");
+    }
+
+    @Nullable
+    @Override
+    public Advice.OffsetMapping.Factory<?> getOffsetMapping() {
+        return new JaxRsOffsetMappingFactory(tracer);
     }
 }

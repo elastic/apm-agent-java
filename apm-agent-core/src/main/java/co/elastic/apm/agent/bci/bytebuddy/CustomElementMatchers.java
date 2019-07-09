@@ -36,9 +36,9 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
@@ -131,19 +131,35 @@ public class CustomElementMatchers {
      */
     public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
         return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
+            /**
+             * Returns true if the implementation version read from the manifest file referenced by the given
+             * {@link ProtectionDomain} is lower than or equal to the version set to this matcher
+             *
+             * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
+             * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
+             * 
+             * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
+             */
             @Override
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
-                Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                Version limitVersion = new Version(version);
-                if (pdVersion != null) {
-                    return pdVersion.compareTo(limitVersion) <= 0;
+                try {
+                    Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
+                    Version limitVersion = new Version(version);
+                    if (pdVersion != null) {
+                        return pdVersion.compareTo(limitVersion) <= 0;
+                    }
+                } catch (Exception e) {
+                    logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
+                        "you agent's functionality. Failed with message: " + e.getMessage());
+                    logger.debug("Implementation version parsing error: " + protectionDomain, e);
                 }
                 return true;
             }
         };
     }
 
-    private static @Nullable Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) {
+    @Nullable
+    private static Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
         Version version = null;
         JarFile jarFile = null;
         try {
@@ -169,10 +185,8 @@ public class CustomElementMatchers {
                     }
                 }
             } else {
-                logger.error("Cannot read implementation version - got null ProtectionDomain");
+                logger.info("Cannot read implementation version - got null ProtectionDomain");
             }
-        } catch (Exception e) {
-            logger.error("Cannot read implementation version based on ProtectionDomain " + protectionDomain, e);
         } finally {
             if (jarFile != null) {
                 try {
@@ -193,7 +207,7 @@ public class CustomElementMatchers {
         private final int[] numbers;
 
         Version(String version) {
-            final String[] parts = version.split("\\.");
+            final String[] parts = version.split("\\-")[0].split("\\.");
             numbers = new int[parts.length];
             for (int i = 0; i < parts.length; i++) {
                 numbers[i] = Integer.valueOf(parts[i]);

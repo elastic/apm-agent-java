@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.jms;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.pool.PooledConnectionFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -50,8 +49,7 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public void prepareResources() throws JMSException {
-        ConnectionFactory connectionFactory = new PooledConnectionFactory(
-            new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false"));
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
         connection = connectionFactory.createConnection();
         connection.start();
     }

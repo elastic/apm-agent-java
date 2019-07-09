@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -43,6 +43,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import java.io.IOException;
 import java.util.List;
@@ -104,6 +105,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         doRequest("test");
         doRequest("testInterface");
         doRequest("testAbstract");
+
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
@@ -128,25 +130,142 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
     @Test
     public void testJaxRsTransactionNameNonSampledTransactions() throws IOException {
         config.getConfig(CoreConfiguration.class).getSampleRate().update(0.0, SpyConfiguration.CONFIG_SOURCE_NAME);
-
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
 
         doRequest("test");
+
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
         assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
     }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabled() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        doRequest("testAbstract");
+        doRequest("testInterface");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testAbstract");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("GET /testInterface");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceDisabled() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(false);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("test");
+        doRequest("testInterface");
+        doRequest("testAbstract");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(3);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotation() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testWithPathMethod");
+        doRequest("testWithPathMethod/15");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethod");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethod/{id}");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithPathAnnotationWithSlash() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("testWithPathMethodSlash");
+        doRequest("testWithPathMethodSlash/15");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(2);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethodSlash");
+        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethodSlash/{id}");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnMethodWithComplexPath() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("/foo/bar");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /foo/bar");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnEmptyPathResource() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /");
+    }
+
+    @Test
+    public void testJaxRsTransactionNameFromPathAnnotationInheritanceEnabledOnResourceWithPathAndPathOnInterface() {
+        when(config.getConfig(JaxRsConfiguration.class).isUseJaxRsPathForTransactionName()).thenReturn(true);
+        when(config.getConfig(JaxRsConfiguration.class).isEnableJaxrsAnnotationInheritance()).thenReturn(true);
+
+        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+
+        doRequest("/testInterface/test");
+
+        List<Transaction> actualTransactions = reporter.getTransactions();
+        assertThat(actualTransactions).hasSize(1);
+        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testInterface/test");
+    }
+
 
     /**
      * @return configuration for the jersey test server. Includes all resource classes in the co.elastic.apm.agent.jaxrs.resources package.
      */
     @Override
     protected Application configure() {
-        return new ResourceConfig(ResourceWithPath.class,
+        return new ResourceConfig(
+            ResourceWithPath.class,
             ResourceWithPathOnInterface.class,
             ResourceWithPathOnAbstract.class,
             ProxiedClass$$$view.class,
-            ProxiedClass$Proxy.class);
+            ProxiedClass$Proxy.class,
+            ResourceWithPathOnMethod.class,
+            ResourceWithPathOnMethodSlash.class,
+            FooBarResource.class,
+            EmptyPathResource.class,
+            ResourceWithPathAndWithPathOnInterface.class);
     }
 
     /**
@@ -205,6 +324,71 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         }
     }
 
+    @Path("/foo/")
+    public static class FooResource {
+        @GET
+        @Path("/ignore")
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
+    public static class FooBarResource extends FooResource {
+        @GET
+        @Path("/bar")
+        @Override
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
+    @Path("testWithPathMethod")
+    public static class ResourceWithPathOnMethod extends AbstractResourceClassWithoutPath {
+
+        @Override
+        public String testMethod() {
+            return "ok";
+        }
+
+        @GET
+        @Path("{id}/")
+        public String testMethodById(@PathParam("id") String id) {
+            return "ok";
+        }
+    }
+
+    @Path("testWithPathMethodSlash")
+    public static class ResourceWithPathOnMethodSlash extends AbstractResourceClassWithoutPath {
+
+        @Override
+        public String testMethod() {
+            return "ok";
+        }
+
+        @GET
+        @Path("/{id}")
+        public String testMethodById(@PathParam("id") String id) {
+            return "ok";
+        }
+    }
+
+    @Path("")
+    public static class EmptyPathResource {
+        @GET
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
+    public static class ResourceWithPathAndWithPathOnInterface implements ResourceInterfaceWithPath {
+        @Override
+        @GET
+        @Path("test")
+        public String testMethod() {
+            return "ok";
+        }
+    }
+
     public static class ResourceWithPathOnAbstract extends AbstractResourceClassWithPath {
         public String testMethod() {
             return "ok";
@@ -216,5 +400,4 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
             return "ok";
         }
     }
-    
 }

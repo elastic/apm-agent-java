@@ -20,8 +20,8 @@ The first configuration sources override the configuration values of over the la
   No prefix is required for the configuration keys.
 
 Configuration options marked with Dynamic true can be changed at runtime
-via configuration sources which support dynamic reloading.
-Java system properties can be set from within the application.
+via configuration sources which support dynamic reloading. The `elasticapm.properties` file is
+such source. Java system properties can be dynamic as well by being set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
@@ -83,6 +83,7 @@ Click on a key to get more information.
 ** <<config-url-groups>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
+** <<config-use-jaxrs-path-for-transaction-name>>
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
@@ -727,6 +728,27 @@ If your application does not use @Path annotation inheritance, set this property
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
+|============
+
+[float]
+[[config-use-jaxrs-path-for-transaction-name]]
+==== `use_jaxrs_path_for_transaction_name`
+
+By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
+If you want to use the URI template from the `@Path` annotation, set the value to `true`.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `false` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.use_jaxrs_path_for_transaction_name` | `use_jaxrs_path_for_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_FOR_TRANSACTION_NAME`
 |============
 
 [[config-logging]]
@@ -1506,6 +1528,15 @@ The default unit for this option is `ms`
 # Default value: true
 #
 # enable_jaxrs_annotation_inheritance=true
+
+# By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
+# If you want to use the URI template from the `@Path` annotation, set the value to `true`.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: false
+#
+# use_jaxrs_path_for_transaction_name=false
 
 ############################################
 # Logging                                  #
