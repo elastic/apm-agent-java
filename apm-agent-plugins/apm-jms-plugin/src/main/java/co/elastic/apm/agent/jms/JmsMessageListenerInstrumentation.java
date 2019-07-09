@@ -63,14 +63,15 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return not(isInterface()).and(hasSuperType(named("javax.jms.MessageListener")));
+        return not(isInterface())
+            .and((hasSuperType(named("javax.jms.MessageListener")))
+                .or(hasSuperType(named("org.springframework.jms.listener.SessionAwareMessageListener"))));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("onMessage")
-            .and(takesArguments(1))
-            .and(takesArgument(0, named("javax.jms.Message"))).and(isPublic());
+            .and(takesArgument(0, hasSuperType(named("javax.jms.Message")))).and(isPublic());
     }
 
     @Override

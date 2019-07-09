@@ -68,7 +68,7 @@ public abstract class JmsMessageProducerInstrumentation extends BaseJmsInstrumen
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Message").or(nameContains("Producer"));
+        return nameContains("Message").or(nameContains("Producer").or(nameContains("Sender")));
     }
 
     @Override
