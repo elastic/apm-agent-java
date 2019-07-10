@@ -97,6 +97,14 @@ class TraceContextTest {
     }
 
     @Test
+    void testResetOutgoingHeader() {
+        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        String traceParentHeader = traceContext.getOutgoingTraceParentHeader().toString();
+        traceContext.asChildOf("00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00");
+        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).isNotEqualTo(traceParentHeader);
+    }
+
+    @Test
     void testRandomValue() {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         traceContext.asRootSpan(ConstantSampler.of(true));
