@@ -23,7 +23,7 @@ the agent does not capture transactions.
 
 [float]
 [[supported-java-versions]]
-=== Java versions
+=== Java versions (32-bit and 64-bit)
 
 |===
 |Vendor |Supported versions | Notes
