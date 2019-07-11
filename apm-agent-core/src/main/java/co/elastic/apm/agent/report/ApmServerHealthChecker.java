@@ -24,65 +24,66 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.concurrent.ThreadPoolExecutor;
 
-class ApmServerHealthChecker implements Runnable {
+public class ApmServerHealthChecker implements Runnable, LifecycleListener {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
-    private final ReporterConfiguration reporterConfiguration;
     private final ApmServerClient apmServerClient;
 
-    ApmServerHealthChecker(ReporterConfiguration reporterConfiguration, ApmServerClient apmServerClient) {
-        this.reporterConfiguration = reporterConfiguration;
+    public ApmServerHealthChecker(ApmServerClient apmServerClient) {
         this.apmServerClient = apmServerClient;
     }
 
     @Override
+    public void start(ElasticApmTracer tracer) {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("apm-server-healthcheck", 1);
+        pool.execute(this);
+        pool.shutdown();
+    }
+
+    @Override
     public void run() {
-        boolean success = false;
-        HttpURLConnection connection = null;
-        for (int i = 0; i < reporterConfiguration.getServerUrls().size() && !success; i++) {
-            String message;
-            try {
-                connection = apmServerClient.startRequest("/");
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Starting healthcheck to {}", connection.getURL());
-                }
+        try {
+            apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Void>() {
+                @Override
+                public Void withConnection(HttpURLConnection connection) {
+                    try {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Starting healthcheck to {}", connection.getURL());
+                        }
 
-                final int status = connection.getResponseCode();
-
-                success = status < 300;
-
-                if (!success) {
-                    if (status == 404) {
-                        message = "It seems like you are using a version of the APM Server which is not compatible with this agent. " +
-                            "Please use APM Server 6.5.0 or newer.";
-                    } else {
-                        message = Integer.toString(status);
+                        final int status = connection.getResponseCode();
+                        if (status >= 300) {
+                            if (status == 404) {
+                                throw new IllegalStateException("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                                    "Please use APM Server 6.5.0 or newer.");
+                            } else {
+                                throw new IllegalStateException("Server returned status " + status);
+                            }
+                        } else {
+                            // prints out the version info of the APM Server
+                            logger.info("Elastic APM server is available: {}", HttpUtils.getBody(connection));
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Elastic APM server is not available ({})", e.getMessage());
                     }
-                } else {
-                    // prints out the version info of the APM Server
-                    message = HttpUtils.getBody(connection);
+                    return null;
                 }
-            } catch (IOException e) {
-                message = e.getMessage();
-                success = false;
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-
-            if (success) {
-                logger.info("Elastic APM server is available: {}", message);
-            } else {
-                apmServerClient.switchToNextServerUrl();
-                logger.warn("Elastic APM server is not available ({})", message);
-            }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void stop() {
     }
 }

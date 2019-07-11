@@ -33,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -212,15 +210,6 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         return connection;
     }
 
-    private void trustAll(HttpsURLConnection connection) {
-        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
-        if (sf != null) {
-            // using the same instances is important for TCP connection reuse
-            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
-            connection.setSSLSocketFactory(sf);
-        }
-    }
-
     void flush() {
         cancelTimeout();
         if (connection != null) {
@@ -299,7 +288,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         // if the response code is null, the server did not even send a response
         if (responseCode == null || responseCode > 429) {
             // this server seems to have connection or capacity issues, try next
-            apmServerClient.switchToNextServerUrl();
+            apmServerClient.onConnectionError();
         } else if (responseCode == 404) {
             logger.warn("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
                 "Please use APM Server 6.5.0 or newer.");

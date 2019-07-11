@@ -40,6 +40,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.net.URL;
@@ -47,12 +48,19 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
+import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class ApmServerConfigurationSourceTest {
 
@@ -61,6 +69,7 @@ public class ApmServerConfigurationSourceTest {
     private ConfigurationRegistry config;
     private ApmServerClient apmServerClient;
     private ApmServerConfigurationSource configurationSource;
+    private Logger mockLogger;
 
     @Before
     public void setUp() throws Exception {
@@ -68,15 +77,16 @@ public class ApmServerConfigurationSourceTest {
         apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(ResponseDefinitionBuilder.okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
-        configurationSource = new ApmServerConfigurationSource(new DslJsonSerializer(mock(StacktraceConfiguration.class)), MetaData.create(config, null, null), apmServerClient);
+        mockLogger = mock(Logger.class);
+        configurationSource = new ApmServerConfigurationSource(new DslJsonSerializer(mock(StacktraceConfiguration.class)), MetaData.create(config, null, null), apmServerClient, mockLogger);
     }
 
     @Test
     public void testLoadRemoteConfig() throws Exception {
-        configurationSource.reload();
+        configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isEqualTo("bar");
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")));
-        configurationSource.reload();
+        configurationSource.fetchConfig(config);
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")));
         for (LoggedRequest request : WireMock.findAll(RequestPatternBuilder.allRequests())) {
             final JsonNode jsonNode = new ObjectMapper().readTree(request.getBodyAsString());
@@ -85,4 +95,54 @@ public class ApmServerConfigurationSourceTest {
             assertThat(jsonNode.get("process")).isNotNull();
         }
     }
+
+    @Test
+    public void testNotFound() {
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(notFound()));
+        assertThat(configurationSource.fetchConfig(config)).isNull();
+        verify(mockLogger, times(1)).debug(contains("No remote config found for this agent"));
+    }
+
+    @Test
+    public void configDeleted() {
+        configurationSource.fetchConfig(config);
+        assertThat(configurationSource.getValue("foo")).isEqualTo("bar");
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(notFound()));
+        configurationSource.fetchConfig(config);
+        assertThat(configurationSource.getValue("foo")).isNull();
+    }
+
+    @Test
+    public void testApmServerCantReachKibana() {
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(serviceUnavailable()));
+        assertThat(configurationSource.fetchConfig(config)).isNull();
+        verify(mockLogger, times(1)).error(contains("Remote configuration is not available"), isA(IllegalStateException.class));
+    }
+
+    @Test
+    public void testApmServerError() {
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(serverError()));
+        assertThat(configurationSource.fetchConfig(config)).isNull();
+        verify(mockLogger, times(1)).error(contains("Unexpected status 500 while fetching configuration"), isA(IllegalStateException.class));
+    }
+
+    @Test
+    public void testApmServerCentralConfigDisabled() {
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(WireMock.forbidden()));
+        assertThat(configurationSource.fetchConfig(config)).isNull();
+        verify(mockLogger).debug(contains("Central configuration is disabled"));
+    }
+
+    @Test
+    public void parseMaxAgeFromCacheControlHeader() {
+        assertThat(ApmServerConfigurationSource.parseMaxAge("max-age=1")).isEqualTo(1);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("max-age= 1")).isEqualTo(1);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("max-age =1")).isEqualTo(1);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("max-age = 1")).isEqualTo(1);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("public, max-age = 42")).isEqualTo(42);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("max-age= 42 , public")).isEqualTo(42);
+        assertThat(ApmServerConfigurationSource.parseMaxAge("public")).isNull();
+        assertThat(ApmServerConfigurationSource.parseMaxAge(null)).isNull();
+    }
+
 }

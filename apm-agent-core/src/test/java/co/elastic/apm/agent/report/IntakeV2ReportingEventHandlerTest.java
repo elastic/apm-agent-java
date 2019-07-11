@@ -129,13 +129,13 @@ class IntakeV2ReportingEventHandlerTest {
 
     @Test
     void testUrls() throws MalformedURLException {
-        URL server1url = apmServerClient.getUrl(INTAKE_V2_URL);
+        URL server1url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
         assertThat(server1url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer1.port() + INTAKE_V2_URL);
-        apmServerClient.switchToNextServerUrl();
-        URL server2url = apmServerClient.getUrl(INTAKE_V2_URL);
+        apmServerClient.onConnectionError();
+        URL server2url = apmServerClient.appendPathToCurrentUrl(INTAKE_V2_URL);
         assertThat(server2url.toString()).isEqualTo(HTTP_LOCALHOST + mockApmServer2.port() + APM_SERVER_PATH + INTAKE_V2_URL);
         // just to restore
-        apmServerClient.switchToNextServerUrl();
+        apmServerClient.onConnectionError();
     }
 
     @Test
