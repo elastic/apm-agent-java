@@ -131,7 +131,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
             }
             try {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Scheduling next remote configuration reload in {} s", pollDelaySec);
+                    logger.debug("Scheduling next remote configuration reload in {}s", pollDelaySec);
                 }
                 TimeUnit.SECONDS.sleep(pollDelaySec);
             } catch (InterruptedException e) {
@@ -158,7 +158,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 }
             });
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error(e.getMessage());
             return null;
         }
     }
@@ -180,7 +180,6 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         final int status = connection.getResponseCode();
         switch (status) {
             case SC_OK:
-                logger.info("Received new configuration from APM Server");
                 etag = connection.getHeaderField("ETag");
                 InputStream is = connection.getInputStream();
                 final JsonReader<Object> reader = dslJson.newReader(is, buffer);
@@ -188,15 +187,20 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 config = MapConverter.deserialize(reader);
                 IOUtils.consumeAndClose(is);
                 configurationRegistry.reloadDynamicConfigurationOptions();
+                logger.info("Received new configuration from APM Server: {}", config);
                 break;
             case SC_NOT_MODIFIED:
                 logger.debug("Configuration did not change");
                 break;
             case SC_NOT_FOUND:
+                etag = null;
                 // means that there either is no configuration for this agent
                 // or that this is an APM Server < 7.3 which does not have the config endpoint
                 logger.debug("No remote config found for this agent");
                 // makes sure to remove the configuration if all configs are deleted for this agent in Kibana
+                if (!config.isEmpty()) {
+                    logger.info("Received new configuration from APM Server: <empty>");
+                }
                 config = Collections.emptyMap();
                 configurationRegistry.reloadDynamicConfigurationOptions();
                 break;

@@ -73,7 +73,7 @@ public class ApmServerHealthChecker implements Runnable, LifecycleListener {
                             logger.info("Elastic APM server is available: {}", HttpUtils.getBody(connection));
                         }
                     } catch (Exception e) {
-                        logger.warn("Elastic APM server is not available ({})", e.getMessage());
+                        logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
                     }
                     return null;
                 }

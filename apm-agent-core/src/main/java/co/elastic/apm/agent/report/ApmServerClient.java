@@ -141,14 +141,15 @@ public class ApmServerClient {
      * This avoids concurrent requests from incrementing the error multiple times due to only one failing server.
      * </p>
      * @param expectedErrorCount the error count that is expected by the current thread
-     * @return the current error count
+     * @return the new expected error count
      */
     int incrementAndGetErrorCount(int expectedErrorCount) {
-        int previousValue = errorCount.compareAndExchange(expectedErrorCount, expectedErrorCount + 1);
-        if (previousValue == expectedErrorCount) {
+        boolean success = errorCount.compareAndSet(expectedErrorCount, expectedErrorCount + 1);
+        if (success) {
             return expectedErrorCount + 1;
         } else {
-            return previousValue;
+            // this thread has a stale error count and may not increment the error count when another retry fails
+            return -1;
         }
     }
 

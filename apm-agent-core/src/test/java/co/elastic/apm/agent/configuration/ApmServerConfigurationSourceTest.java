@@ -116,14 +116,14 @@ public class ApmServerConfigurationSourceTest {
     public void testApmServerCantReachKibana() {
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(serviceUnavailable()));
         assertThat(configurationSource.fetchConfig(config)).isNull();
-        verify(mockLogger, times(1)).error(contains("Remote configuration is not available"), isA(IllegalStateException.class));
+        verify(mockLogger, times(1)).error(contains("Remote configuration is not available"));
     }
 
     @Test
     public void testApmServerError() {
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(serverError()));
         assertThat(configurationSource.fetchConfig(config)).isNull();
-        verify(mockLogger, times(1)).error(contains("Unexpected status 500 while fetching configuration"), isA(IllegalStateException.class));
+        verify(mockLogger, times(1)).error(contains("Unexpected status 500 while fetching configuration"));
     }
 
     @Test
