@@ -110,7 +110,6 @@ public class ElasticApmTracerBuilder {
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
         ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
         configurationRegistry.addConfigurationSource(configurationSource);
-        configurationRegistry.reloadDynamicConfigurationOptions();
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
