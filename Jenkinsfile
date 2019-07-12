@@ -38,7 +38,7 @@ pipeline {
 
   stages {
     stage('Initializing'){
-      agent { label 'linux && immutable' }
+      agent { label 'ubuntu-18' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
@@ -89,7 +89,7 @@ pipeline {
           Run only unit test.
         */
         stage('Unit Tests') {
-          agent { label 'linux && immutable' }
+          agent { label 'ubuntu-18' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -122,7 +122,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 01') {
-          agent { label 'linux && immutable' }
+          agent { label 'ubuntu-18' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -152,7 +152,7 @@ pipeline {
           Run smoke tests for different servers and databases.
         */
         stage('Smoke Tests 02') {
-          agent { label 'linux && immutable' }
+          agent { label 'ubuntu-18' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -232,7 +232,7 @@ pipeline {
           Build javadoc files.
         */
         stage('Javadoc') {
-          agent { label 'linux && immutable' }
+          agent { label 'ubuntu-18' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"
@@ -262,7 +262,7 @@ pipeline {
       Build the documentation.
     */
     stage('Documentation') {
-      agent { label 'linux && immutable' }
+      agent { label 'ubuntu-18' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
