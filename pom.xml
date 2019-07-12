@@ -410,7 +410,7 @@
                 <configuration>
                     <verbose>false</verbose>
                     <licenseName>apache2_license</licenseName>
-                    <licenseResolver>file://${apm-agent-parent.base.dir}/licenses</licenseResolver>
+                    <licenseResolver>file:///${apm-agent-parent.base.dir}/licenses</licenseResolver>
                     <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
                     <failOnMissingHeader>true</failOnMissingHeader>
                     <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
