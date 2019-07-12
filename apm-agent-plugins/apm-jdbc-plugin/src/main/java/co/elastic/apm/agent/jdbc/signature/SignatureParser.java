@@ -90,7 +90,7 @@ public class SignatureParser {
         switch (firstToken) {
             case CALL:
                 signature.append("CALL");
-                if(scanner.scanUntil(Scanner.Token.IDENT)) {
+                if (scanner.scanUntil(Scanner.Token.IDENT)) {
                 	appendIdentifiers(signature, dbLink);
                 }
                 return;
