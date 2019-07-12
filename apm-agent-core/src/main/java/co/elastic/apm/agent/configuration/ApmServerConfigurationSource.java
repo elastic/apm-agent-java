@@ -35,6 +35,7 @@ import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 import org.stagemonitor.util.IOUtils;
@@ -188,6 +189,14 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 IOUtils.consumeAndClose(is);
                 configurationRegistry.reloadDynamicConfigurationOptions();
                 logger.info("Received new configuration from APM Server: {}", config);
+                for (Map.Entry<String, String> entry : config.entrySet()) {
+                    ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
+                    if (conf == null) {
+                        logger.warn("Received unknown remote configuration key {}", entry.getKey());
+                    } else if (!conf.isDynamic()) {
+                        logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());
+                    }
+                }
                 break;
             case SC_NOT_MODIFIED:
                 logger.debug("Configuration did not change");
