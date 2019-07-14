@@ -30,6 +30,8 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -44,6 +46,10 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     private static final String TRACE_ID = "trace.id";
     private static final String SPAN_ID = "span.id";
     private static final String TRANSACTION_ID = "transaction.id";
+    private static final Logger logger = LoggerFactory.getLogger(Slf4JMdcActivationListener.class);
+
+    // Never invoked- only used for caching ClassLoaders that can't load the slf4j MDC class
+    private static final MethodHandle NOOP = MethodHandles.constant(String.class, "ClassLoader cannot load slf4j API");
 
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache =
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
@@ -53,9 +59,9 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                 try {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(ORG_SLF4J_MDC), "put", MethodType.methodType(void.class, String.class, String.class));
-                } catch (Exception ignore) {
-                    // this class loader does not have the slf4j api
-                    return null;
+                } catch (Exception e) {
+                    logger.warn("Class loader " + classLoader + " cannot load slf4j API", e);
+                    return NOOP;
                 }
             }
         });
@@ -68,8 +74,8 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(ORG_SLF4J_MDC), "remove", MethodType.methodType(void.class, String.class));
                 } catch (Exception ignore) {
-                    // this class loader does not have the slf4j api
-                    return null;
+                    // No need to log - logged already when populated the put cache
+                    return NOOP;
                 }
             }
         });
@@ -84,10 +90,10 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
         if (config.isLogCorrelationEnabled()) {
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            ClassLoader contextClassLoader = getContextClassLoader();
 
             MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-            if (put != null) {
+            if (put != null && put != NOOP) {
                 TraceContext traceContext = context.getTraceContext();
                 put.invokeExact(SPAN_ID, traceContext.getId().toString());
                 if (tracer.getActive() == null) {
@@ -102,11 +108,11 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     public void afterDeactivate() throws Throwable {
         if (config.isLogCorrelationEnabled()) {
 
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            ClassLoader contextClassLoader = getContextClassLoader();
             TraceContextHolder active = tracer.getActive();
 
             MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
-            if (remove != null) {
+            if (remove != null && remove != NOOP) {
                 if (active == null) {
                     remove.invokeExact(SPAN_ID);
                     remove.invokeExact(TRACE_ID);
@@ -116,10 +122,15 @@ public class Slf4JMdcActivationListener implements ActivationListener {
 
             if (active != null) {
                 MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-                if (put != null) {
+                if (put != null && put != NOOP) {
                     put.invokeExact(SPAN_ID, active.getTraceContext().getId().toString());
                 }
             }
         }
+    }
+
+    private ClassLoader getContextClassLoader() {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        return (contextClassLoader != null) ? contextClassLoader : ClassLoader.getSystemClassLoader();
     }
 }
