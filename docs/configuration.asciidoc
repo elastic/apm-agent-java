@@ -864,7 +864,12 @@ Use if APM Server requires a token.
 
 The URLs must be fully qualified, including protocol (http or https) and port.
 
-NOTE: Providing multiple URLs only works if intake API v2 is enabled.
+Fails over to the next APM Server URL in the event of connection errors.
+Achieves load-balancing by shuffling the list of configured URLs.
+When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+
+If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
 
 
 [options="header"]
@@ -1605,7 +1610,12 @@ The default unit for this option is `ms`
 #
 # The URLs must be fully qualified, including protocol (http or https) and port.
 # 
-# NOTE: Providing multiple URLs only works if intake API v2 is enabled.
+# Fails over to the next APM Server URL in the event of connection errors.
+# Achieves load-balancing by shuffling the list of configured URLs.
+# When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
+# 
+# If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
+# See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
