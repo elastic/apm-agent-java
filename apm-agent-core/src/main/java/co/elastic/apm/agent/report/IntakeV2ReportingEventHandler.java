@@ -404,12 +404,17 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
 
         @Override
         public void run() {
-            // If the ring buffer is full this throws an exception.
-            // In case it's full due to a traffic spike it means that it will eventually flush anyway because of the max request size
-            // If the APM Server is down for a longer period and the ring buffer is full because of that,
-            // the timeout task will not be started as the connection attempt resulted in an exception
             logger.debug("Request flush because the request timeout occurred");
-            flush = reporter.flush();
+            try {
+                // If the ring buffer is full this throws an exception.
+                // In case it's full due to a traffic spike it means that it will eventually flush anyway because of
+                // the max request size, but we need to catch this Exception otherwise the Timer thread dies.
+                flush = reporter.flush();
+            } catch (Exception e) {
+                // This shouldn't reoccur when the queue is full due to lack of communication with the APM server
+                // as the TimerTask wouldn't be scheduled unless connection succeeds.
+                logger.info("Failed to register a Flush event to the disruptor: {}", e.getMessage());
+            }
         }
 
         @Override
