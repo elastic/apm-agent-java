@@ -63,7 +63,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Fails over to the next APM Server URL in the event of connection errors.\n" +
             "Achieves load-balancing by shuffling the list of configured URLs.\n" +
-            "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomisation.\n" +
+            "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
             "\n" +
             "If outgoing HTTP traffic has to go through a proxy," +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
