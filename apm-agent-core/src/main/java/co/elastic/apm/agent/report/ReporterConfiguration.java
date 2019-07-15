@@ -62,7 +62,8 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
             "\n" +
             "Fails over to the next APM Server URL in the event of connection errors.\n" +
-            "Achieves load-balancing by shuffling the list of configured URLs so that the fist URL will be randomly distributed.\n" +
+            "Achieves load-balancing by shuffling the list of configured URLs.\n" +
+            "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomisation.\n" +
             "\n" +
             "If outgoing HTTP traffic has to go through a proxy," +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
