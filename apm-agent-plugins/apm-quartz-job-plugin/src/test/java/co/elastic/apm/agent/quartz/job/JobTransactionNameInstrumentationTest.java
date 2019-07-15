@@ -85,7 +85,7 @@ class JobTransactionNameInstrumentationTest {
     void verifyJobDetails(JobDetail job) throws InterruptedException {
     	reporter.getFirstTransaction(150);
     	assertThat(reporter.getTransactions().size()).isEqualTo(1);
-    	assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("quartz");
+    	assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
         assertThat(reporter.getTransactions().get(0).getName())
         	.isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }

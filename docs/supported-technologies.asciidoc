@@ -263,7 +263,7 @@ When using a scheduling framework a transaction for every execution will be crea
 |1.6.0
 |Quartz
 |
-|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `quartz`, representing the job execution 
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution 
 
 NOTE: only classes from packages configured in <<config-application-packages>>  will be instrumented.
 |1.8.0

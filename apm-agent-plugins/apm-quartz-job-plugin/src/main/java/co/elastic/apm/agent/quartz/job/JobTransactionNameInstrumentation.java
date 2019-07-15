@@ -43,7 +43,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation {
-	public static final String TRANSACTION_TYPE = "quartz";
+	public static final String TRANSACTION_TYPE = "scheduled";
+	public static final String INSTRUMENTATION_TYPE = "quartz";
 
     private final Collection<String> applicationPackages;
 
@@ -65,7 +66,7 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList(TRANSACTION_TYPE);
+        return Arrays.asList(INSTRUMENTATION_TYPE);
     }
 
     @Override
