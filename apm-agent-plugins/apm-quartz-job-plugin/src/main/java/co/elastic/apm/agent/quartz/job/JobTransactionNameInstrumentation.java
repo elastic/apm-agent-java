@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,9 +24,6 @@
  */
 package co.elastic.apm.agent.quartz.job;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -36,15 +33,18 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation {
-	public static final String TRANSACTION_TYPE = "scheduled";
-	public static final String INSTRUMENTATION_TYPE = "quartz";
+    public static final String TRANSACTION_TYPE = "scheduled";
+    public static final String INSTRUMENTATION_TYPE = "quartz";
 
     private final Collection<String> applicationPackages;
 
@@ -55,7 +55,7 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return isInAnyPackage(applicationPackages, ElementMatchers.<NamedElement>none())
-        	.and(hasSuperType(named("org.quartz.Job")))
+            .and(hasSuperType(named("org.quartz.Job")))
             .and(declaresMethod(getMethodMatcher()));
     }
 
@@ -71,6 +71,6 @@ public class JobTransactionNameInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public Class<?> getAdviceClass() {
-    	return JobTransactionNameAdvice.class;
+        return JobTransactionNameAdvice.class;
     }
 }
