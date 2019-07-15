@@ -12,6 +12,7 @@
         <module>apm-jdbc-plugin</module>
         <module>apm-jsf-plugin</module>
         <module>apm-opentracing-plugin</module>
+        <module>apm-ratpack-plugin</module>
         <module>apm-servlet-plugin</module>
         <module>apm-spring-webmvc-plugin</module>
         <module>apm-web-plugin</module>

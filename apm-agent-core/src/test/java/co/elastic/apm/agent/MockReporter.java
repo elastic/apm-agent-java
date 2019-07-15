@@ -45,10 +45,10 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -64,9 +64,9 @@ public class MockReporter implements Reporter {
     private static final JsonSchema errorSchema;
     private static final JsonSchema spanSchema;
     private static final DslJsonSerializer dslJsonSerializer;
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final List<Span> spans = new ArrayList<>();
-    private final List<ErrorCapture> errors = new ArrayList<>();
+    private final List<Transaction> transactions = new CopyOnWriteArrayList<>();
+    private final List<Span> spans = new CopyOnWriteArrayList<>();
+    private final List<ErrorCapture> errors = new CopyOnWriteArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
 
