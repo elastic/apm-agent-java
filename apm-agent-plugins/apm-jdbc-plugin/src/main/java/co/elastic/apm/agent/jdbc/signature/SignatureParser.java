@@ -27,6 +27,8 @@ package co.elastic.apm.agent.jdbc.signature;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.Nullable;
+
 import co.elastic.apm.agent.jdbc.signature.filter.FilterChain;
 
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.EOF;
@@ -62,9 +64,10 @@ public class SignatureParser {
     private final Scanner scanner = new Scanner();
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
-    	querySignature(query, signature, new StringBuilder(), preparedStatement);
+    	querySignature(query, signature, null, preparedStatement);
     }
-    public void querySignature(String query, StringBuilder signature, StringBuilder dbLink, boolean preparedStatement) {
+    
+    public void querySignature(String query, StringBuilder signature, @Nullable StringBuilder dbLink, boolean preparedStatement) {
         final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
             && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
             && query.length() < QUERY_LENGTH_CACHE_UPPER_THRESHOLD;
@@ -72,7 +75,9 @@ public class SignatureParser {
             final String[] cachedSignature = signatureCache.get(query);
             if (cachedSignature != null) {
                 signature.append(cachedSignature[0]);
-                dbLink.append(cachedSignature[1]);
+                if(dbLink != null) {
+                	dbLink.append(cachedSignature[1]);
+                }
                 return;
             }
         }
@@ -82,10 +87,11 @@ public class SignatureParser {
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
             // we don't mind a small overshoot due to race conditions
-            signatureCache.put(query, new String[] {signature.toString(), dbLink.toString()});
+            signatureCache.put(query, new String[] {signature.toString(), dbLink != null ? dbLink.toString() : ""});
         }
     }
-    private void parse(String query, StringBuilder signature, StringBuilder dbLink) {
+    
+    private void parse(String query, StringBuilder signature, @Nullable StringBuilder dbLink) {
         final Scanner.Token firstToken = scanner.scanWhile(Scanner.Token.COMMENT);
         switch (firstToken) {
             case CALL:
@@ -151,7 +157,9 @@ public class SignatureParser {
                                     scanner.appendCurrentTokenText(signature);
                                 }
                                 else if(isDbLink) {
-            						scanner.appendCurrentTokenText(dbLink);
+                                	if(dbLink != null) {
+                						scanner.appendCurrentTokenText(dbLink);
+                                	}
             						isDbLink = false;
             					}
                                 // Two adjacent identifiers found after the first period.
@@ -187,7 +195,7 @@ public class SignatureParser {
         }
     }
 
-    private void appendIdentifiers(StringBuilder signature, StringBuilder dbLink) {
+    private void appendIdentifiers(StringBuilder signature, @Nullable StringBuilder dbLink) {
     	signature.append(' ');
 		scanner.appendCurrentTokenText(signature);
 		boolean connectedIdents = false, isDbLink = false;
@@ -200,7 +208,9 @@ public class SignatureParser {
 					connectedIdents = false;
 				} else {
 					if(isDbLink) {
-						scanner.appendCurrentTokenText(dbLink);
+						if(dbLink != null) {
+							scanner.appendCurrentTokenText(dbLink);
+						}
 						isDbLink = false;
 					}
 					return;
