@@ -61,7 +61,12 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .label("The URLs for your APM Servers")
         .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
             "\n" +
-            "NOTE: Providing multiple URLs only works if intake API v2 is enabled.")
+            "Fails over to the next APM Server URL in the event of connection errors.\n" +
+            "Achieves load-balancing by shuffling the list of configured URLs so that the fist URL will be randomly distributed.\n" +
+            "\n" +
+            "If outgoing HTTP traffic has to go through a proxy," +
+            "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
+            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.")
         .dynamic(false)
         .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
