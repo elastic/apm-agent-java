@@ -219,11 +219,11 @@ public class Transaction extends AbstractSpan<Transaction> {
         super.incrementReferences();
     }
 
-    public void decrementReferences() {
-        final int referenceCount = this.references.decrementAndGet();
-        super.decrementReferences();
+    public int decrementReferences() {
+        final int referenceCount = super.decrementReferences();
         if (referenceCount == 0) {
             tracer.recycle(this);
         }
+        return referenceCount;
     }
 }
