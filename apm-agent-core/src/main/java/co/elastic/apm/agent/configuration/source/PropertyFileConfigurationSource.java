@@ -27,11 +27,14 @@ package co.elastic.apm.agent.configuration.source;
 
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * A variation of {@link org.stagemonitor.configuration.source.PropertyFileConfigurationSource} (under Apache license 2.0)
@@ -41,12 +44,23 @@ import java.util.Properties;
  * </p>
  */
 public final class PropertyFileConfigurationSource extends AbstractConfigurationSource {
-
+	private static final long DEFAULT_REFRESH_TIME = 60_000;// 1 Minute
     private final String location;
+    private final File configFile;
     private Properties properties;
+    
+    private final Timer timer = new Timer("ApmConfigRefreshTimer", true);
+    private long lastmodified;
 
     public PropertyFileConfigurationSource(String location) {
+    	this(location, DEFAULT_REFRESH_TIME);
+    }
+    
+    public PropertyFileConfigurationSource(String location, long refreshTimeMs) {
         this.location = location;
+        this.configFile = new File(location);
+        lastmodified = configFile.lastModified();
+        timer.schedule(new FileWatcherTask(), refreshTimeMs);
         reload();
     }
 
@@ -109,5 +123,14 @@ public final class PropertyFileConfigurationSource extends AbstractConfiguration
         return properties.getProperty(key);
     }
 
+    private class FileWatcherTask extends TimerTask {
+
+        @Override
+        public void run() {
+       	 if(configFile.lastModified() > lastmodified) {
+       		reload();
+       	 }
+        }
+   }
 }
 
