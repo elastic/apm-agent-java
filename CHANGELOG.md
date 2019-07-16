@@ -14,6 +14,7 @@
    NOTE: This feature is currently marked as "Incubating" and is disabled by default. In order to enable, it is 
    required to set the [`disable_instrumentations`](https://www.elastic.co/guide/en/apm/agent/java/1.x/config-core.html#config-disable-instrumentations) 
    configuration property to an empty string.
+ * Property File will now be reloaded every minute(works only for files not on the classpath)
 
 ## Bug Fixes
  * ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
