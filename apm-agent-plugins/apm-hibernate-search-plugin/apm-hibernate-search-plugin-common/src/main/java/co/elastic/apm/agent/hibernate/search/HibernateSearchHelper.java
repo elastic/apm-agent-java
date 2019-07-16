@@ -43,6 +43,7 @@ public final class HibernateSearchHelper {
 
         if (tracer != null) {
             TraceContextHolder<?> active = tracer.getActive();
+            // avoid creating the same span twice for example, when an instrumented API is wrapped
             if (active == null || active instanceof Span && HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE
                 .equals(((Span) active).getSubtype())) {
                 return null;
