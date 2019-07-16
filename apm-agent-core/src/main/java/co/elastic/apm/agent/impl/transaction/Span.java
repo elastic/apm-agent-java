@@ -239,10 +239,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (transaction != null) {
             transaction.decrementReferences();
         }
-        final int referenceCount = references.decrementAndGet();
         super.decrementReferences();
-        if (referenceCount == 0) {
-            tracer.recycle(this);
-        }
+    }
+
+    @Override
+    protected void recycle() {
+        tracer.recycle(this);
     }
 }
