@@ -55,10 +55,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import static co.elastic.apm.agent.hibernate.search.HibernateSearchAssertionHelper.assertApmSpanInformation;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
 
@@ -102,8 +100,8 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = (List<Dog>) ftq.getResultList();
 
         assertAll(() -> {
-            assertEquals(1, result.size(), "Query result is not 1");
-            assertEquals("dog1", result.get(0).getName(), "Result is not 'dog1'");
+            assertThat(result.size()).isEqualTo(1);
+            assertThat(result.get(0).getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "name:dog1", "list");
         });
     }
@@ -123,7 +121,7 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = (List<Dog>) ftq.getResultList();
 
         assertAll(() -> {
-            assertEquals(2, result.size(), "Query result is not 2");
+            assertThat(result.size()).isEqualTo(2);
             assertApmSpanInformation(reporter, "name:dog*", "list");
         });
     }
@@ -131,14 +129,14 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
     @Test
     void performScrollLuceneIndexSearch() {
         try (ScrollableResults scroll = createNonJpaFullTextQuery(createQueryForDog1()).scroll()) {
-            assertTrue(scroll.next());
+            assertThat(scroll.next()).isTrue();
 
             assertAll(() -> {
                 Object[] dogs = scroll.get();
-                assertEquals(1, dogs.length, "The result does not contain 1 dog");
-                assertEquals("dog1", ((Dog) dogs[0]).getName());
-                assertTrue(scroll.isFirst());
-                assertTrue(scroll.isLast());
+                assertThat(dogs.length).isEqualTo(1);
+                assertThat(((Dog) dogs[0]).getName()).isEqualTo("dog1");
+                assertThat(scroll.isFirst()).isTrue();
+                assertThat(scroll.isLast()).isTrue();
 
                 assertApmSpanInformation(reporter, "name:dog1", "scroll");
             });
@@ -149,12 +147,12 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
     void performIteratorLuceneIndexSearch() {
         Iterator<Dog> iterate = (Iterator<Dog>) createNonJpaFullTextQuery(createQueryForDog1()).iterate();
 
-        assertTrue(iterate.hasNext());
+        assertThat(iterate.hasNext()).isTrue();
         final Dog dog = iterate.next();
-        assertFalse(iterate.hasNext());
+        assertThat(iterate.hasNext()).isFalse();
 
         assertAll(() -> {
-            assertEquals("dog1", dog.getName());
+            assertThat(dog.getName()).isEqualTo("dog1");
 
             assertApmSpanInformation(reporter, "name:dog1", "iterate");
         });

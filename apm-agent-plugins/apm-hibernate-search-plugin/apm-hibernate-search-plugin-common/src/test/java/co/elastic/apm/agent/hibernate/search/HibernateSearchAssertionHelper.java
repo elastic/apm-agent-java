@@ -27,7 +27,7 @@ package co.elastic.apm.agent.hibernate.search;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.impl.transaction.Span;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public final class HibernateSearchAssertionHelper {
 
@@ -36,13 +36,13 @@ public final class HibernateSearchAssertionHelper {
     }
 
     public static void assertApmSpanInformation(final MockReporter reporter, final String expectedQuery, final String searchMethod) {
-        assertEquals(1, reporter.getSpans().size(), "Didn't find 1 span");
+        assertThat(reporter.getSpans().size()).isEqualTo(1);
         final Span span = reporter.getFirstSpan();
-        assertEquals(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE, span.getSubtype(), "Subtype of span is not 'hibernate'");
-        assertEquals(expectedQuery, span.getContext().getDb().getStatement(),"Statement is not '" + expectedQuery + "'");
-        assertEquals("db", span.getType());
-        assertEquals(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_ACTION, span.getAction());
-        assertEquals(buildSpanName(searchMethod), span.getName().toString());
+        assertThat(span.getSubtype()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
+        assertThat(span.getContext().getDb().getStatement()).isEqualTo(expectedQuery);
+        assertThat(span.getType()).isEqualTo("db");
+        assertThat(span.getAction()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_ACTION);
+        assertThat(span.getName().toString()).isEqualTo(buildSpanName(searchMethod));
     }
 
     private static String buildSpanName(final String methodName) {

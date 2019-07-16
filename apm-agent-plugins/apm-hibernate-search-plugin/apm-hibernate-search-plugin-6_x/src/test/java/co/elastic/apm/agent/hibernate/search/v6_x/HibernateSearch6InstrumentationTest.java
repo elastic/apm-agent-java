@@ -46,10 +46,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static co.elastic.apm.agent.hibernate.search.HibernateSearchAssertionHelper.assertApmSpanInformation;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
@@ -89,8 +87,8 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = createMatchNameSearch("dog1").fetchHits();
 
         assertAll(() -> {
-            assertEquals(1, result.size(), "Query result is not 1");
-            assertEquals("dog1", result.get(0).getName(), "Result is not 'dog1'");
+            assertThat(result.size()).isEqualTo(1);
+            assertThat(result.get(0).getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchHits");
         });
     }
@@ -100,7 +98,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = createWildcardNameSearch().fetchHits();
 
         assertAll(() -> {
-            assertEquals(2, result.size(), "Query result is not 2");
+            assertThat(result.size()).isEqualTo(2);
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
@@ -110,8 +108,8 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = createWildcardNameSearch().fetchHits(1);
 
         assertAll(() -> {
-            assertEquals(1, result.size(), "Query result is not 1");
-            assertEquals("dog1", result.get(0).getName());
+            assertThat(result.size()).isEqualTo(1);
+            assertThat(result.get(0).getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
@@ -121,8 +119,8 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         List<Dog> result = createWildcardNameSearch().fetchHits(1, 1);
 
         assertAll(() -> {
-            assertEquals(1, result.size(), "Query result is not 1");
-            assertEquals("dog2", result.get(0).getName());
+            assertThat(result.size()).isEqualTo(1);
+            assertThat(result.get(0).getName()).isEqualTo("dog2");
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetchHits");
         });
     }
@@ -132,7 +130,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         long resultCount = createMatchNameSearch("dog1").fetchTotalHitCount();
 
         assertAll(() -> {
-            assertEquals(1, resultCount, "Query hit count is not 1");
+            assertThat(resultCount).isEqualTo(1);
             assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchTotalHitCount");
         });
     }
@@ -142,9 +140,9 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         SearchResult<Dog> result = createMatchNameSearch("dog1").fetch();
 
         assertAll(() -> {
-            assertEquals(1, result.getHits().size(), "Query result is not 1");
-            assertEquals(1, result.getTotalHitCount(), "Total hit count is not 1");
-            assertEquals("dog1", result.getHits().get(0).getName(), "Result is not 'dog1'");
+            assertThat(result.getHits().size()).isEqualTo(1);
+            assertThat(result.getTotalHitCount()).isEqualTo(1);
+            assertThat(result.getHits().get(0).getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetch");
         });
     }
@@ -154,8 +152,8 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         SearchResult<Dog> result = createWildcardNameSearch().fetch();
 
         assertAll(() -> {
-            assertEquals(2, result.getHits().size(), "Query result is not 2");
-            assertEquals(2, result.getTotalHitCount(), "Total hit count is no 2");
+            assertThat(result.getHits().size()).isEqualTo(2);
+            assertThat(result.getTotalHitCount()).isEqualTo(2);
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
@@ -165,9 +163,9 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         SearchResult<Dog> result = createWildcardNameSearch().fetch(1);
 
         assertAll(() -> {
-            assertEquals(1, result.getHits().size(), "Query result is not 1");
-            assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
-            assertEquals("dog1", result.getHits().get(0).getName());
+            assertThat(result.getHits().size()).isEqualTo(1);
+            assertThat(result.getTotalHitCount()).isEqualTo(2);
+            assertThat(result.getHits().get(0).getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
@@ -177,9 +175,9 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
         SearchResult<Dog> result = createWildcardNameSearch().fetch(1, 1);
 
         assertAll(() -> {
-            assertEquals(1, result.getHits().size(), "Query result is not 1");
-            assertEquals(2, result.getTotalHitCount(), "Total hit count is not 2");
-            assertEquals("dog2", result.getHits().get(0).getName());
+            assertThat(result.getHits().size()).isEqualTo(1);
+            assertThat(result.getTotalHitCount()).isEqualTo(2);
+            assertThat(result.getHits().get(0).getName()).isEqualTo("dog2");
             assertApmSpanInformation(reporter, "+name:dog* #__HSEARCH_type:main", "fetch");
         });
     }
@@ -188,9 +186,9 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
     void performSingleHitLuceneIndexSearchWithResult()    {
         Optional<Dog> result = createMatchNameSearch("dog1").fetchSingleHit();
 
-        assertTrue(result.isPresent());
+        assertThat(result.isPresent()).isTrue();
         assertAll(() -> {
-            assertEquals("dog1", result.get().getName(), "Result is not 'dog1'");
+            assertThat(result.get().getName()).isEqualTo("dog1");
             assertApmSpanInformation(reporter, "+name:dog1 #__HSEARCH_type:main", "fetchSingleHit");
         });
     }
@@ -199,7 +197,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
     void performSingleHitLuceneIndexSearchWithoutResult() {
         Optional<Dog> result = createMatchNameSearch("dog1234").fetchSingleHit();
 
-        assertFalse(result.isPresent());
+        assertThat(result.isPresent()).isFalse();
         assertAll(() -> assertApmSpanInformation(reporter, "+name:dog1234 #__HSEARCH_type:main", "fetchSingleHit"));
     }
 
