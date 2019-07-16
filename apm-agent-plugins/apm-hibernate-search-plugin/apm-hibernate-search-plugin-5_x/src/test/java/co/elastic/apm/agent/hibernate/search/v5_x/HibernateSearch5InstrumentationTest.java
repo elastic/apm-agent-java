@@ -158,6 +158,18 @@ class HibernateSearch5InstrumentationTest extends AbstractInstrumentationTest {
         });
     }
 
+    @Test
+    void performUniqueResultIndexSearch() {
+        Object uniqueResult = createNonJpaFullTextQuery(createQueryForDog1()).uniqueResult();
+
+        assertThat(uniqueResult).isNotNull();
+        final Dog dog = (Dog) uniqueResult;
+        assertAll(() -> {
+            assertThat(dog.getName()).isEqualTo("dog1");
+            assertApmSpanInformation(reporter, "name:dog1", "list");
+        });
+    }
+
     private Query createQueryForDog1() {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.add(new BooleanClause(new TermQuery(new Term("name", "dog1")), BooleanClause.Occur.SHOULD));
