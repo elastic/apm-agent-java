@@ -31,7 +31,7 @@ public class Scanner {
     private int end; // text end char offset
     private int pos; // read position char offset
     private int inputLength;
-    private JdbcFilter filter = new JdbcFilter();
+    private final JdbcFilter filter = new JdbcFilter();
 
     public void setQuery(String sql) {
         this.input = sql;
