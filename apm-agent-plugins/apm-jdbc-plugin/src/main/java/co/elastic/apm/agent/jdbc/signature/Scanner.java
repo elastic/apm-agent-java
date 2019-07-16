@@ -31,9 +31,11 @@ public class Scanner {
     private int end; // text end char offset
     private int pos; // read position char offset
     private int inputLength;
+    private JdbcFilter filter = new JdbcFilter();
 
     public void setQuery(String sql) {
         this.input = sql;
+        filter.reset();
         inputLength = sql.length();
         start = 0;
         end = 0;
@@ -74,7 +76,7 @@ public class Scanner {
             return Token.EOF;
         }
         char c = next();
-        while (Character.isSpaceChar(c)) {
+        while (Character.isSpaceChar(c) || filter.skip(this, c)) {
             if (hasNext()) {
                 c = next();
             } else {
@@ -301,7 +303,7 @@ public class Scanner {
         return input.charAt(pos);
     }
 
-    private char next() {
+    char next() {
         final char c = peek();
         pos++;
         end = pos;
@@ -345,6 +347,10 @@ public class Scanner {
 
     private boolean isNextChar(char c) {
         return hasNext() && peek() == c;
+    }
+
+    boolean isNextCharIgnoreCase(char c) {
+        return hasNext() && Character.toLowerCase(peek()) == Character.toLowerCase(c);
     }
 
     public enum Token {
