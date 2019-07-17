@@ -31,6 +31,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.method.HandlerMethod;
 
 import javax.annotation.Nullable;
@@ -59,6 +61,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  * </p>
  */
 public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    @SuppressWarnings("WeakerAccess")
+    public static final Logger logger = LoggerFactory.getLogger(SpringTransactionNameInstrumentation.class);
 
     /**
      * Instrumenting well defined interfaces like {@link org.springframework.web.servlet.HandlerAdapter}
@@ -111,7 +117,17 @@ public class SpringTransactionNameInstrumentation extends ElasticApmInstrumentat
                         methodName = null;
                     }
                     setName(transaction, className, methodName);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Set name {} to transaction {}", transaction.getName(), transaction.getTraceContext().getId());
+                    }
+                } else {
+                    logger.debug("Transaction is null");
                 }
+            } else {
+                logger.debug("Tracer is null");
+            }
+            if (logger.isTraceEnabled()) {
+                logger.trace("Stack trace: ", new RuntimeException());
             }
         }
 
