@@ -201,29 +201,19 @@ public class ApmServerClient {
         throw previousException;
     }
 
-    public void executeForAllUrls(String path, ConnectionHandler<Void> connectionHandler) throws Exception {
-        int expectedErrorCount = errorCount.get();
-        Exception previousException = null;
-        for (URL serverUrl : getPrioritizedUrlList()) {
+    public void executeForAllUrls(String path, ConnectionHandler<Void> connectionHandler) {
+        for (URL serverUrl : serverUrls) {
             HttpURLConnection connection = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
                 connectionHandler.withConnection(connection);
             } catch (Exception e) {
-                expectedErrorCount = incrementAndGetErrorCount(expectedErrorCount);
-                logger.debug("Exception while interacting with APM Server, trying next one.");
-                if (previousException != null) {
-                    e.addSuppressed(previousException);
-                }
-                previousException = e;
+                logger.debug("Exception while interacting with APM Server", e);
             } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
             }
-        }
-        if (previousException != null) {
-            throw previousException;
         }
     }
 

@@ -71,7 +71,7 @@ public class ApmServerClientTest {
 
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
-        apmServer1.verify(getRequestedFor(urlEqualTo("/test")));
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
         apmServer2.verify(0, getRequestedFor(urlEqualTo("/test")));
     }
 
@@ -83,7 +83,8 @@ public class ApmServerClientTest {
         apmServerClient.execute("/test", HttpURLConnection::getResponseCode);
 
         apmServer1.verify(0, getRequestedFor(urlEqualTo("/test")));
-        apmServer2.verify(getRequestedFor(urlEqualTo("/test")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
+        assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
     }
 
     @Test
@@ -92,14 +93,16 @@ public class ApmServerClientTest {
         apmServerClient.incrementAndGetErrorCount(expectedErrorCount);
 
         testInitialCurrentUrlIsFirstUrl();
+        assertThat(apmServerClient.getErrorCount()).isEqualTo(2);
     }
 
     @Test
     public void testRetry() throws Exception {
         assertThat(apmServerClient.<String>execute("/test", conn -> new String(conn.getInputStream().readAllBytes()))).isEqualTo("hello from server 2");
         assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer2.port());
-        apmServer1.verify(getRequestedFor(urlEqualTo("/test")));
-        apmServer2.verify(getRequestedFor(urlEqualTo("/test")));
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/test")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/test")));
+        assertThat(apmServerClient.getErrorCount()).isEqualTo(1);
     }
 
     @Test
@@ -107,36 +110,36 @@ public class ApmServerClientTest {
         assertThatThrownBy(() -> apmServerClient.execute("/not-found", URLConnection::getInputStream))
             .isInstanceOf(FileNotFoundException.class)
             .matches(t -> t.getSuppressed().length == 1, "should have a suppressed exception");
-        apmServer1.verify(getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(getRequestedFor(urlEqualTo("/not-found")));
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // two failures -> urls wrap
         assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(apmServerClient.getErrorCount()).isEqualTo(2);
     }
 
     @Test
-    public void testExecuteSuccessfullyForAllUrls() throws Exception {
+    public void testExecuteSuccessfullyForAllUrls() {
         apmServerClient.executeForAllUrls("/not-found", connection -> {
             connection.getResponseCode();
             return null;
         });
-        apmServer1.verify(getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(getRequestedFor(urlEqualTo("/not-found")));
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
         // no failures -> urls in initial state
         assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        assertThat(apmServerClient.getErrorCount()).isZero();
     }
 
     @Test
     public void testExecuteFailureForAllUrls() {
-        assertThatThrownBy(() -> apmServerClient.executeForAllUrls("/not-found", connection -> {
+        // exception will only be logged, not thrown
+        apmServerClient.executeForAllUrls("/not-found", connection -> {
             connection.getInputStream();
             return null;
-        }))
-            .isInstanceOf(FileNotFoundException.class)
-            .matches(t -> t.getSuppressed().length == 1, "should have a suppressed exception");
-        apmServer1.verify(getRequestedFor(urlEqualTo("/not-found")));
-        apmServer2.verify(getRequestedFor(urlEqualTo("/not-found")));
-        // two failures -> urls wrap
-        assertThat(apmServerClient.getCurrentUrl().getPort()).isEqualTo(apmServer1.port());
+        });
+        apmServer1.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        apmServer2.verify(1, getRequestedFor(urlEqualTo("/not-found")));
+        assertThat(apmServerClient.getErrorCount()).isEqualTo(0);
     }
 
     @Test

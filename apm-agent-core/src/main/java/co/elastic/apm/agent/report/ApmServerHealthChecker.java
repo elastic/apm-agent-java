@@ -51,36 +51,32 @@ public class ApmServerHealthChecker implements Runnable, LifecycleListener {
 
     @Override
     public void run() {
-        try {
-            apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Void>() {
-                @Override
-                public Void withConnection(HttpURLConnection connection) {
-                    try {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Starting healthcheck to {}", connection.getURL());
-                        }
-
-                        final int status = connection.getResponseCode();
-                        if (status >= 300) {
-                            if (status == 404) {
-                                throw new IllegalStateException("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
-                                    "Please use APM Server 6.5.0 or newer.");
-                            } else {
-                                throw new IllegalStateException("Server returned status " + status);
-                            }
-                        } else {
-                            // prints out the version info of the APM Server
-                            logger.info("Elastic APM server is available: {}", HttpUtils.getBody(connection));
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
+        apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Void>() {
+            @Override
+            public Void withConnection(HttpURLConnection connection) {
+                try {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Starting healthcheck to {}", connection.getURL());
                     }
-                    return null;
+
+                    final int status = connection.getResponseCode();
+                    if (status >= 300) {
+                        if (status == 404) {
+                            throw new IllegalStateException("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                                "Please use APM Server 6.5.0 or newer.");
+                        } else {
+                            throw new IllegalStateException("Server returned status " + status);
+                        }
+                    } else {
+                        // prints out the version info of the APM Server
+                        logger.info("Elastic APM server is available: {}", HttpUtils.getBody(connection));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
                 }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+                return null;
+            }
+        });
     }
 
     @Override
