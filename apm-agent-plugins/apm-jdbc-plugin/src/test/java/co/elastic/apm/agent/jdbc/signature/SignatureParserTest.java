@@ -58,7 +58,7 @@ class SignatureParserTest {
         signatureParser.querySignature("UPDATE foo.bar@\"DBLINK.FQDN.COM@USER\" SET bar=1 WHERE baz=2", sb, dblink, false);
         assertThat(dblink.toString()).isEqualTo("DBLINK.FQDN.COM@USER");
     }
-    
+
     @Test
     void testDbLink() {
         final StringBuilder sb = new StringBuilder();
@@ -66,7 +66,7 @@ class SignatureParserTest {
         signatureParser.querySignature("SELECT * FROM TABLE1@DBLINK", sb, dblink, false);
         assertThat(dblink.toString()).isEqualTo("DBLINK");
     }
-    
+
     @Test
     void testDbLinkCache() {
         final StringBuilder sb = new StringBuilder();
@@ -77,7 +77,7 @@ class SignatureParserTest {
         signatureParser.querySignature("SELECT * FROM TABLE1@DBLINK", sb, dblink, true);
         assertThat(dblink.toString()).isEqualTo("DBLINK");
     }
-    
+
     @Test
     void testDbLinkFqdn() {
         final StringBuilder sb = new StringBuilder();
@@ -85,7 +85,7 @@ class SignatureParserTest {
         signatureParser.querySignature("SELECT * FROM TABLE1@\"DBLINK.FQDN.COM\"", sb, dblink, false);
         assertThat(dblink.toString()).isEqualTo("DBLINK.FQDN.COM");
     }
-    
+
     @Test
     void testDbLinkFqdnWithUser() {
         final StringBuilder sb = new StringBuilder();

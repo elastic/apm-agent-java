@@ -58,12 +58,13 @@ public class SignatureParser {
      * When relying on weak keys, we would not leverage any caching benefits if the query string is collected.
      * That means that we are leaking Strings but as the size of the map is limited that should not be an issue.
      */
-    private final static ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD, 0.5f, Runtime.getRuntime().availableProcessors());
+    private final static ConcurrentMap<String, String[]> signatureCache = new ConcurrentHashMap<String, String[]>(DISABLE_CACHE_THRESHOLD,
+            0.5f, Runtime.getRuntime().availableProcessors());
 
     private final Scanner scanner = new Scanner();
 
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
-    	querySignature(query, signature, null, preparedStatement);
+        querySignature(query, signature, null, preparedStatement);
     }
     
     public void querySignature(String query, StringBuilder signature, @Nullable StringBuilder dbLink, boolean preparedStatement) {
@@ -74,8 +75,8 @@ public class SignatureParser {
             final String[] cachedSignature = signatureCache.get(query);
             if (cachedSignature != null) {
                 signature.append(cachedSignature[0]);
-                if(dbLink != null) {
-                	dbLink.append(cachedSignature[1]);
+                if (dbLink != null) {
+                    dbLink.append(cachedSignature[1]);
                 }
                 return;
             }
@@ -86,7 +87,7 @@ public class SignatureParser {
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
             // we don't mind a small overshoot due to race conditions
-            signatureCache.put(query, new String[] {signature.toString(), dbLink != null ? dbLink.toString() : ""});
+            signatureCache.put(query, new String[] { signature.toString(), dbLink != null ? dbLink.toString() : "" });
         }
     }
     
@@ -182,7 +183,7 @@ public class SignatureParser {
                 return;
             case MERGE:
                 signature.append("MERGE");
-                if(scanner.scanToken(INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
+                if (scanner.scanToken(INTO) && scanner.scanUntil(Scanner.Token.IDENT)) {
                     signature.append(" INTO");
                     appendIdentifiers(signature, dbLink);
                 }
@@ -202,29 +203,29 @@ public class SignatureParser {
 			switch (t) {
 			case IDENT:
 				// do not add tokens which are separated by a space
-				if (connectedIdents) {
-					scanner.appendCurrentTokenText(signature);
-					connectedIdents = false;
-				} else {
-					if(isDbLink) {
-						if(dbLink != null) {
-							scanner.appendCurrentTokenText(dbLink);
-						}
-						isDbLink = false;
-					}
-					return;
-				}
+                if (connectedIdents) {
+                    scanner.appendCurrentTokenText(signature);
+                    connectedIdents = false;
+                } else {
+                    if (isDbLink) {
+                        if (dbLink != null) {
+                            scanner.appendCurrentTokenText(dbLink);
+                        }
+                        isDbLink = false;
+                    }
+                    return;
+                }
 				break;
 			case PERIOD:
 				signature.append('.');
-				connectedIdents = true;
+                connectedIdents = true;
 				break;
-			case USING:
-				return;
+            case USING:
+                return;
 			default:
-				if("@".equals(scanner.text())) {
-					isDbLink = true;
-				}
+                if ("@".equals(scanner.text())) {
+                    isDbLink = true;
+                }
 				break;
 			}
 		}
