@@ -199,6 +199,8 @@ public class TraceContext extends TraceContextHolder {
         } catch (IllegalArgumentException e) {
             logger.warn(e.getMessage());
             return false;
+        } finally {
+            onMutation();
         }
     }
 
