@@ -53,6 +53,21 @@ public class ContainerInfoTest {
     }
 
     @Test
+    void testCloudFoundryContainerIdParsing() {
+        String validId = "70eb4ce5-a065-4401-6990-88ed";
+        String validLinePrefix = "9:net_cls,net_prio:/garden/";
+        assertContainerId(validLinePrefix + validId, validId);
+        assertContainerInfoIsNull(validLinePrefix.substring(2) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.replace('a', 'g'));
+        assertContainerInfoIsNull(validLinePrefix.substring(0, validLinePrefix.length() - 1) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.substring(0, validId.length() - 1));
+        String uuid = validId.concat("abcd1234");
+        assertContainerId(validLinePrefix + uuid, uuid);
+        assertContainerInfoIsNull(validLinePrefix + validId.concat("/"));
+        assertContainerId("5:blkio:/system.slice/garden.service/garden/" + validId, validId);
+    }
+
+    @Test
     void testEcsFormat() {
         String id = "7e9139716d9e5d762d22f9f877b87d1be8b1449ac912c025a984750c5dbff157";
         assertContainerId("3:cpuacct:/ecs/eb9d3d0c-8936-42d7-80d8-f82b2f1a629e/" + id, id);
