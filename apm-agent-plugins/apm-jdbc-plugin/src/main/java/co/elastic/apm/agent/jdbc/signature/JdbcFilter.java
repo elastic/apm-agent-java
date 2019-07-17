@@ -28,19 +28,22 @@ class JdbcFilter {
 
     private boolean inQuote = false;
     private boolean inJdbcEscape = false;
+    private boolean jdbcKeyWord = false;
 
     boolean skip(Scanner s, char c) {
         switch (c) {
             case '{':
                 if (!inQuote) {
                     inJdbcEscape = true;
+                    jdbcKeyWord = true;
                     return true;
                 }
                 break;
             case 'o':
             case 'O':
-                if (!inQuote && inJdbcEscape && s.isNextCharIgnoreCase('j')) {
+                if (!inQuote && inJdbcEscape && jdbcKeyWord && s.isNextCharIgnoreCase('j')) {
                     s.next();
+                    jdbcKeyWord = false;
                     return true;
                 }
                 break;
@@ -60,11 +63,13 @@ class JdbcFilter {
                 inQuote = !inQuote;
                 break;
         }
+        jdbcKeyWord = false;
         return false;
     }
 
     void reset() {
         inQuote = false;
         inJdbcEscape = false;
+        jdbcKeyWord = false;
     }
 }
