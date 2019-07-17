@@ -1,4 +1,12 @@
-# next (1.7.0)
+# next (1.8.0)
+
+## Features
+ * Add support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
+
+## Bug Fixes
+ * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
+
+# 1.7.0
 
 ## Features
  * Added the `trace_methods_duration_threshold` config option. When using the `trace_methods` config option with wild cards, this 
