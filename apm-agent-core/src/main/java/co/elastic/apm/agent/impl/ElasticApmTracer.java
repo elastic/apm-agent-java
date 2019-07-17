@@ -476,11 +476,16 @@ public class ElasticApmTracer {
             transactionPool.close();
             spanPool.close();
             errorPool.close();
-            for (LifecycleListener lifecycleListener : lifecycleListeners) {
-                lifecycleListener.stop();
-            }
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
+        }
+
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            try {
+                lifecycleListener.stop();
+            } catch (Exception e) {
+                logger.warn("Suppressed exception while calling stop()", e);
+            }
         }
     }
 

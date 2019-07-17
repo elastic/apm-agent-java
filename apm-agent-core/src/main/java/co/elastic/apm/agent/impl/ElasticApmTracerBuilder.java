@@ -26,14 +26,20 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
+import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.PrefixingConfigurationSourceWrapper;
 import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource;
 import co.elastic.apm.agent.configuration.source.SystemPropertyConfigurationSource;
 import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.report.ApmServerHealthChecker;
 import co.elastic.apm.agent.report.Reporter;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
+import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,8 +64,7 @@ public class ElasticApmTracerBuilder {
     private ConfigurationRegistry configurationRegistry;
     @Nullable
     private Reporter reporter;
-    @Nullable
-    private Iterable<LifecycleListener> lifecycleListeners;
+    private final List<LifecycleListener> lifecycleListeners = new ArrayList<>();
     private Map<String, String> inlineConfig = new HashMap<>();
     @Nullable
     private final String agentArguments;
@@ -86,7 +91,7 @@ public class ElasticApmTracerBuilder {
     }
 
     public ElasticApmTracerBuilder lifecycleListeners(List<LifecycleListener> lifecycleListeners) {
-        this.lifecycleListeners = lifecycleListeners;
+        this.lifecycleListeners.addAll(lifecycleListeners);
         return this;
     }
 
@@ -100,11 +105,18 @@ public class ElasticApmTracerBuilder {
             final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
         }
+        final ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class));
+        final MetaData metaData = MetaData.create(configurationRegistry, null, null);
+        ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
+        configurationRegistry.addConfigurationSource(configurationSource);
         if (reporter == null) {
-            reporter = new ReporterFactory().createReporter(configurationRegistry, null, null);
+            reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
-        if (lifecycleListeners == null) {
-            lifecycleListeners = DependencyInjectingServiceLoader.load(LifecycleListener.class);
+        if (lifecycleListeners.isEmpty()) {
+            lifecycleListeners.add(new ApmServerHealthChecker(apmServerClient));
+            lifecycleListeners.add(configurationSource);
+            lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class));
         }
         return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
     }

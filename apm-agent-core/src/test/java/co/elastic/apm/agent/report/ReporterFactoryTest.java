@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -109,7 +110,7 @@ class ReporterFactoryTest {
     @Test
     void testNotValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(false);
-        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
 
         reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
@@ -121,7 +122,7 @@ class ReporterFactoryTest {
     @Test
     void testValidatingSslCertificate() throws Exception {
         when(reporterConfiguration.isVerifyServerCert()).thenReturn(true);
-        final Reporter reporter = reporterFactory.createReporter(configuration, null, null);
+        final Reporter reporter = reporterFactory.createReporter(configuration, new ApmServerClient(reporterConfiguration), MetaData.create(configuration, null, null));
 
         reporter.report(new Transaction(mock(ElasticApmTracer.class)));
         reporter.flush().get();
