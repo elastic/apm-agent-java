@@ -137,6 +137,15 @@ public class ServletTransactionHelper {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
+                if (webConfiguration.getCaptureBody() == OFF) {
+                    logger.debug("Not capturing Request body because the capture_body config option is OFF");
+                }
+                if (contentTypeHeader == null) {
+                    logger.debug("Not capturing request body because couldn't find Content-Type header");
+                } else if (!contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)) {
+                    logger.debug("Not capturing body for content type \"{}\". Consider updating the capture_body_content_types " +
+                        "configuration option.", contentTypeHeader);
+                }
             }
         }
     }

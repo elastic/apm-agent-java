@@ -24,9 +24,16 @@
  */
 package co.elastic.apm.agent.impl;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.payload.ProcessFactory;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.ServiceFactory;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
+import co.elastic.apm.agent.report.ReporterConfiguration;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+
+import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -56,6 +63,15 @@ public class MetaData {
         this.system = system;
         globalLabelKeys = new ArrayList<>(globalLabels.keySet());
         globalLabelValues = new ArrayList<>(globalLabels.values());
+    }
+
+    public static MetaData create(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName, @Nullable String frameworkVersion) {
+        final Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
+        final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
+        if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
+            processInformation.getArgv().clear();
+        }
+        return new MetaData(processInformation, service, SystemInfo.create(), configurationRegistry.getConfig(CoreConfiguration.class).getGlobalLabels());
     }
 
     /**

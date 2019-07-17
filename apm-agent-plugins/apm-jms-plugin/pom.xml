@@ -9,6 +9,9 @@
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
+        <spring-framework.version>5.1.8.RELEASE</spring-framework.version>
+        <activemq.version>5.15.9</activemq.version>
+        <artemis.version>2.8.1</artemis.version>
     </properties>
 
     <artifactId>apm-jms-plugin</artifactId>
@@ -24,19 +27,31 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-broker</artifactId>
-            <version>5.15.9</version>
+            <version>${activemq.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>artemis-jms-client</artifactId>
-            <version>2.8.1</version>
+            <version>${artemis.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>artemis-jms-server</artifactId>
-            <version>2.8.1</version>
+            <version>${artemis.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jms</artifactId>
+            <version>${spring-framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring-framework.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

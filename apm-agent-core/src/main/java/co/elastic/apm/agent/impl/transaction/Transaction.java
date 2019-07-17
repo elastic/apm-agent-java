@@ -242,14 +242,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         super.incrementReferences();
     }
 
-    public void decrementReferences() {
-        final int referenceCount = this.references.decrementAndGet();
-        if (logger.isTraceEnabled()) {
-            logger.trace("decrement references to {} ({})", this, referenceCount);
-        }
-        if (referenceCount == 0) {
-            tracer.recycle(this);
-        }
+    @Override
+    protected void recycle() {
+        tracer.recycle(this);
     }
 
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {

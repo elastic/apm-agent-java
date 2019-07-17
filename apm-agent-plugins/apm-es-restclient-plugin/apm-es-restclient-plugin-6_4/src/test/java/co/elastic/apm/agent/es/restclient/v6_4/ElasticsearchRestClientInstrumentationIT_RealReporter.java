@@ -29,6 +29,7 @@ import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -36,6 +37,7 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.ApmServerReporter;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
@@ -138,8 +140,12 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
         final Service service = new Service().withName("Eyal-ES-client-test").withAgent(new Agent("java", "Test"));
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(configurationRegistry);
-        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)), Collections.emptyMap());
+        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
+            reporterConfiguration,
+            processorEventHandler,
+            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            new MetaData(title, service, system, Collections.emptyMap()),
+            new ApmServerClient(reporterConfiguration));
         realReporter = new ApmServerReporter(true, reporterConfiguration, configurationRegistry.getConfig(CoreConfiguration.class), v2handler);
 
         tracer = new ElasticApmTracerBuilder()

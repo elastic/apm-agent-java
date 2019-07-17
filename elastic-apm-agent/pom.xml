@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
@@ -114,7 +115,7 @@
                                 </relocation>
                             </relocations>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Premain-Class>${elastic.apm.agent}</Premain-Class>
@@ -236,7 +237,7 @@
             <artifactId>apm-es-restclient-plugin-6_4</artifactId>
             <version>${project.version}</version>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-okhttp-plugin</artifactId>
             <version>${project.version}</version>
@@ -279,6 +280,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-scheduled-annotation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-quartz-job-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

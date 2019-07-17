@@ -157,6 +157,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     public void serializeMetaDataNdJson(MetaData metaData) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("metadata");
+        serializeMetadata(metaData);
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(NEW_LINE);
+    }
+
+    @Override
+    public void serializeMetadata(MetaData metaData) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(metaData.getService());
         jw.writeByte(COMMA);
@@ -165,8 +172,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         serializeGlobalLabels(metaData.getGlobalLabelKeys(), metaData.getGlobalLabelValues());
         serializeSystem(metaData.getSystem());
         jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(JsonWriter.OBJECT_END);
-        jw.writeByte(NEW_LINE);
     }
 
     private void serializeGlobalLabels(ArrayList<String> globalLabelKeys, ArrayList<String> globalLabelValues) {
