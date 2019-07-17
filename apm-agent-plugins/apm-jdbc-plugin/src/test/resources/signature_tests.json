@@ -197,6 +197,10 @@
     "output": "CALL FUNCTION"
   },
   {
+    "input": "{ ? = call oj() }",
+    "output": "CALL oj"
+  },
+  {
     "input": "{ ? = call SCHEMA.FUNCTION() }",
     "output": "CALL SCHEMA.FUNCTION"
   },
