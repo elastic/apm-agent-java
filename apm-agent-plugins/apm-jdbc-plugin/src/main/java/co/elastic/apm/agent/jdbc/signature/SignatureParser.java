@@ -24,18 +24,16 @@
  */
 package co.elastic.apm.agent.jdbc.signature;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import javax.annotation.Nullable;
-
 
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.EOF;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.FROM;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.IDENT;
+import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.INTO;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.LPAREN;
 import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.RPAREN;
-import static co.elastic.apm.agent.jdbc.signature.Scanner.Token.INTO;
 
 public class SignatureParser {
 
@@ -66,7 +64,7 @@ public class SignatureParser {
     public void querySignature(String query, StringBuilder signature, boolean preparedStatement) {
         querySignature(query, signature, null, preparedStatement);
     }
-    
+
     public void querySignature(String query, StringBuilder signature, @Nullable StringBuilder dbLink, boolean preparedStatement) {
         final boolean cacheable = preparedStatement // non-prepared statements are likely to be dynamic strings
             && QUERY_LENGTH_CACHE_LOWER_THRESHOLD < query.length()
@@ -87,17 +85,17 @@ public class SignatureParser {
 
         if (cacheable && signatureCache.size() <= DISABLE_CACHE_THRESHOLD) {
             // we don't mind a small overshoot due to race conditions
-            signatureCache.put(query, new String[] { signature.toString(), dbLink != null ? dbLink.toString() : "" });
+            signatureCache.put(query, new String[]{signature.toString(), dbLink != null ? dbLink.toString() : ""});
         }
     }
-    
+
     private void parse(String query, StringBuilder signature, @Nullable StringBuilder dbLink) {
         final Scanner.Token firstToken = scanner.scanWhile(Scanner.Token.COMMENT);
         switch (firstToken) {
             case CALL:
                 signature.append("CALL");
                 if (scanner.scanUntil(Scanner.Token.IDENT)) {
-                	appendIdentifiers(signature, dbLink);
+                    appendIdentifiers(signature, dbLink);
                 }
                 return;
             case DELETE:
@@ -152,16 +150,15 @@ public class SignatureParser {
                                 if (!hasFirstPeriod) {
                                     // Some dialects allow option keywords before the table name
                                     // example: UPDATE IGNORE foo.bar
-                                	signature.setLength(0);
-                                	signature.append("UPDATE ");
+                                    signature.setLength(0);
+                                    signature.append("UPDATE ");
                                     scanner.appendCurrentTokenText(signature);
+                                } else if (isDbLink) {
+                                    if (dbLink != null) {
+                                        scanner.appendCurrentTokenText(dbLink);
+                                    }
+                                    isDbLink = false;
                                 }
-                                else if(isDbLink) {
-                                	if(dbLink != null) {
-                						scanner.appendCurrentTokenText(dbLink);
-                                	}
-            						isDbLink = false;
-            					}
                                 // Two adjacent identifiers found after the first period.
                                 // Ignore the secondary ones, in case they are unknown keywords.
                                 break;
@@ -171,12 +168,12 @@ public class SignatureParser {
                                 signature.append('.');
                                 break;
                             default:
-                				if("@".equals(scanner.text())) {
-                					isDbLink = true;
-                					break;
-                				}else {
+                                if ("@".equals(scanner.text())) {
+                                    isDbLink = true;
+                                    break;
+                                } else {
                                     return;
-                				}
+                                }
                         }
                     }
                 }
@@ -196,38 +193,37 @@ public class SignatureParser {
     }
 
     private void appendIdentifiers(StringBuilder signature, @Nullable StringBuilder dbLink) {
-    	signature.append(' ');
-		scanner.appendCurrentTokenText(signature);
-		boolean connectedIdents = false, isDbLink = false;
-		for (Scanner.Token t = scanner.scan(); t != EOF; t = scanner.scan()) {
-			switch (t) {
-			case IDENT:
-				// do not add tokens which are separated by a space
-                if (connectedIdents) {
-                    scanner.appendCurrentTokenText(signature);
-                    connectedIdents = false;
-                } else {
-                    if (isDbLink) {
-                        if (dbLink != null) {
-                            scanner.appendCurrentTokenText(dbLink);
+        signature.append(' ');
+        scanner.appendCurrentTokenText(signature);
+        boolean connectedIdents = false, isDbLink = false;
+        for (Scanner.Token t = scanner.scan(); t != EOF; t = scanner.scan()) {
+            switch (t) {
+                case IDENT:
+                    // do not add tokens which are separated by a space
+                    if (connectedIdents) {
+                        scanner.appendCurrentTokenText(signature);
+                        connectedIdents = false;
+                    } else {
+                        if (isDbLink) {
+                            if (dbLink != null) {
+                                scanner.appendCurrentTokenText(dbLink);
+                            }
                         }
-                        isDbLink = false;
+                        return;
                     }
+                    break;
+                case PERIOD:
+                    signature.append('.');
+                    connectedIdents = true;
+                    break;
+                case USING:
                     return;
-                }
-				break;
-			case PERIOD:
-				signature.append('.');
-                connectedIdents = true;
-				break;
-            case USING:
-                return;
-			default:
-                if ("@".equals(scanner.text())) {
-                    isDbLink = true;
-                }
-				break;
-			}
-		}
+                default:
+                    if ("@".equals(scanner.text())) {
+                        isDbLink = true;
+                    }
+                    break;
+            }
+        }
     }
 }
