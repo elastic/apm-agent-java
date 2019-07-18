@@ -31,6 +31,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.Timer;
 import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
+import org.HdrHistogram.WriterReaderPhaser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,9 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
-    private final KeyListConcurrentHashMap<Labels, Timer> spanTimings = new KeyListConcurrentHashMap<>();
+    // type: subtype: timer
+    private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> spanTimings = new KeyListConcurrentHashMap<>();
+    private final WriterReaderPhaser phaser = new WriterReaderPhaser();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
@@ -175,7 +178,6 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     protected void afterEnd() {
-        // timers are guaranteed to be stable now - no concurrent updates possible as finished is true
         trackMetrics();
         this.tracer.endTransaction(this);
     }
@@ -184,7 +186,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
-    public KeyListConcurrentHashMap<Labels, Timer> getSpanTimings() {
+    public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getSpanTimings() {
         return spanTimings;
     }
 
@@ -248,55 +250,84 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
-        if (!collectBreakdownMetrics || type == null || finished) {
-            return;
-        }
-        final Labels.Mutable spanType = labelsThreadLocal.get();
-        spanType.resetState();
-        spanType.spanType(type).spanSubType(subtype);
-        Timer timer = spanTimings.get(spanType);
-        if (timer == null) {
-            timer = new Timer();
-            Timer racyTimer = spanTimings.putIfAbsent(spanType.immutableCopy(), timer);
-            if (racyTimer != null) {
-                timer = racyTimer;
+        long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
+        try {
+            if (!collectBreakdownMetrics || type == null || finished) {
+                return;
             }
-        }
-        timer.update(duration);
-        if (finished) {
-            // in case end()->trackMetrics() has been called concurrently
-            // don't leak timers
-            timer.resetState();
+            if (subtype == null) {
+                subtype = "";
+            }
+            KeyListConcurrentHashMap<String, Timer> timersBySubtype = spanTimings.get(type);
+            if (timersBySubtype == null) {
+                timersBySubtype = new KeyListConcurrentHashMap<>();
+                KeyListConcurrentHashMap<String, Timer> racyMap = spanTimings.putIfAbsent(type, timersBySubtype);
+                if (racyMap != null) {
+                    timersBySubtype = racyMap;
+                }
+            }
+            Timer timer = timersBySubtype.get(subtype);
+            if (timer == null) {
+                timer = new Timer();
+                Timer racyTimer = timersBySubtype.putIfAbsent(subtype, timer);
+                if (racyTimer != null) {
+                    timer = racyTimer;
+                }
+            }
+            timer.update(duration);
+            if (finished) {
+                // in case end()->trackMetrics() has been called concurrently
+                // don't leak timers
+                timer.resetState();
+            }
+        } finally {
+            phaser.writerCriticalSectionExit(criticalValueAtEnter);
         }
     }
 
-    private void trackMetrics() {
-        final String type = getType();
-        if (type == null) {
-            return;
-        }
-        final Labels.Mutable labels = labelsThreadLocal.get();
-        labels.resetState();
-        labels.transactionName(name).transactionType(type);
-        final MetricRegistry metricRegistry = tracer.getMetricRegistry();
-        long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
+    public void trackMetrics() {
         try {
-            metricRegistry.updateTimer("transaction.duration", labels, getDuration());
-            if (collectBreakdownMetrics) {
-                metricRegistry.incrementCounter("transaction.breakdown.count", labels);
-                List<Labels> keyList = spanTimings.keyList();
-                for (int i = 0; i < keyList.size(); i++) {
-                    Labels spanType = keyList.get(i);
-                    final Timer timer = spanTimings.get(spanType);
-                    if (timer.getCount() > 0) {
-                        labels.spanType(spanType.getSpanType()).spanSubType(spanType.getSpanSubType());
-                        metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
-                        timer.resetState();
+            phaser.readerLock();
+            phaser.flipPhase();
+            // timers are guaranteed to be stable now
+            // - no concurrent updates possible as finished is true
+            // - no other thread is running the incrementTimer method,
+            //   as flipPhase only returns when all threads have exited that method
+
+            final String type = getType();
+            if (type == null) {
+                return;
+            }
+            final Labels.Mutable labels = labelsThreadLocal.get();
+            labels.resetState();
+            labels.transactionName(name).transactionType(type);
+            final MetricRegistry metricRegistry = tracer.getMetricRegistry();
+            long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
+            try {
+                metricRegistry.updateTimer("transaction.duration", labels, getDuration());
+                if (collectBreakdownMetrics) {
+                    metricRegistry.incrementCounter("transaction.breakdown.count", labels);
+                    List<String> types = spanTimings.keyList();
+                    for (int i = 0; i < types.size(); i++) {
+                        String spanType = types.get(i);
+                        KeyListConcurrentHashMap<String, Timer> timerBySubtype = spanTimings.get(spanType);
+                        List<String> subtypes = timerBySubtype.keyList();
+                        for (int j = 0; j < subtypes.size(); j++) {
+                            String subtype = subtypes.get(j);
+                            final Timer timer = timerBySubtype.get(subtype);
+                            if (timer.getCount() > 0) {
+                                labels.spanType(spanType).spanSubType(!subtype.equals("") ? subtype : null);
+                                metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
+                                timer.resetState();
+                            }
+                        }
                     }
                 }
+            } finally {
+                metricRegistry.writerCriticalSectionExit(criticalValueAtEnter);
             }
         } finally {
-            metricRegistry.writerCriticalSectionExit(criticalValueAtEnter);
+            phaser.readerUnlock();
         }
     }
 }

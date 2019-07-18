@@ -334,7 +334,7 @@ class SpanTypeBreakdownTest {
 
         // recycled transactions should not leak child timings
         reporter.assertRecycledAfterDecrementingReferences();
-        assertThat(reporter.getFirstTransaction().getSpanTimings().get(Labels.Mutable.of().spanType("db").spanSubType("mysql"))).isNull();
+        assertThat(reporter.getFirstTransaction().getSpanTimings().get("db")).isNull();
 
         tracer.getMetricRegistry().report(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
