@@ -31,9 +31,11 @@ public class Scanner {
     private int end; // text end char offset
     private int pos; // read position char offset
     private int inputLength;
+    private final JdbcFilter filter = new JdbcFilter();
 
     public void setQuery(String sql) {
         this.input = sql;
+        filter.reset();
         inputLength = sql.length();
         start = 0;
         end = 0;
@@ -74,7 +76,7 @@ public class Scanner {
             return Token.EOF;
         }
         char c = next();
-        while (Character.isSpaceChar(c)) {
+        while (Character.isSpaceChar(c) || filter.skip(this, c)) {
             if (hasNext()) {
                 c = next();
             } else {
@@ -301,7 +303,7 @@ public class Scanner {
         return input.charAt(pos);
     }
 
-    private char next() {
+    char next() {
         final char c = peek();
         pos++;
         end = pos;
@@ -347,6 +349,10 @@ public class Scanner {
         return hasNext() && peek() == c;
     }
 
+    boolean isNextCharIgnoreCase(char c) {
+        return hasNext() && Character.toLowerCase(peek()) == Character.toLowerCase(c);
+    }
+
     public enum Token {
 
         OTHER,
@@ -373,7 +379,9 @@ public class Scanner {
         SET,
         TABLE,
         TRUNCATE, // Cassandra/CQL-specific
-        UPDATE;
+        UPDATE,
+        MERGE,
+        USING;
 
         private static final Token[] EMPTY = {};
         private static final Token[][] KEYWORDS_BY_LENGTH = {
@@ -382,7 +390,7 @@ public class Scanner {
             {AS, OR},
             {SET},
             {CALL, FROM, INTO},
-            {TABLE},
+            {TABLE, MERGE, USING},
             {DELETE, INSERT, SELECT, UPDATE},
             {REPLACE},
             {TRUNCATE}
