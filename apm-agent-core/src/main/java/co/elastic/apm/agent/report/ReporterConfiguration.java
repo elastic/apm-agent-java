@@ -214,5 +214,5 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     public ConfigurationOption<List<URL>> getServerUrlsOption() {
         return this.serverUrl;
     }
-    
+
 }
