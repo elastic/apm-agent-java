@@ -27,6 +27,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -64,7 +65,7 @@ public class ApmServerClient {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private final ReporterConfiguration reporterConfiguration;
-    private static volatile List<URL> serverUrls;
+    private volatile List<URL> serverUrls;
     private final AtomicInteger errorCount = new AtomicInteger();
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
@@ -73,6 +74,16 @@ public class ApmServerClient {
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> serverUrls) {
         this.reporterConfiguration = reporterConfiguration;
+        for (ConfigurationOption configurationOption : reporterConfiguration.getConfigurationOptions()) {
+            if ("server_urls".equals(configurationOption.getKey())) {
+                configurationOption.addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+                    @Override
+                    public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
+                        overrideApmServerUrls(newValue);
+                    }
+                });
+            }
+        }
         this.serverUrls = Collections.unmodifiableList(serverUrls);
     }
 
@@ -245,9 +256,10 @@ public class ApmServerClient {
         T withConnection(HttpURLConnection connection) throws IOException;
     }
 
-    public static synchronized void overrideApmServerUrls(List<URL> serverUrls) {
+    public synchronized void overrideApmServerUrls(List<URL> serverUrls) {
         logger.debug("server_urls override with value = ({}).", serverUrls);
-        ApmServerClient.serverUrls = serverUrls;
+        this.serverUrls = serverUrls;
+        this.errorCount.set(0);
     }
 
 }

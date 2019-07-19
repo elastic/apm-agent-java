@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
-import org.slf4j.event.Level;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
@@ -70,12 +69,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
             "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.")
         .dynamic(true)
-        .addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
-            @Override
-            public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
-                setApmServerUrls(newValue);
-            }
-        })
         .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
     private final ConfigurationOption<TimeDuration> serverTimeout = TimeDurationValueConverter.durationOption("s")
@@ -217,11 +210,4 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     public List<WildcardMatcher> getDisableMetrics() {
         return disableMetrics.get();
     }
-
-    private static void setApmServerUrls(@Nullable List<URL> serverUrls) {
-        if (serverUrls != null && !serverUrls.isEmpty()) {
-            ApmServerClient.overrideApmServerUrls(serverUrls);
-        }
-    }
-
 }
