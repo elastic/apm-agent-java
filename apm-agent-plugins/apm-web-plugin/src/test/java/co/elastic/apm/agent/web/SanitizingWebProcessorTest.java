@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.web;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
@@ -46,7 +47,7 @@ class SanitizingWebProcessorTest {
 
     @Test
     void processTransactions() {
-        Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        Transaction transaction = new Transaction(MockTracer.create());
         fillContext(transaction.getContext());
 
         processor.processBeforeReport(transaction);

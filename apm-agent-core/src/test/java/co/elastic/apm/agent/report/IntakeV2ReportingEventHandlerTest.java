@@ -213,14 +213,14 @@ class IntakeV2ReportingEventHandlerTest {
 
     private void reportTransaction(IntakeV2ReportingEventHandler reportingEventHandler) {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setTransaction(new Transaction(mock(ElasticApmTracer.class)));
+        reportingEvent.setTransaction(new Transaction(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }
 
     private void reportSpan() {
         final ReportingEvent reportingEvent = new ReportingEvent();
-        reportingEvent.setSpan(new Span(mock(ElasticApmTracer.class)));
+        reportingEvent.setSpan(new Span(MockTracer.create()));
 
         reportingEventHandler.onEvent(reportingEvent, -1, true);
     }

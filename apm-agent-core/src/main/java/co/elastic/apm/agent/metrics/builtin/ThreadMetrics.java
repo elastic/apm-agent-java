@@ -27,11 +27,11 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
-import java.util.Collections;
 
 public class ThreadMetrics implements LifecycleListener {
 
@@ -42,7 +42,7 @@ public class ThreadMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        registry.add("jvm.thread.count", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.thread.count", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return threadMXBean.getThreadCount();

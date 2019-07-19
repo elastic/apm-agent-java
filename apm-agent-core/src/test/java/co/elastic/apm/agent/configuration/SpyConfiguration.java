@@ -28,6 +28,7 @@ import co.elastic.apm.agent.configuration.source.PropertyFileConfigurationSource
 import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.util.ServiceLoader;
@@ -40,19 +41,32 @@ public class SpyConfiguration {
 
     /**
      * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
+     * {@link Mockito#spy(Object)}
+     * <p>
+     * That way, the default configuration values are returned but can be overridden by {@link Mockito#when(Object)}
+     *
+     * @return a syp configuration registry
+     */
+    public static ConfigurationRegistry createSpyConfig() {
+        return createSpyConfig(new SimpleSource(CONFIG_SOURCE_NAME));
+    }
+
+    /**
+     * Creates a configuration registry where all {@link ConfigurationOptionProvider}s are wrapped with
      * {@link org.mockito.Mockito#spy(Object)}
      * <p>
      * That way, the default configuration values are returned but can be overridden by {@link org.mockito.Mockito#when(Object)}
      *
      * @return a syp configuration registry
+     * @param configurationSource
      */
-    public static ConfigurationRegistry createSpyConfig() {
+    public static ConfigurationRegistry createSpyConfig(ConfigurationSource configurationSource) {
         ConfigurationRegistry.Builder builder = ConfigurationRegistry.builder();
         for (ConfigurationOptionProvider options : ServiceLoader.load(ConfigurationOptionProvider.class)) {
             builder.addOptionProvider(spy(options));
         }
         return builder
-            .addConfigSource(new SimpleSource(CONFIG_SOURCE_NAME))
+            .addConfigSource(configurationSource)
             .addConfigSource(new PropertyFileConfigurationSource("elasticapm.properties"))
             .build();
     }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.error.ErrorPayload;
@@ -45,7 +46,7 @@ public class PayloadUtils {
     }
 
     public static TransactionPayload createTransactionPayloadWithAllValues() {
-        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        final Transaction transaction = new Transaction(MockTracer.create());
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createTransactionPayload();
         payload.getTransactions().add(transaction);
