@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -60,8 +60,16 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
-    // type: subtype: timer
-    private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> spanTimings = new KeyListConcurrentHashMap<>();
+    /**
+     * type: subtype: timer
+     * <p>
+     * This map is not cleared when the transaction is recycled.
+     * Instead, it accumulates span types and subtypes over time.
+     * When tracking the metrics, the timers are reset and only those with a count > 0 are examined.
+     * That is done in order to minimize {@link java.util.Map.Entry} garbage.
+     * </p>
+     */
+    private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
 
     /**
@@ -186,8 +194,8 @@ public class Transaction extends AbstractSpan<Transaction> {
         return spanCount;
     }
 
-    public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getSpanTimings() {
-        return spanTimings;
+    public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {
+        return timerBySpanTypeAndSubtype;
     }
 
     @Override
@@ -198,6 +206,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanCount.resetState();
         noop = false;
         type = null;
+        // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
     public boolean isNoop() {
@@ -258,10 +267,10 @@ public class Transaction extends AbstractSpan<Transaction> {
             if (subtype == null) {
                 subtype = "";
             }
-            KeyListConcurrentHashMap<String, Timer> timersBySubtype = spanTimings.get(type);
+            KeyListConcurrentHashMap<String, Timer> timersBySubtype = timerBySpanTypeAndSubtype.get(type);
             if (timersBySubtype == null) {
                 timersBySubtype = new KeyListConcurrentHashMap<>();
-                KeyListConcurrentHashMap<String, Timer> racyMap = spanTimings.putIfAbsent(type, timersBySubtype);
+                KeyListConcurrentHashMap<String, Timer> racyMap = timerBySpanTypeAndSubtype.putIfAbsent(type, timersBySubtype);
                 if (racyMap != null) {
                     timersBySubtype = racyMap;
                 }
@@ -285,7 +294,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
     }
 
-    public void trackMetrics() {
+    private void trackMetrics() {
         try {
             phaser.readerLock();
             phaser.flipPhase();
@@ -307,10 +316,10 @@ public class Transaction extends AbstractSpan<Transaction> {
                 metricRegistry.updateTimer("transaction.duration", labels, getDuration());
                 if (collectBreakdownMetrics) {
                     metricRegistry.incrementCounter("transaction.breakdown.count", labels);
-                    List<String> types = spanTimings.keyList();
+                    List<String> types = timerBySpanTypeAndSubtype.keyList();
                     for (int i = 0; i < types.size(); i++) {
                         String spanType = types.get(i);
-                        KeyListConcurrentHashMap<String, Timer> timerBySubtype = spanTimings.get(spanType);
+                        KeyListConcurrentHashMap<String, Timer> timerBySubtype = timerBySpanTypeAndSubtype.get(spanType);
                         List<String> subtypes = timerBySubtype.keyList();
                         for (int j = 0; j < subtypes.size(); j++) {
                             String subtype = subtypes.get(j);

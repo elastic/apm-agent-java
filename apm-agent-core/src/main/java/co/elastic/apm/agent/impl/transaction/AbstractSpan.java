@@ -52,7 +52,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     // in microseconds
     protected long duration;
-    private ReentrantTimer childDurations = new ReentrantTimer();
+    private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
 
@@ -60,9 +60,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return references.get();
     }
 
-    private static class ReentrantTimer implements Recyclable {
+    private static class ChildDurationTimer implements Recyclable {
 
-        private AtomicInteger nestingLevel = new AtomicInteger();
+        private AtomicInteger activeChildren = new AtomicInteger();
         private AtomicLong start = new AtomicLong();
         private AtomicLong duration = new AtomicLong();
 
@@ -71,8 +71,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
          *
          * @param startTimestamp
          */
-        public void start(long startTimestamp) {
-            if (nestingLevel.incrementAndGet() == 1) {
+        void onChildStart(long startTimestamp) {
+            if (activeChildren.incrementAndGet() == 1) {
                 start.set(startTimestamp);
             }
         }
@@ -81,8 +81,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
          * Stops the timer and increments the duration if no other direct children are still running
          * @param endTimestamp
          */
-        public void stop(long endTimestamp) {
-            if (nestingLevel.decrementAndGet() == 0) {
+        void onChildEnd(long endTimestamp) {
+            if (activeChildren.decrementAndGet() == 0) {
                 incrementDuration(endTimestamp);
             }
         }
@@ -92,8 +92,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
          *
          * @param endTimestamp
          */
-        public void forceStop(long endTimestamp) {
-            if (nestingLevel.getAndSet(0) != 0) {
+        void onSpanEnd(long endTimestamp) {
+            if (activeChildren.getAndSet(0) != 0) {
                 incrementDuration(endTimestamp);
             }
         }
@@ -104,7 +104,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
         @Override
         public void resetState() {
-            nestingLevel.set(0);
+            activeChildren.set(0);
             start.set(0);
             duration.set(0);
         }
@@ -247,7 +247,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
             if (name.length() == 0) {
                 name.append("unnamed");
             }
-            childDurations.forceStop(epochMicros);
+            childDurations.onSpanEnd(epochMicros);
             beforeEnd(epochMicros);
             this.finished = true;
             afterEnd();
@@ -313,13 +313,13 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     void onChildStart(long epochMicros) {
         if (collectBreakdownMetrics) {
-            childDurations.start(epochMicros);
+            childDurations.onChildStart(epochMicros);
         }
     }
 
     void onChildEnd(long epochMicros) {
         if (collectBreakdownMetrics) {
-            childDurations.stop(epochMicros);
+            childDurations.onChildEnd(epochMicros);
         }
     }
 

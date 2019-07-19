@@ -33,18 +33,12 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
-import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
-import co.elastic.apm.agent.report.serialize.MetricRegistrySerializer;
-import com.dslplatform.json.DslJson;
-import com.dslplatform.json.JsonWriter;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.source.SimpleSource;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -116,7 +110,7 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(20);
         transaction.end(30);
 
-        assertThat(transaction.getSpanTimings()).isEmpty();
+        assertThat(transaction.getTimerBySpanTypeAndSubtype()).isEmpty();
         tracer.getMetricRegistry().report(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null)).isNull();
             assertThat(getTimer(metricSets, "span.self_time", "db", "mysql")).isNull();
@@ -334,7 +328,7 @@ class SpanTypeBreakdownTest {
 
         // recycled transactions should not leak child timings
         reporter.assertRecycledAfterDecrementingReferences();
-        assertThat(reporter.getFirstTransaction().getSpanTimings().get("db")).isNull();
+        assertThat(reporter.getFirstTransaction().getTimerBySpanTypeAndSubtype().get("db")).isNull();
 
         tracer.getMetricRegistry().report(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
