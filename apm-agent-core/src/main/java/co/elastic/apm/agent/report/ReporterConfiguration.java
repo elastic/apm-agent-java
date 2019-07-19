@@ -210,4 +210,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     public List<WildcardMatcher> getDisableMetrics() {
         return disableMetrics.get();
     }
+
+    public ConfigurationOption<List<URL>> getServerUrlsOption() {
+        return this.serverUrl;
+    }
+    
 }

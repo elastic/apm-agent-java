@@ -69,26 +69,25 @@ public class ApmServerClient {
     private final AtomicInteger errorCount = new AtomicInteger();
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
-        this(reporterConfiguration, shuffleUrls(reporterConfiguration));
+        this(reporterConfiguration, shuffleUrls(reporterConfiguration.getServerUrls()));
     }
 
-    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> serverUrls) {
+    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
         this.reporterConfiguration = reporterConfiguration;
-        for (ConfigurationOption configurationOption : reporterConfiguration.getConfigurationOptions()) {
-            if ("server_urls".equals(configurationOption.getKey())) {
-                configurationOption.addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
-                    @Override
-                    public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
-                        overrideApmServerUrls(newValue);
-                    }
-                });
+        this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
+                logger.debug("server_urls override with value = ({}).", newValue);
+                if (newValue != null && !newValue.isEmpty()) {
+                    serverUrls = shuffleUrls(newValue);
+                    errorCount.set(0);
+                }
             }
-        }
-        this.serverUrls = Collections.unmodifiableList(serverUrls);
+        });
+        this.serverUrls = Collections.unmodifiableList(shuffledUrls);
     }
 
-    private static List<URL> shuffleUrls(ReporterConfiguration reporterConfiguration) {
-        List<URL> serverUrls = new ArrayList<>(reporterConfiguration.getServerUrls());
+    private static List<URL> shuffleUrls(List<URL> serverUrls) {
         // shuffling the URL list helps to distribute the load across the apm servers
         // when there are multiple agents, they should not all start connecting to the same apm server
         Collections.shuffle(serverUrls);
@@ -151,6 +150,7 @@ public class ApmServerClient {
      * the error count is not incremented.
      * This avoids concurrent requests from incrementing the error multiple times due to only one failing server.
      * </p>
+     *
      * @param expectedErrorCount the error count that is expected by the current thread
      * @return the new expected error count
      */
@@ -254,12 +254,6 @@ public class ApmServerClient {
     public interface ConnectionHandler<T> {
         @Nullable
         T withConnection(HttpURLConnection connection) throws IOException;
-    }
-
-    public synchronized void overrideApmServerUrls(List<URL> serverUrls) {
-        logger.debug("server_urls override with value = ({}).", serverUrls);
-        this.serverUrls = serverUrls;
-        this.errorCount.set(0);
     }
 
 }
