@@ -55,6 +55,10 @@
                         "user": {
                            "type": ["string", "null"],
                            "description": "Username for accessing database"
+                        },
+                        "link": {
+                           "type": ["string", "null"],
+                           "description": "DB Link for connections between 2 databases"
                         }
                     }
                 }

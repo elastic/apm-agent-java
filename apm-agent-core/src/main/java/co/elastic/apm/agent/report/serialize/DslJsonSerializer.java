@@ -723,7 +723,8 @@ public class DslJsonSerializer implements PayloadSerializer {
                 }
             }
             writeField("type", db.getType());
-            writeLastField("user", db.getUser());
+            writeField("user", db.getUser());
+            writeLastField("link", db.getDbLink());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }

@@ -96,7 +96,8 @@ public class TransactionUtils {
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
-            .withUser("readonly_user");
+            .withUser("readonly_user")
+            .withDbLink("DB_LINK");
         span.addLabel("monitored_by", "ACME");
         span.addLabel("framework", "some-framework");
         spans.add(span);
