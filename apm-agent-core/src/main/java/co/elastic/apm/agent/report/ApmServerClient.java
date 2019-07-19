@@ -64,7 +64,7 @@ public class ApmServerClient {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private final ReporterConfiguration reporterConfiguration;
-    private final List<URL> serverUrls;
+    private static volatile List<URL> serverUrls;
     private final AtomicInteger errorCount = new AtomicInteger();
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
@@ -243,6 +243,11 @@ public class ApmServerClient {
     public interface ConnectionHandler<T> {
         @Nullable
         T withConnection(HttpURLConnection connection) throws IOException;
+    }
+
+    public static synchronized void overrideApmServerUrls(List<URL> serverUrls) {
+        logger.debug("server_urls override with value = ({}).", serverUrls);
+        ApmServerClient.serverUrls = serverUrls;
     }
 
 }
