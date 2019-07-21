@@ -58,5 +58,7 @@ interface BrokerFacade {
 
     Message receive(Destination destination, long timeout) throws Exception;
 
+    boolean shouldTestReceiveNoWait();
+
     Message receiveNoWait(Destination destination) throws Exception;
 }
