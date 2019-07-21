@@ -5,6 +5,7 @@
 
 ## Bug Fixes
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
+ * Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
 
 # 1.7.0
 
