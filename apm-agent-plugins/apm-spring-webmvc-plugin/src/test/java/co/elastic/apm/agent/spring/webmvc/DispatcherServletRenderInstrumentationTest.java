@@ -37,10 +37,22 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.handler.ResponseStatusExceptionHandler;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
@@ -51,6 +63,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+@RunWith(value = SpringJUnit4ClassRunner.class)
+@WebAppConfiguration
 public class DispatcherServletRenderInstrumentationTest {
 
     private static MockReporter reporter;
@@ -79,7 +93,8 @@ public class DispatcherServletRenderInstrumentationTest {
     @BeforeEach
     public void setup() {
         this.mockMvc = MockMvcBuilders
-            .standaloneSetup(new MessageController())
+            .standaloneSetup(new MessageController(), new ExceptionService())
+            .setControllerAdvice(new ApplicationExceptionHandler())
             .setViewResolvers(jspViewResolver())
             .build();
     }
@@ -93,11 +108,39 @@ public class DispatcherServletRenderInstrumentationTest {
 
     @Controller
     public static class MessageController {
+
+        @Autowired
+        private ExceptionService exceptionService;
+
         @GetMapping("/test")
         public ModelAndView test() {
             ModelAndView modelAndView = new ModelAndView();
             modelAndView.setViewName("message-view");
             return modelAndView;
+        }
+
+        @GetMapping("/throw-exception")
+        public ResponseEntity throwException() {
+            exceptionService.throwException();
+            return new ResponseEntity("OK", HttpStatus.OK);
+        }
+    }
+
+    @Service
+    public static class ExceptionService {
+
+        public void throwException() {
+            throw new RuntimeException("Ba-ba-bah");
+        }
+    }
+
+    @ControllerAdvice
+    public static class ApplicationExceptionHandler extends ResponseStatusExceptionHandler {
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<?> globalExceptionHandler(Exception ex) {
+            System.out.println("Catch exception");
+            return new ResponseEntity<>("Global exception: " + ex.getMessage(), HttpStatus.CONFLICT);
         }
     }
 
@@ -108,5 +151,11 @@ public class DispatcherServletRenderInstrumentationTest {
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(1, reporter.getSpans().size());
         assertEquals("DispatcherServlet#render message-view", reporter.getSpans().get(0).getName().toString());
+    }
+
+    @Test
+    public void testCallApiWithExceptionThrown() throws Exception {
+        reporter.reset();;
+        this.mockMvc.perform(get("/throw-exception"));
     }
 }
