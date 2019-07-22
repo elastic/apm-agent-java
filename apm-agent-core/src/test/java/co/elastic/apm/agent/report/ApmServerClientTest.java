@@ -24,18 +24,30 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.logging.LoggingConfiguration;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.ConfigurationRegistry;
+import org.stagemonitor.configuration.source.SimpleSource;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Arrays;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -52,17 +64,28 @@ public class ApmServerClientTest {
     @Rule
     public WireMockRule apmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private ApmServerClient apmServerClient;
+    protected static ConfigurationRegistry config;
+    private ElasticApmTracer tracer;
+    private ReporterConfiguration reporterConfiguration;
 
     @Before
     public void setUp() throws MalformedURLException {
+        System.out.println("BEFORE");
+        URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
+        URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
+        config = SpyConfiguration.createSpyConfig();
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .build();
+        reporterConfiguration = tracer.getConfig(ReporterConfiguration.class);
+
+        Mockito.when(reporterConfiguration.getServerUrls()).thenReturn(Arrays.asList(url1, url2));
+
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
         apmServer2.stubFor(get(urlEqualTo("/test")).willReturn(ok("hello from server 2")));
         apmServer2.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
-        apmServerClient = new ApmServerClient(new ReporterConfiguration(), List.of(
-            new URL("http", "localhost", apmServer1.port(), "/"),
-            new URL("http", "localhost", apmServer2.port(), "/")
-        ));
+        apmServerClient = new ApmServerClient(reporterConfiguration, tracer.getConfig(ReporterConfiguration.class).getServerUrls());
     }
 
     @Test
@@ -147,5 +170,15 @@ public class ApmServerClientTest {
         apmServerClient.incrementAndGetErrorCount(0);
         apmServerClient.incrementAndGetErrorCount(0);
         assertThat(apmServerClient.getErrorCount()).isOne();
+    }
+
+    @Test
+    public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
+        URL tempUrl = new URL("http", "localhost", 9999, "");
+        config.save("server_urls", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+
+        assertThat(updatedServerUrls).isEqualTo(Arrays.asList(tempUrl));
     }
 }

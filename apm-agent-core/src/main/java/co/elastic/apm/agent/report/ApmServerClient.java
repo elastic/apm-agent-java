@@ -251,6 +251,10 @@ public class ApmServerClient {
         return errorCount.get();
     }
 
+    protected List<URL> getServerUrls()  {
+        return this.serverUrls;
+    }
+
     public interface ConnectionHandler<T> {
         @Nullable
         T withConnection(HttpURLConnection connection) throws IOException;
