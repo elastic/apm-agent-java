@@ -64,7 +64,7 @@ public class ApmServerClientTest {
     @Rule
     public WireMockRule apmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private ApmServerClient apmServerClient;
-    protected static ConfigurationRegistry config;
+    private ConfigurationRegistry config;
     private ElasticApmTracer tracer;
     private ReporterConfiguration reporterConfiguration;
 
