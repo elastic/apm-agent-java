@@ -70,7 +70,6 @@ public class ApmServerClientTest {
 
     @Before
     public void setUp() throws MalformedURLException {
-        System.out.println("BEFORE");
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
         config = SpyConfiguration.createSpyConfig();
