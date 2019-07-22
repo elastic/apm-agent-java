@@ -251,6 +251,7 @@ class TransactionPayloadJsonSchemaTest {
                 assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM product_types WHERE user_id=?");
                 assertThat(db.get("type").textValue()).isEqualTo("sql");
                 assertThat(db.get("user").textValue()).isEqualTo("readonly_user");
+                assertThat(db.get("link").textValue()).isEqualTo("DB_LINK");
                 JsonNode tags = context.get("tags");
                 if (shouldContainTags) {
                     assertThat(tags).isNotNull();
