@@ -186,9 +186,7 @@ public class Transaction extends AbstractSpan<Transaction> {
 
     @Override
     protected void afterEnd() {
-        if (collectBreakdownMetrics) {
-            trackMetrics();
-        }
+        trackMetrics();
         this.tracer.endTransaction(this);
     }
 
