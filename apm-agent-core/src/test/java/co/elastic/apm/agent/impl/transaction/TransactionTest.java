@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -45,9 +46,9 @@ class TransactionTest {
 
     @Test
     void resetState() {
-        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        final Transaction transaction = new Transaction(MockTracer.create());
         TransactionUtils.fillTransaction(transaction);
         transaction.resetState();
-        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(mock(ElasticApmTracer.class))));
+        assertThat(jsonSerializer.toJsonString(transaction)).isEqualTo(jsonSerializer.toJsonString(new Transaction(MockTracer.create())));
     }
 }

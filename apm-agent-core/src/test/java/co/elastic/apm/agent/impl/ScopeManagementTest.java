@@ -98,7 +98,7 @@ class ScopeManagementTest {
     }
 
     @Test
-    void testMissingDeactivation() {
+    void testRedundantActivation() {
         runTestWithAssertionsDisabled(() -> {
             final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
             transaction.createSpan().activate();

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,9 @@ package co.elastic.apm.agent.impl.transaction;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +36,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
@@ -43,13 +47,12 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
+    protected final boolean collectBreakdownMetrics;
     private long timestamp;
 
-    /**
-     * How long the transaction took to complete, in ms with 3 decimal points
-     * (Required)
-     */
-    protected double duration;
+    // in microseconds
+    protected long duration;
+    private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
 
@@ -57,9 +60,64 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return references.get();
     }
 
+    private static class ChildDurationTimer implements Recyclable {
+
+        private AtomicInteger activeChildren = new AtomicInteger();
+        private AtomicLong start = new AtomicLong();
+        private AtomicLong duration = new AtomicLong();
+
+        /**
+         * Starts the timer if it has not been started already.
+         *
+         * @param startTimestamp
+         */
+        void onChildStart(long startTimestamp) {
+            if (activeChildren.incrementAndGet() == 1) {
+                start.set(startTimestamp);
+            }
+        }
+
+        /**
+         * Stops the timer and increments the duration if no other direct children are still running
+         * @param endTimestamp
+         */
+        void onChildEnd(long endTimestamp) {
+            if (activeChildren.decrementAndGet() == 0) {
+                incrementDuration(endTimestamp);
+            }
+        }
+
+        /**
+         * Stops the timer and increments the duration even if there are direct children which are still running
+         *
+         * @param endTimestamp
+         */
+        void onSpanEnd(long endTimestamp) {
+            if (activeChildren.getAndSet(0) != 0) {
+                incrementDuration(endTimestamp);
+            }
+        }
+
+        private void incrementDuration(long epochMicros) {
+            duration.addAndGet(epochMicros - start.get());
+        }
+
+        @Override
+        public void resetState() {
+            activeChildren.set(0);
+            start.set(0);
+            duration.set(0);
+        }
+
+        public long getDuration() {
+            return duration.get();
+        }
+    }
+
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
+        collectBreakdownMetrics = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
     }
 
     public boolean isReferenced() {
@@ -67,11 +125,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     /**
-     * How long the transaction took to complete, in ms with 3 decimal points
-     * (Required)
+     * How long the transaction took to complete, in µs
      */
-    public double getDuration() {
+    public long getDuration() {
         return duration;
+    }
+
+    public long getSelfDuration() {
+        return duration - childDurations.getDuration();
+    }
+
+    public double getDurationMs() {
+        return duration / AbstractSpan.MS_IN_MICROS;
     }
 
     /**
@@ -124,6 +189,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         timestamp = 0;
         duration = 0;
         traceContext.resetState();
+        childDurations.resetState();
         references.set(0);
     }
 
@@ -177,20 +243,23 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration = (epochMicros - timestamp)  / AbstractSpan.MS_IN_MICROS;
+            this.duration = (epochMicros - timestamp);
             if (name.length() == 0) {
                 name.append("unnamed");
             }
-            doEnd(epochMicros);
-            // has to be set last so doEnd callbacks don't think it has already been finished
+            childDurations.onSpanEnd(epochMicros);
+            beforeEnd(epochMicros);
             this.finished = true;
+            afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);
             assert false;
         }
     }
 
-    protected abstract void doEnd(long epochMicros);
+    protected abstract void beforeEnd(long epochMicros);
+
+    protected abstract void afterEnd();
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
@@ -240,6 +309,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    void onChildStart(long epochMicros) {
+        if (collectBreakdownMetrics) {
+            childDurations.onChildStart(epochMicros);
+        }
+    }
+
+    void onChildEnd(long epochMicros) {
+        if (collectBreakdownMetrics) {
+            childDurations.onChildEnd(epochMicros);
+        }
     }
 
     public void incrementReferences() {
