@@ -49,6 +49,7 @@ import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
@@ -57,10 +58,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ApmServerConfigurationSourceTest {
 
@@ -97,17 +98,25 @@ public class ApmServerConfigurationSourceTest {
     }
 
     @Test
+    public void testRemoteConfigDisabled() {
+        when(config.getConfig(CoreConfiguration.class).isCentralConfigEnabled()).thenReturn(false);
+        configurationSource.fetchConfig(config);
+        assertThat(configurationSource.getValue("foo")).isNull();
+        mockApmServer.verify(0, postRequestedFor(urlEqualTo("/config/v1/agents")));
+    }
+
+    @Test
     public void testNotFound() {
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(notFound()));
         assertThat(configurationSource.fetchConfig(config)).isNull();
-        verify(mockLogger, times(1)).debug(contains("No remote config found for this agent"));
+        verify(mockLogger, times(1)).debug(contains("This APM Server does not support central configuration"));
     }
 
     @Test
     public void configDeleted() {
         configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isEqualTo("bar");
-        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(notFound()));
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okJson("{}")));
         configurationSource.fetchConfig(config);
         assertThat(configurationSource.getValue("foo")).isNull();
     }
