@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,10 +27,16 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.Sampler;
+import co.elastic.apm.agent.metrics.Labels;
+import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.Timer;
+import co.elastic.apm.agent.util.KeyListConcurrentHashMap;
+import org.HdrHistogram.WriterReaderPhaser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * Data captured by an agent representing an event occurring in a monitored service
@@ -38,6 +44,12 @@ import javax.annotation.Nullable;
 public class Transaction extends AbstractSpan<Transaction> {
 
     private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+    private static final ThreadLocal<Labels.Mutable> labelsThreadLocal = new ThreadLocal<Labels.Mutable>() {
+        @Override
+        protected Labels.Mutable initialValue() {
+            return Labels.Mutable.of();
+        }
+    };
 
     public static final String TYPE_REQUEST = "request";
 
@@ -48,6 +60,17 @@ public class Transaction extends AbstractSpan<Transaction> {
      */
     private final TransactionContext context = new TransactionContext();
     private final SpanCount spanCount = new SpanCount();
+    /**
+     * type: subtype: timer
+     * <p>
+     * This map is not cleared when the transaction is recycled.
+     * Instead, it accumulates span types and subtypes over time.
+     * When tracking the metrics, the timers are reset and only those with a count > 0 are examined.
+     * That is done in order to minimize {@link java.util.Map.Entry} garbage.
+     * </p>
+     */
+    private final KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> timerBySpanTypeAndSubtype = new KeyListConcurrentHashMap<>();
+    private final WriterReaderPhaser phaser = new WriterReaderPhaser();
 
     /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
@@ -150,7 +173,7 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void beforeEnd(long epochMicros) {
         if (!isSampled()) {
             context.resetState();
         }
@@ -158,11 +181,21 @@ public class Transaction extends AbstractSpan<Transaction> {
             type = "custom";
         }
         context.onTransactionEnd();
+        incrementTimer("app", null, getSelfDuration());
+    }
+
+    @Override
+    protected void afterEnd() {
+        trackMetrics();
         this.tracer.endTransaction(this);
     }
 
     public SpanCount getSpanCount() {
         return spanCount;
+    }
+
+    public KeyListConcurrentHashMap<String, KeyListConcurrentHashMap<String, Timer>> getTimerBySpanTypeAndSubtype() {
+        return timerBySpanTypeAndSubtype;
     }
 
     @Override
@@ -173,6 +206,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         spanCount.resetState();
         noop = false;
         type = null;
+        // don't clear timerBySpanTypeAndSubtype map (see field-level javadoc)
     }
 
     public boolean isNoop() {
@@ -222,5 +256,87 @@ public class Transaction extends AbstractSpan<Transaction> {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    void incrementTimer(@Nullable String type, @Nullable String subtype, long duration) {
+        long criticalValueAtEnter = phaser.writerCriticalSectionEnter();
+        try {
+            if (!collectBreakdownMetrics || type == null || finished) {
+                return;
+            }
+            if (subtype == null) {
+                subtype = "";
+            }
+            KeyListConcurrentHashMap<String, Timer> timersBySubtype = timerBySpanTypeAndSubtype.get(type);
+            if (timersBySubtype == null) {
+                timersBySubtype = new KeyListConcurrentHashMap<>();
+                KeyListConcurrentHashMap<String, Timer> racyMap = timerBySpanTypeAndSubtype.putIfAbsent(type, timersBySubtype);
+                if (racyMap != null) {
+                    timersBySubtype = racyMap;
+                }
+            }
+            Timer timer = timersBySubtype.get(subtype);
+            if (timer == null) {
+                timer = new Timer();
+                Timer racyTimer = timersBySubtype.putIfAbsent(subtype, timer);
+                if (racyTimer != null) {
+                    timer = racyTimer;
+                }
+            }
+            timer.update(duration);
+            if (finished) {
+                // in case end()->trackMetrics() has been called concurrently
+                // don't leak timers
+                timer.resetState();
+            }
+        } finally {
+            phaser.writerCriticalSectionExit(criticalValueAtEnter);
+        }
+    }
+
+    private void trackMetrics() {
+        try {
+            phaser.readerLock();
+            phaser.flipPhase();
+            // timers are guaranteed to be stable now
+            // - no concurrent updates possible as finished is true
+            // - no other thread is running the incrementTimer method,
+            //   as flipPhase only returns when all threads have exited that method
+
+            final String type = getType();
+            if (type == null) {
+                return;
+            }
+            final Labels.Mutable labels = labelsThreadLocal.get();
+            labels.resetState();
+            labels.transactionName(name).transactionType(type);
+            final MetricRegistry metricRegistry = tracer.getMetricRegistry();
+            long criticalValueAtEnter = metricRegistry.writerCriticalSectionEnter();
+            try {
+                metricRegistry.updateTimer("transaction.duration", labels, getDuration());
+                if (collectBreakdownMetrics) {
+                    metricRegistry.incrementCounter("transaction.breakdown.count", labels);
+                    List<String> types = timerBySpanTypeAndSubtype.keyList();
+                    for (int i = 0; i < types.size(); i++) {
+                        String spanType = types.get(i);
+                        KeyListConcurrentHashMap<String, Timer> timerBySubtype = timerBySpanTypeAndSubtype.get(spanType);
+                        List<String> subtypes = timerBySubtype.keyList();
+                        for (int j = 0; j < subtypes.size(); j++) {
+                            String subtype = subtypes.get(j);
+                            final Timer timer = timerBySubtype.get(subtype);
+                            if (timer.getCount() > 0) {
+                                labels.spanType(spanType).spanSubType(!subtype.equals("") ? subtype : null);
+                                metricRegistry.updateTimer("span.self_time", labels, timer.getTotalTimeUs(), timer.getCount());
+                                timer.resetState();
+                            }
+                        }
+                    }
+                }
+            } finally {
+                metricRegistry.writerCriticalSectionExit(criticalValueAtEnter);
+            }
+        } finally {
+            phaser.readerUnlock();
+        }
     }
 }

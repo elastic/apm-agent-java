@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -77,12 +77,10 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (parentContext instanceof Transaction) {
             this.transaction = (Transaction) parentContext;
             this.parent = this.transaction;
-            this.parent.incrementReferences();
         } else if (parentContext instanceof Span) {
             final Span parentSpan = (Span) parentContext;
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
-            this.parent.incrementReferences();
         }
         if (dropped) {
             traceContext.setRecorded(false);
@@ -101,6 +99,15 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         }
         onAfterStart();
         return this;
+    }
+
+    @Override
+    protected void onAfterStart() {
+        super.onAfterStart();
+        if (parent != null) {
+            this.parent.incrementReferences();
+            this.parent.onChildStart(getTimestamp());
+        }
     }
 
     /**
@@ -188,7 +195,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
-    public void doEnd(long epochMicros) {
+    public void beforeEnd(long epochMicros) {
         if (logger.isDebugEnabled()) {
             logger.debug("} endSpan {}", this);
             if (logger.isTraceEnabled()) {
@@ -198,9 +205,17 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (type == null) {
             type = "custom";
         }
+        if (transaction != null) {
+            transaction.incrementTimer(type, subtype, getSelfDuration());
+        }
         if (parent != null) {
+            parent.onChildEnd(epochMicros);
             parent.decrementReferences();
         }
+    }
+
+    @Override
+    protected void afterEnd() {
         this.tracer.endSpan(this);
     }
 

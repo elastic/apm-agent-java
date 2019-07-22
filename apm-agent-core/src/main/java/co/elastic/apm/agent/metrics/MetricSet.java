@@ -27,6 +27,7 @@ package co.elastic.apm.agent.metrics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A metric set is a collection of metrics which have the same labels.
@@ -43,26 +44,73 @@ import java.util.concurrent.ConcurrentMap;
  * </pre>
  */
 public class MetricSet {
-    private final Map<String, String> labels;
-    private final ConcurrentMap<String, DoubleSupplier> samples = new ConcurrentHashMap<>();
+    private final Labels.Immutable labels;
+    private final ConcurrentMap<String, DoubleSupplier> gauges;
+    // low load factor as hash collisions are quite costly when tracking breakdown metrics
+    private final ConcurrentMap<String, Timer> timers = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
+    private final ConcurrentMap<String, AtomicLong> counters = new ConcurrentHashMap<>(32, 0.5f, Runtime.getRuntime().availableProcessors());
+    private volatile boolean hasNonEmptyTimer;
+    private volatile boolean hasNonEmptyCounter;
 
-    public MetricSet(Map<String, String> labels) {
+    MetricSet(Labels.Immutable labels) {
+        this(labels, new ConcurrentHashMap<String, DoubleSupplier>());
+    }
+
+    MetricSet(Labels.Immutable labels, ConcurrentMap<String, DoubleSupplier> gauges) {
         this.labels = labels;
+        this.gauges = gauges;
     }
 
-    public void add(String name, DoubleSupplier metric) {
-        samples.putIfAbsent(name, metric);
+    void addGauge(String name, DoubleSupplier metric) {
+        gauges.putIfAbsent(name, metric);
     }
 
-    DoubleSupplier get(String name) {
-        return samples.get(name);
+    DoubleSupplier getGauge(String name) {
+        return gauges.get(name);
     }
 
-    public Map<String, String> getLabels() {
+    public Labels getLabels() {
         return labels;
     }
 
-    public Map<String, DoubleSupplier> getSamples() {
-        return samples;
+    public ConcurrentMap<String, DoubleSupplier> getGauges() {
+        return gauges;
+    }
+
+    public Timer timer(String timerName) {
+        hasNonEmptyTimer = true;
+        Timer timer = timers.get(timerName);
+        if (timer == null) {
+            timers.putIfAbsent(timerName, new Timer());
+            timer = timers.get(timerName);
+        }
+        return timer;
+    }
+
+    public void incrementCounter(String name) {
+        hasNonEmptyCounter = true;
+        AtomicLong counter = counters.get(name);
+        if (counter == null) {
+            counters.putIfAbsent(name, new AtomicLong());
+            counter = counters.get(name);
+        }
+        counter.incrementAndGet();
+    }
+
+    public Map<String, Timer> getTimers() {
+        return timers;
+    }
+
+    public boolean hasContent() {
+        return !gauges.isEmpty() || hasNonEmptyTimer || hasNonEmptyCounter;
+    }
+
+    public void onAfterReport() {
+        hasNonEmptyTimer = false;
+        hasNonEmptyCounter = false;
+    }
+
+    public Map<String, AtomicLong> getCounters() {
+        return counters;
     }
 }
