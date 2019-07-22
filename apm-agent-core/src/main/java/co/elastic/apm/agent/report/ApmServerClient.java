@@ -251,7 +251,7 @@ public class ApmServerClient {
         return errorCount.get();
     }
 
-   List<URL> getServerUrls()  {
+    List<URL> getServerUrls() {
         return this.serverUrls;
     }
 
