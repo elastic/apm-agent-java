@@ -49,8 +49,16 @@ public class MockTracer {
      * the configuration.
      */
     public static ElasticApmTracer createRealTracer(Reporter reporter) {
+        return createRealTracer(reporter, SpyConfiguration.createSpyConfig());
+    }
+
+    /**
+     * Creates a real tracer with a given reporter and a mock configuration which returns default values which can be customized by mocking
+     * the configuration.
+     */
+    public static ElasticApmTracer createRealTracer(Reporter reporter, ConfigurationRegistry config) {
         return new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
             .build();
     }

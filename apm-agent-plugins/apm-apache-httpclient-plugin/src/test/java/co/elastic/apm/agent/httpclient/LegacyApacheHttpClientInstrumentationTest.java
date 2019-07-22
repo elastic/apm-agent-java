@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,24 +26,21 @@ package co.elastic.apm.agent.httpclient;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
+public class LegacyApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
-
-    private static CloseableHttpClient client;
+    private static DefaultHttpClient client;
 
     @BeforeClass
     public static void setUp() {
-        client = HttpClients.createDefault();
+        client = new DefaultHttpClient();
     }
 
     @AfterClass
-    public static void close() throws IOException {
+    public static void close() {
         client.close();
     }
 
@@ -53,5 +50,4 @@ public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstr
         response.getStatusLine().getStatusCode();
         response.close();
     }
-
 }

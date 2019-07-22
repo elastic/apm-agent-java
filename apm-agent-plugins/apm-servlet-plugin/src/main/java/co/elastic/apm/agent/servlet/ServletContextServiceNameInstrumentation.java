@@ -89,9 +89,10 @@ public class ServletContextServiceNameInstrumentation extends ElasticApmInstrume
             }
             @Nullable
             String serviceName = servletContext.getServletContextName();
-            if ("application".equals(serviceName) || "".equals(serviceName)) {
+            if ("application".equals(serviceName) || "".equals(serviceName) || "/".equals(serviceName)) {
                 // payara returns an empty string as opposed to null
                 // spring applications which did not set spring.application.name have application as the default
+                // jetty returns context path when no display name is set, which could be the root context of "/"
                 // this is a worse default than the one we would otherwise choose
                 serviceName = null;
             }

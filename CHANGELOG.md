@@ -2,9 +2,11 @@
 
 ## Features
  * Add support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
+ * Add support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
 
 ## Bug Fixes
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
+ * Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
 
 # 1.7.0
 
