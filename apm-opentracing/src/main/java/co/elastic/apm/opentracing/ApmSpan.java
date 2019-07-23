@@ -38,7 +38,7 @@ class ApmSpan implements Span {
     private final TraceContextSpanContext spanContext;
     @Nullable
     // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
-    private Object dispatcher;
+    private volatile Object dispatcher;
 
     ApmSpan(@Nullable Object dispatcher) {
         this.dispatcher = dispatcher;
