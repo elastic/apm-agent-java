@@ -730,6 +730,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 }
             }
             writeField("type", db.getType());
+            writeField("link", db.getDbLink());
             writeLastField("user", db.getUser());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);

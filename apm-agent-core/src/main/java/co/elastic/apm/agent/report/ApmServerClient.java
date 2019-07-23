@@ -27,6 +27,7 @@ package co.elastic.apm.agent.report;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -64,20 +65,29 @@ public class ApmServerClient {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
     private final ReporterConfiguration reporterConfiguration;
-    private final List<URL> serverUrls;
+    private volatile List<URL> serverUrls;
     private final AtomicInteger errorCount = new AtomicInteger();
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
-        this(reporterConfiguration, shuffleUrls(reporterConfiguration));
+        this(reporterConfiguration, shuffleUrls(reporterConfiguration.getServerUrls()));
     }
 
-    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> serverUrls) {
+    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
         this.reporterConfiguration = reporterConfiguration;
-        this.serverUrls = Collections.unmodifiableList(serverUrls);
+        this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
+                logger.debug("server_urls override with value = ({}).", newValue);
+                if (newValue != null && !newValue.isEmpty()) {
+                    serverUrls = shuffleUrls(newValue);
+                    errorCount.set(0);
+                }
+            }
+        });
+        this.serverUrls = Collections.unmodifiableList(shuffledUrls);
     }
 
-    private static List<URL> shuffleUrls(ReporterConfiguration reporterConfiguration) {
-        List<URL> serverUrls = new ArrayList<>(reporterConfiguration.getServerUrls());
+    private static List<URL> shuffleUrls(List<URL> serverUrls) {
         // shuffling the URL list helps to distribute the load across the apm servers
         // when there are multiple agents, they should not all start connecting to the same apm server
         Collections.shuffle(serverUrls);
@@ -140,6 +150,7 @@ public class ApmServerClient {
      * the error count is not incremented.
      * This avoids concurrent requests from incrementing the error multiple times due to only one failing server.
      * </p>
+     *
      * @param expectedErrorCount the error count that is expected by the current thread
      * @return the new expected error count
      */
@@ -238,6 +249,10 @@ public class ApmServerClient {
 
     int getErrorCount() {
         return errorCount.get();
+    }
+
+    List<URL> getServerUrls() {
+        return this.serverUrls;
     }
 
     public interface ConnectionHandler<T> {
