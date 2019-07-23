@@ -69,7 +69,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. " +
             "Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans " +
-            "with durations equal or longer than the given value, e.g. 5 milliseconds.\n" +
+            "with durations equal to or longer than the given value, e.g. 5 milliseconds.\n" +
             "\n" +
             "To disable stack trace collection for spans completely, set the value to `0ms`.")
         .dynamic(true)
