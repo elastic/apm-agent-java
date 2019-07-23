@@ -71,14 +71,14 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
-                                      @Nullable TraceContext parentContext,
+        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext parentContext,
+                                      @Advice.This Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
                                       @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage,
                                       @Advice.Return(readOnly = false) Object span) {
-            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage);
+            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
         }
 
         @Nullable
@@ -86,10 +86,10 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
-                                                                @Nullable Iterable<Map.Entry<String, String>> baggage) {
+                                                                @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
             if (tracer != null) {
                 if (parentContext == null) {
-                    return createTransaction(tags, operationName, microseconds, baggage, tracer, TraceContext.class.getClassLoader());
+                    return createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                 } else {
                     if (microseconds >= 0) {
                         return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);

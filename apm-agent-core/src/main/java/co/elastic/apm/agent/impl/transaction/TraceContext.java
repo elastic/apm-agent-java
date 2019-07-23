@@ -101,6 +101,8 @@ public class TraceContext extends TraceContextHolder {
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
     private boolean discard;
+    @Nullable
+    private ClassLoader applicationClassLoader;
 
     /**
      * Avoids clock drifts within a transaction.
@@ -227,6 +229,7 @@ public class TraceContext extends TraceContextHolder {
         id.setToRandomValue();
         clock.init(parent.clock);
         serviceName = parent.serviceName;
+        applicationClassLoader = parent.applicationClassLoader;
         onMutation();
     }
 
@@ -245,6 +248,7 @@ public class TraceContext extends TraceContextHolder {
         discard = false;
         clock.resetState();
         serviceName = null;
+        applicationClassLoader = null;
     }
 
     /**
@@ -361,6 +365,7 @@ public class TraceContext extends TraceContextHolder {
         discard = other.discard;
         clock.init(other.clock);
         serviceName = other.serviceName;
+        applicationClassLoader = other.applicationClassLoader;
         onMutation();
     }
 
@@ -404,6 +409,15 @@ public class TraceContext extends TraceContextHolder {
     @Override
     public Span createSpan(long epochMicros) {
         return tracer.startSpan(fromParent(), this, epochMicros);
+    }
+
+    void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
+        this.applicationClassLoader = classLoader;
+    }
+
+    @Nullable
+    public ClassLoader getApplicationClassLoader() {
+        return applicationClassLoader;
     }
 
     public interface ChildContextCreator<T> {

@@ -26,7 +26,6 @@ package co.elastic.apm.agent.impl.payload;
 
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -80,7 +79,7 @@ class TransactionPayloadJsonSchemaTest {
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction(MockTracer.create());
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");

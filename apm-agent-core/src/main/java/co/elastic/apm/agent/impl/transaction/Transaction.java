@@ -94,7 +94,9 @@ public class Transaction extends AbstractSpan<Transaction> {
         super(tracer);
     }
 
-    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros, Sampler sampler) {
+    public <T> Transaction start(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, long epochMicros,
+                                 Sampler sampler, @Nullable ClassLoader initiatingClassLoader) {
+        traceContext.setApplicationClassLoader(initiatingClassLoader);
         if (parent == null || !childContextCreator.asChildOf(traceContext, parent)) {
             traceContext.asRootSpan(sampler);
         }

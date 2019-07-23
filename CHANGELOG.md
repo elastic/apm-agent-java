@@ -9,6 +9,9 @@
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
  * Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
 
+## Breaking changes
+ * The log correlation feature does not add `span.id` to the MDC anymore but only `trace.id` and `transaction.id` (see #742).
+
 # 1.7.0
 
 ## Features
