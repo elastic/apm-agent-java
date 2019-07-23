@@ -41,7 +41,7 @@ public final class HibernateSearchAssertionHelper {
         assertThat(span.getSubtype()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
         assertThat(span.getContext().getDb().getStatement()).isEqualTo(expectedQuery);
         assertThat(span.getType()).isEqualTo("db");
-        assertThat(span.getAction()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_ACTION);
+        assertThat(span.getAction()).isEqualTo(searchMethod);
         assertThat(span.getName().toString()).isEqualTo(buildSpanName(searchMethod));
     }
 

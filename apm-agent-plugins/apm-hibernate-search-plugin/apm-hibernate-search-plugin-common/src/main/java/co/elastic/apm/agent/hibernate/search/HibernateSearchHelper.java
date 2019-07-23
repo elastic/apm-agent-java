@@ -53,7 +53,7 @@ public final class HibernateSearchHelper {
 
             span.withType("db")
                 .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                .withAction(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_ACTION);
+                .withAction(methodName);
             span.getContext().getDb()
                 .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
                 .withStatement(query);
