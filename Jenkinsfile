@@ -258,30 +258,6 @@ pipeline {
         }
       }
     }
-    /**
-      Build the documentation.
-    */
-    stage('Documentation') {
-      agent { label 'linux && immutable' }
-      options { skipDefaultCheckout() }
-      environment {
-        HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
-      }
-      when {
-        beforeAgent true
-        expression { return params.doc_ci }
-      }
-      steps {
-        deleteDir()
-        unstash 'source'
-        dir("${BASE_DIR}"){
-          buildDocs(docsDir: "docs", archive: true)
-        }
-      }
-    }
     stage('Integration Tests') {
       agent none
       when {
