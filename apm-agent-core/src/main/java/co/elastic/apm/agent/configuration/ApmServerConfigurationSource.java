@@ -206,8 +206,6 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 logger.debug("Configuration did not change");
                 break;
             case SC_NOT_FOUND:
-                // means that there either is no configuration for this agent
-                // or that this is an APM Server < 7.3 which does not have the config endpoint
                 logger.debug("This APM Server does not support central configuration. Update to APM Server 7.3+");
                 break;
             case SC_FORBIDDEN:
