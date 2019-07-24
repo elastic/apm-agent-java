@@ -32,7 +32,6 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.FileNotFoundException;
@@ -51,6 +50,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 
 public class ApmServerClientTest {
 
@@ -71,9 +71,9 @@ public class ApmServerClientTest {
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .build();
-        reporterConfiguration = tracer.getConfig(ReporterConfiguration.class);
+        reporterConfiguration = config.getConfig(ReporterConfiguration.class);
 
-        Mockito.when(reporterConfiguration.getServerUrls()).thenReturn(Arrays.asList(url1, url2));
+        doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
 
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
