@@ -101,21 +101,27 @@ public class ElasticApmTracerBuilder {
     }
 
     public ElasticApmTracer build() {
+        boolean addApmServerConfigSource = false;
         if (configurationRegistry == null) {
+            addApmServerConfigSource = true;
             final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
         }
         final ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
-        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class));
+        final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
-        ApmServerConfigurationSource configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
-        configurationRegistry.addConfigurationSource(configurationSource);
+        ApmServerConfigurationSource configurationSource = null;
+        if (addApmServerConfigSource) {
+            configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
+            configurationRegistry.addConfigurationSource(configurationSource);
+        }
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
         if (lifecycleListeners.isEmpty()) {
-            lifecycleListeners.add(new ApmServerHealthChecker(apmServerClient));
-            lifecycleListeners.add(configurationSource);
+            if (configurationSource != null) {
+                lifecycleListeners.add(configurationSource);
+            }
             lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class));
         }
         return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
