@@ -33,7 +33,6 @@ pipeline {
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
-    booleanParam(name: 'doc_ci', defaultValue: true, description: 'Enable build documentation')
   }
 
   stages {
@@ -255,30 +254,6 @@ pipeline {
               }
             }
           }
-        }
-      }
-    }
-    /**
-      Build the documentation.
-    */
-    stage('Documentation') {
-      agent { label 'linux && immutable' }
-      options { skipDefaultCheckout() }
-      environment {
-        HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
-      }
-      when {
-        beforeAgent true
-        expression { return params.doc_ci }
-      }
-      steps {
-        deleteDir()
-        unstash 'source'
-        dir("${BASE_DIR}"){
-          buildDocs(docsDir: "docs", archive: true)
         }
       }
     }
