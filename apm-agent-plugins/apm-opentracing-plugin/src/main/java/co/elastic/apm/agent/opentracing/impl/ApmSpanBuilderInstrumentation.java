@@ -72,7 +72,7 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
 
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext parentContext,
-                                      @Advice.This Class<?> spanBuilderClass,
+                                      @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
