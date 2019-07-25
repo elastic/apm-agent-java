@@ -27,10 +27,12 @@ package co.elastic.apm.agent.impl.transaction;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.util.HexUtils;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.Callable;
 
 /**
@@ -56,6 +58,10 @@ public class TraceContext extends TraceContextHolder {
     private static final int PARENT_ID_OFFSET = 36;
     private static final int FLAGS_OFFSET = 53;
     private static final Logger logger = LoggerFactory.getLogger(TraceContext.class);
+    /**
+     * Helps to reduce allocations by caching {@link WeakReference}s to {@link ClassLoader}s
+     */
+    private static final WeakConcurrentMap<ClassLoader, WeakReference<ClassLoader>> classLoaderWeakReferenceCache = new WeakConcurrentMap.WithInlinedExpunction<>();
     private static final ChildContextCreator<TraceContextHolder<?>> FROM_PARENT = new ChildContextCreator<TraceContextHolder<?>>() {
         @Override
         public boolean asChildOf(TraceContext child, TraceContextHolder<?> parent) {
@@ -101,8 +107,9 @@ public class TraceContext extends TraceContextHolder {
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
     private byte flags;
     private boolean discard;
+    // weakly referencing to avoid CL leaks in case of leaked spans
     @Nullable
-    private ClassLoader applicationClassLoader;
+    private WeakReference<ClassLoader> applicationClassLoader;
 
     /**
      * Avoids clock drifts within a transaction.
@@ -412,12 +419,23 @@ public class TraceContext extends TraceContextHolder {
     }
 
     void setApplicationClassLoader(@Nullable ClassLoader classLoader) {
-        this.applicationClassLoader = classLoader;
+        if (classLoader != null) {
+            WeakReference<ClassLoader> local = classLoaderWeakReferenceCache.get(classLoader);
+            if (local == null) {
+                local = new WeakReference<>(classLoader);
+                classLoaderWeakReferenceCache.putIfAbsent(classLoader, local);
+            }
+            applicationClassLoader = local;
+        }
     }
 
     @Nullable
     public ClassLoader getApplicationClassLoader() {
-        return applicationClassLoader;
+        if (applicationClassLoader != null) {
+            return applicationClassLoader.get();
+        } else {
+            return null;
+        }
     }
 
     public interface ChildContextCreator<T> {
