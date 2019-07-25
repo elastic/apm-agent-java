@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.IntakeV2ReportingEventHandler;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReportingEvent;
@@ -54,7 +55,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MockReporter implements Reporter {
     private static final JsonSchema transactionSchema;
@@ -71,7 +74,9 @@ public class MockReporter implements Reporter {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
         spanSchema = getSchema("/schema/transactions/span.json");
         errorSchema = getSchema("/schema/errors/error.json");
-        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        ApmServerClient apmServerClient = mock(ApmServerClient.class);
+        when(apmServerClient.isAtLeast(any())).thenReturn(true);
+        dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
     }
 
     public MockReporter() {
