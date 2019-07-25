@@ -30,6 +30,7 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -73,7 +74,8 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
             final Object active = tracer.getActive();
             if (active == null) {
                 transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                    .withName(transactionName.isEmpty() ? signature : transactionName)
+                    .withName(transactionName, AbstractSpan.PRIO_USER_SUPPLIED)
+                    .withName(signature, AbstractSpan.PRIO_METHOD_SIGNATURE)
                     .withType(type)
                     .activate();
             } else {

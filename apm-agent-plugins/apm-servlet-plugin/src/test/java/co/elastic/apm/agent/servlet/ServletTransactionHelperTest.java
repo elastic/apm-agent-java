@@ -25,8 +25,10 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.MockReporter;
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.web.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,16 +58,16 @@ class ServletTransactionHelperTest {
 
     @Test
     void setTransactionNameByServletClass() {
-        StringBuilder transactionName = new StringBuilder();
-        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transactionName);
-        assertThat(transactionName.toString()).isEqualTo("ServletTransactionHelperTest#doGet");
+        Transaction transaction = new Transaction(MockTracer.create());
+        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction);
+        assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest#doGet");
     }
 
     @Test
     void setTransactionNameByServletClassNullMethod() {
-        StringBuilder transactionName = new StringBuilder();
-        ServletTransactionHelper.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transactionName);
-        assertThat(transactionName.toString()).isEqualTo("ServletTransactionHelperTest");
+        Transaction transaction = new Transaction(MockTracer.create());
+        ServletTransactionHelper.setTransactionNameByServletClass(null, ServletTransactionHelperTest.class, transaction);
+        assertThat(transaction.getNameAsString()).isEqualTo("ServletTransactionHelperTest");
     }
 
     @Test
@@ -82,10 +84,23 @@ class ServletTransactionHelperTest {
         assertThat(getTransactionName("GET", "/foo/bar/baz/quux/qux")).isEqualTo("GET /foo/bar/*/qux");
     }
 
+    @Test
+    void testGroupUrlsOverridesServletName() {
+        when(webConfig.isUsePathAsName()).thenReturn(true);
+        when(webConfig.getUrlGroups()).thenReturn(List.of(
+            WildcardMatcher.valueOf("/foo/bar/*")
+        ));
+
+        Transaction transaction = new Transaction(MockTracer.create());
+        ServletTransactionHelper.setTransactionNameByServletClass("GET", ServletTransactionHelperTest.class, transaction);
+        servletTransactionHelper.applyDefaultTransactionName("GET", "/foo/bar/baz", null, transaction);
+        assertThat(transaction.getNameAsString()).isEqualTo("GET /foo/bar/*");
+    }
+
     @Nonnull
     private String getTransactionName(String method, String path) {
-        StringBuilder transactionName = new StringBuilder();
-        servletTransactionHelper.applyDefaultTransactionName(method, path, null, transactionName);
-        return transactionName.toString();
+        Transaction transaction = new Transaction(MockTracer.create());
+        servletTransactionHelper.applyDefaultTransactionName(method, path, null, transaction);
+        return transaction.getNameAsString();
     }
 }

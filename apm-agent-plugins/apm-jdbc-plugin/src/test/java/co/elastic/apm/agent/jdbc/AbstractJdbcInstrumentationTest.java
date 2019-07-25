@@ -67,7 +67,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("transaction");
+        transaction.withName("transaction");
         transaction.withType("request");
         transaction.withResult("success");
     }
@@ -125,7 +125,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
         assertThat(reporter.getSpans()).hasSize(1);
         Span jdbcSpan = reporter.getFirstSpan();
-        assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT FROM ELASTIC_APM");
+        assertThat(jdbcSpan.getNameAsString()).isEqualTo("SELECT FROM ELASTIC_APM");
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
         assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);

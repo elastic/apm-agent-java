@@ -523,7 +523,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());
-        writeField("name", transaction.getName());
+        writeField("name", transaction.getNameForSerialization());
         serializeTraceContext(transaction.getTraceContext(), false);
         writeField("type", transaction.getType());
         writeField("duration", transaction.getDurationMs());
@@ -564,7 +564,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     private void serializeSpan(final Span span) {
         jw.writeByte(OBJECT_START);
-        writeField("name", span.getName());
+        writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
         serializeTraceContext(span.getTraceContext(), true);
         writeField("duration", span.getDurationMs());

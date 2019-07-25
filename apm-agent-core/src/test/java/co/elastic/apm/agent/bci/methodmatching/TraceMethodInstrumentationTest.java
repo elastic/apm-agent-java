@@ -88,18 +88,18 @@ class TraceMethodInstrumentationTest {
     void testTraceMethod() {
         TestClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestClass#traceMe");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("TestClass#traceMeToo");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TestClass#traceMeToo");
     }
 
     @Test
     void testExcludedMethod() {
         TestClass.traceMeAsWell();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestClass#traceMeAsWell");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMeAsWell");
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("TestClass#traceMeToo");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TestClass#traceMeToo");
     }
 
     @Test
@@ -122,7 +122,7 @@ class TraceMethodInstrumentationTest {
         assertThat(reporter.getTransactions()).isEmpty();
         testClass.traceMe();
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("TestExcludeConstructor#traceMe");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestExcludeConstructor#traceMe");
     }
 
     @Test

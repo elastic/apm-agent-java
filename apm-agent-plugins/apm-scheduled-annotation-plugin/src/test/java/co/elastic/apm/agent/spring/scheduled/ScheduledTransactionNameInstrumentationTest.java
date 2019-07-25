@@ -70,7 +70,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduled();
         springCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduled");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduled");
     }
 
     @Test
@@ -80,7 +80,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava8Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava8Repeatable");
     }
 
     @Test
@@ -90,7 +90,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava7Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava7Repeatable");
     }
 
     @Test
@@ -100,7 +100,7 @@ class ScheduledTransactionNameInstrumentationTest {
         jeeCounter.scheduled();
         jeeCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduled");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduled");
     }
 
     @Test
@@ -110,7 +110,7 @@ class ScheduledTransactionNameInstrumentationTest {
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduledJava7Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduledJava7Repeatable");
     }
 
 

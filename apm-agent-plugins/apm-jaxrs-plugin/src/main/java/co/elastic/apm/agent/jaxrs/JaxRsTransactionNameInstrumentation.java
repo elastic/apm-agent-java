@@ -45,6 +45,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -77,7 +78,7 @@ public class JaxRsTransactionNameInstrumentation extends ElasticApmInstrumentati
                         transactionName = pathAnnotationValue;
                     }
                 }
-                transaction.withName(transactionName);
+                transaction.withName(transactionName, PRIO_HIGH_LEVEL_FRAMEWORK);
             }
         }
     }

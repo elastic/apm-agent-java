@@ -118,11 +118,6 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         return context;
     }
 
-    public Span withName(@Nullable String name) {
-        setName(name);
-        return this;
-    }
-
     /**
      * Keywords of specific relevance in the span's domain (eg: 'db', 'template', 'ext', etc)
      */

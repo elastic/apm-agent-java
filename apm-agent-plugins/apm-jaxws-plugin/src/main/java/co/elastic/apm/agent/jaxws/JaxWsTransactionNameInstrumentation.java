@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.jaxws;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -43,6 +42,7 @@ import java.util.Collections;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.overridesOrImplementsMethodThat;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -61,8 +61,8 @@ public class JaxWsTransactionNameInstrumentation extends ElasticApmInstrumentati
     private static void setTransactionName(@SimpleMethodSignature String signature) {
         if (tracer != null) {
             final Transaction transaction = tracer.currentTransaction();
-            if (transaction != null && transaction.getName().length() == 0) {
-                transaction.withName(signature);
+            if (transaction != null) {
+                transaction.withName(signature, PRIO_HIGH_LEVEL_FRAMEWORK);
             }
         }
     }

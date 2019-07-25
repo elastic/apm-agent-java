@@ -54,7 +54,7 @@ class JaxWsTransactionNameInstrumentationTest extends AbstractInstrumentationTes
         } finally {
             transaction.end();
         }
-        assertThat(transaction.getName().toString()).isEqualTo("HelloWorldServiceImpl#sayHello");
+        assertThat(transaction.getNameAsString()).isEqualTo("HelloWorldServiceImpl#sayHello");
     }
 
     @SOAPBinding(style = SOAPBinding.Style.RPC)
