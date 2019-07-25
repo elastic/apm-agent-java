@@ -354,6 +354,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "----\n")
         .buildWithDefault("co.elastic.apm.agent.*");
 
+    private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
+        .key("breakdown_metrics")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Disables the collection of breakdown metrics (`span.self_time`)")
+        .buildWithDefault(true);
+
     public boolean isActive() {
         return active.get();
     }
@@ -439,5 +445,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public Map<String, String> getGlobalLabels() {
         return globalLabels.get();
+    }
+
+    public boolean isBreakdownMetricsEnabled() {
+        return breakdownMetrics.get();
     }
 }

@@ -73,6 +73,7 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
+** <<config-breakdown-metrics>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -512,6 +513,26 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
+|============
+
+[float]
+[[config-breakdown-metrics]]
+==== `breakdown_metrics`
+
+Disables the collection of breakdown metrics (`span.self_time`)
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
 |============
 
 [[config-http]]
@@ -1071,8 +1092,6 @@ Disables the collection of certain metrics.
 If the name of a metric matches any of the wildcard expressions, it will not be collected.
 Example: `foo.*,bar.*`
 
-To disable all breakdown metric collection code paths, add `span.self_time` to the list.
-
 This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
@@ -1419,6 +1438,14 @@ The default unit for this option is `ms`
 #
 # boot_delegation_packages=co.elastic.apm.agent.*
 
+# Disables the collection of breakdown metrics (`span.self_time`)
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# breakdown_metrics=true
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -1728,8 +1755,6 @@ The default unit for this option is `ms`
 # Disables the collection of certain metrics.
 # If the name of a metric matches any of the wildcard expressions, it will not be collected.
 # Example: `foo.*,bar.*`
-# 
-# To disable all breakdown metric collection code paths, add `span.self_time` to the list.
 # 
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
