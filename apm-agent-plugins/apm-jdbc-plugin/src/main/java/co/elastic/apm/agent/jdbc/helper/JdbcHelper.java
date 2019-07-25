@@ -24,13 +24,43 @@
  */
 package co.elastic.apm.agent.jdbc.helper;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;
 
-public interface JdbcHelper {
+public abstract class JdbcHelper {
+    @SuppressWarnings("WeakerAccess")
+    @VisibleForAdvice
+    public static final WeakConcurrentMap<Object, String> statementSqlMap = new WeakConcurrentMap<>(true);
+
+    /**
+     * Maps the provided sql to the provided Statement object
+     *
+     * @param statement javax.sql.Statement object
+     * @param sql       query string
+     */
+    public static void mapStatementToSql(Object statement, String sql) {
+        statementSqlMap.putIfAbsent(statement, sql);
+    }
+
+    /**
+     * Returns the SQL statement belonging to provided Statement.
+     * <p>
+     * Might return {@code null} when the provided Statement is a wrapper of the actual statement.
+     * </p>
+     *
+     * @return the SQL statement belonging to provided Statement, or {@code null}
+     */
     @Nullable
-    Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
+    public static String retrieveSqlForStatement(Object statement) {
+        return statementSqlMap.get(statement);
+    }
+
+
+    @Nullable
+    public abstract Span createJdbcSpan(@Nullable String sql, Connection connection, @Nullable TraceContextHolder<?> parent, boolean preparedStatement);
 }
