@@ -38,7 +38,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
-public class JdbcHelperImpl implements JdbcHelper {
+public class JdbcHelperImpl extends JdbcHelper {
     public static final String DB_SPAN_TYPE = "db";
     public static final String DB_SPAN_ACTION = "query";
 

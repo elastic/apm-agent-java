@@ -88,7 +88,7 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         handler = exchange -> {
-            if (!exchange.getRequestPath().equals("/healthcheck")) {
+            if (!exchange.getRequestPath().equals("/")) {
                 receivedHttpRequests.incrementAndGet();
             }
             exchange.setStatusCode(200).endExchange();
@@ -101,12 +101,13 @@ class ApmServerReporterIntegrationTest {
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
         final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             processorEventHandler,
-            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
             new MetaData(title, service, system, Collections.emptyMap()),
-            new ApmServerClient(reporterConfiguration));
+            apmServerClient);
         reporter = new ApmServerReporter(false, reporterConfiguration, config.getConfig(CoreConfiguration.class), v2handler);
     }
 
