@@ -38,6 +38,7 @@ import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
 
@@ -60,12 +62,14 @@ class DslJsonSerializerTest {
 
     private DslJsonSerializer serializer;
     private ObjectMapper objectMapper;
+    private ApmServerClient apmServerClient;
 
     @BeforeEach
     void setUp() {
         StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
         when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
-        serializer = new DslJsonSerializer(stacktraceConfiguration);
+        apmServerClient = mock(ApmServerClient.class);
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient);
         objectMapper = new ObjectMapper();
     }
 
@@ -81,6 +85,15 @@ class DslJsonSerializerTest {
             final String truncatedLongRandomString = longRandomString.substring(0, 1023) + "…";
             softly.assertThat(serializeTags(Map.of(longRandomString, longRandomString))).isEqualTo(toJson(Map.of(truncatedLongRandomString, truncatedLongRandomString)));
         });
+    }
+
+    @Test
+    void testSerializeNonStringLabels() {
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(true);
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Map.of("foo", true)));
+
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
     }
 
     @Test
@@ -223,7 +236,7 @@ class DslJsonSerializerTest {
         assertThat(metaDataJson.get("labels").get("baz").textValue()).isEqualTo("qux");
     }
 
-    private String toJson(Map<String, String> map) {
+    private String toJson(Map<String, Object> map) {
         try {
             return objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {
@@ -231,9 +244,17 @@ class DslJsonSerializerTest {
         }
     }
 
-    private String serializeTags(Map<String, String> tags) {
+    private String serializeTags(Map<String, Object> tags) {
         final AbstractContext context = new AbstractContext() {};
-        tags.forEach(context::addLabel);
+        for (Map.Entry<String, Object> entry : tags.entrySet()) {
+            if (entry.getValue() instanceof String) {
+                context.addLabel(entry.getKey(), (String) entry.getValue());
+            } else if (entry.getValue() instanceof Boolean) {
+                context.addLabel(entry.getKey(), (Boolean) entry.getValue());
+            } else if (entry.getValue() instanceof Number) {
+                context.addLabel(entry.getKey(), (Number) entry.getValue());
+            }
+        }
         serializer.serializeLabels(context);
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.impl;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -43,6 +44,7 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 class SpanTypeBreakdownTest {
 
@@ -70,6 +72,25 @@ class SpanTypeBreakdownTest {
             assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(30);
             assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
             assertThatTransactionBreakdownCounterCreated(metricSets);
+        });
+    }
+
+    /*
+     * ██████████████████████████████
+     *          10        20        30
+     */
+    @Test
+    void testBreakdown_disabled() {
+        when(tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled()).thenReturn(false);
+        tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+            .withName("test")
+            .withType("request")
+            .end(30);
+        tracer.getMetricRegistry().report(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "app", null)).isNull();
+            assertThat(getTimer(metricSets, "span.self_time", "app", null)).isNull();
+            assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+            assertThat(metricSets.get(Labels.Mutable.of().transactionName("test").transactionType("request")).getCounters().get("transaction.breakdown.count")).isNull();
         });
     }
 
