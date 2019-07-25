@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.IOUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -61,7 +62,7 @@ class TransactionPayloadJsonSchemaTest {
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
         objectMapper = new ObjectMapper();
-        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class));
     }
 
     private TransactionPayload createPayloadWithRequiredValues() {
@@ -111,7 +112,7 @@ class TransactionPayloadJsonSchemaTest {
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(new Transaction(MockTracer.create()));
-        final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class)).toJsonString(payload);
+        final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class)).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
     }

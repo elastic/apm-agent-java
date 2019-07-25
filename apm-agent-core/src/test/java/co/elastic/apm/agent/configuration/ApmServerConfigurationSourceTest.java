@@ -31,11 +31,10 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,7 +46,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.okForJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -56,6 +57,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.matching.RequestPatternBuilder.newRequestPattern;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
@@ -75,11 +77,14 @@ public class ApmServerConfigurationSourceTest {
     @Before
     public void setUp() throws Exception {
         config = SpyConfiguration.createSpyConfig();
-        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
-        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(ResponseDefinitionBuilder.okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
+        mockApmServer.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.0.0"))));
+        mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).willReturn(okForJson(Map.of("foo", "bar")).withHeader("ETag", "foo")));
         mockApmServer.stubFor(post(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")).willReturn(status(304)));
+        apmServerClient = new ApmServerClient(config.getConfig(ReporterConfiguration.class), List.of(new URL("http", "localhost", mockApmServer.port(), "/")));
         mockLogger = mock(Logger.class);
-        configurationSource = new ApmServerConfigurationSource(new DslJsonSerializer(mock(StacktraceConfiguration.class)), MetaData.create(config, null, null), apmServerClient, mockLogger);
+        configurationSource = new ApmServerConfigurationSource(
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
+            MetaData.create(config, null, null), apmServerClient, mockLogger);
     }
 
     @Test
@@ -89,7 +94,7 @@ public class ApmServerConfigurationSourceTest {
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")));
         configurationSource.fetchConfig(config);
         mockApmServer.verify(postRequestedFor(urlEqualTo("/config/v1/agents")).withHeader("If-None-Match", equalTo("foo")));
-        for (LoggedRequest request : WireMock.findAll(RequestPatternBuilder.allRequests())) {
+        for (LoggedRequest request : WireMock.findAll(newRequestPattern(RequestMethod.POST, urlEqualTo("/config/v1/agents")))) {
             final JsonNode jsonNode = new ObjectMapper().readTree(request.getBodyAsString());
             assertThat(jsonNode.get("service")).isNotNull();
             assertThat(jsonNode.get("system")).isNotNull();

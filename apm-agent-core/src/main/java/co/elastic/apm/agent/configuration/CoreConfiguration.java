@@ -361,6 +361,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(true);
 
+    private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
+        .key("breakdown_metrics")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Disables the collection of breakdown metrics (`span.self_time`)")
+        .buildWithDefault(true);
+
     public boolean isActive() {
         return active.get();
     }
@@ -450,5 +456,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     boolean isCentralConfigEnabled() {
         return centralConfig.get();
+    }
+
+    public boolean isBreakdownMetricsEnabled() {
+        return breakdownMetrics.get();
     }
 }

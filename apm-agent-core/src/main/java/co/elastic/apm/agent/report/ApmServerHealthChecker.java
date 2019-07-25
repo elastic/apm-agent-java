@@ -24,36 +24,49 @@
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.context.LifecycleListener;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.Version;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonReader;
+import com.dslplatform.json.MapConverter;
+import com.dslplatform.json.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.HttpURLConnection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class ApmServerHealthChecker implements Runnable, LifecycleListener {
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class ApmServerHealthChecker implements Callable<Version> {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
     private final ApmServerClient apmServerClient;
+    private final DslJson<Object> dslJson = new DslJson<>();
 
     public ApmServerHealthChecker(ApmServerClient apmServerClient) {
         this.apmServerClient = apmServerClient;
     }
 
-    @Override
-    public void start(ElasticApmTracer tracer) {
+    public Future<Version> checkHealthAndGetMinVersion() {
         ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("apm-server-healthcheck", 1);
-        pool.execute(this);
-        pool.shutdown();
+        try {
+            return pool.submit(this);
+        } finally {
+            pool.shutdown();
+        }
     }
 
+    @Nullable
     @Override
-    public void run() {
-        apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Void>() {
+    public Version call() {
+        List<Version> versions = apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Version>() {
             @Override
-            public Void withConnection(HttpURLConnection connection) {
+            public Version withConnection(HttpURLConnection connection) {
                 try {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Starting healthcheck to {}", connection.getURL());
@@ -69,7 +82,12 @@ public class ApmServerHealthChecker implements Runnable, LifecycleListener {
                         }
                     } else {
                         // prints out the version info of the APM Server
-                        logger.info("Elastic APM server is available: {}", HttpUtils.getBody(connection));
+                        String body = HttpUtils.getBody(connection);
+                        logger.info("Elastic APM server is available: {}", body);
+                        final JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
+                        reader.startObject();
+                        String versionString = MapConverter.deserialize(reader).get("version");
+                        return new Version(versionString);
                     }
                 } catch (Exception e) {
                     logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
@@ -77,9 +95,10 @@ public class ApmServerHealthChecker implements Runnable, LifecycleListener {
                 return null;
             }
         });
-    }
-
-    @Override
-    public void stop() {
+        versions.remove(null);
+        if (!versions.isEmpty()) {
+            return Collections.min(versions);
+        }
+        return null;
     }
 }

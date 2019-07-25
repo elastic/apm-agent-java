@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -117,7 +118,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
-        collectBreakdownMetrics = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
+        boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
+        boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
+        collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
     }
 
     public boolean isReferenced() {

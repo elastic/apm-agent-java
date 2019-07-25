@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +46,7 @@ import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -64,7 +66,7 @@ class StacktraceSerializationTest {
         stacktraceConfiguration = tracer.getConfig(StacktraceConfiguration.class);
         // always enable
         when(stacktraceConfiguration.getSpanFramesMinDurationMs()).thenReturn(-1L);
-        serializer = new DslJsonSerializer(stacktraceConfiguration);
+        serializer = new DslJsonSerializer(stacktraceConfiguration, mock(ApmServerClient.class));
         objectMapper = new ObjectMapper();
         stacktrace = getStackTrace();
     }

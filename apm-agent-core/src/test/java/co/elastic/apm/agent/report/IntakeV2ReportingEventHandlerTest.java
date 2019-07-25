@@ -110,14 +110,14 @@ class IntakeV2ReportingEventHandlerTest {
         reportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
             new MetaData(title, service, system, Collections.emptyMap()), apmServerClient);
         final ProcessInfo title1 = new ProcessInfo("title");
         final Service service1 = new Service();
         nonConnectedReportingEventHandler = new IntakeV2ReportingEventHandler(
             reporterConfiguration,
             mock(ProcessorEventHandler.class),
-            new DslJsonSerializer(mock(StacktraceConfiguration.class)),
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
             new MetaData(title1, service1, system, Collections.emptyMap()),
             new ApmServerClient(reporterConfiguration, List.of(new URL("http://non.existing:8080"))));
     }
