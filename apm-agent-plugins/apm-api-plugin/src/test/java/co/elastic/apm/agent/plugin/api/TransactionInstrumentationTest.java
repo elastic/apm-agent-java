@@ -79,6 +79,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         transaction.setResult("foo");
         endTransaction();
         assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().isUserDefinedResult()).isEqualTo(true);
+        reporter.getFirstTransaction().withResult("200");
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
     }
 
     @Test

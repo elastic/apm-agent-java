@@ -73,10 +73,16 @@ public class Transaction extends AbstractSpan<Transaction> {
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
 
     /**
-     * The result of the transaction. HTTP status code for HTTP-related transactions.
+     * The result of the transaction. HTTP status code for HTTP-related
+     * transactions.
      */
     @Nullable
     private String result;
+    
+    /**
+     * true if the result was set by the Transaction.setResult
+     */
+    private boolean userDefinedResult;
 
     /**
      * Noop transactions won't be reported at all, in contrast to non-sampled transactions.
@@ -158,10 +164,27 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
+     * true if the result was set by the Transaction.setResult
+     */
+    public boolean isUserDefinedResult() {
+        return userDefinedResult;
+    }
+
+    /**
      * The result of the transaction. HTTP status code for HTTP-related transactions.
      */
     public Transaction withResult(@Nullable String result) {
+        if (!userDefinedResult) {
+            this.result = result;
+        }
+        return this;
+    }
+    /**
+     * The result of the transaction set withTransaction.setResult. HTTP status code for HTTP-related transactions.
+     */
+    public Transaction withUserResult(@Nullable String result) {
         this.result = result;
+        this.userDefinedResult = true;
         return this;
     }
 
@@ -203,6 +226,7 @@ public class Transaction extends AbstractSpan<Transaction> {
         super.resetState();
         context.resetState();
         result = null;
+        userDefinedResult = false;
         spanCount.resetState();
         noop = false;
         type = null;

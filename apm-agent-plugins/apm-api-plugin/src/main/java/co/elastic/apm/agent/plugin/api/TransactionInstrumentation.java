@@ -99,7 +99,7 @@ public class TransactionInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void ensureParentId(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) Transaction transaction,
                                            @Advice.Argument(0) String result) {
-            transaction.withResult(result);
+            transaction.withUserResult(result);
         }
     }
 
