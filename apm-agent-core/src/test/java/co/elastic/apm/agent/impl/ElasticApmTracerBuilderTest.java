@@ -39,25 +39,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmTracerBuilderTest {
 
-    private static final String CONFIG_FILE_LOCATION_PROPERTY = "elastic.apm.config_file_location";
 
     @AfterEach
     void tearDown() {
-        System.clearProperty(CONFIG_FILE_LOCATION_PROPERTY);
+        System.clearProperty("elastic.apm." + CoreConfiguration.CONFIG_FILE);
     }
 
     @Test
     void testConfigFileLocation(@TempDir Path tempDir) throws IOException {
         Path file = Files.createFile(tempDir.resolve("elastic-apm-test.properties"));
         Files.write(file, List.of("instrument=false"));
-        System.setProperty(CONFIG_FILE_LOCATION_PROPERTY, file.toString());
+        System.setProperty("elastic.apm." + CoreConfiguration.CONFIG_FILE, file.toString());
 
         ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder().build().getConfigurationRegistry();
         CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
 
         // tests that changing non-dynamic properties also works
         assertThat(config.isInstrument()).isFalse();
-        configurationRegistry.getString("config_file_location");
-        assertThat(configurationRegistry.getString("config_file_location")).isEqualTo(file.toString());
+        configurationRegistry.getString(CoreConfiguration.CONFIG_FILE);
+        assertThat(configurationRegistry.getString(CoreConfiguration.CONFIG_FILE)).isEqualTo(file.toString());
     }
 }

@@ -56,8 +56,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE_LOCATION = "_AGENT_HOME_/elasticapm.properties";
-    public static final String CONFIG_FILE_LOCATION = "config_file_location";
+    public static final String DEFAULT_CONFIG_FILE = "_AGENT_HOME_/elasticapm.properties";
+    public static final String CONFIG_FILE = "config_file";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -366,12 +366,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
-        .key(CONFIG_FILE_LOCATION)
+        .key(CONFIG_FILE)
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
             "The location can either be in the classpath of the application or on the file system.")
-        .buildWithDefault(DEFAULT_CONFIG_FILE_LOCATION);
+        .buildWithDefault(DEFAULT_CONFIG_FILE);
 
     public boolean isActive() {
         return active.get();
@@ -469,9 +469,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
      */
     @Nullable
     public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
-        String configFileLocation = DEFAULT_CONFIG_FILE_LOCATION;
+        String configFileLocation = DEFAULT_CONFIG_FILE;
         for (ConfigurationSource configurationSource : configurationSources) {
-            String valueFromSource = configurationSource.getValue(CONFIG_FILE_LOCATION);
+            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
             if (valueFromSource != null) {
                 configFileLocation = valueFromSource;
                 break;
