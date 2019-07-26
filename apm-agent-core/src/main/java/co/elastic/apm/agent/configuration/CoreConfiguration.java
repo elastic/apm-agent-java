@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.configuration;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
@@ -36,6 +37,7 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -45,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
@@ -53,6 +56,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
+    public static final String DEFAULT_CONFIG_FILE_LOCATION = "_AGENT_HOME_/elasticapm.properties";
+    public static final String CONFIG_FILE_LOCATION = "config_file_location";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -360,6 +365,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("Disables the collection of breakdown metrics (`span.self_time`)")
         .buildWithDefault(true);
 
+    private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
+        .key(CONFIG_FILE_LOCATION)
+        .configurationCategory(CORE_CATEGORY)
+        .description("Sets the path of the agent config file.\n" +
+            "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
+            "The location can either be in the classpath of the application or on the file system.")
+        .buildWithDefault(DEFAULT_CONFIG_FILE_LOCATION);
+
     public boolean isActive() {
         return active.get();
     }
@@ -449,5 +462,30 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isBreakdownMetricsEnabled() {
         return breakdownMetrics.get();
+    }
+
+    /*
+     * Makes sure to not initialize ConfigurationOption, which would initialize the logger
+     */
+    @Nullable
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
+        String configFileLocation = DEFAULT_CONFIG_FILE_LOCATION;
+        for (ConfigurationSource configurationSource : configurationSources) {
+            String valueFromSource = configurationSource.getValue(CONFIG_FILE_LOCATION);
+            if (valueFromSource != null) {
+                configFileLocation = valueFromSource;
+                break;
+            }
+        }
+        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+            String agentHome = ElasticApmAgent.getAgentHome();
+            if (agentHome != null) {
+                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            } else {
+                return null;
+            }
+        } else {
+            return configFileLocation;
+        }
     }
 }

@@ -59,7 +59,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
-    private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
+    public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     private static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
