@@ -4,7 +4,7 @@
  * Add support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
  * Add support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
  * Added support for setting `server_urls` dynamically via properties file [#723](https://github.com/elastic/apm-agent-java/issues/723)
- * Add [`config_file_location`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-config-file-location) option 
+ * Add [`config_file`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-config-file) option 
 
 ## Bug Fixes
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
