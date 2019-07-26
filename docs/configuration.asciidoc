@@ -18,7 +18,6 @@ The first configuration sources override the configuration values of over the la
 . `elasticapm.properties` file +
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
   No prefix is required for the configuration keys.
-  To customize the location of the properties file, set the <<config-config-file-location>> option.
 
 Configuration options marked with Dynamic true can be changed at runtime
 via configuration sources which support dynamic reloading. The `elasticapm.properties` file is
