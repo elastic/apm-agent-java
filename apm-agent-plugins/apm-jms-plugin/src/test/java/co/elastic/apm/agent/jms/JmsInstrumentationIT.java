@@ -118,6 +118,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
+        if (!brokerFacade.shouldTestReceiveNoWait()) {
+            return;
+        }
         final Queue queue = createQueue();
         testQueueSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
@@ -130,6 +133,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
+        if (!brokerFacade.shouldTestReceiveNoWait()) {
+            return;
+        }
         final Queue queue = createQueue();
         testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }

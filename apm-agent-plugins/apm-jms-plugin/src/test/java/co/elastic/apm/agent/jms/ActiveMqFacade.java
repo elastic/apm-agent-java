@@ -144,6 +144,11 @@ class ActiveMqFacade implements BrokerFacade {
     }
 
     @Override
+    public boolean shouldTestReceiveNoWait() {
+        return false;
+    }
+
+    @Override
     public Message receiveNoWait(Destination destination) throws JMSException {
         return session.createConsumer(destination).receiveNoWait();
     }

@@ -151,6 +151,10 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
      */
     @Nullable
     String fetchConfig(final ConfigurationRegistry configurationRegistry) {
+        if (!configurationRegistry.getConfig(CoreConfiguration.class).isCentralConfigEnabled()) {
+            logger.debug("Remote configuration is disabled");
+            return null;
+        }
         try {
             return apmServerClient.execute("/config/v1/agents", new ApmServerClient.ConnectionHandler<String>() {
                 @Override
@@ -177,11 +181,11 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         payloadSerializer.setOutputStream(connection.getOutputStream());
         payloadSerializer.serializeMetadata(metaData);
         payloadSerializer.flush();
+        etag = connection.getHeaderField("ETag");
 
         final int status = connection.getResponseCode();
         switch (status) {
             case SC_OK:
-                etag = connection.getHeaderField("ETag");
                 InputStream is = connection.getInputStream();
                 final JsonReader<Object> reader = dslJson.newReader(is, buffer);
                 reader.startObject();
@@ -202,16 +206,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 logger.debug("Configuration did not change");
                 break;
             case SC_NOT_FOUND:
-                etag = null;
-                // means that there either is no configuration for this agent
-                // or that this is an APM Server < 7.3 which does not have the config endpoint
-                logger.debug("No remote config found for this agent");
-                // makes sure to remove the configuration if all configs are deleted for this agent in Kibana
-                if (!config.isEmpty()) {
-                    logger.info("Received new configuration from APM Server: <empty>");
-                }
-                config = Collections.emptyMap();
-                configurationRegistry.reloadDynamicConfigurationOptions();
+                logger.debug("This APM Server does not support central configuration. Update to APM Server 7.3+");
                 break;
             case SC_FORBIDDEN:
                 logger.debug("Central configuration is disabled. Set kibana.enabled: true in your APM Server configuration.");
