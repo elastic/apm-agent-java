@@ -25,6 +25,7 @@
 package co.elastic.apm.api;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -76,6 +77,11 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
     public static void tearDown() {
         blockingQueue.clear();
         executorService.shutdownNow();
+    }
+
+    @After
+    public void after() {
+        reporter.reset();
     }
 
     @Test
