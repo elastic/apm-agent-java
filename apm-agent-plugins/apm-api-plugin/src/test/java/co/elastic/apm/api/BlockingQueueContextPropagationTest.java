@@ -54,13 +54,16 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
                     ElasticApmQueueElementWrapper<CompletableFuture<String>> element = blockingQueue.take();
                     Thread.sleep(100);
                     final Span span = element.getSpan();
-                    span.setStartTimestamp(TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime()));
+                    if (!(span instanceof Transaction)) {
+                        span.setStartTimestamp(TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime()));
+                    }
                     final CompletableFuture<String> result = element.getWrappedObject();
                     try (Scope scope = span.activate()) {
+                        String spanId = ElasticApm.currentSpan().getId();
                         Thread.sleep(10);
-                        result.complete(ElasticApm.currentSpan().getId());
+                        span.end();
+                        result.complete(spanId);
                     }
-                    span.end();
                 } catch (InterruptedException e) {
                     // do nothing
                 }
@@ -75,8 +78,30 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
     }
 
     @Test
-    public void testAsyncDelegation() {
+    public void testAsyncTransactionDelegation() {
         Transaction transaction = ElasticApm.startTransaction();
+        long startTime = TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime());
+        transaction.setStartTimestamp(startTime);
+        try (Scope scope = transaction.activate()) {
+            final CompletableFuture<String> result = new CompletableFuture<>();
+            blockingQueue.offer(new ElasticApmQueueElementWrapper<>(result, transaction));
+            assertThat(result.get()).isEqualTo(transaction.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        co.elastic.apm.agent.impl.transaction.Transaction reportedTransaction = reporter.getFirstTransaction();
+        assertThat(reportedTransaction).isNotNull();
+        assertThat(reportedTransaction.getTraceContext().getId().toString()).isEqualTo(transaction.getId());
+        assertThat(reportedTransaction.getTimestamp()).isEqualTo(startTime);
+        assertThat(reportedTransaction.getDuration()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(110));
+        assertThat(reporter.getSpans()).isEmpty();
+    }
+
+    @Test
+    public void testAsyncSpanDelegation() {
+        Transaction transaction = ElasticApm.startTransaction();
+        long startTime = TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime());
+        transaction.setStartTimestamp(startTime);
         try (Scope scope = transaction.activate()) {
             final Span asyncSpan = ElasticApm.currentSpan().startSpan("async", "blocking-queue", null);
             final CompletableFuture<String> result = new CompletableFuture<>();
@@ -89,6 +114,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         co.elastic.apm.agent.impl.transaction.Transaction reportedTransaction = reporter.getFirstTransaction();
         assertThat(reportedTransaction).isNotNull();
         long transactionTimestamp = reportedTransaction.getTimestamp();
+        assertThat(transactionTimestamp).isEqualTo(startTime);
         co.elastic.apm.agent.impl.transaction.Span reportedSpan = reporter.getFirstSpan();
         assertThat(reportedSpan.getTraceContext().getTraceId()).isEqualTo(reportedTransaction.getTraceContext().getTraceId());
         assertThat(reportedSpan).isNotNull();
