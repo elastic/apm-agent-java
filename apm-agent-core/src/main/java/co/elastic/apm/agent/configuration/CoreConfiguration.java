@@ -354,6 +354,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "----\n")
         .buildWithDefault("co.elastic.apm.agent.*");
 
+    private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
+        .key("central_config")
+        .configurationCategory(CORE_CATEGORY)
+        .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
+        .key("breakdown_metrics")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Disables the collection of breakdown metrics (`span.self_time`)")
+        .buildWithDefault(true);
+
     public boolean isActive() {
         return active.get();
     }
@@ -439,5 +452,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public Map<String, String> getGlobalLabels() {
         return globalLabels.get();
+    }
+
+    boolean isCentralConfigEnabled() {
+        return centralConfig.get();
+    }
+
+    public boolean isBreakdownMetricsEnabled() {
+        return breakdownMetrics.get();
     }
 }

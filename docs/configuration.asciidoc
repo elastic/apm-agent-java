@@ -73,6 +73,7 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
+** <<config-breakdown-metrics>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -514,6 +515,26 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 | `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
 
+[float]
+[[config-breakdown-metrics]]
+==== `breakdown_metrics`
+
+Disables the collection of breakdown metrics (`span.self_time`)
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
+|============
+
 [[config-http]]
 === HTTP configuration options
 [float]
@@ -882,7 +903,7 @@ See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/tech
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | List | false
+| `http://localhost:8200` | List | true
 |============
 
 
@@ -1071,8 +1092,6 @@ Disables the collection of certain metrics.
 If the name of a metric matches any of the wildcard expressions, it will not be collected.
 Example: `foo.*,bar.*`
 
-To disable all breakdown metric collection code paths, add `span.self_time` to the list.
-
 This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
@@ -1145,7 +1164,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
+When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to `0ms`.
 
@@ -1419,6 +1438,14 @@ The default unit for this option is `ms`
 #
 # boot_delegation_packages=co.elastic.apm.agent.*
 
+# Disables the collection of breakdown metrics (`span.self_time`)
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# breakdown_metrics=true
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -1633,7 +1660,7 @@ The default unit for this option is `ms`
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: http://localhost:8200
 #
@@ -1729,8 +1756,6 @@ The default unit for this option is `ms`
 # If the name of a metric matches any of the wildcard expressions, it will not be collected.
 # Example: `foo.*,bar.*`
 # 
-# To disable all breakdown metric collection code paths, add `span.self_time` to the list.
-# 
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -1769,7 +1794,7 @@ The default unit for this option is `ms`
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
+# When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to `0ms`.
 #

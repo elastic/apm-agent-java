@@ -55,6 +55,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -101,11 +102,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
+    private final ApmServerClient apmServerClient;
     @Nullable
     private OutputStream os;
 
-    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration) {
+    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient) {
         this.stacktraceConfiguration = stacktraceConfiguration;
+        this.apmServerClient = apmServerClient;
         jw = new DslJson<>(new DslJson.Settings<>()).newWriter(BUFFER_SIZE);
     }
 
@@ -730,6 +733,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 }
             }
             writeField("type", db.getType());
+            writeField("link", db.getDbLink());
             writeLastField("user", db.getUser());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
@@ -773,7 +777,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         serializeResponse(context.getResponse());
         if (context.hasCustom()) {
             writeFieldName("custom");
-            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true);
+            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true, true);
             jw.writeByte(COMMA);
         }
         writeFieldName("tags");
@@ -785,31 +789,28 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, apmServerClient.supportsNonStringLabels());
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
         }
     }
 
-    static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
-        serializeStringKeyScalarValueMap(iterator, replaceBuilder, jw, false);
-    }
-
     private static void serializeStringKeyScalarValueMap(Iterator<? extends Map.Entry<String, ? /* String|Number|Boolean */>> it,
-                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit) {
+                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit,
+                                                         boolean supportsNonStringValues) {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
             writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
+            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
                 writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
+                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             }
         }
         jw.writeByte(OBJECT_END);
@@ -850,11 +851,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             }
             writeStringValue(sanitizeLabelKey(labels.getKey(i), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeScalarValue(replaceBuilder, jw, labels.getValue(i), false);
+            serializeScalarValue(replaceBuilder, jw, labels.getValue(i), false, false);
         }
     }
 
-    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit) {
+    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit, boolean supportsNonStringValues) {
         if (value instanceof String) {
             if (extendedStringLimit) {
                 writeLongStringValue((String) value, replaceBuilder, jw);
@@ -862,9 +863,17 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 writeStringValue((String) value, replaceBuilder, jw);
             }
         } else if (value instanceof Number) {
-            NumberConverter.serialize(((Number) value).doubleValue(), jw);
+            if (supportsNonStringValues) {
+                NumberConverter.serialize(((Number) value).doubleValue(), jw);
+            } else {
+                jw.writeNull();
+            }
         } else if (value instanceof Boolean) {
-            BoolConverter.serialize((Boolean) value, jw);
+            if (supportsNonStringValues) {
+                BoolConverter.serialize((Boolean) value, jw);
+            } else {
+                jw.writeNull();
+            }
         } else {
             // can't happen, as AbstractContext enforces the values to be either String, Number or boolean
             jw.writeString("invalid value");

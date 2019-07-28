@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,19 +24,27 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.util.Version;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder.okForJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
@@ -44,6 +52,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 
 public class ApmServerClientTest {
 
@@ -52,17 +61,29 @@ public class ApmServerClientTest {
     @Rule
     public WireMockRule apmServer2 = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
     private ApmServerClient apmServerClient;
+    private ConfigurationRegistry config;
+    private ElasticApmTracer tracer;
+    private ReporterConfiguration reporterConfiguration;
 
     @Before
     public void setUp() throws MalformedURLException {
+        URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
+        URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
+        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "6.7.0-SNAPSHOT"))));
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
+        apmServer2.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.3.0-RC1"))));
         apmServer2.stubFor(get(urlEqualTo("/test")).willReturn(ok("hello from server 2")));
         apmServer2.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
-        apmServerClient = new ApmServerClient(new ReporterConfiguration(), List.of(
-            new URL("http", "localhost", apmServer1.port(), "/"),
-            new URL("http", "localhost", apmServer2.port(), "/")
-        ));
+
+        config = SpyConfiguration.createSpyConfig();
+        reporterConfiguration = config.getConfig(ReporterConfiguration.class);
+        doReturn(List.of(url1, url2)).when(reporterConfiguration).getServerUrls();
+        tracer = new ElasticApmTracerBuilder()
+            .configurationRegistry(config)
+            .build();
+
+        apmServerClient = new ApmServerClient(reporterConfiguration, tracer.getConfig(ReporterConfiguration.class).getServerUrls());
     }
 
     @Test
@@ -147,5 +168,26 @@ public class ApmServerClientTest {
         apmServerClient.incrementAndGetErrorCount(0);
         apmServerClient.incrementAndGetErrorCount(0);
         assertThat(apmServerClient.getErrorCount()).isOne();
+    }
+
+    @Test
+    public void testGetServerUrlsVerifyThatServerUrlsWillBeReloaded() throws IOException {
+        URL tempUrl = new URL("http", "localhost", 9999, "");
+        config.save("server_urls", tempUrl.toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+
+        List<URL> updatedServerUrls = apmServerClient.getServerUrls();
+
+        assertThat(updatedServerUrls).isEqualTo(List.of(tempUrl));
+    }
+
+    @Test
+    public void testApmServerVersion() throws IOException {
+        assertThat(apmServerClient.isAtLeast(new Version("6.7.0"))).isTrue();
+        assertThat(apmServerClient.isAtLeast(new Version("6.7.1"))).isFalse();
+        assertThat(apmServerClient.supportsNonStringLabels()).isTrue();
+        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "6.6.1"))));
+        config.save("server_urls", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
+        assertThat(apmServerClient.supportsNonStringLabels()).isFalse();
+
     }
 }

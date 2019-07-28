@@ -240,6 +240,7 @@ public class TraceContext extends TraceContextHolder {
         traceId.resetState();
         id.resetState();
         parentId.resetState();
+        transactionId.resetState();
         outgoingHeader.setLength(0);
         flags = 0;
         discard = false;

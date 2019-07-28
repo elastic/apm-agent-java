@@ -81,6 +81,12 @@ public class Db implements Recyclable {
      */
     @Nullable
     private String user;
+    
+    /**
+     * DB Link for connections between 2 databases
+     */
+    @Nullable
+    private String dbLink;
 
     /**
      * Database instance name
@@ -176,6 +182,23 @@ public class Db implements Recyclable {
         this.user = user;
         return this;
     }
+    
+
+    /**
+     * DB Link for connections between 2 databases
+     */
+    @Nullable
+    public String getDbLink() {
+        return dbLink;
+    }
+
+    /**
+     * DB Link for connections between 2 databases
+     */
+    public Db withDbLink(@Nullable String dbLink) {
+        this.dbLink = dbLink;
+        return this;
+    }
 
     @Override
     public void resetState() {
@@ -183,6 +206,7 @@ public class Db implements Recyclable {
         statement = null;
         type = null;
         user = null;
+        dbLink = null;
         if (statementBuffer != null) {
             charBufferPool.recycle(statementBuffer);
         }
@@ -194,6 +218,7 @@ public class Db implements Recyclable {
             statement != null ||
             type != null ||
             user != null ||
+            dbLink != null ||
             statementBuffer != null;
     }
 
@@ -202,5 +227,6 @@ public class Db implements Recyclable {
         statement = other.statement;
         type = other.type;
         user = other.user;
+        dbLink = other.dbLink;
     }
 }

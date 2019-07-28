@@ -2,9 +2,14 @@
 
 ## Features
  * Add support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
+ * Add support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
+ * Added support for setting `server_urls` dynamically via properties file [#723](https://github.com/elastic/apm-agent-java/issues/723)
 
 ## Bug Fixes
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
+ * Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
+ * JDBC's `executeBatch` is not traced
+ * Drops non-String labels when connected to APM Server < 6.7 to avoid validation errors (#687)
 
 # 1.7.0
 
