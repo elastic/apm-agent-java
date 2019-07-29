@@ -38,7 +38,7 @@ public class TransactionUtils {
 
     public static void fillTransaction(Transaction t) {
         t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader());
-        t.setName("GET /api/types");
+        t.withName("GET /api/types");
         t.withType("request");
         t.withResult("success");
 

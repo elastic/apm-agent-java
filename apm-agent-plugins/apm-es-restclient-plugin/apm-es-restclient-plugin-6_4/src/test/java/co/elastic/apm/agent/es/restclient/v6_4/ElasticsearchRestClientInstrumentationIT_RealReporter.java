@@ -172,7 +172,7 @@ public class ElasticsearchRestClientInstrumentationIT_RealReporter {
     @Before
     public void startTransaction() {
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("transaction");
+        transaction.withName("transaction");
         transaction.withType("request");
         transaction.withResult("success");
     }

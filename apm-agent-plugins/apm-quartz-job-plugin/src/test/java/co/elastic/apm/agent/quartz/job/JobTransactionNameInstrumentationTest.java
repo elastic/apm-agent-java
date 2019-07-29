@@ -76,7 +76,7 @@ class JobTransactionNameInstrumentationTest {
         reporter.getFirstTransaction(150);
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
         assertThat(reporter.getTransactions().get(0).getType()).isEqualToIgnoringCase("scheduled");
-        assertThat(reporter.getTransactions().get(0).getName())
+        assertThat(reporter.getTransactions().get(0).getNameAsString())
             .isEqualToIgnoringCase(String.format("%s.%s", job.getKey().getGroup(), job.getKey().getName()));
     }
 
@@ -119,7 +119,7 @@ class JobTransactionNameInstrumentationTest {
         TestJob job = new TestJob();
         job.execute(null);
         assertThat(reporter.getTransactions().size()).isEqualTo(1);
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("TestJob#execute");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualToIgnoringCase("TestJob#execute");
     }
 
     @Test

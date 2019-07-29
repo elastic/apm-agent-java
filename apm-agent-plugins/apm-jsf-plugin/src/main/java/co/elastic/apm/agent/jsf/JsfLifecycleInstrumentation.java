@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
@@ -114,10 +115,10 @@ public abstract class JsfLifecycleInstrumentation extends ElasticApmInstrumentat
                         try {
                             javax.faces.context.ExternalContext externalContext = facesContext.getExternalContext();
                             if (externalContext != null) {
-                                transaction.withName(externalContext.getRequestServletPath());
+                                transaction.withName(externalContext.getRequestServletPath(), PRIO_HIGH_LEVEL_FRAMEWORK);
                                 String pathInfo = externalContext.getRequestPathInfo();
                                 if (pathInfo != null) {
-                                    transaction.appendToName(pathInfo);
+                                    transaction.appendToName(pathInfo, PRIO_HIGH_LEVEL_FRAMEWORK);
                                 }
                             }
                         } catch (Exception e) {

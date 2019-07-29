@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
@@ -59,7 +60,10 @@ public class JdbcHelperImpl extends JdbcHelper {
             return null;
         }
         Span span = parent.createSpan().activate();
-        SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, span.getName(), preparedStatement);
+        StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
+        if (spanName != null) {
+            SIGNATURE_PARSER_THREAD_LOCAL.get().querySignature(sql, spanName, preparedStatement);
+        }
         // setting the type here is important
         // getting the meta data can result in another jdbc call
         // if that is traced as well -> StackOverflowError

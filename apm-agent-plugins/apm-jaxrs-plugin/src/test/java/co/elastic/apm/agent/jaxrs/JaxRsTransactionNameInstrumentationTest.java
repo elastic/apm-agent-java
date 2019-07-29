@@ -92,9 +92,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
         doRequest("testAbstract");
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("unnamed");
     }
 
     @Test
@@ -108,9 +108,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("ResourceWithPathOnInterface#testMethod");
+        assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("ResourceWithPathOnAbstract#testMethod");
     }
 
     @Test
@@ -123,8 +123,8 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("unnamed");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
     }
 
     @Test
@@ -136,7 +136,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("ResourceWithPath#testMethod");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("ResourceWithPath#testMethod");
     }
 
     @Test
@@ -152,9 +152,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testAbstract");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("GET /testInterface");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /test");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testAbstract");
+        assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("GET /testInterface");
     }
 
     @Test
@@ -170,9 +170,9 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(3);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /test");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("unnamed");
-        assertThat(actualTransactions.get(2).getName().toString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /test");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("unnamed");
+        assertThat(actualTransactions.get(2).getNameAsString()).isEqualTo("unnamed");
     }
 
     @Test
@@ -187,8 +187,8 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethod");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethod/{id}");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testWithPathMethod");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testWithPathMethod/{id}");
     }
 
     @Test
@@ -203,8 +203,8 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(2);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testWithPathMethodSlash");
-        assertThat(actualTransactions.get(1).getName().toString()).isEqualTo("GET /testWithPathMethodSlash/{id}");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testWithPathMethodSlash");
+        assertThat(actualTransactions.get(1).getNameAsString()).isEqualTo("GET /testWithPathMethodSlash/{id}");
     }
 
     @Test
@@ -218,7 +218,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /foo/bar");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /foo/bar");
     }
 
     @Test
@@ -232,7 +232,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /");
     }
 
     @Test
@@ -246,7 +246,7 @@ public class JaxRsTransactionNameInstrumentationTest extends JerseyTest {
 
         List<Transaction> actualTransactions = reporter.getTransactions();
         assertThat(actualTransactions).hasSize(1);
-        assertThat(actualTransactions.get(0).getName().toString()).isEqualTo("GET /testInterface/test");
+        assertThat(actualTransactions.get(0).getNameAsString()).isEqualTo("GET /testInterface/test");
     }
 
 

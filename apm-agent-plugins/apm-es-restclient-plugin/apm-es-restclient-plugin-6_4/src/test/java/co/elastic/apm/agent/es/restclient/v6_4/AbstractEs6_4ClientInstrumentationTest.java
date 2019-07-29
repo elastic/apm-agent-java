@@ -153,7 +153,7 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
         for(Span span: spans) {
-            if(span.getName().toString().contains("_update")) {
+            if(span.getNameAsString().contains("_update")) {
                 updateSpanFound = true;
                 break;
             }

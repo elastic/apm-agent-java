@@ -40,6 +40,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
+    public static final int PRIO_USER_SUPPLIED = 1000;
+    public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
+    public static final int PRIO_METHOD_SIGNATURE = 100;
+    public static final int PRIO_LOW_LEVEL_FRAMEWORK = 10;
+    public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
@@ -56,6 +61,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
+    private int namePriority = PRIO_DEFAULT;
 
     public int getReferenceCount() {
         return references.get();
@@ -143,18 +149,36 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     /**
-     * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
+     * Only intended to be used by {@link co.elastic.apm.agent.report.serialize.DslJsonSerializer}
      */
-    public StringBuilder getName() {
+    public StringBuilder getNameForSerialization() {
         return name;
     }
 
     /**
-     * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
+     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority} one.
+     * Otherwise, returns {@code null}
+     *
+     * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
+     * @return the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}, {@code null} otherwise.
      */
-    public void setName(@Nullable String name) {
-        this.name.setLength(0);
-        this.name.append(name);
+    @Nullable
+    public StringBuilder getAndOverrideName(int namePriority) {
+        if (namePriority >= this.namePriority) {
+            this.namePriority = namePriority;
+            this.name.setLength(0);
+            return name;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Only intended for testing purposes as this allocates a {@link String}
+     * @return
+     */
+    public String getNameAsString() {
+        return name.toString();
     }
 
     /**
@@ -168,7 +192,27 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * @return {@code this}, for chaining
      */
     public T appendToName(String s) {
-        name.append(s);
+        return appendToName(s, PRIO_DEFAULT);
+    }
+
+    public T appendToName(String s, int priority) {
+        if (priority >= namePriority) {
+            this.name.append(s);
+            this.namePriority = priority;
+        }
+        return (T) this;
+    }
+
+    public T withName(@Nullable String name) {
+        return withName(name, PRIO_DEFAULT);
+    }
+
+    public T withName(@Nullable String name, int priority) {
+        if (priority >= namePriority && name != null && !name.isEmpty()) {
+            this.name.setLength(0);
+            this.name.append(name);
+            this.namePriority = priority;
+        }
         return (T) this;
     }
 
@@ -194,6 +238,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         traceContext.resetState();
         childDurations.resetState();
         references.set(0);
+        namePriority = PRIO_DEFAULT;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {

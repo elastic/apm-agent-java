@@ -47,7 +47,7 @@ class SpanTest {
             .withUser("readonly_user");
         span.resetState();
         assertThat(span.getContext().hasContent()).isFalse();
-        assertThat((CharSequence) span.getName()).isNullOrEmpty();
+        assertThat(span.getNameAsString()).isNullOrEmpty();
         assertThat(span.getType()).isNull();
         assertThat(span.getSubtype()).isNull();
         assertThat(span.getAction()).isNull();

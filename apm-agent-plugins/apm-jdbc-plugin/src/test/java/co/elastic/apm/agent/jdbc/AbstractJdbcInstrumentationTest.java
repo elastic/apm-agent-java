@@ -71,7 +71,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("transaction");
+        transaction.withName("transaction");
         transaction.withType("request");
         transaction.withResult("success");
         signatureParser = new SignatureParser();
@@ -165,7 +165,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         Span jdbcSpan = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
         signatureParser.querySignature(rawSql, processedSql, preparedStatement);
-        assertThat(jdbcSpan.getName().toString()).isEqualTo(processedSql.toString());
+        assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
         assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);

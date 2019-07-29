@@ -138,11 +138,6 @@ public class Transaction extends AbstractSpan<Transaction> {
         }
     }
 
-    public Transaction withName(@Nullable String name) {
-        setName(name);
-        return this;
-    }
-
     /**
      * Keyword of specific relevance in the service's domain (eg:  'request', 'backgroundjob')
      */

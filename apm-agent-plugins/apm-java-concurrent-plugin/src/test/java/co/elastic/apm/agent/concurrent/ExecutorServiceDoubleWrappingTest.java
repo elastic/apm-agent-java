@@ -58,14 +58,14 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
     @Test
     public void testWrappingTransactionExecuteTwice() throws InterruptedException {
         executor.execute(this::createAsyncSpan);
-        assertThat(reporter.getFirstSpan(500).getName().toString()).isEqualTo("Async");
+        assertThat(reporter.getFirstSpan(500).getNameAsString()).isEqualTo("Async");
     }
 
     @Test
     public void testWrappingTransactionSubmitRunnableTwice() throws InterruptedException, ExecutionException {
         Future<?> future = executor.submit(this::createAsyncSpan);
         assertThat(future.get()).isNull();
-        assertThat(reporter.getFirstSpan(500).getName().toString()).isEqualTo("Async");
+        assertThat(reporter.getFirstSpan(500).getNameAsString()).isEqualTo("Async");
     }
 
     @Test
@@ -73,7 +73,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
         Future<?> future = executor.submit(this::createAsyncSpan, TEST_OBJECT);
         assertThat(future.get()).isEqualTo(TEST_OBJECT);
         Span span = reporter.getFirstSpan(500);
-        assertThat(span.getName().toString()).isEqualTo("Async");
+        assertThat(span.getNameAsString()).isEqualTo("Async");
         assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
 
@@ -85,7 +85,7 @@ public class ExecutorServiceDoubleWrappingTest extends AbstractInstrumentationTe
         });
         assertThat(future.get()).isEqualTo(TEST_OBJECT);
         Span span = reporter.getFirstSpan(500);
-        assertThat(span.getName().toString()).isEqualTo("Async");
+        assertThat(span.getNameAsString()).isEqualTo("Async");
         assertThat(span.getTraceContext().getParentId()).isEqualTo(transaction.getTraceContext().getId());
     }
 

@@ -89,7 +89,7 @@ public class SpringBoot1_5IT {
 
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
-        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("TestApp#greeting");
+        assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("TestApp#greeting");
     }
 
     @Test
@@ -98,7 +98,7 @@ public class SpringBoot1_5IT {
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 
-        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("ResourceHttpRequestHandler");
+        assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
     }
 
     @Controller
