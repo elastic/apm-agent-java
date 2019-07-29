@@ -113,7 +113,8 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         List<ActivationListener> activationListeners = tracer.getActivationListeners();
         for (int i = 0; i < activationListeners.size(); i++) {
             try {
-                activationListeners.get(i).afterDeactivate();
+                // `this` is guaranteed to not be recycled yet as the reference count is only decremented after this method has executed
+                activationListeners.get(i).afterDeactivate(this);
             } catch (Error e) {
                 throw e;
             } catch (Throwable t) {

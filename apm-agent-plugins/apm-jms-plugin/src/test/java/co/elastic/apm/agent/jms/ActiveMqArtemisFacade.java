@@ -152,6 +152,11 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
+    public boolean shouldTestReceiveNoWait() {
+        return true;
+    }
+
+    @Override
     public Message receiveNoWait(Destination destination) {
         return context.createConsumer(destination).receiveNoWait();
     }

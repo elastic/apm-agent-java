@@ -11,6 +11,9 @@
  * JDBC's `executeBatch` is not traced
  * Drops non-String labels when connected to APM Server < 6.7 to avoid validation errors (#687)
 
+## Breaking changes
+ * The log correlation feature does not add `span.id` to the MDC anymore but only `trace.id` and `transaction.id` (see #742).
+
 # 1.7.0
 
 ## Features
