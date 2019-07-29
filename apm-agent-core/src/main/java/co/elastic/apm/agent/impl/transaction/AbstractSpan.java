@@ -197,7 +197,8 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public T appendToName(String s, int priority) {
         if (priority >= namePriority) {
-            name.append(s);
+            this.name.append(s);
+            this.namePriority = priority;
         }
         return (T) this;
     }

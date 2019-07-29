@@ -30,7 +30,6 @@ import co.elastic.apm.agent.bci.bytebuddy.AnnotationValueOffsetMappingFactory.An
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
@@ -48,6 +47,8 @@ import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_METHOD_SIGNATURE;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static co.elastic.apm.agent.plugin.api.ElasticApmApiInstrumentation.PUBLIC_API_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
@@ -73,10 +74,13 @@ public class CaptureTransactionInstrumentation extends ElasticApmInstrumentation
         if (tracer != null) {
             final Object active = tracer.getActive();
             if (active == null) {
-                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                    .withName(transactionName, AbstractSpan.PRIO_USER_SUPPLIED)
-                    .withName(signature, AbstractSpan.PRIO_METHOD_SIGNATURE)
-                    .withType(type)
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
+                if (transactionName.isEmpty()) {
+                    transaction.withName(signature, PRIO_METHOD_SIGNATURE);
+                } else {
+                    transaction.withName(transactionName, PRIO_USER_SUPPLIED);
+                }
+                transaction.withType(type)
                     .activate();
             } else {
                 logger.debug("Not creating transaction for method {} because there is already a transaction running ({})", signature, active);
