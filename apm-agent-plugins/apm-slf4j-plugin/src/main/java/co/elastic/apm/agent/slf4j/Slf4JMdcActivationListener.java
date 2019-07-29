@@ -44,7 +44,6 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     // the toString prevents constant folding, which would also make the shade plugin relocate
     private static final String ORG_SLF4J_MDC = "org." + "slf4j.MDC".toString();
     private static final String TRACE_ID = "trace.id";
-    private static final String SPAN_ID = "span.id";
     private static final String TRANSACTION_ID = "transaction.id";
     private static final Logger logger = LoggerFactory.getLogger(Slf4JMdcActivationListener.class);
 
@@ -90,12 +89,10 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
         if (config.isLogCorrelationEnabled()) {
-            ClassLoader contextClassLoader = getContextClassLoader();
 
-            MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
+            MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
             if (put != null && put != NOOP) {
                 TraceContext traceContext = context.getTraceContext();
-                put.invokeExact(SPAN_ID, traceContext.getId().toString());
                 if (tracer.getActive() == null) {
                     put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
                     put.invokeExact(TRANSACTION_ID, traceContext.getTransactionId().toString());
@@ -105,32 +102,39 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     }
 
     @Override
-    public void afterDeactivate() throws Throwable {
+    public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
         if (config.isLogCorrelationEnabled()) {
 
-            ClassLoader contextClassLoader = getContextClassLoader();
-            TraceContextHolder active = tracer.getActive();
-
-            MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
+            MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
             if (remove != null && remove != NOOP) {
-                if (active == null) {
-                    remove.invokeExact(SPAN_ID);
+                if (tracer.getActive() == null) {
                     remove.invokeExact(TRACE_ID);
                     remove.invokeExact(TRANSACTION_ID);
-                }
-            }
-
-            if (active != null) {
-                MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-                if (put != null && put != NOOP) {
-                    put.invokeExact(SPAN_ID, active.getTraceContext().getId().toString());
                 }
             }
         }
     }
 
-    private ClassLoader getContextClassLoader() {
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        return (contextClassLoader != null) ? contextClassLoader : ClassLoader.getSystemClassLoader();
+    /**
+     * Looks up the class loader which corresponds to the application the current transaction belongs to.
+     * @param context
+     * @return
+     */
+    private ClassLoader getApplicationClassLoader(TraceContextHolder<?> context) {
+        ClassLoader applicationClassLoader = context.getTraceContext().getApplicationClassLoader();
+        if (applicationClassLoader != null) {
+            return applicationClassLoader;
+        } else {
+            return getFallbackClassLoader();
+        }
     }
+
+    private ClassLoader getFallbackClassLoader() {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader =  ClassLoader.getSystemClassLoader();
+        }
+        return classLoader;
+    }
+
 }
