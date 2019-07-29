@@ -56,7 +56,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE = "_AGENT_HOME_/elasticapm.properties";
+    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
