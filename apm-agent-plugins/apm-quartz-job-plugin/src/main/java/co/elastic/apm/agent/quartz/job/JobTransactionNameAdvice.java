@@ -68,7 +68,7 @@ public class JobTransactionNameAdvice {
                                              @Advice.Local("transaction") @Nullable Transaction transaction, @Advice.Thrown Throwable t) {
         if (transaction != null) {
             if (context != null && context.getResult() != null) {
-                transaction.withResult(context.getResult().toString());
+                transaction.withResultIfUnset(context.getResult().toString());
             }
             transaction.captureException(t)
                 .deactivate()

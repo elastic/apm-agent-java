@@ -71,7 +71,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.setName("ES Transaction");
         transaction.withType("request");
-        transaction.withResult("success");
+        transaction.withResultIfUnset("success");
     }
 
     @After
