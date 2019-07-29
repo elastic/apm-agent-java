@@ -74,6 +74,7 @@ Click on a key to get more information.
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
 ** <<config-breakdown-metrics>>
+** <<config-config-file-location>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -533,6 +534,28 @@ Disables the collection of breakdown metrics (`span.self_time`)
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
+|============
+
+[float]
+[[config-config-file-location]]
+==== `config_file_location`
+
+Sets the path of the agent config file.
+The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+The location can either be in the classpath of the application or on the file system.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `_AGENT_HOME_/elasticapm.properties` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.config_file_location` | `config_file_location` | `ELASTIC_APM_CONFIG_FILE_LOCATION`
 |============
 
 [[config-http]]
@@ -1443,6 +1466,16 @@ The default unit for this option is `ms`
 # Default value: true
 #
 # breakdown_metrics=true
+
+# Sets the path of the agent config file.
+# The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+# The location can either be in the classpath of the application or on the file system.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: _AGENT_HOME_/elasticapm.properties
+#
+# config_file_location=_AGENT_HOME_/elasticapm.properties
 
 ############################################
 # HTTP                                     #

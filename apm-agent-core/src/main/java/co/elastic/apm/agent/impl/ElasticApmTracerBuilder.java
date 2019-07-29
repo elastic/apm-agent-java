@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.impl;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.AgentArgumentsConfigurationSource;
 import co.elastic.apm.agent.configuration.ApmServerConfigurationSource;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
@@ -35,7 +34,6 @@ import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.report.ApmServerHealthChecker;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
@@ -149,6 +147,9 @@ public class ElasticApmTracerBuilder {
         }
     }
 
+    /*
+     * Must not initialize any loggers with this as the logger is configured based on configuration.
+     */
     private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
         List<ConfigurationSource> result = new ArrayList<>();
         if (agentArguments != null && !agentArguments.isEmpty()) {
@@ -167,9 +168,9 @@ public class ElasticApmTracerBuilder {
                 return "Inline configuration";
             }
         });
-        String agentHome = ElasticApmAgent.getAgentHome();
-        if (agentHome != null && PropertyFileConfigurationSource.isPresent(agentHome + "/elasticapm.properties")) {
-            result.add(new PropertyFileConfigurationSource(agentHome + "/elasticapm.properties"));
+        String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
+        if (configFileLocation != null && PropertyFileConfigurationSource.isPresent(configFileLocation)) {
+            result.add(new PropertyFileConfigurationSource(configFileLocation));
         }
         // looks if we can find a elasticapm.properties on the classpath
         // mainly useful for unit tests
