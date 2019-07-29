@@ -189,7 +189,7 @@ public class ServletTransactionHelper {
             status = 500;
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
-        transaction.withResult(ResultUtil.getResultByHttpStatus(status));
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
         transaction.withType("request");
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {

@@ -67,8 +67,8 @@ public class JobTransactionNameAdvice {
     public static void onMethodExitException(@Advice.Argument(value = 0) @Nullable JobExecutionContext context,
                                              @Advice.Local("transaction") @Nullable Transaction transaction, @Advice.Thrown Throwable t) {
         if (transaction != null) {
-            if (transaction.getResult() == null && context != null && context.getResult() != null) {
-                transaction.withResult(context.getResult().toString());
+            if (context != null && context.getResult() != null) {
+                transaction.withResultIfUnset(context.getResult().toString());
             }
             transaction.captureException(t)
                 .deactivate()

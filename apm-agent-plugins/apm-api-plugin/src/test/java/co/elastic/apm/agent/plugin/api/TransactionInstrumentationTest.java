@@ -82,6 +82,22 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testInstrumentationDoesNotOverrideUserResult() {
+        transaction.setResult("foo");
+        endTransaction();
+        reporter.getFirstTransaction().withResultIfUnset("200");
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+    }
+
+    @Test
+    void testUserCanOverrideResult() {
+        transaction.setResult("foo");
+        transaction.setResult("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("bar");
+    }
+
+    @Test
     void testChaining() {
         transaction.setType("foo").setName("foo").addLabel("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
         endTransaction();

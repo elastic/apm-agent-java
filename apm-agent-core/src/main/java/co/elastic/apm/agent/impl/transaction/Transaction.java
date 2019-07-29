@@ -73,7 +73,8 @@ public class Transaction extends AbstractSpan<Transaction> {
     private final WriterReaderPhaser phaser = new WriterReaderPhaser();
 
     /**
-     * The result of the transaction. HTTP status code for HTTP-related transactions.
+     * The result of the transaction. HTTP status code for HTTP-related
+     * transactions.
      */
     @Nullable
     private String result;
@@ -155,7 +156,21 @@ public class Transaction extends AbstractSpan<Transaction> {
     }
 
     /**
-     * The result of the transaction. HTTP status code for HTTP-related transactions.
+     * The result of the transaction. HTTP status code for HTTP-related
+     * transactions. This sets the result only if it is not already set. should be
+     * used for instrumentations
+     */
+    public Transaction withResultIfUnset(@Nullable String result) {
+        if (this.result == null) {
+            this.result = result;
+        }
+        return this;
+    }
+
+    /**
+     * The result of the transaction. HTTP status code for HTTP-related
+     * transactions. This sets the result regardless of an already existing value.
+     * should be used for user defined results
      */
     public Transaction withResult(@Nullable String result) {
         this.result = result;

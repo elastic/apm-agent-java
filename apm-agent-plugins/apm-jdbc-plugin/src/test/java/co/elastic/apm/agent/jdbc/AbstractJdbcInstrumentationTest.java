@@ -73,7 +73,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.withName("transaction");
         transaction.withType("request");
-        transaction.withResult("success");
+        transaction.withResultIfUnset("success");
         signatureParser = new SignatureParser();
     }
 
