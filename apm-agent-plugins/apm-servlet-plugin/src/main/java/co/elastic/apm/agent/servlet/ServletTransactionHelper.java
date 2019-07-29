@@ -63,6 +63,7 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
+    public static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -197,7 +198,8 @@ public class ServletTransactionHelper {
     }
 
     void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction transaction) {
-        if (webConfiguration.isUsePathAsName()) {
+        // JSPs don't contain path params and the name is more telling than the generated servlet class
+        if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
             // should override ServletName#doGet
             StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
             if (transactionName != null) {
