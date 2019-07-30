@@ -1,4 +1,4 @@
-# next (1.8.0)
+# 1.8.0
 
 ## Features
  * Added support for tracking [time spent by span type](https://www.elastic.co/guide/en/kibana/7.3/transactions.html).
@@ -14,7 +14,7 @@
  * SQL parsing improvements (#696)
  * Introduce priorities for transaction name (#748)
  
-   Now uses a transaction name according to [`use_path_as_transaction_name`](https://www.elastic.co/guide/en/apm/agent/java/current/config-http.html#config-use-path-as-transaction-name)
+   Now uses the path as transaction name if [`use_path_as_transaction_name`](https://www.elastic.co/guide/en/apm/agent/java/current/config-http.html#config-use-path-as-transaction-name) is set to `true`
    rather than `ServletClass#doGet`.
    But if a name can be determined from a high level framework,
    like Spring MVC, that takes precedence.
