@@ -1,16 +1,34 @@
-# next (1.8.0)
+# 1.8.0
 
 ## Features
- * Add support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
- * Add support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
- * Added support for setting `server_urls` dynamically via properties file [#723](https://github.com/elastic/apm-agent-java/issues/723)
- * Add [`config_file`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-config-file) option 
+ * Added support for tracking [time spent by span type](https://www.elastic.co/guide/en/kibana/7.3/transactions.html).
+   Can be disabled by setting [`breakdown_metrics`](https://www.elastic.co/guide/en/apm/agent/java/7.3/config-core.html#config-breakdown-metrics) to `false`. 
+ * Added support for [central configuration](https://www.elastic.co/guide/en/kibana/7.3/agent-configuration.html).
+   Can be disabled by setting [`central_config`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-central-config) to `false`.
+ * Added support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
+ * Added support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
+ * Added support for setting [`server_urls`](https://www.elastic.co/guide/en/apm/agent/java/1.x/config-reporter.html#config-server-urls) dynamically via properties file [#723](https://github.com/elastic/apm-agent-java/issues/723)
+ * Added [`config_file`](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-config-file) option 
+ * Added option to use `@javax.ws.rs.Path` value as transaction name [`use_jaxrs_path_as_transaction_name`](https://www.elastic.co/guide/en/apm/agent/java/current/config-jax-rs.html#config-use-jaxrs-path-as-transaction-name)
+ * Instrument quartz jobs ([docs](https://www.elastic.co/guide/en/apm/agent/java/current/supported-technologies-details.html#supported-scheduling-frameworks))
+ * SQL parsing improvements (#696)
+ * Introduce priorities for transaction name (#748)
+ 
+   Now uses the path as transaction name if [`use_path_as_transaction_name`](https://www.elastic.co/guide/en/apm/agent/java/current/config-http.html#config-use-path-as-transaction-name) is set to `true`
+   rather than `ServletClass#doGet`.
+   But if a name can be determined from a high level framework,
+   like Spring MVC, that takes precedence.
+   User-supplied names from the API always take precedence over any others.
+ * Use JSP path name as transaction name as opposed to the generated servlet class name (#751)
+
 
 ## Bug Fixes
  * Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
  * Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
  * JDBC's `executeBatch` is not traced
  * Drops non-String labels when connected to APM Server < 6.7 to avoid validation errors (#687)
+ * Parsing container ID in cloud foundry garden (#695)
+ * Automatic instrumentation should not override manual results (#752)
 
 ## Breaking changes
  * The log correlation feature does not add `span.id` to the MDC anymore but only `trace.id` and `transaction.id` (see #742).

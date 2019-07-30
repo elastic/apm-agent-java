@@ -73,8 +73,9 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
+** <<config-central-config>>
 ** <<config-breakdown-metrics>>
-** <<config-config-file-location>>
+** <<config-config-file>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -85,7 +86,7 @@ Click on a key to get more information.
 ** <<config-url-groups>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
-** <<config-use-jaxrs-path-for-transaction-name>>
+** <<config-use-jaxrs-path-as-transaction-name>>
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
@@ -483,7 +484,7 @@ The default unit for this option is `ms`
 
 [float]
 [[config-boot-delegation-packages]]
-==== `boot_delegation_packages`
+==== `boot_delegation_packages` (added[1.7.0])
 
 A comma-separated list of packages to be appended to the boot delegation system property. 
 If set with an empty string, nothing will be appended to the boot delegation system property.
@@ -517,8 +518,28 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 |============
 
 [float]
+[[config-central-config]]
+==== `central_config` (added[1.8.0])
+
+When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.central_config` | `central_config` | `ELASTIC_APM_CENTRAL_CONFIG`
+|============
+
+[float]
 [[config-breakdown-metrics]]
-==== `breakdown_metrics`
+==== `breakdown_metrics` (added[1.8.0])
 
 Disables the collection of breakdown metrics (`span.self_time`)
 
@@ -537,8 +558,8 @@ Disables the collection of breakdown metrics (`span.self_time`)
 |============
 
 [float]
-[[config-config-file-location]]
-==== `config_file_location`
+[[config-config-file]]
+==== `config_file` (added[1.8.0])
 
 Sets the path of the agent config file.
 The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
@@ -555,7 +576,7 @@ The location can either be in the classpath of the application or on the file sy
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.config_file_location` | `config_file_location` | `ELASTIC_APM_CONFIG_FILE_LOCATION`
+| `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
 |============
 
 [[config-http]]
@@ -782,8 +803,8 @@ If your application does not use @Path annotation inheritance, set this property
 |============
 
 [float]
-[[config-use-jaxrs-path-for-transaction-name]]
-==== `use_jaxrs_path_for_transaction_name`
+[[config-use-jaxrs-path-as-transaction-name]]
+==== `use_jaxrs_path_as_transaction_name` (added[1.8.0])
 
 By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
 If you want to use the URI template from the `@Path` annotation, set the value to `true`.
@@ -799,7 +820,7 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.use_jaxrs_path_for_transaction_name` | `use_jaxrs_path_for_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_FOR_TRANSACTION_NAME`
+| `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
 |============
 
 [[config-logging]]
@@ -862,7 +883,8 @@ it's content is deleted when the application starts.
 A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 you can index your log files and correlate them with APM traces.
 With this integration you can get all logs belonging to a particular trace and vice-versa:
 for a specific log, see in which context it has been logged and which parameters the user provided. 
@@ -919,6 +941,8 @@ When multiple agents are active, they'll tend towards spreading evenly across th
 
 If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+
+NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
 
 [options="header"]
@@ -1459,6 +1483,14 @@ The default unit for this option is `ms`
 #
 # boot_delegation_packages=co.elastic.apm.agent.*
 
+# When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# central_config=true
+
 # Disables the collection of breakdown metrics (`span.self_time`)
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -1475,7 +1507,7 @@ The default unit for this option is `ms`
 # Type: String
 # Default value: _AGENT_HOME_/elasticapm.properties
 #
-# config_file_location=_AGENT_HOME_/elasticapm.properties
+# config_file=_AGENT_HOME_/elasticapm.properties
 
 ############################################
 # HTTP                                     #
@@ -1615,7 +1647,7 @@ The default unit for this option is `ms`
 # Type: Boolean
 # Default value: false
 #
-# use_jaxrs_path_for_transaction_name=false
+# use_jaxrs_path_as_transaction_name=false
 
 ############################################
 # Logging                                  #
@@ -1651,7 +1683,8 @@ The default unit for this option is `ms`
 # A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 # You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 # you can index your log files and correlate them with APM traces.
 # With this integration you can get all logs belonging to a particular trace and vice-versa:
 # for a specific log, see in which context it has been logged and which parameters the user provided. 
@@ -1688,6 +1721,8 @@ The default unit for this option is `ms`
 # 
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+# 
+# NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
 # Type: comma separated list
