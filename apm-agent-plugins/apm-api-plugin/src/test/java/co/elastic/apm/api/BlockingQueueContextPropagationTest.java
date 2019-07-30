@@ -135,7 +135,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         assertThat(transactionTimestamp).isEqualTo(startTime);
         assertThat(reportedTransaction.getDuration()).isBetween(
             TimeUnit.MILLISECONDS.toMicros(0),
-            TimeUnit.MILLISECONDS.toMicros(10)
+            TimeUnit.MILLISECONDS.toMicros(50)
         );
 
         co.elastic.apm.agent.impl.transaction.Span reportedSpan = reporter.getFirstSpan();
@@ -145,7 +145,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         assertThat(reportedSpan.getTimestamp() - transactionTimestamp).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(100));
         assertThat(reportedSpan.getDuration()).isBetween(
             TimeUnit.MILLISECONDS.toMicros(10),
-            TimeUnit.MILLISECONDS.toMicros(30)
+            TimeUnit.MILLISECONDS.toMicros(50)
         );
     }
 
