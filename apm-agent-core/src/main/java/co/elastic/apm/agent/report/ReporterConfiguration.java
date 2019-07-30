@@ -67,7 +67,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "If outgoing HTTP traffic has to go through a proxy," +
             "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
-            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.")
+            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.\n" +
+            "\n" +
+            "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 

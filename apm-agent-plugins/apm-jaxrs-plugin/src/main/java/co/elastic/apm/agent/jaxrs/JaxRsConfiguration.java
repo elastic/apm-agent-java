@@ -45,7 +45,8 @@ public class JaxRsConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(true);
 
     private final ConfigurationOption<Boolean> useAnnotationValueForTransactionName = ConfigurationOption.booleanOption()
-        .key("use_jaxrs_path_for_transaction_name")
+        .key("use_jaxrs_path_as_transaction_name")
+        .tags("added[1.8.0]")
         .configurationCategory(JAXRS_CATEGORY)
         .description("By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.\n" +
             "If you want to use the URI template from the `@Path` annotation, set the value to `true`.")

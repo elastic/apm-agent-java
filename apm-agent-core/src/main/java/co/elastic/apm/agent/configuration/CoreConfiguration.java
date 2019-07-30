@@ -341,6 +341,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
         .key("boot_delegation_packages")
+        .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
             "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
@@ -361,6 +362,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.")
         .dynamic(true)
@@ -368,12 +370,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
         .key("breakdown_metrics")
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Disables the collection of breakdown metrics (`span.self_time`)")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
         .key(CONFIG_FILE)
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
