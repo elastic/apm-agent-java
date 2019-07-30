@@ -19,3 +19,4 @@ If this pull request is work in progress, create a draft PR instead of prefixing
 - [ ] Update documentation
 - [ ] Update [CHANGELOG.md](CHANGELOG.md)
 - [ ] Update [supported-technologies.asciidoc](docs/supported-technologies.asciidoc)
+- [ ] Added an API method or config option? Document in which version this will be introduced.
