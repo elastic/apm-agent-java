@@ -54,7 +54,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
             while (true) {
                 try {
                     ElasticApmQueueElementWrapper<CompletableFuture<String>> element = blockingQueue.take();
-                    Thread.sleep(100);
+                    Thread.sleep(110);
                     final Span span = element.getSpan();
                     if (!(span instanceof Transaction)) {
                         span.setStartTimestamp(TimeUnit.NANOSECONDS.toMicros(nanoTimeOffsetToEpoch + System.nanoTime()));
@@ -62,7 +62,7 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
                     final CompletableFuture<String> result = element.getWrappedObject();
                     try (Scope scope = span.activate()) {
                         String spanId = ElasticApm.currentSpan().getId();
-                        Thread.sleep(10);
+                        Thread.sleep(20);
                         span.end();
                         result.complete(spanId);
                     }
@@ -103,7 +103,10 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         assertThat(reportedTransaction).isNotNull();
         assertThat(reportedTransaction.getTraceContext().getId().toString()).isEqualTo(transaction.getId());
         assertThat(reportedTransaction.getTimestamp()).isEqualTo(startTime);
-        assertThat(reportedTransaction.getDuration()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(110));
+        assertThat(reportedTransaction.getDuration()).isBetween(
+            TimeUnit.MILLISECONDS.toMicros(110),
+            TimeUnit.MILLISECONDS.toMicros(150)
+        );
         assertThat(reporter.getSpans()).isEmpty();
     }
 
@@ -130,14 +133,20 @@ public class BlockingQueueContextPropagationTest extends AbstractInstrumentation
         assertThat(reportedTransaction).isNotNull();
         long transactionTimestamp = reportedTransaction.getTimestamp();
         assertThat(transactionTimestamp).isEqualTo(startTime);
-        assertThat(reportedTransaction.getDuration()).isLessThan(TimeUnit.MILLISECONDS.toMicros(110));
+        assertThat(reportedTransaction.getDuration()).isBetween(
+            TimeUnit.MILLISECONDS.toMicros(0),
+            TimeUnit.MILLISECONDS.toMicros(10)
+        );
 
         co.elastic.apm.agent.impl.transaction.Span reportedSpan = reporter.getFirstSpan();
         assertThat(reportedSpan.getTraceContext().getTraceId()).isEqualTo(reportedTransaction.getTraceContext().getTraceId());
         assertThat(reportedSpan).isNotNull();
         assertThat(reportedSpan.getType()).isEqualTo("async");
         assertThat(reportedSpan.getTimestamp() - transactionTimestamp).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(100));
-        assertThat(reportedSpan.getDuration()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
+        assertThat(reportedSpan.getDuration()).isBetween(
+            TimeUnit.MILLISECONDS.toMicros(10),
+            TimeUnit.MILLISECONDS.toMicros(30)
+        );
     }
 
     public static class ElasticApmQueueElementWrapper<T> {
