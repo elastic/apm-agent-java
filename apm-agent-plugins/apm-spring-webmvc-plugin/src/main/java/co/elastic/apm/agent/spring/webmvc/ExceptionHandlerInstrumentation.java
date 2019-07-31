@@ -65,7 +65,7 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
             }
             final TraceContextHolder<?> parent = tracer.getActive();
 
-            if (parent != null) {
+            if (parent != null && e != null) {
                 parent.captureException(e);
             }
         }

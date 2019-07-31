@@ -38,7 +38,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-    CommonConfiguration.class,
     ExceptionHandlerController.class,
     ExceptionServiceImpl.class })
 @TestConfiguration
