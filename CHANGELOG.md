@@ -1,3 +1,10 @@
+# Next (1.9.0)
+
+## Features
+
+## Bug Fixes
+ * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
+
 # 1.8.0
 
 ## Features
