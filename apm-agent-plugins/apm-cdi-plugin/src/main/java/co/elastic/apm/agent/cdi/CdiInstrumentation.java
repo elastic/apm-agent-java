@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFact
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -47,10 +48,8 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.isEquals;
-import static net.bytebuddy.matcher.ElementMatchers.isGetter;
 import static net.bytebuddy.matcher.ElementMatchers.isHashCode;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
-import static net.bytebuddy.matcher.ElementMatchers.isSetter;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.isToString;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -63,6 +62,9 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
 
     private Collection<String> applicationPackages;
 
+    @SuppressWarnings("WeakerAccess") // must be public to be able to access it from instrumented methods
+    public static long cdiMethodThresholdMicros;
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static void onMethodEnter(@SimpleMethodSignatureOffsetMappingFactory.SimpleMethodSignature String signature,
                                      @Advice.Local("span") AbstractSpan<?> span) {
@@ -73,6 +75,8 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
                     .withName(signature)
                     .withType("cdi")
                     .activate();
+                // by default discard such spans
+                span.setDiscard(true);
             }
         }
     }
@@ -82,12 +86,20 @@ public class CdiInstrumentation extends ElasticApmInstrumentation {
                                     @Advice.Thrown Throwable t) {
         if (span != null) {
             span.captureException(t);
-            span.deactivate().end();
+            final long endTime = span.getTraceContext().getClock().getEpochMicros();
+            if (span instanceof Span) {
+                long durationMicros = endTime - span.getTimestamp();
+                if (cdiMethodThresholdMicros <= 0 || durationMicros >= cdiMethodThresholdMicros || t != null) {
+                    span.setDiscard(false);
+                }
+            }
+            span.deactivate().end(endTime);
         }
     }
 
     public CdiInstrumentation(ElasticApmTracer tracer) {
         applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
+        cdiMethodThresholdMicros = tracer.getConfig(CdiConfiguration.class).getTraceMethodsDurationThreshold().getMillis() * 1000;
     }
 
     @Override

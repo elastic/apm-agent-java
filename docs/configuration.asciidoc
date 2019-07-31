@@ -107,6 +107,8 @@ Click on a key to get more information.
 ** <<config-application-packages>>
 ** <<config-stack-trace-limit>>
 ** <<config-span-frames-min-duration>>
+* <<config-cdi>>
+** <<config-cdi-methods-duration-threshold>>
 
 [[config-core]]
 === Core configuration options
@@ -452,7 +454,66 @@ Consider increasing the threshold or disabling stack trace collection altogether
 [[config-trace-methods-duration-threshold]]
 ==== `trace_methods_duration_threshold` (added[1.7.0])
 
-If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on duration.
+When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
+Such methods will be traced and reported if one of the following applies:
+- This method's duration crossed the configured threshold.
+- This method ended with Exception.
+- A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+- A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+Set to 0 to disable.
+
+NOTE: Transaction are never discarded, regardless of their duration.
+This configuration affects only spans.
+In order not to break span references, all spans leading to an async operations are never discarded, regardless of their duration.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | false
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
+|============
+
+[float]
+[[config-boot-delegation-packages]]
+==== `boot_delegation_packages`
+
+A comma-separated list of packages to be appended to the boot delegation system property.
+If set with an empty string, nothing will be appended to the boot delegation system property.
+Values to set in known environments:
+
+Nexus:
+boot_delegation_packages=com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,sun.*,co.elastic.apm.agent.*
+
+Pentaho:
+boot_delegation_packages=org.apache.karaf.jaas.boot,org.apache.karaf.jaas.boot.principal,org.apache.karaf.management.boot,sun.*,com.sun.*,javax.transaction,javax.transaction.*,javax.xml.crypto,javax.xml.crypto.*,org.apache.xerces.jaxp.datatype,org.apache.xerces.stax,org.apache.xerces.parsers,org.apache.xerces.jaxp,org.apache.xerces.jaxp.validation,org.apache.xerces.dom,co.elastic.apm.agent.*
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `co.elastic.apm.agent.*` | String | false
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
+|============
+
+[float]
+[[config-trace-methods-duration-threshold]]
+==== `trace_methods_duration_threshold` (added[1.7.0])
+
+If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on
 duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 Such methods will be traced and reported if one of the following applies:
  - This method's duration crossed the configured threshold.
@@ -462,7 +523,7 @@ Such methods will be traced and reported if one of the following applies:
 Set to 0 to disable.
 
 NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+In order not to break span references, all spans leading to an async operations are never discarded, regardless
 of their duration.
 
 
@@ -487,7 +548,7 @@ The default unit for this option is `ms`
 [[config-boot-delegation-packages]]
 ==== `boot_delegation_packages` (added[1.7.0])
 
-A comma-separated list of packages to be appended to the boot delegation system property. 
+A comma-separated list of packages to be appended to the boot delegation system property.
 If set with an empty string, nothing will be appended to the boot delegation system property.
 Values to set in known environments:
 
@@ -1231,6 +1292,42 @@ The default unit for this option is `ms`
 | `elastic.apm.span_frames_min_duration` | `span_frames_min_duration` | `ELASTIC_APM_SPAN_FRAMES_MIN_DURATION`
 |============
 
+[[config-cdi]]
+=== cdi configuration options
+
+[float]
+[[config-cdi-methods-duration-threshold]]
+==== `cdi_methods_duration_threshold` (added[1.7.0])
+
+Provides a threshold to limit spans generated by the cdi-plugin based on duration.
+When set to a value greater than 0, spans representing methods traced by the cdi plugin will be discarded by default.
+Such methods will be traced and reported if one of the following applies:
+- This method's duration crossed the configured threshold.
+- This method ended with Exception.
+- A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+- A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+Set to 0 to disable.
+
+NOTE: Transaction are never discarded, regardless of their duration.
+This configuration affects only spans.
+In order not to break span references, all spans leading to an async operations are never discarded, regardless of their duration.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | false
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.cdi_methods_duration_threshold` | `cdi_methods_duration_threshold` | `ELASTIC_APM_CDI_METHODS_DURATION_THRESHOLD`
+|============
+
 
 
 [[config-reference-properties-file]]
@@ -1282,7 +1379,7 @@ The default unit for this option is `ms`
 # Future versions of the Elastic APM stack will have better support for that scenario.
 # A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name
 # or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.
-# 
+#
 # NOTE: Service name auto discovery mechanisms require APM Server 7.0+.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -1292,7 +1389,7 @@ The default unit for this option is `ms`
 # Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
 # Falls back to the name of the main class or jar file.
 # If the service name is set explicitly, it overrides all of the above.
-# 
+#
 #
 # service_name=
 
@@ -1309,7 +1406,7 @@ The default unit for this option is `ms`
 # Environments allow you to easily filter data on a global level in the APM UI.
 # It's important to be consistent when naming environments across agents.
 # See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.
-# 
+#
 # NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.
 # You must use the query bar to filter for a specific environment in versions prior to 7.2.
 #
@@ -1393,12 +1490,12 @@ The default unit for this option is `ms`
 
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
-# 
+#
 # NOTE: This feature requires APM Server 7.2+
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Map
-# Default value: 
+# Default value:
 #
 # global_labels=
 
@@ -1439,7 +1536,7 @@ The default unit for this option is `ms`
 #
 # trace_methods=
 
-# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on 
+# If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on
 # duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded by default.
 # Such methods will be traced and reported if one of the following applies:
 #  - This method's duration crossed the configured threshold.
@@ -1447,11 +1544,11 @@ The default unit for this option is `ms`
 #  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 # Set to 0 to disable.
-# 
+#
 # NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-# In order not to break span references, all spans leading to an async operations are never discarded, regardless 
+# In order not to break span references, all spans leading to an async operations are never discarded, regardless
 # of their duration.
-# 
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: TimeDuration
@@ -1461,22 +1558,22 @@ The default unit for this option is `ms`
 #
 # trace_methods_duration_threshold=0ms
 
-# A comma-separated list of packages to be appended to the boot delegation system property. 
+# A comma-separated list of packages to be appended to the boot delegation system property.
 # If set with an empty string, nothing will be appended to the boot delegation system property.
 # Values to set in known environments:
-# 
+#
 # Nexus:
-# 
+#
 # ----
 # boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*,co.elastic.apm.agent.*
 # ----
-# 
+#
 # Pentaho and RedHat JBoss Fuse:
-# 
+#
 # ----
 # boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, org.apache.xerces.dom, co.elastic.apm.agent.*
 # ----
-# 
+#
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
@@ -1719,10 +1816,10 @@ The default unit for this option is `ms`
 # Fails over to the next APM Server URL in the event of connection errors.
 # Achieves load-balancing by shuffling the list of configured URLs.
 # When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.
-# 
+#
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
-# 
+#
 # NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
@@ -1870,5 +1967,31 @@ The default unit for this option is `ms`
 # Default value: 5ms
 #
 # span_frames_min_duration=5ms
+
+############################################
+# cdi                                      #
+############################################
+
+# Provides a threshold to limit spans generated by the cdi-plugin based on
+# duration. When set to a value greater than 0, spans representing methods traced by the cdi plugin will be discarded by default.
+# Such methods will be traced and reported if one of the following applies:
+#  - This method's duration crossed the configured threshold.
+#  - This method ended with Exception.
+#  - A method executed as part of the execution of this method crossed the threshold or ended with Exception.
+#  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
+# Set to 0 to disable.
+#
+# NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
+# In order not to break span references, all spans leading to an async operations are never discarded, regardless
+# of their duration.
+#
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# cdi_methods_duration_threshold=0ms
 
 ----
