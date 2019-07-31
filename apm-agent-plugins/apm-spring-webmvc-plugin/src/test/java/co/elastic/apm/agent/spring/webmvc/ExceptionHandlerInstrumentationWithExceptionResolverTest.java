@@ -1,27 +1,3 @@
-/*-
- * #%L
- * Elastic APM Java agent
- * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
- * %%
- * Licensed to Elasticsearch B.V. under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch B.V. licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- * #L%
- */
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.MockReporter;
@@ -31,10 +7,10 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
-import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.ControllerAdviceController;
-import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.GlobalExceptionHandler;
 import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_handler.ExceptionHandlerController;
+import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
+import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -59,17 +35,18 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {
     CommonConfiguration.class,
-    ControllerAdviceController.class,
-    ExceptionServiceImpl.class,
-    GlobalExceptionHandler.class })
+    ExceptionResolverController.class,
+    RestResponseStatusExceptionResolver.class,
+    ExceptionServiceImpl.class })
 @TestConfiguration
-public class ExceptionHandlerInstrumentationTest {
+public class ExceptionHandlerInstrumentationWithExceptionResolverTest {
 
     private static MockReporter reporter;
     private static ElasticApmTracer tracer;
@@ -107,15 +84,11 @@ public class ExceptionHandlerInstrumentationTest {
     public void testCallApiWithExceptionThrown() throws Exception {
         reporter.reset();
 
-        ResultActions resultActions = this.mockMvc.perform(get("/controller-advice/throw-exception"));
-        MvcResult result = resultActions.andReturn();
-        MockHttpServletResponse response = result.getResponse();
+        this.mockMvc.perform(get("/exception-resolver"));
 
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(0, reporter.getSpans().size());
         assertEquals(1, reporter.getErrors().size());
         assertEquals("runtime exception occured", reporter.getErrors().get(0).getException().getMessage());
-        assertEquals(409, response.getStatus());
-        assertEquals("controller-advice runtime exception occured", response.getContentAsString());
     }
 }

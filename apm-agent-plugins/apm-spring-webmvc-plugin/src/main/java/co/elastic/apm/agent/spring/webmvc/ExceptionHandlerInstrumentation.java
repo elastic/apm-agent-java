@@ -79,7 +79,8 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             .and(classLoaderCanLoadClass("org.springframework.web.bind.annotation.ControllerAdvice")
-            .or(classLoaderCanLoadClass("org.springframework.web.bind.annotation")));
+            .or(classLoaderCanLoadClass("org.springframework.web.bind.annotation")
+            .or(classLoaderCanLoadClass("org.springframework.web.servlet.HandlerExceptionResolver"))));
     }
 
     @Override

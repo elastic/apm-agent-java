@@ -22,33 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.testapp;
+package co.elastic.apm.agent.spring.webmvc.testapp.common;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.ViewResolver;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-@RestController
-public class TestAppController {
+@Configuration
+@EnableWebMvc
+public class CommonConfiguration {
 
-    @Autowired
-    private TestAppExceptionServiceImpl exceptionService;
-
-    @GetMapping("/test")
-    public ModelAndView test() {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("message-view");
-        return modelAndView;
-    }
-
-    @GetMapping("/throw-exception")
-    public ResponseEntity throwException() {
-        exceptionService.throwException();
-        return new ResponseEntity("OK", HttpStatus.OK);
+    @Bean
+    public ViewResolver viewResolver() {
+        InternalResourceViewResolver bean = new InternalResourceViewResolver();
+        bean.setPrefix("/static/");
+        bean.setSuffix(".jsp");
+        return bean;
     }
 }
-
-

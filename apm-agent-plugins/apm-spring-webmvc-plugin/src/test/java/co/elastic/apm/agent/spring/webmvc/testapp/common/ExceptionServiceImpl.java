@@ -22,12 +22,12 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.testapp;
+package co.elastic.apm.agent.spring.webmvc.testapp.common;
 
 import org.springframework.stereotype.Service;
 
 @Service
-public class TestAppExceptionServiceImpl {
+public class ExceptionServiceImpl {
 
     public void throwException() {
         throw new RuntimeException("runtime exception occured");

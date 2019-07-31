@@ -1,5 +1,6 @@
-package co.elastic.apm.agent.spring.webmvc.testapp;
+package co.elastic.apm.agent.spring.webmvc.testapp.exception_handler;
 
+import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,10 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequestMapping("/exception-handler")
-public class TestAppControllerWithExceptionHandler {
+public class ExceptionHandlerController {
 
     @Autowired
-    private TestAppExceptionServiceImpl exceptionService;
+    private ExceptionServiceImpl exceptionService;
 
     @GetMapping("/throw-exception")
     public ResponseEntity throwException() {

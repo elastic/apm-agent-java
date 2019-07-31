@@ -30,10 +30,8 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.TestAppConfiguration;
-import co.elastic.apm.agent.spring.webmvc.testapp.TestAppController;
-import co.elastic.apm.agent.spring.webmvc.testapp.TestAppExceptionHandler;
-import co.elastic.apm.agent.spring.webmvc.testapp.TestAppExceptionServiceImpl;
+import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
+import co.elastic.apm.agent.spring.webmvc.testapp.render.RenderController;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -59,9 +57,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-    TestAppConfiguration.class,
-    TestAppController.class,
-    TestAppExceptionServiceImpl.class})
+    CommonConfiguration.class,
+    RenderController.class })
 public class DispatcherServletRenderInstrumentationTest {
 
     private static MockReporter reporter;
@@ -100,7 +97,7 @@ public class DispatcherServletRenderInstrumentationTest {
     public void testCallOfDispatcherServletWithNonNullModelAndView() throws Exception {
         reporter.reset();
 
-        this.mockMvc.perform(get("/test"));
+        this.mockMvc.perform(get("/render/test"));
 
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(1, reporter.getSpans().size());

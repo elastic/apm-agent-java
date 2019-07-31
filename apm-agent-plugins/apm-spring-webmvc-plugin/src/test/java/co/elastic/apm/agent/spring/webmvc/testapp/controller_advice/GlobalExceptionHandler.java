@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.testapp;
+package co.elastic.apm.agent.spring.webmvc.testapp.controller_advice;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.handler.ResponseStatusExceptionHandler;
 
 @ControllerAdvice
-public class TestAppExceptionHandler extends ResponseStatusExceptionHandler {
+public class GlobalExceptionHandler extends ResponseStatusExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> globalExceptionHandler(Exception ex) {
