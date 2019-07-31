@@ -68,8 +68,8 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         span.finish(TimeUnit.MILLISECONDS.toMicros(1));
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("test");
+        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1000);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
     }
 
     @Test
@@ -80,11 +80,11 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final long epochMicros = System.currentTimeMillis() * 1000;
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getDuration()).isLessThan(MINUTES.toMillis(1));
+        assertThat(reporter.getFirstTransaction().getDuration()).isLessThan(MINUTES.toMicros(1));
         assertThat(reporter.getFirstTransaction().getTimestamp()).isCloseTo(epochMicros, offset(MINUTES.toMicros(1)));
 
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getFirstSpan().getDuration()).isLessThan(MINUTES.toMillis(1));
+        assertThat(reporter.getFirstSpan().getDuration()).isLessThan(MINUTES.toMicros(1));
         assertThat(reporter.getFirstSpan().getTimestamp()).isCloseTo(epochMicros, offset(MINUTES.toMicros(1)));
     }
 
@@ -189,10 +189,10 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(0);
 
         // manually finish span
-        scope.span().finish(TimeUnit.MILLISECONDS.toMicros(1));
+        scope.span().finish(1);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("test");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("test");
     }
 
     @Test
@@ -209,11 +209,11 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final co.elastic.apm.agent.impl.transaction.Span span = reporter.getSpans().get(1);
         final co.elastic.apm.agent.impl.transaction.Span nestedSpan = reporter.getSpans().get(0);
         assertThat(transaction.getDuration()).isGreaterThan(0);
-        assertThat(transaction.getName().toString()).isEqualTo("transaction");
+        assertThat(transaction.getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getSpans()).hasSize(2);
-        assertThat(span.getName().toString()).isEqualTo("span");
+        assertThat(span.getNameAsString()).isEqualTo("span");
         assertThat(span.isChildOf(transaction)).isTrue();
-        assertThat(nestedSpan.getName().toString()).isEqualTo("nestedSpan");
+        assertThat(nestedSpan.getNameAsString()).isEqualTo("nestedSpan");
         assertThat(nestedSpan.isChildOf(span)).isTrue();
     }
 

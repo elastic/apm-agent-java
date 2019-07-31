@@ -94,7 +94,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     public void startTransaction() throws Exception {
         reporter.reset();
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("JMS-Test Transaction");
+        transaction.withName("JMS-Test Transaction");
         transaction.withType("request");
         transaction.withResult("success");
         brokerFacade.beforeTest();
@@ -118,6 +118,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
+        if (!brokerFacade.shouldTestReceiveNoWait()) {
+            return;
+        }
         final Queue queue = createQueue();
         testQueueSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
@@ -130,6 +133,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
+        if (!brokerFacade.shouldTestReceiveNoWait()) {
+            return;
+        }
         final Queue queue = createQueue();
         testQueueSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
     }
@@ -158,9 +164,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(spans).hasSize(2);
         Iterator<Span> iterator = spans.iterator();
         Span sendSpan = iterator.next();
-        assertThat(sendSpan.getName().toString()).isEqualTo("JMS SEND to queue " + queue.getQueueName());
+        assertThat(sendSpan.getNameAsString()).isEqualTo("JMS SEND to queue " + queue.getQueueName());
         Span receiveSpan = iterator.next();
-        assertThat(receiveSpan.getName().toString()).isEqualTo("JMS RECEIVE from queue " + queue.getQueueName());
+        assertThat(receiveSpan.getNameAsString()).isEqualTo("JMS RECEIVE from queue " + queue.getQueueName());
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -190,8 +196,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span sendSpan = spans.get(0);
-        assertThat(sendSpan.getName().toString()).startsWith("JMS SEND to ");
-        assertThat(sendSpan.getName().toString()).endsWith(destinationName);
+        assertThat(sendSpan.getNameAsString()).startsWith("JMS SEND to ");
+        assertThat(sendSpan.getNameAsString()).endsWith(destinationName);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -200,8 +206,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         List<Transaction> receiveTransactions = reporter.getTransactions();
         assertThat(receiveTransactions).hasSize(expectedReadTransactions);
         for (Transaction receiveTransaction : receiveTransactions) {
-            assertThat(receiveTransaction.getName().toString()).startsWith("JMS RECEIVE from ");
-            assertThat(receiveTransaction.getName().toString()).endsWith(destinationName);
+            assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
+            assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
         }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -225,17 +225,19 @@ public class ElasticApmTracer {
      * @param parent                the parent of the transaction. May be a traceparent header.
      * @param sampler               the {@link Sampler} instance which is responsible for determining the sampling decision if this is a root transaction
      * @param epochMicros           the start timestamp
-     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction
-     *                              Used to determine the service name.
+     * @param initiatingClassLoader the class loader corresponding to the service which initiated the creation of the transaction.
+     *                              Used to determine the service name and to load application-scoped classes like the {@link org.slf4j.MDC},
+     *                              for log correlation.
      * @param <T>                   the type of the parent. {@code String} in case of a traceparent header.
      * @return a transaction which is a child of the provided parent
      */
-    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public <T> Transaction startTransaction(TraceContext.ChildContextCreator<T> childContextCreator, @Nullable T parent, Sampler sampler,
+                                            long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
         } else {
-            transaction = createTransaction().start(childContextCreator, parent, epochMicros, sampler);
+            transaction = createTransaction().start(childContextCreator, parent, epochMicros, sampler, initiatingClassLoader);
         }
         if (logger.isDebugEnabled()) {
             logger.debug("startTransaction {} {", transaction);
@@ -399,7 +401,7 @@ public class ElasticApmTracer {
         if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
             if (spanFramesMinDurationMs != 0 && span.isSampled()) {
-                if (span.getDuration() >= spanFramesMinDurationMs) {
+                if (span.getDurationMs() >= spanFramesMinDurationMs) {
                     span.withStacktrace(new Throwable());
                 }
             }

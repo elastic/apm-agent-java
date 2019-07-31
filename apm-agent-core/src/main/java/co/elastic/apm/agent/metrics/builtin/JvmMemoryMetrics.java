@@ -27,11 +27,11 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
-import java.util.Collections;
 
 public class JvmMemoryMetrics implements LifecycleListener {
 
@@ -42,37 +42,37 @@ public class JvmMemoryMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         final MemoryMXBean platformMXBean = ManagementFactory.getPlatformMXBean(MemoryMXBean.class);
-        registry.add("jvm.memory.heap.used", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.used", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getUsed();
             }
         });
-        registry.add("jvm.memory.heap.committed", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.committed", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.heap.max", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.heap.max", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getHeapMemoryUsage().getMax();
             }
         });
-        registry.add("jvm.memory.non_heap.used", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.used", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getUsed();
             }
         });
-        registry.add("jvm.memory.non_heap.committed", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.committed", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getCommitted();
             }
         });
-        registry.add("jvm.memory.non_heap.max", Collections.<String, String>emptyMap(), new DoubleSupplier() {
+        registry.add("jvm.memory.non_heap.max", Labels.EMPTY, new DoubleSupplier() {
             @Override
             public double get() {
                 return platformMXBean.getNonHeapMemoryUsage().getMax();

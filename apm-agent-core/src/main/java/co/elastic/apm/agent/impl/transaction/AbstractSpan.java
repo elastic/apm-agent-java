@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,8 +24,12 @@
  */
 package co.elastic.apm.agent.impl.transaction;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.report.ReporterConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +37,14 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextHolder<T> {
+    public static final int PRIO_USER_SUPPLIED = 1000;
+    public static final int PRIO_HIGH_LEVEL_FRAMEWORK = 100;
+    public static final int PRIO_METHOD_SIGNATURE = 100;
+    public static final int PRIO_LOW_LEVEL_FRAMEWORK = 10;
+    public static final int PRIO_DEFAULT = 0;
     private static final Logger logger = LoggerFactory.getLogger(AbstractSpan.class);
     protected static final double MS_IN_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
     protected final TraceContext traceContext;
@@ -43,23 +53,80 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
      */
     protected final StringBuilder name = new StringBuilder();
+    protected final boolean collectBreakdownMetrics;
     private long timestamp;
 
-    /**
-     * How long the transaction took to complete, in ms with 3 decimal points
-     * (Required)
-     */
-    protected double duration;
+    // in microseconds
+    protected long duration;
+    private ChildDurationTimer childDurations = new ChildDurationTimer();
     protected AtomicInteger references = new AtomicInteger();
     protected volatile boolean finished = true;
+    private int namePriority = PRIO_DEFAULT;
 
     public int getReferenceCount() {
         return references.get();
     }
 
+    private static class ChildDurationTimer implements Recyclable {
+
+        private AtomicInteger activeChildren = new AtomicInteger();
+        private AtomicLong start = new AtomicLong();
+        private AtomicLong duration = new AtomicLong();
+
+        /**
+         * Starts the timer if it has not been started already.
+         *
+         * @param startTimestamp
+         */
+        void onChildStart(long startTimestamp) {
+            if (activeChildren.incrementAndGet() == 1) {
+                start.set(startTimestamp);
+            }
+        }
+
+        /**
+         * Stops the timer and increments the duration if no other direct children are still running
+         * @param endTimestamp
+         */
+        void onChildEnd(long endTimestamp) {
+            if (activeChildren.decrementAndGet() == 0) {
+                incrementDuration(endTimestamp);
+            }
+        }
+
+        /**
+         * Stops the timer and increments the duration even if there are direct children which are still running
+         *
+         * @param endTimestamp
+         */
+        void onSpanEnd(long endTimestamp) {
+            if (activeChildren.getAndSet(0) != 0) {
+                incrementDuration(endTimestamp);
+            }
+        }
+
+        private void incrementDuration(long epochMicros) {
+            duration.addAndGet(epochMicros - start.get());
+        }
+
+        @Override
+        public void resetState() {
+            activeChildren.set(0);
+            start.set(0);
+            duration.set(0);
+        }
+
+        public long getDuration() {
+            return duration.get();
+        }
+    }
+
     public AbstractSpan(ElasticApmTracer tracer) {
         super(tracer);
         traceContext = TraceContext.with64BitId(this.tracer);
+        boolean selfTimeCollectionEnabled = !WildcardMatcher.isAnyMatch(tracer.getConfig(ReporterConfiguration.class).getDisableMetrics(), "span.self_time");
+        boolean breakdownMetricsEnabled = tracer.getConfig(CoreConfiguration.class).isBreakdownMetricsEnabled();
+        collectBreakdownMetrics = selfTimeCollectionEnabled && breakdownMetricsEnabled;
     }
 
     public boolean isReferenced() {
@@ -67,26 +134,51 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
     }
 
     /**
-     * How long the transaction took to complete, in ms with 3 decimal points
-     * (Required)
+     * How long the transaction took to complete, in µs
      */
-    public double getDuration() {
+    public long getDuration() {
         return duration;
     }
 
+    public long getSelfDuration() {
+        return duration - childDurations.getDuration();
+    }
+
+    public double getDurationMs() {
+        return duration / AbstractSpan.MS_IN_MICROS;
+    }
+
     /**
-     * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
+     * Only intended to be used by {@link co.elastic.apm.agent.report.serialize.DslJsonSerializer}
      */
-    public StringBuilder getName() {
+    public StringBuilder getNameForSerialization() {
         return name;
     }
 
     /**
-     * Generic designation of a transaction in the scope of a single service (eg: 'GET /users/:id')
+     * Resets and returns the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority} one.
+     * Otherwise, returns {@code null}
+     *
+     * @param namePriority the priority for the name. See also the {@code AbstractSpan#PRIO_*} constants.
+     * @return the name {@link StringBuilder} if the provided priority is {@code >=} {@link #namePriority}, {@code null} otherwise.
      */
-    public void setName(@Nullable String name) {
-        this.name.setLength(0);
-        this.name.append(name);
+    @Nullable
+    public StringBuilder getAndOverrideName(int namePriority) {
+        if (namePriority >= this.namePriority) {
+            this.namePriority = namePriority;
+            this.name.setLength(0);
+            return name;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Only intended for testing purposes as this allocates a {@link String}
+     * @return
+     */
+    public String getNameAsString() {
+        return name.toString();
     }
 
     /**
@@ -100,7 +192,27 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * @return {@code this}, for chaining
      */
     public T appendToName(String s) {
-        name.append(s);
+        return appendToName(s, PRIO_DEFAULT);
+    }
+
+    public T appendToName(String s, int priority) {
+        if (priority >= namePriority) {
+            this.name.append(s);
+            this.namePriority = priority;
+        }
+        return (T) this;
+    }
+
+    public T withName(@Nullable String name) {
+        return withName(name, PRIO_DEFAULT);
+    }
+
+    public T withName(@Nullable String name, int priority) {
+        if (priority >= namePriority && name != null && !name.isEmpty()) {
+            this.name.setLength(0);
+            this.name.append(name);
+            this.namePriority = priority;
+        }
         return (T) this;
     }
 
@@ -124,7 +236,9 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         timestamp = 0;
         duration = 0;
         traceContext.resetState();
+        childDurations.resetState();
         references.set(0);
+        namePriority = PRIO_DEFAULT;
     }
 
     public boolean isChildOf(AbstractSpan<?> parent) {
@@ -177,20 +291,23 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public final void end(long epochMicros) {
         if (!finished) {
-            this.duration = (epochMicros - timestamp)  / AbstractSpan.MS_IN_MICROS;
+            this.duration = (epochMicros - timestamp);
             if (name.length() == 0) {
                 name.append("unnamed");
             }
-            doEnd(epochMicros);
-            // has to be set last so doEnd callbacks don't think it has already been finished
+            childDurations.onSpanEnd(epochMicros);
+            beforeEnd(epochMicros);
             this.finished = true;
+            afterEnd();
         } else {
             logger.warn("End has already been called: {}", this);
             assert false;
         }
     }
 
-    protected abstract void doEnd(long epochMicros);
+    protected abstract void beforeEnd(long epochMicros);
+
+    protected abstract void afterEnd();
 
     @Override
     public boolean isChildOf(TraceContextHolder other) {
@@ -240,6 +357,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    void onChildStart(long epochMicros) {
+        if (collectBreakdownMetrics) {
+            childDurations.onChildStart(epochMicros);
+        }
+    }
+
+    void onChildEnd(long epochMicros) {
+        if (collectBreakdownMetrics) {
+            childDurations.onChildEnd(epochMicros);
+        }
     }
 
     public void incrementReferences() {

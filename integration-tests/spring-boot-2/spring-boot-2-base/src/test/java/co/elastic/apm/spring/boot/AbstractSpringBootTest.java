@@ -109,7 +109,7 @@ public abstract class AbstractSpringBootTest {
         // the transaction might not have been reported yet, as the http call returns when the ServletOutputStream has been closed,
         // which is before the transaction has ended
         final Transaction transaction = reporter.getFirstTransaction(500);
-        assertThat(transaction.getName().toString()).isEqualTo("TestApp#greeting");
+        assertThat(transaction.getNameAsString()).isEqualTo("TestApp#greeting");
         assertThat(transaction.getContext().getUser().getId()).isEqualTo("id");
         assertThat(transaction.getContext().getUser().getEmail()).isEqualTo("email");
         assertThat(transaction.getContext().getUser().getUsername()).isEqualTo("username");
@@ -122,7 +122,7 @@ public abstract class AbstractSpringBootTest {
         assertThat(restTemplate.getForObject("http://localhost:" + port + "/script.js", String.class))
             .contains("// empty test script");
 
-        assertThat(reporter.getFirstTransaction(500).getName().toString()).isEqualTo("ResourceHttpRequestHandler");
+        assertThat(reporter.getFirstTransaction(500).getNameAsString()).isEqualTo("ResourceHttpRequestHandler");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getUsername()).isEqualTo("username");
     }
 

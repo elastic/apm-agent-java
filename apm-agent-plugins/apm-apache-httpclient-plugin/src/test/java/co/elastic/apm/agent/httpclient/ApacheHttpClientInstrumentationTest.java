@@ -24,23 +24,34 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+
+import java.io.IOException;
 
 public class ApacheHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
 
-    private HttpClient client;
+    private static CloseableHttpClient client;
 
-    @Before
-    public void setUp() {
+    @BeforeClass
+    public static void setUp() {
         client = HttpClients.createDefault();
+    }
+
+    @AfterClass
+    public static void close() throws IOException {
+        client.close();
     }
 
     @Override
     protected void performGet(String path) throws Exception {
-        client.execute(new HttpGet(path)).getStatusLine().getStatusCode();
+        CloseableHttpResponse response = client.execute(new HttpGet(path));
+        response.getStatusLine().getStatusCode();
+        response.close();
     }
 
 }

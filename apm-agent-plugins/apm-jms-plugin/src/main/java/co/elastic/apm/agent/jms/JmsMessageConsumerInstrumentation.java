@@ -125,7 +125,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             .withSubtype("jms")
                             .withAction("receive");
                     }
-                    abstractSpan.setName("JMS RECEIVE");
+                    abstractSpan.withName("JMS RECEIVE");
                     abstractSpan.activate();
                 }
                 return abstractSpan;

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -35,13 +34,11 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-
 public class TransactionUtils {
 
     public static void fillTransaction(Transaction t) {
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
-        t.setName("GET /api/types");
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader());
+        t.withName("GET /api/types");
         t.withType("request");
         t.withResult("success");
 
@@ -86,7 +83,7 @@ public class TransactionUtils {
 
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
-        Span span = new Span(mock(ElasticApmTracer.class))
+        Span span = new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("SELECT FROM product_types")
             .withType("db")
@@ -96,25 +93,26 @@ public class TransactionUtils {
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
-            .withUser("readonly_user");
+            .withUser("readonly_user")
+            .withDbLink("DB_LINK");
         span.addLabel("monitored_by", "ACME");
         span.addLabel("framework", "some-framework");
         spans.add(span);
 
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
 
-        span = new Span(mock(ElasticApmTracer.class))
+        span = new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .appendToName("GET ")
             .appendToName("test.elastic.co")

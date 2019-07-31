@@ -73,6 +73,8 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
+** <<config-breakdown-metrics>>
+** <<config-config-file-location>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -514,6 +516,48 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 | `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
 
+[float]
+[[config-breakdown-metrics]]
+==== `breakdown_metrics`
+
+Disables the collection of breakdown metrics (`span.self_time`)
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
+|============
+
+[float]
+[[config-config-file-location]]
+==== `config_file_location`
+
+Sets the path of the agent config file.
+The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+The location can either be in the classpath of the application or on the file system.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `_AGENT_HOME_/elasticapm.properties` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.config_file_location` | `config_file_location` | `ELASTIC_APM_CONFIG_FILE_LOCATION`
+|============
+
 [[config-http]]
 === HTTP configuration options
 [float]
@@ -815,16 +859,14 @@ it's content is deleted when the application starts.
 [[config-enable-log-correlation]]
 ==== `enable_log_correlation`
 
-A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
-If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
+If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 you can index your log files and correlate them with APM traces.
 With this integration you can get all logs belonging to a particular trace and vice-versa:
 for a specific log, see in which context it has been logged and which parameters the user provided. 
 While it's allowed to enable this setting at runtime, you can't disable it without a restart.
-
-NOTE: This is an incubating feature and the MDC key names might change.
 
 
 [options="header"]
@@ -882,7 +924,7 @@ See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/tech
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `http://localhost:8200` | List | false
+| `http://localhost:8200` | List | true
 |============
 
 
@@ -1143,7 +1185,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 
 In its default settings, the APM agent will collect a stack trace with every recorded span.
 While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
+When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 
 To disable stack trace collection for spans completely, set the value to `0ms`.
 
@@ -1417,6 +1459,24 @@ The default unit for this option is `ms`
 #
 # boot_delegation_packages=co.elastic.apm.agent.*
 
+# Disables the collection of breakdown metrics (`span.self_time`)
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: Boolean
+# Default value: true
+#
+# breakdown_metrics=true
+
+# Sets the path of the agent config file.
+# The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
+# The location can either be in the classpath of the application or on the file system.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: _AGENT_HOME_/elasticapm.properties
+#
+# config_file_location=_AGENT_HOME_/elasticapm.properties
+
 ############################################
 # HTTP                                     #
 ############################################
@@ -1588,16 +1648,14 @@ The default unit for this option is `ms`
 #
 # log_file=System.out
 
-# A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.
-# If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.
+# A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
+# If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 # You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 # you can index your log files and correlate them with APM traces.
 # With this integration you can get all logs belonging to a particular trace and vice-versa:
 # for a specific log, see in which context it has been logged and which parameters the user provided. 
 # While it's allowed to enable this setting at runtime, you can't disable it without a restart.
-# 
-# NOTE: This is an incubating feature and the MDC key names might change.
 #
 # This setting can be changed at runtime
 # Type: Boolean
@@ -1631,7 +1689,7 @@ The default unit for this option is `ms`
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: http://localhost:8200
 #
@@ -1765,7 +1823,7 @@ The default unit for this option is `ms`
 
 # In its default settings, the APM agent will collect a stack trace with every recorded span.
 # While this is very helpful to find the exact place in your code that causes the span, collecting this stack trace does have some overhead. 
-# When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal or longer than the given value, e.g. 5 milliseconds.
+# When setting this option to a negative value, like `-1ms`, stack traces will be collected for all spans. Setting it to a positive value, e.g. `5ms`, will limit stack trace collection to spans with durations equal to or longer than the given value, e.g. 5 milliseconds.
 # 
 # To disable stack trace collection for spans completely, set the value to `0ms`.
 #

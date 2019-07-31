@@ -263,7 +263,7 @@ class ElasticApmTracerTest {
             try (Scope spanScope = span.activateInScope()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test");
-                assertThat(span.getName().toString()).isEqualTo("test");
+                assertThat(span.getNameAsString()).isEqualTo("test");
                 assertThat(tracerImpl.getActive()).isSameAs(span);
                 assertThat(span.isChildOf(transaction)).isTrue();
                 span.end();
@@ -272,7 +272,7 @@ class ElasticApmTracerTest {
             try (Scope spanScope = span2.activateInScope()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span2.withName("test2");
-                assertThat(span2.getName().toString()).isEqualTo("test2");
+                assertThat(span2.getNameAsString()).isEqualTo("test2");
                 assertThat(tracerImpl.getActive()).isSameAs(span2);
                 assertThat(span2.isChildOf(transaction)).isTrue();
                 span2.end();
@@ -352,9 +352,9 @@ class ElasticApmTracerTest {
         transaction.end(30);
 
         assertThat(transaction.getTimestamp()).isEqualTo(0);
-        assertThat(transaction.getDuration()).isEqualTo(0.03);
+        assertThat(transaction.getDuration()).isEqualTo(30);
         assertThat(span.getTimestamp()).isEqualTo(10);
-        assertThat(span.getDuration()).isEqualTo(0.01);
+        assertThat(span.getDuration()).isEqualTo(10);
     }
 
     @Test

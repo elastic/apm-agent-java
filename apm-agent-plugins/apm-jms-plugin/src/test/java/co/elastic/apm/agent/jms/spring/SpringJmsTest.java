@@ -80,7 +80,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
         try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-            transaction.setName("JMS-Spring-Test Transaction");
+            transaction.withName("JMS-Spring-Test Transaction");
             transaction.withType("request");
             transaction.withResult("success");
 
@@ -118,7 +118,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
             List<Span> spans = reporter.getSpans();
             assertThat(spans).hasSize(1);
             Span sendSpan = spans.get(0);
-            assertThat(sendSpan.getName().toString()).isEqualTo("JMS SEND to queue " + SPRING_TEST_QUEUE);
+            assertThat(sendSpan.getNameAsString()).isEqualTo("JMS SEND to queue " + SPRING_TEST_QUEUE);
             assertThat(sendSpan.getTraceContext().getTraceId()).isEqualTo(traceId);
 
             Transaction receiveTransaction = transactions.get(0);
@@ -127,7 +127,7 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
     }
 
     private void verifyReceiveTransaction(Id traceId, Span sendSpan, Transaction receiveTransaction) {
-        assertThat(receiveTransaction.getName().toString()).isEqualTo("JMS RECEIVE from queue " + SPRING_TEST_QUEUE);
+        assertThat(receiveTransaction.getNameAsString()).isEqualTo("JMS RECEIVE from queue " + SPRING_TEST_QUEUE);
         assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(traceId);
         assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
     }

@@ -24,13 +24,14 @@
  */
 package co.elastic.apm.agent.impl.payload;
 
+import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.TransactionUtils;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.IOUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -60,14 +61,14 @@ class TransactionPayloadJsonSchemaTest {
     void setUp() {
         schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
         objectMapper = new ObjectMapper();
-        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class));
     }
 
     private TransactionPayload createPayloadWithRequiredValues() {
         final TransactionPayload payload = createPayload();
         final Transaction transaction = createTransactionWithRequiredValues();
         payload.getTransactions().add(transaction);
-        Span span = new Span(mock(ElasticApmTracer.class));
+        Span span = new Span(MockTracer.create());
         span.start(TraceContext.fromParent(), transaction, -1, false)
             .withType("type")
             .withSubtype("subtype")
@@ -78,8 +79,8 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private Transaction createTransactionWithRequiredValues() {
-        Transaction t = new Transaction(mock(ElasticApmTracer.class));
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
+        Transaction t = new Transaction(MockTracer.create());
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), getClass().getClassLoader());
         t.withType("type");
         t.getContext().getRequest().withMethod("GET");
         t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
@@ -87,7 +88,7 @@ class TransactionPayloadJsonSchemaTest {
     }
 
     private TransactionPayload createPayloadWithAllValues() {
-        final Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        final Transaction transaction = new Transaction(MockTracer.create());
         TransactionUtils.fillTransaction(transaction);
         final TransactionPayload payload = createPayload();
         payload.getTransactions().add(transaction);
@@ -109,8 +110,8 @@ class TransactionPayloadJsonSchemaTest {
     @Test
     void testJsonSchemaDslJsonEmptyValues() throws IOException {
         final TransactionPayload payload = createPayload();
-        payload.getTransactions().add(new Transaction(mock(ElasticApmTracer.class)));
-        final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class)).toJsonString(payload);
+        payload.getTransactions().add(new Transaction(MockTracer.create()));
+        final String content = new DslJsonSerializer(mock(StacktraceConfiguration.class), mock(ApmServerClient.class)).toJsonString(payload);
         System.out.println(content);
         objectMapper.readTree(content);
     }
@@ -250,6 +251,7 @@ class TransactionPayloadJsonSchemaTest {
                 assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM product_types WHERE user_id=?");
                 assertThat(db.get("type").textValue()).isEqualTo("sql");
                 assertThat(db.get("user").textValue()).isEqualTo("readonly_user");
+                assertThat(db.get("link").textValue()).isEqualTo("DB_LINK");
                 JsonNode tags = context.get("tags");
                 if (shouldContainTags) {
                     assertThat(tags).isNotNull();

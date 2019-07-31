@@ -50,7 +50,8 @@ public interface ActivationListener {
      * That's why there is no {@link TraceContextHolder} parameter.
      * </p>
      *
+     * @param deactivatedContext the context which has just been deactivated
      * @throws Throwable if there was an error while calling this method
      */
-    void afterDeactivate() throws Throwable;
+    void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable;
 }

@@ -52,7 +52,10 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
+import co.elastic.apm.agent.metrics.MetricSet;
+import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -81,7 +84,7 @@ import static com.dslplatform.json.JsonWriter.COMMA;
 import static com.dslplatform.json.JsonWriter.OBJECT_END;
 import static com.dslplatform.json.JsonWriter.OBJECT_START;
 
-public class DslJsonSerializer implements PayloadSerializer {
+public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.MetricsReporter {
 
     /**
      * Matches default ZLIB buffer size.
@@ -99,11 +102,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
+    private final ApmServerClient apmServerClient;
     @Nullable
     private OutputStream os;
 
-    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration) {
+    public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient) {
         this.stacktraceConfiguration = stacktraceConfiguration;
+        this.apmServerClient = apmServerClient;
         jw = new DslJson<>(new DslJson.Settings<>()).newWriter(BUFFER_SIZE);
     }
 
@@ -229,8 +234,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     @Override
+    public void report(Map<? extends Labels, MetricSet> metricSets) {
+        MetricRegistrySerializer.serialize(metricSets, replaceBuilder, jw);
+    }
+
+    @Override
     public void serializeMetrics(MetricRegistry metricRegistry) {
-        MetricRegistrySerializer.serialize(metricRegistry, replaceBuilder, jw);
+        metricRegistry.report(this);
     }
 
     private void serializeErrorPayload(ErrorPayload payload) {
@@ -516,10 +526,10 @@ public class DslJsonSerializer implements PayloadSerializer {
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());
-        writeField("name", transaction.getName());
+        writeField("name", transaction.getNameForSerialization());
         serializeTraceContext(transaction.getTraceContext(), false);
         writeField("type", transaction.getType());
-        writeField("duration", transaction.getDuration());
+        writeField("duration", transaction.getDurationMs());
         writeField("result", transaction.getResult());
         serializeContext(transaction.getContext(), transaction.getTraceContext());
         serializeSpanCount(transaction.getSpanCount());
@@ -557,10 +567,10 @@ public class DslJsonSerializer implements PayloadSerializer {
 
     private void serializeSpan(final Span span) {
         jw.writeByte(OBJECT_START);
-        writeField("name", span.getName());
+        writeField("name", span.getNameForSerialization());
         writeTimestamp(span.getTimestamp());
         serializeTraceContext(span.getTraceContext(), true);
-        writeField("duration", span.getDuration());
+        writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
         }
@@ -723,6 +733,7 @@ public class DslJsonSerializer implements PayloadSerializer {
                 }
             }
             writeField("type", db.getType());
+            writeField("link", db.getDbLink());
             writeLastField("user", db.getUser());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
@@ -766,7 +777,7 @@ public class DslJsonSerializer implements PayloadSerializer {
         serializeResponse(context.getResponse());
         if (context.hasCustom()) {
             writeFieldName("custom");
-            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true);
+            serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true, true);
             jw.writeByte(COMMA);
         }
         writeFieldName("tags");
@@ -778,37 +789,73 @@ public class DslJsonSerializer implements PayloadSerializer {
     // visible for testing
     void serializeLabels(AbstractContext context) {
         if (context.hasLabels()) {
-            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false);
+            serializeStringKeyScalarValueMap(context.getLabelIterator(), replaceBuilder, jw, false, apmServerClient.supportsNonStringLabels());
         } else {
             jw.writeByte(OBJECT_START);
             jw.writeByte(OBJECT_END);
         }
     }
 
-    static void serializeStringLabels(Iterator<? extends Map.Entry<String, String>> iterator, StringBuilder replaceBuilder, JsonWriter jw) {
-        serializeStringKeyScalarValueMap(iterator, replaceBuilder, jw, false);
-    }
-
     private static void serializeStringKeyScalarValueMap(Iterator<? extends Map.Entry<String, ? /* String|Number|Boolean */>> it,
-                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit) {
+                                                         StringBuilder replaceBuilder, JsonWriter jw, boolean extendedStringLimit,
+                                                         boolean supportsNonStringValues) {
         jw.writeByte(OBJECT_START);
         if (it.hasNext()) {
             Map.Entry<String, ?> kv = it.next();
             writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
             jw.writeByte(JsonWriter.SEMI);
-            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
+            serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             while (it.hasNext()) {
                 jw.writeByte(COMMA);
                 kv = it.next();
                 writeStringValue(sanitizeLabelKey(kv.getKey(), replaceBuilder), replaceBuilder, jw);
                 jw.writeByte(JsonWriter.SEMI);
-                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit);
+                serializeScalarValue(replaceBuilder, jw, kv.getValue(), extendedStringLimit, supportsNonStringValues);
             }
         }
         jw.writeByte(OBJECT_END);
     }
 
-    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit) {
+    static void serializeLabels(Labels labels, StringBuilder replaceBuilder, JsonWriter jw) {
+        if (!labels.isEmpty()) {
+            if (labels.getTransactionName() != null || labels.getTransactionType() != null) {
+                writeFieldName("transaction", jw);
+                jw.writeByte(OBJECT_START);
+                writeField("name", labels.getTransactionName(), replaceBuilder, jw);
+                writeLastField("type", labels.getTransactionType(), replaceBuilder, jw);
+                jw.writeByte(OBJECT_END);
+                jw.writeByte(COMMA);
+            }
+
+            if (labels.getSpanType() != null || labels.getSpanSubType() != null) {
+                writeFieldName("span", jw);
+                jw.writeByte(OBJECT_START);
+                writeField("type", labels.getSpanType(), replaceBuilder, jw);
+                writeLastField("subtype", labels.getSpanSubType(), replaceBuilder, jw);
+                jw.writeByte(OBJECT_END);
+                jw.writeByte(COMMA);
+            }
+
+            writeFieldName("tags", jw);
+            jw.writeByte(OBJECT_START);
+            serialize(labels, replaceBuilder, jw);
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private static void serialize(Labels labels, StringBuilder replaceBuilder, JsonWriter jw) {
+        for (int i = 0; i < labels.size(); i++) {
+            if (i > 0) {
+                jw.writeByte(COMMA);
+            }
+            writeStringValue(sanitizeLabelKey(labels.getKey(i), replaceBuilder), replaceBuilder, jw);
+            jw.writeByte(JsonWriter.SEMI);
+            serializeScalarValue(replaceBuilder, jw, labels.getValue(i), false, false);
+        }
+    }
+
+    private static void serializeScalarValue(StringBuilder replaceBuilder, JsonWriter jw, Object value, boolean extendedStringLimit, boolean supportsNonStringValues) {
         if (value instanceof String) {
             if (extendedStringLimit) {
                 writeLongStringValue((String) value, replaceBuilder, jw);
@@ -816,9 +863,17 @@ public class DslJsonSerializer implements PayloadSerializer {
                 writeStringValue((String) value, replaceBuilder, jw);
             }
         } else if (value instanceof Number) {
-            NumberConverter.serialize(((Number) value).doubleValue(), jw);
+            if (supportsNonStringValues) {
+                NumberConverter.serialize(((Number) value).doubleValue(), jw);
+            } else {
+                jw.writeNull();
+            }
         } else if (value instanceof Boolean) {
-            BoolConverter.serialize((Boolean) value, jw);
+            if (supportsNonStringValues) {
+                BoolConverter.serialize((Boolean) value, jw);
+            } else {
+                jw.writeNull();
+            }
         } else {
             // can't happen, as AbstractContext enforces the values to be either String, Number or boolean
             jw.writeString("invalid value");
@@ -982,9 +1037,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     void writeField(final String fieldName, @Nullable final String value) {
+        writeField(fieldName, value, replaceBuilder, jw);
+    }
+
+    static void writeField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value != null) {
-            writeFieldName(fieldName);
-            writeStringValue(value);
+            writeFieldName(fieldName, jw);
+            writeStringValue(value, replaceBuilder, jw);
             jw.writeByte(COMMA);
         }
     }
@@ -1072,9 +1131,13 @@ public class DslJsonSerializer implements PayloadSerializer {
     }
 
     void writeLastField(final String fieldName, @Nullable final String value) {
-        writeFieldName(fieldName);
+        writeLastField(fieldName, value, replaceBuilder, jw);
+    }
+
+    static void writeLastField(final String fieldName, @Nullable final String value, StringBuilder replaceBuilder, final JsonWriter jw) {
+        writeFieldName(fieldName, jw);
         if (value != null) {
-            writeStringValue(value);
+            writeStringValue(value, replaceBuilder, jw);
         } else {
             jw.writeNull();
         }

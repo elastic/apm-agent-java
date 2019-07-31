@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Map;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -122,7 +123,7 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
         public static void setOperationName(@Advice.FieldValue(value = "dispatcher", typing = Assigner.Typing.DYNAMIC) @Nullable AbstractSpan<?> span,
                                             @Advice.Argument(0) @Nullable String operationName) {
             if (span != null) {
-                span.setName(operationName);
+                span.withName(operationName, PRIO_USER_SUPPLIED);
             } else {
                 logger.warn("Calling setOperationName on an already finished span");
             }
@@ -212,15 +213,13 @@ public class ApmSpanInstrumentation extends OpenTracingBridgeInstrumentation {
                 transaction.withResult(value.toString());
                 return true;
             } else if ("error".equals(key)) {
-                if (transaction.getResult() == null && Boolean.FALSE.equals(value)) {
-                    transaction.withResult("error");
+                if (Boolean.FALSE.equals(value)) {
+                    transaction.withResultIfUnset("error");
                 }
                 return true;
             } else if ("http.status_code".equals(key) && value instanceof Number) {
                 transaction.getContext().getResponse().withStatusCode(((Number) value).intValue());
-                if (transaction.getResult() == null) {
-                    transaction.withResult(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
-                }
+                transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(((Number) value).intValue()));
                 transaction.withType(Transaction.TYPE_REQUEST);
                 return true;
             } else if ("http.method".equals(key)) {

@@ -48,7 +48,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     void testSetName() {
         transaction.setName("foo");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
     }
 
     @Test
@@ -82,10 +82,26 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testInstrumentationDoesNotOverrideUserResult() {
+        transaction.setResult("foo");
+        endTransaction();
+        reporter.getFirstTransaction().withResultIfUnset("200");
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+    }
+
+    @Test
+    void testUserCanOverrideResult() {
+        transaction.setResult("foo");
+        transaction.setResult("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("bar");
+    }
+
+    @Test
     void testChaining() {
         transaction.setType("foo").setName("foo").addLabel("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
@@ -109,9 +125,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(3);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo3");
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("bar3");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("bar3");
         assertThat(reporter.getSpans().get(1).getType()).isEqualTo("foo2");
-        assertThat(reporter.getSpans().get(1).getName().toString()).isEqualTo("bar2");
+        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("bar2");
         assertThat(reporter.getSpans().get(1).getTraceContext().getParentId()).isEqualTo(reporter.getSpans().get(2).getTraceContext().getId());
         assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }

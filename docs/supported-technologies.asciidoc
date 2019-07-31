@@ -270,6 +270,21 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |1.8.0
 |===
 
+[float]
+[[supported-logging-frameworks]]
+=== Logging frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+|slf4j
+|1.4.1+
+|When <<config-enable-log-correlation>> is set to `true`,
+ the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
+ See the <<config-enable-log-correlation>> configuration option for more details.
+|1.0.0
+
+|===
 
 [float]
 [[supported-technologies-caveats]]

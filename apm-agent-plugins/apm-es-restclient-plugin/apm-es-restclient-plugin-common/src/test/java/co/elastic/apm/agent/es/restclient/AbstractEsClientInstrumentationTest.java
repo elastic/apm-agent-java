@@ -69,9 +69,9 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     @Before
     public void startTransaction() {
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("ES Transaction");
+        transaction.withName("ES Transaction");
         transaction.withType("request");
-        transaction.withResult("success");
+        transaction.withResultIfUnset("success");
     }
 
     @After
@@ -100,7 +100,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
         assertThat(span.getType()).isEqualTo(SPAN_TYPE);
         assertThat(span.getSubtype()).isEqualTo(ELASTICSEARCH);
         assertThat(span.getAction()).isEqualTo(SPAN_ACTION);
-        assertThat(span.getName().toString()).isEqualTo(expectedName);
+        assertThat(span.getNameAsString()).isEqualTo(expectedName);
 
         assertThat(span.getContext().getDb().getType()).isEqualTo(ELASTICSEARCH);
 
@@ -150,7 +150,7 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
-        assertThat(spans.get(0).getName().toString()).isEqualTo("Elasticsearch: POST /_bulk");
+        assertThat(spans.get(0).getNameAsString()).isEqualTo("Elasticsearch: POST /_bulk");
     }
 
 }

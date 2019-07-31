@@ -104,7 +104,7 @@ public class DispatcherServletRenderInstrumentationTest {
 
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("DispatcherServlet#render message-view", reporter.getSpans().get(0).getName().toString());
+        assertEquals("DispatcherServlet#render message-view", reporter.getSpans().get(0).getNameAsString());
     }
 
 }

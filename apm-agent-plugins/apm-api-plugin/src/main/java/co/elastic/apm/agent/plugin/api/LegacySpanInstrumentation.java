@@ -33,6 +33,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -74,7 +75,7 @@ public class LegacySpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodEnter
         public static void setName(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) AbstractSpan<?> span,
                                    @Advice.Argument(0) String name) {
-            span.setName(name);
+            span.withName(name, PRIO_USER_SUPPLIED);
         }
     }
 

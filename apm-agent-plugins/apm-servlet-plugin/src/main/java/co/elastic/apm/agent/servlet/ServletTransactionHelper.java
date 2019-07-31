@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -47,6 +47,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
 import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
 
 /**
@@ -61,6 +63,7 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
+    public static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -124,7 +127,6 @@ public class ServletTransactionHelper {
         fillRequest(request, protocol, method, secure, scheme, serverName, serverPort, requestURI, queryString, remoteAddr);
     }
 
-
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
@@ -182,34 +184,40 @@ public class ServletTransactionHelper {
     private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                            @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
-        if(exception != null && status == 200) {
+        if (exception != null && status == 200) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
             status = 500;
         }
         fillResponse(transaction.getContext().getResponse(), committed, status);
-        transaction.withResult(ResultUtil.getResultByHttpStatus(status));
+        transaction.withResultIfUnset(ResultUtil.getResultByHttpStatus(status));
         transaction.withType("request");
-        if (transaction.getName().length() == 0) {
-            applyDefaultTransactionName(method, servletPath, pathInfo, transaction.getName());
-        }
+        applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {
             transaction.captureException(exception);
         }
     }
 
-    void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, StringBuilder transactionName) {
-        if (webConfiguration.isUsePathAsName()) {
-            WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
-            if (groupMatcher != null) {
-                transactionName.append(method).append(' ').append(groupMatcher.toString());
-            } else {
-                transactionName.append(method).append(' ').append(servletPath);
-                if (pathInfo != null) {
-                    transactionName.append(pathInfo);
+    void applyDefaultTransactionName(String method, String servletPath, @Nullable String pathInfo, Transaction transaction) {
+        // JSPs don't contain path params and the name is more telling than the generated servlet class
+        if (webConfiguration.isUsePathAsName() || ENDS_WITH_JSP.matches(servletPath, pathInfo)) {
+            // should override ServletName#doGet
+            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK + 1);
+            if (transactionName != null) {
+                WildcardMatcher groupMatcher = WildcardMatcher.anyMatch(webConfiguration.getUrlGroups(), servletPath, pathInfo);
+                if (groupMatcher != null) {
+                    transactionName.append(method).append(' ').append(groupMatcher.toString());
+                } else {
+                    transactionName.append(method).append(' ').append(servletPath);
+                    if (pathInfo != null) {
+                        transactionName.append(pathInfo);
+                    }
                 }
             }
         } else {
-            transactionName.append(method).append(" unknown route");
+            StringBuilder transactionName = transaction.getAndOverrideName(PRIO_DEFAULT);
+            if (transactionName != null) {
+                transactionName.append(method).append(" unknown route");
+            }
         }
     }
 
@@ -328,8 +336,12 @@ public class ServletTransactionHelper {
     }
 
     @VisibleForAdvice
-    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, StringBuilder transactionName) {
-        if (servletClass == null || transactionName.length() > 0) {
+    public static void setTransactionNameByServletClass(@Nullable String method, @Nullable Class<?> servletClass, Transaction transaction) {
+        if (servletClass == null) {
+            return;
+        }
+        StringBuilder transactionName = transaction.getAndOverrideName(PRIO_LOW_LEVEL_FRAMEWORK);
+        if (transactionName == null) {
             return;
         }
         String servletClassName = servletClass.getName();

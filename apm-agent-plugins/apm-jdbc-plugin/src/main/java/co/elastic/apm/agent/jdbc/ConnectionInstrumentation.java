@@ -26,14 +26,13 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.jdbc.helper.JdbcHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.Collection;
@@ -55,28 +54,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  */
 public class ConnectionInstrumentation extends ElasticApmInstrumentation {
 
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = new WeakConcurrentMap<Object, String>(true);
     static final String JDBC_INSTRUMENTATION_GROUP = "jdbc";
 
     @VisibleForAdvice
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void storeSql(@Advice.Return final PreparedStatement statement, @Advice.Argument(0) String sql) {
-        statementSqlMap.putIfAbsent(statement, sql);
-    }
-
-    /**
-     * Returns the SQL statement belonging to provided {@link PreparedStatement}.
-     * <p>
-     * Might return {@code null} when the provided {@link PreparedStatement} is a wrapper of the actual statement.
-     * </p>
-     *
-     * @return the SQL statement belonging to provided {@link PreparedStatement}, or {@code null}
-     */
-    @Nullable
-    @VisibleForAdvice
-    public static String getSqlForStatement(Object statement) {
-        return statementSqlMap.get(statement);
+        JdbcHelper.mapStatementToSql(statement, sql);
     }
 
     @Override

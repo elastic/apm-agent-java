@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.report;
 
+import co.elastic.apm.agent.util.Version;
 import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stagemonitor.configuration.ConfigurationOption;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -63,25 +66,44 @@ public class ApmServerClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
+    private static final Version APM_SERVER_NON_STRING_LABEL_SUPPORT = new Version("6.7.0");
     private final ReporterConfiguration reporterConfiguration;
-    private final List<URL> serverUrls;
+    private volatile List<URL> serverUrls;
+    private volatile Future<Version> apmServerVersion;
     private final AtomicInteger errorCount = new AtomicInteger();
+    private final ApmServerHealthChecker healthChecker;
 
     public ApmServerClient(ReporterConfiguration reporterConfiguration) {
-        this(reporterConfiguration, shuffleUrls(reporterConfiguration));
+        this(reporterConfiguration, shuffleUrls(reporterConfiguration.getServerUrls()));
     }
 
-    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> serverUrls) {
+    public ApmServerClient(ReporterConfiguration reporterConfiguration, List<URL> shuffledUrls) {
         this.reporterConfiguration = reporterConfiguration;
-        this.serverUrls = Collections.unmodifiableList(serverUrls);
+        this.healthChecker = new ApmServerHealthChecker(this);
+        this.reporterConfiguration.getServerUrlsOption().addChangeListener(new ConfigurationOption.ChangeListener<List<URL>>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, List<URL> oldValue, List<URL> newValue) {
+                logger.debug("server_urls override with value = ({}).", newValue);
+                if (newValue != null && !newValue.isEmpty()) {
+                    setServerUrls(shuffleUrls(newValue));
+                }
+            }
+        });
+        setServerUrls(Collections.unmodifiableList(shuffledUrls));
     }
 
-    private static List<URL> shuffleUrls(ReporterConfiguration reporterConfiguration) {
-        List<URL> serverUrls = new ArrayList<>(reporterConfiguration.getServerUrls());
+    private void setServerUrls(List<URL> serverUrls) {
+        this.serverUrls = serverUrls;
+        this.apmServerVersion = healthChecker.checkHealthAndGetMinVersion();
+        this.errorCount.set(0);
+    }
+
+    private static List<URL> shuffleUrls(List<URL> serverUrls) {
         // shuffling the URL list helps to distribute the load across the apm servers
         // when there are multiple agents, they should not all start connecting to the same apm server
-        Collections.shuffle(serverUrls);
-        return serverUrls;
+        List<URL> copy = new ArrayList<>(serverUrls);
+        Collections.shuffle(copy);
+        return copy;
     }
 
     private static void trustAll(HttpsURLConnection connection) {
@@ -140,6 +162,7 @@ public class ApmServerClient {
      * the error count is not incremented.
      * This avoids concurrent requests from incrementing the error multiple times due to only one failing server.
      * </p>
+     *
      * @param expectedErrorCount the error count that is expected by the current thread
      * @return the new expected error count
      */
@@ -201,12 +224,13 @@ public class ApmServerClient {
         throw previousException;
     }
 
-    public void executeForAllUrls(String path, ConnectionHandler<Void> connectionHandler) {
+    public <T> List<T> executeForAllUrls(String path, ConnectionHandler<T> connectionHandler) {
+        List<T> results = new ArrayList<>(serverUrls.size());
         for (URL serverUrl : serverUrls) {
             HttpURLConnection connection = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
-                connectionHandler.withConnection(connection);
+                results.add(connectionHandler.withConnection(connection));
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
@@ -215,6 +239,7 @@ public class ApmServerClient {
                 }
             }
         }
+        return results;
     }
 
     URL getCurrentUrl() {
@@ -238,6 +263,27 @@ public class ApmServerClient {
 
     int getErrorCount() {
         return errorCount.get();
+    }
+
+    List<URL> getServerUrls() {
+        return this.serverUrls;
+    }
+
+    public boolean supportsNonStringLabels() {
+        return isAtLeast(APM_SERVER_NON_STRING_LABEL_SUPPORT);
+    }
+
+    public boolean isAtLeast(Version apmServerVersion) {
+        try {
+            Version localApmServerVersion = this.apmServerVersion.get();
+            if (localApmServerVersion == null) {
+                return false;
+            }
+            return localApmServerVersion.compareTo(apmServerVersion) >= 0;
+        } catch (Exception e) {
+            logger.debug(e.getMessage(), e);
+            return false;
+        }
     }
 
     public interface ConnectionHandler<T> {

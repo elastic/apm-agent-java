@@ -30,12 +30,9 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import co.elastic.apm.agent.web.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -51,10 +48,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 
+import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_USER_SUPPLIED;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.times;
@@ -240,7 +237,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new TestServlet());
         filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("ApmFilterTest$TestServlet#doGet");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("ApmFilterTest$TestServlet#doGet");
     }
 
     @Test
@@ -248,7 +245,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
         filterChain = new MockFilterChain(new TestServlet(), new TransactionNamingFilter("CustomName"));
         filterChain.doFilter(new MockHttpServletRequest("GET", "/foo"), new MockHttpServletResponse());
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("CustomName");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("CustomName");
     }
 
     @Test
@@ -309,7 +306,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
         @Override
         public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-            Objects.requireNonNull(tracer.currentTransaction()).withName(customName);
+            Objects.requireNonNull(tracer.currentTransaction()).withName(customName, PRIO_USER_SUPPLIED);
             chain.doFilter(request, response);
         }
 

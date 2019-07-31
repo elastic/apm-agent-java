@@ -83,7 +83,7 @@ class ApmHandlerInterceptorTest {
         public CharSequence test() {
             final Transaction currentTransaction = tracer.currentTransaction();
             assertThat(currentTransaction).isNotNull();
-            return currentTransaction.getName();
+            return currentTransaction.getNameAsString();
         }
     }
 

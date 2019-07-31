@@ -52,7 +52,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
         Span span = transaction.startSpan();
         span.setName("foo");
         endSpan(span);
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
     }
 
     @Test
@@ -80,7 +80,7 @@ class SpanInstrumentationTest extends AbstractInstrumentationTest {
     void testChaining() {
         Span span = transaction.startSpan("foo", null, null).setName("foo").addLabel("foo", "bar");
         endSpan(span);
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstSpan().getContext().getLabel("foo")).isEqualTo("bar");
     }
