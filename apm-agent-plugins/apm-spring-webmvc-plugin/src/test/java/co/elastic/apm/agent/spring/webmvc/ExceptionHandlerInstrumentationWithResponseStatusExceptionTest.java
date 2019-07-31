@@ -6,10 +6,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
 import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
-import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
-import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
 import co.elastic.apm.agent.spring.webmvc.testapp.response_status_exception.ResponseStatusExceptionController;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
@@ -26,7 +23,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -39,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @WebAppConfiguration
 @ContextConfiguration(classes = {
     ResponseStatusExceptionController.class,
-    ExceptionServiceImpl.class })
+    ExceptionServiceImpl.class})
 @TestConfiguration
 public class ExceptionHandlerInstrumentationWithResponseStatusExceptionTest {
 

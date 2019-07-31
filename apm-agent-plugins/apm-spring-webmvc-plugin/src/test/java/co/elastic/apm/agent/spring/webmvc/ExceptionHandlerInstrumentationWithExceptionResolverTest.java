@@ -8,7 +8,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
 import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
-import co.elastic.apm.agent.spring.webmvc.testapp.exception_handler.ExceptionHandlerController;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -22,20 +21,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
@@ -44,7 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
     CommonConfiguration.class,
     ExceptionResolverController.class,
     RestResponseStatusExceptionResolver.class,
-    ExceptionServiceImpl.class })
+    ExceptionServiceImpl.class})
 @TestConfiguration
 public class ExceptionHandlerInstrumentationWithExceptionResolverTest {
 

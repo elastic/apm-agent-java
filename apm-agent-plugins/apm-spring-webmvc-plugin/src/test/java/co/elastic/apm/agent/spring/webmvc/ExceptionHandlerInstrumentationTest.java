@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,11 +30,9 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
+import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
 import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.ControllerAdviceController;
 import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.GlobalExceptionHandler;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
-import co.elastic.apm.agent.spring.webmvc.testapp.exception_handler.ExceptionHandlerController;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -66,7 +64,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ContextConfiguration(classes = {
     ControllerAdviceController.class,
     ExceptionServiceImpl.class,
-    GlobalExceptionHandler.class })
+    GlobalExceptionHandler.class})
 @TestConfiguration
 public class ExceptionHandlerInstrumentationTest {
 
