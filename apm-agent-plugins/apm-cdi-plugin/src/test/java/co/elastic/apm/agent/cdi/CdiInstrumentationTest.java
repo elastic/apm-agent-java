@@ -101,7 +101,7 @@ public class CdiInstrumentationTest {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span firstSpan = spans.get(0);
-        assertThat(firstSpan.getName().toString()).isEqualTo("ApplicationScopedClass#doSomething");
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ApplicationScopedClass#doSomething");
         assertThat(firstSpan.getType()).isEqualTo("cdi");
     }
 
@@ -116,7 +116,7 @@ public class CdiInstrumentationTest {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span firstSpan = spans.get(0);
-        assertThat(firstSpan.getName().toString()).isEqualTo("SingletonScopedClass#doSomething");
+        assertThat(firstSpan.getNameAsString()).isEqualTo("SingletonScopedClass#doSomething");
         assertThat(firstSpan.getType()).isEqualTo("cdi");
     }
 
@@ -146,8 +146,8 @@ public class CdiInstrumentationTest {
         assertThat(spans).hasSize(2);
         Span firstSpan = spans.get(0);
         Span secondSpan = spans.get(1);
-        assertThat(firstSpan.getName().toString()).isEqualTo("ComplexClass#internalPublicMethod");
-        assertThat(secondSpan.getName().toString()).isEqualTo("ComplexClass#doSomething");
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ComplexClass#internalPublicMethod");
+        assertThat(secondSpan.getNameAsString()).isEqualTo("ComplexClass#doSomething");
         assertThat(firstSpan.isChildOf(secondSpan)).isTrue();
     }
 
@@ -168,8 +168,8 @@ public class CdiInstrumentationTest {
         assertThat(spans).hasSize(2);
         Span firstSpan = spans.get(0);
         Span secondSpan = spans.get(1);
-        assertThat(firstSpan.getName().toString()).isEqualTo("ComplexClass#setInternalState");
-        assertThat(secondSpan.getName().toString()).isEqualTo("ComplexClass#getInternalState");
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ComplexClass#setInternalState");
+        assertThat(secondSpan.getNameAsString()).isEqualTo("ComplexClass#getInternalState");
     }
 
 
@@ -190,11 +190,11 @@ public class CdiInstrumentationTest {
         Span firstSpan = spans.get(0);
         Span secondSpan = spans.get(1);
         Span thirdSpan = spans.get(2);
-        assertThat(firstSpan.getName().toString()).isEqualTo("ApplicationScopedClass#doSomethingSlow");
+        assertThat(firstSpan.getNameAsString()).isEqualTo("ApplicationScopedClass#doSomethingSlow");
         assertThat(firstSpan.getType()).isEqualTo("cdi");
-        assertThat(secondSpan.getName().toString()).isEqualTo("ApplicationScopedClass#doSomethingSlow");
+        assertThat(secondSpan.getNameAsString()).isEqualTo("ApplicationScopedClass#doSomethingSlow");
         assertThat(secondSpan.getType()).isEqualTo("cdi");
-        assertThat(thirdSpan.getName().toString()).isEqualTo("ApplicationScopedClass#callSomethingSlow");
+        assertThat(thirdSpan.getNameAsString()).isEqualTo("ApplicationScopedClass#callSomethingSlow");
         assertThat(thirdSpan.getType()).isEqualTo("cdi");
 
         assertThat(secondSpan.isChildOf(thirdSpan)).isTrue();
