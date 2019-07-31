@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,6 +44,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -61,8 +62,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ContextConfiguration(classes = {
     TestAppConfiguration.class,
     TestAppController.class,
-    TestAppExceptionServiceImpl.class})
-public class DispatcherServletRenderInstrumentationTest {
+    TestAppExceptionServiceImpl.class,
+    TestAppExceptionHandler.class })
+@TestConfiguration
+public class ExceptionHandlerInstrumentationTest {
+
 
     private static MockReporter reporter;
     private static ElasticApmTracer tracer;
@@ -80,7 +84,7 @@ public class DispatcherServletRenderInstrumentationTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(tracer), new DispatcherServletRenderInstrumentation()));
+            Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation(tracer)));
     }
 
     @AfterClass
@@ -97,14 +101,14 @@ public class DispatcherServletRenderInstrumentationTest {
     }
 
     @Test
-    public void testCallOfDispatcherServletWithNonNullModelAndView() throws Exception {
+    public void testCallApiWithExceptionThrown() throws Exception {
         reporter.reset();
 
-        this.mockMvc.perform(get("/test"));
+        this.mockMvc.perform(get("/throw-exception"));
 
         assertEquals(1, reporter.getTransactions().size());
-        assertEquals(1, reporter.getSpans().size());
-        assertEquals("DispatcherServlet#render message-view", reporter.getSpans().get(0).getName().toString());
+        assertEquals(0, reporter.getSpans().size());
+        assertEquals(1, reporter.getErrors().size());
+        assertEquals("runtime exception occured", reporter.getErrors().get(0).getException().getMessage());
     }
-
 }
