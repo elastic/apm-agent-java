@@ -35,6 +35,6 @@ public class TestAppExceptionHandler extends ResponseStatusExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> globalExceptionHandler(Exception ex) {
-        return new ResponseEntity<>("Global exception: " + ex.getMessage(), HttpStatus.CONFLICT);
+        return new ResponseEntity<>("controller-advice " + ex.getMessage(), HttpStatus.CONFLICT);
     }
 }
