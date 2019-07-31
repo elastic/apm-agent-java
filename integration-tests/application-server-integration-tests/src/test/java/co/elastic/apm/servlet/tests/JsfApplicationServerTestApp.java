@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -66,5 +66,24 @@ public class JsfApplicationServerTestApp extends TestApp {
         JsonNode renderSpan = iterator.next();
         assertThat(renderSpan.get("name").textValue()).isEqualTo("JSF Render");
         assertThat(renderSpan.get("type").textValue()).isEqualTo("template.jsf.render");
+    }
+
+
+    private static final class ViewStateAndAction {
+        private final String viewState;
+        private final String action;
+
+        public ViewStateAndAction(String viewState, String action) {
+            this.viewState = viewState;
+            this.action = action;
+        }
+
+        public String getViewState() {
+            return viewState;
+        }
+
+        public String getAction() {
+            return action;
+        }
     }
 }

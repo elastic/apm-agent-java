@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
@@ -69,6 +70,6 @@ public class WildFlyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class, CdiApplicationServerTestApp.class);
     }
 }
