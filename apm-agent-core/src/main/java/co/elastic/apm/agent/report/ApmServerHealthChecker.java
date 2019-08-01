@@ -30,12 +30,14 @@ import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
 import com.dslplatform.json.Nullable;
+import com.dslplatform.json.ObjectConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -81,13 +83,31 @@ public class ApmServerHealthChecker implements Callable<Version> {
                             throw new IllegalStateException("Server returned status " + status);
                         }
                     } else {
-                        // prints out the version info of the APM Server
-                        String body = HttpUtils.getBody(connection);
-                        logger.info("Elastic APM server is available: {}", body);
-                        final JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
-                        reader.startObject();
-                        String versionString = MapConverter.deserialize(reader).get("version");
-                        return new Version(versionString);
+                        try {
+                            // prints out the version info of the APM Server
+                            String body = HttpUtils.getBody(connection);
+                            logger.info("Elastic APM server is available: {}", body);
+                            JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
+                            reader.startObject();
+                            String versionString;
+                            try {
+                                // newer APM server versions contain a flat map at the JSON root
+                                versionString = MapConverter.deserialize(reader).get("version");
+                            } catch (Exception e) {
+                                // 6.x APM server versions' JSON has a root object of which value is the same map
+                                reader = dslJson.newReader(body.getBytes(UTF_8));
+                                reader.startObject();
+                                Map<String, Object> root = ObjectConverter.deserializeMap(reader);
+                                //noinspection unchecked
+                                versionString = ((Map<String, String>) root.get("ok")).get("version");
+                            }
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("APM server {} version is: {}", connection.getURL(), versionString);
+                            }
+                            return new Version(versionString);
+                        } catch (Exception e) {
+                            logger.warn("Failed to parse version of APM server {}: {}", connection.getURL(), e.getMessage());
+                        }
                     }
                 } catch (Exception e) {
                     logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
