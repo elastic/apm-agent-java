@@ -57,6 +57,9 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 /**
  * Looks for all classes Annotated with any CDI scope annotation and creates a span for each call of a public method on those classes.
  * Only classes within applicationPackages are considered.
+ *
+ * A minimum run times for methods may be defined via the {@link CdiConfiguration#getTraceMethodsDurationThreshold()} option
+ * to filter out short running methods.
  */
 public class CdiInstrumentation extends ElasticApmInstrumentation {
 

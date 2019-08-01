@@ -1,6 +1,7 @@
 # Next
 
 ## Features
+ * Added support for automatic span creation for cdi annotated classes.
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x

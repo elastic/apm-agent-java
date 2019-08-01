@@ -287,6 +287,23 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |===
 
 [float]
+[[supported-ioc-frameworks]]
+=== IOC frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+|cdi
+|1.0, 1.2, 2.0
+|When Classes annotated with CDI scope annotation are detected in a package configured in <<config-application-packages>>,
+the agent will add a span for each public method called on those classes.
+Short running method calls can be excluded via the <<config-cdi-methods-duration-threshold>> option.
+
+|1.9.0
+
+|===
+
+[float]
 [[supported-technologies-caveats]]
 === Caveats
 * Certain OSGi containers need the following configuration setting in case you see exceptions like
