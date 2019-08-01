@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.opentracing;
 
+import io.opentracing.Scope;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 
@@ -54,18 +55,60 @@ class ApmScopeManager implements ScopeManager {
     }
 
     @Override
+    public Scope activate(Span span) {
+        final ApmSpan apmSpan = (ApmSpan) span;
+        final Object traceContext = apmSpan.context().getTraceContext();
+        if (traceContext != null) {
+            // prevents other threads from concurrently setting ApmSpan.dispatcher to null
+            // we can't synchronize on the internal span object, as it might be finished already
+            // we can't synchronize on the ApmSpan, as ApmScopeManager.active() returns a different instance than ApmScopeManager.activate(Span)
+            synchronized (traceContext) {
+                // apmSpan.getSpan() has to be called within the synchronized block to avoid race conditions,
+                // so we can't do the synchronization in ScopeManagerInstrumentation
+                doActivate(apmSpan.getSpan(), traceContext);
+            }
+        }
+        return new ApmScope(true, apmSpan);
+    }
+
+    @Override
     @Nullable
     public ApmScope active() {
-        final Object span = getCurrentSpan();
-        if (span != null) {
-            return new ApmScope(false, new ApmSpan(span));
+        final ApmSpan apmSpan = activeApmSpan();
+        final ApmScope apmScope;
+        if (apmSpan != null) {
+            apmScope = new ApmScope(false, apmSpan);
         } else {
             final Object traceContext = getCurrentTraceContext();
             if (traceContext != null) {
-                return new ApmScope(false, new ApmSpan(new TraceContextSpanContext(traceContext)));
+                apmScope = new ApmScope(false, apmSpan);
+            } else {
+                apmScope = null;
             }
         }
-        return null;
+        return apmScope;
+    }
+
+    @Override
+    public Span activeSpan() {
+        return activeApmSpan();
+    }
+
+    private ApmSpan activeApmSpan() {
+        final Object span = getCurrentSpan();
+        final ApmSpan apmSpan;
+        if (span != null) {
+            apmSpan = new ApmSpan(span);
+        } else {
+            final Object traceContext = getCurrentTraceContext();
+            if (traceContext != null) {
+                apmSpan = new ApmSpan(new TraceContextSpanContext(traceContext));
+            } else {
+                apmSpan = null;
+            }
+        }
+
+        return apmSpan;
     }
 
     @Nullable
