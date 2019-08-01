@@ -46,7 +46,8 @@ public class ElasticApmAttacher {
     /**
      * Attaches the Elastic Apm agent to the current JVM.
      * <p>
-     * This method may only be invoked once.
+     * This method should only be invoked once.
+     * Subsequent calls will be ignored.
      * </p>
      *
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
@@ -74,14 +75,23 @@ public class ElasticApmAttacher {
     /**
      * Attaches the Elastic Apm agent to the current JVM.
      * <p>
-     * This method may only be invoked once.
+     * This method should only be invoked once.
+     * Subsequent calls will be ignored.
      * </p>
      *
      * @param configuration the agent configuration
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach(Map<String, String> configuration) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration));
+        synchronized (ElasticApmAttacher.class) {
+            if (Boolean.getBoolean("ElasticApm.attached")) {
+                // agent is already attached; don't attach twice
+                // Avoid trying to load the libattach native library as this might fail with an exception like this:
+                // java.lang.UnsatisfiedLinkError: Native Library /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/libattach.so already loaded in another classloader
+                return;
+            }
+            ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration));
+        }
     }
 
     static String toAgentArgs(Map<String, String> configuration) {
