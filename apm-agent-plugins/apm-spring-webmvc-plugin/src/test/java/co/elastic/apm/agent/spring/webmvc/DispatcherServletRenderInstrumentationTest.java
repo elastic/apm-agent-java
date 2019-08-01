@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
 import co.elastic.apm.agent.spring.webmvc.testapp.render.RenderController;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.AfterClass;
@@ -57,8 +56,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-    CommonConfiguration.class,
-    RenderController.class })
+    RenderController.class})
 public class DispatcherServletRenderInstrumentationTest {
 
     private static MockReporter reporter;

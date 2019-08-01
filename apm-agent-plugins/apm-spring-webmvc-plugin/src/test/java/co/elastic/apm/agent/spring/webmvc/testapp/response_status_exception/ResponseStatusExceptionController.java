@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.spring.webmvc.testapp.response_status_exception;
 
-import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -37,16 +35,12 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/response-status-exception")
 public class ResponseStatusExceptionController {
 
-    @Autowired
-    private ExceptionServiceImpl exceptionService;
-
     @GetMapping
     public ResponseEntity request() {
         try {
-            exceptionService.throwException();
+            throw new RuntimeException("runtime exception occured");
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "responseStatusException", e);
         }
-        return null;
     }
 }

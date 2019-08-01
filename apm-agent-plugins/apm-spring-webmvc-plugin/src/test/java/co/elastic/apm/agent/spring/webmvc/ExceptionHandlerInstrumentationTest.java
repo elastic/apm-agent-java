@@ -30,7 +30,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
 import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.ControllerAdviceController;
 import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.GlobalExceptionHandler;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -63,7 +62,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @WebAppConfiguration
 @ContextConfiguration(classes = {
     ControllerAdviceController.class,
-    ExceptionServiceImpl.class,
     GlobalExceptionHandler.class})
 @TestConfiguration
 public class ExceptionHandlerInstrumentationTest {

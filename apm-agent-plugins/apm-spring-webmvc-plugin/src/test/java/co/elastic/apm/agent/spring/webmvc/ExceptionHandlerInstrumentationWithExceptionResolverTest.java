@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,8 +30,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.CommonConfiguration;
-import co.elastic.apm.agent.spring.webmvc.testapp.common.ExceptionServiceImpl;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -60,10 +58,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-    CommonConfiguration.class,
     ExceptionResolverController.class,
-    RestResponseStatusExceptionResolver.class,
-    ExceptionServiceImpl.class})
+    RestResponseStatusExceptionResolver.class})
 @TestConfiguration
 public class ExceptionHandlerInstrumentationWithExceptionResolverTest {
 

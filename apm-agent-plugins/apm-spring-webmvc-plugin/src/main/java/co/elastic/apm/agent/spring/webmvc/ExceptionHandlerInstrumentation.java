@@ -69,18 +69,6 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
                 parent.captureException(e);
             }
         }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void afterExecute(@Advice.Thrown @Nullable Throwable t) {
-        }
-    }
-
-    @Override
-    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-        return not(isBootstrapClassLoader())
-            .and(classLoaderCanLoadClass("org.springframework.web.bind.annotation.ControllerAdvice")
-            .or(classLoaderCanLoadClass("org.springframework.web.bind.annotation")
-            .or(classLoaderCanLoadClass("org.springframework.web.servlet.HandlerExceptionResolver"))));
     }
 
     @Override
