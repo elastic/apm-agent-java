@@ -381,7 +381,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
-            "The location can either be in the classpath of the application or on the file system.")
+            "The location can either be in the classpath of the application (when using the attacher API) or on the file system.\n" +
+            "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
     public boolean isActive() {
