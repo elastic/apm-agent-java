@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.bci.methodmatching;
 
+import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.stagemonitor.util.StringUtils;
 
@@ -34,28 +35,32 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static co.elastic.apm.agent.matcher.AnnotationMatcher.annotationMatcher;
 import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
 public class MethodMatcher {
 
-    private static final String MODIFIER = "(public|private|protected|\\*)";
-    private static final String CLASS_NAME = "([a-zA-Z\\d_$.\\*]+)";
-    private static final String METHOD_NAME = "([a-zA-Z\\d_$\\*]+)";
+    private static final String MODIFIER = "(?<modifier>public|private|protected|\\*)";
+    private static final String ANNOTATION = "((?<annotation>@@?[a-zA-Z\\d_$.\\*]+)\\s+)?";
+    private static final String CLASS_NAME = "(?<clazz>[a-zA-Z\\d_$.\\*]+)";
+    private static final String METHOD_NAME = "(?<method>[a-zA-Z\\d_$\\*]+)";
     private static final String PARAM = "([a-zA-Z\\d_$.\\[\\]\\*]+)";
     private static final String PARAMS = PARAM + "(,\\s*" + PARAM + ")*";
-    private static final Pattern METHOD_MATCHER_PATTERN = Pattern.compile("^(" + MODIFIER + "\\s+)?" + CLASS_NAME + "(#" + METHOD_NAME + "(\\((" + PARAMS + ")*\\))?)?$");
+    private static final Pattern METHOD_MATCHER_PATTERN = Pattern.compile("^(" + MODIFIER + "\\s+)?" + ANNOTATION + CLASS_NAME + "(#" + METHOD_NAME + "(?<params>\\((" + PARAMS + ")*\\))?)?$");
 
     private final String stringRepresentation;
     @Nullable
     private final Integer modifier;
+    private final AnnotationMatcher annotationMatcher;
     private final WildcardMatcher classMatcher;
     private final WildcardMatcher methodMatcher;
     @Nullable
     private final List<WildcardMatcher> argumentMatchers;
 
-    private MethodMatcher(String stringRepresentation, @Nullable Integer modifier, WildcardMatcher classMatcher, WildcardMatcher methodMatcher, @Nullable List<WildcardMatcher> argumentMatchers) {
+    private MethodMatcher(String stringRepresentation, @Nullable Integer modifier, AnnotationMatcher annotationMatcher, WildcardMatcher classMatcher, WildcardMatcher methodMatcher, @Nullable List<WildcardMatcher> argumentMatchers) {
         this.stringRepresentation = stringRepresentation;
         this.modifier = modifier;
+        this.annotationMatcher = annotationMatcher;
         this.classMatcher = classMatcher;
         this.methodMatcher = methodMatcher;
         this.argumentMatchers = argumentMatchers;
@@ -67,11 +72,12 @@ public class MethodMatcher {
             throw new IllegalArgumentException("'" + methodMatcher + "'" + " is not a valid method matcher");
         }
 
-        final String modifier = matcher.group(2);
-        final WildcardMatcher clazz = caseSensitiveMatcher(matcher.group(3));
-        final WildcardMatcher method = matcher.group(5) != null ? caseSensitiveMatcher(matcher.group(5)) : WildcardMatcher.matchAll();
-        final List<WildcardMatcher> args = getArgumentMatchers(matcher.group(6));
-        return new MethodMatcher(methodMatcher, getModifier(modifier), clazz, method, args);
+        final String modifier = matcher.group("modifier");
+        final AnnotationMatcher annotationMatcher = matcher.group("annotation") != null ? annotationMatcher(matcher.group("annotation")) : AnnotationMatcher.matchAll();
+        final WildcardMatcher clazz = caseSensitiveMatcher(matcher.group("clazz"));
+        final WildcardMatcher method = matcher.group("method") != null ? caseSensitiveMatcher(matcher.group("method")) : WildcardMatcher.matchAll();
+        final List<WildcardMatcher> args = getArgumentMatchers(matcher.group("params"));
+        return new MethodMatcher(methodMatcher, getModifier(modifier), annotationMatcher, clazz, method, args);
     }
 
     @Nullable
@@ -104,6 +110,10 @@ public class MethodMatcher {
             matchers.add(caseSensitiveMatcher(argument.trim()));
         }
         return matchers;
+    }
+
+    public AnnotationMatcher getAnnotationMatcher() {
+        return annotationMatcher;
     }
 
     public WildcardMatcher getClassMatcher() {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,9 +40,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.lang.annotation.Retention;
 import java.util.Arrays;
 import java.util.Set;
 
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +63,9 @@ class TraceMethodInstrumentationTest {
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe*()"),
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestDiscardableMethods#*"),
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestErrorCapture#*"),
-            MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"))
+            MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"),
+            MethodMatcher.of("public @co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$CustomAnnotation co.elastic.apm.agent.bci.methodmatching*"),
+            MethodMatcher.of("public @@co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$MetaAnnotation co.elastic.apm.agent.bci.methodmatching*"))
         );
         when(coreConfiguration.getMethodsExcludedFromInstrumentation()).thenReturn(Arrays.asList(
             WildcardMatcher.valueOf("*exclude*"),
@@ -171,6 +175,31 @@ class TraceMethodInstrumentationTest {
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getSpans()).hasSize(2);
         assertThat(reporter.getErrors()).hasSize(1);
+    }
+
+    @Test
+    void testAnnotatedClass() {
+        AnnotatedClass annotatedClass = new AnnotatedClass();
+        assertThat(reporter.getTransactions()).isEmpty();
+        annotatedClass.traceMe();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("AnnotatedClass#traceMe");
+    }
+
+    @Test
+    void testNotTracedAnnotatedClass() {
+        NotTracedAnnotatedClass notTracedAnnotatedClass = new NotTracedAnnotatedClass();
+        notTracedAnnotatedClass.traceMeNot();
+        assertThat(reporter.getTransactions()).isEmpty();
+    }
+
+    @Test
+    void testMetaAnnotatedClass() {
+        MetaAnnotatedClass metaAnnotatedClass = new MetaAnnotatedClass();
+        assertThat(reporter.getTransactions()).isEmpty();
+        metaAnnotatedClass.traceMe();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("MetaAnnotatedClass#traceMe");
     }
 
     public static class TestClass {
@@ -302,5 +331,48 @@ class TraceMethodInstrumentationTest {
 
         private void someMethod() {
         }
+    }
+
+    @CustomAnnotation
+    public static class AnnotatedClass {
+
+        public void traceMe() {
+        }
+
+    }
+
+    @NotTracedAnnotation
+    public static class NotTracedAnnotatedClass {
+
+        public void traceMeNot() {
+        }
+
+    }
+
+
+    @MetaAnnotated
+    public static class MetaAnnotatedClass {
+
+        public void traceMe() {
+        }
+
+    }
+
+
+    @Retention(RUNTIME)
+    public @interface CustomAnnotation {
+    }
+
+    @Retention(RUNTIME)
+    public @interface NotTracedAnnotation {
+    }
+
+    @Retention(RUNTIME)
+    public @interface MetaAnnotation {
+    }
+
+    @Retention(RUNTIME)
+    @MetaAnnotation
+    public @interface MetaAnnotated {
     }
 }
