@@ -8,17 +8,19 @@ which have different naming conventions for the property key.
 The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
+. {kibana-ref}/agent-configuration.html[Central configuration]
 . Java system properties +
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
 . `elasticapm.properties` file +
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  To customize the location, set the <<config-config-file>> option.
   No prefix is required for the configuration keys.
 
-Configuration options marked with Dynamic true can be changed at runtime
-via configuration sources which support dynamic reloading. The `elasticapm.properties` file is
-such source. Java system properties can be dynamic as well by being set from within the application.
+Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
+{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
+Java system properties can be dynamic as well by being set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,

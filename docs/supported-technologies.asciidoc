@@ -38,6 +38,7 @@ the agent does not capture transactions.
 
 |IBM J9 VM
 |8
+|
 
 |===
 
