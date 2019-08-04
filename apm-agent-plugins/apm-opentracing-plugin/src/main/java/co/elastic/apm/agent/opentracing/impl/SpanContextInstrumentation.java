@@ -91,18 +91,12 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
             super(named("toTraceId"));
         }
 
-
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
                                      @Advice.Return(readOnly = false) String traceId) {
             if (traceContext != null) {
-                traceId = doGetTraceId(traceContext);
+                traceId = traceContext.getTraceId().toString();
             }
-        }
-
-        @VisibleForAdvice
-        public static String doGetTraceId(TraceContext traceContext) {
-            return traceContext.getTraceId().toString();
         }
     }
 
@@ -112,18 +106,12 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
             super(named("toSpanId"));
         }
 
-
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void toTraceId(@Advice.FieldValue(value = "traceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext traceContext,
                                      @Advice.Return(readOnly = false) String spanId) {
             if (traceContext != null) {
-                spanId = doGetSpanId(traceContext);
+                spanId = traceContext.getId().toString();
             }
-        }
-
-        @VisibleForAdvice
-        public static String doGetSpanId(TraceContext traceContext) {
-            return traceContext.getTransactionId().toString();
         }
     }
 }

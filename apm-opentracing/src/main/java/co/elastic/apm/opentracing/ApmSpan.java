@@ -35,8 +35,8 @@ import java.util.Map;
 
 class ApmSpan implements Span {
 
-    @Nullable
     private final TraceContextSpanContext spanContext;
+
     @Nullable
     // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
     private volatile Object dispatcher;
@@ -166,4 +166,16 @@ class ApmSpan implements Span {
         return String.valueOf(dispatcher);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ApmSpan otherSpan = (ApmSpan) o;
+        return otherSpan.context().toSpanId().equals(spanContext.toSpanId());
+    }
+
+    @Override
+    public int hashCode() {
+        return spanContext.toSpanId().hashCode();
+    }
 }

@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-import java.util.Iterator;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -62,35 +60,39 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
     }
 
 
+    public static class InitializationInstrumentation extends ExternalSpanContextInstrumentation {
+
+        public InitializationInstrumentation() {
+            super(named("initialize"));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void initialize(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                      @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext) {
+            if (tracer != null && textMap != null) {
+                for (Map.Entry<String, String> next : textMap) {
+                    if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
+                        childTraceContext = TraceContext.with64BitId(tracer);
+                        TraceContext.fromTraceparentHeader().asChildOf(childTraceContext, next.getValue());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     public static class ToTraceIdInstrumentation extends ExternalSpanContextInstrumentation {
 
         public ToTraceIdInstrumentation() {
             super(named("toTraceId"));
         }
 
-
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+        public static void toTraceId(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext,
                                      @Advice.Return(readOnly = false) String traceId) {
-            if (textMap != null) {
-                traceId = doGetTraceId(textMap);
+            if (childTraceContext != null) {
+                traceId = childTraceContext.getTraceId().toString();
             }
-        }
-
-        @VisibleForAdvice
-        public static String doGetTraceId(Iterable<Map.Entry<String, String>> textMap) {
-
-            String traceParent = null;
-            Iterator<Map.Entry<String, String>> iterator = textMap.iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, String> next = iterator.next();
-                if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
-                    traceParent = next.getValue();
-                    break;
-                }
-            }
-            // TraceContext.asChildOf(traceParent);
-            return traceParent;
         }
     }
 
@@ -100,30 +102,12 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toSpanId"));
         }
 
-
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                     @Advice.Return(readOnly = false) String spanId) {
-            if (textMap != null) {
-                spanId = doGetSpanId(textMap);
+        public static void toSpanId(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext,
+                                    @Advice.Return(readOnly = false) String spanId) {
+            if (childTraceContext != null) {
+                spanId = childTraceContext.getParentId().toString();
             }
-        }
-
-        @VisibleForAdvice
-        public static String doGetSpanId(Iterable<Map.Entry<String, String>> textMap) {
-            String traceParent = null;
-            Iterator<Map.Entry<String, String>> iterator = textMap.iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, String> next = iterator.next();
-                if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
-                    traceParent = next.getValue();
-                    break;
-                }
-            }
-            // TraceContext.asChildOf(traceParent);
-            // TraceContext.
-            return traceParent;
         }
     }
-
 }

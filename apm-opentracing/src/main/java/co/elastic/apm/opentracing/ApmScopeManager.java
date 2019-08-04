@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 
 class ApmScopeManager implements ScopeManager {
 
-    @Override
+    @Deprecated
     public ApmScope activate(@Nonnull Span span, boolean finishSpanOnClose) {
         final ApmSpan apmSpan = (ApmSpan) span;
         final Object traceContext = apmSpan.context().getTraceContext();
@@ -56,22 +56,10 @@ class ApmScopeManager implements ScopeManager {
 
     @Override
     public Scope activate(Span span) {
-        final ApmSpan apmSpan = (ApmSpan) span;
-        final Object traceContext = apmSpan.context().getTraceContext();
-        if (traceContext != null) {
-            // prevents other threads from concurrently setting ApmSpan.dispatcher to null
-            // we can't synchronize on the internal span object, as it might be finished already
-            // we can't synchronize on the ApmSpan, as ApmScopeManager.active() returns a different instance than ApmScopeManager.activate(Span)
-            synchronized (traceContext) {
-                // apmSpan.getSpan() has to be called within the synchronized block to avoid race conditions,
-                // so we can't do the synchronization in ScopeManagerInstrumentation
-                doActivate(apmSpan.getSpan(), traceContext);
-            }
-        }
-        return new ApmScope(true, apmSpan);
+        return activate(span, false);
     }
 
-    @Override
+    @Deprecated
     @Nullable
     public ApmScope active() {
         final ApmSpan apmSpan = activeApmSpan();
@@ -96,15 +84,13 @@ class ApmScopeManager implements ScopeManager {
 
     private ApmSpan activeApmSpan() {
         final Object span = getCurrentSpan();
-        final ApmSpan apmSpan;
+        ApmSpan apmSpan = null;
         if (span != null) {
             apmSpan = new ApmSpan(span);
         } else {
             final Object traceContext = getCurrentTraceContext();
             if (traceContext != null) {
                 apmSpan = new ApmSpan(new TraceContextSpanContext(traceContext));
-            } else {
-                apmSpan = null;
             }
         }
 

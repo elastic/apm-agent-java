@@ -112,7 +112,7 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
         return this;
     }
 
-    @Override
+    @Deprecated
     public ApmScope startActive(boolean finishSpanOnClose) {
         return scopeManager.activate(startApmSpan(), finishSpanOnClose);
     }
@@ -122,7 +122,6 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
         return startApmSpan();
     }
 
-    @Override
     @Deprecated
     public ApmSpan startManual() {
         return start();

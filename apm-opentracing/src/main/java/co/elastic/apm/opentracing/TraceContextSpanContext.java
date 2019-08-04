@@ -41,15 +41,13 @@ public class TraceContextSpanContext implements ApmSpanContext {
     @Override
     public String toTraceId() {
         // co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation$ToTraceIdInstrumentation
-
-        return null;
+        return "";
     }
 
     @Override
     public String toSpanId() {
         // co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation$ToSpanIdInstrumentation
-
-        return null;
+        return "";
     }
 
     @Override

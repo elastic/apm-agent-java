@@ -30,11 +30,19 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 class ExternalProcessSpanContext implements ApmSpanContext {
+
+    // co.elastic.apm.agent.impl.transaction.TraceContext - only for the purpose of holding the parsed IDs
+    @Nullable
+    private Object childTraceContext;
+
     private final TextMap textMap;
 
     private ExternalProcessSpanContext(TextMap textMap) {
         this.textMap = textMap;
+        initialize();
     }
+
+    private void initialize() {}
 
     static ExternalProcessSpanContext of(TextMap textMap) {
         return new ExternalProcessSpanContext(textMap);
@@ -43,15 +51,13 @@ class ExternalProcessSpanContext implements ApmSpanContext {
     @Override
     public String toTraceId() {
         // co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToTraceIdInstrumentation
-
-        return null;
+        return "";
     }
 
     @Override
     public String toSpanId() {
         // co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToSpanIdInstrumentation
-
-        return null;
+        return "";
     }
 
     @Override

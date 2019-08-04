@@ -47,17 +47,13 @@ public class ElasticApmTracer implements io.opentracing.Tracer {
 
     @Override
     @Nullable
-    public ApmSpan activeSpan() {
-        final ApmScope active = scopeManager().active();
-        if (active != null) {
-            return active.span();
-        }
-        return null;
+    public Span activeSpan() {
+        return scopeManager.activeSpan();
     }
 
     @Override
     public Scope activateSpan(Span span) {
-        return scopeManager.activate(span, true);
+        return scopeManager.activate(span);
     }
 
     @Override
