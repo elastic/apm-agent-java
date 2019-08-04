@@ -1,6 +1,7 @@
-# Next
+# Next (1.9.0)
 
 ## Features
+ * Supporting OpenTracing version 0.33 
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
