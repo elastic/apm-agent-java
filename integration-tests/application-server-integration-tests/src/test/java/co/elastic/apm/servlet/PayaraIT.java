@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -75,6 +76,6 @@ public class PayaraIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, CdiApplicationServerTestApp.class);
     }
 }
