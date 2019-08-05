@@ -286,14 +286,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
-        .tags("added[1.3.0,Enhancements in 1.4.0 and 1.7.0]")
+        .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
-            "The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
-            "You can use wildcards for the class name, the method name and the parameter types.\n" +
+            "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
+            "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
             "The `*` wildcard matches zero or more characters.\n" +
             "That means that a wildcard in a package name also matches sub-packages\n" +
+            "Specifying an annotation is optional.\n" +
+            "When matching for annotations, only classes that are annotated with the specified annotation are considered.\n" +
+            "You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes " +
+            "that are annotated with an annotation that is itself annotated with the given meta-annotation.\n" +
             "Specifying the parameter types is optional.\n" +
             "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
             "\n" +
@@ -308,6 +312,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
             " - `* org.example.MyClas*#myMe*od(*.String, int[])`\n" +
             " - `public org.example.services.*Service#*`\n" +
+            " - `public @java.inject.ApplicationScoped org.example.*`\n" +
+            " - `public @java.inject.* org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +

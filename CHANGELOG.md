@@ -1,6 +1,7 @@
 # Next
 
 ## Features
+ * Added annotation and meta-annotation matching support for `trace_methods`
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
