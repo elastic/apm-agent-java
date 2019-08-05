@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,10 +48,8 @@ import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
 public class CustomElementMatchers {
@@ -142,7 +140,7 @@ public class CustomElementMatchers {
              *
              * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
              * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
-             *
+             * 
              * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
              */
             @Override
@@ -230,25 +228,8 @@ public class CustomElementMatchers {
         };
     }
 
-    public static ElementMatcher.Junction<AnnotationSource> matches(final AnnotationMatcher matcher) {
-        return new ElementMatcher.Junction.AbstractBase<AnnotationSource>() {
-            @Override
-            public boolean matches(AnnotationSource target) {
-                if (matcher.isMatchAll()) {
-                    return true;
-                }
-                Junction<AnnotationSource> resultMatcher = isAnnotatedWith(named(matcher.getAnnotationName()));
-                if (matcher.isMetaAnnotation()) {
-                    resultMatcher = isAnnotatedWith(resultMatcher);
-                }
-                return resultMatcher.matches(target);
-            }
-
-            @Override
-            public String toString() {
-                return "matches(" + matcher + ")";
-            }
-        };
+    public static ElementMatcher.Junction<AnnotationSource> annotationMatches(final String annotationWildcard) {
+        return AnnotationMatcher.annotationMatcher(annotationWildcard);
     }
 
     public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {

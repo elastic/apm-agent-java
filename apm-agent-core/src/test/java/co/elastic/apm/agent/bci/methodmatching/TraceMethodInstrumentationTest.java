@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -65,7 +65,7 @@ class TraceMethodInstrumentationTest {
             MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestErrorCapture#*"),
             MethodMatcher.of("co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestExcludeConstructor#*"),
             MethodMatcher.of("public @co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$CustomAnnotation co.elastic.apm.agent.bci.methodmatching*"),
-            MethodMatcher.of("public @@co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$MetaAnnotation co.elastic.apm.agent.bci.methodmatching*"))
+            MethodMatcher.of("public @@co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$Meta* co.elastic.apm.agent.bci.methodmatching*"))
         );
         when(coreConfiguration.getMethodsExcludedFromInstrumentation()).thenReturn(Arrays.asList(
             WildcardMatcher.valueOf("*exclude*"),
