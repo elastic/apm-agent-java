@@ -53,7 +53,7 @@ public class AnnotationValueOffsetMappingFactory implements Advice.OffsetMapping
         return new Advice.OffsetMapping() {
             @Override
             public Target resolve(TypeDescription instrumentedType, MethodDescription instrumentedMethod, Assigner assigner, Advice.ArgumentHandler argumentHandler, Sort sort) {
-                return Target.ForStackManipulation.of(getAnnotationValue(instrumentedMethod, annotation.loadSilent()));
+                return Target.ForStackManipulation.of(getAnnotationValue(instrumentedMethod, annotation.load()));
             }
         };
     }

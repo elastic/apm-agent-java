@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,19 +24,18 @@
  */
 package co.elastic.apm.attach;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -53,7 +52,7 @@ public class RemoteAttacher {
         this.arguments = arguments;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws Exception {
         Arguments arguments;
         try {
             arguments = Arguments.parse(args);
@@ -65,14 +64,16 @@ public class RemoteAttacher {
         if (arguments.isHelp()) {
             arguments.printHelp(System.out);
         } else if (arguments.isList()) {
-            System.out.println(getJpsOutput());
+            for (JvmInfo jvm : JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms()) {
+                System.out.println(jvm);
+            }
         } else if (arguments.getPid() != null) {
             log("INFO", "Attaching the Elastic APM agent to %s", arguments.getPid());
             ElasticApmAttacher.attach(arguments.getPid(), arguments.getConfig());
             log("INFO", "Done");
         } else {
             do {
-                attacher.attachToNewJvms(getJpsOutput());
+                attacher.attachToNewJvms(JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms());
                 Thread.sleep(1000);
             } while (arguments.isContinuous());
         }
@@ -82,17 +83,7 @@ public class RemoteAttacher {
         System.out.println(String.format("%s %5s ", df.format(new Date()), level) + String.format(message, args));
     }
 
-    @Nonnull
-    private static String getJpsOutput() throws IOException, InterruptedException {
-        final Process jps = new ProcessBuilder("jps", "-l").start();
-        if (jps.waitFor() == 0) {
-            return toString(jps.getInputStream());
-        } else {
-            throw new IllegalStateException(toString(jps.getErrorStream()));
-        }
-    }
-
-    private static String toString(InputStream inputStream) throws IOException {
+    static String toString(InputStream inputStream) throws IOException {
         try {
             Scanner scanner = new Scanner(inputStream, "UTF-8").useDelimiter("\\A");
             return scanner.hasNext() ? scanner.next() : "";
@@ -101,9 +92,8 @@ public class RemoteAttacher {
         }
     }
 
-    private void attachToNewJvms(String jpsOutput) {
-        final Set<JvmInfo> currentlyRunningJvms = getJVMs(jpsOutput);
-        for (JvmInfo jvmInfo : getStartedJvms(currentlyRunningJvms)) {
+    private void attachToNewJvms(Collection<JvmInfo> jvMs) {
+        for (JvmInfo jvmInfo : getStartedJvms(jvMs)) {
             if (!jvmInfo.packageOrPath.endsWith(".Jps")
                 && !jvmInfo.packageOrPath.isEmpty()
                 && !jvmInfo.packageOrPath.contains("apm-agent-attach")
@@ -111,20 +101,10 @@ public class RemoteAttacher {
                 onJvmStart(jvmInfo);
             }
         }
-        runningJvms = currentlyRunningJvms;
+        runningJvms = new HashSet<>(jvMs);
     }
 
-    @Nonnull
-    private Set<JvmInfo> getJVMs(String jpsOutput) {
-        Set<JvmInfo> set = new HashSet<>();
-        for (String s : jpsOutput.split("\n")) {
-            JvmInfo parse = JvmInfo.parse(s);
-            set.add(parse);
-        }
-        return set;
-    }
-
-    private Set<JvmInfo> getStartedJvms(Set<JvmInfo> currentlyRunningJvms) {
+    private Set<JvmInfo> getStartedJvms(Collection<JvmInfo> currentlyRunningJvms) {
         final HashSet<JvmInfo> newJvms = new HashSet<>(currentlyRunningJvms);
         newJvms.removeAll(runningJvms);
         return newJvms;
@@ -150,13 +130,13 @@ public class RemoteAttacher {
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        final Process jps = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPath).start();
-        if (jps.waitFor() == 0) {
-            return toString(jps.getInputStream());
+        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPath).start();
+        if (argsProvider.waitFor() == 0) {
+            return toString(argsProvider.getInputStream());
         } else {
             log("INFO", "Not attaching the Elastic APM agent to %s, " +
                 "because the '--args-provider %s' script ended with a non-zero status code.", jvmInfo, arguments.argsProvider);
-            throw new IllegalStateException(toString(jps.getErrorStream()));
+            throw new IllegalStateException(toString(argsProvider.getErrorStream()));
         }
     }
 
@@ -181,42 +161,6 @@ public class RemoteAttacher {
         return false;
     }
 
-    static class JvmInfo {
-        final String pid;
-        final String packageOrPath;
-
-        JvmInfo(String pid, String packageOrPath) {
-            this.pid = pid;
-            this.packageOrPath = packageOrPath;
-        }
-
-        static JvmInfo parse(String jpsLine) {
-            final int firstSpace = jpsLine.indexOf(' ');
-            return new JvmInfo(jpsLine.substring(0, firstSpace), jpsLine.substring(firstSpace + 1));
-        }
-
-        @Override
-        public String toString() {
-            return "JvmInfo{" +
-                "pid='" + pid + '\'' +
-                ", packageOrPath='" + packageOrPath + '\'' +
-                '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            JvmInfo jvmInfo = (JvmInfo) o;
-            return pid.equals(jvmInfo.pid);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(pid);
-        }
-    }
-
     static class Arguments {
         private final String pid;
         private final List<String> includes;
@@ -236,6 +180,11 @@ public class RemoteAttacher {
             }
             if (pid != null && (!includes.isEmpty() || !excludes.isEmpty() || continuous)) {
                 throw new IllegalArgumentException("Providing --pid and either of --include, --exclude or --continuous is illegal");
+            }
+            if (!includes.isEmpty() || !excludes.isEmpty()) {
+                if (!JvmDiscoverer.Jps.INSTANCE.isAvailable()) {
+                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps to be installed");
+                }
             }
             this.pid = pid;
             this.includes = includes;
@@ -361,10 +310,12 @@ public class RemoteAttacher {
             out.println("    -e, --exclude <exclude_pattern>...");
             out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
             out.println("        (Matches the output of 'jps -l')");
+            out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -i, --include <include_pattern>...");
             out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
             out.println("        (Matches the output of 'jps -l')");
+            out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -a, --args <agent_arguments>");
             out.println("        Deprecated in favor of --config.");

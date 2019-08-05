@@ -41,7 +41,14 @@ import java.util.Properties;
  */
 public class ElasticApmAttacher {
 
-    private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.DEFAULT);
+    private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new ByteBuddyAgent.AttachmentProvider.Compound(
+        ByteBuddyAgent.AttachmentProvider.ForUnixHotSpotVm.INSTANCE,
+        ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
+        ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE,
+        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT),
+        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JDK_ROOT),
+        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH),
+        new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE));
 
     /**
      * Attaches the Elastic Apm agent to the current JVM.
@@ -81,7 +88,11 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach(Map<String, String> configuration) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration));
+        // optimization, this is checked in AgentMain#init again
+        if (Boolean.getBoolean("ElasticApm.attached")) {
+            return;
+        }
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration), ATTACHMENT_PROVIDER);
     }
 
     static String toAgentArgs(Map<String, String> configuration) {
