@@ -24,44 +24,19 @@
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ejb.Schedule;
 
-import org.junit.BeforeClass;
-import org.junit.jupiter.api.BeforeAll;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.Schedules;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import net.bytebuddy.agent.ByteBuddyAgent;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-class ScheduledTransactionNameInstrumentationTest {
-
-    private static MockReporter reporter;
-    private static ElasticApmTracer tracer;
-
-    @BeforeClass
-    @BeforeAll
-    static void setUpAll() {
-        reporter = new MockReporter();
-        tracer = new ElasticApmTracerBuilder()
-                .configurationRegistry(SpyConfiguration.createSpyConfig())
-                .reporter(reporter)
-                .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-                Collections.singletonList(new ScheduledTransactionNameInstrumentation(tracer)));
-    }
-
+class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSpringScheduledAnnotatedMethodsAreTraced() {
@@ -161,6 +136,4 @@ class ScheduledTransactionNameInstrumentationTest {
             return this.count.get();
         }
     }
-
-
 }
