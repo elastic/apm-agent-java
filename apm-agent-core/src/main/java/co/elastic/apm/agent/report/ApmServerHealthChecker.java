@@ -48,7 +48,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
     private final ApmServerClient apmServerClient;
-    private final DslJson<Object> dslJson = new DslJson<>();
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
     public ApmServerHealthChecker(ApmServerClient apmServerClient) {
         this.apmServerClient = apmServerClient;
