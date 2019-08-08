@@ -39,10 +39,7 @@ class ExternalProcessSpanContext implements ApmSpanContext {
 
     private ExternalProcessSpanContext(TextMap textMap) {
         this.textMap = textMap;
-        initialize();
     }
-
-    private void initialize() {}
 
     static ExternalProcessSpanContext of(TextMap textMap) {
         return new ExternalProcessSpanContext(textMap);

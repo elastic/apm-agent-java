@@ -83,7 +83,10 @@ public class ElasticApmTracer implements io.opentracing.Tracer {
 
     @Override
     public void close() {
-        scopeManager().active().close();
-        // co.elastic.apm.agent.impl.ElasticApmTracer#stop ???
+        ApmScope active = scopeManager().active();
+        if (active != null) {
+            active.close();
+        }
+        // co.elastic.apm.agent.opentracing.impl.ElasticApmTracerInstrumentation#close
     }
 }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.opentracing.impl;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,37 +60,20 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
         return methodMatcher;
     }
 
-
-    public static class InitializationInstrumentation extends ExternalSpanContextInstrumentation {
-
-        public InitializationInstrumentation() {
-            super(named("initialize"));
-        }
-
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void initialize(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
-                                      @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext) {
-            if (tracer != null && textMap != null) {
-                for (Map.Entry<String, String> next : textMap) {
-                    if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
-                        childTraceContext = TraceContext.with64BitId(tracer);
-                        TraceContext.fromTraceparentHeader().asChildOf(childTraceContext, next.getValue());
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
     public static class ToTraceIdInstrumentation extends ExternalSpanContextInstrumentation {
 
         public ToTraceIdInstrumentation() {
             super(named("toTraceId"));
         }
 
+        @SuppressWarnings("Duplicates")
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toTraceId(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext,
+        public static void toTraceId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                     @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
                                      @Advice.Return(readOnly = false) String traceId) {
+            if (textMap != null && childTraceContext == null) {
+                childTraceContext = parseTextMap(textMap);
+            }
             if (childTraceContext != null) {
                 traceId = childTraceContext.getTraceId().toString();
             }
@@ -102,12 +86,33 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
             super(named("toSpanId"));
         }
 
+        @SuppressWarnings("Duplicates")
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void toSpanId(@Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext childTraceContext,
+        public static void toSpanId(@Advice.FieldValue(value = "textMap", typing = Assigner.Typing.DYNAMIC) @Nullable Iterable<Map.Entry<String, String>> textMap,
+                                    @Advice.FieldValue(value = "childTraceContext", typing = Assigner.Typing.DYNAMIC, readOnly = false) @Nullable TraceContext childTraceContext,
                                     @Advice.Return(readOnly = false) String spanId) {
+            if (textMap != null && childTraceContext == null) {
+                childTraceContext = parseTextMap(textMap);
+            }
             if (childTraceContext != null) {
                 spanId = childTraceContext.getParentId().toString();
             }
         }
+    }
+
+    @VisibleForAdvice
+    @Nullable
+    public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
+        TraceContext childTraceContext = null;
+        if (tracer != null) {
+            for (Map.Entry<String, String> next : textMap) {
+                if (TraceContext.TRACE_PARENT_HEADER.equals(next.getKey())) {
+                    childTraceContext = TraceContext.with64BitId(tracer);
+                    TraceContext.fromTraceparentHeader().asChildOf(childTraceContext, next.getValue());
+                    break;
+                }
+            }
+        }
+        return childTraceContext;
     }
 }

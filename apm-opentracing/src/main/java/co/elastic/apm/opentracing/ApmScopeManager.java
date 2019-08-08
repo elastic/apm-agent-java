@@ -63,18 +63,10 @@ class ApmScopeManager implements ScopeManager {
     @Nullable
     public ApmScope active() {
         final ApmSpan apmSpan = activeApmSpan();
-        final ApmScope apmScope;
         if (apmSpan != null) {
-            apmScope = new ApmScope(false, apmSpan);
-        } else {
-            final Object traceContext = getCurrentTraceContext();
-            if (traceContext != null) {
-                apmScope = new ApmScope(false, apmSpan);
-            } else {
-                apmScope = null;
-            }
+            return new ApmScope(false, apmSpan);
         }
-        return apmScope;
+        return null;
     }
 
     @Override
