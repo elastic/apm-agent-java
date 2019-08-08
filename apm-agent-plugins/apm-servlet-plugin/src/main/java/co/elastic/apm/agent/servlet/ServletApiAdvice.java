@@ -194,7 +194,7 @@ public class ServletApiAdvice {
         for (String attributeName : requestExceptionAttributes) {
             Object throwable = request.getAttribute(attributeName);
             if (throwable != null && throwable instanceof Throwable) {
-                return  (Throwable) throwable;
+                return (Throwable) throwable;
             }
         }
         return null;
