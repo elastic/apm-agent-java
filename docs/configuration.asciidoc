@@ -9,7 +9,7 @@ You can configure the Elastic APM Agent using different configuration sources,
 which have different naming conventions for the property key.
 The Agent gives precedence to the configuration sources as follows,
 where Central configuration has the highest priority,
-and `elasticapm.properties` has the lowest.
+and `elasticapm.properties` has the lowest:
 
 . {kibana-ref}/agent-configuration.html[Central configuration]
 . Java system properties -
