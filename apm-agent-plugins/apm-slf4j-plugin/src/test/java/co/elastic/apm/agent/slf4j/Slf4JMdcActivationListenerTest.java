@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.slf4j;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -47,11 +48,13 @@ import static org.mockito.Mockito.when;
 class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
+    private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp() {
         MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
     @Test
@@ -74,6 +77,33 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
         }
         assertMdcIsEmpty();
         transaction.end();
+    }
+
+    @Test
+    void testDisabledWhenInactive() {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        assertMdcIsEmpty();
+        try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsSet(transaction);
+            Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsSet(child);
+            }
+            assertMdcIsSet(transaction);
+        }
+        when(coreConfiguration.isActive()).thenReturn(false);
+        transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        assertMdcIsEmpty();
+        try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsEmpty();
+            Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsEmpty();
+            }
+        }
+        transaction.end();
+        when(coreConfiguration.isActive()).thenReturn(true);
     }
 
     @Test
