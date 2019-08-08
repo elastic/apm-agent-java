@@ -82,18 +82,8 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testDisabledWhenInactive() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
-        assertMdcIsEmpty();
-        try (Scope scope = transaction.activateInScope()) {
-            assertMdcIsSet(transaction);
-            Span child = transaction.createSpan();
-            try (Scope childScope = child.activateInScope()) {
-                assertMdcIsSet(child);
-            }
-            assertMdcIsSet(transaction);
-        }
         when(coreConfiguration.isActive()).thenReturn(false);
-        transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsEmpty();
