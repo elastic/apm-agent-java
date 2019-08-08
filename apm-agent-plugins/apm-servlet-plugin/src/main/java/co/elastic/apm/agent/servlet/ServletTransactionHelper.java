@@ -165,7 +165,6 @@ public class ServletTransactionHelper {
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
                         @Nullable String contentTypeHeader, boolean deactivate) {
         try {
-            System.out.println("Input exception = " + exception);
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
@@ -194,7 +193,6 @@ public class ServletTransactionHelper {
         transaction.withType("request");
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {
-            System.out.println("Try to capture exception " + exception);
             transaction.captureException(exception);
         }
     }
