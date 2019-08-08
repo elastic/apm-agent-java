@@ -115,7 +115,11 @@ Click on a key to get more information.
 [[config-active]]
 ==== `active`
 
-A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+A boolean specifying if the agent should be active or not.
+When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
 
@@ -1256,7 +1260,11 @@ The default unit for this option is `ms`
 # Core                                     #
 ############################################
 
-# A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+# A boolean specifying if the agent should be active or not.
+# When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+# When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+# As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+# mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
 #
