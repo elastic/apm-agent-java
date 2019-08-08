@@ -43,6 +43,8 @@ public class ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Abstrac
 
     @Test
     public void testExceptionCaptureWithGlobalControllerAdvice() throws Exception {
+        reporter.reset();
+
         ResultActions resultActions = this.mockMvc.perform(get("/controller-advice/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();

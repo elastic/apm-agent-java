@@ -353,7 +353,9 @@ public class ElasticApmTracer {
 
     public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         if (e != null) {
+            System.out.println("Try to capture exception oO");
             ErrorCapture error = errorPool.createInstance();
+            System.out.println("Created error capture");
             error.withTimestamp(epochMicros);
             error.setException(e);
             Transaction currentTransaction = currentTransaction();

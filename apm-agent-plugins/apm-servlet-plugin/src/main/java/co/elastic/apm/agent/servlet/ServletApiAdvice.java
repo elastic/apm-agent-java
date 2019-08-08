@@ -135,7 +135,7 @@ public class ServletApiAdvice {
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Local("transaction") @Nullable Transaction transaction,
                                             @Advice.Local("scope") @Nullable Scope scope,
-                                            @Advice.Thrown @Nullable Throwable t,
+                                            @Advice.Thrown(readOnly = false) @Nullable Throwable t,
                                             @Advice.This Object thiz) {
         if (tracer == null) {
             return;
@@ -181,22 +181,18 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
-                Throwable exceptionAttribute = getThrowable(request);
-
+                if (t == null) {
+                    for (String attributeName : requestExceptionAttributes) {
+                        Object throwable = request.getAttribute(attributeName);
+                        if (throwable != null && throwable instanceof Throwable) {
+                            t = (Throwable) throwable;
+                            break;
+                        }
+                    }
+                } 
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, exceptionAttribute, true);
+                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
             }
         }
-    }
-
-    @VisibleForAdvice
-    public static Throwable getThrowable(HttpServletRequest request) {
-        for (String attributeName : requestExceptionAttributes) {
-            Object throwable = request.getAttribute(attributeName);
-            if (throwable != null && throwable instanceof Throwable) {
-                return (Throwable) throwable;
-            }
-        }
-        return null;
     }
 }

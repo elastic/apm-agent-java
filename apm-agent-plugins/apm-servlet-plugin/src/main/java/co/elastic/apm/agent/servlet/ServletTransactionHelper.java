@@ -163,13 +163,14 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, @Nullable Throwable exceptionAttribute, boolean deactivate) {
+                        @Nullable String contentTypeHeader, boolean deactivate) {
         try {
+            System.out.println("Input exception = " + exception);
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
             } else {
-                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader, exceptionAttribute);
+                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -182,8 +183,7 @@ public class ServletTransactionHelper {
     }
 
     private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader,
-                           @Nullable Throwable exceptionAttribute) {
+                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
         if (exception != null && status == 200) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
@@ -194,9 +194,8 @@ public class ServletTransactionHelper {
         transaction.withType("request");
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {
+            System.out.println("Try to capture exception " + exception);
             transaction.captureException(exception);
-        } else if (exceptionAttribute != null) {
-            transaction.captureException(exceptionAttribute);
         }
     }
 
