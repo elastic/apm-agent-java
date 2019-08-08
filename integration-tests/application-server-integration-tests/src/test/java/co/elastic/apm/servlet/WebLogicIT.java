@@ -60,8 +60,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar " +
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override

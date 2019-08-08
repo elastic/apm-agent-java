@@ -28,6 +28,7 @@ import com.sun.jna.Platform;
 
 import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +55,8 @@ public interface JvmDiscoverer {
                 if (jvmDiscoverer.isAvailable()) {
                     tempJvmDiscoverer = jvmDiscoverer;
                     break;
+                } else {
+                    System.out.println(jvmDiscoverer.getClass().getSimpleName() + " is not available");
                 }
             }
             delegate = tempJvmDiscoverer;
@@ -103,7 +106,6 @@ public interface JvmDiscoverer {
             try {
                 return new ProcessBuilder("jps", "-l").start().waitFor() == 0;
             } catch (Exception e) {
-                e.printStackTrace();
                 return false;
             }
         }
@@ -153,10 +155,10 @@ public interface JvmDiscoverer {
             File[] hsPerfdataFolders = getHsPerfdataFolders();
             if (hsPerfdataFolders != null) {
                 for (File hsPerfdataFolder : hsPerfdataFolders) {
-                    File[] jvmPidFiles = hsPerfdataFolder.listFiles(new FilenameFilter() {
+                    File[] jvmPidFiles = hsPerfdataFolder.listFiles(new FileFilter() {
                         @Override
-                        public boolean accept(File file, String name) {
-                            return file.isFile() && file.canRead() && name.matches("\\d+");
+                        public boolean accept(File file) {
+                            return file.isFile() && file.canRead() && file.getName().matches("\\d+");
                         }
                     });
                     if (jvmPidFiles != null) {

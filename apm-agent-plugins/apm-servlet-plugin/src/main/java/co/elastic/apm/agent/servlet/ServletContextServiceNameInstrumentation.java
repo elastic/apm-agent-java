@@ -59,6 +59,7 @@ public class ServletContextServiceNameInstrumentation extends ElasticApmInstrume
             .and(hasSuperType(named("javax.servlet.Servlet")));
     }
 
+    // TODO don't instrument init as that does not play well with runtime attachment
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("init")

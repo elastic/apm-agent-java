@@ -134,7 +134,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
-            .withFileSystemBind(pathToAttach, "/apm-agent-attach.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
@@ -144,12 +144,14 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
-        try {
-            final Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach.jar", "--config");
-            System.out.println(result.getStdout());
-            System.out.println(result.getStderr());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (runtimeAttach()) {
+            try {
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                System.out.println(result.getStdout());
+                System.out.println(result.getStderr());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         if (!isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {

@@ -57,7 +57,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("JAVA_OPTIONS", "-javaagent:/elastic-apm-agent.jar -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
+        servletContainer.withEnv("JAVA_OPTIONS", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
     }
 
     @NotNull
@@ -74,5 +74,10 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
+    }
+
+    @Override
+    protected boolean runtimeAttach() {
+        return true;
     }
 }

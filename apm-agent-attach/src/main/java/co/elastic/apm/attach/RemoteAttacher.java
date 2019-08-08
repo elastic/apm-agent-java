@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.attach;
 
+import net.bytebuddy.agent.ByteBuddyAgent;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -64,7 +66,11 @@ public class RemoteAttacher {
         if (arguments.isHelp()) {
             arguments.printHelp(System.out);
         } else if (arguments.isList()) {
-            for (JvmInfo jvm : JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms()) {
+            Collection<JvmInfo> jvmInfos = JvmDiscoverer.ForCurrentVM.INSTANCE.discoverJvms();
+            if (jvmInfos.isEmpty()) {
+                System.err.println("No JVMs found");
+            }
+            for (JvmInfo jvm : jvmInfos) {
                 System.out.println(jvm);
             }
         } else if (arguments.getPid() != null) {
@@ -94,10 +100,7 @@ public class RemoteAttacher {
 
     private void attachToNewJvms(Collection<JvmInfo> jvMs) {
         for (JvmInfo jvmInfo : getStartedJvms(jvMs)) {
-            if (!jvmInfo.packageOrPath.endsWith(".Jps")
-                && !jvmInfo.packageOrPath.isEmpty()
-                && !jvmInfo.packageOrPath.contains("apm-agent-attach")
-                && !jvmInfo.packageOrPath.contains(getClass().getName())) {
+            if (!jvmInfo.pid.equals(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve())) {
                 onJvmStart(jvmInfo);
             }
         }
