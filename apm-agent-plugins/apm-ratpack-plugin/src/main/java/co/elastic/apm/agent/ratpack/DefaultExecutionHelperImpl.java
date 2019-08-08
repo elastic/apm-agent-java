@@ -66,9 +66,13 @@ public class DefaultExecutionHelperImpl implements DefaultExecutionInstrumentati
 
                 currentScope.set(scope);
 
-            } else if (currentTransaction != null) {
+            } else if (currentTransaction != null && !currentTransaction.equals(transaction)) {
 
-                logger.debug("Not activating scope for transaction. Current transaction [{}] and stored transaction [{}] did not pass assertions.", currentTransaction, transaction);
+                logger.warn("Not activating scope for transaction. Current transaction [{}] and stored transaction [{}] are mismatched. This shouldn't happen.", currentTransaction, transaction);
+
+            } else if (currentTransaction != null && currentTransaction.equals(transaction)) {
+
+                logger.debug("Not activating scope for transaction. Current transaction [{}] and stored transaction [{}] are the same.", currentTransaction, transaction);
             }
         }
     }
