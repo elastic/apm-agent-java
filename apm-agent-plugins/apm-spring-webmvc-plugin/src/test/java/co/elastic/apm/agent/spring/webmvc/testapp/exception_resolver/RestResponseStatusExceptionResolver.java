@@ -36,11 +36,8 @@ public class RestResponseStatusExceptionResolver extends AbstractHandlerExceptio
 
     @Override
     protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception e) {
-        if (e instanceof ExceptionResolverRuntimeException) {
-            ModelAndView model = new ModelAndView("error-page");
-            model.addObject("message", "runtime exception occured");
-            return model;
-        }
-        return null;
+        ModelAndView model = new ModelAndView("error-page");
+        model.addObject("message", "runtime exception occured");
+        return model;
     }
 }

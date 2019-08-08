@@ -163,13 +163,13 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, boolean deactivate) {
+                        @Nullable String contentTypeHeader, @Nullable Object exceptionAttribute, boolean deactivate) {
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
                 transaction.ignoreTransaction();
             } else {
-                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader);
+                doOnAfter(transaction, exception, committed, status, method, parameterMap, servletPath, pathInfo, contentTypeHeader, exceptionAttribute);
             }
         } catch (RuntimeException e) {
             // in case we screwed up, don't bring down the monitored application with us
@@ -182,7 +182,8 @@ public class ServletTransactionHelper {
     }
 
     private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
-                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader) {
+                           @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader,
+                           @Nullable Object exceptionAttribute) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
         if (exception != null && status == 200) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
@@ -194,6 +195,8 @@ public class ServletTransactionHelper {
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {
             transaction.captureException(exception);
+        } else if (exceptionAttribute != null && exceptionAttribute instanceof Throwable) {
+            transaction.captureException((Throwable) exceptionAttribute);
         }
     }
 
