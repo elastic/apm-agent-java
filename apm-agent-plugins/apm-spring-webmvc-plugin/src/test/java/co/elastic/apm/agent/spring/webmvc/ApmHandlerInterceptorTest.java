@@ -24,55 +24,31 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.servlet.ServletInstrumentation;
-import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
-class ApmHandlerInterceptorTest {
+class ApmHandlerInterceptorTest extends AbstractInstrumentationTest {
 
-    private static ElasticApmTracer tracer;
-    private MockMvc mockMvc;
+    private static MockMvc mockMvc;
 
     @BeforeAll
-    static void beforeAll() {
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(tracer), new SpringTransactionNameInstrumentation()));
-    }
-
-    @AfterAll
-    static void afterAll() {
-        ElasticApmAgent.reset();
-    }
-
-    @BeforeEach
-    void setup() {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).build();
+    static void prepare() {
+        mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).build();
     }
 
     @Test
     void getAccount() throws Exception {
-        this.mockMvc.perform(get("/test"))
+        mockMvc.perform(get("/test"))
             .andExpect(content().string("TestController#test"));
     }
 

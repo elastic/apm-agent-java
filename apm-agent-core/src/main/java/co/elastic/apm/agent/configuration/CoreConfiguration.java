@@ -61,8 +61,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not. " +
-            "If active, the agent will instrument incoming HTTP requests and track errors.\n" +
+        .description("A boolean specifying if the agent should be active or not.\n" +
+            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
+            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
+            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
+            "mostly idle in this state, so the overhead should be negligible.\n" +
             "\n" +
             "You can use this setting to dynamically disable Elastic APM at runtime.")
         .dynamic(true)

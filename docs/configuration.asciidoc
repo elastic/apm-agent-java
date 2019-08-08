@@ -115,7 +115,11 @@ Click on a key to get more information.
 [[config-active]]
 ==== `active`
 
-A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+A boolean specifying if the agent should be active or not.
+When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
 
@@ -331,7 +335,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1166,11 +1170,22 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 ==== `application_packages`
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
-Multiple packages can be set as a comma-separated list.
-Setting this option can also improve the startup time.
+This allows the UI to collapse the stack frames of library code,
+and highlight the stack frames that originate from your application.
+Multiple root packages can be set as a comma-separated list;
+there's no need to configure sub-packages.
+Because this setting helps determine which classes to scan on startup,
+setting this option can also improve startup time.
 
-In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
-it is required to set these options.
+You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.
+
+**Example**
+
+Most Java projects have a root package, e.g. `com.myproject`. You can set the application package using Java system properties:
+`-Delastic.apm.application_packages=com.myproject`
+
+If you are only interested in specific subpackages, you can separate them with commas:
+`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 
 
 [options="header"]
@@ -1245,7 +1260,11 @@ The default unit for this option is `ms`
 # Core                                     #
 ############################################
 
-# A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+# A boolean specifying if the agent should be active or not.
+# When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+# When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+# As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+# mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
 #
@@ -1367,7 +1386,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1840,11 +1859,22 @@ The default unit for this option is `ms`
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
-# Multiple packages can be set as a comma-separated list.
-# Setting this option can also improve the startup time.
+# This allows the UI to collapse the stack frames of library code,
+# and highlight the stack frames that originate from your application.
+# Multiple root packages can be set as a comma-separated list;
+# there's no need to configure sub-packages.
+# Because this setting helps determine which classes to scan on startup,
+# setting this option can also improve startup time.
 # 
-# In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
-# it is required to set these options.
+# You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.
+# 
+# **Example**
+# 
+# Most Java projects have a root package, e.g. `com.myproject`. You can set the application package using Java system properties:
+# `-Delastic.apm.application_packages=com.myproject`
+# 
+# If you are only interested in specific subpackages, you can separate them with commas:
+# `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 #
 # This setting can be changed at runtime
 # Type: comma separated list

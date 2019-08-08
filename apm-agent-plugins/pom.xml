@@ -29,6 +29,7 @@
         <module>apm-quartz-job-plugin</module>
         <module>apm-asynchttpclient-plugin</module>
         <module>apm-jms-plugin</module>
+        <module>apm-hibernate-search-plugin</module>
     </modules>
 
     <properties>

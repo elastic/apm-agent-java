@@ -4,6 +4,8 @@
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
+ * `ApacheHttpAsyncClientInstrumentation` matching increases startup time considerably
+ * Log correlation feature is active when `active==false`
 
 # 1.8.0
 
