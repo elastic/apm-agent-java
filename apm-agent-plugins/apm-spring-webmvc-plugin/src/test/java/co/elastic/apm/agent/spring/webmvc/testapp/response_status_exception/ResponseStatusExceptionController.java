@@ -35,10 +35,10 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/response-status-exception")
 public class ResponseStatusExceptionController {
 
-    @GetMapping
-    public ResponseEntity request() {
+    @GetMapping("/throw-exception")
+    public ResponseEntity throwException() {
         try {
-            throw new RuntimeException("runtime exception occured");
+            throw new ResponseStatusRuntimeException("runtime exception occured");
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "responseStatusException", e);
         }

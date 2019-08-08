@@ -37,10 +37,10 @@ public class ExceptionHandlerController {
 
     @GetMapping("/throw-exception")
     public ResponseEntity throwException() {
-        throw new RuntimeException("runtime exception occured");
+        throw new ExceptionHandlerRuntimeException("runtime exception occured");
     }
 
-    @ExceptionHandler({Exception.class})
+    @ExceptionHandler({ExceptionHandlerRuntimeException.class})
     public ResponseEntity handleException(Exception e) {
         // handle exception
         return new ResponseEntity("exception-handler " + e.getMessage(), HttpStatus.CONFLICT);

@@ -32,8 +32,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/exception-resolver")
 public class ExceptionResolverController {
 
-    @GetMapping
-    public void handleRequest() {
-        throw new RuntimeException("runtime exception occured");
+    @GetMapping("/throw-exception")
+    public void throwException() {
+        throw new ExceptionResolverRuntimeException("runtime exception occured");
     }
 }

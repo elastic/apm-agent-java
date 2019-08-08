@@ -35,7 +35,7 @@ public class ControllerAdviceController {
 
     @GetMapping("/throw-exception")
     public ResponseEntity throwException() {
-        throw new RuntimeException("runtime exception occured");
+        throw new ControllerAdviceRuntimeException("runtime exception occured");
     }
 }
 

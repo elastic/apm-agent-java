@@ -24,31 +24,29 @@
  */
 package co.elastic.apm.agent.spring.webmvc;
 
-import co.elastic.apm.agent.spring.webmvc.testapp.response_status_exception.ResponseStatusExceptionController;
-import co.elastic.apm.agent.spring.webmvc.testapp.response_status_exception.ResponseStatusRuntimeException;
+import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.ControllerAdviceController;
+import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.ControllerAdviceRuntimeException;
+import co.elastic.apm.agent.spring.webmvc.testapp.controller_advice.GlobalExceptionHandler;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.server.ResponseStatusException;
 
-import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {
-    ResponseStatusExceptionController.class})
-public class ExceptionHandlerInstrumentationWithResponseStatusExceptionTest extends AbstractExceptionHandlerInstrumentationTest {
+    ControllerAdviceController.class,
+    GlobalExceptionHandler.class
+})
+public class ExceptionHandlerInstrumentationWithGlobalAdviceTest extends AbstractExceptionHandlerInstrumentationTest {
 
     @Test
-    public void testCallApiWithExceptionThrown() throws Exception {
-
-        ResultActions resultActions = this.mockMvc.perform(get("/response-status-exception/throw-exception"));
+    public void testExceptionCaptureWithGlobalControllerAdvice() throws Exception {
+        ResultActions resultActions = this.mockMvc.perform(get("/controller-advice/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(ResponseStatusException.class, response, 409, "", "Response status 409 with reason \"responseStatusException\"; nested exception is co.elastic.apm.agent.spring.webmvc.testapp.response_status_exception.ResponseStatusRuntimeException: runtime exception occured");
-        assertEquals("runtime exception occured", reporter.getErrors().get(0).getException().getCause().getMessage());
-        assertEquals(ResponseStatusRuntimeException.class, reporter.getErrors().get(0).getException().getCause().getClass());
+        assertExceptionCapture(ControllerAdviceRuntimeException.class, response, 409, "controller-advice runtime exception occured", "runtime exception occured");
     }
 }
