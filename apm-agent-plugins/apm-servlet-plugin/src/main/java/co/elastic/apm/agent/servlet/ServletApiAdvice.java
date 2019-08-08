@@ -135,7 +135,7 @@ public class ServletApiAdvice {
                                             @Advice.Argument(1) ServletResponse servletResponse,
                                             @Advice.Local("transaction") @Nullable Transaction transaction,
                                             @Advice.Local("scope") @Nullable Scope scope,
-                                            @Advice.Thrown(readOnly = false) @Nullable Throwable t,
+                                            @Advice.Thrown @Nullable Throwable t,
                                             @Advice.This Object thiz) {
         if (tracer == null) {
             return;
@@ -181,16 +181,17 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
+                Throwable t2 = null;
                 if (t == null) {
                     for (String attributeName : requestExceptionAttributes) {
                         Object throwable = request.getAttribute(attributeName);
                         if (throwable != null && throwable instanceof Throwable) {
-                            t = (Throwable) throwable;
+                            t2 = (Throwable) throwable;
                             break;
                         }
                     }
-                } 
-                servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
+                }
+                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
             }
         }
