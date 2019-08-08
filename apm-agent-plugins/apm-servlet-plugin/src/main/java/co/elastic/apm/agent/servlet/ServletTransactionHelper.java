@@ -163,7 +163,7 @@ public class ServletTransactionHelper {
     @VisibleForAdvice
     public void onAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                         @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo,
-                        @Nullable String contentTypeHeader, @Nullable Object exceptionAttribute, boolean deactivate) {
+                        @Nullable String contentTypeHeader, @Nullable Throwable exceptionAttribute, boolean deactivate) {
         try {
             // thrown the first time a JSP is invoked in order to register it
             if (exception != null && "weblogic.servlet.jsp.AddToMapException".equals(exception.getClass().getName())) {
@@ -183,7 +183,7 @@ public class ServletTransactionHelper {
 
     private void doOnAfter(Transaction transaction, @Nullable Throwable exception, boolean committed, int status, String method,
                            @Nullable Map<String, String[]> parameterMap, String servletPath, @Nullable String pathInfo, @Nullable String contentTypeHeader,
-                           @Nullable Object exceptionAttribute) {
+                           @Nullable Throwable exceptionAttribute) {
         fillRequestParameters(transaction, method, parameterMap, contentTypeHeader);
         if (exception != null && status == 200) {
             // Probably shouldn't be 200 but 5XX, but we are going to miss this...
@@ -195,8 +195,8 @@ public class ServletTransactionHelper {
         applyDefaultTransactionName(method, servletPath, pathInfo, transaction);
         if (exception != null) {
             transaction.captureException(exception);
-        } else if (exceptionAttribute != null && exceptionAttribute instanceof Throwable) {
-            transaction.captureException((Throwable) exceptionAttribute);
+        } else if (exceptionAttribute != null) {
+            transaction.captureException(exceptionAttribute);
         }
     }
 

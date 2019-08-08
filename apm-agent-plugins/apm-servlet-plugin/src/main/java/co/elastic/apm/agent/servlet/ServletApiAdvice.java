@@ -43,7 +43,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
@@ -69,6 +71,8 @@ public class ServletApiAdvice {
             return Boolean.FALSE;
         }
     };
+    @VisibleForAdvice
+    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION");
 
     static void init(ElasticApmTracer tracer) {
         ServletApiAdvice.tracer = tracer;
@@ -177,10 +181,22 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
-                Object exceptionAttribute = request.getAttribute("org.springframework.web.servlet.DispatcherServlet.EXCEPTION");
+                Throwable exceptionAttribute = getThrowable(request);
+
                 servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
                     parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, exceptionAttribute, true);
             }
         }
+    }
+
+    @VisibleForAdvice
+    public static Throwable getThrowable(HttpServletRequest request) {
+        for (String attributeName : requestExceptionAttributes) {
+            Object throwable = request.getAttribute(attributeName);
+            if (throwable != null && throwable instanceof Throwable) {
+                return  (Throwable) throwable;
+            }
+        }
+        return null;
     }
 }

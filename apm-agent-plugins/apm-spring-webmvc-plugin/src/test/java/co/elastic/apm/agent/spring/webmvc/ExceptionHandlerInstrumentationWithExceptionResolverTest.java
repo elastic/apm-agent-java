@@ -27,6 +27,7 @@ package co.elastic.apm.agent.spring.webmvc;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverRuntimeException;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class ExceptionHandlerInstrumentationWithExceptionResolverTest extends AbstractExceptionHandlerInstrumentationTest {
 
     @Test
+    @Ignore
     public void testCallApiWithExceptionThrown() throws Exception {
         ResultActions resultActions = this.mockMvc.perform(get("/exception-resolver/throw-exception"));
         MvcResult result = resultActions.andReturn();
