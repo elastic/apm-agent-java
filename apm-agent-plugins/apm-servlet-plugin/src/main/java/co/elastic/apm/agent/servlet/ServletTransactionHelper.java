@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.servlet;
 
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
@@ -42,10 +43,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
@@ -64,6 +67,8 @@ public class ServletTransactionHelper {
     public static final String ASYNC_ATTRIBUTE = ServletApiAdvice.class.getName() + ".async";
     private static final String CONTENT_TYPE_FROM_URLENCODED = "application/x-www-form-urlencoded";
     public static final WildcardMatcher ENDS_WITH_JSP = WildcardMatcher.valueOf("*.jsp");
+    @VisibleForAdvice
+    public static Set<String> nameInitialized = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final Logger logger = LoggerFactory.getLogger(ServletTransactionHelper.class);
 
@@ -77,6 +82,30 @@ public class ServletTransactionHelper {
         this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
+    }
+
+    @VisibleForAdvice
+    public static void determineServiceName(@Nullable String servletContextName, ClassLoader servletContextClassLoader, @Nullable String contextPath) {
+        if (ElasticApmInstrumentation.tracer == null || !nameInitialized.add(contextPath == null ? "null" : contextPath)) {
+            return;
+        }
+
+        @Nullable
+        String serviceName = servletContextName;
+        if ("application".equals(serviceName) || "".equals(serviceName) || "/".equals(serviceName)) {
+            // payara returns an empty string as opposed to null
+            // spring applications which did not set spring.application.name have application as the default
+            // jetty returns context path when no display name is set, which could be the root context of "/"
+            // this is a worse default than the one we would otherwise choose
+            serviceName = null;
+        }
+        if (serviceName == null && contextPath != null && !contextPath.isEmpty()) {
+            // remove leading slash
+            serviceName = contextPath.substring(1);
+        }
+        if (serviceName != null) {
+            ElasticApmInstrumentation.tracer.overrideServiceNameForClassLoader(servletContextClassLoader, serviceName);
+        }
     }
 
     /*
