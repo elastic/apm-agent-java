@@ -75,6 +75,11 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
         // This pool relies on the task to be an instance of com.pilotfish.eip.server.ntm.transact.StageTransactionRunner
         // in its beforeExecute implementation.
         excludedClasses.add("com.pilotfish.eip.server.ntm.pool.NTMThreadPool");
+
+        // Used in Ratpack's event loop.
+        // Wrapping leaks transactions and spans to other requests. Unsure if other Netty based libraries
+        // would suffer the same issue.
+        excludedClasses.add("io.netty.channel.nio.NioEventLoop");
     }
 
     @Override
