@@ -26,6 +26,7 @@ package co.elastic.apm.opentracing;
 
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
+import io.opentracing.tag.Tag;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,8 +35,8 @@ import java.util.Map;
 
 class ApmSpan implements Span {
 
-    @Nullable
     private final TraceContextSpanContext spanContext;
+
     @Nullable
     // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
     private volatile Object dispatcher;
@@ -75,6 +76,12 @@ class ApmSpan implements Span {
     @Override
     public ApmSpan setTag(String key, Number value) {
         handleTag(key, value);
+        return this;
+    }
+
+    @Override
+    public <T> Span setTag(Tag<T> tag, T value) {
+        handleTag(tag.getKey(), value);
         return this;
     }
 
@@ -159,4 +166,16 @@ class ApmSpan implements Span {
         return String.valueOf(dispatcher);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ApmSpan otherSpan = (ApmSpan) o;
+        return otherSpan.context().toSpanId().equals(spanContext.toSpanId());
+    }
+
+    @Override
+    public int hashCode() {
+        return spanContext.toSpanId().hashCode();
+    }
 }

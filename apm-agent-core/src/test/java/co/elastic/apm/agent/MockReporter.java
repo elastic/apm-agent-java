@@ -69,6 +69,7 @@ public class MockReporter implements Reporter {
     private final List<ErrorCapture> errors = new ArrayList<>();
     private final ObjectMapper objectMapper;
     private final boolean verifyJsonSchema;
+    private boolean closed;
 
     static {
         transactionSchema = getSchema("/schema/transactions/transaction.json");
@@ -94,12 +95,18 @@ public class MockReporter implements Reporter {
 
     @Override
     public synchronized void report(Transaction transaction) {
+        if (closed) {
+            return;
+        }
         verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
         transactions.add(transaction);
     }
 
     @Override
     public synchronized void report(Span span) {
+        if (closed) {
+            return;
+        }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
         spans.add(span);
     }
@@ -168,6 +175,9 @@ public class MockReporter implements Reporter {
 
     @Override
     public synchronized void report(ErrorCapture error) {
+        if (closed) {
+            return;
+        }
         verifyErrorSchema(asJson(dslJsonSerializer.toJsonString(error)));
         errors.add(error);
     }
@@ -248,7 +258,7 @@ public class MockReporter implements Reporter {
 
     @Override
     public void close() {
-
+        closed = true;
     }
 
     public void reset() {
