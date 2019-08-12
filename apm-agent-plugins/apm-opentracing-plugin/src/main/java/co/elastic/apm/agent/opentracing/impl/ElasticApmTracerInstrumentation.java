@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,39 +22,31 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.opentracing;
+package co.elastic.apm.agent.opentracing.impl;
 
-import io.opentracing.Scope;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
 
-class ApmScope implements Scope {
+import static net.bytebuddy.matcher.ElementMatchers.named;
 
-    private final boolean finishSpanOnClose;
-    private final ApmSpan apmSpan;
+public class ElasticApmTracerInstrumentation extends OpenTracingBridgeInstrumentation {
 
-    ApmScope(boolean finishSpanOnClose, ApmSpan apmSpan) {
-        this.finishSpanOnClose = finishSpanOnClose;
-        this.apmSpan = apmSpan;
-    }
-
-    @Override
-    public void close() {
-        release(apmSpan.getSpan(), apmSpan.context().getTraceContext());
-        if (finishSpanOnClose) {
-            apmSpan.finish();
+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
+    public static void close() {
+        if (tracer != null) {
+            tracer.stop();
         }
     }
 
-    private void release(Object span, Object traceContext) {
-        // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ApmScopeInstrumentation
-    }
-
-    @Deprecated
-    public ApmSpan span() {
-        return apmSpan;
+    @Override
+    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+        return named("co.elastic.apm.opentracing.ElasticApmTracer");
     }
 
     @Override
-    public String toString() {
-        return String.format("Scope(%s)", apmSpan);
+    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+        return named("close");
     }
 }
