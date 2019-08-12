@@ -43,12 +43,11 @@ public class ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Abstrac
 
     @Test
     public void testExceptionCaptureWithGlobalControllerAdvice() throws Exception {
-        reporter.reset();
 
         ResultActions resultActions = this.mockMvc.perform(get("/controller-advice/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(ControllerAdviceRuntimeException.class, response, 409, "controller-advice runtime exception occured", "runtime exception occured");
+        assertExceptionCapture(0, 1, ControllerAdviceRuntimeException.class, response, 409, "controller-advice runtime exception occured", "runtime exception occured");
     }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -34,8 +35,10 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -46,6 +49,9 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
     private static final String SPAN_SUBTYPE = "dispatcher-servlet";
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
+    @VisibleForAdvice
+    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION");
+
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeExecute(@Advice.Argument(0) @Nullable ModelAndView modelAndView,
@@ -67,9 +73,20 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void afterExecute(@Advice.Local("span") @Nullable Span span,
+                                     @Advice.Argument(1) @Nullable HttpServletRequest request,
                                      @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
-            span.captureException(t)
+            Throwable t2 = null;
+            if (t == null) {
+                for (String attributeName : requestExceptionAttributes) {
+                    Object throwable = request.getAttribute(attributeName);
+                    if (throwable != null && throwable instanceof Throwable) {
+                        t2 = (Throwable) throwable;
+                        break;
+                    }
+                }
+            }
+            span.captureException(t == null ? t2 : t)
                 .deactivate()
                 .end();
         }

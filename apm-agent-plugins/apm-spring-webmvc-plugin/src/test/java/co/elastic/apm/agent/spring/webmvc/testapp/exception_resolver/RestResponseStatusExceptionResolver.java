@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
 
@@ -38,6 +39,7 @@ public class RestResponseStatusExceptionResolver extends AbstractHandlerExceptio
     protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception e) {
         ModelAndView model = new ModelAndView("error-page");
         model.addObject("message", "runtime exception occured");
+        request.setAttribute(DispatcherServlet.EXCEPTION_ATTRIBUTE, e);
         return model;
     }
 }
