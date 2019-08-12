@@ -82,6 +82,8 @@ public class ServletTransactionHelper {
         this.tracer = tracer;
         this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         this.webConfiguration = tracer.getConfig(WebConfiguration.class);
+        // clear when unit tests re-init the instrumentation
+        nameInitialized.clear();
     }
 
     @VisibleForAdvice

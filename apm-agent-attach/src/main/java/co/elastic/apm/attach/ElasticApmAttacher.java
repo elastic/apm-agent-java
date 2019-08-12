@@ -42,7 +42,7 @@ import java.util.Properties;
 public class ElasticApmAttacher {
 
     private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new ByteBuddyAgent.AttachmentProvider.Compound(
-        ByteBuddyAgent.AttachmentProvider.ForUnixHotSpotVm.INSTANCE,
+        ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE,
         ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
         ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE,
         new CachedAttachmentProvider(ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT),
