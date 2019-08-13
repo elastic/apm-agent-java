@@ -58,6 +58,11 @@ public class RemoteAttacher {
         Arguments arguments;
         try {
             arguments = Arguments.parse(args);
+            if (!arguments.getIncludes().isEmpty() || !arguments.getExcludes().isEmpty()) {
+                if (!JvmDiscoverer.Jps.INSTANCE.isAvailable()) {
+                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps to be installed");
+                }
+            }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
             arguments = Arguments.parse("--help");
@@ -183,11 +188,6 @@ public class RemoteAttacher {
             }
             if (pid != null && (!includes.isEmpty() || !excludes.isEmpty() || continuous)) {
                 throw new IllegalArgumentException("Providing --pid and either of --include, --exclude or --continuous is illegal");
-            }
-            if (!includes.isEmpty() || !excludes.isEmpty()) {
-                if (!JvmDiscoverer.Jps.INSTANCE.isAvailable()) {
-                    throw new IllegalStateException("Matching JVMs with --include or --exclude requires jps to be installed");
-                }
             }
             this.pid = pid;
             this.includes = includes;
