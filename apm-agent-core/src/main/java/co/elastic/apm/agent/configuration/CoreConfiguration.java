@@ -324,7 +324,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.")
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Common configurations:\n\n" +
+            "Trace all public methods in CDI-Annotated beans:\n\n" +
+            "----\n" +
+            "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@javax.inject.Scope your.application.package.*\n" +
+            "----\n")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
