@@ -38,8 +38,7 @@ import java.util.Arrays;
 public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     public TomcatIT(final String tomcatVersion) {
-        super(new GenericContainer<>("tomcat:" + tomcatVersion)
-                .withEnv("CATALINA_OPTS", "-javaagent:/elastic-apm-agent.jar"),
+        super(new GenericContainer<>("tomcat:" + tomcatVersion),
             "tomcat-application",
             "/usr/local/tomcat/webapps",
             "tomcat");
@@ -72,5 +71,10 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
         return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
+    }
+
+    @Override
+    protected boolean runtimeAttach() {
+        return true;
     }
 }

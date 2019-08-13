@@ -44,7 +44,6 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     public WebLogicIT(final String webLogicVersion) {
         super(new GenericContainer<>("store/oracle/weblogic:" + webLogicVersion)
-                .withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar")
                 .withClasspathResourceMapping("domain.properties", "/u01/oracle/properties/domain.properties", BindMode.READ_WRITE),
             7001,
             "weblogic-application",
@@ -61,8 +60,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar " +
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override
@@ -82,5 +80,10 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         // WebLogic requires the files to be writable
         // Even binding with BindMode.READ_WRITE does not work for some reason
         return false;
+    }
+
+    @Override
+    protected boolean runtimeAttach() {
+        return true;
     }
 }
