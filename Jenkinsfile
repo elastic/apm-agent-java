@@ -82,6 +82,9 @@ pipeline {
       }
     }
     stage('Tests') {
+      environment {
+        MAVEN_CONFIG = "${params.MAVEN_CONFIG}"
+      }
       failFast true
       parallel {
         /**
