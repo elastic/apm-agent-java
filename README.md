@@ -42,3 +42,4 @@ The agent jar is in the folder `elastic-apm-agent/target`.
 ## License
 
 Elastic APM Java Agent is licensed under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
+
