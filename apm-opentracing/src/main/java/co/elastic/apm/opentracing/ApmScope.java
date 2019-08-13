@@ -48,7 +48,7 @@ class ApmScope implements Scope {
         // implementation is injected at runtime via co.elastic.apm.agent.opentracing.impl.ApmScopeInstrumentation
     }
 
-    @Override
+    @Deprecated
     public ApmSpan span() {
         return apmSpan;
     }
