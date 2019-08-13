@@ -106,7 +106,7 @@ pipeline {
               dir("${BASE_DIR}"){
                 sh """#!/bin/bash
                 set -euxo pipefail
-                ./mvnw clean test
+                ./mvnw test
                 """
               }
             }
