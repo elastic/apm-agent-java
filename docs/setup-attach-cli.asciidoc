@@ -1,5 +1,5 @@
 [[setup-attach-cli]]
-=== Automatic setup with `apm-agent-attach.jar`
+=== Automatic setup with `apm-agent-attach-standalone.jar`
 
 NOTE: This installation method is experimental.
 
@@ -7,18 +7,28 @@ You can use the attacher as a standalone application on the command line or incl
 
 This installation method does not require you to alter the configuration of your application server and can be used to conveniently instrument all JVMs on a particular host.
 
-The `apm-agent-attach.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
+The `apm-agent-attach-standalone.jar` is a small Java program which attaches the Elastic APM Java agent to a specific JVM or to all JVMs of the same host it runs on.
+
+[float]
+[[setup-attach-cli-supported-environments]]
+==== Supported environments
+
+The attachment is supported on Windows,
+Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
+
+Some flags, like `--include` and `--exclude` require the `jps` command to be installed,
+which is part of the JDK distribution and does not typically come with the JRE distribution.
 
 [float]
 [[setup-attach-cli-caveats]]
 ==== Caveats
 
-This method of attachment is only supported on HotSpot-based JVMs like the OpenJDK and Oracle JDK.
-It also requires the JDK, specifically the `tools.jar` to be present - a JRE is not sufficient.
+The OS user executing `apm-agent-attach-standalone.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) has to be the same.
 
-The OS user executing `apm-agent-attach.jar` and the OS user of the application(s) to be monitored (the JVMs to attach to) has to be the same.
+When attaching to a J9 VM, you have to explicitly set the `--pid <pid>` argument, or have `jps` installed.
 
-It's recommended to use the same JDK to start the `apm-agent-attach.jar` that is used to run the applications you want to attach to.
+Currently, this does not work in combination with OSGi containers (which includes most application servers).
+The symptom is that there will be a lot of exceptions like this: `java.lang.NoClassDefFoundError: co/elastic/apm/agent/servlet/ServletApiAdvice`.
 
 [float]
 [[setup-attach-cli-download]]
@@ -27,6 +37,7 @@ It's recommended to use the same JDK to start the `apm-agent-attach.jar` that is
 You can download the attach program from maven central:
 link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-attach[maven central]
 
+NOTE: As of version 1.9.0, you will have to download the `standalone` jar instead of the normal jar distribution.
 
 [float]
 [[setup-attach-cli-usage]]
@@ -42,7 +53,7 @@ See <<setup-attach-cli-usage-options>> for the format of the agent arguments.
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar --pid <pid> [--args <agent_arguments>]
+java -jar apm-agent-attach-standalone.jar --pid <pid> [--args <agent_arguments>]
 ----
 
 Example: The following command attaches the agent to the JVM with the PID 42 and exits.
@@ -50,7 +61,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar --pid 42 \
+java -jar apm-agent-attach-standalone.jar --pid 42 \
     --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
 ----
 
@@ -62,7 +73,7 @@ Attaches the agent to all matching JVMs on the host which confirm to the optiona
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar [-include <include_pattern>...]
+java -jar apm-agent-attach-standalone.jar [-include <include_pattern>...]
        [-exclude <exclude_pattern>...] [--continuous]
        [--args <agent_arguments> | --args-provider <args_provider_script>]
 ----
@@ -73,7 +84,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar \
+java -jar apm-agent-attach-standalone.jar \
     --include '.*MyApplication.*' '.*/my-application.jar' \
     --continuous \
     --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
@@ -87,7 +98,7 @@ Lists all currently running JVMs, including their PID and their main class name 
 
 [source,bash]
 ----
-java -jar apm-agent-attach.jar --list
+java -jar apm-agent-attach-standalone.jar --list
 ----
 
 [float]
@@ -122,7 +133,7 @@ NOTE: This option cannot be used in conjunction with `--pid`
 A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.
 (Matches the output of `jps -l`)
 
-NOTE: This option cannot be used in conjunction with `--pid`
+NOTE: This option cannot be used in conjunction with `--pid` and requires the `jps` command to be installed
 --
 
 *-i, --include <include_pattern>...*::
@@ -131,7 +142,7 @@ NOTE: This option cannot be used in conjunction with `--pid`
 A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
 (Matches the output of `jps -l`)
 
-NOTE: This option cannot be used in conjunction with `--pid`
+NOTE: This option cannot be used in conjunction with `--pid` and requires the `jps` command to be installed
 --
 
 *-a, --args <agent_arguments>*::
@@ -143,6 +154,14 @@ The syntax of the arguments is `key1=value1;key2=value1,value2`.
 See <<configuration>> for all available configuration options.
 
 NOTE: This option cannot be used in conjunction with `--args-provider`
+--
+
+*-C --config <key=value>...*::
++
+--
+This repeatable option sets one agent configuration option.
+
+Example: `--config server_urls=http://localhost:8200,http://localhost:8201`
 --
 
 *-A, --args-provider <args_provider_script>*::
@@ -158,3 +177,51 @@ See <<configuration>> for all available configuration options.
 
 NOTE: This option cannot be used in conjunction with `--pid` and `--args`
 --
+
+
+[float]
+[[setup-attach-cli-docker]]
+==== Docker
+
+Use this script to automatically attach to all docker containers running on a host.
+This script does not return but continuously listens for starting containers which it also attaches to.
+
+NOTE: This script is experimental and might not work with all containers.
+Especially the `jq --raw-output .[0].Config.Cmd[0]) == java` might vary.
+
+[source,bash]
+.attach.sh
+----
+#!/usr/bin/env bash
+set -ex
+
+attach () {
+    # only attempt attachment if this looks like a java container
+    if [[ $(docker inspect ${container_id} | jq --raw-output .[0].Config.Cmd[0]) == java ]]
+    then
+        echo attaching to $(docker ps --no-trunc | grep ${container_id})
+        docker cp ./apm-agent-attach-*-standalone.jar ${container_id}:/apm-agent-attach-standalone.jar
+        docker exec ${container_id} java -jar /apm-agent-attach-standalone.jar --config
+    fi
+}
+
+# attach to running containers
+for container_id in $(docker ps --quiet --no-trunc) ; do
+    attach
+done
+
+# listen for starting containers and attach to those
+docker events --filter 'event=start' --format '{{.ID}}' |
+while IFS= read -r container_id
+do
+    attach
+done
+----
+
+[float]
+[[setup-attach-cli-troubleshooting]]
+==== Troubleshooting
+
+If you get a message like `no main manifest attribute, in apm-agent-attach.jar`,
+you are using the wrong artifact.
+Use the one which ends in `-standalone.jar`.

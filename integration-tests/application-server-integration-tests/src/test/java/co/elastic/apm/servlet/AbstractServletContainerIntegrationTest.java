@@ -41,6 +41,7 @@ import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.SocatContainer;
@@ -77,6 +78,7 @@ import static org.mockserver.model.HttpRequest.request;
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToJavaagent;
+    private static final String pathToAttach;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     static boolean ENABLE_DEBUGGING = false;
     private static MockServerContainer mockServerContainer = new MockServerContainer()
@@ -96,7 +98,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
         pathToJavaagent = AgentFileIT.getPathToJavaagent();
+        pathToAttach = AgentFileIT.getPathToAttacher();
         checkFilePresent(pathToJavaagent);
+        checkFilePresent(pathToAttach);
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -130,6 +134,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
@@ -139,6 +144,15 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
+        if (runtimeAttach()) {
+            try {
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                System.out.println(result.getStdout());
+                System.out.println(result.getStderr());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (!isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -153,6 +167,10 @@ public abstract class AbstractServletContainerIntegrationTest {
      */
     protected boolean isDeployViaFileSystemBind() {
         return true;
+    }
+
+    protected boolean runtimeAttach() {
+        return false;
     }
 
     private static void checkFilePresent(String pathToWar) {
