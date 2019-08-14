@@ -3,7 +3,7 @@
 set -exuo pipefail
 
 NOW_ISO_8601=${NOW_ISO_8601:-$(date -u "+%Y-%m-%dT%H%M%SZ")}
-MAVEN_CONFIG="-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+MAVEN_CONFIG=${MAVEN_CONFIG:-"-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"}
 
 echo $(pwd)
 

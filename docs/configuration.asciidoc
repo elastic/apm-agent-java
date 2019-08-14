@@ -5,21 +5,21 @@ Please only make changes in configuration.asciidoc.ftl
 ////
 [[configuration]]
 == Configuration
-You can configure the Elastic APM Agent using different configuration sources,
+To adapt the Elastic APM agent to your needs,
+you can configure it using different configuration sources,
 which have different naming conventions for the property key.
-The Agent gives precedence to the configuration sources as follows,
-where Central configuration has the highest priority,
-and `elasticapm.properties` has the lowest:
+The first configuration sources override the configuration values of over the latter sources.
 
+[arabic]
 . {kibana-ref}/agent-configuration.html[Central configuration]
-. Java system properties -
-All configuration keys are prefixed with `elastic.apm.`
-. Environment variables -
-All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
-. `elasticapm.properties` file -
-You can place a `elasticapm.properties` in the same directory the agent jar resides in.
-To customize the location, set the <<config-config-file>> option.
-No prefix is required for the configuration keys.
+. Java system properties +
+  All configuration keys are prefixed with `elastic.apm.`
+. Environment variables +
+  All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
+. `elasticapm.properties` file +
+  You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  To customize the location, set the <<config-config-file>> option.
+  No prefix is required for the configuration keys.
 
 Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
 {kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
@@ -335,7 +335,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1402,7 +1402,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
