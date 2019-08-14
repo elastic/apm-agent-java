@@ -13,6 +13,10 @@
    Note that the runtime attachment currently does not work for OSGi containers like those used in many application servers such as JBoss and WildFly.
    See the [documentation](https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html) for more information.
 
+# Breaking Changes
+ * The `apm-agent-attach.jar` is not executable anymore.
+   Use `apm-agent-attach-standalone.jar` instead. 
+
 # 1.8.0
 
 ## Features
