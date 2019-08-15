@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiServletContainerTestApp;
 import co.elastic.apm.servlet.tests.JsfServletContainerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -70,7 +71,7 @@ public class TomcatIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfServletContainerTestApp.class, CdiServletContainerTestApp.class);
     }
 
     @Override

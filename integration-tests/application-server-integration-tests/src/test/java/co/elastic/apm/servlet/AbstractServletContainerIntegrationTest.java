@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -131,6 +132,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
+                .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -255,16 +257,40 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
+    public String executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest);
         if (expectedResponseCode != null) {
             assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
+        String responseString = responseBody.string();
         if (expectedContent != null) {
-            assertThat(responseBody.string()).contains(expectedContent);
+            assertThat(responseString).contains(expectedContent);
         }
+        return responseString;
+    }
+
+    public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
+        Response response = executePostRequest(pathToTest, postBody);
+        if (expectedResponseCode != null) {
+            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+        }
+        final ResponseBody responseBody = response.body();
+        assertThat(responseBody).isNotNull();
+        String responseString = responseBody.string();
+        if (expectedContent != null) {
+            assertThat(responseString).contains(expectedContent);
+        }
+        return responseString;
+    }
+
+    public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
+        return httpClient.newCall(new Request.Builder()
+                .post(postBody)
+                .url(getBaseUrl() + pathToTest)
+                .build())
+                .execute();
     }
 
     public Response executeRequest(String pathToTest) throws IOException {

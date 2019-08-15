@@ -406,14 +406,17 @@ NOTE: This feature requires APM Server 7.2+
 
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0 and 1.7.0])
+==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
 
 A list of methods for with to create a transaction or span.
 
-The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-You can use wildcards for the class name, the method name and the parameter types.
+The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+You can use wildcards for the class name, the annotation name, the method name and the parameter types.
 The `*` wildcard matches zero or more characters.
 That means that a wildcard in a package name also matches sub-packages
+Specifying an annotation is optional.
+When matching for annotations, only classes that are annotated with the specified annotation are considered.
+You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
 Specifying the parameter types is optional.
 The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 
@@ -428,6 +431,9 @@ A few examples:
  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
  - `* org.example.MyClas*#myMe*od(*.String, int[])`
  - `public org.example.services.*Service#*`
+ - `public @java.inject.ApplicationScoped org.example.*`
+ - `public @java.inject.* org.example.*`
+ - `public @@javax.enterprise.context.NormalScope org.example.*`
 
 NOTE: Only use wildcards if necessary.
 The more methods you match the more overhead will be caused by the agent.
@@ -438,6 +444,16 @@ NOTE: The agent will create stack traces for spans which took longer than
 When tracing a large number of methods (for example by using wildcards),
 this may lead to high overhead.
 Consider increasing the threshold or disabling stack trace collection altogether.
+
+Common configurations:
+
+Trace all public methods in CDI-Annotated beans:
+
+----
+public @@javax.enterprise.context.NormalScope your.application.package.*
+public @@javax.inject.Scope your.application.package.*
+----
+
 
 
 [options="header"]
@@ -1425,10 +1441,13 @@ The default unit for this option is `ms`
 
 # A list of methods for with to create a transaction or span.
 # 
-# The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-# You can use wildcards for the class name, the method name and the parameter types.
+# The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+# You can use wildcards for the class name, the annotation name, the method name and the parameter types.
 # The `*` wildcard matches zero or more characters.
 # That means that a wildcard in a package name also matches sub-packages
+# Specifying an annotation is optional.
+# When matching for annotations, only classes that are annotated with the specified annotation are considered.
+# You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
 # Specifying the parameter types is optional.
 # The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 # 
@@ -1443,6 +1462,9 @@ The default unit for this option is `ms`
 #  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
 #  - `* org.example.MyClas*#myMe*od(*.String, int[])`
 #  - `public org.example.services.*Service#*`
+#  - `public @java.inject.ApplicationScoped org.example.*`
+#  - `public @java.inject.* org.example.*`
+#  - `public @@javax.enterprise.context.NormalScope org.example.*`
 # 
 # NOTE: Only use wildcards if necessary.
 # The more methods you match the more overhead will be caused by the agent.
@@ -1453,6 +1475,16 @@ The default unit for this option is `ms`
 # When tracing a large number of methods (for example by using wildcards),
 # this may lead to high overhead.
 # Consider increasing the threshold or disabling stack trace collection altogether.
+# 
+# Common configurations:
+# 
+# Trace all public methods in CDI-Annotated beans:
+# 
+# ----
+# public @@javax.enterprise.context.NormalScope your.application.package.*
+# public @@javax.inject.Scope your.application.package.*
+# ----
+# 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list

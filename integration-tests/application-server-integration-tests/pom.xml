@@ -31,6 +31,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>cdi-app</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>soap-test</artifactId>
             <version>${project.version}</version>
             <type>war</type>
@@ -95,6 +101,13 @@
             <artifactId>commons-io</artifactId>
             <version>1.3.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.12.1</version>
+            <scope>test</scope>
+        </dependency>
+
 
         <!--
         uncomment to debug payara 5.182 sources
