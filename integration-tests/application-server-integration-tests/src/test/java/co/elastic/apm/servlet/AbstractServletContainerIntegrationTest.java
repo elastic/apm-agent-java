@@ -113,16 +113,16 @@ public abstract class AbstractServletContainerIntegrationTest {
     private TestApp currentTestApp;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
-        this(servletContainer, 8080, expectedDefaultServiceName, deploymentPath, containerName);
+        this(servletContainer, 8080, 5005, expectedDefaultServiceName, deploymentPath, containerName);
     }
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort,
-                                                      String expectedDefaultServiceName, String deploymentPath, String containerName) {
+                                                      int debugPort, String expectedDefaultServiceName, String deploymentPath, String containerName) {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         if (ENABLE_DEBUGGING) {
             enableDebugging(servletContainer);
-            this.debugProxy = createDebugProxy(servletContainer, 5005);
+            this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         servletContainer

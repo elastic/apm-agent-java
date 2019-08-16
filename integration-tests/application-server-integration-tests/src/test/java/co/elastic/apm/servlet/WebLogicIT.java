@@ -47,6 +47,7 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         super(new GenericContainer<>("store/oracle/weblogic:" + webLogicVersion)
                 .withClasspathResourceMapping("domain.properties", "/u01/oracle/properties/domain.properties", BindMode.READ_WRITE),
             7001,
+            5005,
             "weblogic-application",
             "/u01/oracle/user_projects/domains/base_domain/autodeploy",
             "weblogic");
