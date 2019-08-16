@@ -47,6 +47,7 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             )
                 .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar"),
             9080,
+            7777,
             "websphere-application",
             "/config/dropins",
             "websphere");
