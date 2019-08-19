@@ -35,7 +35,12 @@ import java.sql.Connection;
 public abstract class JdbcHelper {
     @SuppressWarnings("WeakerAccess")
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = new WeakConcurrentMap<>(true);
+    public static final WeakConcurrentMap<Object, String> statementSqlMap;
+
+    static {
+        statementSqlMap = new WeakConcurrentMap<>(true);
+        statementSqlMap.getCleanerThread().setContextClassLoader(null);
+    }
 
     /**
      * Maps the provided sql to the provided Statement object
