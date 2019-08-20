@@ -89,6 +89,8 @@ Click on a key to get more information.
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
 ** <<config-use-jaxrs-path-as-transaction-name>>
+* <<config-jmx>>
+** <<config-capture-jmx-metrics>>
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
@@ -844,6 +846,125 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
+|============
+
+[[config-jmx]]
+=== JMX configuration options
+[float]
+[[config-capture-jmx-metrics]]
+==== `capture_jmx_metrics` (added[1.9.0])
+
+Report metrics from JMX to the APM Server
+
+Can contain multiple comma, separated JMX metric definitions:
+
+----
+object_name[<JMX object name pattern>] attribute[<JMX attribute>] metric_name[<metric name>]
+----
+
+- `object_name`:
++
+For more information about the JMX object name pattern syntax,
+see the https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName` Javadocs].
+- `attribute`:
++
+The name of the JMX attribute.
+The value has to be either a `Number` or a composite where the composite items are numbers.
+- `metric_name`:
++
+The name under which the metric will be stored.
+Setting this is optional and will be the same as the `attribute` if not set.
+
+The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
+
+The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.
+In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
+
+----
+object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount] metric_name[collection_count],
+object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionTime]
+----
+
+The resulting documents in Elasticsearch look similar to these (metadata omitted for brevity):
+
+[source,json]
+----
+{
+  "@timestamp": "2019-08-20T16:51:07.512Z",
+  "jvm": {
+    "jmx": {
+      "collection_count": 0,
+      "CollectionTime": 0
+    }
+  },
+  "labels": {
+    "type": "GarbageCollector",
+    "name": "G1 Old Generation"
+  }
+}
+----
+
+[source,json]
+----
+{
+  "@timestamp": "2019-08-20T16:51:07.512Z",
+  "jvm": {
+    "jmx": {
+      "collection_count": 2,
+      "CollectionTime": 11
+    }
+  },
+  "labels": {
+    "type": "GarbageCollector",
+    "name": "G1 Young Generation"
+  }
+}
+----
+
+
+The agent also supports composite values for the attribute value.
+In this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.
+----
+object_name[java.lang:type=Memory] attribute[HeapMemoryUsage] metric_name[heap]
+----
+
+The resulting documents in Elasticsearch look similar to this:
+
+[source,json]
+----
+{
+  "@timestamp": "2019-08-20T16:51:07.512Z",
+  "jvm": {
+    "jmx": {
+      "heap": {
+        "max":       {"value":4294967296.0},
+        "init":      {"value": 268435456.0},
+        "committed": {"value": 268435456.0},
+        "used":      {"value":  22404496.0}
+      }
+    }
+  },
+  "labels": {
+    "type": "Memory"
+  }
+}
+----
+
+NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.
+
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_jmx_metrics` | `capture_jmx_metrics` | `ELASTIC_APM_CAPTURE_JMX_METRICS`
 |============
 
 [[config-logging]]
@@ -1703,6 +1824,115 @@ The default unit for this option is `ms`
 # Default value: false
 #
 # use_jaxrs_path_as_transaction_name=false
+
+############################################
+# JMX                                      #
+############################################
+
+# Report metrics from JMX to the APM Server
+# 
+# Can contain multiple comma, separated JMX metric definitions:
+# 
+# ----
+# object_name[<JMX object name pattern>] attribute[<JMX attribute>] metric_name[<metric name>]
+# ----
+# 
+# - `object_name`:
+# +
+# For more information about the JMX object name pattern syntax,
+# see the https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName` Javadocs].
+# - `attribute`:
+# +
+# The name of the JMX attribute.
+# The value has to be either a `Number` or a composite where the composite items are numbers.
+# - `metric_name`:
+# +
+# The name under which the metric will be stored.
+# Setting this is optional and will be the same as the `attribute` if not set.
+# 
+# The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.
+# 
+# The link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[JMX object name pattern] supports wildcards.
+# In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)
+# 
+# ----
+# object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount] metric_name[collection_count],
+# object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionTime]
+# ----
+# 
+# The resulting documents in Elasticsearch look similar to these (metadata omitted for brevity):
+# 
+# [source,json]
+# ----
+# {
+#   "@timestamp": "2019-08-20T16:51:07.512Z",
+#   "jvm": {
+#     "jmx": {
+#       "collection_count": 0,
+#       "CollectionTime": 0
+#     }
+#   },
+#   "labels": {
+#     "type": "GarbageCollector",
+#     "name": "G1 Old Generation"
+#   }
+# }
+# ----
+# 
+# [source,json]
+# ----
+# {
+#   "@timestamp": "2019-08-20T16:51:07.512Z",
+#   "jvm": {
+#     "jmx": {
+#       "collection_count": 2,
+#       "CollectionTime": 11
+#     }
+#   },
+#   "labels": {
+#     "type": "GarbageCollector",
+#     "name": "G1 Young Generation"
+#   }
+# }
+# ----
+# 
+# 
+# The agent also supports composite values for the attribute value.
+# In this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.
+# ----
+# object_name[java.lang:type=Memory] attribute[HeapMemoryUsage] metric_name[heap]
+# ----
+# 
+# The resulting documents in Elasticsearch look similar to this:
+# 
+# [source,json]
+# ----
+# {
+#   "@timestamp": "2019-08-20T16:51:07.512Z",
+#   "jvm": {
+#     "jmx": {
+#       "heap": {
+#         "max":       {"value":4294967296.0},
+#         "init":      {"value": 268435456.0},
+#         "committed": {"value": 268435456.0},
+#         "used":      {"value":  22404496.0}
+#       }
+#     }
+#   },
+#   "labels": {
+#     "type": "Memory"
+#   }
+# }
+# ----
+# 
+# NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.
+# 
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# capture_jmx_metrics=
 
 ############################################
 # Logging                                  #
