@@ -72,7 +72,7 @@ public class ServletApiAdvice {
         }
     };
     @VisibleForAdvice
-    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION");
+    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
 
     static void init(ElasticApmTracer tracer) {
         ServletApiAdvice.tracer = tracer;

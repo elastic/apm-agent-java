@@ -73,7 +73,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(tracer), new DispatcherServletRenderInstrumentation()));
+            Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation(tracer)));
     }
 
     @AfterClass
