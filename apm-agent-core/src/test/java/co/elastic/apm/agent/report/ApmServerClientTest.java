@@ -69,9 +69,11 @@ public class ApmServerClientTest {
     public void setUp() throws MalformedURLException {
         URL url1 = new URL("http", "localhost", apmServer1.port(), "/");
         URL url2 = new URL("http", "localhost", apmServer2.port(), "/");
-        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "6.7.0-SNAPSHOT"))));
+        // APM server 6.x style
+        apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("ok", Map.of("version", "6.7.0-SNAPSHOT")))));
         apmServer1.stubFor(get(urlEqualTo("/test")).willReturn(notFound()));
         apmServer1.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));
+        // APM server 7+ style
         apmServer2.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "7.3.0-RC1"))));
         apmServer2.stubFor(get(urlEqualTo("/test")).willReturn(ok("hello from server 2")));
         apmServer2.stubFor(get(urlEqualTo("/not-found")).willReturn(notFound()));

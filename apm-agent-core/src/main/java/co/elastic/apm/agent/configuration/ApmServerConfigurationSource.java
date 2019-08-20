@@ -61,7 +61,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
     private static final int DEFAULT_POLL_DELAY_SEC = (int) TimeUnit.MINUTES.toSeconds(5);
     private static final Pattern MAX_AGE = Pattern.compile("max-age\\s*=\\s*(\\d+)");
     private final Logger logger;
-    private final DslJson<Object> dslJson = new DslJson<>();
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
     private final byte[] buffer = new byte[4096];
     private final PayloadSerializer payloadSerializer;
     private final MetaData metaData;

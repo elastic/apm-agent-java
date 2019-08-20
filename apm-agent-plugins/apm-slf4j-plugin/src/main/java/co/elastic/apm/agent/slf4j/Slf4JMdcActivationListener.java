@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.slf4j;
 
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -78,17 +79,19 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                 }
             }
         });
-    private final LoggingConfiguration config;
+    private final LoggingConfiguration loggingConfiguration;
+    private final CoreConfiguration coreConfiguration;
     private final ElasticApmTracer tracer;
 
     public Slf4JMdcActivationListener(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        this.config = tracer.getConfig(LoggingConfiguration.class);
+        this.loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
+        this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
     }
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (config.isLogCorrelationEnabled()) {
+        if (loggingConfiguration.isLogCorrelationEnabled() && coreConfiguration.isActive()) {
 
             MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
             if (put != null && put != NOOP) {
@@ -103,7 +106,7 @@ public class Slf4JMdcActivationListener implements ActivationListener {
 
     @Override
     public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
-        if (config.isLogCorrelationEnabled()) {
+        if (loggingConfiguration.isLogCorrelationEnabled()) {
 
             MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
             if (remove != null && remove != NOOP) {

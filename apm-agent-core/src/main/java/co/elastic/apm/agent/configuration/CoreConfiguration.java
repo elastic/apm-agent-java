@@ -61,8 +61,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not. " +
-            "If active, the agent will instrument incoming HTTP requests and track errors.\n" +
+        .description("A boolean specifying if the agent should be active or not.\n" +
+            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
+            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
+            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
+            "mostly idle in this state, so the overhead should be negligible.\n" +
             "\n" +
             "You can use this setting to dynamically disable Elastic APM at runtime.")
         .dynamic(true)
@@ -286,14 +289,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
-        .tags("added[1.3.0,Enhancements in 1.4.0 and 1.7.0]")
+        .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
-            "The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
-            "You can use wildcards for the class name, the method name and the parameter types.\n" +
+            "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
+            "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
             "The `*` wildcard matches zero or more characters.\n" +
             "That means that a wildcard in a package name also matches sub-packages\n" +
+            "Specifying an annotation is optional.\n" +
+            "When matching for annotations, only classes that are annotated with the specified annotation are considered.\n" +
+            "You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes " +
+            "that are annotated with an annotation that is itself annotated with the given meta-annotation.\n" +
             "Specifying the parameter types is optional.\n" +
             "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
             "\n" +
@@ -308,6 +315,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
             " - `* org.example.MyClas*#myMe*od(*.String, int[])`\n" +
             " - `public org.example.services.*Service#*`\n" +
+            " - `public @java.inject.ApplicationScoped org.example.*`\n" +
+            " - `public @java.inject.* org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
@@ -317,7 +327,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.")
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Common configurations:\n\n" +
+            "Trace all public methods in CDI-Annotated beans:\n\n" +
+            "----\n" +
+            "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@javax.inject.Scope your.application.package.*\n" +
+            "----\n")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
@@ -341,6 +357,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
         .key("boot_delegation_packages")
+        .tags("added[1.7.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
             "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
@@ -361,6 +378,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
         .key("central_config")
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.")
         .dynamic(true)
@@ -368,16 +386,19 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
         .key("breakdown_metrics")
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Disables the collection of breakdown metrics (`span.self_time`)")
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
         .key(CONFIG_FILE)
+        .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
             "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
-            "The location can either be in the classpath of the application or on the file system.")
+            "The location can either be in the classpath of the application (when using the attacher API) or on the file system.\n" +
+            "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
     public boolean isActive() {
