@@ -134,7 +134,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.\n")
         .dynamic(true)
         .configurationCategory("JMX")
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<JmxMetric>emptyList());
 
     ConfigurationOption<List<JmxMetric>> getCaptureJmxMetrics() {
         return captureJmxMetrics;

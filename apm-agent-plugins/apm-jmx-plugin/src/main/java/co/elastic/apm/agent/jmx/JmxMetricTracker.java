@@ -84,10 +84,10 @@ public class JmxMetricTracker implements LifecycleListener {
         }
     }
 
-    private void registerJmxMetric(JmxMetric jmxMetric) throws JMException {
+    private void registerJmxMetric(final JmxMetric jmxMetric) throws JMException {
         for (ObjectInstance mbean : server.queryMBeans(jmxMetric.getObjectName(), null)) {
-            ObjectName objectName = mbean.getObjectName();
-            Object value = server.getAttribute(objectName, jmxMetric.getAttribute());
+            final ObjectName objectName = mbean.getObjectName();
+            final Object value = server.getAttribute(objectName, jmxMetric.getAttribute());
             if (value instanceof Number) {
                 metricRegistry.add(JMX_PREFIX + jmxMetric.getMetricName(), Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
                     @Override
@@ -100,8 +100,8 @@ public class JmxMetricTracker implements LifecycleListener {
                     }
                 });
             } else if (value instanceof CompositeData) {
-                CompositeData compositeValue = (CompositeData) value;
-                for (String key : compositeValue.getCompositeType().keySet()) {
+                final CompositeData compositeValue = (CompositeData) value;
+                for (final String key : compositeValue.getCompositeType().keySet()) {
                     if (compositeValue.get(key) instanceof Number) {
                         metricRegistry.add(JMX_PREFIX + jmxMetric.getMetricName() + "." + key, Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
                             @Override
