@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
@@ -70,12 +71,12 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("processDispatchResult")
+        return named("processHandlerException")
             .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
             .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
-            .and(takesArgument(2, named("org.springframework.web.servlet.HandlerExecutionChain")))
-            .and(takesArgument(3, named("org.springframework.web.servlet.ModelAndView")))
-            .and(takesArgument(4, named("java.lang.Exception")));
+            .and(takesArgument(2, named("java.lang.Object")))
+            .and(takesArgument(3, named("java.lang.Exception")))
+            .and(returns(named("org.springframework.web.servlet.ModelAndView")));
     }
 
     @Override
