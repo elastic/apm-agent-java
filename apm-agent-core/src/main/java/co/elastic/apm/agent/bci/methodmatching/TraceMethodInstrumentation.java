@@ -108,6 +108,7 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return matches(methodMatcher.getClassMatcher())
+            .and(methodMatcher.getAnnotationMatcher())
             .and(not(nameContains("$JaxbAccessor")))
             .and(not(nameContains("$$")))
             .and(not(nameContains("CGLIB")))

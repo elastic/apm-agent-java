@@ -24,10 +24,12 @@
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.Version;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
@@ -224,6 +226,10 @@ public class CustomElementMatchers {
                 return "matches(" + matcher + ")";
             }
         };
+    }
+
+    public static ElementMatcher.Junction<AnnotationSource> annotationMatches(final String annotationWildcard) {
+        return AnnotationMatcher.annotationMatcher(annotationWildcard);
     }
 
     public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {

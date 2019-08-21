@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -41,6 +42,7 @@ import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.SocatContainer;
@@ -77,6 +79,7 @@ import static org.mockserver.model.HttpRequest.request;
  */
 public abstract class AbstractServletContainerIntegrationTest {
     private static final String pathToJavaagent;
+    private static final String pathToAttach;
     private static final Logger logger = LoggerFactory.getLogger(AbstractServletContainerIntegrationTest.class);
     static boolean ENABLE_DEBUGGING = false;
     private static MockServerContainer mockServerContainer = new MockServerContainer()
@@ -96,7 +99,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .readTimeout(ENABLE_DEBUGGING ? 0 : 10, TimeUnit.SECONDS)
             .build();
         pathToJavaagent = AgentFileIT.getPathToJavaagent();
+        pathToAttach = AgentFileIT.getPathToAttacher();
         checkFilePresent(pathToJavaagent);
+        checkFilePresent(pathToAttach);
     }
 
     private final MockReporter mockReporter = new MockReporter();
@@ -108,16 +113,16 @@ public abstract class AbstractServletContainerIntegrationTest {
     private TestApp currentTestApp;
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, String expectedDefaultServiceName, String deploymentPath, String containerName) {
-        this(servletContainer, 8080, expectedDefaultServiceName, deploymentPath, containerName);
+        this(servletContainer, 8080, 5005, expectedDefaultServiceName, deploymentPath, containerName);
     }
 
     protected AbstractServletContainerIntegrationTest(GenericContainer<?> servletContainer, int webPort,
-                                                      String expectedDefaultServiceName, String deploymentPath, String containerName) {
+                                                      int debugPort, String expectedDefaultServiceName, String deploymentPath, String containerName) {
         this.servletContainer = servletContainer;
         this.webPort = webPort;
         if (ENABLE_DEBUGGING) {
             enableDebugging(servletContainer);
-            this.debugProxy = createDebugProxy(servletContainer, 5005);
+            this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
         servletContainer
@@ -127,9 +132,11 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
+                .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
+            .withFileSystemBind(pathToAttach, "/apm-agent-attach-standalone.jar")
             .withStartupTimeout(Duration.ofMinutes(5));
         if (isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
@@ -139,6 +146,15 @@ public abstract class AbstractServletContainerIntegrationTest {
             }
         }
         this.servletContainer.start();
+        if (runtimeAttach()) {
+            try {
+                Container.ExecResult result = this.servletContainer.execInContainer("java", "-jar", "/apm-agent-attach-standalone.jar", "--config");
+                System.out.println(result.getStdout());
+                System.out.println(result.getStderr());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (!isDeployViaFileSystemBind()) {
             for (TestApp testApp : getTestApps()) {
                 String pathToAppFile = testApp.getAppFilePath();
@@ -153,6 +169,10 @@ public abstract class AbstractServletContainerIntegrationTest {
      */
     protected boolean isDeployViaFileSystemBind() {
         return true;
+    }
+
+    protected boolean runtimeAttach() {
+        return false;
     }
 
     private static void checkFilePresent(String pathToWar) {
@@ -237,16 +257,40 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    public void executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
+    public String executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
         Response response = executeRequest(pathToTest);
         if (expectedResponseCode != null) {
             assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
         }
         final ResponseBody responseBody = response.body();
         assertThat(responseBody).isNotNull();
+        String responseString = responseBody.string();
         if (expectedContent != null) {
-            assertThat(responseBody.string()).contains(expectedContent);
+            assertThat(responseString).contains(expectedContent);
         }
+        return responseString;
+    }
+
+    public String executeAndValidatePostRequest(String pathToTest, RequestBody postBody, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
+        Response response = executePostRequest(pathToTest, postBody);
+        if (expectedResponseCode != null) {
+            assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
+        }
+        final ResponseBody responseBody = response.body();
+        assertThat(responseBody).isNotNull();
+        String responseString = responseBody.string();
+        if (expectedContent != null) {
+            assertThat(responseString).contains(expectedContent);
+        }
+        return responseString;
+    }
+
+    public Response executePostRequest(String pathToTest, RequestBody postBody) throws IOException {
+        return httpClient.newCall(new Request.Builder()
+                .post(postBody)
+                .url(getBaseUrl() + pathToTest)
+                .build())
+                .execute();
     }
 
     public Response executeRequest(String pathToTest) throws IOException {
