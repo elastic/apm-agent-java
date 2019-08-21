@@ -34,36 +34,42 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class JmxMetricTrackerTest {
 
     private MetricRegistry metricRegistry;
     private JmxConfiguration config;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
-        new JmxMetricTracker(tracer).start(tracer);
+        logger = mock(Logger.class);
+        new JmxMetricTracker(tracer, logger).start(tracer);
     }
 
     @Test
     void testAvailableProcessors() throws Exception {
-        addJmxMetric(new JmxMetric("java.lang:type=OperatingSystem", "AvailableProcessors", "available_processors"));
+        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[AvailableProcessors:metric_name=available_processors]"));
         assertThat(metricRegistry.getGauge("jvm.jmx.available_processors", Labels.Mutable.of("type", "OperatingSystem"))).isEqualTo(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors());
     }
 
     @Test
     void testHeap() throws Exception {
-        addJmxMetric(new JmxMetric("java.lang:type=Memory", "HeapMemoryUsage", "heap"));
+        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.committed", Labels.Mutable.of("type", "Memory"))).isPositive();
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.init", Labels.Mutable.of("type", "Memory"))).isPositive();
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.used", Labels.Mutable.of("type", "Memory"))).isPositive();
@@ -73,14 +79,19 @@ class JmxMetricTrackerTest {
 
     @Test
     void testGC() throws Exception {
-        addJmxMetric(new JmxMetric("java.lang:type=GarbageCollector,name=*", "CollectionCount", "collection_count"));
-        addJmxMetric(new JmxMetric("java.lang:type=GarbageCollector,name=*", "CollectionTime", null));
+        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
             assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
             assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
         }
         printMetricSets();
+    }
+
+    @Test
+    void testString() throws Exception {
+        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[Arch]"));
+        verify(logger).warn(eq("Can't create metric '{}' because attribute '{}' is not a number: '{}'"), any(), any(), any());
     }
 
     private void printMetricSets() {

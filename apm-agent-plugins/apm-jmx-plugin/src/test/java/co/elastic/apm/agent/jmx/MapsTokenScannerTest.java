@@ -77,15 +77,43 @@ class MapsTokenScannerTest {
     }
 
     @Test
+    void testScanMultiValueMaps() {
+        assertThat(new MapsTokenScanner("a[a] a[b]").scanMultiValueMaps())
+            .isEqualTo(List.of(Map.of("a", List.of("a", "b"))));
+    }
+
+    @Test
+    void testMissingValue() {
+        assertThatThrownBy(() -> new MapsTokenScanner("foo").scanMap())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Expected value start");
+    }
+
+    @Test
     void testMissingKey() {
-        assertThatThrownBy(() -> new MapsTokenScanner(" foo[bar] [qux] ").scanMaps())
-            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new MapsTokenScanner("foo[bar] [qux]").scanMap())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Empty key");
+    }
+
+    @Test
+    void testMissingClosingBracket() {
+        assertThatThrownBy(() -> new MapsTokenScanner("foo[bar").scanMap())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Expected end value token ']'");
+    }
+
+    @Test
+    void testBracketWithinValue() {
+        assertThatThrownBy(() -> new MapsTokenScanner("foo[b[a]r]").scanMap())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid char '[' within a value");
     }
 
     @Test
     void testConversionRoundtrip() {
-        List<Map<String, String>> input = List.of(Map.of("foo", "bar", "baz", "qux"), Map.of(), Map.of("quux", "corge"));
-        assertThat(new MapsTokenScanner(MapsTokenScanner.toTokenString(input)).scanMaps()).isEqualTo(input);
+        List<Map<String, List<String>>> input = List.of(Map.of("foo", List.of("bar"), "baz", List.of("qux")), Map.of(), Map.of("quux", List.of("corge")));
+        assertThat(new MapsTokenScanner(MapsTokenScanner.toTokenString(input)).scanMultiValueMaps()).isEqualTo(input);
     }
 
 }

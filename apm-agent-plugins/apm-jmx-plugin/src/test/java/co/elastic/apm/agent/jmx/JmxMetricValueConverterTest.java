@@ -26,6 +26,8 @@ package co.elastic.apm.agent.jmx;
 
 import org.junit.jupiter.api.Test;
 
+import javax.management.MalformedObjectNameException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,18 +35,34 @@ class JmxMetricValueConverterTest {
 
     @Test
     void testFromString() {
-        JmxMetric expected = new JmxMetric("java.lang:type=GarbageCollector,name=*", "CollectionCount", "collection_count");
+        JmxMetric expected = JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]");
         assertThat(JmxMetric.valueOf(expected.toString())).isEqualTo(expected);
-        JmxMetric expected2 = new JmxMetric("java.lang:type=GarbageCollector,name=*", "CollectionCount", null);
+        JmxMetric expected2 = JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]");
         assertThat(JmxMetric.valueOf(expected2.toString())).isEqualTo(expected2);
     }
 
     @Test
+    void testInvalidObjectName() {
+        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo] attribute[foo]"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid syntax for object_name[foo]")
+            .hasCauseInstanceOf(MalformedObjectNameException.class);
+    }
+
+    @Test
+    void testInvalidAttribute() {
+        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo:bar:baz]"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid syntax for attribute[foo:bar:baz]")
+            .hasCauseInstanceOf(MalformedObjectNameException.class);
+    }
+
+    @Test
     void testMissingAttributes() {
-        assertThatThrownBy(() -> JmxMetric.valueOf("attribute[CollectionCount] metric_name[collection_count]"))
+        assertThatThrownBy(() -> JmxMetric.valueOf("attribute[CollectionCount:metric_name=collection_count]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("object_name");
-        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] metric_name[collection_count]"))
+        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*]"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("attribute");
     }

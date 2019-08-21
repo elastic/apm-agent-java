@@ -44,18 +44,11 @@ public class JmxMetric {
     private static final String ATTRIBUTE = "attribute";
     private static final String METRIC_NAME = "metric_name";
     private final ObjectName objectName;
-    private final String attribute;
-    @Nullable
-    private final String metricName;
+    private final List<Attribute> attributes;
 
-    public JmxMetric(String objectName, String attribute, @Nullable String metricName) {
-        try {
-            this.objectName = new ObjectName(objectName);
-        } catch (MalformedObjectNameException e) {
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
-        this.attribute = attribute;
-        this.metricName = metricName;
+    private JmxMetric(ObjectName objectName, List<Attribute> attributes) {
+        this.objectName = objectName;
+        this.attributes = attributes;
     }
 
     public static JmxMetric valueOf(String s) {
@@ -63,31 +56,49 @@ public class JmxMetric {
     }
 
     @Nonnull
-    private static JmxMetric fromMap(Map<String, ?> map) {
+    private static JmxMetric fromMap(Map<String, List<String>> map) {
         if (!map.containsKey(OBJECT_NAME)) {
             throw new IllegalArgumentException("object_name is missing");
         }
         if (!map.containsKey(ATTRIBUTE)) {
             throw new IllegalArgumentException("attribute is missing");
         }
-        return new JmxMetric(map.get(OBJECT_NAME).toString(), map.get(ATTRIBUTE).toString(), Objects.toString(map.get(METRIC_NAME), null));
+        String objectNameString = map.get(OBJECT_NAME).get(0);
+        ObjectName objectName;
+        try {
+            objectName = new ObjectName(objectNameString);
+        } catch (MalformedObjectNameException e) {
+            throw new IllegalArgumentException("Invalid syntax for object_name[" + objectNameString + "] (" + e.getMessage() + ")", e);
+        }
+        List<Attribute> attributes = new ArrayList<>();
+        for (String attribute : map.get(ATTRIBUTE)) {
+            attributes.add(Attribute.valueOf(attribute));
+        }
+        return new JmxMetric(objectName, attributes);
     }
 
     public ObjectName getObjectName() {
         return objectName;
     }
 
-    public String getAttribute() {
-        return attribute;
-    }
-
-    public String getMetricName() {
-        return metricName != null ? metricName : attribute;
+    public List<Attribute> getAttributes() {
+        return attributes;
     }
 
     @Override
     public String toString() {
         return TokenValueConverter.INSTANCE.toString(Collections.singletonList(this));
+    }
+
+    Map<String, List<String>> asMap() {
+        HashMap<String, List<String>> map = new LinkedHashMap<>();
+        map.put(OBJECT_NAME, Collections.singletonList(objectName.toString()));
+        ArrayList<String> attributeStrings = new ArrayList<>();
+        for (Attribute attribute : this.attributes) {
+            attributeStrings.add(attribute.toString());
+        }
+        map.put(ATTRIBUTE, attributeStrings);
+        return map;
     }
 
     @Override
@@ -96,23 +107,12 @@ public class JmxMetric {
         if (o == null || getClass() != o.getClass()) return false;
         JmxMetric jmxMetric = (JmxMetric) o;
         return objectName.equals(jmxMetric.objectName) &&
-            attribute.equals(jmxMetric.attribute) &&
-            Objects.equals(metricName, jmxMetric.metricName);
+            attributes.equals(jmxMetric.attributes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(objectName, attribute, metricName);
-    }
-
-    Map<String, String> asMap() {
-        HashMap<String, String> map = new LinkedHashMap<>();
-        map.put(OBJECT_NAME, objectName.toString());
-        map.put(ATTRIBUTE, attribute);
-        if (metricName != null) {
-            map.put(METRIC_NAME, metricName);
-        }
-        return map;
+        return Objects.hash(objectName, attributes);
     }
 
     public static class TokenValueConverter extends AbstractValueConverter<List<JmxMetric>> {
@@ -122,8 +122,8 @@ public class JmxMetric {
         @Override
         public List<JmxMetric> convert(String s) throws IllegalArgumentException {
             List<JmxMetric> result = new ArrayList<>();
-            List<Map<String, String>> maps = new MapsTokenScanner(s).scanMaps();
-            for (Map<String, String> map : maps) {
+            List<Map<String, List<String>>> maps = new MapsTokenScanner(s).scanMultiValueMaps();
+            for (Map<String, List<String>> map : maps) {
                 result.add(JmxMetric.fromMap(map));
             }
             return Collections.unmodifiableList(result);
@@ -131,12 +131,68 @@ public class JmxMetric {
 
         @Override
         public String toString(List<JmxMetric> value) {
-            List<Map<String, String>> maps = new ArrayList<>();
+            List<Map<String, List<String>>> maps = new ArrayList<>();
             for (JmxMetric jmxMetric : value) {
                 maps.add(jmxMetric.asMap());
             }
             return MapsTokenScanner.toTokenString(maps);
         }
 
+    }
+
+    public static class Attribute {
+        private final String stringRepresentation;
+        private final String jmxAttributeName;
+        @Nullable
+        private final String metricName;
+
+        public static Attribute valueOf(final String s) {
+            try {
+                ObjectName objectName;
+                if (!s.contains(":")) {
+                    // ObjectNames require to have at least one key property
+                    // let's fake it
+                    objectName = new ObjectName(s + ":ignore=this");
+                } else {
+                    objectName = new ObjectName(s);
+                }
+                return new Attribute(s, objectName.getDomain(), objectName.getKeyProperty(METRIC_NAME));
+            } catch (MalformedObjectNameException e) {
+                throw new IllegalArgumentException("Invalid syntax for attribute[" + s + "] (" + e.getMessage() + ")", e);
+            }
+        }
+
+        private Attribute(String stringRepresentation, String jmxAttributeName, @Nullable String metricName) {
+            this.stringRepresentation = stringRepresentation;
+            this.jmxAttributeName = jmxAttributeName;
+            this.metricName = metricName;
+        }
+
+        public String getJmxAttributeName() {
+            return jmxAttributeName;
+        }
+
+        public String getMetricName() {
+            return metricName != null ? metricName : jmxAttributeName;
+        }
+
+        @Override
+        public String toString() {
+            return stringRepresentation;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Attribute attribute = (Attribute) o;
+            return jmxAttributeName.equals(attribute.jmxAttributeName) &&
+                Objects.equals(metricName, attribute.metricName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(jmxAttributeName, metricName);
+        }
     }
 }

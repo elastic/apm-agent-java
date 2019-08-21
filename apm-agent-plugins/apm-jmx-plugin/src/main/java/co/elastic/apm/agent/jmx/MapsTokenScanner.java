@@ -45,14 +45,16 @@ public class MapsTokenScanner {
         this.input = input;
     }
 
-    public static String toTokenString(List<Map<String, String>> maps) {
+    public static String toTokenString(List<Map<String, List<String>>> maps) {
         if (maps.isEmpty()) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        for (Map<String, String> map : maps) {
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                sb.append(entry.getKey()).append('[').append(entry.getValue()).append(']').append(" ");
+        for (Map<String, List<String>> map : maps) {
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                for (String value : entry.getValue()) {
+                    sb.append(entry.getKey()).append('[').append(value).append(']').append(" ");
+                }
             }
             if (!map.isEmpty()) {
                 // remove last ' '
@@ -75,8 +77,35 @@ public class MapsTokenScanner {
         return maps;
     }
 
+    public List<Map<String, List<String>>> scanMultiValueMaps() {
+        skipWhiteSpace();
+        List<Map<String, List<String>>> maps = new ArrayList<>();
+        while (hasNext()) {
+            maps.add(scanMultiValueMap());
+        }
+        return maps;
+    }
+
+    Map<String, List<String>> scanMultiValueMap() {
+        Map<String, List<String>> map = new HashMap<>();
+        skipWhiteSpace();
+        while (hasNext()) {
+            if (peek() == ',') {
+                next();
+                break;
+            }
+            String key = scanKey();
+            if (!map.containsKey(key)) {
+                map.put(key, new ArrayList<>());
+            }
+            map.get(key).add(scanValue());
+            skipWhiteSpace();
+        }
+        return map;
+    }
+
     Map<String, String> scanMap() {
-        HashMap<String, String> map = new HashMap<>();
+        Map<String, String> map = new HashMap<>();
         skipWhiteSpace();
         while (hasNext()) {
             if (peek() == ',') {
@@ -94,18 +123,29 @@ public class MapsTokenScanner {
             throw new IllegalArgumentException("Empty key at pos " + pos + " in '" + input + "'");
         }
         int start = pos - 1;
-        while (peek() != '[') {
+        while (!isNext('[')) {
+            if (!hasNext()) {
+                throw new IllegalArgumentException("Expected value start token '[' at pos " + pos + " in '" + input + "'");
+            }
             next();
         }
         return input.substring(start, pos);
     }
 
     String scanValue() {
-        if (next() != '[') {
-            throw new IllegalArgumentException("Expected key start '[' at pos " + pos + " in '" + input + "'");
+        if (!isNext('[')) {
+            throw new IllegalArgumentException("Expected value start token '[' at pos " + pos + " in '" + input + "'");
+        } else {
+            next();
         }
         int start = pos;
-        while (peek() != ']') {
+        while (!isNext(']')) {
+            if (isNext('[')) {
+                throw new IllegalArgumentException("Invalid char '[' within a value at pos " + pos + " in '" + input + "'");
+            }
+            if (!hasNext()) {
+                throw new IllegalArgumentException("Expected end value token ']' at pos " + pos + " in '" + input + "'");
+            }
             next();
         }
         String value = input.substring(start, pos);
@@ -117,6 +157,10 @@ public class MapsTokenScanner {
         while (hasNext() && Character.isWhitespace(peek())) {
             next();
         }
+    }
+
+    boolean isNext(char c) {
+        return hasNext() && peek() == c;
     }
 
     char next() {

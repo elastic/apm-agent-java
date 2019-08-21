@@ -37,24 +37,30 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.9.0]")
         .description("Report metrics from JMX to the APM Server\n" +
             "\n" +
-            "Can contain multiple comma, separated JMX metric definitions:\n" +
+            "Can contain multiple comma separated JMX metric definitions:\n" +
             "\n" +
             "----\n" +
-            "object_name[<JMX object name pattern>] attribute[<JMX attribute>] metric_name[<metric name>]\n" +
+            "object_name[<JMX object name pattern>] attribute[<JMX attribute>:metric_name=<optional metric name>]\n" +
             "----\n" +
             "\n" +
-            "- `object_name`:\n" +
+            "* `object_name`:\n" +
             "+\n" +
             "For more information about the JMX object name pattern syntax,\n" +
             "see the https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName` Javadocs].\n" +
-            "- `attribute`:\n" +
+            "* `attribute`:\n" +
             "+\n" +
             "The name of the JMX attribute.\n" +
-            "The value has to be either a `Number` or a composite where the composite items are numbers.\n" +
-            "- `metric_name`:\n" +
+            "The JMX value has to be either a `Number` or a composite where the composite items are numbers.\n" +
+            "This element can be defined multiple times.\n" +
+            "An attribute can contain optional properties.\n" +
+            "The syntax for that is the same as for https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html[`ObjectName`].\n" +
             "+\n" +
-            "The name under which the metric will be stored.\n" +
+            "** `metric_name`:\n" +
+            "+\n" +
+            "A property within `attribute`.\n" +
+            "This is the name under which the metric will be stored.\n" +
             "Setting this is optional and will be the same as the `attribute` if not set.\n" +
+            "Note that all JMX metric names will be prefixed with `jvm.jmx.` by the agent.\n" +
             "\n" +
             "The agent creates `labels` for each link:https://docs.oracle.com/javase/7/docs/api/javax/management/ObjectName.html#getKeyPropertyList()[JMX key property] such as `type` and `name`.\n" +
             "\n" +
@@ -62,8 +68,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "In this example, the agent will create a metricset for each memory pool `name` (such as `G1 Old Generation` and `G1 Young Generation`)\n" +
             "\n" +
             "----\n" +
-            "object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount] metric_name[collection_count],\n" +
-            "object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionTime]\n" +
+            "object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]\n" +
             "----\n" +
             "\n" +
             "The resulting documents in Elasticsearch look similar to these (metadata omitted for brevity):\n" +
@@ -106,7 +111,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "The agent also supports composite values for the attribute value.\n" +
             "In this example, `HeapMemoryUsage` is a composite value, consisting of `committed`, `init`, `used` and `max`.\n" +
             "----\n" +
-            "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage] metric_name[heap]\n" +
+            "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap] \n" +
             "----\n" +
             "\n" +
             "The resulting documents in Elasticsearch look similar to this:\n" +
