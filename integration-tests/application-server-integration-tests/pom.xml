@@ -25,15 +25,27 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jsf-app</artifactId>
+            <artifactId>jsf-app-dependent</artifactId>
             <version>${project.version}</version>
-            <type>pom</type>
+            <type>war</type>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>cdi-app</artifactId>
+            <artifactId>jsf-app-standalone</artifactId>
             <version>${project.version}</version>
-            <type>pom</type>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cdi-app-dependent</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cdi-app-standalone</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
