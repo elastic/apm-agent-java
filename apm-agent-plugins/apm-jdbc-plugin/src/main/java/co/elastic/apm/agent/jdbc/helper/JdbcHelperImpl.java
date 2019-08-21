@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.jdbc.signature.SignatureParser;
+import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,7 @@ public class JdbcHelperImpl extends JdbcHelper {
     public static final String DB_SPAN_ACTION = "query";
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcHelperImpl.class);
-    private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = new WeakConcurrentMap<Connection, ConnectionMetaData>(true);
+    private static final WeakConcurrentMap<Connection, ConnectionMetaData> metaDataMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     @VisibleForAdvice
     public static final ThreadLocal<SignatureParser> SIGNATURE_PARSER_THREAD_LOCAL = new ThreadLocal<SignatureParser>() {
