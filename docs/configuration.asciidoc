@@ -899,7 +899,7 @@ The resulting documents in Elasticsearch look similar to these (metadata omitted
   "jvm": {
     "jmx": {
       "collection_count": 0,
-      "CollectionTime": 0
+      "CollectionTime":   0
     }
   },
   "labels": {
@@ -916,7 +916,7 @@ The resulting documents in Elasticsearch look similar to these (metadata omitted
   "jvm": {
     "jmx": {
       "collection_count": 2,
-      "CollectionTime": 11
+      "CollectionTime":  11
     }
   },
   "labels": {
@@ -942,10 +942,10 @@ The resulting documents in Elasticsearch look similar to this:
   "jvm": {
     "jmx": {
       "heap": {
-        "max":       {"value":4294967296.0},
-        "init":      {"value": 268435456.0},
-        "committed": {"value": 268435456.0},
-        "used":      {"value":  22404496.0}
+        "max":      4294967296,
+        "init":      268435456,
+        "committed": 268435456,
+        "used":       22404496
       }
     }
   },
@@ -1879,7 +1879,7 @@ The default unit for this option is `ms`
 #   "jvm": {
 #     "jmx": {
 #       "collection_count": 0,
-#       "CollectionTime": 0
+#       "CollectionTime":   0
 #     }
 #   },
 #   "labels": {
@@ -1896,7 +1896,7 @@ The default unit for this option is `ms`
 #   "jvm": {
 #     "jmx": {
 #       "collection_count": 2,
-#       "CollectionTime": 11
+#       "CollectionTime":  11
 #     }
 #   },
 #   "labels": {
@@ -1922,10 +1922,10 @@ The default unit for this option is `ms`
 #   "jvm": {
 #     "jmx": {
 #       "heap": {
-#         "max":       {"value":4294967296.0},
-#         "init":      {"value": 268435456.0},
-#         "committed": {"value": 268435456.0},
-#         "used":      {"value":  22404496.0}
+#         "max":      4294967296,
+#         "init":      268435456,
+#         "committed": 268435456,
+#         "used":       22404496
 #       }
 #     }
 #   },

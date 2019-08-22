@@ -80,7 +80,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "  \"jvm\": {\n" +
             "    \"jmx\": {\n" +
             "      \"collection_count\": 0,\n" +
-            "      \"CollectionTime\": 0\n" +
+            "      \"CollectionTime\":   0\n" +
             "    }\n" +
             "  },\n" +
             "  \"labels\": {\n" +
@@ -97,7 +97,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "  \"jvm\": {\n" +
             "    \"jmx\": {\n" +
             "      \"collection_count\": 2,\n" +
-            "      \"CollectionTime\": 11\n" +
+            "      \"CollectionTime\":  11\n" +
             "    }\n" +
             "  },\n" +
             "  \"labels\": {\n" +
@@ -123,10 +123,10 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "  \"jvm\": {\n" +
             "    \"jmx\": {\n" +
             "      \"heap\": {\n" +
-            "        \"max\":       {\"value\":4294967296.0},\n" +
-            "        \"init\":      {\"value\": 268435456.0},\n" +
-            "        \"committed\": {\"value\": 268435456.0},\n" +
-            "        \"used\":      {\"value\":  22404496.0}\n" +
+            "        \"max\":      4294967296,\n" +
+            "        \"init\":      268435456,\n" +
+            "        \"committed\": 268435456,\n" +
+            "        \"used\":       22404496\n" +
             "      }\n" +
             "    }\n" +
             "  },\n" +
