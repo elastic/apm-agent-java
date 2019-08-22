@@ -25,8 +25,6 @@
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -42,12 +40,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
 
-    private final Collection<String> applicationPackages;
-
-    public ExceptionHandlerInstrumentation(ElasticApmTracer tracer) {
-        applicationPackages = tracer.getConfig(StacktraceConfiguration.class).getApplicationPackages();
-    }
-
     @Override
     public Class<?> getAdviceClass() {
         return ExceptionHandlerAdviceService.class;
@@ -57,7 +49,7 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void captureException(@Advice.Argument(0) HttpServletRequest request,
-                                            @Advice.Argument(4) Exception e) {
+                                            @Advice.Argument(3) Exception e) {
             if (request != null) {
                 request.setAttribute("co.elastic.apm.exception", e);
             }

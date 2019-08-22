@@ -47,7 +47,7 @@ public class ExceptionHandlerInstrumentationWithExceptionResolverTest extends Ab
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(0, 1, ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occured");
+        assertExceptionCapture(1, 1, ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occured");
         assertEquals("error-page", response.getForwardedUrl());
         assertEquals("runtime exception occured", result.getModelAndView().getModel().get("message"));
     }
