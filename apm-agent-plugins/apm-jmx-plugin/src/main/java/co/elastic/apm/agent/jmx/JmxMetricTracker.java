@@ -103,7 +103,7 @@ public class JmxMetricTracker implements LifecycleListener {
         }
     }
 
-    private void addScalarMetric(JmxMetric.Attribute attribute, ObjectName objectName) {
+    private void addScalarMetric(final JmxMetric.Attribute attribute, final ObjectName objectName) {
         metricRegistry.add(JMX_PREFIX + attribute.getMetricName(), Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
             @Override
             public double get() {
@@ -116,7 +116,7 @@ public class JmxMetricTracker implements LifecycleListener {
         });
     }
 
-    private void addCompositeMetric(JmxMetric.Attribute attribute, ObjectName objectName, String key) {
+    private void addCompositeMetric(final JmxMetric.Attribute attribute, final ObjectName objectName, final String key) {
         metricRegistry.add(JMX_PREFIX + attribute.getMetricName() + "." + key, Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
             @Override
             public double get() {

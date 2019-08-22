@@ -1,6 +1,7 @@
-# Next
+# Next (1.10.0)
 
 ## Features
+ * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
  
@@ -9,7 +10,6 @@
 ## Features
  * Supporting OpenTracing version 0.33 
  * Added annotation and meta-annotation matching support for `trace_methods`
- * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x

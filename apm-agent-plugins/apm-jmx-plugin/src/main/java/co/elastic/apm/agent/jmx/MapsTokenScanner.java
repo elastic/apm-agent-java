@@ -96,7 +96,7 @@ public class MapsTokenScanner {
             }
             String key = scanKey();
             if (!map.containsKey(key)) {
-                map.put(key, new ArrayList<>());
+                map.put(key, new ArrayList<String>());
             }
             map.get(key).add(scanValue());
             skipWhiteSpace();
