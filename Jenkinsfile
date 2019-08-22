@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent { label 'linux && immutable' }
+  agent none
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -286,7 +286,9 @@ pipeline {
   }
   post {
     cleanup {
-      notifyBuildResult()
+      node('linux && immutable') {
+        notifyBuildResult()
+      }
     }
   }
 }
