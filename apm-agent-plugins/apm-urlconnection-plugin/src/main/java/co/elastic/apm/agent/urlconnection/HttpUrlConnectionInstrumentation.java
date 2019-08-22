@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -51,7 +52,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = new WeakConcurrentMap<HttpURLConnection, Span>(true);
+    public static final WeakConcurrentMap<HttpURLConnection, Span> inFlightSpans = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
