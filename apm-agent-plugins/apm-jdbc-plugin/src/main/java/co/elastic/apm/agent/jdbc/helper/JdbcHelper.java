@@ -27,6 +27,7 @@ package co.elastic.apm.agent.jdbc.helper;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nullable;
@@ -35,7 +36,7 @@ import java.sql.Connection;
 public abstract class JdbcHelper {
     @SuppressWarnings("WeakerAccess")
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = new WeakConcurrentMap<>(true);
+    public static final WeakConcurrentMap<Object, String> statementSqlMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     /**
      * Maps the provided sql to the provided Statement object

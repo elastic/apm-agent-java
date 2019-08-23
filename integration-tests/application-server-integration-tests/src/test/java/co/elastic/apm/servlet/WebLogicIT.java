@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
@@ -44,9 +45,9 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     public WebLogicIT(final String webLogicVersion) {
         super(new GenericContainer<>("store/oracle/weblogic:" + webLogicVersion)
-                .withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar")
                 .withClasspathResourceMapping("domain.properties", "/u01/oracle/properties/domain.properties", BindMode.READ_WRITE),
             7001,
+            5005,
             "weblogic-application",
             "/u01/oracle/user_projects/domains/base_domain/autodeploy",
             "weblogic");
@@ -61,13 +62,12 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar " +
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class, CdiApplicationServerTestApp.class);
     }
 
     @Override
@@ -82,5 +82,10 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         // WebLogic requires the files to be writable
         // Even binding with BindMode.READ_WRITE does not work for some reason
         return false;
+    }
+
+    @Override
+    protected boolean runtimeAttach() {
+        return true;
     }
 }
