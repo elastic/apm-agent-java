@@ -67,4 +67,23 @@ public class JsfApplicationServerTestApp extends TestApp {
         assertThat(renderSpan.get("name").textValue()).isEqualTo("JSF Render");
         assertThat(renderSpan.get("type").textValue()).isEqualTo("template.jsf.render");
     }
+
+
+    private static final class ViewStateAndAction {
+        private final String viewState;
+        private final String action;
+
+        public ViewStateAndAction(String viewState, String action) {
+            this.viewState = viewState;
+            this.action = action;
+        }
+
+        public String getViewState() {
+            return viewState;
+        }
+
+        public String getAction() {
+            return action;
+        }
+    }
 }

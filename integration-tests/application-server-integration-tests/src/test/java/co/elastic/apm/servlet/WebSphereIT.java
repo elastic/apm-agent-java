@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
@@ -46,6 +47,7 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
             )
                 .withEnv("JVM_ARGS", "-javaagent:/elastic-apm-agent.jar"),
             9080,
+            7777,
             "websphere-application",
             "/config/dropins",
             "websphere");
@@ -63,6 +65,6 @@ public class WebSphereIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, CdiApplicationServerTestApp.class);
     }
 }

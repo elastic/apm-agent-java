@@ -24,12 +24,7 @@
  */
 package co.elastic.apm.agent.quartz.job;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import net.bytebuddy.agent.ByteBuddyAgent;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,29 +42,30 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-class JobTransactionNameInstrumentationTest {
+class JobTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 
-    private static MockReporter reporter;
-    private static ElasticApmTracer tracer;
-    private static Scheduler scheduler = null;
+    private static Scheduler scheduler;
     private static CompletableFuture<Boolean> responseFuture;
 
     @BeforeAll
-    static void setUpAll() {
-        reporter = new MockReporter();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
-            .reporter(reporter)
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Collections.singletonList(new JobTransactionNameInstrumentation(tracer)));
+    private static void setup() throws SchedulerException {
+        scheduler = new StdSchedulerFactory().getScheduler();
+    }
+
+    @AfterAll
+    private static void cleanup() throws SchedulerException {
+        scheduler.shutdown();
+    }
+
+    @BeforeEach
+    private void prepare() throws SchedulerException {
+        responseFuture = new CompletableFuture<>();
     }
 
     void verifyJobDetails(JobDetail job) throws InterruptedException {
@@ -155,22 +151,6 @@ class JobTransactionNameInstrumentationTest {
         scheduler.deleteJob(job.getKey());
         verifyJobDetails(job);
         assertThat(reporter.getTransactions().get(0).getResult()).isEqualTo("this is the result");
-    }
-
-    @BeforeAll
-    private static void ini() throws SchedulerException {
-        scheduler = new StdSchedulerFactory().getScheduler();
-    }
-
-    @BeforeEach
-    private void reset() throws SchedulerException {
-        reporter.reset();
-        responseFuture = new CompletableFuture<>();
-    }
-
-    @AfterAll
-    private static void cleanup() throws SchedulerException {
-        scheduler.shutdown();
     }
 
     public static class TestJob implements Job {

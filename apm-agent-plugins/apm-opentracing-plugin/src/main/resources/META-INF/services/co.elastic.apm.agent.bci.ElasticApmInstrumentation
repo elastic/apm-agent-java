@@ -8,4 +8,10 @@ co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation$ActivateInstru
 co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation$CurrentSpanInstrumentation
 co.elastic.apm.agent.opentracing.impl.ScopeManagerInstrumentation$CurrentTraceContextInstrumentation
 co.elastic.apm.agent.opentracing.impl.ApmScopeInstrumentation
-co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation
+co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation$BaggageItemsInstrumentation
+co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation$ToTraceIdInstrumentation
+co.elastic.apm.agent.opentracing.impl.SpanContextInstrumentation$ToSpanIdInstrumentation
+co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToTraceIdInstrumentation
+co.elastic.apm.agent.opentracing.impl.ExternalSpanContextInstrumentation$ToSpanIdInstrumentation
+co.elastic.apm.agent.opentracing.impl.ElasticApmTracerInstrumentation
+

@@ -27,7 +27,6 @@ package co.elastic.apm.agent.spring.webmvc;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverController;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.ExceptionResolverRuntimeException;
 import co.elastic.apm.agent.spring.webmvc.testapp.exception_resolver.RestResponseStatusExceptionResolver;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,13 +42,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class ExceptionHandlerInstrumentationWithExceptionResolverTest extends AbstractExceptionHandlerInstrumentationTest {
 
     @Test
-    @Ignore
     public void testCallApiWithExceptionThrown() throws Exception {
         ResultActions resultActions = this.mockMvc.perform(get("/exception-resolver/throw-exception"));
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occured");
+        assertExceptionCapture(1, 1, ExceptionResolverRuntimeException.class, response, 200, "", "runtime exception occured");
         assertEquals("error-page", response.getForwardedUrl());
         assertEquals("runtime exception occured", result.getModelAndView().getModel().get("message"));
     }

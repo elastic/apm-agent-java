@@ -36,6 +36,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
@@ -48,6 +49,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 /**
@@ -96,6 +98,12 @@ public class ServletApiAdvice {
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
+
+            ServletContext servletContext = servletRequest.getServletContext();
+            if (servletContext != null) {
+                // this makes sure service name discovery also works when attaching at runtime
+                determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
+            }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
@@ -181,22 +189,19 @@ public class ServletApiAdvice {
                 } else {
                     parameterMap = null;
                 }
-                Throwable exceptionAttribute = getThrowable(request);
-
-                servletTransactionHelper.onAfter(transaction, t, response.isCommitted(), response.getStatus(), request.getMethod(),
-                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, exceptionAttribute, true);
+                Throwable t2 = null;
+                if (t == null) {
+                    for (String attributeName : requestExceptionAttributes) {
+                        Object throwable = request.getAttribute(attributeName);
+                        if (throwable != null && throwable instanceof Throwable) {
+                            t2 = (Throwable) throwable;
+                            break;
+                        }
+                    }
+                }
+                servletTransactionHelper.onAfter(transaction, t == null ? t2 : t, response.isCommitted(), response.getStatus(), request.getMethod(),
+                    parameterMap, request.getServletPath(), request.getPathInfo(), contentTypeHeader, true);
             }
         }
-    }
-
-    @VisibleForAdvice
-    public static Throwable getThrowable(HttpServletRequest request) {
-        for (String attributeName : requestExceptionAttributes) {
-            Object throwable = request.getAttribute(attributeName);
-            if (throwable != null && throwable instanceof Throwable) {
-                return  (Throwable) throwable;
-            }
-        }
-        return null;
     }
 }

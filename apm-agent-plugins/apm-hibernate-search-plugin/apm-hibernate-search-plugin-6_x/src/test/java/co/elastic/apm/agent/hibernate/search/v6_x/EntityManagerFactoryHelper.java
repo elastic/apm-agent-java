@@ -22,21 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.testapp.render;
+package co.elastic.apm.agent.hibernate.search.v6_x;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.ModelAndView;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
-@RestController
-@RequestMapping("/render")
-public class RenderController {
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
-    @GetMapping("/test")
-    public ModelAndView test() {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("message-view");
-        return modelAndView;
+public class EntityManagerFactoryHelper {
+
+    public static EntityManagerFactory buildEntityManagerFactory(final Path tempDirectory) {
+        Map<String, Object> configOverrides = new HashMap<>();
+        configOverrides.put("hibernate.search.backends.testBackend.type", "lucene");
+        configOverrides.put("hibernate.search.backends.testBackend.directory_provider", "local_directory");
+        configOverrides.put("hibernate.search.backends.testBackend.root_directory", tempDirectory.toAbsolutePath().toString());
+        configOverrides.put("hibernate.search.default_backend", "testBackend");
+        return Persistence.createEntityManagerFactory("templatePU", configOverrides);
     }
 }

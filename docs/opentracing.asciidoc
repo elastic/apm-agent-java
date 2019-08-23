@@ -6,6 +6,8 @@ endif::[]
 [[opentracing-bridge]]
 == Elastic APM OpenTracing bridge
 
+NOTE: Latest supported OpenTracing version: 0.33 (as of agent and OpenTracing-bridge version 1.9.0)
+
 The Elastic APM OpenTracing bridge allows to create Elastic APM `Transactions` and `Spans`,
 using the OpenTracing API.
 In other words,

@@ -4,12 +4,28 @@
 NOTE: This installation method is experimental.
 
 [float]
+[[setup-attach-api-supported-environments]]
+==== Supported environments
+
+The attachment is supported on Windows,
+Unix and Solaris operating systems on HotSpot-based JVMs (like OpenJDK and Oracle JDK) and OpenJ9.
+
+Some flags, like `--include` and `--exclude` require the `jps` command to be installed,
+which is part of the JDK distribution and does not typically come with the JRE distribution.
+
+[float]
 [[setup-attach-api-caveats]]
 ==== Caveats
 
-This method of attachment is only supported on HotSpot-based JVMs like the OpenJDK and Oracle JDK.
-It also requires the JDK, specifically the `tools.jar` to be present - a JRE is not sufficient.
+Currently, this does not work in combination with OSGi containers (which includes most application servers).
+The symptom is that there will be a lot of exceptions like this: `java.lang.NoClassDefFoundError: co/elastic/apm/agent/servlet/ServletApiAdvice`.
 
+There can only be one agent instance with one configuration per JVM.
+So if you deploy multiple web applications to the same application server and call `ElasticApmAttacher.attach()` in each application,
+the first `attach()` wins and the second one will be ignored.
+That also means that if you are configuring the agent with `elasticapm.properties`,
+the application which attaches first gets to decide the configuration.
+See the default value description of the <<config-service-name>> configuration option for ways to have different `service.name`s for each deployment.
 
 [float]
 [[setup-attach-api-usage]]

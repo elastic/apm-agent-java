@@ -35,7 +35,17 @@ import java.sql.Connection;
 public abstract class JdbcHelper {
     @SuppressWarnings("WeakerAccess")
     @VisibleForAdvice
-    public static final WeakConcurrentMap<Object, String> statementSqlMap = new WeakConcurrentMap<>(true);
+    public static final WeakConcurrentMap<Object, String> statementSqlMap;
+
+    static {
+        statementSqlMap = new WeakConcurrentMap<>(true);
+        // This class will probably be loaded in the context of a request processing thread
+        // whose context class loader is the web application ClassLoader.
+        // This leaks the web application ClassLoader when the application is undeployed/redeployed.
+        // Tomcat will then stop the thread because it thinks it was created by the web application.
+        // That means that the map will never be cleared, creating a severe memory leak.
+        statementSqlMap.getCleanerThread().setContextClassLoader(null);
+    }
 
     /**
      * Maps the provided sql to the provided Statement object

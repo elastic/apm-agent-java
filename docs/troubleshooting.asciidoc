@@ -8,12 +8,15 @@ endif::[]
 Something isn't quite working as expected?
 Here are some guidelines how to find out what's going wrong.
 
+As a first step, please check if your stack is compatible with the currently <<supported-technologies,supported technologies>>.
+
 Don't worry if you can't figure out what the problem is.
 Open a topic in the https://discuss.elastic.co/c/apm[APM discuss forum]
 and we will help you out.
-If you do so, please attach your debug logs so that we can analyze the problem.
 
-Also, please check if your stack is compatible with the currently <<supported-technologies,supported technologies>>.
+IMPORTANT: If you do so, *please attach your debug logs* so that we can analyze the problem.
+Upload the *complete* logs to a service like https://gist.github.com.
+The logs should include everything from the application startup up until the first request has been executed.
 
 [float]
 [[trouble-shooting-logging]]
