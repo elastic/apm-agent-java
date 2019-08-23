@@ -1,7 +1,7 @@
 # Next
 
 ## Features
-
+ * Add ability to manually specify reported hostname
 ## Bug Fixes
  
 # 1.9.0
