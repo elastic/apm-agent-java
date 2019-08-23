@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import io.opentracing.References;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.tag.Tag;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -100,12 +101,18 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
     }
 
     @Override
+    public <T> Tracer.SpanBuilder withTag(Tag<T> tag, T value) {
+        tags.put(tag.getKey(), value);
+        return this;
+    }
+
+    @Override
     public ApmSpanBuilder withStartTimestamp(long microseconds) {
         this.microseconds = microseconds;
         return this;
     }
 
-    @Override
+    @Deprecated
     public ApmScope startActive(boolean finishSpanOnClose) {
         return scopeManager.activate(startApmSpan(), finishSpanOnClose);
     }
@@ -115,7 +122,6 @@ class ApmSpanBuilder implements Tracer.SpanBuilder {
         return startApmSpan();
     }
 
-    @Override
     @Deprecated
     public ApmSpan startManual() {
         return start();

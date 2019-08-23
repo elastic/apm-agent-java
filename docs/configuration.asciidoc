@@ -11,17 +11,19 @@ which have different naming conventions for the property key.
 The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
+. {kibana-ref}/agent-configuration.html[Central configuration]
 . Java system properties +
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
 . `elasticapm.properties` file +
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  To customize the location, set the <<config-config-file>> option.
   No prefix is required for the configuration keys.
 
-Configuration options marked with Dynamic true can be changed at runtime
-via configuration sources which support dynamic reloading. The `elasticapm.properties` file is
-such source. Java system properties can be dynamic as well by being set from within the application.
+Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
+{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
+Java system properties can be dynamic as well by being set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
@@ -73,8 +75,9 @@ Click on a key to get more information.
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
 ** <<config-boot-delegation-packages>>
+** <<config-central-config>>
 ** <<config-breakdown-metrics>>
-** <<config-config-file-location>>
+** <<config-config-file>>
 * <<config-http>>
 ** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
@@ -85,7 +88,7 @@ Click on a key to get more information.
 ** <<config-url-groups>>
 * <<config-jax-rs>>
 ** <<config-enable-jaxrs-annotation-inheritance>>
-** <<config-use-jaxrs-path-for-transaction-name>>
+** <<config-use-jaxrs-path-as-transaction-name>>
 * <<config-logging>>
 ** <<config-log-level>>
 ** <<config-log-file>>
@@ -112,7 +115,11 @@ Click on a key to get more information.
 [[config-active]]
 ==== `active`
 
-A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+A boolean specifying if the agent should be active or not.
+When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+mostly idle in this state, so the overhead should be negligible.
 
 You can use this setting to dynamically disable Elastic APM at runtime.
 
@@ -328,7 +335,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -399,14 +406,17 @@ NOTE: This feature requires APM Server 7.2+
 
 [float]
 [[config-trace-methods]]
-==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0 and 1.7.0])
+==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
 
 A list of methods for with to create a transaction or span.
 
-The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-You can use wildcards for the class name, the method name and the parameter types.
+The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+You can use wildcards for the class name, the annotation name, the method name and the parameter types.
 The `*` wildcard matches zero or more characters.
 That means that a wildcard in a package name also matches sub-packages
+Specifying an annotation is optional.
+When matching for annotations, only classes that are annotated with the specified annotation are considered.
+You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
 Specifying the parameter types is optional.
 The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 
@@ -421,6 +431,9 @@ A few examples:
  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
  - `* org.example.MyClas*#myMe*od(*.String, int[])`
  - `public org.example.services.*Service#*`
+ - `public @java.inject.ApplicationScoped org.example.*`
+ - `public @java.inject.* org.example.*`
+ - `public @@javax.enterprise.context.NormalScope org.example.*`
 
 NOTE: Only use wildcards if necessary.
 The more methods you match the more overhead will be caused by the agent.
@@ -431,6 +444,16 @@ NOTE: The agent will create stack traces for spans which took longer than
 When tracing a large number of methods (for example by using wildcards),
 this may lead to high overhead.
 Consider increasing the threshold or disabling stack trace collection altogether.
+
+Common configurations:
+
+Trace all public methods in CDI-Annotated beans:
+
+----
+public @@javax.enterprise.context.NormalScope your.application.package.*
+public @@javax.inject.Scope your.application.package.*
+----
+
 
 
 [options="header"]
@@ -483,7 +506,7 @@ The default unit for this option is `ms`
 
 [float]
 [[config-boot-delegation-packages]]
-==== `boot_delegation_packages`
+==== `boot_delegation_packages` (added[1.7.0])
 
 A comma-separated list of packages to be appended to the boot delegation system property. 
 If set with an empty string, nothing will be appended to the boot delegation system property.
@@ -517,8 +540,28 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 |============
 
 [float]
+[[config-central-config]]
+==== `central_config` (added[1.8.0])
+
+When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.central_config` | `central_config` | `ELASTIC_APM_CENTRAL_CONFIG`
+|============
+
+[float]
 [[config-breakdown-metrics]]
-==== `breakdown_metrics`
+==== `breakdown_metrics` (added[1.8.0])
 
 Disables the collection of breakdown metrics (`span.self_time`)
 
@@ -537,12 +580,13 @@ Disables the collection of breakdown metrics (`span.self_time`)
 |============
 
 [float]
-[[config-config-file-location]]
-==== `config_file_location`
+[[config-config-file]]
+==== `config_file` (added[1.8.0])
 
 Sets the path of the agent config file.
 The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-The location can either be in the classpath of the application or on the file system.
+The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+NOTE: this option can only be set via system properties, environment variables or the attacher options.
 
 
 [options="header"]
@@ -555,7 +599,7 @@ The location can either be in the classpath of the application or on the file sy
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.config_file_location` | `config_file_location` | `ELASTIC_APM_CONFIG_FILE_LOCATION`
+| `elastic.apm.config_file` | `config_file` | `ELASTIC_APM_CONFIG_FILE`
 |============
 
 [[config-http]]
@@ -782,8 +826,8 @@ If your application does not use @Path annotation inheritance, set this property
 |============
 
 [float]
-[[config-use-jaxrs-path-for-transaction-name]]
-==== `use_jaxrs_path_for_transaction_name`
+[[config-use-jaxrs-path-as-transaction-name]]
+==== `use_jaxrs_path_as_transaction_name` (added[1.8.0])
 
 By default, the agent will use `ClassName#methodName` for the transaction name of JAX-RS requests.
 If you want to use the URI template from the `@Path` annotation, set the value to `true`.
@@ -799,7 +843,7 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.use_jaxrs_path_for_transaction_name` | `use_jaxrs_path_for_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_FOR_TRANSACTION_NAME`
+| `elastic.apm.use_jaxrs_path_as_transaction_name` | `use_jaxrs_path_as_transaction_name` | `ELASTIC_APM_USE_JAXRS_PATH_AS_TRANSACTION_NAME`
 |============
 
 [[config-logging]]
@@ -862,7 +906,8 @@ it's content is deleted when the application starts.
 A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 you can index your log files and correlate them with APM traces.
 With this integration you can get all logs belonging to a particular trace and vice-versa:
 for a specific log, see in which context it has been logged and which parameters the user provided. 
@@ -919,6 +964,8 @@ When multiple agents are active, they'll tend towards spreading evenly across th
 
 If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+
+NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 
 
 [options="header"]
@@ -1139,11 +1186,22 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 ==== `application_packages`
 
 Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
-Multiple packages can be set as a comma-separated list.
-Setting this option can also improve the startup time.
+This allows the UI to collapse the stack frames of library code,
+and highlight the stack frames that originate from your application.
+Multiple root packages can be set as a comma-separated list;
+there's no need to configure sub-packages.
+Because this setting helps determine which classes to scan on startup,
+setting this option can also improve startup time.
 
-In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
-it is required to set these options.
+You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.
+
+**Example**
+
+Most Java projects have a root package, e.g. `com.myproject`. You can set the application package using Java system properties:
+`-Delastic.apm.application_packages=com.myproject`
+
+If you are only interested in specific subpackages, you can separate them with commas:
+`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 
 
 [options="header"]
@@ -1218,7 +1276,11 @@ The default unit for this option is `ms`
 # Core                                     #
 ############################################
 
-# A boolean specifying if the agent should be active or not. If active, the agent will instrument incoming HTTP requests and track errors.
+# A boolean specifying if the agent should be active or not.
+# When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.
+# When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.
+# As this is a reversible switch, agent threads are not being killed when inactivated, but they will be 
+# mostly idle in this state, so the overhead should be negligible.
 # 
 # You can use this setting to dynamically disable Elastic APM at runtime.
 #
@@ -1340,7 +1402,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `servlet-service-name`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1379,10 +1441,13 @@ The default unit for this option is `ms`
 
 # A list of methods for with to create a transaction or span.
 # 
-# The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-# You can use wildcards for the class name, the method name and the parameter types.
+# The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
+# You can use wildcards for the class name, the annotation name, the method name and the parameter types.
 # The `*` wildcard matches zero or more characters.
 # That means that a wildcard in a package name also matches sub-packages
+# Specifying an annotation is optional.
+# When matching for annotations, only classes that are annotated with the specified annotation are considered.
+# You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
 # Specifying the parameter types is optional.
 # The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
 # 
@@ -1397,6 +1462,9 @@ The default unit for this option is `ms`
 #  - `private org.example.MyClass#myMe*od(java.lang.String, *)`
 #  - `* org.example.MyClas*#myMe*od(*.String, int[])`
 #  - `public org.example.services.*Service#*`
+#  - `public @java.inject.ApplicationScoped org.example.*`
+#  - `public @java.inject.* org.example.*`
+#  - `public @@javax.enterprise.context.NormalScope org.example.*`
 # 
 # NOTE: Only use wildcards if necessary.
 # The more methods you match the more overhead will be caused by the agent.
@@ -1407,6 +1475,16 @@ The default unit for this option is `ms`
 # When tracing a large number of methods (for example by using wildcards),
 # this may lead to high overhead.
 # Consider increasing the threshold or disabling stack trace collection altogether.
+# 
+# Common configurations:
+# 
+# Trace all public methods in CDI-Annotated beans:
+# 
+# ----
+# public @@javax.enterprise.context.NormalScope your.application.package.*
+# public @@javax.inject.Scope your.application.package.*
+# ----
+# 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: comma separated list
@@ -1459,6 +1537,14 @@ The default unit for this option is `ms`
 #
 # boot_delegation_packages=co.elastic.apm.agent.*
 
+# When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# central_config=true
+
 # Disables the collection of breakdown metrics (`span.self_time`)
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
@@ -1469,13 +1555,14 @@ The default unit for this option is `ms`
 
 # Sets the path of the agent config file.
 # The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-# The location can either be in the classpath of the application or on the file system.
+# The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+# NOTE: this option can only be set via system properties, environment variables or the attacher options.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: String
 # Default value: _AGENT_HOME_/elasticapm.properties
 #
-# config_file_location=_AGENT_HOME_/elasticapm.properties
+# config_file=_AGENT_HOME_/elasticapm.properties
 
 ############################################
 # HTTP                                     #
@@ -1615,7 +1702,7 @@ The default unit for this option is `ms`
 # Type: Boolean
 # Default value: false
 #
-# use_jaxrs_path_for_transaction_name=false
+# use_jaxrs_path_as_transaction_name=false
 
 ############################################
 # Logging                                  #
@@ -1651,7 +1738,8 @@ The default unit for this option is `ms`
 # A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
 # You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
 # you can index your log files and correlate them with APM traces.
 # With this integration you can get all logs belonging to a particular trace and vice-versa:
 # for a specific log, see in which context it has been logged and which parameters the user provided. 
@@ -1688,6 +1776,8 @@ The default unit for this option is `ms`
 # 
 # If outgoing HTTP traffic has to go through a proxy,you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.
 # See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.
+# 
+# NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 #
 # This setting can be changed at runtime
 # Type: comma separated list
@@ -1801,11 +1891,22 @@ The default unit for this option is `ms`
 ############################################
 
 # Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.
-# Multiple packages can be set as a comma-separated list.
-# Setting this option can also improve the startup time.
+# This allows the UI to collapse the stack frames of library code,
+# and highlight the stack frames that originate from your application.
+# Multiple root packages can be set as a comma-separated list;
+# there's no need to configure sub-packages.
+# Because this setting helps determine which classes to scan on startup,
+# setting this option can also improve startup time.
 # 
-# In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,
-# it is required to set these options.
+# You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.
+# 
+# **Example**
+# 
+# Most Java projects have a root package, e.g. `com.myproject`. You can set the application package using Java system properties:
+# `-Delastic.apm.application_packages=com.myproject`
+# 
+# If you are only interested in specific subpackages, you can separate them with commas:
+# `-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`
 #
 # This setting can be changed at runtime
 # Type: comma separated list

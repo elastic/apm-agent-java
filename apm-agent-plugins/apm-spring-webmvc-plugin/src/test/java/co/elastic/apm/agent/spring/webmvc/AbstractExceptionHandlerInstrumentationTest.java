@@ -73,7 +73,7 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-            Arrays.asList(new ServletInstrumentation(tracer), new ExceptionHandlerInstrumentation(tracer)));
+            Arrays.asList(new ServletInstrumentation(tracer), new DispatcherServletRenderInstrumentation()));
     }
 
     @AfterClass
@@ -85,18 +85,17 @@ public abstract class AbstractExceptionHandlerInstrumentationTest {
     @Before
     @BeforeEach
     public void setup() {
-        this.mockMvc =
-            MockMvcBuilders.webAppContextSetup(wac).build();
+        this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
 
     protected void assertExceptionCapture(int spanCount, int errorCount, Class exceptionClazz, MockHttpServletResponse response, int statusCode, String responseContent, String exceptionMessage) throws UnsupportedEncodingException {
         assertEquals(1, reporter.getTransactions().size());
         assertEquals(spanCount, reporter.getSpans().size());
         assertEquals(errorCount, reporter.getErrors().size());
-        assertEquals(exceptionMessage, reporter.getErrors().get(0).getException().getMessage());
         assertEquals(exceptionClazz, reporter.getErrors().get(0).getException().getClass());
         assertEquals(statusCode, response.getStatus());
         assertEquals(responseContent, response.getContentAsString());
+        assertEquals(exceptionMessage, reporter.getErrors().get(0).getException().getMessage());
     }
 
 }

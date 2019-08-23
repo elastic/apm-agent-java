@@ -40,11 +40,23 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .key(APPLICATION_PACKAGES)
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
-            "Multiple packages can be set as a comma-separated list.\n" +
-            "Setting this option can also improve the startup time.\n" +
+            "This allows the UI to collapse the stack frames of library code,\n" +
+            "and highlight the stack frames that originate from your application.\n" +
+            "Multiple root packages can be set as a comma-separated list;\n" +
+            "there's no need to configure sub-packages.\n" +
+            "Because this setting helps determine which classes to scan on startup,\n" +
+            "setting this option can also improve startup time.\n" +
             "\n" +
-            "In order to be able to use the API annotations @CaptureTransaction and @CaptureSpan,\n" +
-            "it is required to set these options.")
+            "You must set this option in order to use the API annotations `@CaptureTransaction` and `@CaptureSpan`.\n" +
+            "\n" +
+            "**Example**\n" +
+            "\n" +
+            "Most Java projects have a root package, e.g. `com.myproject`. " +
+            "You can set the application package using Java system properties:\n" +
+            "`-Delastic.apm.application_packages=com.myproject`\n" +
+            "\n" +
+            "If you are only interested in specific subpackages, you can separate them with commas:\n" + 
+            "`-Delastic.apm.application_packages=com.myproject.api,com.myproject.impl`")
         .dynamic(true)
         .buildWithDefault(Collections.<String>emptyList());
 

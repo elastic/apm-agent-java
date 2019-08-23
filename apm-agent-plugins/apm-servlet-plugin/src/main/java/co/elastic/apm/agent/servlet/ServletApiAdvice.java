@@ -36,6 +36,7 @@ import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
@@ -48,6 +49,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
+import static co.elastic.apm.agent.servlet.ServletTransactionHelper.determineServiceName;
 import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
 
 /**
@@ -72,7 +74,7 @@ public class ServletApiAdvice {
         }
     };
     @VisibleForAdvice
-    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION", "co.elastic.apm.exception");
+    public static final List<String> requestExceptionAttributes = Arrays.asList("javax.servlet.error.exception", "exception", "org.springframework.web.servlet.DispatcherServlet.EXCEPTION");
 
     static void init(ElasticApmTracer tracer) {
         ServletApiAdvice.tracer = tracer;
@@ -96,6 +98,12 @@ public class ServletApiAdvice {
             servletRequest instanceof HttpServletRequest &&
             servletRequest.getDispatcherType() == DispatcherType.REQUEST &&
             !Boolean.TRUE.equals(excluded.get())) {
+
+            ServletContext servletContext = servletRequest.getServletContext();
+            if (servletContext != null) {
+                // this makes sure service name discovery also works when attaching at runtime
+                determineServiceName(servletContext.getServletContextName(), servletContext.getClassLoader(), servletContext.getContextPath());
+            }
 
             final HttpServletRequest request = (HttpServletRequest) servletRequest;
             transaction = servletTransactionHelper.onBefore(
