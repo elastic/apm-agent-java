@@ -66,12 +66,14 @@ public class MetaData {
     }
 
     public static MetaData create(ConfigurationRegistry configurationRegistry, @Nullable String frameworkName, @Nullable String frameworkVersion) {
-        final Service service = new ServiceFactory().createService(configurationRegistry.getConfig(CoreConfiguration.class), frameworkName, frameworkVersion);
+        final CoreConfiguration coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
+        final Service service = new ServiceFactory().createService(coreConfiguration, frameworkName, frameworkVersion);
         final ProcessInfo processInformation = ProcessFactory.ForCurrentVM.INSTANCE.getProcessInformation();
         if (!configurationRegistry.getConfig(ReporterConfiguration.class).isIncludeProcessArguments()) {
             processInformation.getArgv().clear();
         }
-        return new MetaData(processInformation, service, SystemInfo.create(), configurationRegistry.getConfig(CoreConfiguration.class).getGlobalLabels());
+        
+        return new MetaData(processInformation, service, SystemInfo.create(coreConfiguration.getHostname()), coreConfiguration.getGlobalLabels());
     }
 
     /**
