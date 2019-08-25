@@ -57,6 +57,8 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+// todo - make configurable whether to create only polling transactions, only handling transactions or both
+// todo - also consider configuration to override trace context of receive transactions
 public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumentation {
 
     @VisibleForAdvice
@@ -101,70 +103,105 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
             @Advice.OnMethodEnter(suppress = Throwable.class)
             @Nullable
             public static AbstractSpan beforeReceive(@Advice.Origin Class<?> clazz) {
-                AbstractSpan abstractSpan = null;
+
+                AbstractSpan createdSpan = null;
+                boolean createPollingTransaction = false;
+                boolean createPollingSpan = false;
                 if (tracer != null) {
                     final TraceContextHolder<?> parent = tracer.getActive();
                     if (parent == null) {
-                        abstractSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                            .withType("messaging");
+                        createPollingTransaction = true;
                     } else {
-                        String parentType = null;
                         if (parent instanceof Transaction) {
-                            parentType = ((Transaction) parent).getType();
+                            Transaction transaction = (Transaction) parent;
+                            if ("message-polling".equals(transaction.getType())) {
+                                // Avoid duplications for nested calls
+                                return null;
+                            } else if ("message-handling".equals(transaction.getType())) {
+                                // A transaction created in the OnMethodExit of the poll- end it here
+                                transaction.deactivate().end();
+                                createPollingTransaction = true;
+                            } else {
+                                createPollingSpan = true;
+                            }
                         } else if (parent instanceof Span) {
-                            parentType = ((Span) parent).getType();
+                            if ("messaging".equals(((Span) parent).getType())) {
+                                // Avoid duplication for nested calls
+                                return null;
+                            }
+                            createPollingSpan = true;
                         }
+                    }
 
-                        // Not creating duplicates for nested receive
-                        if (parentType != null && parentType.equals("messaging")) {
-                            return null;
-                        }
-
-                        abstractSpan = parent.createSpan()
+                    if (createPollingTransaction) {
+                        createdSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
+                            .withType("message-polling");
+                    } else if (createPollingSpan) {
+                        createdSpan = parent.createSpan()
                             .withType("messaging")
                             .withSubtype("jms")
                             .withAction("receive");
                     }
-                    abstractSpan.withName("JMS RECEIVE");
-                    abstractSpan.activate();
+
+                    if (createdSpan != null) {
+                        createdSpan.withName("JMS RECEIVE");
+                        createdSpan.activate();
+                    }
                 }
-                return abstractSpan;
+                return createdSpan;
             }
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-            public static void afterReceive(@Advice.Enter @Nullable final AbstractSpan abstractSpan,
+            public static void afterReceive(@Advice.Origin Class<?> clazz,
+                                            @Advice.Enter @Nullable final AbstractSpan abstractSpan,
                                             @Advice.Return @Nullable final Message message,
                                             @Advice.Thrown final Throwable throwable) {
 
+                String messageSenderContext = null;
+                boolean discard = false;
+                if (message != null) {
+                    try {
+                        messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
+                    } catch (JMSException e) {
+                        logger.error("Failed to retrieve trace context from Message", e);
+                    }
+
+                    if (abstractSpan instanceof Transaction) {
+                        if (messageSenderContext != null) {
+                            abstractSpan.getTraceContext().asChildOf(messageSenderContext);
+                        }
+                    }
+                } else if (abstractSpan instanceof Transaction) {
+                    // Do not report polling transactions if not yielding messages
+                    ((Transaction) abstractSpan).ignoreTransaction();
+                    discard = true;
+                }
+
                 if (abstractSpan != null) {
                     try {
-                        if (message != null) {
-                            if (abstractSpan instanceof Transaction) {
+                        if (!discard) {
+                            abstractSpan.captureException(throwable);
+                            if (message != null) {
                                 try {
-                                    String messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
-                                    if (messageSenderContext != null) {
-                                        abstractSpan.getTraceContext().asChildOf(messageSenderContext);
+                                    Destination destination = message.getJMSDestination();
+                                    if (destination instanceof Queue) {
+                                        abstractSpan.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
+                                    } else if (destination instanceof Topic) {
+                                        abstractSpan.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
                                     }
                                 } catch (JMSException e) {
-                                    logger.error("Failed to retrieve trace context from Message", e);
+                                    logger.warn("Failed to retrieve message's destination", e);
                                 }
-                            }
-
-                            try {
-                                Destination destination = message.getJMSDestination();
-                                if (destination instanceof Queue) {
-                                    abstractSpan.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
-                                } else if (destination instanceof Topic) {
-                                    abstractSpan.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
-                                }
-                            } catch (JMSException e) {
-                                logger.warn("Failed to retrieve message's destination", e);
                             }
                         }
                     } finally {
-                        abstractSpan.captureException(throwable);
                         abstractSpan.deactivate().end();
                     }
+                }
+
+                if (messageSenderContext != null && tracer != null) {
+                    tracer.startTransaction(TraceContext.fromTraceparentHeader(), messageSenderContext, clazz.getClassLoader())
+                        .withType("message-handling");
                 }
             }
         }

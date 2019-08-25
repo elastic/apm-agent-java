@@ -127,6 +127,9 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
                 transaction.activate();
             }
+
+            // todo: if there is an active message handling transaction- replace or reuse it, as this one is preferable
+            //  - can capture exceptions and is not exposed to the risks related to the polling ones
             return transaction;
         }
 
