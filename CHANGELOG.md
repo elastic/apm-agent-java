@@ -1,7 +1,7 @@
 # Next
 
 ## Features
- * Add ability to manually specify reported hostname
+ * Add ability to manually specify reported [hostname](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-hostname)
 ## Bug Fixes
  
 # 1.9.0

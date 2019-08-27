@@ -118,7 +118,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
         .key("hostname")
         .configurationCategory(CORE_CATEGORY)
-        .description("Allows for the reported hostname to be manually specified.  If unset the hostname will be looked up.")
+        .description("Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.")
         .build();
 
     private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
