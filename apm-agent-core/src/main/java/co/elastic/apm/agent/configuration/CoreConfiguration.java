@@ -114,6 +114,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
+    
+    private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
+        .key("hostname")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.")
+        .build();
 
     private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
         .key("environment")
@@ -421,6 +427,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceVersion.get();
     }
 
+    public String getHostname() {
+        return hostname.get();
+    }
+    
     public String getEnvironment() {
         return environment.get();
     }
