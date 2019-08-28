@@ -192,6 +192,10 @@ public class ElasticApmTracer {
         assert assertionsEnabled = true;
     }
 
+    public <T> Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
+        return startTransaction(TraceContext.asRoot(), null, initiatingClassLoader);
+    }
+
     /**
      * Starts a transaction as a child of the provided parent
      *

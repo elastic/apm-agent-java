@@ -2,6 +2,8 @@
 
 ## Features
  * Add ability to manually specify reported [hostname](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-hostname)
+ * Add support for Redis Jedis client
+ 
 ## Bug Fixes
  
 # 1.9.0

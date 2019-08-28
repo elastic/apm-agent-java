@@ -311,6 +311,11 @@
             <artifactId>apm-quartz-job-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-redis-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- For auto-generating configuration docs -->
         <dependency>
