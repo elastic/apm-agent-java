@@ -31,7 +31,6 @@
         <module>apm-jms-plugin</module>
         <module>apm-hibernate-search-plugin</module>
         <module>apm-redis-plugin</module>
-        <module>apm-redis-tests</module>
     </modules>
 
     <properties>

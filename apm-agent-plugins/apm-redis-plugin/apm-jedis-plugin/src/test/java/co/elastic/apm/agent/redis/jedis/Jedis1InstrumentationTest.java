@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
+class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     @Test
-    void testJedis() throws Exception {
+    void testJedis() {
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             jedis.set("foo", "bar");
             assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
