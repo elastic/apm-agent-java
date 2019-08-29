@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -213,9 +214,7 @@ public class ApmServerClient {
                 }
                 previousException = e;
             } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+                closeInputStream(connection);
             }
         }
         if (previousException == null) {
@@ -234,12 +233,29 @@ public class ApmServerClient {
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+                closeInputStream(connection);
             }
         }
         return results;
+    }
+
+    private void closeInputStream(@Nullable HttpURLConnection connection) {
+        if (connection != null) {
+            try {
+                int responseCode = connection.getResponseCode();
+                InputStream responseInputStream = null;
+                if (responseCode < 400) {
+                    responseInputStream = connection.getInputStream();
+                } else if (responseCode >= 400) {
+                    responseInputStream = connection.getErrorStream();
+                }
+                if (responseInputStream != null) {
+                    responseInputStream.close();
+                }
+            } catch (Exception e) {
+                logger.error("Exception when closing input stream of HttpURLConnection.");
+            }
+        }
     }
 
     URL getCurrentUrl() {
