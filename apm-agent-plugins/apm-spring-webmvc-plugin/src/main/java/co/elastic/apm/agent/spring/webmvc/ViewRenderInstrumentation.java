@@ -40,7 +40,7 @@ import java.util.Collection;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class DispatcherServletRenderInstrumentation extends ElasticApmInstrumentation {
+public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_SUBTYPE = "dispatcher-servlet";
@@ -77,13 +77,13 @@ public class DispatcherServletRenderInstrumentation extends ElasticApmInstrument
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.servlet.DispatcherServlet");
+        return named("org.springframework.web.servlet.View");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("render")
-            .and(takesArgument(0, named("org.springframework.web.servlet.ModelAndView")))
+            .and(takesArgument(0, named("java.util.ModelAndView")))
             .and(takesArgument(1, named("javax.servlet.http.HttpServletRequest")))
             .and(takesArgument(2, named("javax.servlet.http.HttpServletResponse")));
     }
