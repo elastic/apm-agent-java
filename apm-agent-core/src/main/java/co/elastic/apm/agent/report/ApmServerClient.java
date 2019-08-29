@@ -29,6 +29,7 @@ import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
+import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -214,7 +215,7 @@ public class ApmServerClient {
                 }
                 previousException = e;
             } finally {
-                closeInputStream(connection);
+                HttpUtils.closeInputStream(connection);
             }
         }
         if (previousException == null) {
@@ -233,29 +234,10 @@ public class ApmServerClient {
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
-                closeInputStream(connection);
+                HttpUtils.closeInputStream(connection);
             }
         }
         return results;
-    }
-
-    private void closeInputStream(@Nullable HttpURLConnection connection) {
-        if (connection != null) {
-            try {
-                int responseCode = connection.getResponseCode();
-                InputStream responseInputStream = null;
-                if (responseCode < 400) {
-                    responseInputStream = connection.getInputStream();
-                } else if (responseCode >= 400) {
-                    responseInputStream = connection.getErrorStream();
-                }
-                if (responseInputStream != null) {
-                    responseInputStream.close();
-                }
-            } catch (Exception e) {
-                logger.error("Exception when closing input stream of HttpURLConnection.");
-            }
-        }
     }
 
     URL getCurrentUrl() {
