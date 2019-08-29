@@ -164,7 +164,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |1.9.0
 
 |Redis Jedis
-|3.x
+|1.4.0-3.x
 |The agent creates spans for interactions with the Jedis client.
 |1.10.0
 

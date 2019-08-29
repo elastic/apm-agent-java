@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,13 +25,12 @@
 package co.elastic.apm.agent.redis.jedis;
 
 import co.elastic.apm.agent.impl.Scope;
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JedisInstrumentationTest extends AbstractRedisInstrumentationTest {
+public class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     @Test
     void testJedis() throws Exception {
@@ -40,12 +39,7 @@ class JedisInstrumentationTest extends AbstractRedisInstrumentationTest {
             assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
         }
 
-        assertThat(reporter.getSpans()).hasSize(2);
-        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly("set", "get");
-        assertThat(reporter.getSpans().stream().map(Span::getType).distinct()).containsExactly("db");
-        assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
-        assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
-        assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
+        assertTransactionWithRedisSpans("set", "get");
     }
 
 }

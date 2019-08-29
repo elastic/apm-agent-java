@@ -22,7 +22,8 @@
  * under the License.
  * #L%
  */
-@NonnullApi
 package co.elastic.apm.agent.redis.jedis;
 
-import co.elastic.apm.agent.annotation.NonnullApi;
+class Jedis3InstrumentationTest extends Jedis2InstrumentationTest {
+
+}

@@ -25,43 +25,60 @@
 package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisSentinelPool;
-import redis.clients.jedis.JedisShardInfo;
-import redis.clients.jedis.ShardedJedisPool;
-import redis.embedded.RedisCluster;
-import redis.embedded.util.JedisUtil;
+import redis.embedded.RedisServer;
 
-import java.util.Collections;
+import javax.net.ServerSocketFactory;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
-    protected JedisSentinelPool pool;
     protected Jedis jedis;
-    private RedisCluster cluster;
+    protected RedisServer server;
 
-    @BeforeEach
-    void setup() throws Exception {
-        //creates a cluster with 3 sentinels, quorum size of 2 and 3 replication groups, each with one master and one slave
-        cluster = RedisCluster.builder().ephemeral().sentinelCount(3).quorumSize(2)
-            .replicationGroup("master1", 1)
-            .replicationGroup("master2", 1)
-            .replicationGroup("master3", 1)
-            .build();
-        cluster.start();
-
-        //retrieve ports on which sentinels have been started, using a simple Jedis utility class
-        pool = new JedisSentinelPool("master1", JedisUtil.sentinelHosts(cluster));
-        jedis = pool.getResource();
+    private static int getAvailablePort() throws IOException {
+        try (ServerSocket socket = ServerSocketFactory.getDefault().createServerSocket(0, 1, InetAddress.getByName("localhost"))) {
+            return socket.getLocalPort();
+        }
     }
 
+    @BeforeEach
+    final void initRedis() throws IOException {
+        int port = getAvailablePort();
+        server = RedisServer.builder()
+            .setting("bind 127.0.0.1")
+            .port(port)
+            .build();
+        server.start();
+
+        jedis = new Jedis("localhost", port);
+    }
 
     @AfterEach
-    void tearDown() throws Exception {
-        jedis.close();
-        pool.close();
-        cluster.stop();
+    final void stopRedis() {
+        try {
+            // this method does not exist in Jedis 1
+            Jedis.class.getMethod("close").invoke(jedis);
+        } catch (NoSuchMethodException e) {
+            // ignore, this version of redis does not support close
+        } catch (ReflectiveOperationException e) {
+            e.printStackTrace();
+        }
+        server.stop();
+    }
+
+    public void assertTransactionWithRedisSpans(String... commands) {
+        assertThat(reporter.getSpans()).hasSize(2);
+        assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly(commands);
+        assertThat(reporter.getSpans().stream().map(Span::getType).distinct()).containsExactly("db");
+        assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
+        assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
+        assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
     }
 }
