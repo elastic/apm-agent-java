@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,10 +32,6 @@ import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +46,6 @@ public class AbstractErrorLoggingInstrumentationTest {
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
 
-    @BeforeClass
     @BeforeAll
     public static void beforeAll() {
         reporter = new MockReporter();
@@ -61,20 +56,17 @@ public class AbstractErrorLoggingInstrumentationTest {
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggingInstrumentation()));
     }
 
-    @AfterClass
     @AfterAll
     public static void afterAll() {
         ElasticApmAgent.reset();
     }
 
-    @Before
     @BeforeEach
     public void startTransaction() {
         reporter.reset();
         tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
     }
 
-    @After
     @AfterEach
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
