@@ -9,6 +9,8 @@
 ## Features
  * Supporting OpenTracing version 0.33 
  * Added annotation and meta-annotation matching support for `trace_methods`
+ * Improved servlet exception capture via attributes: `javax.servlet.error.exception`, `exception`, `org.springframework.web.servlet.DispatcherServlet.EXCEPTION`, `co.elastic.apm.exception`.
+   Added instrumentation for DispatcherServlet#processHandlerException.
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
