@@ -26,11 +26,33 @@ package co.elastic.apm.agent.redis.jedis;
 
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import redis.clients.jedis.Jedis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
+
+    protected Jedis jedis;
+
+    @BeforeEach
+    void setUpJedis() {
+        jedis = new Jedis("localhost", redisPort);
+    }
+
+    @AfterEach
+    void tearDownJedis() {
+        try {
+            // this method does not exist in Jedis 1
+            Jedis.class.getMethod("close").invoke(jedis);
+        } catch (NoSuchMethodException e) {
+            // ignore, this version of redis does not support close
+        } catch (ReflectiveOperationException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
     void testJedis() {
@@ -39,7 +61,7 @@ class Jedis1InstrumentationTest extends AbstractRedisInstrumentationTest {
             assertThat(jedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
         }
 
-        assertTransactionWithRedisSpans("set", "get");
+        assertTransactionWithRedisSpans("SET", "GET");
     }
 
 }

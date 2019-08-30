@@ -28,7 +28,6 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import redis.clients.jedis.Jedis;
 import redis.embedded.RedisServer;
 
 import javax.net.ServerSocketFactory;
@@ -39,8 +38,8 @@ import java.net.ServerSocket;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
-    protected Jedis jedis;
     protected RedisServer server;
+    protected int redisPort;
 
     private static int getAvailablePort() throws IOException {
         try (ServerSocket socket = ServerSocketFactory.getDefault().createServerSocket(0, 1, InetAddress.getByName("localhost"))) {
@@ -50,26 +49,16 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
 
     @BeforeEach
     final void initRedis() throws IOException {
-        int port = getAvailablePort();
+        redisPort = getAvailablePort();
         server = RedisServer.builder()
             .setting("bind 127.0.0.1")
-            .port(port)
+            .port(redisPort)
             .build();
         server.start();
-
-        jedis = new Jedis("localhost", port);
     }
 
     @AfterEach
     final void stopRedis() {
-        try {
-            // this method does not exist in Jedis 1
-            Jedis.class.getMethod("close").invoke(jedis);
-        } catch (NoSuchMethodException e) {
-            // ignore, this version of redis does not support close
-        } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
-        }
         server.stop();
     }
 

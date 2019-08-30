@@ -41,7 +41,7 @@ class Jedis2InstrumentationTest extends Jedis1InstrumentationTest {
 
     @BeforeEach
     void setUp() {
-        shardedJedis = new ShardedJedis(List.of(new JedisShardInfo("localhost", server.ports().iterator().next())));
+        shardedJedis = new ShardedJedis(List.of(new JedisShardInfo("localhost", redisPort)));
     }
 
     @AfterEach
@@ -56,6 +56,6 @@ class Jedis2InstrumentationTest extends Jedis1InstrumentationTest {
             assertThat(shardedJedis.get("foo".getBytes())).isEqualTo("bar".getBytes());
         }
 
-        assertTransactionWithRedisSpans("set", "get");
+        assertTransactionWithRedisSpans("SET", "GET");
     }
 }
