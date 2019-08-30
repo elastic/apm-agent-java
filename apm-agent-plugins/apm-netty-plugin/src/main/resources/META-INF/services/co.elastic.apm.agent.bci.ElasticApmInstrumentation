@@ -1,0 +1,2 @@
+co.elastic.apm.agent.netty.NettyChannelReadContextRestoringInstrumentation
+co.elastic.apm.agent.netty.NettyChannelWriteContextStoringInstrumentation

@@ -1,0 +1,4 @@
+co.elastic.apm.agent.redis.lettuce.LettuceStartSpanInstrumentation
+co.elastic.apm.agent.redis.lettuce.LettuceStopSpanInstrumentation$OnComplete
+co.elastic.apm.agent.redis.lettuce.LettuceStopSpanInstrumentation$OnCompleteExceptionally
+co.elastic.apm.agent.redis.lettuce.LettuceStopSpanInstrumentation$OnCancel

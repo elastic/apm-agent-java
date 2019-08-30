@@ -300,7 +300,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
             this.finished = true;
             afterEnd();
         } else {
-            logger.warn("End has already been called: {}", this);
+            logger.warn("End has already been called: {} on thread {}", this, Thread.currentThread().getId());
             assert false;
         }
     }
