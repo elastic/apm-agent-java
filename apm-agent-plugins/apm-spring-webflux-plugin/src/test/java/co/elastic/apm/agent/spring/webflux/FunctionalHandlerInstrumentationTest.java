@@ -43,7 +43,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentatio
         final List<Transaction> transactions = reporter.getTransactions();
 
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "GET /hello");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
 
         log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
         log.info("Request handled in: " + transactions.get(0).getDuration());
@@ -72,7 +72,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentatio
         final List<Transaction> transactions = reporter.getTransactions();
 
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "GET /hello");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
 
         log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
         log.info("Request handled in: " + transactions.get(0).getDuration());

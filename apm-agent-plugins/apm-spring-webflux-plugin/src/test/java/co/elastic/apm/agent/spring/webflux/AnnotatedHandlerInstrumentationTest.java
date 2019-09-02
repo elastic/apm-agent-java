@@ -61,7 +61,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "GET /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "GET /test");
         reporter.reset();
     }
 
@@ -75,7 +75,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "POST /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "POST /test");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "PUT /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PUT /test");
     }
 
     @Test
@@ -101,7 +101,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "DELETE /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "DELETE /test");
     }
 
     @Test
@@ -114,7 +114,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "PATCH /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PATCH /test");
     }
 
     @Test
@@ -127,7 +127,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "GET /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "GET /test/chained");
         reporter.reset();
     }
 
@@ -141,7 +141,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "POST /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "POST /test/chained");
     }
 
     @Test
@@ -154,7 +154,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "PUT /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PUT /test/chained");
     }
 
     @Test
@@ -167,7 +167,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "DELETE /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "DELETE /test/chained");
     }
 
     @Test
@@ -180,7 +180,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getName().toString(), "PATCH /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PATCH /test/chained");
     }
 }
 
