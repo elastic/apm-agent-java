@@ -16,6 +16,6 @@ public class HandlerFunctionWrapper<T extends ServerResponse> implements Handler
     @SuppressWarnings("unchecked")
     @Override
     public Mono<T> handle(ServerRequest request) {
-        return (Mono<T>) handlerFunction.handle(new ServerRequestWrapper(request));
+        return (Mono<T>) handlerFunction.handle(request);
     }
 }

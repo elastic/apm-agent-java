@@ -14,7 +14,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+
 
 /**
  * This class instruments all methods annotated with @GetMapping, @PostMapping, @PutMapping, @DeleteMapping, @PatchMapping in

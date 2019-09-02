@@ -11,9 +11,17 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.SpringApplication;
@@ -61,8 +69,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "GET /test");
-        reporter.reset();
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /test");
     }
 
     @Test
@@ -75,7 +82,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "POST /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "POST /test");
     }
 
     @Test
@@ -88,7 +95,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PUT /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "PUT /test");
     }
 
     @Test
@@ -101,7 +108,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "DELETE /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "DELETE /test");
     }
 
     @Test
@@ -114,7 +121,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PATCH /test");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "PATCH /test");
     }
 
     @Test
@@ -127,8 +134,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "GET /test/chained");
-        reporter.reset();
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /test/chained");
     }
 
     @Test
@@ -141,7 +147,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "POST /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "POST /test/chained");
     }
 
     @Test
@@ -154,7 +160,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PUT /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "PUT /test/chained");
     }
 
     @Test
@@ -167,7 +173,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "DELETE /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "DELETE /test/chained");
     }
 
     @Test
@@ -180,7 +186,7 @@ public class AnnotatedHandlerInstrumentationTest {
 
         final List<Transaction> transactions = reporter.getTransactions();
         Assert.assertEquals(transactions.size(), 1);
-        Assert.assertEquals(transactions.get(0).getNameAsString().toString(), "PATCH /test/chained");
+        Assert.assertEquals(transactions.get(0).getNameAsString(), "PATCH /test/chained");
     }
 }
 

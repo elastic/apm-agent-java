@@ -12,7 +12,10 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.is;
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 
 
 public class FunctionalHandlerInstrumentation extends ElasticApmInstrumentation {

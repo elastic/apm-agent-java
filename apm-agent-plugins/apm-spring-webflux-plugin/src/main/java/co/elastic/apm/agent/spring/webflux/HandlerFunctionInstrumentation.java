@@ -12,7 +12,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.*;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 
 public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
 
@@ -27,12 +29,8 @@ public class HandlerFunctionInstrumentation extends ElasticApmInstrumentation {
         if (tracer.getActive() != null) {
             return;
         }
-        if (serverRequest instanceof ServerRequestWrapper) {
-            final ServerRequestWrapper wrapper = (ServerRequestWrapper) serverRequest;
-            //if not null than this request was delegated to another handler
-            if (wrapper.getTransaction() == null) {
-                transaction = WebFluxInstrumentationHelper.createAndActivateTransaction(tracer, wrapper);
-            }
+        if (transaction == null) {
+            transaction = WebFluxInstrumentationHelper.createAndActivateTransaction(tracer, serverRequest);
         }
     }
 

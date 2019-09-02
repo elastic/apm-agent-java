@@ -1,6 +1,5 @@
 package co.elastic.apm.agent.spring.webflux;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.undertow.Undertow;
 import org.apache.http.HttpResponse;
@@ -8,10 +7,9 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.http.server.reactive.HttpHandler;
-import org.springframework.http.server.reactive.UndertowHttpHandlerAdapter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.HandlerFunction;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -22,9 +20,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentationTest {
+public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrumentationTest {
 
     private static final Logger log = Logger.getLogger(FunctionalHandlerInstrumentationTest.class.getCanonicalName());
+
+    @After
+    public void after() {
+        reporter.reset();
+    }
 
     @Test
     public void shouldInstrumentSimpleGetRequest() throws IOException {
@@ -35,7 +38,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentatio
         final Undertow server = startServer(route);
 
         final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8080/hello");
+        final HttpGet request = new HttpGet("http://localhost:8200/hello");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
         Assert.assertEquals(statusCode, HttpStatus.SC_OK);
@@ -64,7 +67,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentatio
         final Undertow server = startServer(route);
 
         final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8080/hello");
+        final HttpGet request = new HttpGet("http://localhost:8200/hello");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
         Assert.assertEquals(statusCode, HttpStatus.SC_OK);
@@ -78,21 +81,5 @@ public class FunctionalHandlerInstrumentationTest extends AbstractInstrumentatio
         log.info("Request handled in: " + transactions.get(0).getDuration());
 
         server.stop();
-    }
-
-    private static Undertow startServer(RouterFunction<ServerResponse> route) {
-        final HttpHandler httpHandler = RouterFunctions.toHttpHandler(route);
-
-        final UndertowHttpHandlerAdapter undertowHttpHandlerAdapter = new UndertowHttpHandlerAdapter(httpHandler);
-
-        //we pass zero so Undertow will find an free port
-        final Undertow server = Undertow.builder()
-            .addHttpListener(0, "127.0.0.1")
-            .setHandler(undertowHttpHandlerAdapter)
-            .build();
-
-        server.start();
-
-        return server;
     }
 }
