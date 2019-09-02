@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,12 +31,12 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import org.springframework.web.servlet.ModelAndView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -48,8 +48,8 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeExecute(@Advice.Argument(0) @Nullable ModelAndView modelAndView,
-                                      @Advice.Local("span") Span span) {
+    private static void beforeExecute(@Advice.Local("span") Span span) {
+        System.out.println("HERE");
         if (tracer == null || tracer.getActive() == null) {
             return;
         }
@@ -59,9 +59,9 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             .withSubtype(SPAN_SUBTYPE)
             .withAction(SPAN_ACTION)
             .withName(DISPATCHER_SERVLET_RENDER_METHOD);
-        if (modelAndView != null && modelAndView.getViewName() != null) {
-            span.appendToName(" ").appendToName(modelAndView.getViewName());
-        }
+//        if (modelAndView != null && modelAndView.getViewName() != null) {
+//            span.appendToName(" ").appendToName(modelAndView.getViewName());
+//        }
         span.activate();
     }
 
@@ -77,13 +77,13 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("org.springframework.web.servlet.View");
+        return hasSuperType(named("org.springframework.web.servlet.View"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("render")
-            .and(takesArgument(0, named("java.util.ModelAndView")))
+        return named("doRender")
+            .and(takesArgument(0, named("java.util.Map")))
             .and(takesArgument(1, named("javax.servlet.http.HttpServletRequest")))
             .and(takesArgument(2, named("javax.servlet.http.HttpServletResponse")));
     }
