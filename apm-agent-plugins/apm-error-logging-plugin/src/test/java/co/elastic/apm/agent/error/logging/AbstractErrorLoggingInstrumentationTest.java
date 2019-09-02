@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.error.logging;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
@@ -41,24 +42,17 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-public class AbstractErrorLoggingInstrumentationTest {
-
-    protected static ElasticApmTracer tracer;
-    protected static MockReporter reporter;
+class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     public static void beforeAll() {
         reporter = new MockReporter();
+        config = SpyConfiguration.createSpyConfig();
         tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(SpyConfiguration.createSpyConfig())
+            .configurationRegistry(config)
             .reporter(reporter)
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(), Arrays.asList(new Slf4jLoggingInstrumentation()));
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        ElasticApmAgent.reset();
     }
 
     @BeforeEach
