@@ -44,6 +44,6 @@ public class ExceptionHandlerInstrumentationWithExceptionHandlerTest extends Abs
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(0, 1, ExceptionHandlerRuntimeException.class, response, 409, "exception-handler runtime exception occured", "runtime exception occured");
+        assertExceptionCapture(ExceptionHandlerRuntimeException.class, response, 409, "exception-handler runtime exception occured", "runtime exception occured");
     }
 }

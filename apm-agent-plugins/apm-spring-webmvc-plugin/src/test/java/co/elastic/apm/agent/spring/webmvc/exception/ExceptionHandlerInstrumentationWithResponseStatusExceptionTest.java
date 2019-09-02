@@ -47,7 +47,7 @@ public class ExceptionHandlerInstrumentationWithResponseStatusExceptionTest exte
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(0, 1, ResponseStatusException.class, response, 409, "", "Response status 409 with reason \"responseStatusException\"; nested exception is co.elastic.apm.agent.spring.webmvc.exception.testapp.response_status_exception.ResponseStatusRuntimeException: runtime exception occured");
+        assertExceptionCapture(ResponseStatusException.class, response, 409, "", "Response status 409 with reason \"responseStatusException\"; nested exception is co.elastic.apm.agent.spring.webmvc.exception.testapp.response_status_exception.ResponseStatusRuntimeException: runtime exception occured");
         assertEquals("runtime exception occured", reporter.getErrors().get(0).getException().getCause().getMessage());
         assertEquals(ResponseStatusRuntimeException.class, reporter.getErrors().get(0).getException().getCause().getClass());
     }

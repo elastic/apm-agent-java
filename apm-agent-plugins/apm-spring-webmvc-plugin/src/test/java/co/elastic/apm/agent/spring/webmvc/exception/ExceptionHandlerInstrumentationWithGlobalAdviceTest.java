@@ -48,6 +48,6 @@ public class ExceptionHandlerInstrumentationWithGlobalAdviceTest extends Abstrac
         MvcResult result = resultActions.andReturn();
         MockHttpServletResponse response = result.getResponse();
 
-        assertExceptionCapture(0, 1, ControllerAdviceRuntimeException.class, response, 409, "controller-advice runtime exception occured", "runtime exception occured");
+        assertExceptionCapture(ControllerAdviceRuntimeException.class, response, 409, "controller-advice runtime exception occured", "runtime exception occured");
     }
 }
