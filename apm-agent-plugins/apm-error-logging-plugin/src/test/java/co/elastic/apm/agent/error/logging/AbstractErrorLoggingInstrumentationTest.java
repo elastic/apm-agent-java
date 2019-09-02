@@ -28,12 +28,10 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +40,7 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
+abstract class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeAll
     public static void beforeAll() {
@@ -56,13 +54,13 @@ class AbstractErrorLoggingInstrumentationTest extends AbstractInstrumentationTes
     }
 
     @BeforeEach
-    public void startTransaction() {
+    void startTransaction() {
         reporter.reset();
         tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
     }
 
     @AfterEach
-    public void endTransaction() {
+    void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
             currentTransaction.deactivate().end();

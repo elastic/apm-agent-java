@@ -33,7 +33,7 @@ class Slf4jLoggingInstrumentationTest extends AbstractErrorLoggingInstrumentatio
     private static final Logger logger = LoggerFactory.getLogger(Slf4jLoggingInstrumentationTest.class);
 
     @Test
-    public void captureException() {
+    void captureException() {
         logger.error("exception captured", new RuntimeException("some business exception"));
         verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
     }
