@@ -72,20 +72,4 @@ public class HttpUtils {
         bufferedReader.close();
         return bodyString.toString();
     }
-
-    public static void closeInputStream(@Nullable HttpURLConnection connection) {
-        if (connection != null) {
-            try {
-                InputStream responseInputStream = connection.getErrorStream();
-                if (responseInputStream == null) {
-                    responseInputStream = connection.getInputStream();
-                }
-                if (responseInputStream != null) {
-                    IOUtils.consumeAndClose(responseInputStream);
-                }
-            } catch (Exception e) {
-                logger.error("Exception when closing input stream of HttpURLConnection.");
-            }
-        }
-    }
 }
