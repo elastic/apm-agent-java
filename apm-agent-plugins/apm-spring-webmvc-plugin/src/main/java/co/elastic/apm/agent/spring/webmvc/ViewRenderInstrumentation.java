@@ -118,7 +118,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("thymeleaf-view", "freemarker-view", "jackson2json-view", "jsp-view");
+        return Arrays.asList("thymeleaf-view", "freemarker-view", "jackson2json-view", "jsp-view", "groovy-view");
     }
 }
 
