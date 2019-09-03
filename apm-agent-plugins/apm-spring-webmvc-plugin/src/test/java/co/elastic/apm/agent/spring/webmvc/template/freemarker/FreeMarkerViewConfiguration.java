@@ -11,7 +11,7 @@ import org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver;
 @EnableWebMvc
 @Configuration
 @ComponentScan({"co.elastic.apm.agent.spring.webmvc.template.freemarker"})
-public class SpringWebConfig extends WebMvcConfigurerAdapter {
+public class FreeMarkerViewConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public FreeMarkerViewResolver freemarkerViewResolver() {

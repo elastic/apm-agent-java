@@ -27,11 +27,13 @@ package co.elastic.apm.agent.spring.webmvc;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.web.servlet.view.AbstractView;
+import org.springframework.web.servlet.view.freemarker.FreeMarkerView;
+import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -49,42 +51,50 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
-
-
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeExecute(@Advice.Local("span") Span span,
-                                      @Advice.This Object thiz) {
-        System.out.println("HERE = " + (span == null) );
-        Transaction transaction = tracer.currentTransaction();
-        System.out.println("Is null = " + (transaction == null));
-        if (transaction == null) {
-            System.out.println("HERE2");
-            return;
-        }
-        System.out.println("HERE3");
-        String viewName = thiz.getClass().getSimpleName().replace("View", "");
-        System.out.println("HERE4");
-        span = transaction.createSpan()
-            .withType(SPAN_TYPE)
-            .withSubtype(viewName)
-            .withAction(SPAN_ACTION)
-            .withName(DISPATCHER_SERVLET_RENDER_METHOD);
-//        if (modelAndView != null && modelAndView.getViewName() != null) {
-//            span.appendToName(" ").appendToName(modelAndView.getViewName());
-//        }
-        System.out.println("Trying to activate");
-        span.activate();
+    @Override
+    public Class<?> getAdviceClass() {
+        return ViewRenderAdviceService.class;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void afterExecute(@Advice.Local("span") @Nullable Span span,
-                                     @Advice.Thrown @Nullable Throwable t) {
-        System.out.println("EXIT HERE");
-        if (span != null) {
-            System.out.println("NOT NULL");
-            span.captureException(t)
-                .deactivate()
-                .end();
+    public static class ViewRenderAdviceService {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void beforeExecute(@Advice.Local("span") @Nullable Span span,
+                                         @Advice.This @Nullable Object thiz) {
+            System.out.println("HERE");
+            if (tracer == null || tracer.getActive() == null) {
+                return;
+            }
+            final TraceContextHolder<?> parent = tracer.getActive();
+
+            String viewClassName = thiz.getClass().getSimpleName().replace("View", "");
+
+            span = parent.createSpan()
+                .withType(SPAN_TYPE)
+                .withSubtype(viewClassName)
+                .withAction(SPAN_ACTION)
+                .withName(DISPATCHER_SERVLET_RENDER_METHOD);
+
+            String viewName = null;
+            if (thiz instanceof AbstractView) {
+                AbstractView view = (AbstractView) thiz;
+                viewName = view.getBeanName();
+            }
+
+            if (viewName != null) {
+                span.appendToName(" ").appendToName(viewName);
+            }
+            span.activate();
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void afterExecute(@Advice.Local("span") @Nullable Span span,
+                                        @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                span.captureException(t)
+                    .deactivate()
+                    .end();
+            }
         }
     }
 
@@ -95,7 +105,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("doRender")
+        return named("render")
             .and(takesArgument(0, named("java.util.Map")))
             .and(takesArgument(1, named("javax.servlet.http.HttpServletRequest")))
             .and(takesArgument(2, named("javax.servlet.http.HttpServletResponse")));
