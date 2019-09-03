@@ -10,14 +10,14 @@ import org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver;
 
 @EnableWebMvc
 @Configuration
-@ComponentScan("co.elastic.apm.agent.spring.webmvc.template.freemarker")
-public class SpringWebConfig {
+@ComponentScan({"co.elastic.apm.agent.spring.webmvc.template.freemarker"})
+public class SpringWebConfig extends WebMvcConfigurerAdapter {
 
     @Bean
     public FreeMarkerViewResolver freemarkerViewResolver() {
         FreeMarkerViewResolver resolver = new FreeMarkerViewResolver();
         resolver.setCache(true);
-        resolver.setPrefix("/freemarker/");
+        resolver.setPrefix("");
         resolver.setSuffix(".ftl");
         return resolver;
     }
@@ -25,7 +25,7 @@ public class SpringWebConfig {
     @Bean
     public FreeMarkerConfigurer freemarkerConfig() {
         FreeMarkerConfigurer freeMarkerConfigurer = new FreeMarkerConfigurer();
-        freeMarkerConfigurer.setTemplateLoaderPath("");
+        freeMarkerConfigurer.setTemplateLoaderPath("/freemarker");
         return freeMarkerConfigurer;
     }
 }

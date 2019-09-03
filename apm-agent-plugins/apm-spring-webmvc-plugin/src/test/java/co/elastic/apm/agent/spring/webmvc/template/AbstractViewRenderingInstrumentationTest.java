@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.spring.webmvc.template.test;
+package co.elastic.apm.agent.spring.webmvc.template;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.MockReporter;
@@ -22,7 +22,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.Arrays;
 
 @ExtendWith(SpringExtension.class)
-@WebAppConfiguration
+@WebAppConfiguration("src/test/resources")
 @TestConfiguration
 public class AbstractViewRenderingInstrumentationTest extends AbstractInstrumentationTest {
 

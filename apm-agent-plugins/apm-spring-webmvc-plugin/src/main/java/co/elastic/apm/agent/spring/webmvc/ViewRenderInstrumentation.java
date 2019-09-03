@@ -27,6 +27,7 @@ package co.elastic.apm.agent.spring.webmvc;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -35,6 +36,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -47,28 +49,39 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
+
+
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeExecute(@Advice.Local("span") Span span) {
-        System.out.println("HERE");
-        if (tracer == null || tracer.getActive() == null) {
+    private static void beforeExecute(@Advice.Local("span") Span span,
+                                      @Advice.This Object thiz) {
+        System.out.println("HERE = " + (span == null) );
+        Transaction transaction = tracer.currentTransaction();
+        System.out.println("Is null = " + (transaction == null));
+        if (transaction == null) {
+            System.out.println("HERE2");
             return;
         }
-        final TraceContextHolder<?> parent = tracer.getActive();
-        span = parent.createSpan()
+        System.out.println("HERE3");
+        String viewName = thiz.getClass().getSimpleName().replace("View", "");
+        System.out.println("HERE4");
+        span = transaction.createSpan()
             .withType(SPAN_TYPE)
-            .withSubtype(SPAN_SUBTYPE)
+            .withSubtype(viewName)
             .withAction(SPAN_ACTION)
             .withName(DISPATCHER_SERVLET_RENDER_METHOD);
 //        if (modelAndView != null && modelAndView.getViewName() != null) {
 //            span.appendToName(" ").appendToName(modelAndView.getViewName());
 //        }
+        System.out.println("Trying to activate");
         span.activate();
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     private static void afterExecute(@Advice.Local("span") @Nullable Span span,
                                      @Advice.Thrown @Nullable Throwable t) {
+        System.out.println("EXIT HERE");
         if (span != null) {
+            System.out.println("NOT NULL");
             span.captureException(t)
                 .deactivate()
                 .end();
