@@ -32,14 +32,11 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.view.AbstractView;
-import org.springframework.web.servlet.view.freemarker.FreeMarkerView;
-import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 import org.thymeleaf.spring4.view.AbstractThymeleafView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -79,9 +76,14 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             if (thiz instanceof AbstractView) {
                 AbstractView view = (AbstractView) thiz;
                 viewName = view.getBeanName();
-            } else if (thiz instanceof AbstractThymeleafView) {
-                AbstractThymeleafView view = (AbstractThymeleafView) thiz;
-                viewName = view.getBeanName();
+            }
+            switch (viewClassName) {
+                case "Thymeleaf":
+                    AbstractThymeleafView view = (AbstractThymeleafView) thiz;
+                    viewName = view.getBeanName();
+                    break;
+                default:
+                    break;
             }
 
             if (viewName != null) {
