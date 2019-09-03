@@ -22,27 +22,23 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.template.jackson2json;
+package co.elastic.apm.agent.spring.webmvc.template.jsp;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.ViewResolver;
-import org.springframework.web.servlet.view.BeanNameViewResolver;
-import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
+@EnableWebMvc
 @Configuration
-public class Jackson2JsonViewConfiguration {
-
+public class JspConfiguration implements WebMvcConfigurer {
     @Bean
-    public View jsonTemplate() {
-        MappingJackson2JsonView view = new MappingJackson2JsonView();
-        view.setPrettyPrint(true);
-        return view;
-    }
-
-    @Bean
-    public ViewResolver viewResolver() {
-        return new BeanNameViewResolver();
+    public ViewResolver jspViewResolver() {
+        InternalResourceViewResolver bean = new InternalResourceViewResolver();
+        bean.setPrefix("/jsp/");
+        bean.setSuffix(".jsp");
+        return bean;
     }
 }
