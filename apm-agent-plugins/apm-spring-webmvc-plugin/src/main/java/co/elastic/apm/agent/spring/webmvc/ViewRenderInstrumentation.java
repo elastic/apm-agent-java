@@ -34,6 +34,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.springframework.web.servlet.view.AbstractView;
 import org.springframework.web.servlet.view.freemarker.FreeMarkerView;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+import org.thymeleaf.spring4.view.AbstractThymeleafView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -61,7 +62,6 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void beforeExecute(@Advice.Local("span") @Nullable Span span,
                                          @Advice.This @Nullable Object thiz) {
-            System.out.println("HERE");
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
@@ -78,6 +78,9 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             String viewName = null;
             if (thiz instanceof AbstractView) {
                 AbstractView view = (AbstractView) thiz;
+                viewName = view.getBeanName();
+            } else if (thiz instanceof AbstractThymeleafView) {
+                AbstractThymeleafView view = (AbstractThymeleafView) thiz;
                 viewName = view.getBeanName();
             }
 
