@@ -25,16 +25,13 @@
 package co.elastic.apm.agent.spring.webmvc.template;
 
 
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.spring.webmvc.template.jade4j.Jade4jController;
 import co.elastic.apm.agent.spring.webmvc.template.jade4j.Jade4jTemplateConfiguration;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
-import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {Jade4jTemplateConfiguration.class, Jade4jController.class})
@@ -45,15 +42,6 @@ class Jade4jTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/jade4j"));
 
         MvcResult mvcResult = resultActions.andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        assertEquals(200, response.getStatus());
-        String responseString = mvcResult.getResponse().getContentAsString();
-        assertEquals("<!DOCTYPE html><html><body><Hello>Message 123</Hello></body></html>", responseString.trim());
-        assertEquals(1, reporter.getSpans().size());
-        Span firstSpan = reporter.getSpans().get(0);
-        assertEquals("template", firstSpan.getType());
-        assertEquals("Jade", firstSpan.getSubtype());
-        assertEquals("render", firstSpan.getAction());
-        assertEquals("DispatcherServlet#render hello", firstSpan.getNameAsString());
+        verifySpanCapture("Jade", "hello", mvcResult.getResponse(), "<!DOCTYPE html><html><body><Hello>Message 123</Hello></body></html>");
     }
 }

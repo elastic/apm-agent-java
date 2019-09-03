@@ -25,16 +25,13 @@
 package co.elastic.apm.agent.spring.webmvc.template;
 
 
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.spring.webmvc.template.thymeleaf.ThymeleafConfiguration;
 import co.elastic.apm.agent.spring.webmvc.template.thymeleaf.ThymeleafController;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
-import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {ThymeleafConfiguration.class, ThymeleafController.class})
@@ -45,15 +42,7 @@ class ThymeleafTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/thymeleaf"));
 
         MvcResult mvcResult = resultActions.andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        assertEquals(200, response.getStatus());
-        String responseString = response.getContentAsString();
-        assertEquals("<span>Message 123</span>", responseString.trim());
-        assertEquals(1, reporter.getSpans().size());
-        Span firstSpan = reporter.getSpans().get(0);
-        assertEquals("template", firstSpan.getType());
-        assertEquals("Thymeleaf", firstSpan.getSubtype());
-        assertEquals("render", firstSpan.getAction());
-        assertEquals("DispatcherServlet#render thymeleaf", firstSpan.getNameAsString());
+
+        verifySpanCapture("Thymeleaf", "thymeleaf", mvcResult.getResponse(), "<span>Message 123</span>");
     }
 }

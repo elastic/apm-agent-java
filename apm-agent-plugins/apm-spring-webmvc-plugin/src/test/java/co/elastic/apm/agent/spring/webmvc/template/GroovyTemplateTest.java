@@ -25,16 +25,13 @@
 package co.elastic.apm.agent.spring.webmvc.template;
 
 
-import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.spring.webmvc.template.groovy.GroovyConfiguration;
 import co.elastic.apm.agent.spring.webmvc.template.groovy.GroovyController;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
-import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @ContextConfiguration(classes = {GroovyController.class, GroovyConfiguration.class})
@@ -45,15 +42,7 @@ class GroovyTemplateTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/groovy"));
 
         MvcResult mvcResult = resultActions.andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        assertEquals(200, response.getStatus());
-        String responseString = mvcResult.getResponse().getContentAsString();
-        assertEquals("<!DOCTYPE html><html lang='en'><head><meta http-equiv='\"Content-Type\" content=\"text/html; charset=utf-8\"'/><title>My page</title></head><body><h2>A Groovy View with Spring MVC</h2><div>msg: Message 123</div></body></html>", responseString.trim());
-        assertEquals(1, reporter.getSpans().size());
-        Span firstSpan = reporter.getSpans().get(0);
-        assertEquals("template", firstSpan.getType());
-        assertEquals("GroovyMarkup", firstSpan.getSubtype());
-        assertEquals("render", firstSpan.getAction());
-        assertEquals("DispatcherServlet#render hello", firstSpan.getNameAsString());
+
+        verifySpanCapture("GroovyMarkup", "hello", mvcResult.getResponse(), "<!DOCTYPE html><html lang='en'><head><meta http-equiv='\"Content-Type\" content=\"text/html; charset=utf-8\"'/><title>My page</title></head><body><h2>A Groovy View with Spring MVC</h2><div>msg: Message 123</div></body></html>");
     }
 }

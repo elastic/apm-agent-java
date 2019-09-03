@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.servlet.ServletInstrumentation;
 import co.elastic.apm.agent.spring.webmvc.ViewRenderInstrumentation;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,9 +48,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import javax.annotation.Nullable;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @WebAppConfiguration("src/test/resources")
@@ -88,5 +93,17 @@ abstract class AbstractViewRenderingInstrumentationTest {
     final void cleanUp() {
         tracer.resetServiceNameOverrides();
         assertThat(tracer.getActive()).isNull();
+    }
+
+    void verifySpanCapture(String spanSubType, String spanSuffix, MockHttpServletResponse response, @Nullable String messageContent) throws UnsupportedEncodingException {
+        assertEquals(200, response.getStatus());
+        String responseString = response.getContentAsString();
+        assertEquals(messageContent, responseString.trim());
+        assertEquals(1, reporter.getSpans().size());
+        Span firstSpan = reporter.getSpans().get(0);
+        assertEquals("template", firstSpan.getType());
+        assertEquals(spanSubType, firstSpan.getSubtype());
+        assertEquals("render", firstSpan.getAction());
+        assertEquals("DispatcherServlet#render " + spanSuffix, firstSpan.getNameAsString());
     }
 }
