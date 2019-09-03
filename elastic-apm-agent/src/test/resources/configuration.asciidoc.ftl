@@ -8,17 +8,19 @@ which have different naming conventions for the property key.
 The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
+. {kibana-ref}/agent-configuration.html[Central configuration]
 . Java system properties +
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
   All configuration keys are in uppercase and prefixed with `ELASTIC_APM_`
 . `elasticapm.properties` file +
   You can place a `elasticapm.properties` in the same directory the agent jar resides in.
+  To customize the location, set the <<config-config-file>> option.
   No prefix is required for the configuration keys.
 
-Configuration options marked with Dynamic true can be changed at runtime
-via configuration sources which support dynamic reloading.
-Java system properties can be set from within the application.
+Configuration options marked with Dynamic true can be changed at runtime via configuration sources which support dynamic reloading.
+{kibana-ref}/agent-configuration.html[Central configuration] and the `elasticapm.properties` file are such sources.
+Java system properties can be dynamic as well by being set from within the application.
 
 In order to get started with Elastic APM,
 the most important configuration options are <<config-service-name>>,
@@ -52,7 +54,6 @@ ELASTIC_APM_SERVER_URLS=http://localhost:8200
 For Spring-based application, uses the `spring.application.name` property, if set.
 For Servlet-based applications, uses the `display-name` of the `web.xml`, if available.
 Falls back to the servlet context path the application is mapped to (unless mapped to the root context).
-Note: the above service name auto discovery mechanisms require APM Server 7.0+.
 Falls back to the name of the main class or jar file.
 If the service name is set explicitly, it overrides all of the above.
 </#assign>
@@ -136,9 +137,9 @@ Valid options: <#list option.validOptionsLabelMap?values as validOption>`${valid
 # Supports the duration suffixes ms, s and m. Example: ${option.defaultValueAsString}.
 # The default unit for this option is ${option.valueConverter.defaultDurationSuffix}.
 </#if>
-# Default value: ${option.key?matches("service_name")?then(defaultServiceName, option.defaultValueAsString!)}
+# Default value: ${option.key?matches("service_name")?then(defaultServiceName?replace("\n", "\n# ", "r"), option.defaultValueAsString!)}
 #
-# ${option.key}=${option.key?matches("service_name")?then(defaultServiceName, option.defaultValueAsString!)}
+# ${option.key}=${option.key?matches("service_name")?then('', option.defaultValueAsString!)}
 
         </#if>
     </#list>

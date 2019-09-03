@@ -4,27 +4,35 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.slf4j;
 
 import co.elastic.apm.agent.cache.WeakKeySoftValueLoadingCache;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ActivationListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.logging.LoggingConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
@@ -37,8 +45,11 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     // the toString prevents constant folding, which would also make the shade plugin relocate
     private static final String ORG_SLF4J_MDC = "org." + "slf4j.MDC".toString();
     private static final String TRACE_ID = "trace.id";
-    private static final String SPAN_ID = "span.id";
     private static final String TRANSACTION_ID = "transaction.id";
+    private static final Logger logger = LoggerFactory.getLogger(Slf4JMdcActivationListener.class);
+
+    // Never invoked- only used for caching ClassLoaders that can't load the slf4j MDC class
+    private static final MethodHandle NOOP = MethodHandles.constant(String.class, "ClassLoader cannot load slf4j API");
 
     private final WeakKeySoftValueLoadingCache<ClassLoader, MethodHandle> mdcPutMethodHandleCache =
         new WeakKeySoftValueLoadingCache<>(new WeakKeySoftValueLoadingCache.ValueSupplier<ClassLoader, MethodHandle>() {
@@ -48,9 +59,9 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                 try {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(ORG_SLF4J_MDC), "put", MethodType.methodType(void.class, String.class, String.class));
-                } catch (Exception ignore) {
-                    // this class loader does not have the slf4j api
-                    return null;
+                } catch (Exception e) {
+                    logger.warn("Class loader " + classLoader + " cannot load slf4j API", e);
+                    return NOOP;
                 }
             }
         });
@@ -63,28 +74,28 @@ public class Slf4JMdcActivationListener implements ActivationListener {
                     return MethodHandles.lookup()
                         .findStatic(classLoader.loadClass(ORG_SLF4J_MDC), "remove", MethodType.methodType(void.class, String.class));
                 } catch (Exception ignore) {
-                    // this class loader does not have the slf4j api
-                    return null;
+                    // No need to log - logged already when populated the put cache
+                    return NOOP;
                 }
             }
         });
-    private final LoggingConfiguration config;
+    private final LoggingConfiguration loggingConfiguration;
+    private final CoreConfiguration coreConfiguration;
     private final ElasticApmTracer tracer;
 
     public Slf4JMdcActivationListener(ElasticApmTracer tracer) {
         this.tracer = tracer;
-        this.config = tracer.getConfig(LoggingConfiguration.class);
+        this.loggingConfiguration = tracer.getConfig(LoggingConfiguration.class);
+        this.coreConfiguration = tracer.getConfig(CoreConfiguration.class);
     }
 
     @Override
     public void beforeActivate(TraceContextHolder<?> context) throws Throwable {
-        if (config.isLogCorrelationEnabled()) {
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        if (loggingConfiguration.isLogCorrelationEnabled() && coreConfiguration.isActive()) {
 
-            MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-            if (put != null) {
+            MethodHandle put = mdcPutMethodHandleCache.get(getApplicationClassLoader(context));
+            if (put != null && put != NOOP) {
                 TraceContext traceContext = context.getTraceContext();
-                put.invokeExact(SPAN_ID, traceContext.getId().toString());
                 if (tracer.getActive() == null) {
                     put.invokeExact(TRACE_ID, traceContext.getTraceId().toString());
                     put.invokeExact(TRANSACTION_ID, traceContext.getTransactionId().toString());
@@ -94,27 +105,39 @@ public class Slf4JMdcActivationListener implements ActivationListener {
     }
 
     @Override
-    public void afterDeactivate() throws Throwable {
-        if (config.isLogCorrelationEnabled()) {
+    public void afterDeactivate(TraceContextHolder<?> deactivatedContext) throws Throwable {
+        if (loggingConfiguration.isLogCorrelationEnabled()) {
 
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-            TraceContextHolder active = tracer.getActive();
-
-            MethodHandle remove = mdcRemoveMethodHandleCache.get(contextClassLoader);
-            if (remove != null) {
-                if (active == null) {
-                    remove.invokeExact(SPAN_ID);
+            MethodHandle remove = mdcRemoveMethodHandleCache.get(getApplicationClassLoader(deactivatedContext));
+            if (remove != null && remove != NOOP) {
+                if (tracer.getActive() == null) {
                     remove.invokeExact(TRACE_ID);
                     remove.invokeExact(TRANSACTION_ID);
                 }
             }
-
-            if (active != null) {
-                MethodHandle put = mdcPutMethodHandleCache.get(contextClassLoader);
-                if (put != null) {
-                    put.invokeExact(SPAN_ID, active.getTraceContext().getId().toString());
-                }
-            }
         }
     }
+
+    /**
+     * Looks up the class loader which corresponds to the application the current transaction belongs to.
+     * @param context
+     * @return
+     */
+    private ClassLoader getApplicationClassLoader(TraceContextHolder<?> context) {
+        ClassLoader applicationClassLoader = context.getTraceContext().getApplicationClassLoader();
+        if (applicationClassLoader != null) {
+            return applicationClassLoader;
+        } else {
+            return getFallbackClassLoader();
+        }
+    }
+
+    private ClassLoader getFallbackClassLoader() {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader =  ClassLoader.getSystemClassLoader();
+        }
+        return classLoader;
+    }
+
 }

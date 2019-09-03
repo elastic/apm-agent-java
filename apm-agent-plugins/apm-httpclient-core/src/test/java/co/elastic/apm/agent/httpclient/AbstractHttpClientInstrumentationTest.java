@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.httpclient;
@@ -69,14 +74,21 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCall() {
+    public void testHttpCall() throws Exception {
         String path = "/";
         performGetWithinTransaction(path);
 
         verifyHttpSpan(path);
     }
 
-    protected void verifyHttpSpan(String path) {
+    @Test
+    public void testHttpCallWithUserInfo() throws Exception {
+        performGet("http://user:passwd@localhost:" + wireMockRule.port() + "/");
+        verifyHttpSpan("/");
+    }
+
+    protected void verifyHttpSpan(String path) throws Exception {
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -90,30 +102,33 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testNonExistingHttpCall() {
+    public void testNonExistingHttpCall() throws Exception {
         String path = "/non-existing";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(404);
     }
 
     @Test
-    public void testErrorHttpCall() {
+    public void testErrorHttpCall() throws Exception {
         String path = "/error";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(515);
     }
 
     @Test
-    public void testHttpCallRedirect() {
+    public void testHttpCallRedirect() throws Exception {
         String path = "/redirect";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
@@ -126,10 +141,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     }
 
     @Test
-    public void testHttpCallCircularRedirect() {
+    public void testHttpCallCircularRedirect() throws Exception {
         String path = "/circular-redirect";
         performGetWithinTransaction(path);
 
+        assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException()).isNotNull();

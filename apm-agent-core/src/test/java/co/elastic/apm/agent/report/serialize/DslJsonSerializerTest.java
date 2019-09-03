@@ -4,29 +4,41 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report.serialize;
 
+import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.ProcessInfo;
+import co.elastic.apm.agent.impl.payload.Service;
+import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.report.ApmServerClient;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,22 +48,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 class DslJsonSerializerTest {
 
     private DslJsonSerializer serializer;
     private ObjectMapper objectMapper;
+    private ApmServerClient apmServerClient;
 
     @BeforeEach
     void setUp() {
-        serializer = new DslJsonSerializer(mock(StacktraceConfiguration.class));
+        StacktraceConfiguration stacktraceConfiguration = mock(StacktraceConfiguration.class);
+        when(stacktraceConfiguration.getStackTraceLimit()).thenReturn(15);
+        apmServerClient = mock(ApmServerClient.class);
+        serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient);
         objectMapper = new ObjectMapper();
     }
 
@@ -67,6 +85,15 @@ class DslJsonSerializerTest {
             final String truncatedLongRandomString = longRandomString.substring(0, 1023) + "…";
             softly.assertThat(serializeTags(Map.of(longRandomString, longRandomString))).isEqualTo(toJson(Map.of(truncatedLongRandomString, truncatedLongRandomString)));
         });
+    }
+
+    @Test
+    void testSerializeNonStringLabels() {
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(true);
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Map.of("foo", true)));
+
+        when(apmServerClient.supportsNonStringLabels()).thenReturn(false);
+        assertThat(serializeTags(Map.of("foo", true))).isEqualTo(toJson(Collections.singletonMap("foo", null)));
     }
 
     @Test
@@ -87,10 +114,35 @@ class DslJsonSerializerTest {
         assertThat(context.get("tags").get("foo").textValue()).isEqualTo("bar");
         JsonNode exception = errorTree.get("exception");
         assertThat(exception.get("message").textValue()).isEqualTo("test");
-        assertThat(exception.get("stacktrace")).isNotNull();
+        JsonNode stacktrace = exception.get("stacktrace");
+        assertThat(stacktrace).isNotNull();
+        assertThat(stacktrace).hasSize(15);
+        JsonNode stackTraceElement = stacktrace.get(0);
+        assertThat(stackTraceElement.get("filename")).isNotNull();
+        assertThat(stackTraceElement.get("function")).isNotNull();
+        assertThat(stackTraceElement.get("library_frame")).isNotNull();
+        assertThat(stackTraceElement.get("lineno")).isNotNull();
+        assertThat(stackTraceElement.get("module")).isNotNull();
         assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
+    }
+
+    @Test
+    void testErrorSerializationOutsideTrace() throws IOException {
+        MockReporter reporter = new MockReporter();
+        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
+        tracer.captureException(new Exception("test"), getClass().getClassLoader());
+        String errorJson = serializer.toJsonString(reporter.getFirstError());
+        System.out.println("errorJson = " + errorJson);
+        JsonNode errorTree = objectMapper.readTree(errorJson);
+        assertThat(errorTree.get("id")).isNotNull();
+        assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
+        JsonNode exception = errorTree.get("exception");
+        assertThat(exception.get("message").textValue()).isEqualTo("test");
+        assertThat(exception.get("stacktrace")).isNotNull();
+        assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
+        assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isFalse();
     }
 
     @Test
@@ -119,7 +171,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testNullHeaders() throws IOException {
-        Transaction transaction = new Transaction(mock(ElasticApmTracer.class));
+        Transaction transaction = new Transaction(MockTracer.create());
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
@@ -134,7 +186,7 @@ class DslJsonSerializerTest {
 
     @Test
     void testSpanTypeSerialization() throws IOException {
-        Span span = new Span(mock(ElasticApmTracer.class));
+        Span span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template.jsf.render.view");
         JsonNode spanJson = objectMapper.readTree(serializer.toJsonString(span));
@@ -144,19 +196,19 @@ class DslJsonSerializerTest {
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withAction("jsf.render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withSubtype("jsf.render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
 
-        span = new Span(mock(ElasticApmTracer.class));
+        span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withSubtype("jsf").withAction("render");
         spanJson = objectMapper.readTree(serializer.toJsonString(span));
@@ -171,7 +223,20 @@ class DslJsonSerializerTest {
         assertThat(sb.toString()).isEqualTo("this.is_DOT_a_DOT_string");
     }
 
-    private String toJson(Map<String, String> map) {
+    @Test
+    void testSerializeMetadata() throws IOException {
+        Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
+        SystemInfo system = SystemInfo.create();
+        ProcessInfo processInfo = new ProcessInfo("title");
+        processInfo.getArgv().add("test");
+        serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, system, Map.of("foo", "bar", "baz", "qux")));
+        JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
+        System.out.println(metaDataJson);
+        assertThat(metaDataJson.get("labels").get("foo").textValue()).isEqualTo("bar");
+        assertThat(metaDataJson.get("labels").get("baz").textValue()).isEqualTo("qux");
+    }
+
+    private String toJson(Map<String, Object> map) {
         try {
             return objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {
@@ -179,9 +244,17 @@ class DslJsonSerializerTest {
         }
     }
 
-    private String serializeTags(Map<String, String> tags) {
+    private String serializeTags(Map<String, Object> tags) {
         final AbstractContext context = new AbstractContext() {};
-        tags.forEach(context::addLabel);
+        for (Map.Entry<String, Object> entry : tags.entrySet()) {
+            if (entry.getValue() instanceof String) {
+                context.addLabel(entry.getKey(), (String) entry.getValue());
+            } else if (entry.getValue() instanceof Boolean) {
+                context.addLabel(entry.getKey(), (Boolean) entry.getValue());
+            } else if (entry.getValue() instanceof Number) {
+                context.addLabel(entry.getKey(), (Number) entry.getValue());
+            }
+        }
         serializer.serializeLabels(context);
         final String jsonString = serializer.jw.toString();
         serializer.jw.reset();

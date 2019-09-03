@@ -4,22 +4,28 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.slf4j;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
@@ -32,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -40,17 +48,19 @@ import static org.mockito.Mockito.when;
 class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
 
     private LoggingConfiguration loggingConfiguration;
+    private CoreConfiguration coreConfiguration;
 
     @BeforeEach
     void setUp() {
         MDC.clear();
         loggingConfiguration = config.getConfig(LoggingConfiguration.class);
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
     @Test
     void testMdcIntegration() {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);
@@ -70,18 +80,145 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testDisabledWhenInactive() {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        when(coreConfiguration.isActive()).thenReturn(false);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        assertMdcIsEmpty();
+        try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsEmpty();
+            Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsEmpty();
+            }
+        }
+        transaction.end();
+        when(coreConfiguration.isActive()).thenReturn(true);
+    }
+
+    @Test
+    void testInactivationWhileMdcIsSet() {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        assertMdcIsEmpty();
+        try (Scope scope = transaction.activateInScope()) {
+            assertMdcIsSet(transaction);
+            when(coreConfiguration.isActive()).thenReturn(false);
+            Span child = transaction.createSpan();
+            try (Scope childScope = child.activateInScope()) {
+                assertMdcIsSet(transaction);
+            }
+            assertMdcIsSet(transaction);
+        }
+        assertMdcIsEmpty();
+        transaction.end();
+        when(coreConfiguration.isActive()).thenReturn(true);
+    }
+
+    @Test
     void testMdcIntegrationTransactionScopeInDifferentThread() throws Exception {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
+        final CompletableFuture<Boolean> result = new CompletableFuture<>();
         Thread thread = new Thread(() -> {
             assertMdcIsEmpty();
             try (Scope scope = transaction.activateInScope()) {
                 assertMdcIsSet(transaction);
             }
             assertMdcIsEmpty();
+            result.complete(true);
         });
         thread.start();
+        assertThat(result.get(1000, TimeUnit.MILLISECONDS).booleanValue()).isTrue();
+        assertMdcIsEmpty();
+        thread.join();
+        transaction.end();
+    }
+
+    @Test
+    void testNoopWhenClassLoaderCantLoadMdc() throws Exception {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        assertMdcIsEmpty();
+        final CompletableFuture<Boolean> result = new CompletableFuture<>();
+        Thread thread = new Thread(() -> {
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                assertMdcIsEmpty();
+            }
+            result.complete(true);
+        });
+        thread.setContextClassLoader(ClassLoader.getPlatformClassLoader());
+        thread.start();
+        assertThat(result.get(1000, TimeUnit.MILLISECONDS).booleanValue()).isTrue();
+        assertMdcIsEmpty();
+        thread.join();
+        transaction.end();
+    }
+
+    @Test
+    void testWithNullContextClassLoader() throws Exception {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
+        assertMdcIsEmpty();
+        final CompletableFuture<Boolean> result = new CompletableFuture<>();
+        Thread thread = new Thread(() -> {
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                assertMdcIsSet(transaction);
+            }
+            assertMdcIsEmpty();
+            result.complete(true);
+        });
+        thread.setContextClassLoader(null);
+        thread.start();
+        assertThat(result.get().booleanValue()).isTrue();
+        assertMdcIsEmpty();
+        thread.join();
+        transaction.end();
+    }
+
+    @Test
+    void testWithNullApplicationClassLoaderFallbackPlatformCL() throws Exception {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        assertMdcIsEmpty();
+        final CompletableFuture<Boolean> result = new CompletableFuture<>();
+        Thread thread = new Thread(() -> {
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                // the platform CL can't load the MDC
+                assertMdcIsEmpty();
+            }
+            assertMdcIsEmpty();
+            result.complete(true);
+        });
+        thread.setContextClassLoader(ClassLoader.getPlatformClassLoader());
+        thread.start();
+        assertThat(result.get().booleanValue()).isTrue();
+        assertMdcIsEmpty();
+        thread.join();
+        transaction.end();
+    }
+
+    @Test
+    void testWithNullApplicationClassLoaderFallbackCL() throws Exception {
+        when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
+        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        assertMdcIsEmpty();
+        final CompletableFuture<Boolean> result = new CompletableFuture<>();
+        Thread thread = new Thread(() -> {
+            assertMdcIsEmpty();
+            try (Scope scope = transaction.activateInScope()) {
+                assertMdcIsSet(transaction);
+            }
+            assertMdcIsEmpty();
+            result.complete(true);
+        });
+        thread.setContextClassLoader(getClass().getClassLoader());
+        thread.start();
+        assertThat(result.get().booleanValue()).isTrue();
         assertMdcIsEmpty();
         thread.join();
         transaction.end();
@@ -90,22 +227,24 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     @Test
     void testMdcIntegrationContextScopeInDifferentThread() throws Exception {
         when(loggingConfiguration.isLogCorrelationEnabled()).thenReturn(true);
-        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).withType("request").withName("test");
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).withType("request").withName("test");
         assertMdcIsEmpty();
         try (Scope scope = transaction.activateInScope()) {
             assertMdcIsSet(transaction);
             final Span child = transaction.createSpan();
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(child);
+                final CompletableFuture<Boolean> result = new CompletableFuture<>();
                 Thread thread = new Thread(() -> {
                     assertMdcIsEmpty();
                     try (Scope otherThreadScope = child.getTraceContext().activateInScope()) {
                         assertMdcIsSet(child);
                     }
                     assertMdcIsEmpty();
+                    result.complete(true);
                 });
                 thread.start();
-                thread.join();
+                assertThat(result.get(1000, TimeUnit.MILLISECONDS).booleanValue()).isTrue();
                 assertMdcIsSet(child);
             }
             assertMdcIsSet(transaction);
@@ -128,13 +267,11 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
     private void assertMdcIsSet(AbstractSpan span) {
         assertThat(MDC.get("trace.id")).isEqualTo(span.getTraceContext().getTraceId().toString());
         assertThat(MDC.get("transaction.id")).isEqualTo(span.getTraceContext().getTransactionId().toString());
-        assertThat(MDC.get("span.id")).isEqualTo(span.getTraceContext().getId().toString());
     }
 
     private void assertMdcIsEmpty() {
         assertThat(MDC.get("trace.id")).isNull();
         assertThat(MDC.get("transaction.id")).isNull();
-        assertThat(MDC.get("span.id")).isNull();
     }
 
 }

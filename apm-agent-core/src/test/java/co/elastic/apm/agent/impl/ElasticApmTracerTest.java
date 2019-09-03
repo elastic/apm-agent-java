@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl;
@@ -164,7 +169,8 @@ class ElasticApmTracerTest {
         assertThat(reporter.getErrors()).hasSize(1);
         ErrorCapture error = reporter.getFirstError();
         assertThat(error.getException()).isNotNull();
-        assertThat(error.getTraceContext().hasContent()).isFalse();
+        assertThat(error.getTraceContext().hasContent()).isTrue();
+        assertThat(error.getTraceContext().getTraceId().isEmpty()).isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isFalse();
     }
 
@@ -257,7 +263,7 @@ class ElasticApmTracerTest {
             try (Scope spanScope = span.activateInScope()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span.withName("test");
-                assertThat(span.getName().toString()).isEqualTo("test");
+                assertThat(span.getNameAsString()).isEqualTo("test");
                 assertThat(tracerImpl.getActive()).isSameAs(span);
                 assertThat(span.isChildOf(transaction)).isTrue();
                 span.end();
@@ -266,7 +272,7 @@ class ElasticApmTracerTest {
             try (Scope spanScope = span2.activateInScope()) {
                 when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
                 span2.withName("test2");
-                assertThat(span2.getName().toString()).isEqualTo("test2");
+                assertThat(span2.getNameAsString()).isEqualTo("test2");
                 assertThat(tracerImpl.getActive()).isSameAs(span2);
                 assertThat(span2.isChildOf(transaction)).isTrue();
                 span2.end();
@@ -346,9 +352,9 @@ class ElasticApmTracerTest {
         transaction.end(30);
 
         assertThat(transaction.getTimestamp()).isEqualTo(0);
-        assertThat(transaction.getDuration()).isEqualTo(0.03);
+        assertThat(transaction.getDuration()).isEqualTo(30);
         assertThat(span.getTimestamp()).isEqualTo(10);
-        assertThat(span.getDuration()).isEqualTo(0.01);
+        assertThat(span.getDuration()).isEqualTo(10);
     }
 
     @Test
@@ -356,7 +362,8 @@ class ElasticApmTracerTest {
         final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
         final TraceContext transactionTraceContext = transaction.getTraceContext().copy();
         transaction.end();
-        transaction.resetState();
+
+        reporter.assertRecycledAfterDecrementingReferences();
 
         tracerImpl.activate(transactionTraceContext);
         try {
@@ -373,6 +380,23 @@ class ElasticApmTracerTest {
             tracerImpl.deactivate(transactionTraceContext);
         }
         assertThat(tracerImpl.getActive()).isNull();
+    }
+
+    @Test
+    void testActivateDeactivateTwice() {
+        final Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        tracerImpl.activate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        assertThat(tracerImpl.getActive()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.currentTransaction()).isEqualTo(transaction);
+        tracerImpl.deactivate(transaction);
+        assertThat(tracerImpl.getActive()).isNull();
+        assertThat(tracerImpl.currentTransaction()).isNull();
+        transaction.end();
     }
 
     @Test

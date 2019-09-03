@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl.payload;
@@ -29,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,6 +45,7 @@ public class SystemInfo {
     private static final Logger logger = LoggerFactory.getLogger(SystemInfo.class);
 
     private static final String CONTAINER_UID_REGEX = "^[0-9a-fA-F]{64}$";
+    private static final String SHORTENED_UUID_PATTERN = "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4,}";
     private static final String POD_REGEX =
         "(?:^/kubepods/[^/]+/pod([^/]+)$)|" +
             "(?:^/kubepods\\.slice/kubepods-[^/]+\\.slice/kubepods-[^/]+-pod([^/]+)\\.slice$)";
@@ -82,9 +87,16 @@ public class SystemInfo {
         this.kubernetes = kubernetes;
     }
 
+    public static SystemInfo create(@Nullable String hostname) {
+        String reportedHostname = hostname;
+        if (reportedHostname == null || reportedHostname.equals("")) {
+            reportedHostname = getNameOfLocalHost();
+        }
+        return new SystemInfo(System.getProperty("os.arch"), reportedHostname, System.getProperty("os.name")).findContainerDetails();
+    }
+    
     public static SystemInfo create() {
-
-        return new SystemInfo(System.getProperty("os.arch"), getNameOfLocalHost(), System.getProperty("os.name")).findContainerDetails();
+        return create(null);
     }
 
     static String getNameOfLocalHost() {
@@ -160,10 +172,10 @@ public class SystemInfo {
         final String[] fields = line.split(":");
         if (fields.length == 3) {
             String cGroupPath = fields[2];
-            Path idPathPart = Paths.get(cGroupPath).getFileName();
+            int indexOfLastSlash = cGroupPath.lastIndexOf('/');
 
-            if (idPathPart != null) {
-                String idPart = idPathPart.toString();
+            if (indexOfLastSlash >= 0) {
+                String idPart = cGroupPath.substring(indexOfLastSlash + 1);
 
                 // Legacy, e.g.: /system.slice/docker-<CID>.scope
                 if (idPart.endsWith(".scope")) {
@@ -171,9 +183,8 @@ public class SystemInfo {
                 }
 
                 // Looking for kubernetes info
-                Path dirPathPart = Paths.get(cGroupPath).getParent();
-                if (dirPathPart != null) {
-                    String dir = dirPathPart.toString();
+                String dir = cGroupPath.substring(0, indexOfLastSlash);
+                if (dir.length() > 0) {
                     final Pattern pattern = Pattern.compile(POD_REGEX);
                     final Matcher matcher = pattern.matcher(dir);
                     if (matcher.find()) {
@@ -192,7 +203,7 @@ public class SystemInfo {
 
                 // If the line matched the one of the kubernetes patterns, we assume that the last part is always the container ID.
                 // Otherwise we validate that it is a 64-length hex string
-                if (kubernetes != null || idPart.matches(CONTAINER_UID_REGEX)) {
+                if (kubernetes != null || idPart.matches(CONTAINER_UID_REGEX) || idPart.matches(SHORTENED_UUID_PATTERN)) {
                     container = new Container(idPart);
                 }
             }

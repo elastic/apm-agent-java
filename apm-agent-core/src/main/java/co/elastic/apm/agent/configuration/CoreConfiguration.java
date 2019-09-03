@@ -4,41 +4,50 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.configuration;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
+import org.stagemonitor.configuration.converter.MapValueConverter;
+import org.stagemonitor.configuration.converter.StringValueConverter;
+import org.stagemonitor.configuration.source.ConfigurationSource;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Map;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
 
@@ -47,11 +56,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
+    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
+    public static final String CONFIG_FILE = "config_file";
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
-        .description("A boolean specifying if the agent should be active or not. " +
-            "If active, the agent will instrument incoming HTTP requests and track errors.\n" +
+        .description("A boolean specifying if the agent should be active or not.\n" +
+            "When active, the agent instruments incoming HTTP requests, tracks errors and collects and sends metrics.\n" +
+            "When inactive, the agent works as a noop, not collecting data and not communicating with the APM sever.\n" +
+            "As this is a reversible switch, agent threads are not being killed when inactivated, but they will be \n" +
+            "mostly idle in this state, so the overhead should be negligible.\n" +
             "\n" +
             "You can use this setting to dynamically disable Elastic APM at runtime.")
         .dynamic(true)
@@ -86,7 +100,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "However, you can view those metrics by selecting the `tomcat-application` service name, for example.\n" +
             "Future versions of the Elastic APM stack will have better support for that scenario.\n" +
             "A workaround is to explicitly set the `service_name` which means all applications deployed to the same servlet container will have the same name\n" +
-            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.")
+            "or to disable the corresponding `*-service-name` detecting instrumentations via <<config-disable-instrumentations>>.\n" +
+            "\n" +
+            "NOTE: Service name auto discovery mechanisms require APM Server 7.0+.")
         .addValidator(RegexValidator.of("^[a-zA-Z0-9 _-]+$", "Your service name \"{0}\" must only contain characters " +
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
@@ -98,16 +114,23 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
+    
+    private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
+        .key("hostname")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.")
+        .build();
 
     private final ConfigurationOption<String> environment = ConfigurationOption.stringOption()
         .key("environment")
         .configurationCategory(CORE_CATEGORY)
         .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".\n" +
             "\n" +
-            "NOTE: The APM UI does not fully support the environment setting yet.\n" +
-            "You can use the query bar to filter for a specific environment,\n" +
-            "but by default the environments will be mixed together.\n" +
-            "Also keep that in mind when creating alerts.")
+            "Environments allow you to easily filter data on a global level in the APM UI.\n" +
+            "It's important to be consistent when naming environments across agents.\n" +
+            "See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.\n\n" +
+            "NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.\n" +
+            "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
     private final ConfigurationOption<Double> sampleRate = ConfigurationOption.doubleOption()
@@ -200,6 +223,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
+        .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
+        .key("global_labels")
+        .tags("added[1.7.0, Requires APM Server 7.2+]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Labels added to all events, with the format `key=value[,key=value[,...]]`.\n" +
+            "Any labels set by application via the API will override global labels with the same keys.\n" +
+            "\n" +
+            "NOTE: This feature requires APM Server 7.2+")
+        .dynamic(false)
+        .buildWithDefault(Collections.<String, String>emptyMap());
+
     private final ConfigurationOption<Boolean> typePoolCache = ConfigurationOption.booleanOption()
         .key("enable_type_pool_cache")
         .configurationCategory(CORE_CATEGORY)
@@ -224,7 +259,6 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "This speeds up matching but can lead to class-loading-related side effects, for example when a class \n" +
             "is available somewhere in the classpath where it never gets loaded unless this matching is applied.")
         .buildWithDefault(true);
-
 
     private final ConfigurationOption<List<WildcardMatcher>> classesExcludedFromInstrumentation = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -261,14 +295,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
         .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
         .key("trace_methods")
-        .tags("added[1.3.0,Enhancements in 1.4.0]")
+        .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for with to create a transaction or span.\n" +
             "\n" +
-            "The syntax is `modifier fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
-            "You can use wildcards for the class name, the method name and the parameter types.\n" +
+            "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
+            "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
             "The `*` wildcard matches zero or more characters.\n" +
             "That means that a wildcard in a package name also matches sub-packages\n" +
+            "Specifying an annotation is optional.\n" +
+            "When matching for annotations, only classes that are annotated with the specified annotation are considered.\n" +
+            "You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes " +
+            "that are annotated with an annotation that is itself annotated with the given meta-annotation.\n" +
             "Specifying the parameter types is optional.\n" +
             "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
             "\n" +
@@ -283,6 +321,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - `private org.example.MyClass#myMe*od(java.lang.String, *)`\n" +
             " - `* org.example.MyClas*#myMe*od(*.String, int[])`\n" +
             " - `public org.example.services.*Service#*`\n" +
+            " - `public @java.inject.ApplicationScoped org.example.*`\n" +
+            " - `public @java.inject.* org.example.*`\n" +
+            " - `public @@javax.enterprise.context.NormalScope org.example.*`\n" +
             "\n" +
             "NOTE: Only use wildcards if necessary.\n" +
             "The more methods you match the more overhead will be caused by the agent.\n" +
@@ -292,8 +333,79 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.")
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Common configurations:\n\n" +
+            "Trace all public methods in CDI-Annotated beans:\n\n" +
+            "----\n" +
+            "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
+            "public @@javax.inject.Scope your.application.package.*\n" +
+            "----\n")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
+
+    private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
+        .key("trace_methods_duration_threshold")
+        .tags("added[1.7.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("If <<config-trace-methods, `trace_methods`>> config option is set, provides a threshold to limit spans based on \n" +
+            "duration. When set to a value greater than 0, spans representing methods traced based on `trace_methods` will be discarded " +
+            "by default.\n" +
+            "Such methods will be traced and reported if one of the following applies:\n" +
+            " - This method's duration crossed the configured threshold.\n" +
+            " - This method ended with Exception.\n" +
+            " - A method executed as part of the execution of this method crossed the threshold or ended with Exception.\n" +
+            " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
+            "Set to 0 to disable.\n" +
+            "\n" +
+            "NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.\n" +
+            "In order not to break span references, all spans leading to an async operations are never discarded, regardless \n" +
+            "of their duration.\n")
+        .buildWithDefault(TimeDuration.of("0ms"));
+
+    private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()
+        .key("boot_delegation_packages")
+        .tags("added[1.7.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A comma-separated list of packages to be appended to the boot delegation system property. \n" +
+            "If set with an empty string, nothing will be appended to the boot delegation system property.\n" +
+            "Values to set in known environments:\n\n" +
+            "Nexus:\n\n" +
+            "----\n" +
+            "boot_delegation_packages=com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, sun.*," +
+            "co.elastic.apm.agent.*\n" +
+            "----\n\n" +
+            "Pentaho and RedHat JBoss Fuse:\n\n" +
+            "----\n" +
+            "boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.principal, org.apache.karaf.management.boot, " +
+            "sun.*, com.sun.*, javax.transaction, javax.transaction.*, javax.xml.crypto, javax.xml.crypto.*, org.apache.xerces.jaxp.datatype, " +
+            "org.apache.xerces.stax, org.apache.xerces.parsers, org.apache.xerces.jaxp, org.apache.xerces.jaxp.validation, " +
+            "org.apache.xerces.dom, co.elastic.apm.agent.*\n" +
+            "----\n")
+        .buildWithDefault("co.elastic.apm.agent.*");
+
+    private final ConfigurationOption<Boolean> centralConfig = ConfigurationOption.booleanOption()
+        .key("central_config")
+        .tags("added[1.8.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("When enabled, the agent will make periodic requests to the APM Server to fetch updated configuration.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<Boolean> breakdownMetrics = ConfigurationOption.booleanOption()
+        .key("breakdown_metrics")
+        .tags("added[1.8.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Disables the collection of breakdown metrics (`span.self_time`)")
+        .buildWithDefault(true);
+
+    private final ConfigurationOption<String> configFileLocation = ConfigurationOption.stringOption()
+        .key(CONFIG_FILE)
+        .tags("added[1.8.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("Sets the path of the agent config file.\n" +
+            "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
+            "The location can either be in the classpath of the application (when using the attacher API) or on the file system.\n" +
+            "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
+        .buildWithDefault(DEFAULT_CONFIG_FILE);
 
     public boolean isActive() {
         return active.get();
@@ -315,6 +427,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceVersion.get();
     }
 
+    public String getHostname() {
+        return hostname.get();
+    }
+    
     public String getEnvironment() {
         return environment.get();
     }
@@ -361,5 +477,57 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<MethodMatcher> getTraceMethods() {
         return traceMethods.get();
+    }
+
+    public TimeDuration getTraceMethodsDurationThreshold() {
+        return traceMethodsDurationThreshold.get();
+    }
+
+    public @Nullable String getPackagesToAppendToBootdelegationProperty() {
+        String value = appendPackagesToBootDelagationProperty.get();
+        if (value != null) {
+            value = value.trim();
+            if (value.isEmpty()) {
+                value = null;
+            }
+        }
+        return value;
+    }
+
+    public Map<String, String> getGlobalLabels() {
+        return globalLabels.get();
+    }
+
+    boolean isCentralConfigEnabled() {
+        return centralConfig.get();
+    }
+
+    public boolean isBreakdownMetricsEnabled() {
+        return breakdownMetrics.get();
+    }
+
+    /*
+     * Makes sure to not initialize ConfigurationOption, which would initialize the logger
+     */
+    @Nullable
+    public static String getConfigFileLocation(List<ConfigurationSource> configurationSources) {
+        String configFileLocation = DEFAULT_CONFIG_FILE;
+        for (ConfigurationSource configurationSource : configurationSources) {
+            String valueFromSource = configurationSource.getValue(CONFIG_FILE);
+            if (valueFromSource != null) {
+                configFileLocation = valueFromSource;
+                break;
+            }
+        }
+        if (configFileLocation.contains(AGENT_HOME_PLACEHOLDER)) {
+            String agentHome = ElasticApmAgent.getAgentHome();
+            if (agentHome != null) {
+                return configFileLocation.replace(AGENT_HOME_PLACEHOLDER, agentHome);
+            } else {
+                return null;
+            }
+        } else {
+            return configFileLocation;
+        }
     }
 }

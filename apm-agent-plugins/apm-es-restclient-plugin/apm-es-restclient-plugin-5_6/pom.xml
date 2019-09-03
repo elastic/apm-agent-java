@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.9.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-5_6</artifactId>
@@ -13,6 +13,7 @@
 
     <properties>
         <version.elasticsearch>5.6.0</version.elasticsearch>
+        <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
     </properties>
 
     <dependencies>
@@ -37,6 +38,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-es-restclient-plugin-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
         <!-- Elasticsearch testcontainer -->
         <dependency>
             <groupId>org.testcontainers</groupId>

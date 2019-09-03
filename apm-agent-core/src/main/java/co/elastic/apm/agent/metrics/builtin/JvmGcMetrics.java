@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.metrics.builtin;
@@ -22,15 +27,14 @@ package co.elastic.apm.agent.metrics.builtin;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
+import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import com.sun.management.ThreadMXBean;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class JvmGcMetrics implements LifecycleListener {
 
@@ -43,7 +47,7 @@ public class JvmGcMetrics implements LifecycleListener {
 
     void bindTo(final MetricRegistry registry) {
         for (final GarbageCollectorMXBean garbageCollectorMXBean : garbageCollectorMXBeans) {
-            final Map<String, String> tags = Collections.singletonMap("name", garbageCollectorMXBean.getName());
+            final Labels tags = Labels.Mutable.of("name", garbageCollectorMXBean.getName());
             registry.addUnlessNegative("jvm.gc.count", tags, new DoubleSupplier() {
                 @Override
                 public double get() {
@@ -65,7 +69,7 @@ public class JvmGcMetrics implements LifecycleListener {
             // but the actual MBean it uses (com.ibm.lang.management.internal.ExtendedThreadMXBeanImpl) does not implement it
             if (sunBeanClass.isInstance(ManagementFactory.getThreadMXBean())) {
                 // in reference to JMH's GC profiler (gc.alloc.rate)
-                registry.add("jvm.gc.alloc", Collections.<String, String>emptyMap(),
+                registry.add("jvm.gc.alloc", Labels.EMPTY,
                     (DoubleSupplier) Class.forName(getClass().getName() + "$HotspotAllocationSupplier").getEnumConstants()[0]);
             }
         } catch (ClassNotFoundException ignore) {

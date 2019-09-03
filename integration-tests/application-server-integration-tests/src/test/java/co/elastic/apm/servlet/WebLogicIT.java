@@ -4,26 +4,33 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.servlet;
 
+import co.elastic.apm.servlet.tests.CdiApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.JsfApplicationServerTestApp;
 import co.elastic.apm.servlet.tests.ServletApiTestApp;
 import co.elastic.apm.servlet.tests.SoapTestApp;
 import co.elastic.apm.servlet.tests.TestApp;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.testcontainers.containers.BindMode;
@@ -32,14 +39,15 @@ import org.testcontainers.containers.GenericContainer;
 import java.util.Arrays;
 import java.util.List;
 
+@Ignore("Requires docker login which is not available on the CI performing the releases")
 @RunWith(Parameterized.class)
 public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     public WebLogicIT(final String webLogicVersion) {
         super(new GenericContainer<>("store/oracle/weblogic:" + webLogicVersion)
-                .withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar")
                 .withClasspathResourceMapping("domain.properties", "/u01/oracle/properties/domain.properties", BindMode.READ_WRITE),
             7001,
+            5005,
             "weblogic-application",
             "/u01/oracle/user_projects/domains/base_domain/autodeploy",
             "weblogic");
@@ -54,13 +62,12 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     protected void enableDebugging(GenericContainer<?> servletContainer) {
-        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-javaagent:/elastic-apm-agent.jar " +
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+        servletContainer.withEnv("EXTRA_JAVA_PROPERTIES", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
     }
 
     @Override
     protected Iterable<Class<? extends TestApp>> getTestClasses() {
-        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class);
+        return Arrays.asList(ServletApiTestApp.class, JsfApplicationServerTestApp.class, SoapTestApp.class, CdiApplicationServerTestApp.class);
     }
 
     @Override
@@ -75,5 +82,10 @@ public class WebLogicIT extends AbstractServletContainerIntegrationTest {
         // WebLogic requires the files to be writable
         // Even binding with BindMode.READ_WRITE does not work for some reason
         return false;
+    }
+
+    @Override
+    protected boolean runtimeAttach() {
+        return true;
     }
 }

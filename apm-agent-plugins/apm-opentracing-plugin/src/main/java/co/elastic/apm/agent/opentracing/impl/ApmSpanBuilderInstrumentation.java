@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.opentracing.impl;
@@ -66,14 +71,14 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
-        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC)
-                                      @Nullable TraceContext parentContext,
+        public static void createSpan(@Advice.Argument(value = 0, typing = Assigner.Typing.DYNAMIC) @Nullable TraceContext parentContext,
+                                      @Advice.Origin Class<?> spanBuilderClass,
                                       @Advice.FieldValue(value = "tags") Map<String, Object> tags,
                                       @Advice.FieldValue(value = "operationName") String operationName,
                                       @Advice.FieldValue(value = "microseconds") long microseconds,
                                       @Advice.Argument(1) @Nullable Iterable<Map.Entry<String, String>> baggage,
                                       @Advice.Return(readOnly = false) Object span) {
-            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage);
+            span = doCreateTransactionOrSpan(parentContext, tags, operationName, microseconds, baggage, spanBuilderClass.getClassLoader());
         }
 
         @Nullable
@@ -81,10 +86,10 @@ public class ApmSpanBuilderInstrumentation extends OpenTracingBridgeInstrumentat
         public static AbstractSpan<?> doCreateTransactionOrSpan(@Nullable TraceContext parentContext,
                                                                 Map<String, Object> tags,
                                                                 String operationName, long microseconds,
-                                                                @Nullable Iterable<Map.Entry<String, String>> baggage) {
+                                                                @Nullable Iterable<Map.Entry<String, String>> baggage, ClassLoader applicationClassLoader) {
             if (tracer != null) {
                 if (parentContext == null) {
-                    return createTransaction(tags, operationName, microseconds, baggage, tracer, TraceContext.class.getClassLoader());
+                    return createTransaction(tags, operationName, microseconds, baggage, tracer, applicationClassLoader);
                 } else {
                     if (microseconds >= 0) {
                         return tracer.startSpan(TraceContext.fromParent(), parentContext, microseconds);

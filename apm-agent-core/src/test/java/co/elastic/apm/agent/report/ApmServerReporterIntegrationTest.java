@@ -4,24 +4,31 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.configuration.converter.TimeDuration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
@@ -53,8 +60,9 @@ class ApmServerReporterIntegrationTest {
 
     private static Undertow server;
     private static int port;
-    private static AtomicInteger receivedHttpRequests = new AtomicInteger();
+    private static AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
     private static HttpHandler handler;
+    private final ElasticApmTracer tracer = MockTracer.create();
     private ReporterConfiguration reporterConfiguration;
     private ApmServerReporter reporter;
     private ConfigurationRegistry config;
@@ -80,61 +88,67 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         handler = exchange -> {
-            if (!exchange.getRequestPath().equals("/healthcheck")) {
-                receivedHttpRequests.incrementAndGet();
+            if (exchange.getRequestPath().equals("/intake/v2/events")) {
+                receivedIntakeApiCalls.incrementAndGet();
             }
             exchange.setStatusCode(200).endExchange();
         };
-        receivedHttpRequests.set(0);
+        receivedIntakeApiCalls.set(0);
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
-        when(reporterConfiguration.getFlushInterval()).thenReturn(TimeDuration.of("-1s"));
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
         SystemInfo system = new SystemInfo("x64", "localhost", "platform");
         final Service service = new Service();
         final ProcessInfo title = new ProcessInfo("title");
         final ProcessorEventHandler processorEventHandler = ProcessorEventHandler.loadProcessors(config);
-        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(service, title, system, reporterConfiguration,
-            processorEventHandler, new DslJsonSerializer(mock(StacktraceConfiguration.class)));
-        reporter = new ApmServerReporter(false, reporterConfiguration, v2handler);
+        ApmServerClient apmServerClient = new ApmServerClient(reporterConfiguration);
+        final IntakeV2ReportingEventHandler v2handler = new IntakeV2ReportingEventHandler(
+            reporterConfiguration,
+            processorEventHandler,
+            new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient),
+            new MetaData(title, service, system, Collections.emptyMap()),
+            apmServerClient);
+        reporter = new ApmServerReporter(false, reporterConfiguration, config.getConfig(CoreConfiguration.class), v2handler);
     }
 
     @Test
     void testReportTransaction() throws ExecutionException, InterruptedException {
-        reporter.report(new Transaction(MockTracer.create()));
+        reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
     void testReportSpan() throws ExecutionException, InterruptedException {
-        reporter.report(new Span(MockTracer.create()));
+        reporter.report(new Span(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
     void testSecretToken() throws ExecutionException, InterruptedException {
         when(reporterConfiguration.getSecretToken()).thenReturn("token");
         handler = exchange -> {
-            assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
-            receivedHttpRequests.incrementAndGet();
+            if (exchange.getRequestPath().equals("/intake/v2/events")) {
+                assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
+                receivedIntakeApiCalls.incrementAndGet();
+            }
             exchange.setStatusCode(200).endExchange();
         };
-        reporter.report(new Transaction(MockTracer.create()));
+        reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
     void testReportErrorCapture() throws ExecutionException, InterruptedException {
-        reporter.report(new ErrorCapture(MockTracer.create()));
+        reporter.report(new ErrorCapture(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
 }

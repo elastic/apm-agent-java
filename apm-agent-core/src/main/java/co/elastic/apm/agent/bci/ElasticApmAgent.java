@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.bci;
@@ -71,10 +76,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+    // Don't init logger as a static field, logging needs to be initialized first see also issue #593
+    // private static final Logger doNotUseThisLogger = LoggerFactory.getLogger(ElasticApmAgent.class);
 
     private static final ConcurrentMap<String, MatcherTimer> matcherTimers = new ConcurrentHashMap<>();
-    // Don't init logger as a static field, logging needs to be initialized first
     @Nullable
     private static Instrumentation instrumentation;
     @Nullable
@@ -101,7 +106,7 @@ public class ElasticApmAgent {
     private static Iterable<ElasticApmInstrumentation> loadInstrumentations(ElasticApmTracer tracer) {
         final List<ElasticApmInstrumentation> instrumentations = DependencyInjectingServiceLoader.load(ElasticApmInstrumentation.class, tracer);
         for (MethodMatcher traceMethod : tracer.getConfig(CoreConfiguration.class).getTraceMethods()) {
-            instrumentations.add(new TraceMethodInstrumentation(traceMethod));
+            instrumentations.add(new TraceMethodInstrumentation(tracer, traceMethod));
         }
 
         return instrumentations;
@@ -128,7 +133,7 @@ public class ElasticApmAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -160,16 +165,16 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
-                                            final ElasticApmInstrumentation advice) {
+                                            final ElasticApmInstrumentation instrumentation) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
-        logger.debug("Applying advice {}", advice.getClass().getName());
+        logger.debug("Applying instrumentation {}", instrumentation.getClass().getName());
         final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
         final boolean typeMatchingWithNamePreFilter = tracer.getConfig(CoreConfiguration.class).isTypeMatchingWithNamePreFilter();
-        final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = advice.getClassLoaderMatcher();
-        final ElementMatcher<? super NamedElement> typeMatcherPreFilter = advice.getTypeMatcherPreFilter();
-        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = advice.getImplementationVersionPostFilter();
-        final ElementMatcher<? super TypeDescription> typeMatcher = advice.getTypeMatcher();
-        final ElementMatcher<? super MethodDescription> methodMatcher = advice.getMethodMatcher();
+        final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = instrumentation.getClassLoaderMatcher();
+        final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
+        final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getImplementationVersionPostFilter();
+        final ElementMatcher<? super TypeDescription> typeMatcher = instrumentation.getTypeMatcher();
+        final ElementMatcher<? super MethodDescription> methodMatcher = instrumentation.getMethodMatcher();
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
                 @Override
@@ -190,46 +195,19 @@ public class ElasticApmAgent {
                             typeMatches = false;
                         }
                         if (typeMatches) {
-                            logger.debug("Type match for advice {}: {} matches {}",
-                                advice.getClass().getSimpleName(), typeMatcher, typeDescription);
+                            logger.debug("Type match for instrumentation {}: {} matches {}",
+                                instrumentation.getClass().getSimpleName(), typeMatcher, typeDescription);
                             if (logger.isTraceEnabled()) {
-                                logClassLoaderHierarchy(classLoader, logger, advice);
+                                logClassLoaderHierarchy(classLoader, logger, instrumentation);
                             }
                         }
                         return typeMatches;
                     } finally {
-                        getOrCreateTimer(advice.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
+                        getOrCreateTimer(instrumentation.getClass()).addTypeMatchingDuration(System.nanoTime() - start);
                     }
                 }
             })
-            .transform(new AgentBuilder.Transformer.ForAdvice(Advice
-                .withCustomMapping()
-                .bind(new SimpleMethodSignatureOffsetMappingFactory())
-                .bind(new AnnotationValueOffsetMappingFactory()))
-                .advice(new ElementMatcher<MethodDescription>() {
-                    @Override
-                    public boolean matches(MethodDescription target) {
-                        long start = System.nanoTime();
-                        try {
-                            boolean matches;
-                            try {
-                                matches = methodMatcher.matches(target);
-                            } catch (Exception ignored) {
-                                // could be because of a missing type
-                                matches = false;
-                            }
-                            if (matches) {
-                                logger.debug("Method match for advice {}: {} matches {}",
-                                    advice.getClass().getSimpleName(), methodMatcher, target);
-                            }
-                            return matches;
-                        } finally {
-                            getOrCreateTimer(advice.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
-                        }
-                    }
-                }, advice.getAdviceClass().getName())
-                .include(ClassLoader.getSystemClassLoader())
-                .withExceptionHandler(PRINTING))
+            .transform(getTransformer(tracer, instrumentation, logger, methodMatcher))
             .transform(new AgentBuilder.Transformer() {
                 @Override
                 public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder, TypeDescription typeDescription,
@@ -237,6 +215,42 @@ public class ElasticApmAgent {
                     return builder.visit(MinimumClassFileVersionValidator.INSTANCE);
                 }
             });
+    }
+
+    private static AgentBuilder.Transformer.ForAdvice getTransformer(final ElasticApmTracer tracer, final ElasticApmInstrumentation instrumentation, final Logger logger, final ElementMatcher<? super MethodDescription> methodMatcher) {
+        Advice.WithCustomMapping withCustomMapping = Advice
+            .withCustomMapping()
+            .bind(new SimpleMethodSignatureOffsetMappingFactory())
+            .bind(new AnnotationValueOffsetMappingFactory());
+        Advice.OffsetMapping.Factory<?> offsetMapping = instrumentation.getOffsetMapping();
+        if (offsetMapping != null) {
+            withCustomMapping = withCustomMapping.bind(offsetMapping);
+        }
+        return new AgentBuilder.Transformer.ForAdvice(withCustomMapping)
+            .advice(new ElementMatcher<MethodDescription>() {
+                @Override
+                public boolean matches(MethodDescription target) {
+                    long start = System.nanoTime();
+                    try {
+                        boolean matches;
+                        try {
+                            matches = methodMatcher.matches(target);
+                        } catch (Exception ignored) {
+                            // could be because of a missing type
+                            matches = false;
+                        }
+                        if (matches) {
+                            logger.debug("Method match for instrumentation {}: {} matches {}",
+                                instrumentation.getClass().getSimpleName(), methodMatcher, target);
+                        }
+                        return matches;
+                    } finally {
+                        getOrCreateTimer(instrumentation.getClass()).addMethodMatchingDuration(System.nanoTime() - start);
+                    }
+                }
+            }, instrumentation.getAdviceClass().getName())
+            .include(ClassLoader.getSystemClassLoader())
+            .withExceptionHandler(PRINTING);
     }
 
     private static MatcherTimer getOrCreateTimer(Class<? extends ElasticApmInstrumentation> adviceClass) {
@@ -294,10 +308,10 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
-        AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.STRONG;
+        AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
                 locationStrategy =

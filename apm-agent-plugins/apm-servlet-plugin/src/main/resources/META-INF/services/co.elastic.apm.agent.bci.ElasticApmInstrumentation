@@ -2,5 +2,4 @@ co.elastic.apm.agent.servlet.ServletInstrumentation
 co.elastic.apm.agent.servlet.FilterChainInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$StartAsyncInstrumentation
 co.elastic.apm.agent.servlet.AsyncInstrumentation$AsyncContextInstrumentation
-co.elastic.apm.agent.servlet.ServletContextServiceNameInstrumentation
 co.elastic.apm.agent.servlet.RequestStreamRecordingInstrumentation

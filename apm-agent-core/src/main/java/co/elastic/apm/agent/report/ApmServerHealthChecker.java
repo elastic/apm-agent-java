@@ -4,101 +4,121 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report;
 
-import co.elastic.apm.agent.util.VersionUtils;
+import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.Version;
+import com.dslplatform.json.DslJson;
+import com.dslplatform.json.JsonReader;
+import com.dslplatform.json.MapConverter;
+import com.dslplatform.json.Nullable;
+import com.dslplatform.json.ObjectConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
-class ApmServerHealthChecker implements Runnable {
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class ApmServerHealthChecker implements Callable<Version> {
     private static final Logger logger = LoggerFactory.getLogger(ApmServerHealthChecker.class);
 
-    private final ReporterConfiguration reporterConfiguration;
+    private final ApmServerClient apmServerClient;
+    private final DslJson<Object> dslJson = new DslJson<>(new DslJson.Settings<>());
 
-    ApmServerHealthChecker(ReporterConfiguration reporterConfiguration) {
-        this.reporterConfiguration = reporterConfiguration;
+    public ApmServerHealthChecker(ApmServerClient apmServerClient) {
+        this.apmServerClient = apmServerClient;
     }
 
-    @Override
-    public void run() {
-        boolean success;
-        String message;
-        HttpURLConnection connection = null;
+    public Future<Version> checkHealthAndGetMinVersion() {
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("apm-server-healthcheck", 1);
         try {
-            URL url = new URL(reporterConfiguration.getServerUrls().get(0).toString() + "/");
-            if (logger.isDebugEnabled()) {
-                logger.debug("Starting healthcheck to {}", url);
-            }
-            connection = (HttpURLConnection) url.openConnection();
-            if (!reporterConfiguration.isVerifyServerCert()) {
-                if (connection instanceof HttpsURLConnection) {
-                    trustAll((HttpsURLConnection) connection);
-                }
-            }
-            if (reporterConfiguration.getSecretToken() != null) {
-                connection.setRequestProperty("Authorization", "Bearer " + reporterConfiguration.getSecretToken());
-            }
-            connection.setRequestProperty("User-Agent", "java-agent/" + VersionUtils.getAgentVersion());
-            connection.setConnectTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.setReadTimeout((int) reporterConfiguration.getServerTimeout().getMillis());
-            connection.connect();
-
-            final int status = connection.getResponseCode();
-
-            success = status < 300;
-
-            if (!success) {
-                if (status == 404) {
-                    message = "It seems like you are using a version of the APM Server which is not compatible with this agent. " +
-                        "Please use APM Server 6.5.0 or newer.";
-                } else {
-                    message = Integer.toString(status);
-                }
-            } else  {
-                // prints out the version info of the APM Server
-                message = HttpUtils.getBody(connection);
-            }
-        } catch (IOException e) {
-            message = e.getMessage();
-            success = false;
+            return pool.submit(this);
         } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-
-        if (success) {
-            logger.info("Elastic APM server is available: {}", message);
-        } else {
-            logger.warn("Elastic APM server is not available ({})", message);
+            pool.shutdown();
         }
     }
 
-    private void trustAll(HttpsURLConnection connection) {
-        final SSLSocketFactory sf = SslUtils.getTrustAllSocketFactory();
-        if (sf != null) {
-            // using the same instances is important for TCP connection reuse
-            connection.setHostnameVerifier(SslUtils.getTrustAllHostnameVerifyer());
-            connection.setSSLSocketFactory(sf);
+    @Nullable
+    @Override
+    public Version call() {
+        List<Version> versions = apmServerClient.executeForAllUrls("/", new ApmServerClient.ConnectionHandler<Version>() {
+            @Override
+            public Version withConnection(HttpURLConnection connection) {
+                try {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Starting healthcheck to {}", connection.getURL());
+                    }
+
+                    final int status = connection.getResponseCode();
+                    if (status >= 300) {
+                        if (status == 404) {
+                            throw new IllegalStateException("It seems like you are using a version of the APM Server which is not compatible with this agent. " +
+                                "Please use APM Server 6.5.0 or newer.");
+                        } else {
+                            throw new IllegalStateException("Server returned status " + status);
+                        }
+                    } else {
+                        try {
+                            // prints out the version info of the APM Server
+                            String body = HttpUtils.getBody(connection);
+                            logger.info("Elastic APM server is available: {}", body);
+                            JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
+                            reader.startObject();
+                            String versionString;
+                            try {
+                                // newer APM server versions contain a flat map at the JSON root
+                                versionString = MapConverter.deserialize(reader).get("version");
+                            } catch (Exception e) {
+                                // 6.x APM server versions' JSON has a root object of which value is the same map
+                                reader = dslJson.newReader(body.getBytes(UTF_8));
+                                reader.startObject();
+                                Map<String, Object> root = ObjectConverter.deserializeMap(reader);
+                                //noinspection unchecked
+                                versionString = ((Map<String, String>) root.get("ok")).get("version");
+                            }
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("APM server {} version is: {}", connection.getURL(), versionString);
+                            }
+                            return new Version(versionString);
+                        } catch (Exception e) {
+                            logger.warn("Failed to parse version of APM server {}: {}", connection.getURL(), e.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Elastic APM server {} is not available ({})", connection.getURL(), e.getMessage());
+                }
+                return null;
+            }
+        });
+        versions.remove(null);
+        if (!versions.isEmpty()) {
+            return Collections.min(versions);
         }
+        return null;
     }
 }

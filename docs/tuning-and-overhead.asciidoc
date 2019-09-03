@@ -1,0 +1,3 @@
+[[tuning-and-overhead]]
+== Tuning and Overhead considerations
+Have a look at this blog: https://www.elastic.co/blog/performance-tuning-of-the-elastic-apm-java-agent

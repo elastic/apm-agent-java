@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.jdbc;
@@ -24,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Db;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.jdbc.signature.SignatureParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +39,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,15 +63,18 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     private PreparedStatement preparedStatement;
     private final Transaction transaction;
 
+    private SignatureParser signatureParser;
+
     AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor) throws Exception {
         this.connection = connection;
         this.expectedDbVendor = expectedDbVendor;
         connection.createStatement().execute("CREATE TABLE ELASTIC_APM (FOO INT, BAR VARCHAR(255))");
         connection.createStatement().execute("INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (1, 'APM')");
         transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.setName("transaction");
+        transaction.withName("transaction");
         transaction.withType("request");
-        transaction.withResult("success");
+        transaction.withResultIfUnset("success");
+        signatureParser = new SignatureParser();
     }
 
     @Before
@@ -92,40 +102,75 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     @Test
     public void test() throws SQLException {
         testStatement();
+        testBatch();
         testPreparedStatement();
+        testBatchPreparedStatement();
     }
 
     private void testStatement() throws SQLException {
         final String sql = "SELECT * FROM ELASTIC_APM WHERE FOO=1";
         ResultSet resultSet = connection.createStatement().executeQuery(sql);
-        assertSpanRecorded(resultSet, sql);
+        assertQuerySucceededAndSpanRecorded(resultSet, sql, false);
+    }
+
+    private void testBatch() throws SQLException {
+        final String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (2, 'TEST')";
+        final String delete = "DELETE FROM ELASTIC_APM WHERE FOO=2";
+        Statement statement = connection.createStatement();
+        statement.addBatch(insert);
+        statement.addBatch(delete);
+        int[] updates = statement.executeBatch();
+        assertThat(updates).hasSize(2);
+        assertThat(updates[0]).isEqualTo(1);
+        assertThat(updates[1]).isEqualTo(1);
+        assertSpanRecorded(insert, false);
     }
 
     private void testPreparedStatement() throws SQLException {
         if (preparedStatement != null) {
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
-            assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
+            assertQuerySucceededAndSpanRecorded(resultSet, PREPARED_STATEMENT_SQL, true);
 
             // test a second recording with the same statement object
             reporter.reset();
             resultSet = preparedStatement.executeQuery();
-            assertSpanRecorded(resultSet, PREPARED_STATEMENT_SQL);
+            assertQuerySucceededAndSpanRecorded(resultSet, PREPARED_STATEMENT_SQL, true);
         }
     }
 
-    private void assertSpanRecorded(ResultSet resultSet, String sql) throws SQLException {
+    private void testBatchPreparedStatement() throws SQLException {
+        final String query = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (?, ?)";
+        PreparedStatement statement = connection.prepareStatement(query);
+        statement.setInt(1, 3);
+        statement.setString(2, "TEST#3");
+        statement.addBatch();
+        statement.setInt(1, 4);
+        statement.setString(2, "TEST#4");
+        statement.addBatch();
+        int[] updates = statement.executeBatch();
+        assertThat(updates).hasSize(2);
+        assertSpanRecorded(query, false);
+    }
+
+    private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
+        assertSpanRecorded(rawSql, preparedStatement);
+    }
+
+    private void assertSpanRecorded(String rawSql, boolean preparedStatement) throws SQLException {
         assertThat(reporter.getSpans()).hasSize(1);
         Span jdbcSpan = reporter.getFirstSpan();
-        assertThat(jdbcSpan.getName().toString()).isEqualTo("SELECT");
+        StringBuilder processedSql = new StringBuilder();
+        signatureParser.querySignature(rawSql, processedSql, preparedStatement);
+        assertThat(jdbcSpan.getNameAsString()).isEqualTo(processedSql.toString());
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
         assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
         Db db = jdbcSpan.getContext().getDb();
-        assertThat(db.getStatement()).isEqualTo(sql);
+        assertThat(db.getStatement()).isEqualTo(rawSql);
         assertThat(db.getUser()).isEqualToIgnoringCase(connection.getMetaData().getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
         reporter.reset();

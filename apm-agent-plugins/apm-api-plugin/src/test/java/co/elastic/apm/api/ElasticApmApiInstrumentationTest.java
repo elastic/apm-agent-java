@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.api;
@@ -190,6 +195,25 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testAddCustomContext() {
+        Transaction transaction = ElasticApm.startTransaction();
+        transaction.setName("foo");
+        transaction.setType("bar");
+        transaction.addCustomContext("foo1", "bar1");
+        transaction.addCustomContext("foo", "bar");
+        transaction.addCustomContext("number", 1);
+        transaction.addCustomContext("boolean", true);
+        transaction.addCustomContext("null", (String) null);
+        transaction.end();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("foo1")).isEqualTo("bar1");
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("foo")).isEqualTo("bar");
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("number")).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("boolean")).isEqualTo(true);
+        assertThat(reporter.getFirstTransaction().getContext().getCustom("null")).isNull();
+    }
+
+    @Test
     void testScopes() {
         Transaction transaction = ElasticApm.startTransaction();
         try (co.elastic.apm.api.Scope scope = transaction.activate()) {
@@ -277,8 +301,8 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
         transaction.startSpan().setStartTimestamp(1000).end(2000);
         transaction.end(3000);
 
-        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(3);
-        assertThat(reporter.getFirstSpan().getDuration()).isEqualTo(1);
+        assertThat(reporter.getFirstTransaction().getDuration()).isEqualTo(3000);
+        assertThat(reporter.getFirstSpan().getDuration()).isEqualTo(1000);
     }
 
     @Test

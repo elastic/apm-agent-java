@@ -38,6 +38,7 @@ the agent does not capture transactions.
 
 |IBM J9 VM
 |8
+|
 
 |===
 
@@ -110,7 +111,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |7.x, 8.5.x, 9.x
 
 |<<setup-jboss-wildfly,WildFly>>
-|8-15
+|8-16
 
 |<<setup-jboss-wildfly,JBoss EAP>>
 |6.4, 7.0, 7.1, 7.2
@@ -151,6 +152,13 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |Elasticsearch
 |5.0.2+
 |The agent automatically creates Elasticsearch spans for queries done through the official REST client.
+
+|Hibernate Search
+|5.x (on by default), 6.x (off by default)
+|The agent automatically creates Hibernate Search spans for queries done through the Hibernate Search API.
+
+ *Note:* this feature is marked as incubating for version 6.x, which means it is off by default. In order to enable,
+ set the <<config-disable-instrumentations>> config option to an empty string
 
 |===
 
@@ -197,6 +205,11 @@ The spans are named after the schema `<method> <host>`, for example `GET elastic
  inherently support context propagation as they are using `HttpUrlConnection` underneath.
 |1.4.0
 
+|AsyncHttpClient
+| 2.x
+|
+| 1.7.0
+
 |===
 
 
@@ -220,6 +233,68 @@ This section lists all supported asynchronous frameworks.
 
 
 [float]
+[[supported-messaging-frameworks]]
+=== Messaging frameworks
+When using a messaging framework, sender context is propagated so that receiver events are correlated to the
+same trace.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|JMS
+|1.1, 2.0
+|The agent propagates the context when using `javax.jms.MessageProducer#send` and `javax.jms.JMSProducer#send` methods
+through a `Message` property. On receiver side, the agent reads the context from the Message property through
+`javax.jms.MessageConsumer#receive`, `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`,
+`javax.jms.JMSConsumer#receiveNoWait` or `javax.jms.MessageListener#onMessage` and uses it for enabling distributed
+tracing.
+|1.7.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+
+|===
+
+
+[float]
+[[supported-scheduling-frameworks]]
+=== Scheduling frameworks
+When using a scheduling framework a transaction for every execution will be created.
+
+|===
+|Framework |Supported versions | Description | Since
+
+|Scheduling Annotation
+|
+|The agent instruments any method defined in a package configured in <<config-application-packages>> and annotated with one of the following:  
+`org.springframework.scheduling.annotation.Scheduled`  
+`org.springframework.scheduling.annotation.Schedules`  
+`javax.ejb.Schedule`  
+`javax.ejb.Schedules` in order to create a transaction with the type `scheduled`, representing the scheduled task execution
+|1.6.0
+
+|Quartz
+|
+|The agent instruments the `execute` method of any class implementing `org.quartz.Job`, as well as the `executeInternal` method of any class extending `org.springframework.scheduling.quartz.QuartzJobBean`, and creates a transaction with the type `scheduled`, representing the job execution 
+
+NOTE: only classes from packages configured in <<config-application-packages>>  will be instrumented.
+|1.8.0
+|===
+
+[float]
+[[supported-logging-frameworks]]
+=== Logging frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+|slf4j
+|1.4.1+
+|When <<config-enable-log-correlation>> is set to `true`,
+ the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
+ See the <<config-enable-log-correlation>> configuration option for more details.
+|1.0.0
+
+|===
+
+[float]
 [[supported-technologies-caveats]]
 === Caveats
 * Certain OSGi containers need the following configuration setting in case you see exceptions like
@@ -229,3 +304,4 @@ This section lists all supported asynchronous frameworks.
 * The agent does currently not support running on JVMs with an enabled `SecurityManager`.
   You may see exceptions like this: `java.security.AccessControlException: access denied ("java.lang.RuntimePermission" "getProtectionDomain")`.
   Try to grant `java.security.AllPermission` to the agent.
+

@@ -5,11 +5,15 @@
 pipeline {
   agent any
   environment {
-    BASE_DIR="src/github.com/elastic/apm-agent-java"
+    REPO = 'apm-agent-java'
+    BASE_DIR = "src/github.com/elastic/${env.REPO}"
     NOTIFY_TO = credentials('notify-to')
     JOB_GCS_BUCKET = credentials('gcs-bucket')
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
+    GITHUB_CHECK_ITS_NAME = 'Integration Tests'
+    ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
+    MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -22,7 +26,7 @@ pipeline {
     quietPeriod(10)
   }
   triggers {
-    issueCommentTrigger('.*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
+    issueCommentTrigger('(?i).*(?:jenkins\\W+)?run\\W+(?:the\\W+)?tests(?:\\W+please)?.*')
   }
   parameters {
     string(name: 'MAVEN_CONFIG', defaultValue: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn", description: "Additional maven options.")
@@ -31,7 +35,6 @@ pipeline {
     booleanParam(name: 'test_ci', defaultValue: false, description: 'Enable test')
     booleanParam(name: 'smoketests_ci', defaultValue: false, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: false, description: 'Enable benchmarks')
-    booleanParam(name: 'doc_ci', defaultValue: false, description: 'Enable build documentation')
   }
 
   stages {
@@ -42,7 +45,7 @@ pipeline {
         HOME = "${env.WORKSPACE}"
         JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        MAVEN_CONFIG = "${params.MAVEN_CONFIG}"
+        MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
       stages(){
         /**
@@ -51,32 +54,39 @@ pipeline {
         stage('Checkout') {
           steps {
             deleteDir()
-            gitCheckout(basedir: "${BASE_DIR}")
+            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true)
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
           }
         }
         /**
         Build on a linux environment.
         */
-        stage('build') {
+        stage('Build') {
           steps {
-            deleteDir()
-            unstash 'source'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw clean package -DskipTests=true -Dmaven.javadoc.skip=true
-              """
+            withGithubNotify(context: 'Build', tab: 'artifacts') {
+              deleteDir()
+              unstash 'source'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true
+                ./mvnw license:aggregate-third-party-report -Dlicense.excludedGroups=^co\\.elastic\\.
+                """
+              }
+              stash allowEmpty: true, name: 'build', useDefaultExcludes: false
+              archiveArtifacts allowEmptyArchive: true,
+                artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar,\
+                      ${BASE_DIR}/target/site/aggregate-third-party-report.html",
+                onlyIfSuccessful: true
             }
-            stash allowEmpty: true, name: 'build', useDefaultExcludes: false
-            archiveArtifacts allowEmptyArchive: true,
-              artifacts: "${BASE_DIR}/elastic-apm-agent/target/elastic-apm-agent-*.jar,${BASE_DIR}/apm-agent-attach/target/apm-agent-attach-*.jar",
-              onlyIfSuccessful: true
           }
         }
       }
     }
     stage('Tests') {
+      environment {
+        MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
+      }
       failFast true
       parallel {
         /**
@@ -95,13 +105,15 @@ pipeline {
             expression { return params.test_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw test
-              """
+            withGithubNotify(context: 'Unit Tests', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw test
+                """
+              }
             }
           }
           post {
@@ -126,10 +138,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh './scripts/jenkins/smoketests-01.sh'
+            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh './scripts/jenkins/smoketests-01.sh'
+              }
             }
           }
           post {
@@ -154,12 +168,12 @@ pipeline {
             expression { return params.smoketests_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              dockerLogin(secret: "${DOCKERHUB_SECRET}", registry: "docker.io")
-              sh(label: 'pull weblogic Docker image', script: 'docker pull store/oracle/weblogic:12.2.1.3-dev')
-              sh './scripts/jenkins/smoketests-02.sh'
+            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh './scripts/jenkins/smoketests-02.sh'
+              }
             }
           }
           post {
@@ -195,16 +209,18 @@ pipeline {
             }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              script {
-                env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
-                env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
-                env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
-                env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+            withGithubNotify(context: 'Benchmarks', tab: 'artifacts') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                script {
+                  env.COMMIT_ISO_8601 = sh(script: 'git log -1 -s --format=%cI', returnStdout: true).trim()
+                  env.NOW_ISO_8601 = sh(script: 'date -u "+%Y-%m-%dT%H%M%SZ"', returnStdout: true).trim()
+                  env.RESULT_FILE = "apm-agent-benchmark-results-${env.COMMIT_ISO_8601}.json"
+                  env.BULK_UPLOAD_FILE = "apm-agent-bulk-${env.NOW_ISO_8601}.json"
+                }
+                sh './scripts/jenkins/run-benchmarks.sh'
               }
-              sh './scripts/jenkins/run-benchmarks.sh'
             }
           }
           post {
@@ -232,40 +248,40 @@ pipeline {
             expression { return params.doc_ci }
           }
           steps {
-            deleteDir()
-            unstash 'build'
-            dir("${BASE_DIR}"){
-              sh """#!/bin/bash
-              set -euxo pipefail
-              ./mvnw compile javadoc:javadoc
-              """
+            withGithubNotify(context: 'Javadoc') {
+              deleteDir()
+              unstash 'build'
+              dir("${BASE_DIR}"){
+                sh """#!/bin/bash
+                set -euxo pipefail
+                ./mvnw compile javadoc:javadoc
+                """
+              }
             }
           }
         }
       }
     }
-    /**
-      Build the documentation.
-    */
-    stage('Documentation') {
-      agent { label 'linux && immutable' }
-      options { skipDefaultCheckout() }
-      environment {
-        HOME = "${env.WORKSPACE}"
-        JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        ELASTIC_DOCS = "${env.WORKSPACE}/elastic/docs"
-      }
+    stage('Integration Tests') {
+      agent none
       when {
         beforeAgent true
-        expression { return params.doc_ci }
+        allOf {
+          anyOf {
+            environment name: 'GIT_BUILD_CAUSE', value: 'pr'
+            expression { return !params.Run_As_Master_Branch }
+          }
+        }
       }
       steps {
-        deleteDir()
-        unstash 'source'
-        dir("${BASE_DIR}"){
-          buildDocs(docsDir: "docs", archive: true)
-        }
+        log(level: 'INFO', text: 'Launching Async ITs')
+        build(job: env.ITS_PIPELINE, propagate: false, wait: false,
+              parameters: [string(name: 'AGENT_INTEGRATION_TEST', value: 'Java'),
+                           string(name: 'BUILD_OPTS', value: "--java-agent-version ${env.GIT_BASE_COMMIT}"),
+                           string(name: 'GITHUB_CHECK_NAME', value: env.GITHUB_CHECK_ITS_NAME),
+                           string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
+                           string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
+        githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
     stage('Release') {
@@ -305,18 +321,8 @@ pipeline {
     }
   }
   post {
-    success {
-      echoColor(text: '[SUCCESS]', colorfg: 'green', colorbg: 'default')
-    }
-    aborted {
-      echoColor(text: '[ABORTED]', colorfg: 'magenta', colorbg: 'default')
-    }
-    failure {
-      echoColor(text: '[FAILURE]', colorfg: 'red', colorbg: 'default')
-      step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${NOTIFY_TO}", sendToIndividuals: false])
-    }
-    unstable {
-      echoColor(text: '[UNSTABLE]', colorfg: 'yellow', colorbg: 'default')
+    cleanup {
+      notifyBuildResult()
     }
   }
 }
@@ -325,7 +331,7 @@ def reportTestResults(){
   junit(allowEmptyResults: true,
     keepLongStdio: true,
     testResults: "${BASE_DIR}/**/junit-*.xml,${BASE_DIR}/**/TEST-*.xml")
-  codecov(repo: 'apm-agent-java', basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
+  codecov(repo: env.REPO, basedir: "${BASE_DIR}", secret: "${CODECOV_SECRET}")
 }
 
 def releasePackages(){

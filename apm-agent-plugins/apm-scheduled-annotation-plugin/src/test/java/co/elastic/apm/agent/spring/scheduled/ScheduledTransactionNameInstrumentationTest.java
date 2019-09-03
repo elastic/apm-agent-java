@@ -4,59 +4,39 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.spring.scheduled;
 
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ejb.Schedule;
 
-import org.junit.BeforeClass;
-import org.junit.jupiter.api.BeforeAll;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.Schedules;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.bci.ElasticApmAgent;
-import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import net.bytebuddy.agent.ByteBuddyAgent;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-class ScheduledTransactionNameInstrumentationTest {
-
-    private static MockReporter reporter;
-    private static ElasticApmTracer tracer;
-
-    @BeforeClass
-    @BeforeAll
-    static void setUpAll() {
-        reporter = new MockReporter();
-        tracer = new ElasticApmTracerBuilder()
-                .configurationRegistry(SpyConfiguration.createSpyConfig())
-                .reporter(reporter)
-                .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install(),
-                Collections.singletonList(new ScheduledTransactionNameInstrumentation(tracer)));
-    }
-
+class ScheduledTransactionNameInstrumentationTest extends AbstractInstrumentationTest {
 
     @Test
     void testSpringScheduledAnnotatedMethodsAreTraced() {
@@ -65,7 +45,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduled();
         springCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduled");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduled");
     }
 
     @Test
@@ -75,7 +55,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduledJava8Repeatable();
         springCounter.scheduledJava8Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava8Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava8Repeatable");
     }
 
     @Test
@@ -85,7 +65,7 @@ class ScheduledTransactionNameInstrumentationTest {
         springCounter.scheduledJava7Repeatable();
         springCounter.scheduledJava7Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(springCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("SpringCounter#scheduledJava7Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("SpringCounter#scheduledJava7Repeatable");
     }
 
     @Test
@@ -95,7 +75,7 @@ class ScheduledTransactionNameInstrumentationTest {
         jeeCounter.scheduled();
         jeeCounter.scheduled();
         assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduled");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduled");
     }
 
     @Test
@@ -105,7 +85,7 @@ class ScheduledTransactionNameInstrumentationTest {
         jeeCounter.scheduledJava7Repeatable();
         jeeCounter.scheduledJava7Repeatable();
         assertThat(reporter.getTransactions().size()).isEqualTo(jeeCounter.getInvocationCount());
-        assertThat(reporter.getTransactions().get(0).getName()).isEqualToIgnoringCase("JeeCounter#scheduledJava7Repeatable");
+        assertThat(reporter.getTransactions().get(0).getNameAsString()).isEqualTo("JeeCounter#scheduledJava7Repeatable");
     }
 
 
@@ -156,6 +136,4 @@ class ScheduledTransactionNameInstrumentationTest {
             return this.count.get();
         }
     }
-
-
 }

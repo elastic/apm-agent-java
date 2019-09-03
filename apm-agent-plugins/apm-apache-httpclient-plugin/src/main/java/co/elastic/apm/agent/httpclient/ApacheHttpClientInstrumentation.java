@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.httpclient;
@@ -37,48 +42,65 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+@SuppressWarnings("Duplicates")
 public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
-                                        @Advice.Argument(1) HttpRequestWrapper request,
-                                        @Advice.Local("span") Span span) {
-        if (tracer == null || tracer.getActive() == null) {
-            return;
+    private static class ApacheHttpClientAdvice {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onBeforeExecute(@Advice.Argument(0) HttpRoute route,
+                                            @Advice.Argument(1) HttpRequestWrapper request,
+                                            @Advice.Local("span") Span span) {
+            if (tracer == null || tracer.getActive() == null) {
+                return;
+            }
+            final TraceContextHolder<?> parent = tracer.getActive();
+            span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
+            if (span != null) {
+                span.activate();
+                request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+            } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
+                // re-adds the header on redirects
+                request.addHeader(TraceContext.TRACE_PARENT_HEADER, parent.getTraceContext().getOutgoingTraceParentHeader().toString());
+            }
         }
-        final TraceContextHolder<?> parent = tracer.getActive();
-        span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
-        if (span != null) {
-            span.activate();
-            request.addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-        } else if (!request.containsHeader(TraceContext.TRACE_PARENT_HEADER) && parent != null) {
-            // re-adds the header on redirects
-            request.addHeader(TraceContext.TRACE_PARENT_HEADER, parent.getTraceContext().getOutgoingTraceParentHeader().toString());
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
+                                          @Advice.Local("span") @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                try {
+                    if (response != null && response.getStatusLine() != null) {
+                        int statusCode = response.getStatusLine().getStatusCode();
+                        span.getContext().getHttp().withStatusCode(statusCode);
+                    }
+                    span.captureException(t);
+                } finally {
+                    span.deactivate().end();
+                }
+            }
         }
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onAfterExecute(@Advice.Return @Nullable CloseableHttpResponse response,
-                                      @Advice.Local("span") @Nullable Span span,
-                                      @Advice.Thrown @Nullable Throwable t) {
-        if (span != null) {
-            try {
-                if (response != null && response.getStatusLine() != null) {
-                    int statusCode = response.getStatusLine().getStatusCode();
-                    span.getContext().getHttp().withStatusCode(statusCode);
-                }
-                span.captureException(t);
-            } finally {
-                span.deactivate().end();
-            }
-        }
+    @Override
+    public Class<?> getAdviceClass() {
+        return ApacheHttpClientAdvice.class;
+    }
+
+    @Override
+    public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        return not(isBootstrapClassLoader())
+            .and(classLoaderCanLoadClass("org.apache.http.impl.execchain.ClientExecChain"));
     }
 
     @Override

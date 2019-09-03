@@ -3,12 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
     </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.9.1-SNAPSHOT</version>
     </parent>
     <packaging>jar</packaging>
 
@@ -17,6 +18,38 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>generate-source-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
+                            <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -37,6 +70,17 @@
                                     <excludes>
                                         <exclude>**/module-info.class</exclude>
                                     </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.hdrhistogram:HdrHistogram</artifact>
+                                    <!--
+                                    Currently, we only need this single class.
+                                    We need to be careful not to use others.
+                                    But even if we did, the integration tests should catch that there's a missing class.
+                                    -->
+                                    <includes>
+                                        <include>org/HdrHistogram/WriterReaderPhaser.class</include>
+                                    </includes>
                                 </filter>
                             </filters>
                             <relocations>
@@ -81,12 +125,13 @@
                                     <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
                                     <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.HdrHistogram</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
+                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                                    <addHeader>false</addHeader>
-                                </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Premain-Class>${elastic.apm.agent}</Premain-Class>
@@ -96,6 +141,12 @@
                                         <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
                                         <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
                                     </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/LICENSE</resource>
+                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
                                 </transformer>
                             </transformers>
                         </configuration>
@@ -152,6 +203,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-asynchttpclient-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-httpclient-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -177,7 +233,22 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jms-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jsf-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-hibernate-search-plugin-5_x</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-hibernate-search-plugin-6_x</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -190,7 +261,7 @@
             <artifactId>apm-es-restclient-plugin-6_4</artifactId>
             <version>${project.version}</version>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-okhttp-plugin</artifactId>
             <version>${project.version}</version>
@@ -233,6 +304,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-scheduled-annotation-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-quartz-job-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

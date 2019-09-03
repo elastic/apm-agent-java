@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.impl.payload;
@@ -45,6 +50,21 @@ public class ContainerInfoTest {
         assertContainerInfoIsNull(validLinePrefix + validId.concat("p"));
         assertContainerInfoIsNull("5:rdma:/");
         assertContainerInfoIsNull("0::/system.slice/docker.service");
+    }
+
+    @Test
+    void testCloudFoundryContainerIdParsing() {
+        String validId = "70eb4ce5-a065-4401-6990-88ed";
+        String validLinePrefix = "9:net_cls,net_prio:/garden/";
+        assertContainerId(validLinePrefix + validId, validId);
+        assertContainerInfoIsNull(validLinePrefix.substring(2) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.replace('a', 'g'));
+        assertContainerInfoIsNull(validLinePrefix.substring(0, validLinePrefix.length() - 1) + validId);
+        assertContainerInfoIsNull(validLinePrefix + validId.substring(0, validId.length() - 1));
+        String uuid = validId.concat("abcd1234");
+        assertContainerId(validLinePrefix + uuid, uuid);
+        assertContainerInfoIsNull(validLinePrefix + validId.concat("/"));
+        assertContainerId("5:blkio:/system.slice/garden.service/garden/" + validId, validId);
     }
 
     @Test

@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.bci.methodmatching;
@@ -22,7 +27,9 @@ package co.elastic.apm.agent.bci.methodmatching;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -52,10 +59,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
 
+    public static long traceMethodThresholdMicros;
+
     protected final MethodMatcher methodMatcher;
 
-    public TraceMethodInstrumentation(MethodMatcher methodMatcher) {
+    public TraceMethodInstrumentation(ElasticApmTracer tracer, MethodMatcher methodMatcher) {
         this.methodMatcher = methodMatcher;
+        traceMethodThresholdMicros = tracer.getConfig(CoreConfiguration.class).getTraceMethodsDurationThreshold().getMillis() * 1000;
     }
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -72,22 +82,33 @@ public class TraceMethodInstrumentation extends ElasticApmInstrumentation {
                 span = parent.createSpan()
                     .withName(signature)
                     .activate();
+
+                // by default discard such spans
+                span.setDiscard(true);
             }
         }
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    public static void onMethodExit(@Nullable @Advice.Local("span") AbstractSpan<?> span,
-                                    @Advice.Thrown Throwable t) {
+    public static void onMethodExit(@Advice.Local("span") @Nullable AbstractSpan<?> span,
+                                    @Advice.Thrown @Nullable Throwable t) {
         if (span != null) {
             span.captureException(t);
-            span.deactivate().end();
+            final long endTime = span.getTraceContext().getClock().getEpochMicros();
+            if (span instanceof Span) {
+                long durationMicros = endTime - span.getTimestamp();
+                if (traceMethodThresholdMicros <= 0 || durationMicros >= traceMethodThresholdMicros || t != null) {
+                    span.setDiscard(false);
+                }
+            }
+            span.deactivate().end(endTime);
         }
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return matches(methodMatcher.getClassMatcher())
+            .and(methodMatcher.getAnnotationMatcher())
             .and(not(nameContains("$JaxbAccessor")))
             .and(not(nameContains("$$")))
             .and(not(nameContains("CGLIB")))

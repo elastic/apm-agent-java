@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  * 
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.plugin.api;
@@ -43,7 +48,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     void testSetName() {
         transaction.setName("foo");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
     }
 
     @Test
@@ -77,10 +82,26 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    void testInstrumentationDoesNotOverrideUserResult() {
+        transaction.setResult("foo");
+        endTransaction();
+        reporter.getFirstTransaction().withResultIfUnset("200");
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("foo");
+    }
+
+    @Test
+    void testUserCanOverrideResult() {
+        transaction.setResult("foo");
+        transaction.setResult("bar");
+        endTransaction();
+        assertThat(reporter.getFirstTransaction().getResult()).isEqualTo("bar");
+    }
+
+    @Test
     void testChaining() {
         transaction.setType("foo").setName("foo").addLabel("foo", "bar").setUser("foo", "bar", "baz").setResult("foo");
         endTransaction();
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("foo");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("foo");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
         assertThat(reporter.getFirstTransaction().getContext().getUser().getId()).isEqualTo("foo");
@@ -104,9 +125,9 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         assertThat(reporter.getSpans()).hasSize(3);
         assertThat(reporter.getTransactions()).hasSize(1);
         assertThat(reporter.getFirstSpan().getType()).isEqualTo("foo3");
-        assertThat(reporter.getFirstSpan().getName().toString()).isEqualTo("bar3");
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("bar3");
         assertThat(reporter.getSpans().get(1).getType()).isEqualTo("foo2");
-        assertThat(reporter.getSpans().get(1).getName().toString()).isEqualTo("bar2");
+        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("bar2");
         assertThat(reporter.getSpans().get(1).getTraceContext().getParentId()).isEqualTo(reporter.getSpans().get(2).getTraceContext().getId());
         assertThat(reporter.getFirstSpan().getTraceContext().getParentId()).isEqualTo(reporter.getFirstTransaction().getTraceContext().getId());
     }

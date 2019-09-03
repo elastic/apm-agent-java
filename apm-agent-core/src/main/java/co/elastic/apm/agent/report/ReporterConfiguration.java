@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.report;
@@ -56,8 +61,16 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         .label("The URLs for your APM Servers")
         .description("The URLs must be fully qualified, including protocol (http or https) and port.\n" +
             "\n" +
-            "NOTE: Providing multiple URLs only works if intake API v2 is enabled.")
-        .dynamic(false)
+            "Fails over to the next APM Server URL in the event of connection errors.\n" +
+            "Achieves load-balancing by shuffling the list of configured URLs.\n" +
+            "When multiple agents are active, they'll tend towards spreading evenly across the set of servers due to randomization.\n" +
+            "\n" +
+            "If outgoing HTTP traffic has to go through a proxy," +
+            "you can use the Java system properties `http.proxyHost` and `http.proxyPort` to set that up.\n" +
+            "See also [Java's proxy documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html) for more information.\n" +
+            "\n" +
+            "NOTE: This configuration can only be reloaded dynamically as of 1.8.0")
+        .dynamic(true)
         .buildWithDefault(Collections.singletonList(UrlValueConverter.INSTANCE.convert("http://localhost:8200")));
 
     private final ConfigurationOption<TimeDuration> serverTimeout = TimeDurationValueConverter.durationOption("s")
@@ -70,6 +83,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "WARNING: If timeouts are disabled or set to a high value, your app could experience memory issues if the APM server times " +
             "out.")
+        .dynamic(true)
         .buildWithDefault(TimeDuration.of("5s"));
 
     private final ConfigurationOption<Boolean> verifyServerCert = ConfigurationOption.booleanOption()
@@ -79,17 +93,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Verification can be disabled by changing this setting to false.")
         .buildWithDefault(true);
-
-    private final ConfigurationOption<TimeDuration> flushInterval = TimeDurationValueConverter.durationOption("s")
-        .key("flush_interval")
-        .configurationCategory(REPORTER_CATEGORY)
-        .description("Interval with which transactions should be sent to the APM server.\n" +
-            "\n" +
-            "A lower value will increase the load on your APM server,\n" +
-            "while a higher value can increase the memory pressure on your app.\n" +
-            "\n" +
-            "A higher value also impacts the time until transactions are indexed and searchable in Elasticsearch.")
-        .buildWithDefault(TimeDuration.of("1s"));
 
     private final ConfigurationOption<Integer> maxQueueSize = ConfigurationOption.integerOption()
         .key("max_queue_size")
@@ -125,6 +128,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<TimeDuration> apiRequestTime = TimeDurationValueConverter.durationOption("s")
         .key("api_request_time")
         .configurationCategory(REPORTER_CATEGORY)
+        .dynamic(true)
         .description("Maximum time to keep an HTTP request to the APM Server open for.\n" +
             "\n" +
             "NOTE: This value has to be lower than the APM Server's `read_timeout` setting.")
@@ -133,6 +137,7 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<ByteValue> apiRequestSize = ByteValueConverter.byteOption()
         .key("api_request_size")
         .configurationCategory(REPORTER_CATEGORY)
+        .dynamic(true)
         .description("The maximum total compressed size of the request body which is sent to the APM server intake api via a " +
             "chunked encoding (HTTP streaming).\n" +
             "Note that a small overshoot is possible.\n" +
@@ -180,10 +185,6 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
         return verifyServerCert.get();
     }
 
-    public TimeDuration getFlushInterval() {
-        return flushInterval.get();
-    }
-
     public int getMaxQueueSize() {
         return maxQueueSize.get();
     }
@@ -211,4 +212,9 @@ public class ReporterConfiguration extends ConfigurationOptionProvider {
     public List<WildcardMatcher> getDisableMetrics() {
         return disableMetrics.get();
     }
+
+    public ConfigurationOption<List<URL>> getServerUrlsOption() {
+        return this.serverUrl;
+    }
+
 }

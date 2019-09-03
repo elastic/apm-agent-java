@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  * 
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.api;
@@ -33,16 +38,16 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         new AnnotationTestClass().transaction();
 
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("transaction");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transaction");
         assertThat(reporter.getFirstTransaction().getContext().getLabel("foo")).isEqualTo("bar");
 
         assertThat(reporter.getSpans()).hasSize(2);
 
-        assertThat(reporter.getSpans().get(0).getName().toString()).isEqualTo("AnnotationTestClass#nestedSpan");
+        assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("AnnotationTestClass#nestedSpan");
         assertThat(reporter.getSpans().get(0).getContext().getLabel("foo")).isEqualTo("bar");
         assertThat(reporter.getSpans().get(0).isChildOf(reporter.getSpans().get(1))).isTrue();
 
-        assertThat(reporter.getSpans().get(1).getName().toString()).isEqualTo("AnnotationTestClass#span");
+        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("AnnotationTestClass#span");
         assertThat(reporter.getSpans().get(1).isChildOf(reporter.getFirstTransaction())).isTrue();
     }
 
@@ -50,7 +55,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
     void testCaptureTransactionAnnotationException() {
         assertThatThrownBy(AnnotationTestClass::transactionWithException).isInstanceOf(RuntimeException.class);
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("AnnotationTestClass#transactionWithException");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("AnnotationTestClass#transactionWithException");
         assertThat(reporter.getErrors()).hasSize(1);
         assertThat(reporter.getFirstError().getException().getMessage()).isEqualTo("catch me if you can");
     }
@@ -65,12 +70,12 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         reporter.reset();
         AnnotationTestClass.transactionWithType(useLegacyTyping);
         assertThat(reporter.getTransactions()).hasSize(1);
-        assertThat(reporter.getFirstTransaction().getName().toString()).isEqualTo("transactionWithType");
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("transactionWithType");
         assertThat(reporter.getFirstTransaction().getType()).isEqualTo("job");
 
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
-        assertThat(internalSpan.getName().toString()).isEqualTo("spanWithType");
+        assertThat(internalSpan.getNameAsString()).isEqualTo("spanWithType");
         assertThat(internalSpan.getType()).isEqualTo("ext");
         assertThat(internalSpan.getSubtype()).isEqualTo("http");
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");
@@ -82,7 +87,7 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         AnnotationTestClass.transactionForMissingSpanSubtype();
         assertThat(reporter.getSpans()).hasSize(1);
         Span internalSpan = reporter.getFirstSpan();
-        assertThat(internalSpan.getName().toString()).isEqualTo("spanWithMissingSubtype");
+        assertThat(internalSpan.getNameAsString()).isEqualTo("spanWithMissingSubtype");
         assertThat(internalSpan.getType()).isEqualTo("ext.http");
         assertThat(internalSpan.getSubtype()).isEqualTo("");
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");

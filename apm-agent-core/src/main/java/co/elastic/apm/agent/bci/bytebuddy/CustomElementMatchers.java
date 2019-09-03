@@ -4,38 +4,51 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.bci.bytebuddy;
 
+import co.elastic.apm.agent.matcher.AnnotationMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.Version;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.annotation.AnnotationSource;
 import net.bytebuddy.description.method.MethodDescription;
-import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
@@ -121,28 +134,51 @@ public class CustomElementMatchers {
      */
     public static ElementMatcher.Junction<ProtectionDomain> implementationVersionLte(final String version) {
         return new ElementMatcher.Junction.AbstractBase<ProtectionDomain>() {
+            /**
+             * Returns true if the implementation version read from the manifest file referenced by the given
+             * {@link ProtectionDomain} is lower than or equal to the version set to this matcher
+             *
+             * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
+             * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
+             * 
+             * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
+             */
             @Override
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
-                Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                Version limitVersion = new Version(version);
-                if (pdVersion != null) {
-                    return pdVersion.compareTo(limitVersion) <= 0;
+                try {
+                    Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
+                    Version limitVersion = new Version(version);
+                    if (pdVersion != null) {
+                        return pdVersion.compareTo(limitVersion) <= 0;
+                    }
+                } catch (Exception e) {
+                    logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
+                        "you agent's functionality. Failed with message: " + e.getMessage());
+                    logger.debug("Implementation version parsing error: " + protectionDomain, e);
                 }
-                return false;
+                return true;
             }
         };
     }
 
-    private static @Nullable Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) {
+    @Nullable
+    private static Version readImplementationVersionFromManifest(@Nullable ProtectionDomain protectionDomain) throws IOException, URISyntaxException {
         Version version = null;
+        JarFile jarFile = null;
         try {
             if (protectionDomain != null) {
                 CodeSource codeSource = protectionDomain.getCodeSource();
                 if (codeSource != null) {
                     URL jarUrl = codeSource.getLocation();
                     if (jarUrl != null) {
-                        JarFile jar = new JarFile(jarUrl.getFile());
-                        Manifest manifest = jar.getManifest();
+                        // does not yet establish an actual connection
+                        URLConnection urlConnection = jarUrl.openConnection();
+                        if (urlConnection instanceof JarURLConnection) {
+                            jarFile = ((JarURLConnection) urlConnection).getJarFile();
+                        } else {
+                            jarFile = new JarFile(new File(jarUrl.toURI()));
+                        }
+                        Manifest manifest = jarFile.getManifest();
                         if (manifest != null) {
                             String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
                             if (implementationVersion != null) {
@@ -152,40 +188,18 @@ public class CustomElementMatchers {
                     }
                 }
             } else {
-                logger.error("Cannot read implementation version - got null ProtectionDomain");
+                logger.info("Cannot read implementation version - got null ProtectionDomain");
             }
-        } catch (Exception e) {
-            logger.error("Cannot read implementation version based on ProtectionDomain " + protectionDomain, e);
-        }
-        return version;
-    }
-
-    /**
-     * Based on <a href="https://gist.github.com/brianguertin/ada4b65c6d1c4f6d3eee3c12b6ce021b">https://gist.github.com/brianguertin</a>
-     */
-    private static class Version implements Comparable<Version> {
-        private final int[] numbers;
-
-        Version(String version) {
-            final String[] parts = version.split("\\.");
-            numbers = new int[parts.length];
-            for (int i = 0; i < parts.length; i++) {
-                numbers[i] = Integer.valueOf(parts[i]);
-            }
-        }
-
-        @Override
-        public int compareTo(Version another) {
-            final int maxLength = Math.max(numbers.length, another.numbers.length);
-            for (int i = 0; i < maxLength; i++) {
-                final int left = i < numbers.length ? numbers[i] : 0;
-                final int right = i < another.numbers.length ? another.numbers[i] : 0;
-                if (left != right) {
-                    return left < right ? -1 : 1;
+        } finally {
+            if (jarFile != null) {
+                try {
+                    jarFile.close();
+                } catch (IOException e) {
+                    logger.error("Error closing JarFile", e);
                 }
             }
-            return 0;
         }
+        return version;
     }
 
     /**
@@ -212,5 +226,13 @@ public class CustomElementMatchers {
                 return "matches(" + matcher + ")";
             }
         };
+    }
+
+    public static ElementMatcher.Junction<AnnotationSource> annotationMatches(final String annotationWildcard) {
+        return AnnotationMatcher.annotationMatcher(annotationWildcard);
+    }
+
+    public static <T extends NamedElement> ElementMatcher.Junction<T> isProxy() {
+        return nameContains("$Proxy").or(nameContains("$$"));
     }
 }

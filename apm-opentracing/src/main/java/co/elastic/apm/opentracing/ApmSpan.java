@@ -4,23 +4,29 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.opentracing;
 
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
+import io.opentracing.tag.Tag;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,11 +35,11 @@ import java.util.Map;
 
 class ApmSpan implements Span {
 
-    @Nullable
     private final TraceContextSpanContext spanContext;
+
     @Nullable
     // co.elastic.apm.agent.impl.transaction.AbstractSpan in case of unfinished spans
-    private Object dispatcher;
+    private volatile Object dispatcher;
 
     ApmSpan(@Nullable Object dispatcher) {
         this.dispatcher = dispatcher;
@@ -70,6 +76,12 @@ class ApmSpan implements Span {
     @Override
     public ApmSpan setTag(String key, Number value) {
         handleTag(key, value);
+        return this;
+    }
+
+    @Override
+    public <T> Span setTag(Tag<T> tag, T value) {
+        handleTag(tag.getKey(), value);
         return this;
     }
 
@@ -154,4 +166,16 @@ class ApmSpan implements Span {
         return String.valueOf(dispatcher);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ApmSpan otherSpan = (ApmSpan) o;
+        return otherSpan.context().toSpanId().equals(spanContext.toSpanId());
+    }
+
+    @Override
+    public int hashCode() {
+        return spanContext.toSpanId().hashCode();
+    }
 }

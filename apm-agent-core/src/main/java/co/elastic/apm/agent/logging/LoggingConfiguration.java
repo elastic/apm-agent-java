@@ -4,17 +4,22 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent.logging;
@@ -54,7 +59,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private static final String DEFAULT_LOG_FILE = SYSTEM_OUT;
 
     private static final String LOGGING_CATEGORY = "Logging";
-    private static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
+    public static final String AGENT_HOME_PLACEHOLDER = "_AGENT_HOME_";
     private static final String DEPRECATED_LOG_LEVEL_KEY = "logging.log_level";
     private static final String DEPRECATED_LOG_FILE_KEY = "logging.log_file";
 
@@ -95,17 +100,16 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     private final ConfigurationOption<Boolean> logCorrelationEnabled = ConfigurationOption.booleanOption()
         .key("enable_log_correlation")
         .configurationCategory(LOGGING_CATEGORY)
-        .description("A boolean specifying if the agent should integrate into SLF4J's MDC to enable trace-log correlation.\n" +
-            "If set to `true`, the agent will set the `spanId` and `traceId` for the currently active spans and transactions to the MDC.\n" +
+        .description("A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.\n" +
+            "If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.\n" +
             "You can then use the pattern format of your logging implementation to write the MDC values to your log file.\n" +
+            "If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.\n" +
             "With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,\n" +
             "you can index your log files and correlate them with APM traces.\n" +
             "With this integration you can get all logs belonging to a particular trace and vice-versa:\n" +
             "for a specific log, see in which context it has been logged and which parameters the user provided. " +
             "\n" +
-            "While it's allowed to enable this setting at runtime, you can't disable it without a restart.\n" +
-            "\n" +
-            "NOTE: This is an incubating feature and the MDC key names might change.")
+            "While it's allowed to enable this setting at runtime, you can't disable it without a restart.")
         .dynamic(true)
         .addValidator(new ConfigurationOption.Validator<Boolean>() {
             @Override
@@ -155,7 +159,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
     }
 
     @Nonnull
-    private static String getActualLogFile(@Nullable String agentHome, String logFile) {
+    static String getActualLogFile(@Nullable String agentHome, String logFile) {
         if (logFile.contains(AGENT_HOME_PLACEHOLDER)) {
             if (agentHome == null) {
                 System.err.println("Could not resolve " + AGENT_HOME_PLACEHOLDER + ". Falling back to System.out.");
@@ -164,6 +168,7 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
                 logFile = logFile.replace(AGENT_HOME_PLACEHOLDER, agentHome);
             }
         }
+        logFile = new File(logFile).getAbsolutePath();
         final File logDir = new File(logFile).getParentFile();
         if (!logDir.exists()) {
             logDir.mkdir();

@@ -4,22 +4,26 @@
  * %%
  * Copyright (C) 2018 - 2019 Elastic and contributors
  * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  * #L%
  */
 package co.elastic.apm.agent;
 
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
@@ -28,18 +32,13 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.mockito.Mockito.mock;
 
 public class TransactionUtils {
 
-    private static final List<String> STRINGS = Arrays.asList("bar", "baz");
-
     public static void fillTransaction(Transaction t) {
-        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true));
-        t.setName("GET /api/types");
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), TransactionUtils.class.getClassLoader());
+        t.withName("GET /api/types");
         t.withType("request");
         t.withResult("success");
 
@@ -78,14 +77,13 @@ public class TransactionUtils {
             .withEmail("foo@example.com");
 
         context.addLabel("organization_uuid", "9f0e9d64-c185-4d21-a6f4-4673ed561ec8");
-        context.getCustom().put("my_key", 1);
-        context.getCustom().put("some_other_value", "foo bar");
-        context.getCustom().put("and_objects", STRINGS);
+        context.addCustom("my_key", 1);
+        context.addCustom("some_other_value", "foo bar");
     }
 
     public static List<Span> getSpans(Transaction t) {
         List<Span> spans = new ArrayList<>();
-        Span span = new Span(mock(ElasticApmTracer.class))
+        Span span = new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("SELECT FROM product_types")
             .withType("db")
@@ -95,25 +93,26 @@ public class TransactionUtils {
             .withInstance("customers")
             .withStatement("SELECT * FROM product_types WHERE user_id=?")
             .withType("sql")
-            .withUser("readonly_user");
+            .withUser("readonly_user")
+            .withDbLink("DB_LINK");
         span.addLabel("monitored_by", "ACME");
         span.addLabel("framework", "some-framework");
         spans.add(span);
 
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
-        spans.add(new Span(mock(ElasticApmTracer.class))
+        spans.add(new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .withName("GET /api/types")
             .withType("request"));
 
-        span = new Span(mock(ElasticApmTracer.class))
+        span = new Span(MockTracer.create())
             .start(TraceContext.fromParent(), t, -1, false)
             .appendToName("GET ")
             .appendToName("test.elastic.co")
