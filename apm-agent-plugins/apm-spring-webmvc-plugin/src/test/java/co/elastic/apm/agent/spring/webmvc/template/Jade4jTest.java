@@ -26,8 +26,8 @@ package co.elastic.apm.agent.spring.webmvc.template;
 
 
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.spring.webmvc.template.thymeleaf.ThymeleafConfiguration;
-import co.elastic.apm.agent.spring.webmvc.template.thymeleaf.ThymeleafController;
+import co.elastic.apm.agent.spring.webmvc.template.jade4j.Jade4jController;
+import co.elastic.apm.agent.spring.webmvc.template.jade4j.Jade4jTemplateConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
@@ -37,23 +37,23 @@ import org.springframework.test.web.servlet.ResultActions;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-@ContextConfiguration(classes = {ThymeleafConfiguration.class, ThymeleafController.class})
-class ThymeleafTest extends AbstractViewRenderingInstrumentationTest {
+@ContextConfiguration(classes = {Jade4jTemplateConfiguration.class, Jade4jController.class})
+class Jade4jTest extends AbstractViewRenderingInstrumentationTest {
 
     @Test
     void testExceptionCapture() throws Exception {
-        ResultActions resultActions = mockMvc.perform(get("/thymeleaf"));
+        ResultActions resultActions = mockMvc.perform(get("/jade4j"));
 
         MvcResult mvcResult = resultActions.andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();
         assertEquals(200, response.getStatus());
-        String responseString = response.getContentAsString();
-        assertEquals("<span>Message 123</span>", responseString.trim());
+        String responseString = mvcResult.getResponse().getContentAsString();
+        assertEquals("<!DOCTYPE html><html><body><Hello>Message 123</Hello></body></html>", responseString.trim());
         assertEquals(1, reporter.getSpans().size());
         Span firstSpan = reporter.getSpans().get(0);
         assertEquals("template", firstSpan.getType());
-        assertEquals("Thymeleaf", firstSpan.getSubtype());
+        assertEquals("Jade", firstSpan.getSubtype());
         assertEquals("render", firstSpan.getAction());
-        assertEquals("DispatcherServlet#render thymeleaf", firstSpan.getNameAsString());
+        assertEquals("DispatcherServlet#render hello", firstSpan.getNameAsString());
     }
 }

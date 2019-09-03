@@ -97,6 +97,12 @@
             <version>2.4.12</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>de.neuland-bfi</groupId>
+            <artifactId>spring-jade4j</artifactId>
+            <version>1.2.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 

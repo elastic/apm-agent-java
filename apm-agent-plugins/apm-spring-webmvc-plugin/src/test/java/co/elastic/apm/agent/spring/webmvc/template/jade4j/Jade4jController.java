@@ -22,20 +22,20 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.template.thymeleaf;
+package co.elastic.apm.agent.spring.webmvc.template.jade4j;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@RequestMapping("/thymeleaf")
+@RequestMapping("/jade4j")
 @Controller
-public class ThymeleafController {
+public class Jade4jController {
 
     @GetMapping
     public String handleRequest(Model model) {
         model.addAttribute("message", "Message 123");
-        return "thymeleaf";
+        return "hello";
     }
 }

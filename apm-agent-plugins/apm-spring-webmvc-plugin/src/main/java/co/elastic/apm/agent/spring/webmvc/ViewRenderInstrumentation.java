@@ -45,7 +45,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE = "template";
-    private static final String SPAN_SUBTYPE = "dispatcher-servlet";
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
 
@@ -118,7 +117,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("thymeleaf-view", "freemarker-view", "jackson2json-view", "jsp-view", "groovy-view");
+        return Arrays.asList("thymeleaf-view", "freemarker-view", "jackson2json-view", "jsp-view", "groovy-template-view", "jade4j-template-view");
     }
 }
 

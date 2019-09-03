@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,23 +22,41 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.spring.webmvc.template.jsp;
+package co.elastic.apm.agent.spring.webmvc.template.jade4j;
 
+import de.neuland.jade4j.JadeConfiguration;
+import de.neuland.jade4j.spring.template.SpringTemplateLoader;
+import de.neuland.jade4j.spring.view.JadeViewResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-@EnableWebMvc
 @Configuration
-public class JspConfiguration implements WebMvcConfigurer {
+@EnableWebMvc
+public class Jade4jTemplateConfiguration {
+
     @Bean
-    public ViewResolver jspViewResolver() {
-        InternalResourceViewResolver bean = new InternalResourceViewResolver();
-        bean.setPrefix("/jsp/");
-        bean.setSuffix(".jsp");
-        return bean;
+    public SpringTemplateLoader templateLoader() {
+        SpringTemplateLoader templateLoader = new SpringTemplateLoader();
+        templateLoader.setBasePath("/jade/");
+        templateLoader.setSuffix(".jade");
+        return templateLoader;
+    }
+
+    @Bean
+    public JadeConfiguration jadeConfiguration() {
+        JadeConfiguration configuration
+            = new JadeConfiguration();
+        configuration.setCaching(false);
+        configuration.setTemplateLoader(templateLoader());
+        return configuration;
+    }
+
+    @Bean
+    public ViewResolver viewResolver() {
+        JadeViewResolver viewResolver = new JadeViewResolver();
+        viewResolver.setConfiguration(jadeConfiguration());
+        return viewResolver;
     }
 }
