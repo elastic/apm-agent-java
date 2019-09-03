@@ -11,6 +11,7 @@
  * Added annotation and meta-annotation matching support for `trace_methods`
  * Improved servlet exception capture via attributes: `javax.servlet.error.exception`, `exception`, `org.springframework.web.servlet.DispatcherServlet.EXCEPTION`, `co.elastic.apm.exception`.
    Added instrumentation for DispatcherServlet#processHandlerException.
+ * Deleted span for `DispatcherServlet#render`. Instead, added span for `View#render` [#829](https://github.com/elastic/apm-agent-java/pull/829)
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x
