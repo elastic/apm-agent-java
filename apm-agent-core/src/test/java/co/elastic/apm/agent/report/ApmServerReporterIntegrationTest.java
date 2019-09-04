@@ -60,7 +60,7 @@ class ApmServerReporterIntegrationTest {
 
     private static Undertow server;
     private static int port;
-    private static AtomicInteger receivedHttpRequests = new AtomicInteger();
+    private static AtomicInteger receivedIntakeApiCalls = new AtomicInteger();
     private static HttpHandler handler;
     private final ElasticApmTracer tracer = MockTracer.create();
     private ReporterConfiguration reporterConfiguration;
@@ -88,12 +88,12 @@ class ApmServerReporterIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         handler = exchange -> {
-            if (!exchange.getRequestPath().equals("/")) {
-                receivedHttpRequests.incrementAndGet();
+            if (exchange.getRequestPath().equals("/intake/v2/events")) {
+                receivedIntakeApiCalls.incrementAndGet();
             }
             exchange.setStatusCode(200).endExchange();
         };
-        receivedHttpRequests.set(0);
+        receivedIntakeApiCalls.set(0);
         config = SpyConfiguration.createSpyConfig();
         reporterConfiguration = config.getConfig(ReporterConfiguration.class);
         when(reporterConfiguration.getServerUrls()).thenReturn(Collections.singletonList(new URL("http://localhost:" + port)));
@@ -116,7 +116,7 @@ class ApmServerReporterIntegrationTest {
         reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
@@ -124,21 +124,23 @@ class ApmServerReporterIntegrationTest {
         reporter.report(new Span(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
     void testSecretToken() throws ExecutionException, InterruptedException {
         when(reporterConfiguration.getSecretToken()).thenReturn("token");
         handler = exchange -> {
-            assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
-            receivedHttpRequests.incrementAndGet();
+            if (exchange.getRequestPath().equals("/intake/v2/events")) {
+                assertThat(exchange.getRequestHeaders().get("Authorization").getFirst()).isEqualTo("Bearer token");
+                receivedIntakeApiCalls.incrementAndGet();
+            }
             exchange.setStatusCode(200).endExchange();
         };
         reporter.report(new Transaction(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
     @Test
@@ -146,7 +148,7 @@ class ApmServerReporterIntegrationTest {
         reporter.report(new ErrorCapture(tracer));
         reporter.flush().get();
         assertThat(reporter.getDropped()).isEqualTo(0);
-        assertThat(receivedHttpRequests.get()).isEqualTo(1);
+        assertThat(receivedIntakeApiCalls.get()).isEqualTo(1);
     }
 
 }

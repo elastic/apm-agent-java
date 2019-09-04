@@ -1,6 +1,7 @@
 # Next
 
 ## Features
+ * Add ability to manually specify reported [hostname](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-hostname)
  * Applying new logic for JMS polling APIs (`javax.jms.MessageConsumer#receive` and `javax.jms.MessageConsumer#receiveNoWait`) 
    so that, in addition for the transaction created for the polling method itself (ie from `receive` start to end), 
    the agent will also create a transaction attempting to capture the code executed during actual message handling.
@@ -16,6 +17,8 @@
 ## Features
  * Supporting OpenTracing version 0.33 
  * Added annotation and meta-annotation matching support for `trace_methods`
+ * Improved servlet exception capture via attributes: `javax.servlet.error.exception`, `exception`, `org.springframework.web.servlet.DispatcherServlet.EXCEPTION`, `co.elastic.apm.exception`.
+   Added instrumentation for DispatcherServlet#processHandlerException.
 
 ## Bug Fixes
  * A warning in logs saying APM server is not available when using 1.8 with APM server 6.x

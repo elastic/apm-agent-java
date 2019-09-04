@@ -290,6 +290,8 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |When <<config-enable-log-correlation>> is set to `true`,
  the agent will add a https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] entry for `trace.id` and `transaction.id`.
  See the <<config-enable-log-correlation>> configuration option for more details.
+
+ Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
 |1.0.0
 
 |===
