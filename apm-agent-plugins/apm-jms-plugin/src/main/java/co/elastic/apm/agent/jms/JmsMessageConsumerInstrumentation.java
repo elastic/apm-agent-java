@@ -44,10 +44,11 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
-import javax.jms.Queue;
-import javax.jms.Topic;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -57,8 +58,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-// todo - make configurable whether to create only polling transactions, only handling transactions or both
-// todo - also consider configuration to override trace context of receive transactions
 public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumentation {
 
     @VisibleForAdvice
@@ -83,6 +82,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
     }
 
     public static class ReceiveInstrumentation extends JmsMessageConsumerInstrumentation {
+
         public ReceiveInstrumentation(ElasticApmTracer tracer) {
             super(tracer);
         }
@@ -114,10 +114,10 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     } else {
                         if (parent instanceof Transaction) {
                             Transaction transaction = (Transaction) parent;
-                            if ("message-polling".equals(transaction.getType())) {
+                            if (MESSAGE_POLLING.equals(transaction.getType())) {
                                 // Avoid duplications for nested calls
                                 return null;
-                            } else if ("message-handling".equals(transaction.getType())) {
+                            } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
                                 // A transaction created in the OnMethodExit of the poll- end it here
                                 transaction.deactivate().end();
                                 createPollingTransaction = true;
@@ -125,7 +125,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                                 createPollingSpan = true;
                             }
                         } else if (parent instanceof Span) {
-                            if ("messaging".equals(((Span) parent).getType())) {
+                            Span parentSpan = (Span) parent;
+                            if ("messaging".equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
                                 // Avoid duplication for nested calls
                                 return null;
                             }
@@ -133,9 +134,13 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         }
                     }
 
+                    if (messagingConfiguration != null) {
+                        createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                    }
+
                     if (createPollingTransaction) {
                         createdSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                            .withType("message-polling");
+                            .withType(MESSAGE_POLLING);
                     } else if (createPollingSpan) {
                         createdSpan = parent.createSpan()
                             .withType("messaging")
@@ -144,7 +149,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
 
                     if (createdSpan != null) {
-                        createdSpan.withName("JMS RECEIVE");
+                        createdSpan.withName(RECEIVE_NAME_PREFIX);
                         createdSpan.activate();
                     }
                 }
@@ -158,12 +163,14 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                                             @Advice.Thrown final Throwable throwable) {
 
                 String messageSenderContext = null;
+                Destination destination = null;
                 boolean discard = false;
                 if (message != null) {
                     try {
                         messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
+                        destination = message.getJMSDestination();
                     } catch (JMSException e) {
-                        logger.error("Failed to retrieve trace context from Message", e);
+                        logger.error("Failed to retrieve meta info from Message", e);
                     }
 
                     if (abstractSpan instanceof Transaction) {
@@ -177,21 +184,18 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     discard = true;
                 }
 
+                //noinspection ConstantConditions
+                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
+
                 if (abstractSpan != null) {
                     try {
                         if (!discard) {
                             abstractSpan.captureException(throwable);
-                            if (message != null) {
-                                try {
-                                    Destination destination = message.getJMSDestination();
-                                    if (destination instanceof Queue) {
-                                        abstractSpan.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
-                                    } else if (destination instanceof Topic) {
-                                        abstractSpan.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
-                                    }
-                                } catch (JMSException e) {
-                                    logger.warn("Failed to retrieve message's destination", e);
-                                }
+                            if (message != null && helper != null && destination != null) {
+                                abstractSpan.appendToName(" from ");
+                                helper.appendDestinationToName(destination, abstractSpan);
+
                             }
                         }
                     } finally {
@@ -199,9 +203,21 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     }
                 }
 
-                if (messageSenderContext != null && tracer != null) {
-                    tracer.startTransaction(TraceContext.fromTraceparentHeader(), messageSenderContext, clazz.getClassLoader())
-                        .withType("message-handling");
+                if (messageSenderContext != null && tracer != null && tracer.currentTransaction() == null
+                    && messagingConfiguration != null
+                    && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING) {
+
+                    Transaction messageHandlingTransaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), messageSenderContext, clazz.getClassLoader())
+                        .withType(MESSAGE_HANDLING)
+                        .withName(RECEIVE_NAME_PREFIX);
+
+                    if (helper != null && destination != null) {
+                        messageHandlingTransaction.appendToName(" from ");
+                        helper.appendDestinationToName(destination, messageHandlingTransaction);
+
+                    }
+
+                    messageHandlingTransaction.activate();
                 }
             }
         }

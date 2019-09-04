@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 
@@ -36,11 +37,19 @@ public interface JmsInstrumentationHelper<D, M, L> {
     /**
      * In some cases, dashes are not allowed in JMS Message property names
      */
-    public static final String JMS_TRACE_PARENT_HEADER = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
+    String JMS_TRACE_PARENT_HEADER = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
+
+    String MESSAGE_HANDLING = "message-handling";
+
+    String MESSAGE_POLLING = "message-polling";
+
+    String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
 
     @Nullable
     Span startJmsSendSpan(D destination, M message);
 
     @Nullable
     L wrapLambda(@Nullable L listener);
+
+    void appendDestinationToName(D destination, AbstractSpan span);
 }

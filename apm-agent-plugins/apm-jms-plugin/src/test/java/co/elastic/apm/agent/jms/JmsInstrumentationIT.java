@@ -58,7 +58,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
+import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.HANDLING;
+import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class JmsInstrumentationIT extends AbstractInstrumentationTest {
@@ -171,19 +177,31 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveOnNonTracedThread() throws Exception {
-        // todo - test send to NOOP span creation, and both message-polling and message-handling transactions
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
-        // todo - test send to NOOP span creation, and both message-polling and message-handling transactions
         if (!brokerFacade.shouldTestReceiveNoWait()) {
             return;
         }
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
+    }
+
+    @Test
+    public void testPollingTransactionCreationOnly() throws Exception {
+        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.Strategy.POLLING);
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+    }
+
+    @Test
+    public void testHandlingTransactionCreationOnly() throws Exception {
+        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.Strategy.POLLING);
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
     private static class MessageHolder {
@@ -288,10 +306,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
+        verifySendReceiveOnNonTracedThread(queue.getQueueName());
     }
 
-    private void verifySendReceiveOnNonTracedThread(String destinationName, int expectedReadTransactions) {
+    private void verifySendListenOnNonTracedThread(String destinationName, int expectedReadTransactions) {
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span sendSpan = spans.get(0);
@@ -309,6 +327,58 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
+            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGE_HANDLING);
+        }
+    }
+
+    private void verifySendReceiveOnNonTracedThread(String destinationName) {
+        MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
+        List<Span> spans = reporter.getSpans();
+        if (strategy == BOTH) {
+            assertThat(spans).hasSize(2);
+        } else {
+            assertThat(spans).hasSize(1);
+        }
+
+        Span sendInitialMessageSpan = spans.get(0);
+        assertThat(sendInitialMessageSpan.getNameAsString()).startsWith("JMS SEND to ");
+        assertThat(sendInitialMessageSpan.getNameAsString()).endsWith(destinationName);
+
+        //noinspection ConstantConditions
+        Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
+        assertThat(sendInitialMessageSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
+
+        List<Transaction> receiveTransactions = reporter.getTransactions();
+        if (strategy == BOTH) {
+            assertThat(receiveTransactions).hasSize(2);
+        } else {
+            assertThat(receiveTransactions).hasSize(1);
+        }
+
+        Transaction messagePollingTransaction = null;
+        Transaction messageHandlingTransaction = null;
+        for (Transaction receiveTransaction : receiveTransactions) {
+            assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
+            assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
+            assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
+            assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            if (MESSAGE_HANDLING.equals(receiveTransaction.getType())) {
+                messageHandlingTransaction = receiveTransaction;
+            } else if (MESSAGE_POLLING.equals(receiveTransaction.getType())) {
+                messagePollingTransaction = receiveTransaction;
+            }
+        }
+
+        if (strategy != HANDLING) {
+            assertThat(messagePollingTransaction).isNotNull();
+        }
+
+        if (strategy != POLLING) {
+            assertThat(messageHandlingTransaction).isNotNull();
+            Span sendNoopSpan = spans.get(1);
+            assertThat(sendNoopSpan.getNameAsString()).isEqualTo("JMS SEND to queue NOOP");
+            assertThat(sendNoopSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
+            assertThat(sendNoopSpan.getTraceContext().getParentId()).isEqualTo(messageHandlingTransaction.getTraceContext().getId());
         }
     }
 
@@ -349,7 +419,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
-        verifySendReceiveOnNonTracedThread(queue.getQueueName(), 1);
+        verifySendListenOnNonTracedThread(queue.getQueueName(), 1);
     }
 
     @Test
@@ -370,7 +440,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         verifyMessage(message, incomingMessage2);
 
         Thread.sleep(500);
-        verifySendReceiveOnNonTracedThread(topic.getTopicName(), 2);
+        verifySendListenOnNonTracedThread(topic.getTopicName(), 2);
     }
 
     private void verifyMessage(String expectedText, Message message) throws JMSException {

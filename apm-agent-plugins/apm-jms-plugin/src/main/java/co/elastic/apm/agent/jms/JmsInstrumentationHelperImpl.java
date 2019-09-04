@@ -26,6 +26,7 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import org.slf4j.Logger;
@@ -73,12 +74,8 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
         try {
             if (span.isSampled()) {
-                span.withName("JMS SEND");
-                if (destination instanceof Queue) {
-                    span.appendToName(" to queue ").appendToName(((Queue) destination).getQueueName());
-                } else if (destination instanceof Topic) {
-                    span.appendToName(" to topic ").appendToName(((Topic) destination).getTopicName());
-                }
+                span.withName("JMS SEND to ");
+                appendDestinationToName(destination, span);
             }
 
             message.setStringProperty(JMS_TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
@@ -110,6 +107,19 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         @Override
         public void onMessage(Message message) {
             delegate.onMessage(message);
+        }
+    }
+
+    @Override
+    public void appendDestinationToName(Destination destination, AbstractSpan span) {
+        try {
+            if (destination instanceof Queue) {
+                span.appendToName("queue ").appendToName(((Queue) destination).getQueueName());
+            } else if (destination instanceof Topic) {
+                span.appendToName("topic ").appendToName(((Topic) destination).getTopicName());
+            }
+        } catch (JMSException e) {
+            logger.error("Failed to obtain destination name", e);
         }
     }
 }
