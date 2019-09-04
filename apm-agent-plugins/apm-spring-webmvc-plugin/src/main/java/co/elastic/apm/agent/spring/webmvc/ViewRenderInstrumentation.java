@@ -46,7 +46,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_ACTION = "render";
-    private static final String DISPATCHER_SERVLET_RENDER_METHOD = "DispatcherServlet#render";
+    private static final String DISPATCHER_SERVLET_RENDER_METHOD = "View#render";
 
     @Override
     public Class<?> getAdviceClass() {

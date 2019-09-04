@@ -104,6 +104,6 @@ abstract class AbstractViewRenderingInstrumentationTest {
         assertEquals("template", firstSpan.getType());
         assertEquals(spanSubType, firstSpan.getSubtype());
         assertEquals("render", firstSpan.getAction());
-        assertEquals("DispatcherServlet#render " + spanSuffix, firstSpan.getNameAsString());
+        assertEquals("View#render " + spanSuffix, firstSpan.getNameAsString());
     }
 }
