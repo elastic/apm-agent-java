@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -59,10 +59,10 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
             .GET("/hello", request -> ServerResponse.ok().body(BodyInserters.fromObject("Hello World")))
             .build();
 
-        final Undertow server = startServer(route);
+        final Undertow server = startServer(route, 8081);
 
         final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8200/hello");
+        final HttpGet request = new HttpGet("http://localhost:8081/hello");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
         Assert.assertEquals(statusCode, HttpStatus.SC_OK);
@@ -88,10 +88,10 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
             .GET("/nested", hf1)
             .build();
 
-        final Undertow server = startServer(route);
+        final Undertow server = startServer(route, 8081);
 
         final HttpClient client = new DefaultHttpClient();
-        final HttpGet request = new HttpGet("http://localhost:8200/hello");
+        final HttpGet request = new HttpGet("http://localhost:8081/hello");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
         Assert.assertEquals(statusCode, HttpStatus.SC_OK);

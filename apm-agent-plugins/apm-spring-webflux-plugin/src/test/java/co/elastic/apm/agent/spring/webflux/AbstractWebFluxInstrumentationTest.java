@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,13 +34,13 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 public class AbstractWebFluxInstrumentationTest extends AbstractInstrumentationTest {
 
-    protected static Undertow startServer(RouterFunction<ServerResponse> route) {
+    protected static Undertow startServer(RouterFunction<ServerResponse> route, int port) {
         final HttpHandler httpHandler = RouterFunctions.toHttpHandler(route);
 
         final UndertowHttpHandlerAdapter undertowHttpHandlerAdapter = new UndertowHttpHandlerAdapter(httpHandler);
 
         final Undertow server = Undertow.builder()
-            .addHttpListener(8200, "127.0.0.1")
+            .addHttpListener(port, "127.0.0.1")
             .setHandler(undertowHttpHandlerAdapter)
             .build();
 
