@@ -290,7 +290,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
         // rest of spans should be receive spans yielding null messages
         final String receiveWithNoMessageSpanName = "JMS RECEIVE";
-        assertThat(spans.stream().filter(span -> span.getNameAsString().equals(receiveWithNoMessageSpanName))).hasSize(numSpans - 3);
+        assertThat(spans.stream().filter(span -> span.getNameAsString().equals(receiveWithNoMessageSpanName)).count()).isGreaterThanOrEqualTo(numSpans - 3);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
