@@ -26,6 +26,7 @@ package co.elastic.apm.agent.jms;
 
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -204,6 +205,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
+    @Test
+    public void testInactiveReceive() throws Exception {
+        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+    }
+
     private static class MessageHolder {
         @Nullable
         Message message;
@@ -333,8 +341,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private void verifySendReceiveOnNonTracedThread(String destinationName) {
         MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
+        boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
+
         List<Span> spans = reporter.getSpans();
-        if (strategy == BOTH) {
+        if (!isActive) {
+            assertThat(spans).hasSize(1);
+        } else if (strategy == BOTH) {
             assertThat(spans).hasSize(2);
         } else {
             assertThat(spans).hasSize(1);
@@ -349,7 +361,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(sendInitialMessageSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
 
         List<Transaction> receiveTransactions = reporter.getTransactions();
-        if (strategy == BOTH) {
+        if (!isActive) {
+            assertThat(receiveTransactions).isEmpty();
+            return;
+        } else if (strategy == BOTH) {
             assertThat(receiveTransactions).hasSize(2);
         } else {
             assertThat(receiveTransactions).hasSize(1);
@@ -389,6 +404,20 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    public void testInactiveOnMessage() throws Exception {
+        when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
+        Queue queue = createTestQueue();
+        CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
+        String message = UUID.randomUUID().toString();
+        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        brokerFacade.send(queue, outgoingMessage);
+        Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
+        verifyMessage(message, incomingMessage);
+        Thread.sleep(500);
+        assertThat(reporter.getTransactions()).isEmpty();
     }
 
     @Test
