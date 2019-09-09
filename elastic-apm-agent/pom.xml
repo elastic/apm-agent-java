@@ -268,6 +268,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mongoclient-plugin-3_4</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-okhttp-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>

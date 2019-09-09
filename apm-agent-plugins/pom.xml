@@ -31,6 +31,7 @@
         <module>apm-jms-plugin</module>
         <module>apm-hibernate-search-plugin</module>
         <module>apm-error-logging-plugin</module>
+        <module>apm-mongoclient-plugin</module>
     </modules>
 
     <properties>

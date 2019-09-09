@@ -40,6 +40,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     private volatile Span span;
 
     ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelperImpl helper) {
+        System.out.println("Init wrapper");
         this.helper = helper;
     }
 
@@ -52,6 +53,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void onSuccess(Response response) {
+        System.out.println("On success.");
         try {
             finishClientSpan(response, null);
         } finally {
@@ -64,6 +66,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void onFailure(Exception exception) {
+        System.out.println("On failure");
         try {
             finishClientSpan(null, exception);
         } finally {

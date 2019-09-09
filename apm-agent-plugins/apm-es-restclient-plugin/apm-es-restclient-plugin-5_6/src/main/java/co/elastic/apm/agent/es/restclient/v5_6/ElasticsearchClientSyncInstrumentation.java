@@ -56,7 +56,7 @@ public class ElasticsearchClientSyncInstrumentation extends ElasticsearchRestCli
                                             @Advice.Argument(3) @Nullable HttpEntity entity,
                                             @Advice.Local("span") Span span,
                                             @Advice.Local("helper") ElasticsearchRestClientInstrumentationHelper helper) {
-
+            System.out.println("BeforeExecute");
             helper = esClientInstrHelperManager.getForClassLoaderOfClass(Response.class);
             if (helper != null) {
                 span = helper.createClientSpan(method, endpoint, entity);

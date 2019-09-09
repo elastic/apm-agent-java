@@ -58,6 +58,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
     public ElasticsearchRestClientInstrumentationHelperImpl(ElasticApmTracer tracer) {
+        System.out.println("Init helper.");
         this.tracer = tracer;
         responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
@@ -75,6 +76,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     @Override
     @Nullable
     public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
+        System.out.println("Create client span");
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return null;
@@ -111,6 +113,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
     @Override
     public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
+        System.out.println("Try to finish client psan");
         try {
             String url = null;
             int statusCode = -1;
