@@ -1,8 +1,11 @@
-# Next
+# Next (1.10.0)
 
 ## Features
  * Add ability to manually specify reported [hostname](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-hostname)
+
 ## Bug Fixes
+ * Error in log when setting [server_urls](https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html#config-server-urls) 
+ to an empty string - `co.elastic.apm.agent.configuration.ApmServerConfigurationSource - Expected previousException not to be null`
  
 # 1.9.0
 
