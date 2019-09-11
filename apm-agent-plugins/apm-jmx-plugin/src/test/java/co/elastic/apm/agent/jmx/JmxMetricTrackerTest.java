@@ -63,13 +63,13 @@ class JmxMetricTrackerTest {
 
     @Test
     void testAvailableProcessors() throws Exception {
-        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[AvailableProcessors:metric_name=available_processors]"));
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[AvailableProcessors:metric_name=available_processors]"));
         assertThat(metricRegistry.getGauge("jvm.jmx.available_processors", Labels.Mutable.of("type", "OperatingSystem"))).isEqualTo(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors());
     }
 
     @Test
     void testHeap() throws Exception {
-        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.committed", Labels.Mutable.of("type", "Memory"))).isPositive();
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.init", Labels.Mutable.of("type", "Memory"))).isPositive();
         assertThat(metricRegistry.getGauge("jvm.jmx.heap.used", Labels.Mutable.of("type", "Memory"))).isPositive();
@@ -79,7 +79,7 @@ class JmxMetricTrackerTest {
 
     @Test
     void testGC() throws Exception {
-        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
             assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
@@ -90,8 +90,25 @@ class JmxMetricTrackerTest {
 
     @Test
     void testString() throws Exception {
-        addJmxMetric(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[Arch]"));
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[Arch]"));
         verify(logger).warn(eq("Can't create metric '{}' because attribute '{}' is not a number: '{}'"), any(), any(), any());
+    }
+
+    @Test
+    void testRemoveMetric() throws Exception {
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
+        for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            String memoryManagerName = gcBean.getName();
+            assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+        }
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]"));
+        for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            String memoryManagerName = gcBean.getName();
+            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionCount", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
+            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
+        }
     }
 
     private void printMetricSets() {
@@ -100,7 +117,7 @@ class JmxMetricTrackerTest {
         System.out.println(metricsReporter.toString());
     }
 
-    private void addJmxMetric(JmxMetric jmxMetric) throws java.io.IOException {
+    private void setConfig(JmxMetric jmxMetric) throws java.io.IOException {
         config.getCaptureJmxMetrics().update(List.of(jmxMetric), SpyConfiguration.CONFIG_SOURCE_NAME);
     }
 }

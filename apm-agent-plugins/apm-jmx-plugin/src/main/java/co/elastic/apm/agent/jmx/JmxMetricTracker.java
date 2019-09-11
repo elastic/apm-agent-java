@@ -33,13 +33,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 
+import javax.annotation.Nullable;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class JmxMetricTracker implements LifecycleListener {
 
@@ -64,34 +67,53 @@ public class JmxMetricTracker implements LifecycleListener {
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                registerJmxMetrics(newValue);
+                List<JmxMetricRegistration> oldRegistrations = registerJmxMetrics(oldValue);
+                List<JmxMetricRegistration> newRegistrations = registerJmxMetrics(newValue);
+
+                List<JmxMetricRegistration> addedRegistrations = new ArrayList<>(newRegistrations);
+                addedRegistrations.removeAll(oldRegistrations);
+
+                List<JmxMetricRegistration> deletedRegistrations = new ArrayList<>(oldRegistrations);
+                deletedRegistrations.removeAll(newRegistrations);
+
+                for (JmxMetricRegistration addedRegistration : addedRegistrations) {
+                    addedRegistration.register(server, metricRegistry);
+                }
+
+                for (JmxMetricRegistration deletedRegistration : deletedRegistrations) {
+                    deletedRegistration.unregister(metricRegistry);
+                }
             }
         });
-        registerJmxMetrics(jmxConfiguration.getCaptureJmxMetrics().get());
+        for (JmxMetricRegistration registration : registerJmxMetrics(jmxConfiguration.getCaptureJmxMetrics().get())) {
+            registration.register(server, metricRegistry);
+        }
     }
 
-    private void registerJmxMetrics(List<JmxMetric> jmxMetrics) {
+    private List<JmxMetricRegistration> registerJmxMetrics(List<JmxMetric> jmxMetrics) {
+        List<JmxMetricRegistration> registrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
             try {
-                registerJmxMetric(jmxMetric);
+                registerJmxMetric(jmxMetric, registrations);
             } catch (Exception e) {
                 logger.error("Failed to register JMX metric {}", jmxMetric.toString(), e);
             }
         }
+        return registrations;
     }
 
-    private void registerJmxMetric(final JmxMetric jmxMetric) throws JMException {
+    private void registerJmxMetric(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations) throws JMException {
         for (ObjectInstance mbean : server.queryMBeans(jmxMetric.getObjectName(), null)) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();
                 final Object value = server.getAttribute(objectName, attribute.getJmxAttributeName());
                 if (value instanceof Number) {
-                    addScalarMetric(attribute, objectName);
+                    registrations.add(new JmxMetricRegistration(JMX_PREFIX + attribute.getMetricName(), Labels.Mutable.of(objectName.getKeyPropertyList()), attribute.getJmxAttributeName(), null, objectName));
                 } else if (value instanceof CompositeData) {
                     final CompositeData compositeValue = (CompositeData) value;
                     for (final String key : compositeValue.getCompositeType().keySet()) {
                         if (compositeValue.get(key) instanceof Number) {
-                            addCompositeMetric(attribute, objectName, key);
+                            registrations.add(new JmxMetricRegistration(JMX_PREFIX + attribute.getMetricName() + "." + key, Labels.Mutable.of(objectName.getKeyPropertyList()), attribute.getJmxAttributeName(), key, objectName));
                         } else {
                             logger.warn("Can't create metric '{}' because composite value '{}' is not a number: '{}'", jmxMetric, key, value);
                         }
@@ -103,30 +125,58 @@ public class JmxMetricTracker implements LifecycleListener {
         }
     }
 
-    private void addScalarMetric(final JmxMetric.Attribute attribute, final ObjectName objectName) {
-        metricRegistry.add(JMX_PREFIX + attribute.getMetricName(), Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
-            @Override
-            public double get() {
-                try {
-                    return ((Number) server.getAttribute(objectName, attribute.getJmxAttributeName())).doubleValue();
-                } catch (Exception e) {
-                    return Double.NaN;
-                }
-            }
-        });
-    }
 
-    private void addCompositeMetric(final JmxMetric.Attribute attribute, final ObjectName objectName, final String key) {
-        metricRegistry.add(JMX_PREFIX + attribute.getMetricName() + "." + key, Labels.Mutable.of(objectName.getKeyPropertyList()), new DoubleSupplier() {
-            @Override
-            public double get() {
-                try {
-                    return ((Number) ((CompositeData) server.getAttribute(objectName, attribute.getJmxAttributeName())).get(key)).doubleValue();
-                } catch (Exception e) {
-                    return Double.NaN;
+    private static class JmxMetricRegistration {
+        private final String metricName;
+        private final Labels.Immutable labels;
+        private final String jmxAttribute;
+        @Nullable
+        private final String compositeDataKey;
+        private final ObjectName objectName;
+
+        private JmxMetricRegistration(String metricName, Labels labels, String jmxAttribute, @Nullable String compositeDataKey, ObjectName objectName) {
+            this.metricName = metricName;
+            this.labels = labels.immutableCopy();
+            this.jmxAttribute = jmxAttribute;
+            this.compositeDataKey = compositeDataKey;
+            this.objectName = objectName;
+        }
+
+
+        public void register(MBeanServer server, MetricRegistry metricRegistry) {
+            metricRegistry.add(metricName, labels, new DoubleSupplier() {
+                @Override
+                public double get() {
+                    try {
+                        if (compositeDataKey == null) {
+                            return ((Number) server.getAttribute(objectName, jmxAttribute)).doubleValue();
+                        } else {
+                            return ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
+                        }
+                    } catch (Exception e) {
+                        return Double.NaN;
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        public void unregister(MetricRegistry metricRegistry) {
+            metricRegistry.removeGauge(metricName, labels);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            JmxMetricRegistration that = (JmxMetricRegistration) o;
+            return metricName.equals(that.metricName) &&
+                labels.equals(that.labels);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(metricName, labels);
+        }
     }
 
     @Override

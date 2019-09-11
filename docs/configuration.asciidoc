@@ -852,7 +852,7 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 === JMX configuration options
 [float]
 [[config-capture-jmx-metrics]]
-==== `capture_jmx_metrics` (added[1.9.0])
+==== `capture_jmx_metrics` (added[1.10.0])
 
 Report metrics from JMX to the APM Server
 
@@ -954,8 +954,6 @@ The resulting documents in Elasticsearch look similar to this:
   }
 }
 ----
-
-NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.
 
 
 
@@ -1934,8 +1932,6 @@ The default unit for this option is `ms`
 #   }
 # }
 # ----
-# 
-# NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.
 # 
 #
 # This setting can be changed at runtime

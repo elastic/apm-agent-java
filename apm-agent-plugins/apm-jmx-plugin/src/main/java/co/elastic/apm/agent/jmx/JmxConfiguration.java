@@ -134,9 +134,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
             "    \"type\": \"Memory\"\n" +
             "  }\n" +
             "}\n" +
-            "----\n" +
-            "\n" +
-            "NOTE: While new JMX metric definitions can be added at runtime, removing metrics is not supported.\n")
+            "----\n")
         .dynamic(true)
         .configurationCategory("JMX")
         .buildWithDefault(Collections.<JmxMetric>emptyList());
