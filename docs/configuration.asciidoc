@@ -65,6 +65,7 @@ Click on a key to get more information.
 ** <<config-instrument>>
 ** <<config-service-name>>
 ** <<config-service-version>>
+** <<config-hostname>>
 ** <<config-environment>>
 ** <<config-transaction-sample-rate>>
 ** <<config-transaction-max-spans>>
@@ -225,6 +226,26 @@ A version string for the currently deployed version of the service. If you donâ€
 |============
 
 [float]
+[[config-hostname]]
+==== `hostname`
+
+Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.hostname` | `hostname` | `ELASTIC_APM_HOSTNAME`
+|============
+
+[float]
 [[config-environment]]
 ==== `environment`
 
@@ -337,7 +358,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1465,6 +1486,14 @@ The default unit for this option is `ms`
 #
 # service_version=
 
+# Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# hostname=
+
 # The name of the environment this service is deployed in, e.g. "production" or "staging".
 # 
 # Environments allow you to easily filter data on a global level in the APM UI.
@@ -1526,7 +1555,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #

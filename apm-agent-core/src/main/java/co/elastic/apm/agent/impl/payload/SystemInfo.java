@@ -87,9 +87,16 @@ public class SystemInfo {
         this.kubernetes = kubernetes;
     }
 
+    public static SystemInfo create(@Nullable String hostname) {
+        String reportedHostname = hostname;
+        if (reportedHostname == null || reportedHostname.equals("")) {
+            reportedHostname = getNameOfLocalHost();
+        }
+        return new SystemInfo(System.getProperty("os.arch"), reportedHostname, System.getProperty("os.name")).findContainerDetails();
+    }
+    
     public static SystemInfo create() {
-
-        return new SystemInfo(System.getProperty("os.arch"), getNameOfLocalHost(), System.getProperty("os.name")).findContainerDetails();
+        return create(null);
     }
 
     static String getNameOfLocalHost() {
