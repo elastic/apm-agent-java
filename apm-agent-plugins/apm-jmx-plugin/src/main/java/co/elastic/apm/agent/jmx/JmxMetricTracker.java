@@ -143,7 +143,7 @@ public class JmxMetricTracker implements LifecycleListener {
         }
 
 
-        public void register(MBeanServer server, MetricRegistry metricRegistry) {
+        public void register(final MBeanServer server, final MetricRegistry metricRegistry) {
             metricRegistry.add(metricName, labels, new DoubleSupplier() {
                 @Override
                 public double get() {
