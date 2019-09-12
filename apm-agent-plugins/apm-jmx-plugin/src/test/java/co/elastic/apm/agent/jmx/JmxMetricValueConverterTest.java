@@ -66,4 +66,14 @@ class JmxMetricValueConverterTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("attribute");
     }
+
+    @Test
+    void testUnknownAttributes() {
+        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[qux:quux=corge]"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unknown properties: [quux]");
+        assertThatThrownBy(() -> JmxMetric.valueOf("object_name[foo:bar=baz] attribute[foo] foo[bar]"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unknown keys: [foo]");
+    }
 }

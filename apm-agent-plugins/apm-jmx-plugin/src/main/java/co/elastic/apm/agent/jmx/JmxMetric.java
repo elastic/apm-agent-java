@@ -31,12 +31,15 @@ import javax.annotation.Nullable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class JmxMetric {
 
@@ -63,6 +66,12 @@ public class JmxMetric {
         if (!map.containsKey(ATTRIBUTE)) {
             throw new IllegalArgumentException("attribute is missing");
         }
+        Set<String> unknownKeys = new HashSet<>(map.keySet());
+        unknownKeys.removeAll(Arrays.asList(OBJECT_NAME, ATTRIBUTE));
+        if (!unknownKeys.isEmpty()) {
+            throw new IllegalArgumentException("Unknown keys: " + unknownKeys);
+        }
+
         String objectNameString = map.get(OBJECT_NAME).get(0);
         ObjectName objectName;
         try {
@@ -141,6 +150,7 @@ public class JmxMetric {
     }
 
     public static class Attribute {
+        public static final String IGNORE = "ignore";
         private final String stringRepresentation;
         private final String jmxAttributeName;
         @Nullable
@@ -152,9 +162,14 @@ public class JmxMetric {
                 if (!s.contains(":")) {
                     // ObjectNames require to have at least one key property
                     // let's fake it
-                    objectName = new ObjectName(s + ":ignore=this");
+                    objectName = new ObjectName(s, IGNORE, "this");
                 } else {
                     objectName = new ObjectName(s);
+                }
+                Set<String> unknownProperties = new HashSet<>(objectName.getKeyPropertyList().keySet());
+                unknownProperties.removeAll(Arrays.asList(IGNORE, METRIC_NAME));
+                if (!unknownProperties.isEmpty()) {
+                    throw new IllegalArgumentException("Unknown properties: " + unknownProperties);
                 }
                 return new Attribute(s, objectName.getDomain(), objectName.getKeyProperty(METRIC_NAME));
             } catch (MalformedObjectNameException e) {
