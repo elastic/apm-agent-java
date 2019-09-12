@@ -56,7 +56,7 @@ public class JmxMetricTracker implements LifecycleListener {
         this(tracer, LoggerFactory.getLogger(JmxMetricTracker.class));
     }
 
-    public JmxMetricTracker(ElasticApmTracer tracer, Logger logger) {
+    JmxMetricTracker(ElasticApmTracer tracer, Logger logger) {
         this.logger = logger;
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
         metricRegistry = tracer.getMetricRegistry();
@@ -126,7 +126,7 @@ public class JmxMetricTracker implements LifecycleListener {
     }
 
 
-    private static class JmxMetricRegistration {
+    static class JmxMetricRegistration {
         private final String metricName;
         private final Labels.Immutable labels;
         private final String jmxAttribute;
@@ -143,7 +143,7 @@ public class JmxMetricTracker implements LifecycleListener {
         }
 
 
-        public void register(final MBeanServer server, final MetricRegistry metricRegistry) {
+        void register(final MBeanServer server, final MetricRegistry metricRegistry) {
             metricRegistry.add(metricName, labels, new DoubleSupplier() {
                 @Override
                 public double get() {
@@ -160,7 +160,7 @@ public class JmxMetricTracker implements LifecycleListener {
             });
         }
 
-        public void unregister(MetricRegistry metricRegistry) {
+        void unregister(MetricRegistry metricRegistry) {
             metricRegistry.removeGauge(metricName, labels);
         }
 
