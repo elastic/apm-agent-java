@@ -25,43 +25,68 @@
 package co.elastic.apm.agent.mongoclient.v3_4;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.mongoclient.MongoClientInstrumentation;
 import co.elastic.apm.agent.mongoclient.MongoClientInstrumentationHelper;
+import com.mongodb.event.CommandEvent;
 import com.mongodb.event.CommandListener;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-public class MongoClientSyncInstrumentation extends MongoClientInstrumentation {
+public class MongoClientCommonInstrumentation extends MongoClientInstrumentation {
 
-    public MongoClientSyncInstrumentation(ElasticApmTracer tracer) {
+    public MongoClientCommonInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
 
-    public static class MongoClientAdvice {
+    public static class MongoClientAsyncAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onBeforeExecute(@Advice.This Object thiz,
-                                           @Advice.Local("helper") MongoClientInstrumentationHelper helper) {
+        public static void onBeforeSet(@Advice.Argument(value = 0, readOnly = false) CommandListener commandListener,
+                                       @Advice.Local("span") Span span,
+                                       @Advice.Local("helper") MongoClientInstrumentationHelper<CommandEvent, CommandListener> helper) {
             helper = mongoClientInstrHelperManager.getForClassLoaderOfClass(CommandListener.class);
+
+            if (helper != null) {
+                span = helper.createClientSpan();
+                if (span != null) {
+                    commandListener = helper.<CommandListener>wrapCommandListener(commandListener, span);
+                }
+            }
         }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onAfterExecute(@Advice.Argument(value = 0) CommandListener commandListener,
+                                           @Advice.Local("span") @Nullable Span span,
+                                           @Advice.Local("helper") @Nullable MongoClientInstrumentationHelper<CommandEvent, CommandListener> helper,
+                                           @Advice.Thrown @Nullable Throwable t) {
+            if (span != null) {
+                // Deactivate in this thread. Span will be ended and reported by the listener
+                span.deactivate();
+            }
+        }
+
     }
 
     @Override
     public Class<?> getAdviceClass() {
-        return MongoClientAdvice.class;
+        return MongoClientAsyncAdvice.class;
     }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("com.mongodb.MongoClientOptions$Builder");
+        return hasSuperType(named("com.mongodb.connection.Protocol"));
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("build");
+        return named("setCommandListener");
     }
 
 }

@@ -1,2 +1,1 @@
-co.elastic.apm.agent.mongoclient.v3_4.MongoClientSyncInstrumentation
-co.elastic.apm.agent.mongoclient.v3_4.MongoClientAsyncInstrumentation
+co.elastic.apm.agent.mongoclient.v3_4.MongoClientCommonInstrumentation

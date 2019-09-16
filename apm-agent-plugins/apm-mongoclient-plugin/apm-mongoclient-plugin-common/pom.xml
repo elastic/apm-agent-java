@@ -25,12 +25,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-async</artifactId>
-            <version>${version.mongo}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>

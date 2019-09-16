@@ -28,7 +28,6 @@ import co.elastic.apm.agent.mongoclient.AbstractMongoClientInstrumentationTest;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -36,7 +35,6 @@ import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrumentationTest {
 
@@ -44,24 +42,25 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     private static final String COLLECTION_NAME = "testcollection";
 
     private static MongoClient mongo = null;
+    private static MongoDatabase db = null;
 
     @BeforeClass
     public static void startMongoContainerAndClient() throws InterruptedException {
         container = new GenericContainer("mongo:3.4").withExposedPorts(27017);
         container.start();
         mongo = new MongoClient(container.getContainerIpAddress(), container.getMappedPort(27017));
+        db = mongo.getDatabase(DB_NAME);
     }
 
     @AfterClass
     public static void closeClient() {
+        db.getCollection(COLLECTION_NAME).drop();
         mongo.close();
+        container.stop();
     }
 
     @Test
     public void testCreateCollection() {
-        reporter.reset();
-
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
 
         db.createCollection(COLLECTION_NAME);
 
@@ -69,19 +68,8 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
         assertEquals("{ \"create\" : \"testcollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }", reporter.getFirstSpan().getNameAsString());
     }
 
-    public void reset(MongoDatabase db) {
-        if (db.getCollection(COLLECTION_NAME) != null) {
-            db.getCollection(COLLECTION_NAME).drop();
-        }
-        reporter.reset();
-    }
-
     @Test
     public void testCountCollection() {
-        reporter.reset();
-
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
-
         long count = db.getCollection(COLLECTION_NAME).count();
 
         assertEquals(1, reporter.getSpans().size());
@@ -91,8 +79,6 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
     @Test
     public void testCreateDocument() {
-
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
         db.getCollection(COLLECTION_NAME).drop();
 
         Document document = new Document();
@@ -113,8 +99,6 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
     @Test
     public void testUpdateDocument() {
-
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
         db.getCollection(COLLECTION_NAME).drop();
 
         Document document = new Document();
@@ -142,8 +126,6 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
     @Test
     public void testDeleteDocument() {
-
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
         db.getCollection(COLLECTION_NAME).drop();
 
         Document document = new Document();
@@ -163,22 +145,5 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
         assertEquals(0, count);
         assertEquals("{ \"delete\" : \"?\", \"ordered\" : \"?\", \"deletes\" : [{ \"q\" : { \"name\" : \"?\" }, \"limit\" : \"?\" }] }", reporter.getSpans().get(0).getNameAsString());
         assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getSpans().get(1).getNameAsString());
-    }
-
-    @Test
-    public void testUpdateWithInvalidBsonDocument() {
-        reporter.reset();
-        MongoDatabase db = mongo.getDatabase(DB_NAME);
-        MongoCollection collection = db.getCollection(COLLECTION_NAME);
-        try {
-            collection.updateOne(new BsonDocument(), new BsonDocument()).getModifiedCount();
-            fail("Should be thrown illegal argument exception");
-        } catch (IllegalArgumentException e) {
-
-        }
-        assertEquals(0, reporter.getSpans().size());
-        assertEquals(1, reporter.getErrors().size());
-        assertEquals(IllegalArgumentException.class, reporter.getErrors().get(0).getException().getClass());
-        assertEquals("Invalid BSON document for an update", reporter.getErrors().get(0).getException().getMessage());
     }
 }

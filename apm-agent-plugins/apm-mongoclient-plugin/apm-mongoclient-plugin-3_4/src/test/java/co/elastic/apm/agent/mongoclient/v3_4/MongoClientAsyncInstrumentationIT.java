@@ -72,14 +72,14 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     @Before
     public void initCollection() throws InterruptedException {
         db.createCollection(COLLECTION_NAME, getVoidCallback());
-        Thread.sleep(2 * TIMEOUT_IN_MILLIS);
+        Thread.sleep(TIMEOUT_IN_MILLIS);
         reporter.reset();
     }
 
     @After
     public void dropCollection() throws InterruptedException {
         db.getCollection(COLLECTION_NAME).drop(getVoidCallback());
-        Thread.sleep(2 * TIMEOUT_IN_MILLIS);
+        Thread.sleep(TIMEOUT_IN_MILLIS);
     }
 
     @Test

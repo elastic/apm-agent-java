@@ -61,7 +61,6 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
     private final ObjectPool<CommandListenerWrapper> commandListenerWrapperObjectPool;
 
     public MongoClientInstrumentationHelperImpl(ElasticApmTracer tracer) {
-        System.out.println("Construct MongoClientInstrumentationHelperImpl");
         this.tracer = tracer;
         commandListenerWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<CommandListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
@@ -81,7 +80,6 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
     @Nullable
     @Override
     public Span createClientSpan() {
-        System.out.println("#HELPER# Try to create span without arg.");
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return null;
@@ -104,7 +102,6 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
     @Nullable
     @Override
     public Span createClientSpan(CommandEvent commandEvent, Span span) {
-        System.out.println("#HELPER# Try to create span with arg.");
         if (span == null) {
             if (commandEvent instanceof CommandStartedEvent) {
                 CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
@@ -137,7 +134,6 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
 
     @Override
     public void finishClientSpan(@Nullable CommandEvent event, Span span, @Nullable Throwable t) {
-        System.out.println("#HELPER# Try to finish span.");
         try {
             if (span == null) {
                 if (t != null) {
