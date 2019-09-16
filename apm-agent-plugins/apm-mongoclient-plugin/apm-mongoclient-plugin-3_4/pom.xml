@@ -19,18 +19,13 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
-            <version>${version.mongo}</version>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-mongoclient-plugin-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-mongoclient-plugin-common</artifactId>
@@ -43,6 +38,19 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>${version.mongo}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-async</artifactId>
+            <version>${version.mongo}</version>
+            <scope>provided</scope>
         </dependency>
         <!--<dependency>-->
             <!--<groupId>de.flapdoodle.embed</groupId>-->

@@ -33,7 +33,10 @@ import javax.annotation.Nullable;
 public interface MongoClientInstrumentationHelper<R, L> {
 
     @Nullable
-    Span createClientSpan(@Nullable R event);
+    Span createClientSpan();
+
+    @Nullable
+    Span createClientSpan(@Nullable R event, @Nullable Span span);
 
     void finishClientSpan(@Nullable R event, @Nullable Span span, @Nullable Throwable t);
 

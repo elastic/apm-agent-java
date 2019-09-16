@@ -87,6 +87,7 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void resetState() {
+        System.out.println("### TRY TO RESET STATE");
         delegate = null;
         span = null;
     }

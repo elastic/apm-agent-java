@@ -40,7 +40,6 @@ import org.bson.BsonValue;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -75,59 +74,86 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
 
         @Override
         public CommandListenerWrapper createInstance() {
-            System.out.println("### Try to create wrapper instance.");
             return new CommandListenerWrapper(MongoClientInstrumentationHelperImpl.this);
         }
     }
 
+    @Nullable
     @Override
-    public Span createClientSpan(CommandEvent commandEvent) {
-        System.out.println("### Try to create client span.");
-        if (commandEvent instanceof CommandStartedEvent) {
-            CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
-            final TraceContextHolder<?> activeSpan = tracer.getActive();
-            if (activeSpan == null || !activeSpan.isSampled()) {
-                System.out.println("### Is null when create span.");
-                return null;
-            }
-
-            Span span = activeSpan.createExitSpan();
-
-            if (span == null) {
-                return null;
-            }
-
-            span.withType(SPAN_TYPE)
-                .withSubtype(MONGO)
-                .withAction(SPAN_ACTION)
-                .appendToName(parseCommand(startedEvent.getCommand()));
-            span.getContext().getDb().withType(MONGO);
-            span.activate();
-
-            return span;
+    public Span createClientSpan() {
+        System.out.println("#HELPER# Try to create span without arg.");
+        final TraceContextHolder<?> activeSpan = tracer.getActive();
+        if (activeSpan == null || !activeSpan.isSampled()) {
+            return null;
         }
-        return null;
+
+        Span span = activeSpan.createExitSpan();
+
+        if (span == null) {
+            return null;
+        }
+
+        span.withType(SPAN_TYPE)
+            .withSubtype(MONGO)
+            .withAction(SPAN_ACTION);
+        span.getContext().getDb().withType(MONGO);
+        span.activate();
+        return span;
+    }
+
+    @Nullable
+    @Override
+    public Span createClientSpan(CommandEvent commandEvent, Span span) {
+        System.out.println("#HELPER# Try to create span with arg.");
+        if (span == null) {
+            if (commandEvent instanceof CommandStartedEvent) {
+                CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
+                final TraceContextHolder<?> activeSpan = tracer.getActive();
+                if (activeSpan == null || !activeSpan.isSampled()) {
+                    return null;
+                }
+
+                span = activeSpan.createExitSpan();
+
+                if (span == null) {
+                    return null;
+                }
+
+                span.withType(SPAN_TYPE)
+                    .withSubtype(MONGO)
+                    .withAction(SPAN_ACTION)
+                    .appendToName(parseCommand(startedEvent.getCommand()));
+                span.getContext().getDb().withType(MONGO);
+                span.activate();
+            }
+        } else {
+            if (commandEvent instanceof CommandStartedEvent) {
+                CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
+                span.appendToName(parseCommand(startedEvent.getCommand()));
+            }
+        }
+        return span;
     }
 
     @Override
     public void finishClientSpan(@Nullable CommandEvent event, Span span, @Nullable Throwable t) {
-        System.out.println("### Try to finish client span via helper.");
+        System.out.println("#HELPER# Try to finish span.");
         try {
             if (span == null) {
-                System.out.println("### Captured exception to current transaction");
-                tracer.captureException(t, getClass().getClassLoader());
+                if (t != null) {
+                    tracer.captureException(t, getClass().getClassLoader());
+                }
             }
         } finally {
             if (span != null) {
-                System.out.println("### is not null. try to end. =" + span.getNameAsString());
-                span.captureException(t).deactivate().end();
+                span.captureException(t).end();
             }
         }
     }
 
     @Override
     public CommandListener wrapCommandListener(CommandListener listener, Span span) {
-        return commandListenerWrapperObjectPool.createInstance().with(listener);
+        return commandListenerWrapperObjectPool.createInstance().with(listener, span);
     }
 
     void recycle(CommandListenerWrapper listenerWrapper) {

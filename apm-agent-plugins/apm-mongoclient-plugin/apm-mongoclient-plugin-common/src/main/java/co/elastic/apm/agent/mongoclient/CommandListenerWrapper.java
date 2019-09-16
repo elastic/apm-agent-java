@@ -32,23 +32,24 @@ import com.mongodb.event.CommandStartedEvent;
 import com.mongodb.event.CommandSucceededEvent;
 
 import javax.annotation.Nullable;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class CommandListenerWrapper implements CommandListener, Recyclable {
 
-    private final Map<Integer, Span> spanMap = new ConcurrentHashMap<>();
-    private MongoClientInstrumentationHelper helper;
+    private MongoClientInstrumentationHelperImpl helper;
 
     @Nullable
     private CommandListener delegate;
 
-    public CommandListenerWrapper(MongoClientInstrumentationHelper helper) {
+    @Nullable
+    private volatile Span span;
+
+    CommandListenerWrapper(MongoClientInstrumentationHelperImpl helper) {
         this.helper = helper;
     }
 
-    public CommandListenerWrapper with(CommandListener delegate) {
+    CommandListenerWrapper with(CommandListener delegate, Span span) {
         this.delegate = delegate;
+        this.span = span;
         return this;
     }
 
@@ -56,8 +57,10 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
     public void commandStarted(final CommandStartedEvent event) {
         System.out.println("#Started");
         try {
-            Span span = helper.createClientSpan(event);
-            this.spanMap.put(event.getRequestId(), span);
+            Span span = helper.createClientSpan(event, this.span);
+            if (span == null) {
+                return;
+            }
         } finally {
             if (delegate != null) {
                 delegate.commandStarted(event);
@@ -68,32 +71,32 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
     @Override
     public void commandSucceeded(final CommandSucceededEvent event) {
         System.out.println("#Finished");
-        final Span span = spanMap.remove(event.getRequestId());
         try {
             helper.finishClientSpan(event, span, null);
         } finally {
             if (delegate != null) {
                 delegate.commandSucceeded(event);
             }
+            helper.recycle(this);
         }
     }
 
     @Override
     public void commandFailed(final CommandFailedEvent event) {
         System.out.println("#Failed");
-        final Span span = spanMap.remove(event.getRequestId());
         try {
             helper.finishClientSpan(event, span, event.getThrowable());
         } finally {
             if (delegate != null) {
                 delegate.commandFailed(event);
             }
+            helper.recycle(this);
         }
     }
 
     @Override
     public void resetState() {
-        System.out.println("### RESET STATE");
+        System.out.println("###Reset");
         delegate = null;
     }
 }

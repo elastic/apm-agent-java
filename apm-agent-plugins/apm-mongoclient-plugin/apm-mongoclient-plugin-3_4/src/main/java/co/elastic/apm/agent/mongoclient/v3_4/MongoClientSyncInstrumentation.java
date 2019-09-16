@@ -25,10 +25,8 @@
 package co.elastic.apm.agent.mongoclient.v3_4;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.mongoclient.CommandListenerWrapper;
 import co.elastic.apm.agent.mongoclient.MongoClientInstrumentation;
 import co.elastic.apm.agent.mongoclient.MongoClientInstrumentationHelper;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.event.CommandListener;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,15 +45,7 @@ public class MongoClientSyncInstrumentation extends MongoClientInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onBeforeExecute(@Advice.This Object thiz,
                                            @Advice.Local("helper") MongoClientInstrumentationHelper helper) {
-            System.out.println("### Before");
             helper = mongoClientInstrHelperManager.getForClassLoaderOfClass(CommandListener.class);
-            System.out.println("### On start");
-            if (helper != null) {
-                if (thiz instanceof MongoClientOptions.Builder) {
-                    MongoClientOptions.Builder builder = (MongoClientOptions.Builder) thiz;
-                    builder.addCommandListener(new CommandListenerWrapper(helper));
-                }
-            }
         }
     }
 
