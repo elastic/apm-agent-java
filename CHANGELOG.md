@@ -28,6 +28,11 @@
  * Avoid terminating the TCP connection to APM Server when polling for configuration updates (#823)
  * Fixes potential segfault if attaching the agent with long arguments (#865)
  
+ # 1.10.0
+ 
+ ## Features
+ * Added support for Spring Web Flux framework 
+ 
 # 1.9.0
 
 ## Features
