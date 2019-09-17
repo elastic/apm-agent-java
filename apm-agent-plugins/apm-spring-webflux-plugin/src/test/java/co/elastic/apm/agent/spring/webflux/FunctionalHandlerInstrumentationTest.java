@@ -63,6 +63,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
 
         final HttpClient client = new DefaultHttpClient();
         final HttpGet request = new HttpGet("http://localhost:8081/hello");
+        request.addHeader("Content-Length", "1234");
         final HttpResponse response = client.execute(request);
         final int statusCode = response.getStatusLine().getStatusCode();
         Assert.assertEquals(statusCode, HttpStatus.SC_OK);
@@ -71,6 +72,7 @@ public class FunctionalHandlerInstrumentationTest extends AbstractWebFluxInstrum
 
         Assert.assertEquals(transactions.size(), 1);
         Assert.assertEquals(transactions.get(0).getNameAsString(), "GET /hello");
+        Assert.assertEquals(transactions.get(0).getContext().getCustom("Content-Length"), "1234");
 
         log.info("Request size: " + transactions.get(0).getContext().getCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH));
         log.info("Request handled in: " + transactions.get(0).getDuration());

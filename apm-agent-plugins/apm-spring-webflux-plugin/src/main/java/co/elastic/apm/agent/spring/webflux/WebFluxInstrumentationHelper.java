@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.server.ServerWebExchange;
+
+import java.util.List;
 
 public class WebFluxInstrumentationHelper {
 
@@ -63,8 +65,10 @@ public class WebFluxInstrumentationHelper {
         final Transaction transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), null, null)
             .withName(name)
             .withType(TRANSACTION_TYPE);
-        transaction.getContext().addCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH,
-            serverRequest.headers().contentLength().orElse(0L));
+        final List<String> values = serverRequest.headers().header(CONTENT_LENGTH);
+        if (values.size() == 1) {
+            transaction.getContext().addCustom(WebFluxInstrumentationHelper.CONTENT_LENGTH, values.get(0));
+        }
         transaction.activate();
         return transaction;
     }
