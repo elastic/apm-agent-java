@@ -138,7 +138,7 @@ public class RemoteAttacher {
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPath).start();
+        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPathOrJvmProperties).start();
         if (argsProvider.waitFor() == 0) {
             return toString(argsProvider.getInputStream());
         } else {
@@ -153,7 +153,7 @@ public class RemoteAttacher {
             return true;
         }
         for (String include : arguments.getIncludes()) {
-            if (jvmInfo.packageOrPath.matches(include)) {
+            if (jvmInfo.packageOrPathOrJvmProperties.matches(include)) {
                 return true;
             }
         }
@@ -162,7 +162,7 @@ public class RemoteAttacher {
 
     private boolean isExcluded(JvmInfo jvmInfo) {
         for (String exclude : arguments.getExcludes()) {
-            if (jvmInfo.packageOrPath.matches(exclude)) {
+            if (jvmInfo.packageOrPathOrJvmProperties.matches(exclude)) {
                 return true;
             }
         }
