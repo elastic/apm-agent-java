@@ -311,12 +311,12 @@ public class RemoteAttacher {
             out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
             out.println();
             out.println("    -e, --exclude <exclude_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any Jvm  system property of the java process the java agent should not be attached to.");
             out.println("        (Matches the output of 'jps -l')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -i, --include <include_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any Jvm  system property of the java process the java agent should be attached to.");
             out.println("        (Matches the output of 'jps -l')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
