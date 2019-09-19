@@ -1,0 +1,52 @@
+ifdef::env-github[]
+NOTE: For the best reading experience,
+please view this documentation at https://www.elastic.co/guide/en/apm/agent/java[elastic.co]
+endif::[]
+
+[[log-correlation]]
+== Log correlation
+
+Log correlation allows you to navigate to all logs belonging to a particular trace and vice-versa:
+for a specific log, see in which context it has been logged and which parameters the user provided.
+
+[float]
+[[log-correlation-ingest]]
+=== Step 1: Ingest your application logs into Elasticsearch
+
+To get started with log correlation, your logs have to be ingested into Elasticsearch first.
+The easiest way to get started with that is https://github.com/elastic/java-ecs-logging[Java ECS logging] which provides layouts/encoders
+for Logback, log4j2, and log4j.
+These layouts/encoders convert a log event into an ECS-compatible JSON structure.
+Using minimal Filebeat configuration,
+you can ingest these logs into Elasticsearch.
+
+Head over to the documentation to learn more: https://github.com/elastic/java-ecs-logging[Java ECS logging documentation].
+
+If you’re using plain-text logs it's recommended to parse out specific parts of the logs,
+like the timestamp, the log level, and the message by using an {ref}/ingest.html[ingest pipeline] with a {ref}/grok-processor.html[grok processor], for example.
+
+[float]
+[[log-correlation-enable]]
+=== Step 2: Enable log correlation in the agent
+
+To correlate logs from your app with transactions captured by the Elastic APM Java Agent,
+the agent will inject the following IDs in your https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] when <<config-enable-log-correlation>> is enabled:
+
+// temporary attribute for ECS 1.1
+// Remove after 7.4 release
+:ecs-ref: https://www.elastic.co/guide/en/ecs/current
+
+* {ecs-ref}/ecs-tracing.html[`transaction.id`]
+* {ecs-ref}/ecs-tracing.html[`trace.id`]
+
+[float]
+[[log-correlation-extract-ids]]
+=== Step 3: Extract the ID fields
+
+If you are using https://github.com/elastic/java-ecs-logging[Java ECS logging], there's nothing to do in this step.
+The IDs in the MDC are automatically added to the right fields.
+
+For plain text logs, use the pattern layout of your logging implementation to write the MDC values to your log file.
+If you are using Logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
+With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
+you can parse out the IDs from the logs and put them in the {ecs-ref}/ecs-tracing.html[`transaction.id`] and the {ecs-ref}/ecs-tracing.html[`trace.id`] fields.
