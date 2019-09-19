@@ -41,6 +41,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -191,5 +192,17 @@ public class ApmServerClientTest {
         config.save("server_urls", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);
         assertThat(apmServerClient.supportsNonStringLabels()).isFalse();
 
+    }
+
+    @Test
+    public void testWithEmptyServerUrlList() {
+        ApmServerClient client = new ApmServerClient(reporterConfiguration, Collections.emptyList());
+        Exception exception = null;
+        try {
+            client.execute("/irrelevant", connection -> null);
+        } catch (Exception e) {
+            exception = e;
+        }
+        assertThat(exception).isNull();
     }
 }
