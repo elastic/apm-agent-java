@@ -302,7 +302,7 @@ public class RemoteAttacher {
             out.println();
             out.println("OPTIONS");
             out.println("    -l, --list");
-            out.println("        Lists all running JVMs. Same output as 'jps -l'.");
+            out.println("        Lists all running JVMs. Same output as 'jps -lv'.");
             out.println();
             out.println("    -p, --pid <pid>");
             out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
