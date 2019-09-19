@@ -28,11 +28,11 @@ import java.util.Objects;
 
 class JvmInfo {
     final String pid;
-    final String packageOrPath;
+    final String packageOrPathOrJvmProperties;
 
-    JvmInfo(String pid, String packageOrPath) {
+    JvmInfo(String pid, String packageOrPathOrJvmProperties) {
         this.pid = pid;
-        this.packageOrPath = packageOrPath;
+        this.packageOrPathOrJvmProperties = packageOrPathOrJvmProperties;
     }
 
     static JvmInfo parse(String jpsLine) {
@@ -42,7 +42,7 @@ class JvmInfo {
 
     @Override
     public String toString() {
-        return pid + ' ' + packageOrPath;
+        return pid + ' ' + packageOrPathOrJvmProperties;
     }
 
     @Override
