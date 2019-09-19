@@ -317,7 +317,7 @@ public class RemoteAttacher {
             out.println();
             out.println("    -i, --include <include_pattern>...");
             out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any Jvm  system property of the java process the java agent should be attached to.");
-            out.println("        (Matches the output of 'jps -l')");
+            out.println("        (Matches the output of 'jps -lv')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -a, --args <agent_arguments>");
