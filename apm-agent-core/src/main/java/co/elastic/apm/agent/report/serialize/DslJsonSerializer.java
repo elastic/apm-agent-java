@@ -677,9 +677,14 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(OBJECT_START);
         writeField("filename", stacktrace.getFileName());
         writeField("function", stacktrace.getMethodName());
-        writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
+        String className = stacktrace.getClassName();
+        writeField("library_frame", isLibraryFrame(className));
         writeField("lineno", stacktrace.getLineNumber());
-        serializeStackFrameModule(stacktrace.getClassName());
+        int lastDotIndex = className.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            writeField("abs_path", className.substring(0, lastDotIndex).replace('.', '/') + "/" + stacktrace.getFileName());
+        }
+        serializeStackFrameModule(className);
         jw.writeByte(OBJECT_END);
     }
 

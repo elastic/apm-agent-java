@@ -123,6 +123,7 @@ class DslJsonSerializerTest {
         assertThat(stackTraceElement.get("library_frame")).isNotNull();
         assertThat(stackTraceElement.get("lineno")).isNotNull();
         assertThat(stackTraceElement.get("module")).isNotNull();
+        assertThat(stackTraceElement.get("abs_path").textValue()).isEqualTo(stackTraceElement.get("module").textValue().replace('.', '/') + "/" + stackTraceElement.get("filename").textValue());
         assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
