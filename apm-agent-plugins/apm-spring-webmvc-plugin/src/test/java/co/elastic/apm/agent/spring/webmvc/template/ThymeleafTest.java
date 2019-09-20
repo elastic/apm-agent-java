@@ -43,6 +43,6 @@ class ThymeleafTest extends AbstractViewRenderingInstrumentationTest {
 
         MvcResult mvcResult = resultActions.andReturn();
 
-        verifySpanCapture("Thymeleaf", "thymeleaf", mvcResult.getResponse(), "<span>Message 123</span>");
+        verifySpanCapture("Thymeleaf", "", mvcResult.getResponse(), "<span>Message 123</span>");
     }
 }

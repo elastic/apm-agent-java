@@ -44,6 +44,6 @@ class FreeMarkerViewTest extends AbstractViewRenderingInstrumentationTest {
 
         MvcResult mvcResult = resultActions.andReturn();
 
-        verifySpanCapture("FreeMarker", "example", mvcResult.getResponse(), "FreeMarker Template example: Message 123");
+        verifySpanCapture("FreeMarker", " example", mvcResult.getResponse(), "FreeMarker Template example: Message 123");
     }
 }

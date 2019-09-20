@@ -28,17 +28,20 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 import org.springframework.web.servlet.view.AbstractView;
-import org.thymeleaf.spring4.view.AbstractThymeleafView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -63,30 +66,16 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             }
             final TraceContextHolder<?> parent = tracer.getActive();
 
-            String viewClassName = thiz.getClass().getSimpleName().replace("View", "");
-
+            String className = thiz.getClass().getName();
             span = parent.createSpan()
                 .withType(SPAN_TYPE)
-                .withSubtype(viewClassName)
+                .withSubtype(className.substring(className.lastIndexOf('.')+1, className.lastIndexOf("View")))
                 .withAction(SPAN_ACTION)
                 .withName(DISPATCHER_SERVLET_RENDER_METHOD);
 
-            String viewName = null;
             if (thiz instanceof AbstractView) {
                 AbstractView view = (AbstractView) thiz;
-                viewName = view.getBeanName();
-            }
-            switch (viewClassName) {
-                case "Thymeleaf":
-                    AbstractThymeleafView view = (AbstractThymeleafView) thiz;
-                    viewName = view.getBeanName();
-                    break;
-                default:
-                    break;
-            }
-
-            if (viewName != null) {
-                span.appendToName(" ").appendToName(viewName);
+                span.appendToName(" ").appendToName(view.getBeanName());
             }
             span.activate();
         }
@@ -100,6 +89,11 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
                     .end();
             }
         }
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("View");
     }
 
     @Override
@@ -117,7 +111,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("thymeleaf-view", "freemarker-view", "jackson2json-view", "jsp-view", "groovy-template-view", "jade4j-template-view");
+        return Arrays.asList("spring-view-render");
     }
 }
 

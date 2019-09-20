@@ -42,6 +42,6 @@ class Jade4jTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/jade4j"));
 
         MvcResult mvcResult = resultActions.andReturn();
-        verifySpanCapture("Jade", "hello", mvcResult.getResponse(), "<!DOCTYPE html><html><body><Hello>Message 123</Hello></body></html>");
+        verifySpanCapture("Jade", " hello", mvcResult.getResponse(), "<!DOCTYPE html><html><body><Hello>Message 123</Hello></body></html>");
     }
 }

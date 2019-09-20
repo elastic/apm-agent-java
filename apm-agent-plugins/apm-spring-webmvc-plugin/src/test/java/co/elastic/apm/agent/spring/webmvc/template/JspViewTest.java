@@ -44,7 +44,7 @@ class JspViewTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/jsp"));
         MvcResult mvcResult = resultActions.andReturn();
 
-        verifySpanCapture("InternalResource", "message-view", mvcResult.getResponse(), "");
+        verifySpanCapture("InternalResource", " message-view", mvcResult.getResponse(), "");
 
         ModelAndView modelAndView = mvcResult.getModelAndView();
         assertEquals(modelAndView.getModel().get("message"), "Message 123");

@@ -42,6 +42,6 @@ class Jackson2JsonViewTest extends AbstractViewRenderingInstrumentationTest {
         ResultActions resultActions = mockMvc.perform(get("/jackson"));
 
         MvcResult mvcResult = resultActions.andReturn();
-        verifySpanCapture("MappingJackson2Json", "jsonTemplate", mvcResult.getResponse(), "{\n  \"message\" : \"Message 123\"\n}");
+        verifySpanCapture("MappingJackson2Json", " jsonTemplate", mvcResult.getResponse(), "{\n  \"message\" : \"Message 123\"\n}");
     }
 }

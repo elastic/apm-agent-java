@@ -43,6 +43,6 @@ class GroovyTemplateTest extends AbstractViewRenderingInstrumentationTest {
 
         MvcResult mvcResult = resultActions.andReturn();
 
-        verifySpanCapture("GroovyMarkup", "hello", mvcResult.getResponse(), "<!DOCTYPE html><html lang='en'><head><meta http-equiv='\"Content-Type\" content=\"text/html; charset=utf-8\"'/><title>My page</title></head><body><h2>A Groovy View with Spring MVC</h2><div>msg: Message 123</div></body></html>");
+        verifySpanCapture("GroovyMarkup", " hello", mvcResult.getResponse(), "<!DOCTYPE html><html lang='en'><head><meta http-equiv='\"Content-Type\" content=\"text/html; charset=utf-8\"'/><title>My page</title></head><body><h2>A Groovy View with Spring MVC</h2><div>msg: Message 123</div></body></html>");
     }
 }
