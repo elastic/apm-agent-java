@@ -23,13 +23,13 @@ you can ingest these logs into Elasticsearch.
 Head over to the documentation to learn more: https://github.com/elastic/java-ecs-logging[Java ECS logging documentation].
 
 If you’re using plain-text logs it's recommended to parse out specific parts of the logs,
-like the timestamp, the log level, and the message by using an {ref}/ingest.html[ingest pipeline] with a {ref}/grok-processor.html[grok processor], for example.
+like the timestamp, the log level, and the message. One way to do this is by using an {ref}/ingest.html[ingest pipeline] with a {ref}/grok-processor.html[grok processor].
 
 [float]
 [[log-correlation-enable]]
 === Step 2: Enable log correlation in the agent
 
-To correlate logs from your app with transactions captured by the Elastic APM Java Agent,
+In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
 the agent will inject the following IDs in your https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] when <<config-enable-log-correlation>> is enabled:
 
 // temporary attribute for ECS 1.1
