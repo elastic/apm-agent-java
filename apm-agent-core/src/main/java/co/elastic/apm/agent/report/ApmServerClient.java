@@ -200,9 +200,14 @@ public class ApmServerClient {
      */
     @Nullable
     public <V> V execute(String path, ConnectionHandler<V> connectionHandler) throws Exception {
+        final List<URL> prioritizedUrlList = getPrioritizedUrlList();
+        if (prioritizedUrlList.isEmpty()) {
+            return null;
+        }
+
         int expectedErrorCount = errorCount.get();
         Exception previousException = null;
-        for (URL serverUrl : getPrioritizedUrlList()) {
+        for (URL serverUrl : prioritizedUrlList) {
             HttpURLConnection connection = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
