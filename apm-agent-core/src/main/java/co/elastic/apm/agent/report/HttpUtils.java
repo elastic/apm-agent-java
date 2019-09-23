@@ -40,40 +40,32 @@ public class HttpUtils {
     private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
 
     private HttpUtils() {
-
     }
 
-    public static String getBody(HttpURLConnection connection) {
-        String body;
-        try {
-            if (connection == null || connection.getInputStream() == null)
-                return null;
-            body = readInputStream(connection.getInputStream());
-            return body;
-        } catch (final IOException e) {
-            logger.error("Reading inputStream: {}", e.getMessage());
-            try {
-                body = readInputStream(connection.getErrorStream());
-                return body;
-            } catch (IOException e1) {
-                logger.error("Reading errorStream: {}", e1.getMessage());
-            }
-        }
-        return null;
-    }
-
-    private static String readInputStream(final InputStream inputStream) throws IOException {
+    /**
+     * Reads the steam and converts the contents to a string, without closing stream.
+     *
+     * @param inputStream the input stream
+     * @return the content of the stream as a string
+     */
+    public static String readToString(final InputStream inputStream) throws IOException {
         final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         final StringBuilder bodyString = new StringBuilder();
         String line;
         while ((line = bufferedReader.readLine()) != null) {
             bodyString.append(line);
         }
-        bufferedReader.close();
         return bodyString.toString();
     }
 
-    public static void closeInputStream(@Nullable HttpURLConnection connection) {
+    /**
+     * In order to be able to reuse the underlying TCP connections,
+     * the input stream must be consumed and closed
+     * see also https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
+     *
+     * @param connection the connection
+     */
+    public static void consumeAndClose(@Nullable HttpURLConnection connection) {
         if (connection != null) {
             try {
                 InputStream responseInputStream = connection.getErrorStream();

@@ -29,7 +29,6 @@ import co.elastic.apm.agent.util.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -220,7 +219,7 @@ public class ApmServerClient {
                 }
                 previousException = e;
             } finally {
-                HttpUtils.closeInputStream(connection);
+                HttpUtils.consumeAndClose(connection);
             }
         }
         if (previousException == null) {
@@ -239,7 +238,7 @@ public class ApmServerClient {
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
-                HttpUtils.closeInputStream(connection);
+                HttpUtils.consumeAndClose(connection);
             }
         }
         return results;
@@ -290,6 +289,17 @@ public class ApmServerClient {
     }
 
     public interface ConnectionHandler<T> {
+
+        /**
+         * Gets the {@link HttpURLConnection} after the connection has been established and returns a result,
+         * for example the status code or the response body.
+         *
+         * NOTE: do not call {@link InputStream#close()} as that is handled by {@link ApmServerClient}
+         *
+         * @param connection the connection
+         * @return the result
+         * @throws IOException if an I/O error occurs while handling the connection
+         */
         @Nullable
         T withConnection(HttpURLConnection connection) throws IOException;
     }
