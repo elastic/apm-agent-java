@@ -67,8 +67,8 @@ public class JmxMetricTracker implements LifecycleListener {
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = registerJmxMetrics(oldValue);
-                List<JmxMetricRegistration> newRegistrations = registerJmxMetrics(newValue);
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue);
+                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue);
 
                 List<JmxMetricRegistration> addedRegistrations = new ArrayList<>(newRegistrations);
                 addedRegistrations.removeAll(oldRegistrations);
@@ -85,16 +85,16 @@ public class JmxMetricTracker implements LifecycleListener {
                 }
             }
         });
-        for (JmxMetricRegistration registration : registerJmxMetrics(jmxConfiguration.getCaptureJmxMetrics().get())) {
+        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxConfiguration.getCaptureJmxMetrics().get())) {
             registration.register(server, metricRegistry);
         }
     }
 
-    private List<JmxMetricRegistration> registerJmxMetrics(List<JmxMetric> jmxMetrics) {
+    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics) {
         List<JmxMetricRegistration> registrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
             try {
-                registerJmxMetric(jmxMetric, registrations);
+                addJmxMetricRegistration(jmxMetric, registrations);
             } catch (Exception e) {
                 logger.error("Failed to register JMX metric {}", jmxMetric.toString(), e);
             }
@@ -102,7 +102,7 @@ public class JmxMetricTracker implements LifecycleListener {
         return registrations;
     }
 
-    private void registerJmxMetric(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations) throws JMException {
+    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations) throws JMException {
         for (ObjectInstance mbean : server.queryMBeans(jmxMetric.getObjectName(), null)) {
             for (JmxMetric.Attribute attribute : jmxMetric.getAttributes()) {
                 final ObjectName objectName = mbean.getObjectName();
