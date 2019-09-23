@@ -69,6 +69,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -97,6 +98,8 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
+    @Nullable
+    private static final Method GET_OUR_STACK_TRACE;
     // visible for testing
     final JsonWriter jw;
     private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
@@ -105,6 +108,18 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private final ApmServerClient apmServerClient;
     @Nullable
     private OutputStream os;
+
+    static {
+        Method getOurStackTrace;
+        try {
+            getOurStackTrace = Throwable.class.getDeclaredMethod("getOurStackTrace");
+            getOurStackTrace.setAccessible(true);
+            getOurStackTrace.invoke(new Throwable());
+        } catch (Exception e) {
+            getOurStackTrace = null;
+        }
+        GET_OUR_STACK_TRACE = getOurStackTrace;
+    }
 
     public DslJsonSerializer(StacktraceConfiguration stacktraceConfiguration, ApmServerClient apmServerClient) {
         this.stacktraceConfiguration = stacktraceConfiguration;
@@ -300,10 +315,31 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_START);
         if (exception != null) {
             writeField("message", String.valueOf(exception.getMessage()));
-            serializeStacktrace(exception.getStackTrace());
+            serializeStacktrace(getStackTrace(exception));
             writeLastField("type", exception.getClass().getName());
         }
         jw.writeByte(JsonWriter.OBJECT_END);
+    }
+
+    /**
+     * Calling {@link Throwable#getStackTrace()} is quite expensive,
+     * not only because the stack trace has to be initialized once but also because the stack trace is cloned every time {@link Throwable#getStackTrace()} is called.
+     *
+     * This method calls the private {@code Throwable#getOurStackTrace()} which does not do a defensive copy of the stack trace.
+     *
+     * @param exception the exception which to obtain the stack trace of
+     * @return the exception's stack trace
+     */
+    private static StackTraceElement[] getStackTrace(Throwable exception) {
+        if (GET_OUR_STACK_TRACE == null) {
+            return exception.getStackTrace();
+        } else {
+            try {
+                return (StackTraceElement[]) GET_OUR_STACK_TRACE.invoke(exception);
+            } catch (Exception e) {
+                return exception.getStackTrace();
+            }
+        }
     }
 
     public String toJsonString(final Payload payload) {
