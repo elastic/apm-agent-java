@@ -108,7 +108,7 @@ java -jar apm-agent-attach-standalone.jar --list
 *-l, --list*::
 +
 --
-Lists all running JVMs. Same output as `jps -l`.
+Lists all running JVMs. Same output as `jps -lv`.
 --
 
 *-p, --pid <pid>*::
@@ -130,8 +130,8 @@ NOTE: This option cannot be used in conjunction with `--pid`
 *-e, --exclude <exclude_pattern>...*::
 +
 --
-A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.
-(Matches the output of `jps -l`)
+A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.
+(Matches the output of `jps -lv`)
 
 NOTE: This option cannot be used in conjunction with `--pid` and requires the `jps` command to be installed
 --
@@ -139,8 +139,8 @@ NOTE: This option cannot be used in conjunction with `--pid` and requires the `j
 *-i, --include <include_pattern>...*::
 +
 --
-A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.
-(Matches the output of `jps -l`)
+A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.
+(Matches the output of `jps -lv`)
 
 NOTE: This option cannot be used in conjunction with `--pid` and requires the `jps` command to be installed
 --
