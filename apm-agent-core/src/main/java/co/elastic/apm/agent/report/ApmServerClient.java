@@ -219,6 +219,8 @@ public class ApmServerClient {
                     e.addSuppressed(previousException);
                 }
                 previousException = e;
+            } finally {
+                HttpUtils.closeInputStream(connection);
             }
         }
         if (previousException == null) {
@@ -236,6 +238,8 @@ public class ApmServerClient {
                 results.add(connectionHandler.withConnection(connection));
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
+            } finally {
+                HttpUtils.closeInputStream(connection);
             }
         }
         return results;

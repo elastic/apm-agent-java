@@ -235,6 +235,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                     onFlushError(-1, connection.getErrorStream(), e);
                 }
             } finally {
+                HttpUtils.closeInputStream(connection);
                 connection = null;
                 deflater.reset();
                 currentlyTransmitting = 0;
