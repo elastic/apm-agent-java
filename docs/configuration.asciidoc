@@ -356,7 +356,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -926,13 +926,9 @@ it's content is deleted when the application starts.
 
 A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
-You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
-With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
-you can index your log files and correlate them with APM traces.
-With this integration you can get all logs belonging to a particular trace and vice-versa:
-for a specific log, see in which context it has been logged and which parameters the user provided. 
-While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+See <<log-correlation>> for more details.
+
+NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
 
 
 [options="header"]
@@ -1431,7 +1427,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `dispatcher-servlet`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1766,13 +1762,9 @@ The default unit for this option is `ms`
 
 # A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.
 # If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.
-# You can then use the pattern format of your logging implementation to write the MDC values to your log file.
-# If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.
-# With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,
-# you can index your log files and correlate them with APM traces.
-# With this integration you can get all logs belonging to a particular trace and vice-versa:
-# for a specific log, see in which context it has been logged and which parameters the user provided. 
-# While it's allowed to enable this setting at runtime, you can't disable it without a restart.
+# See <<log-correlation>> for more details.
+# 
+# NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.
 #
 # This setting can be changed at runtime
 # Type: Boolean
