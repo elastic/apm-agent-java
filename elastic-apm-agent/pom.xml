@@ -238,6 +238,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jms-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -274,6 +279,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-redis-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
