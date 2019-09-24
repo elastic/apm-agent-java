@@ -27,6 +27,7 @@ package co.elastic.apm.attach;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -151,6 +152,8 @@ public class ElasticApmAttacher {
                             out.write(buffer, 0, length);
                         }
                     }
+                } else if (!md5Hash(new FileInputStream(tempAgentJar)).equals(hash)) {
+                    throw new IllegalStateException("Invalid MD5 checksum of " + tempAgentJar + ". Please delete this file.");
                 }
                 return tempAgentJar;
             } catch (NoSuchAlgorithmException | IOException e) {
