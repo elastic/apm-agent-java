@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class ThymeleafTest extends AbstractViewRenderingInstrumentationTest {
 
     @Test
-    void testExceptionCapture() throws Exception {
+    void testViewRender() throws Exception {
         ResultActions resultActions = mockMvc.perform(get("/thymeleaf"));
 
         MvcResult mvcResult = resultActions.andReturn();

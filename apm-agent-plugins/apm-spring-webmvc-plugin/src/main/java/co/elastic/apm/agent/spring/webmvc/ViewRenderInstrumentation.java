@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -69,7 +70,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             String className = thiz.getClass().getName();
             span = parent.createSpan()
                 .withType(SPAN_TYPE)
-                .withSubtype(className.substring(className.lastIndexOf('.')+1, className.lastIndexOf("View")))
+                .withSubtype(defineSubtype(className))
                 .withAction(SPAN_ACTION)
                 .withName(DISPATCHER_SERVLET_RENDER_METHOD);
 
@@ -88,6 +89,26 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
                     .deactivate()
                     .end();
             }
+        }
+
+        public static String defineSubtype(String className) {
+            switch (className) {
+                case "org.springframework.web.servlet.view.groovy.GroovyMarkupView":
+                    return "GroovyMarkup";
+                case "org.springframework.web.servlet.view.freemarker.FreeMarkerView":
+                    return "FreeMarker";
+                case "org.springframework.web.servlet.view.json.MappingJackson2JsonView":
+                    return "MappingJackson2Json";
+                case "de.neuland.jade4j.spring.view.JadeView":
+                    return "Jade";
+                case "org.springframework.web.servlet.view.InternalResourceView":
+                    return "InternalResource";
+                case "org.thymeleaf.spring4.view.ThymeleafView":
+                    return "Thymeleaf";
+                default:
+                    break;
+            }
+            return className.substring(className.lastIndexOf('.')+1, className.lastIndexOf("View"));
         }
     }
 

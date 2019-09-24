@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class GroovyTemplateTest extends AbstractViewRenderingInstrumentationTest {
 
     @Test
-    void testExceptionCapture() throws Exception {
+    void testViewRender() throws Exception {
         ResultActions resultActions = mockMvc.perform(get("/groovy"));
 
         MvcResult mvcResult = resultActions.andReturn();

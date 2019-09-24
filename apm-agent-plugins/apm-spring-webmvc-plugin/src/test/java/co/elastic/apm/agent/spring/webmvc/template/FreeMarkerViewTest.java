@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class FreeMarkerViewTest extends AbstractViewRenderingInstrumentationTest {
 
     @Test
-    void testExceptionCapture() throws Exception {
+    void testViewRender() throws Exception {
         ResultActions resultActions = mockMvc.perform(get("/free-marker"));
 
         MvcResult mvcResult = resultActions.andReturn();
