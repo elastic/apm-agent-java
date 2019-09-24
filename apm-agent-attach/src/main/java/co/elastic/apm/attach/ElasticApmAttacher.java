@@ -167,7 +167,8 @@ public class ElasticApmAttacher {
         try (InputStream agentJar = resourceAsStream) {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] buffer = new byte[1024];
-            while (new DigestInputStream(agentJar, md).read(buffer) != -1) {}
+            DigestInputStream dis = new DigestInputStream(agentJar, md);
+            while (dis.read(buffer) != -1) {}
             return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }
