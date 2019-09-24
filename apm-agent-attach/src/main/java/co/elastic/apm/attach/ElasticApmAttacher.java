@@ -31,6 +31,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -138,19 +142,30 @@ public class ElasticApmAttacher {
                 if (agentJar == null) {
                     throw new IllegalStateException("Agent jar not found");
                 }
-                // don't delete on exit, because this the attaching application may terminate before the target application
-                File tempAgentJar = File.createTempFile("elastic-apm-agent", ".jar");
-                try (OutputStream out = new FileOutputStream(tempAgentJar)) {
-                    byte[] buffer = new byte[1024];
-                    int length;
-                    while ((length = agentJar.read(buffer)) != -1) {
-                        out.write(buffer, 0, length);
+                String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
+                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), "elastic-apm-agent-" + hash + ".jar");
+                if (!tempAgentJar.exists()) {
+                    try (OutputStream out = new FileOutputStream(tempAgentJar)) {
+                        byte[] buffer = new byte[1024];
+                        for (int length; (length = agentJar.read(buffer)) != -1;) {
+                            out.write(buffer, 0, length);
+                        }
                     }
                 }
                 return tempAgentJar;
-            } catch (IOException e) {
+            } catch (NoSuchAlgorithmException | IOException e) {
                 throw new IllegalStateException(e);
             }
+        }
+
+    }
+
+    static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
+        try (InputStream agentJar = resourceAsStream) {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] buffer = new byte[1024];
+            while (new DigestInputStream(agentJar, md).read(buffer) != -1) {}
+            return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }
 }
