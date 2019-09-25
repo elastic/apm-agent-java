@@ -24,37 +24,16 @@
  */
 package co.elastic.apm.attach;
 
-import java.util.Objects;
+import org.junit.jupiter.api.Test;
+import wiremock.org.apache.commons.codec.digest.DigestUtils;
 
-class JvmInfo {
-    final String pid;
-    final String packageOrPathOrJvmProperties;
+import static org.assertj.core.api.Assertions.assertThat;
 
-    JvmInfo(String pid, String packageOrPathOrJvmProperties) {
-        this.pid = pid;
-        this.packageOrPathOrJvmProperties = packageOrPathOrJvmProperties;
-    }
+class ElasticApmAttacherTest {
 
-    static JvmInfo parse(String jpsLine) {
-        final int firstSpace = jpsLine.indexOf(' ');
-        return new JvmInfo(jpsLine.substring(0, firstSpace), jpsLine.substring(firstSpace + 1));
-    }
-
-    @Override
-    public String toString() {
-        return pid + ' ' + packageOrPathOrJvmProperties;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JvmInfo jvmInfo = (JvmInfo) o;
-        return pid.equals(jvmInfo.pid);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(pid);
+    @Test
+    void testHash() throws Exception {
+        assertThat(ElasticApmAttacher.md5Hash(getClass().getResourceAsStream(ElasticApmAttacher.class.getSimpleName() + ".class")))
+            .isEqualTo(DigestUtils.md5Hex(getClass().getResourceAsStream(ElasticApmAttacher.class.getSimpleName() + ".class")));
     }
 }
