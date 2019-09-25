@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
@@ -61,9 +62,7 @@ import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -316,16 +315,10 @@ public class ElasticApmAgent {
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
         if (agentJarFile != null) {
             try {
-                Map<String, ClassFileLocator> packageToLocatorMap = new HashMap<>();
-
-                // Fallback to Bootstrap ClassLoader locator for basic Java classes (supports Mule 4 special class loading mechanism)
-                packageToLocatorMap.put("java.lang", ClassFileLocator.ForClassLoader.ofBootLoader());
-                packageToLocatorMap.put("java.lang.invoke", ClassFileLocator.ForClassLoader.ofBootLoader());
-
                 locationStrategy =
                     ((AgentBuilder.LocationStrategy.ForClassLoader) locationStrategy).withFallbackTo(
                         ClassFileLocator.ForJarFile.of(agentJarFile),
-                        new ClassFileLocator.PackageDiscriminating(packageToLocatorMap)
+                        new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader())
                     );
             } catch (IOException e) {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);

@@ -81,7 +81,13 @@ public class Mule4OverrideClassLoaderLookupInstrumentation extends ElasticApmIns
         public static void makeParentOnlyForAgentClasses(@Advice.Argument(0) @Nullable final String packageName,
                                                          @Advice.Return(readOnly = false) LookupStrategy lookupStrategy) {
 
-            if (packageName != null && packageName.startsWith("co.elastic.apm.agent")) {
+            // Until instrumentation mechanism is initiated, agent classes get loaded from the launching class loader.
+            // Whenever flows are invoked with the visibility of this class loader's classpath, we can't let other agent
+            // classes to be loaded from System or Bootstrap class loader.
+            // Mule4OverrideClassLoaderLookupInstrumentation is a good indication of that, as it is guaranteed to be
+            // loaded before this instrumentation took place
+            if (packageName != null && packageName.startsWith("co.elastic.apm.agent") &&
+                Mule4OverrideClassLoaderLookupInstrumentation.class.getClassLoader() == null) {
                 lookupStrategy = new DelegateOnlyLookupStrategy(ClassLoader.getSystemClassLoader());
             }
         }
