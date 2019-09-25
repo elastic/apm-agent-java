@@ -48,6 +48,7 @@ import javax.jms.MessageListener;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -119,6 +120,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                                 return null;
                             } else if (MESSAGE_HANDLING.equals(transaction.getType())) {
                                 // A transaction created in the OnMethodExit of the poll- end it here
+                                // Type must be changed to "messaging"
+                                transaction.withType(MESSAGING_TYPE);
                                 transaction.deactivate().end();
                                 createPollingTransaction = true;
                             } else {
@@ -126,7 +129,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             }
                         } else if (parent instanceof Span) {
                             Span parentSpan = (Span) parent;
-                            if ("messaging".equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
+                            if (MESSAGING_TYPE.equals(parentSpan.getType()) && "receive".equals(parentSpan.getAction())) {
                                 // Avoid duplication for nested calls
                                 return null;
                             }
@@ -143,7 +146,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             .withType(MESSAGE_POLLING);
                     } else if (createPollingSpan) {
                         createdSpan = parent.createSpan()
-                            .withType("messaging")
+                            .withType(MESSAGING_TYPE)
                             .withSubtype("jms")
                             .withAction("receive");
                     }
@@ -177,6 +180,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         if (messageSenderContext != null) {
                             abstractSpan.getTraceContext().asChildOf(messageSenderContext);
                         }
+                        ((Transaction) abstractSpan).withType(MESSAGING_TYPE);
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages

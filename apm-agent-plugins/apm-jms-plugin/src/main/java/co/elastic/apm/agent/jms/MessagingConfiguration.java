@@ -42,7 +42,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "This option is case-insensitive.")
         .dynamic(true)
-        .buildWithDefault(Strategy.BOTH);
+        .buildWithDefault(Strategy.HANDLING);
 
     public MessagingConfiguration.Strategy getMessagePollingTransactionStrategy() {
         return messagePollingTransaction.get();

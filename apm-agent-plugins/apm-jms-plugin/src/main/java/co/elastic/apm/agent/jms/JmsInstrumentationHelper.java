@@ -39,9 +39,19 @@ public interface JmsInstrumentationHelper<D, M, L> {
      */
     String JMS_TRACE_PARENT_HEADER = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
 
+    /**
+     * Indicates a transaction is created for the message handling flow, but should not be used as the actual type of
+     * reported transactions.
+     */
     String MESSAGE_HANDLING = "message-handling";
 
+    /**
+     * Indicates a transaction is created for a message polling method, but should not be used as the actual type of
+     * reported transactions.
+     */
     String MESSAGE_POLLING = "message-polling";
+
+    String MESSAGING_TYPE = "messaging";
 
     String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
 

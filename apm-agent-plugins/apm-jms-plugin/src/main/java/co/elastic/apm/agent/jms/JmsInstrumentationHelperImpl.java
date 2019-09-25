@@ -67,7 +67,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             return null;
         }
 
-        span.withType("messaging")
+        span.withType(MESSAGING_TYPE)
             .withSubtype("jms")
             .withAction("send")
             .activate();

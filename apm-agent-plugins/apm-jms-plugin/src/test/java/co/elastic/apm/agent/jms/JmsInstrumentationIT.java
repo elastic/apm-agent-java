@@ -59,10 +59,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.HANDLING;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -193,14 +191,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testPollingTransactionCreationOnly() throws Exception {
-        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.Strategy.POLLING);
+        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(POLLING);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
     @Test
-    public void testHandlingTransactionCreationOnly() throws Exception {
-        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(MessagingConfiguration.Strategy.POLLING);
+    public void testHandlingAndPollingTransactionCreation() throws Exception {
+        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(BOTH);
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
@@ -335,7 +333,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
-            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGE_HANDLING);
+            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
         }
     }
 
@@ -344,12 +342,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
 
         List<Span> spans = reporter.getSpans();
-        if (!isActive) {
+        if (!isActive || strategy == POLLING) {
             assertThat(spans).hasSize(1);
-        } else if (strategy == BOTH) {
-            assertThat(spans).hasSize(2);
         } else {
-            assertThat(spans).hasSize(1);
+            assertThat(spans).hasSize(2);
         }
 
         Span sendInitialMessageSpan = spans.get(0);
@@ -370,30 +366,21 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransactions).hasSize(1);
         }
 
-        Transaction messagePollingTransaction = null;
-        Transaction messageHandlingTransaction = null;
+        Id transactionId = null;
         for (Transaction receiveTransaction : receiveTransactions) {
             assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from ");
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
-            if (MESSAGE_HANDLING.equals(receiveTransaction.getType())) {
-                messageHandlingTransaction = receiveTransaction;
-            } else if (MESSAGE_POLLING.equals(receiveTransaction.getType())) {
-                messagePollingTransaction = receiveTransaction;
-            }
-        }
-
-        if (strategy != HANDLING) {
-            assertThat(messagePollingTransaction).isNotNull();
+            transactionId = receiveTransaction.getTraceContext().getId();
         }
 
         if (strategy != POLLING) {
-            assertThat(messageHandlingTransaction).isNotNull();
             Span sendNoopSpan = spans.get(1);
             assertThat(sendNoopSpan.getNameAsString()).isEqualTo("JMS SEND to queue NOOP");
             assertThat(sendNoopSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
-            assertThat(sendNoopSpan.getTraceContext().getParentId()).isEqualTo(messageHandlingTransaction.getTraceContext().getId());
+            // If both polling and handling transactions are captured, handling transaction would come second
+            assertThat(sendNoopSpan.getTraceContext().getParentId()).isEqualTo(transactionId);
         }
     }
 

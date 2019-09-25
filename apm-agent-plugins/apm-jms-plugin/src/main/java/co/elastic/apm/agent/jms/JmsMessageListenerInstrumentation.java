@@ -43,7 +43,7 @@ import javax.jms.Queue;
 import javax.jms.Topic;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
@@ -115,7 +115,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
                 }
 
-                transaction.withType(MESSAGE_HANDLING).withName(RECEIVE_NAME_PREFIX);
+                transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
                 try {
                     if (destination instanceof Queue) {
                         transaction.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
