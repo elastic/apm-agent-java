@@ -139,7 +139,10 @@ public class MetricRegistry {
     public double getGauge(String name, Labels labels) {
         final MetricSet metricSet = activeMetricSets.get(labels);
         if (metricSet != null) {
-            return metricSet.getGauge(name).get();
+            DoubleSupplier gauge = metricSet.getGauge(name);
+            if (gauge != null) {
+                return gauge.get();
+            }
         }
         return Double.NaN;
     }
@@ -233,6 +236,13 @@ public class MetricRegistry {
      */
     public void writerCriticalSectionExit(long criticalValueAtEnter) {
         phaser.writerCriticalSectionExit(criticalValueAtEnter);
+    }
+
+    public void removeGauge(String metricName, Labels labels) {
+        MetricSet metricSet = activeMetricSets.get(labels);
+        if (metricSet != null) {
+            metricSet.getGauges().remove(metricName);
+        }
     }
 
     public interface MetricsReporter {
