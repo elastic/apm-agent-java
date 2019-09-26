@@ -50,7 +50,7 @@ public class ExceptionHandlerInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void captureException(@Advice.Argument(0) HttpServletRequest request,
                                             @Advice.Argument(3) Exception e) {
-            if (request != null) {
+            if (request != null && e != null) {
                 request.setAttribute("co.elastic.apm.exception", e);
             }
         }
