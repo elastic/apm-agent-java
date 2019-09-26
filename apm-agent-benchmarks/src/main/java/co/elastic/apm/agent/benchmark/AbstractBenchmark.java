@@ -43,14 +43,14 @@ import org.openjdk.jmh.runner.options.TimeValue;
 // set value = 0 if you want to debug the benchmarks
 @Fork(value = 1, jvmArgsAppend = {
     "-Xmx1g",
-    "-Xms1g",
+    "-Xms1g"/*,
     "-XX:+UnlockDiagnosticVMOptions",
     "-XX:+DebugNonSafepoints",
     "-XX:+FlightRecorder",
     "-XX:StartFlightRecording=disk=true," +
         "dumponexit=true," +
         "filename=./recording.jfr," +
-        "settings=profile"
+        "settings=profile"*/
 })
 public abstract class AbstractBenchmark {
 
