@@ -4,6 +4,7 @@
  * Add ability to manually specify reported [hostname](https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-hostname)
  * Add support for Redis Jedis client
  * Add support for identifying target JVM to attach apm agent to using JMV property.
+ * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
  * Error in log when setting [server_urls](https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html#config-server-urls) 

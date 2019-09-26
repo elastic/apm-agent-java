@@ -190,7 +190,6 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 final JsonReader<Object> reader = dslJson.newReader(is, buffer);
                 reader.startObject();
                 config = MapConverter.deserialize(reader);
-                IOUtils.consumeAndClose(is);
                 configurationRegistry.reloadDynamicConfigurationOptions();
                 logger.info("Received new configuration from APM Server: {}", config);
                 for (Map.Entry<String, String> entry : config.entrySet()) {

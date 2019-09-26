@@ -248,6 +248,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jmx-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jsf-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -269,6 +274,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-es-restclient-plugin-6_4</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mule4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
