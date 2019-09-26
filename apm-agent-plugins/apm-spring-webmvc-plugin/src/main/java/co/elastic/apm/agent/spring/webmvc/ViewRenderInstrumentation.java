@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -33,14 +32,14 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.matcher.ElementMatchers;
 import org.springframework.web.servlet.view.AbstractView;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isInAnyPackage;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -51,6 +50,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
     private static final String SPAN_TYPE = "template";
     private static final String SPAN_ACTION = "render";
     private static final String DISPATCHER_SERVLET_RENDER_METHOD = "View#render";
+    private static Map<String, String> subTypeCache = new ConcurrentHashMap<>();
 
     @Override
     public Class<?> getAdviceClass() {
@@ -106,9 +106,14 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
                 case "org.thymeleaf.spring4.view.ThymeleafView":
                     return "Thymeleaf";
                 default:
-                    break;
+                    if (subTypeCache.containsKey(className)) {
+                        return subTypeCache.get(className);
+                    } else {
+                        String subType = className.substring(className.lastIndexOf('.') + 1, className.lastIndexOf("View"));
+                        subTypeCache.put(className, subType);
+                        return subType;
+                    }
             }
-            return className.substring(className.lastIndexOf('.')+1, className.lastIndexOf("View"));
         }
     }
 
