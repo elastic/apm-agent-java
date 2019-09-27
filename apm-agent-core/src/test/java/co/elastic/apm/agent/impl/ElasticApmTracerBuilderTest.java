@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -39,7 +39,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ElasticApmTracerBuilderTest {
 
-
     @AfterEach
     void tearDown() {
         System.clearProperty("elastic.apm." + CoreConfiguration.CONFIG_FILE);
@@ -58,5 +57,15 @@ class ElasticApmTracerBuilderTest {
         assertThat(config.isInstrument()).isFalse();
         configurationRegistry.getString(CoreConfiguration.CONFIG_FILE);
         assertThat(configurationRegistry.getString(CoreConfiguration.CONFIG_FILE)).isEqualTo(file.toString());
+    }
+
+    @Test
+    void testTempAttacherPropertiesFile(@TempDir Path tempDir) throws Exception {
+        Path file = Files.createFile(tempDir.resolve("elstcapm.tmp"));
+        Files.write(file, List.of("instrument=false"));
+
+        ConfigurationRegistry configurationRegistry = new ElasticApmTracerBuilder("c=" + file.toAbsolutePath()).build().getConfigurationRegistry();
+        CoreConfiguration config = configurationRegistry.getConfig(CoreConfiguration.class);
+        assertThat(config.isInstrument()).isFalse();
     }
 }
