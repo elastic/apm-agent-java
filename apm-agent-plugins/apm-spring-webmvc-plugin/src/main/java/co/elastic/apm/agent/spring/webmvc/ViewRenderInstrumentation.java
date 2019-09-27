@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.spring.webmvc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -70,7 +71,7 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             String className = thiz.getClass().getName();
             span = parent.createSpan()
                 .withType(SPAN_TYPE)
-                .withSubtype(defineSubtype(className))
+                .withSubtype(getSubtype(className))
                 .withAction(SPAN_ACTION)
                 .withName(DISPATCHER_SERVLET_RENDER_METHOD);
 
@@ -91,7 +92,8 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
             }
         }
 
-        public static String defineSubtype(String className) {
+        @VisibleForAdvice
+        public static String getSubtype(String className) {
             switch (className) {
                 case "org.springframework.web.servlet.view.groovy.GroovyMarkupView":
                     return "GroovyMarkup";
@@ -106,11 +108,16 @@ public class ViewRenderInstrumentation extends ElasticApmInstrumentation {
                 case "org.thymeleaf.spring4.view.ThymeleafView":
                     return "Thymeleaf";
                 default:
-                    if (subTypeCache.containsKey(className)) {
-                        return subTypeCache.get(className);
+                    String subType = subTypeCache.get(className);
+                    if (subType != null) {
+                        return subType;
                     } else {
-                        String subType = className.substring(className.lastIndexOf('.') + 1, className.lastIndexOf("View"));
-                        subTypeCache.put(className, subType);
+                        int indexOfLastDot = className.lastIndexOf('.');
+                        int indexOfView = className.lastIndexOf("View");
+                        subType = className.substring(indexOfLastDot + 1, indexOfView > indexOfLastDot ? indexOfView : className.length());
+                        if (subTypeCache.size() < 1000) {
+                            subTypeCache.put(className, subType);
+                        }
                         return subType;
                     }
             }
