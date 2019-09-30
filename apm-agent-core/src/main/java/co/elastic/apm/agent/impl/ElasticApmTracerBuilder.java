@@ -53,10 +53,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracerBuilder {
 
+    /**
+     * See {@link co.elastic.apm.attach.ElasticApmAttacher#TEMP_PROPERTIES_FILE_KEY}
+     */
+    private static final String TEMP_PROPERTIES_FILE_KEY = "c";
     private final Logger logger;
     @Nullable
     private ConfigurationRegistry configurationRegistry;
@@ -153,7 +158,12 @@ public class ElasticApmTracerBuilder {
     private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
         List<ConfigurationSource> result = new ArrayList<>();
         if (agentArguments != null && !agentArguments.isEmpty()) {
-            result.add(AgentArgumentsConfigurationSource.parse(agentArguments));
+            AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
+            result.add(agentArgs);
+            ConfigurationSource attachmentConfig = getAttachmentArguments(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+            if (attachmentConfig != null) {
+                result.add(attachmentConfig);
+            }
         }
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
@@ -178,6 +188,24 @@ public class ElasticApmTracerBuilder {
             result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
         }
         return result;
+    }
+
+    /**
+     * Loads the configuration from the temporary properties file created by ElasticApmAttacher
+     */
+    @Nullable
+    private ConfigurationSource getAttachmentArguments(@Nullable String configFileLocation) {
+        if (configFileLocation != null) {
+            Properties fromFileSystem = PropertyFileConfigurationSource.getFromFileSystem(configFileLocation);
+            if (fromFileSystem != null) {
+                SimpleSource attachmentConfig = new SimpleSource("Attachment configuration");
+                for (String key : fromFileSystem.stringPropertyNames()) {
+                    attachmentConfig.add(key, fromFileSystem.getProperty(key));
+                }
+                return attachmentConfig;
+            }
+        }
+        return null;
     }
 
 }
