@@ -223,6 +223,18 @@ See [`apm-agent-core/README.md`](apm-agent-core/README.md)
 
 See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 
+### Documenting
+
+HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
+The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporterTest`,
+all the other asciidoc text files are written manually.
+
+A preview of the documentation is generated for each pull-request.
+Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
+
+In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
+and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
+
 ### Releasing
 
 If you have access to make releases, the process is as follows:
