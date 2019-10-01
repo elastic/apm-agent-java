@@ -85,7 +85,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
                     } else {
                         try {
                             // prints out the version info of the APM Server
-                            String body = HttpUtils.getBody(connection);
+                            String body = HttpUtils.readToString(connection.getInputStream());
                             logger.info("Elastic APM server is available: {}", body);
                             JsonReader<Object> reader = dslJson.newReader(body.getBytes(UTF_8));
                             reader.startObject();

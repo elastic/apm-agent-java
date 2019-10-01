@@ -226,7 +226,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                 if (responseCode >= 400) {
                     onFlushError(responseCode, inputStream, null);
                 } else {
-                    onFlushSuccess(inputStream);
+                    onFlushSuccess();
                 }
             } catch (IOException e) {
                 try {
@@ -235,7 +235,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                     onFlushError(-1, connection.getErrorStream(), e);
                 }
             } finally {
-                connection.disconnect();
+                HttpUtils.consumeAndClose(connection);
                 connection = null;
                 deflater.reset();
                 currentlyTransmitting = 0;
@@ -250,13 +250,9 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         }
     }
 
-    private void onFlushSuccess(InputStream inputStream) {
+    private void onFlushSuccess() {
         errorCount = 0;
         reported += currentlyTransmitting;
-        // in order to be able to reuse the underlying TCP connections,
-        // the input stream must be consumed and closed
-        // see also https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
-        IOUtils.consumeAndClose(inputStream);
     }
 
     private void onFlushError(Integer responseCode, InputStream inputStream, @Nullable IOException e) {
@@ -271,14 +267,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
                 logger.warn(IOUtils.toString(inputStream));
             } catch (IOException e1) {
                 logger.warn(e1.getMessage(), e);
-            } finally {
-                IOUtils.closeQuietly(inputStream);
             }
-        } else {
-            // in order to be able to reuse the underlying TCP connections,
-            // the input stream must be consumed and closed
-            // see also https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html
-            IOUtils.consumeAndClose(inputStream);
         }
     }
 

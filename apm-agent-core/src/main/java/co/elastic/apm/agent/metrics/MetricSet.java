@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.metrics;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -65,6 +66,7 @@ public class MetricSet {
         gauges.putIfAbsent(name, metric);
     }
 
+    @Nullable
     DoubleSupplier getGauge(String name) {
         return gauges.get(name);
     }

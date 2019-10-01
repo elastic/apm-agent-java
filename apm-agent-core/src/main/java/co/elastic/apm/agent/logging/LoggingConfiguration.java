@@ -102,14 +102,9 @@ public class LoggingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(LOGGING_CATEGORY)
         .description("A boolean specifying if the agent should integrate into SLF4J's https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] to enable trace-log correlation.\n" +
             "If set to `true`, the agent will set the `trace.id` and `transaction.id` for the currently active spans and transactions to the MDC.\n" +
-            "You can then use the pattern format of your logging implementation to write the MDC values to your log file.\n" +
-            "If you are using logback or log4j, add `%X` to the format to log all MDC values or `%X{trace.id}` to only log the trace id.\n" +
-            "With the help of Filebeat and Logstash or an Elasticsearch ingest pipeline,\n" +
-            "you can index your log files and correlate them with APM traces.\n" +
-            "With this integration you can get all logs belonging to a particular trace and vice-versa:\n" +
-            "for a specific log, see in which context it has been logged and which parameters the user provided. " +
+            "See <<log-correlation>> for more details.\n" +
             "\n" +
-            "While it's allowed to enable this setting at runtime, you can't disable it without a restart.")
+            "NOTE: While it's allowed to enable this setting at runtime, you can't disable it without a restart.")
         .dynamic(true)
         .addValidator(new ConfigurationOption.Validator<Boolean>() {
             @Override

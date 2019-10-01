@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,10 +27,15 @@ package co.elastic.apm.attach;
 import net.bytebuddy.agent.ByteBuddyAgent;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -41,6 +46,13 @@ import java.util.Properties;
  */
 public class ElasticApmAttacher {
 
+    /**
+     * This key is very short on purpose.
+     * The longer the agent argument ({@code -javaagent:<path>=<args>}), the greater the chance that the max length of the agent argument is reached.
+     * Because of a bug in the {@linkplain ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment emulated attachment},
+     * this can even lead to segfaults.
+     */
+    private static final String TEMP_PROPERTIES_FILE_KEY = "c";
     private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new ByteBuddyAgent.AttachmentProvider.Compound(
         ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE,
         ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
@@ -92,7 +104,32 @@ public class ElasticApmAttacher {
         if (Boolean.getBoolean("ElasticApm.attached")) {
             return;
         }
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration), ATTACHMENT_PROVIDER);
+        File tempFile = createTempProperties(configuration);
+        String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
+
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, agentArgs, ATTACHMENT_PROVIDER);
+        if (tempFile != null) {
+            if (!tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
+        }
+    }
+
+    static File createTempProperties(Map<String, String> configuration) {
+        File tempFile = null;
+        if (!configuration.isEmpty()) {
+            Properties properties = new Properties();
+            properties.putAll(configuration);
+            try {
+                tempFile = File.createTempFile("elstcapm", ".tmp");
+                try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                    properties.store(outputStream, null);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return tempFile;
     }
 
     static String toAgentArgs(Map<String, String> configuration) {
@@ -138,19 +175,33 @@ public class ElasticApmAttacher {
                 if (agentJar == null) {
                     throw new IllegalStateException("Agent jar not found");
                 }
-                // don't delete on exit, because this the attaching application may terminate before the target application
-                File tempAgentJar = File.createTempFile("elastic-apm-agent", ".jar");
-                try (OutputStream out = new FileOutputStream(tempAgentJar)) {
-                    byte[] buffer = new byte[1024];
-                    int length;
-                    while ((length = agentJar.read(buffer)) != -1) {
-                        out.write(buffer, 0, length);
+                String hash = md5Hash(ElasticApmAttacher.class.getResourceAsStream("/elastic-apm-agent.jar"));
+                File tempAgentJar = new File(System.getProperty("java.io.tmpdir"), "elastic-apm-agent-" + hash + ".jar");
+                if (!tempAgentJar.exists()) {
+                    try (OutputStream out = new FileOutputStream(tempAgentJar)) {
+                        byte[] buffer = new byte[1024];
+                        for (int length; (length = agentJar.read(buffer)) != -1;) {
+                            out.write(buffer, 0, length);
+                        }
                     }
+                } else if (!md5Hash(new FileInputStream(tempAgentJar)).equals(hash)) {
+                    throw new IllegalStateException("Invalid MD5 checksum of " + tempAgentJar + ". Please delete this file.");
                 }
                 return tempAgentJar;
-            } catch (IOException e) {
+            } catch (NoSuchAlgorithmException | IOException e) {
                 throw new IllegalStateException(e);
             }
+        }
+
+    }
+
+    static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
+        try (InputStream agentJar = resourceAsStream) {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] buffer = new byte[1024];
+            DigestInputStream dis = new DigestInputStream(agentJar, md);
+            while (dis.read(buffer) != -1) {}
+            return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }
 }
