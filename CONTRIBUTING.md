@@ -225,8 +225,9 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 
 ### Documenting
 
-Documentation is generated text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
-The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporterTest`.
+HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
+The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporterTest`,
+all the other asciidoc text files are written manually.
 
 A preview of the documentation is generated for each pull-request.
 Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
