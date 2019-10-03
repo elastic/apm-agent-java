@@ -224,6 +224,16 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_exceptions")
+        .tags("added[1.11.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of exceptions that should be ignored and not reported as errors.\n" +
+            "This allows to ignore exceptions thrown in regular control flow that are not actual errors")
+        .dynamic(true)
+        .buildWithDefault(Collections.emptyList());
+
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("global_labels")
@@ -454,6 +464,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUnnestExceptions() {
         return unnestExceptions.get();
+    }
+
+    public List<WildcardMatcher> getIgnoreExceptions(){
+        return ignoreExceptions.get();
     }
 
     public boolean isTypePoolCacheEnabled() {

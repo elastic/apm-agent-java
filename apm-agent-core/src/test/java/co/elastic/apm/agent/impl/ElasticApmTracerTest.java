@@ -35,13 +35,18 @@ import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -172,6 +177,44 @@ class ElasticApmTracerTest {
         assertThat(error.getTraceContext().hasContent()).isTrue();
         assertThat(error.getTraceContext().getTraceId().isEmpty()).isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isFalse();
+    }
+
+    @Test
+    void testDoesNotIgnoreExceptionsWithEmptyWildcards(){
+        DummyException1 exception = new DummyException1();
+
+        when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions())
+            .thenReturn(Lists.emptyList());
+
+        tracerImpl.captureException(exception, getClass().getClassLoader());
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(reporter.getFirstError().getException()).isEqualTo(exception);
+    }
+
+    @Test
+    void testDoesNotRecordIgnoredExceptions() {
+        List<WildcardMatcher> wildcardList = Stream.of(
+            "co.elastic.apm.agent.impl.ElasticApmTracerTest$DummyException1",
+            "*DummyException2")
+            .map(WildcardMatcher::valueOf)
+            .collect(Collectors.toList());
+
+        when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions())
+            .thenReturn(wildcardList);
+
+        tracerImpl.captureException(new DummyException1(), getClass().getClassLoader());
+        tracerImpl.captureException(new DummyException2(), getClass().getClassLoader());
+        assertThat(reporter.getErrors()).isEmpty();
+    }
+
+    private static class DummyException1 extends Exception {
+        DummyException1() {
+        }
+    }
+
+    private static class DummyException2 extends Exception {
+        DummyException2() {
+        }
     }
 
     @Test
