@@ -233,7 +233,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .description("A list of exceptions that should be ignored and not reported as errors.\n" +
             "This allows to ignore exceptions thrown in regular control flow that are not actual errors")
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
