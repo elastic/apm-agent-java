@@ -227,7 +227,7 @@ A version string for the currently deployed version of the service. If you donâ€
 
 [float]
 [[config-hostname]]
-==== `hostname`
+==== `hostname` (added[1.10.0])
 
 Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.
 
