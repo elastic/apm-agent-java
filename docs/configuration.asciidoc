@@ -72,6 +72,7 @@ Click on a key to get more information.
 ** <<config-sanitize-field-names>>
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
+** <<config-ignore-exceptions>>
 ** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -402,6 +403,27 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
+|============
+
+[float]
+[[config-ignore-exceptions]]
+==== `ignore_exceptions` (added[1.11.0])
+
+A list of exceptions that should be ignored and not reported as errors.
+This allows to ignore exceptions thrown in regular control flow that are not actual errors
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.ignore_exceptions` | `ignore_exceptions` | `ELASTIC_APM_IGNORE_EXCEPTIONS`
 |============
 
 [float]
@@ -1576,6 +1598,15 @@ The default unit for this option is `ms`
 # Default value: (?-i)*Nested*Exception
 #
 # unnest_exceptions=(?-i)*Nested*Exception
+
+# A list of exceptions that should be ignored and not reported as errors.
+# This allows to ignore exceptions thrown in regular control flow that are not actual errors
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# ignore_exceptions=
 
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
