@@ -56,8 +56,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NAME = "service_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
+    private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
+
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -114,7 +115,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
-    
+
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
         .key("hostname")
         .tags("added[1.10.0]")
@@ -344,7 +345,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
             "Common configurations:\n\n" +
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
@@ -441,7 +442,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public String getHostname() {
         return hostname.get();
     }
-    
+
     public String getEnvironment() {
         return environment.get();
     }
