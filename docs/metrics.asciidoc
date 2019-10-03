@@ -14,6 +14,12 @@ You can adjust the interval with the setting <<config-metrics-interval>>.
 
 The metrics will be stored in the `apm-*` index and have the `processor.event` property set to `metric`.
 
+NOTE: Dedicated JVM metrics views are available since Elastic stack version 7.1.
+Since 7.5, metrics are aggregated separately for each JVM, relying on the ID of the underlying system- either container ID (where applicable) or hostname.
+Since Java agent version 1.11.0, it is possible to manually configure a unique name for each service node/JVM through
+<<config-service-node-name>>.
+When multiple JVMs are running on the same host and report data for the same service, this configuration is required in order to be able to view metrics at the JVM level.
+
 [float]
 [[metrics-system]]
 === System metrics
