@@ -288,7 +288,12 @@ public class ServletTransactionHelper {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
                 userAgentHeader, excludeAgentMatcher);
         }
-        return excludeUrlMatcher != null || excludeAgentMatcher != null;
+        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
+        if (!isExcluded) {
+            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
+                servletPath, pathInfo, userAgentHeader);
+        }
+        return isExcluded;
     }
 
     private void fillResponse(Response response, boolean committed, int status) {
