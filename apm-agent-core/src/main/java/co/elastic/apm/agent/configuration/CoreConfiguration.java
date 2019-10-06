@@ -114,8 +114,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .label("A unique name for the service node")
         .description("If set, this name is used to distinguish between different nodes of a service, \n" +
             "therefore it should be unique for each JVM within a service. \n" +
-            "If not set, data aggregations will be done based on a container ID (where valid) or on \n" +
-            "the reported hostname (automatically discovered or manually configured through <<config-hostname>>). \n" +
+            "If not set, data aggregations will be done based on a container ID (where valid) or on the reported \n" +
+            "hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). \n" +
             "\n" +
             "NOTE: JVM metrics views rely on aggregations that are based on the service node name. \n" +
             "If you have multiple JVMs installed on the same host reporting data for the same service name, \n" +

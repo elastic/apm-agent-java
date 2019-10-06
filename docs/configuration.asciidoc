@@ -211,12 +211,13 @@ If the service name is set explicitly, it overrides all of the above.
 ==== `service_node_name` (added[1.11.0])
 
 If set, this name is used to distinguish between different nodes of a service, therefore it should be unique for each JVM within a service.
-If not set, data aggregations will be done based on a container ID (where valid) or on the reported hostname (automatically discovered or manually configured through <<config-hostname>>).
+If not set, data aggregations will be done based on a container ID (where valid) or on the reported hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>).
 
 NOTE: JVM metrics views rely on aggregations that are based on the service node name.
 If you have multiple JVMs installed on the same host reporting data for the same service name, you must set a unique node name for each in order to view metrics at the JVM level.
 
 NOTE: Metrics views can utilize this configuration since APM Server 7.5
+
 
 [options="header"]
 |============
@@ -1503,8 +1504,8 @@ The default unit for this option is `ms`
 #
 # If set, this name is used to distinguish between different nodes of a service, 
 # therefore it should be unique for each JVM within a service. 
-# If not set, data aggregations will be done based on a container ID (where valid) or on 
-# the reported hostname (automatically discovered or manually configured through <<config-hostname>>). 
+# If not set, data aggregations will be done based on a container ID (where valid) or on the reported 
+# hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). 
 # 
 # NOTE: JVM metrics views rely on aggregations that are based on the service node name. 
 # If you have multiple JVMs installed on the same host reporting data for the same service name, 

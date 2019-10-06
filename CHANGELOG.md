@@ -1,6 +1,8 @@
-# Next
+# 1.11.0 (Next)
 
 ## Features
+ * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
+ https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-node-name) (#872)
 
 ## Bug Fixes
 
