@@ -1,12 +1,12 @@
 # 1.11.0 (Next)
 
 ## Features
- * Applying new logic for JMS polling APIs (`javax.jms.MessageConsumer#receive` and `javax.jms.MessageConsumer#receiveNoWait`) 
-   so that, in addition for the transaction created for the polling method itself (ie from `receive` start to end), 
-   the agent will also create a transaction attempting to capture the code executed during actual message handling.
+ * Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+   polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture 
+   the code executed during actual message handling.
    This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
-   In such cases, two transactions will be created for each Message read from the queue/topic - one of type 
-   `message-polling` and one of type `message-handling`.
+   This polling transaction creation strategy can be reversed through a configuration option (`message_polling_transaction_strategy`) 
+   that is not exposed in the properties file by default.
    
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message
