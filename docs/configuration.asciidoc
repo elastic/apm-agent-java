@@ -412,6 +412,10 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 A list of exceptions that should be ignored and not reported as errors.
 This allows to ignore exceptions thrown in regular control flow that are not actual errors
 
+This list supports wildcards patterns, thus using exception class qualified name is not required
+For example `com.mycompany.ExceptionToIgnore` could be shortened to `*ExceptionToIgnore`.
+NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types
+
 
 [options="header"]
 |============
@@ -1601,6 +1605,10 @@ The default unit for this option is `ms`
 
 # A list of exceptions that should be ignored and not reported as errors.
 # This allows to ignore exceptions thrown in regular control flow that are not actual errors
+# 
+# This list supports wildcards patterns, thus using exception class qualified name is not required
+# For example `com.mycompany.ExceptionToIgnore` could be shortened to `*ExceptionToIgnore`.
+# NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types
 #
 # This setting can be changed at runtime
 # Type: comma separated list

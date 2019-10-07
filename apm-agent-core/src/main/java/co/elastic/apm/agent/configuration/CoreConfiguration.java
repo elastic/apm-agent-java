@@ -231,7 +231,13 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.11.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("A list of exceptions that should be ignored and not reported as errors.\n" +
-            "This allows to ignore exceptions thrown in regular control flow that are not actual errors")
+            "This allows to ignore exceptions thrown in regular control flow that are not actual errors\n" +
+            "\n" +
+            "This list supports wildcards patterns, thus using exception class qualified name is not required\n" +
+            "For example `com.mycompany.ExceptionToIgnore` could be shortened to `*ExceptionToIgnore`." +
+            "\n" +
+            "NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types"
+        )
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
