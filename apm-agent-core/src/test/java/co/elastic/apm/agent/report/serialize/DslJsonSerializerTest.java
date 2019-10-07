@@ -26,6 +26,8 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
@@ -43,9 +45,11 @@ import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -225,15 +229,54 @@ class DslJsonSerializerTest {
 
     @Test
     void testSerializeMetadata() throws IOException {
-        Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
+        Service service = new Service().withAgent(new Agent("MyAgent", "1.11.1")).withName("MyService").withVersion("service-version");
         SystemInfo system = SystemInfo.create();
-        ProcessInfo processInfo = new ProcessInfo("title");
+        ProcessInfo processInfo = new ProcessInfo("title").withPid(1234);
         processInfo.getArgv().add("test");
         serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, system, Map.of("foo", "bar", "baz", "qux")));
         JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
         System.out.println(metaDataJson);
+        JsonNode serviceJson = metaDataJson.get("service");
+        assertThat(service).isNotNull();
+        assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
+        assertThat(serviceJson.get("version").textValue()).isEqualTo("service-version");
+        JsonNode agentJson = serviceJson.get("agent");
+        assertThat(agentJson).isNotNull();
+        assertThat(agentJson.get("name").textValue()).isEqualTo("MyAgent");
+        assertThat(agentJson.get("version").textValue()).isEqualTo("1.11.1");
+        assertThat(agentJson.get("ephemeral_id").textValue()).hasSize(36);
+        assertThat(serviceJson.get("node")).isNull();
+        JsonNode process = metaDataJson.get("process");
+        assertThat(process).isNotNull();
+        assertThat(process.get("pid").longValue()).isEqualTo(1234);
+        assertThat(process.get("title").textValue()).isEqualTo("title");
+        JsonNode argvJson = process.get("argv");
+        assertThat(argvJson).isInstanceOf(ArrayNode.class);
+        ArrayNode argvArray = (ArrayNode) argvJson;
+        assertThat(argvArray).hasSize(1);
+        assertThat(process.get("argv").get(0).textValue()).isEqualTo("test");
         assertThat(metaDataJson.get("labels").get("foo").textValue()).isEqualTo("bar");
         assertThat(metaDataJson.get("labels").get("baz").textValue()).isEqualTo("qux");
+        JsonNode systemJson = metaDataJson.get("system");
+        assertThat(systemJson).isNotNull();
+        assertThat(systemJson.get("architecture").textValue()).isEqualTo(system.getArchitecture());
+        assertThat(systemJson.get("hostname").textValue()).isEqualTo(system.getHostname());
+        assertThat(systemJson.get("platform").textValue()).isEqualTo(system.getPlatform());
+    }
+
+    @Test
+    void testConfiguredServiceNodeName() throws IOException {
+        ConfigurationRegistry configRegistry = SpyConfiguration.createSpyConfig();
+        when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
+        MetaData metaData = MetaData.create(configRegistry, null, null);
+        serializer.serializeMetaDataNdJson(metaData);
+        JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
+        System.out.println(metaDataJson);
+        JsonNode serviceJson = metaDataJson.get("service");
+        assertThat(serviceJson).isNotNull();
+        JsonNode nodeJson = serviceJson.get("node");
+        assertThat(nodeJson).isNotNull();
+        assertThat(nodeJson.get("configured_name").textValue()).isEqualTo("Custom-Node-Name");
     }
 
     private String toJson(Map<String, Object> map) {

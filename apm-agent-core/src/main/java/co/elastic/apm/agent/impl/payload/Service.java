@@ -50,6 +50,11 @@ public class Service {
     @Nullable
     private Language language;
     /**
+     * Representation of a service node
+     */
+    @Nullable
+    private Node node;
+    /**
      * Immutable name of the service emitting this event
      * (Required)
      */
@@ -118,6 +123,22 @@ public class Service {
      */
     public Service withLanguage(Language language) {
         this.language = language;
+        return this;
+    }
+
+    /**
+     * Representation of a service node
+     */
+    @Nullable
+    public Node getNode() {
+        return node;
+    }
+
+    /**
+     * Representation of a service node
+     */
+    public Service withNode(Node node) {
+        this.node = node;
         return this;
     }
 
