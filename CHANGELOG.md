@@ -2,7 +2,7 @@
 
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
- https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-node-name) (#872)
+ * Add ability to ignore some exceptions to be reported as errors [ignore_exceptions](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore_exceptions
 
 ## Bug Fixes
 
@@ -13,20 +13,20 @@
  * Add support for [Redis Jedis client](https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases)
  * Add support for identifying target JVM to attach apm agent to using JMV property. See also the documentation of the [`--include` and `--exclude` flags](https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list)
  * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
-* Improve servlet error capture (#812)
+ * Improve servlet error capture (#812)
   Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
-* Instrument Logger#error(String, Throwable) (#821)
+ * Instrument Logger#error(String, Throwable) (#821)
   Automatically captures exceptions when calling `logger.error("message", exception)`
-* Easier log correlation with https://github.com/elastic/java-ecs-logging. See [docs](https://www.elastic.co/guide/en/apm/agent/java/master/log-correlation.html).
-* Avoid creating a temp agent file for each attachment (#859)
-* Instrument `View#render` instead of `DispatcherServlet#render` (#829)
+ * Easier log correlation with https://github.com/elastic/java-ecs-logging. See [docs](https://www.elastic.co/guide/en/apm/agent/java/master/log-correlation.html).
+ * Avoid creating a temp agent file for each attachment (#859)
+ * Instrument `View#render` instead of `DispatcherServlet#render` (#829)
   This makes the transaction breakdown graph more useful. Instead of `dispatcher-servlet`, the graph now shows a type which is based on the view name, for example, `FreeMarker` or `Thymeleaf`.
 
 ## Bug Fixes
  * Error in log when setting [server_urls](https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html#config-server-urls) 
  to an empty string - `co.elastic.apm.agent.configuration.ApmServerConfigurationSource - Expected previousException not to be null`
-* Avoid terminating the TCP connection to APM Server when polling for configuration updates (#823)
-* Fixes potential segfault if attaching the agent with long arguments (#865)
+ * Avoid terminating the TCP connection to APM Server when polling for configuration updates (#823)
+ * Fixes potential segfault if attaching the agent with long arguments (#865)
  
 # 1.9.0
 

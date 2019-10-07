@@ -134,11 +134,11 @@ public abstract class WildcardMatcher {
     }
 
     /**
-     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided string.
+     * Returns {@code true}, if any of the matchers match the provided string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param s        the string to match against
-     * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
+     * @return {@code true}, if any of the matchers match the provided string
      */
     @Nullable
     public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
@@ -146,11 +146,11 @@ public abstract class WildcardMatcher {
     }
 
     /**
-     * Returns {@code true}, if any of the matchers match the provided string.
+     * Returns the first {@link WildcardMatcher} {@linkplain WildcardMatcher#matches(String) matching} the provided string.
      *
      * @param matchers the matchers which should be used to match the provided string
      * @param s        the string to match against
-     * @return {@code true}, if any of the matchers match the provided string
+     * @return the first matching {@link WildcardMatcher}, or {@code null} if none match.
      */
     @Nullable
     public static WildcardMatcher anyMatch(List<WildcardMatcher> matchers, @Nullable String s) {

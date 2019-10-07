@@ -57,8 +57,9 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
+    private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
+
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -132,7 +133,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
-    
+
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
         .key("hostname")
         .tags("added[1.10.0]")
@@ -241,6 +242,27 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
+
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_exceptions")
+        .tags("added[1.11.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of exceptions that should be ignored and not reported as errors.\n" +
+            "This allows to ignore exceptions thrown in regular control flow that are not actual errors\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
+            "\n" +
+            "Examples:\n" +
+            "\n" +
+            " - `com.mycompany.ExceptionToIgnore`: using fully qualified name\n" +
+            " - `*ExceptionToIgnore`: using wildcard to avoid package name\n" +
+            " - `*exceptiontoignore`: case-insensitive by default\n" +
+            "\n" +
+            "NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types"
+        )
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
@@ -352,7 +374,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
             "Common configurations:\n\n" +
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
@@ -458,7 +480,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public String getHostname() {
         return hostname.get();
     }
-    
+
     public String getEnvironment() {
         return environment.get();
     }
@@ -481,6 +503,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUnnestExceptions() {
         return unnestExceptions.get();
+    }
+
+    public List<WildcardMatcher> getIgnoreExceptions(){
+        return ignoreExceptions.get();
     }
 
     public boolean isTypePoolCacheEnabled() {
