@@ -29,6 +29,7 @@ import co.elastic.apm.agent.bci.bytebuddy.ErrorLoggingListener;
 import co.elastic.apm.agent.bci.bytebuddy.FailSafeDeclaredMethodsCompiler;
 import co.elastic.apm.agent.bci.bytebuddy.MatcherTimer;
 import co.elastic.apm.agent.bci.bytebuddy.MinimumClassFileVersionValidator;
+import co.elastic.apm.agent.bci.bytebuddy.RootPackageCustomLocator;
 import co.elastic.apm.agent.bci.bytebuddy.SimpleMethodSignatureOffsetMappingFactory;
 import co.elastic.apm.agent.bci.bytebuddy.SoftlyReferencingTypePoolCache;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
@@ -315,7 +316,10 @@ public class ElasticApmAgent {
         if (agentJarFile != null) {
             try {
                 locationStrategy =
-                    ((AgentBuilder.LocationStrategy.ForClassLoader)locationStrategy).withFallbackTo(ClassFileLocator.ForJarFile.of(agentJarFile));
+                    ((AgentBuilder.LocationStrategy.ForClassLoader) locationStrategy).withFallbackTo(
+                        ClassFileLocator.ForJarFile.of(agentJarFile),
+                        new RootPackageCustomLocator("java.", ClassFileLocator.ForClassLoader.ofBootLoader())
+                    );
             } catch (IOException e) {
                 logger.warn("Failed to add ClassFileLocator for the agent jar. Some instrumentations may not work", e);
             }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -46,6 +46,13 @@ import java.util.Properties;
  */
 public class ElasticApmAttacher {
 
+    /**
+     * This key is very short on purpose.
+     * The longer the agent argument ({@code -javaagent:<path>=<args>}), the greater the chance that the max length of the agent argument is reached.
+     * Because of a bug in the {@linkplain ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment emulated attachment},
+     * this can even lead to segfaults.
+     */
+    private static final String TEMP_PROPERTIES_FILE_KEY = "c";
     private static final ByteBuddyAgent.AttachmentProvider ATTACHMENT_PROVIDER = new ByteBuddyAgent.AttachmentProvider.Compound(
         ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE,
         ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
@@ -97,7 +104,32 @@ public class ElasticApmAttacher {
         if (Boolean.getBoolean("ElasticApm.attached")) {
             return;
         }
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, toAgentArgs(configuration), ATTACHMENT_PROVIDER);
+        File tempFile = createTempProperties(configuration);
+        String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
+
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, agentArgs, ATTACHMENT_PROVIDER);
+        if (tempFile != null) {
+            if (!tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
+        }
+    }
+
+    static File createTempProperties(Map<String, String> configuration) {
+        File tempFile = null;
+        if (!configuration.isEmpty()) {
+            Properties properties = new Properties();
+            properties.putAll(configuration);
+            try {
+                tempFile = File.createTempFile("elstcapm", ".tmp");
+                try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                    properties.store(outputStream, null);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return tempFile;
     }
 
     static String toAgentArgs(Map<String, String> configuration) {
