@@ -253,7 +253,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION + "\n" +
             "\n" +
-            "Examples, all of them are equivalent:\n" +
+            "Examples:\n" +
             "\n" +
             " - `com.mycompany.ExceptionToIgnore`: using fully qualified name\n" +
             " - `*ExceptionToIgnore`: using wildcard to avoid package name\n" +
