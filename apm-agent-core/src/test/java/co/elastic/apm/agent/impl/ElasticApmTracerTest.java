@@ -180,18 +180,6 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testDoesNotIgnoreExceptionsWithEmptyWildcards(){
-        DummyException1 exception = new DummyException1();
-
-        when(config.getConfig(CoreConfiguration.class).getIgnoreExceptions())
-            .thenReturn(Lists.emptyList());
-
-        tracerImpl.captureException(exception, getClass().getClassLoader());
-        assertThat(reporter.getErrors()).hasSize(1);
-        assertThat(reporter.getFirstError().getException()).isEqualTo(exception);
-    }
-
-    @Test
     void testDoesNotRecordIgnoredExceptions() {
         List<WildcardMatcher> wildcardList = Stream.of(
             "co.elastic.apm.agent.impl.ElasticApmTracerTest$DummyException1",

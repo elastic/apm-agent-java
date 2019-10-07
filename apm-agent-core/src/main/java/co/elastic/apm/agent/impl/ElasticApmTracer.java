@@ -358,6 +358,7 @@ public class ElasticApmTracer {
     }
 
     public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+        // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
