@@ -38,6 +38,7 @@ import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
+import co.elastic.apm.agent.impl.payload.Node;
 import co.elastic.apm.agent.impl.payload.Payload;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.RuntimeInfo;
@@ -398,6 +399,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             serializeLanguage(language);
         }
 
+        final Node node = service.getNode();
+        if (node != null && node.hasContents()) {
+            serializeNode(node);
+        }
+
         final RuntimeInfo runtime = service.getRuntime();
         if (runtime != null) {
             serializeRuntime(runtime);
@@ -431,6 +437,14 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("name", language.getName());
         writeLastField("version", language.getVersion());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeNode(final Node node) {
+        writeFieldName("node");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeLastField("configured_name", node.getName());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);
     }

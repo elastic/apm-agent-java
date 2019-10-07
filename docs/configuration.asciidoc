@@ -64,6 +64,7 @@ Click on a key to get more information.
 ** <<config-active>>
 ** <<config-instrument>>
 ** <<config-service-name>>
+** <<config-service-node-name>>
 ** <<config-service-version>>
 ** <<config-hostname>>
 ** <<config-environment>>
@@ -203,6 +204,31 @@ If the service name is set explicitly, it overrides all of the above.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.service_name` | `service_name` | `ELASTIC_APM_SERVICE_NAME`
+|============
+
+[float]
+[[config-service-node-name]]
+==== `service_node_name` (added[1.11.0])
+
+If set, this name is used to distinguish between different nodes of a service, therefore it should be unique for each JVM within a service.
+If not set, data aggregations will be done based on a container ID (where valid) or on the reported hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>).
+
+NOTE: JVM metrics views rely on aggregations that are based on the service node name.
+If you have multiple JVMs installed on the same host reporting data for the same service name, you must set a unique node name for each in order to view metrics at the JVM level.
+
+NOTE: Metrics views can utilize this configuration since APM Server 7.5
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | String | false
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.service_node_name` | `service_node_name` | `ELASTIC_APM_SERVICE_NODE_NAME`
 |============
 
 [float]
@@ -1473,6 +1499,25 @@ The default unit for this option is `ms`
 # 
 #
 # service_name=
+
+# A unique name for the service node
+#
+# If set, this name is used to distinguish between different nodes of a service, 
+# therefore it should be unique for each JVM within a service. 
+# If not set, data aggregations will be done based on a container ID (where valid) or on the reported 
+# hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). 
+# 
+# NOTE: JVM metrics views rely on aggregations that are based on the service node name. 
+# If you have multiple JVMs installed on the same host reporting data for the same service name, 
+# you must set a unique node name for each in order to view metrics at the JVM level.
+# 
+# NOTE: Metrics views can utilize this configuration since APM Server 7.5
+#
+# This setting can not be changed at runtime. Changes require a restart of the application.
+# Type: String
+# Default value: 
+#
+# service_node_name=
 
 # A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 #
