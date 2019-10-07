@@ -74,6 +74,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
     private final BrokerFacade brokerFacade;
+    private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
 
     @SuppressWarnings("NullableProblems")
     private Queue noopQ;
@@ -100,6 +101,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Before
     public void startTransaction() throws Exception {
+        receiveNoWaitFlow.set(false);
         reporter.reset();
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.withName("JMS-Test Transaction");
@@ -127,6 +129,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnTracedThread() throws Exception {
+        receiveNoWaitFlow.set(true);
         if (!brokerFacade.shouldTestReceiveNoWait()) {
             return;
         }
@@ -182,6 +185,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
+        receiveNoWaitFlow.set(true);
         if (!brokerFacade.shouldTestReceiveNoWait()) {
             return;
         }
@@ -271,7 +275,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
         List<Span> spans = reporter.getSpans();
         int numSpans = spans.size();
-        assertThat(numSpans).isGreaterThan(3);
+        if (!receiveNoWaitFlow.get()) {
+            assertThat(numSpans).isGreaterThan(3);
+        }
 
         final String sendToTestQueueSpanName = "JMS SEND to queue " + queue.getQueueName();
         List<Span> sendSpans = spans.stream().filter(span -> span.getNameAsString().equals(sendToTestQueueSpanName)).collect(Collectors.toList());
@@ -283,8 +289,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Span receiveSpan = receiveSpans.get(0);
         final String sendToTestNoopQueueSpanName = "JMS SEND to queue NOOP";
         List<Span> sendToNoopSpans = spans.stream().filter(span -> span.getNameAsString().equals(sendToTestNoopQueueSpanName)).collect(Collectors.toList());
-        assertThat(sendToNoopSpans).hasSize(1);
-        Span sendToNoopSpan = sendToNoopSpans.get(0);
+        Span sendToNoopSpan = null;
+        if (!receiveNoWaitFlow.get()) {
+            assertThat(sendToNoopSpans).hasSize(1);
+            sendToNoopSpan = sendToNoopSpans.get(0);
+        }
 
         // rest of spans should be receive spans yielding null messages
         final String receiveWithNoMessageSpanName = "JMS RECEIVE";
@@ -299,8 +308,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveTransactions).hasSize(1);
         Transaction receiveTransaction = receiveTransactions.get(0);
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
-        assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
-        assertThat(sendToNoopSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
+
+        if (sendToNoopSpan != null) {
+            assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
+            assertThat(sendToNoopSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
+        }
     }
 
     // tests transaction creation following a receive
@@ -342,7 +354,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
 
         List<Span> spans = reporter.getSpans();
-        if (!isActive || strategy == POLLING) {
+        if (!isActive || strategy == POLLING || receiveNoWaitFlow.get()) {
             assertThat(spans).hasSize(1);
         } else {
             assertThat(spans).hasSize(2);
@@ -375,7 +387,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             transactionId = receiveTransaction.getTraceContext().getId();
         }
 
-        if (strategy != POLLING) {
+        if (strategy != POLLING && !receiveNoWaitFlow.get()) {
             Span sendNoopSpan = spans.get(1);
             assertThat(sendNoopSpan.getNameAsString()).isEqualTo("JMS SEND to queue NOOP");
             assertThat(sendNoopSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);

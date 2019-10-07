@@ -103,7 +103,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
             @Advice.OnMethodEnter(suppress = Throwable.class)
             @Nullable
-            public static AbstractSpan beforeReceive(@Advice.Origin Class<?> clazz) {
+            public static AbstractSpan beforeReceive(@Advice.Origin Class<?> clazz,
+                                                     @Advice.Origin("#m") String methodName) {
 
                 AbstractSpan createdSpan = null;
                 boolean createPollingTransaction = false;
@@ -139,16 +140,17 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                     if (messagingConfiguration != null) {
                         createPollingTransaction &= messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.HANDLING;
+                        createPollingTransaction |= "receiveNoWait".equals(methodName);
                     }
 
-                    if (createPollingTransaction) {
-                        createdSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
-                            .withType(MESSAGE_POLLING);
-                    } else if (createPollingSpan) {
+                    if (createPollingSpan) {
                         createdSpan = parent.createSpan()
                             .withType(MESSAGING_TYPE)
                             .withSubtype("jms")
                             .withAction("receive");
+                    } else if (createPollingTransaction) {
+                        createdSpan = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader())
+                            .withType(MESSAGE_POLLING);
                     }
 
                     if (createdSpan != null) {
@@ -161,6 +163,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
             @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
             public static void afterReceive(@Advice.Origin Class<?> clazz,
+                                            @Advice.Origin("#m") String methodName,
                                             @Advice.Enter @Nullable final AbstractSpan abstractSpan,
                                             @Advice.Return @Nullable final Message message,
                                             @Advice.Thrown final Throwable throwable) {
@@ -209,7 +212,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                 if (messageSenderContext != null && tracer != null && tracer.currentTransaction() == null
                     && messagingConfiguration != null
-                    && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING) {
+                    && messagingConfiguration.getMessagePollingTransactionStrategy() != MessagingConfiguration.Strategy.POLLING
+                    && !"receiveNoWait".equals(methodName)) {
 
                     Transaction messageHandlingTransaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), messageSenderContext, clazz.getClassLoader())
                         .withType(MESSAGE_HANDLING)
