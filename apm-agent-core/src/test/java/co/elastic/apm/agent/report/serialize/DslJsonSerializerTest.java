@@ -32,7 +32,9 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
+import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
+import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
@@ -55,6 +57,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,9 +114,7 @@ class DslJsonSerializerTest {
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
 
-        String errorJson = serializer.toJsonString(error);
-        System.out.println("errorJson = " + errorJson);
-        JsonNode errorTree = objectMapper.readTree(errorJson);
+        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
 
         assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
@@ -135,8 +136,7 @@ class DslJsonSerializerTest {
         tracer.captureException(new Exception("test"), getClass().getClassLoader());
 
         String errorJson = serializer.toJsonString(reporter.getFirstError());
-        System.out.println("errorJson = " + errorJson);
-        JsonNode errorTree = objectMapper.readTree(errorJson);
+        JsonNode errorTree = readJsonString(errorJson);
 
         assertThat(errorTree.get("id")).isNotNull();
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
@@ -161,9 +161,7 @@ class DslJsonSerializerTest {
 
         tracer.captureException(mainException, getClass().getClassLoader());
 
-        String errorJson = serializer.toJsonString(reporter.getFirstError());
-        System.out.println("errorJson = " + errorJson);
-        JsonNode errorTree = objectMapper.readTree(errorJson);
+        JsonNode errorTree = readJsonString(serializer.toJsonString(reporter.getFirstError()));
 
         JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "main exception");
 
@@ -231,8 +229,7 @@ class DslJsonSerializerTest {
         transaction.getContext().getRequest().addHeader("foo", (String) null);
         transaction.getContext().getRequest().addHeader("baz", (Enumeration<String>) null);
         transaction.getContext().getRequest().getHeaders().add("bar", null);
-        JsonNode jsonNode = objectMapper.readTree(serializer.toJsonString(transaction));
-        System.out.println(jsonNode);
+        JsonNode jsonNode = readJsonString(serializer.toJsonString(transaction));
         // calling addHeader with a null value ignores the header
         assertThat(jsonNode.get("context").get("request").get("headers").get("foo")).isNull();
         assertThat(jsonNode.get("context").get("request").get("headers").get("baz")).isNull();
@@ -245,31 +242,30 @@ class DslJsonSerializerTest {
         Span span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template.jsf.render.view");
-        JsonNode spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template_jsf_render_view");
 
         span.withType("template").withSubtype("jsf.lifecycle").withAction("render.view");
-        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_lifecycle.render_view");
 
         span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withAction("jsf.render");
-        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template..jsf_render");
 
         span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withType("template").withSubtype("jsf.render");
-        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template.jsf_render");
 
         span = new Span(MockTracer.create());
         span.getTraceContext().asRootSpan(ConstantSampler.of(true));
         span.withSubtype("jsf").withAction("render");
-        spanJson = objectMapper.readTree(serializer.toJsonString(span));
+        spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").isNull()).isTrue();
-        System.out.println(spanJson);
     }
 
     @Test
@@ -286,8 +282,7 @@ class DslJsonSerializerTest {
         ProcessInfo processInfo = new ProcessInfo("title").withPid(1234);
         processInfo.getArgv().add("test");
         serializer.serializeMetaDataNdJson(new MetaData(processInfo, service, system, Map.of("foo", "bar", "baz", "qux")));
-        JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
-        System.out.println(metaDataJson);
+        JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(service).isNotNull();
         assertThat(serviceJson.get("name").textValue()).isEqualTo("MyService");
@@ -322,13 +317,99 @@ class DslJsonSerializerTest {
         when(configRegistry.getConfig(CoreConfiguration.class).getServiceNodeName()).thenReturn("Custom-Node-Name");
         MetaData metaData = MetaData.create(configRegistry, null, null);
         serializer.serializeMetaDataNdJson(metaData);
-        JsonNode metaDataJson = objectMapper.readTree(serializer.toString()).get("metadata");
-        System.out.println(metaDataJson);
+        JsonNode metaDataJson = readJsonString(serializer.toString()).get("metadata");
         JsonNode serviceJson = metaDataJson.get("service");
         assertThat(serviceJson).isNotNull();
         JsonNode nodeJson = serviceJson.get("node");
         assertThat(nodeJson).isNotNull();
         assertThat(nodeJson.get("configured_name").textValue()).isEqualTo("Custom-Node-Name");
+    }
+
+    @Test
+    void errorPayload() throws JsonProcessingException {
+        ProcessInfo processInfo = mock(ProcessInfo.class);
+
+        Service service = mock(Service.class);
+        when(service.getVersion()).thenReturn("1.2.3");
+        when(service.getEnvironment()).thenReturn("this is my env");
+
+        Framework framework = mock(Framework.class);
+        when(framework.getName()).thenReturn("awesome");
+        when(framework.getVersion()).thenReturn("0.0.1-alpha");
+        when(service.getFramework()).thenReturn(framework);
+
+        SystemInfo systemInfo = mock(SystemInfo.class);
+        SystemInfo.Container container = mock(SystemInfo.Container.class);
+        when(container.getId()).thenReturn("container_id");
+        when(systemInfo.getContainerInfo()).thenReturn(container);
+
+        SystemInfo.Kubernetes kubernetes = createKubernetesMock("pod", "pod_id", "node", "ns");
+        when(systemInfo.getKubernetesInfo()).thenReturn(kubernetes);
+
+        when(systemInfo.getPlatform()).thenReturn("9 3/4");
+
+        ErrorPayload errorPayload = new ErrorPayload(processInfo, service, systemInfo);
+
+        ElasticApmTracer tracer = MockTracer.create();
+        Transaction transaction = new Transaction(tracer);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
+        errorPayload.getErrors().addAll(List.of(error, error));
+
+        String jsonString = serializer.toJsonString(errorPayload);
+        JsonNode json = readJsonString(jsonString);
+
+        JsonNode jsonService = json.get("service");
+        assertThat(jsonService.get("version").asText()).isEqualTo("1.2.3");
+        assertThat(jsonService.get("environment").asText()).isEqualTo("this is my env");
+        JsonNode frameworkJson = jsonService.get("framework");
+        assertThat(frameworkJson.get("name").asText()).isEqualTo("awesome");
+        assertThat(frameworkJson.get("version").asText()).isEqualTo("0.0.1-alpha");
+
+
+        JsonNode jsonSystem = json.get("system");
+        assertThat(jsonSystem.get("container").get("id").asText()).isEqualTo("container_id");
+        assertThat(jsonSystem.get("platform").asText()).isEqualTo("9 3/4");
+
+        JsonNode jsonKubernetes = jsonSystem.get("kubernetes");
+        assertThat(jsonKubernetes.get("node").get("name").asText()).isEqualTo("node");
+        assertThat(jsonKubernetes.get("pod").get("name").asText()).isEqualTo("pod");
+        assertThat(jsonKubernetes.get("pod").get("uid").asText()).isEqualTo("pod_id");
+        assertThat(jsonKubernetes.get("namespace").asText()).isEqualTo("ns");
+
+    }
+
+    private JsonNode readJsonString(String jsonString) {
+        try {
+            JsonNode json = objectMapper.readTree(jsonString);
+
+            // pretty print JSON in standard output for easier test debug
+            System.out.println(json.toPrettyString());
+
+            return json;
+        } catch (JsonProcessingException e) {
+            // any invalid JSON will require debugging the raw string
+            throw new IllegalArgumentException("invalid JSON = "+jsonString);
+        }
+    }
+
+    private static SystemInfo.Kubernetes createKubernetesMock(String podName, String podId, String nodeName, String namespace) {
+        SystemInfo.Kubernetes k = mock(SystemInfo.Kubernetes.class);
+
+        when(k.hasContent()).thenReturn(true);
+
+        SystemInfo.Kubernetes.Pod pod = mock(SystemInfo.Kubernetes.Pod.class);
+        when(pod.getName()).thenReturn(podName);
+        when(pod.getUid()).thenReturn(podId);
+
+        when(k.getPod()).thenReturn(pod);
+
+        SystemInfo.Kubernetes.Node node = mock( SystemInfo.Kubernetes.Node.class);
+        when(node.getName()).thenReturn(nodeName);
+        when(k.getNode()).thenReturn(node);
+
+        when(k.getNamespace()).thenReturn(namespace);
+
+        return k;
     }
 
     private String toJson(Map<String, Object> map) {
