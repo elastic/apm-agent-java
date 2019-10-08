@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -46,6 +46,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -109,25 +110,20 @@ class DslJsonSerializerTest {
         error.setTransactionType("test-type");
         error.setException(new Exception("test"));
         error.getContext().addLabel("foo", "bar");
+
         String errorJson = serializer.toJsonString(error);
         System.out.println("errorJson = " + errorJson);
         JsonNode errorTree = objectMapper.readTree(errorJson);
+
         assertThat(errorTree.get("timestamp").longValue()).isEqualTo(5000);
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
         JsonNode context = errorTree.get("context");
         assertThat(context.get("tags").get("foo").textValue()).isEqualTo("bar");
-        JsonNode exception = errorTree.get("exception");
-        assertThat(exception.get("message").textValue()).isEqualTo("test");
+
+        JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "test"); ;
         JsonNode stacktrace = exception.get("stacktrace");
-        assertThat(stacktrace).isNotNull();
         assertThat(stacktrace).hasSize(15);
-        JsonNode stackTraceElement = stacktrace.get(0);
-        assertThat(stackTraceElement.get("filename")).isNotNull();
-        assertThat(stackTraceElement.get("function")).isNotNull();
-        assertThat(stackTraceElement.get("library_frame")).isNotNull();
-        assertThat(stackTraceElement.get("lineno")).isNotNull();
-        assertThat(stackTraceElement.get("module")).isNotNull();
-        assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
+
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isTrue();
         assertThat(errorTree.get("transaction").get("type").textValue()).isEqualTo("test-type");
     }
@@ -137,16 +133,72 @@ class DslJsonSerializerTest {
         MockReporter reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
         tracer.captureException(new Exception("test"), getClass().getClassLoader());
+
         String errorJson = serializer.toJsonString(reporter.getFirstError());
         System.out.println("errorJson = " + errorJson);
         JsonNode errorTree = objectMapper.readTree(errorJson);
+
         assertThat(errorTree.get("id")).isNotNull();
         assertThat(errorTree.get("culprit").textValue()).startsWith(this.getClass().getName());
-        JsonNode exception = errorTree.get("exception");
-        assertThat(exception.get("message").textValue()).isEqualTo("test");
-        assertThat(exception.get("stacktrace")).isNotNull();
-        assertThat(exception.get("type").textValue()).isEqualTo(Exception.class.getName());
+
+        JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "test");
+        assertThat(exception.get("cause"))
+            .describedAs("no cause field expected when there is no chained cause")
+            .isNull();
+
         assertThat(errorTree.get("transaction").get("sampled").booleanValue()).isFalse();
+    }
+
+    @Test
+    void testErrorSerializationWithExceptionCause() throws JsonProcessingException {
+        // testing outside trace is enough to test exception serialization logic
+        MockReporter reporter = new MockReporter();
+        ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);
+
+        Exception cause2 = new IllegalStateException("second cause");
+        Exception cause1 = new RuntimeException("first cause", cause2);
+        Exception mainException = new Exception("main exception", cause1);
+
+        tracer.captureException(mainException, getClass().getClassLoader());
+
+        String errorJson = serializer.toJsonString(reporter.getFirstError());
+        System.out.println("errorJson = " + errorJson);
+        JsonNode errorTree = objectMapper.readTree(errorJson);
+
+        JsonNode exception = checkException(errorTree.get("exception"), Exception.class, "main exception");
+
+        JsonNode firstCause = checkExceptionCause(exception, RuntimeException.class, "first cause");
+        checkExceptionCause(firstCause, IllegalStateException.class, "second cause");
+
+    }
+
+    private static JsonNode checkExceptionCause(JsonNode exception, Class<?> expectedType, String expectedMessage){
+        JsonNode causeArray = exception.get("cause");
+        assertThat(causeArray.getNodeType())
+            .describedAs("cause should be an array")
+            .isEqualTo(JsonNodeType.ARRAY);
+        assertThat(causeArray).hasSize(1);
+
+        return checkException( causeArray.get(0), expectedType, expectedMessage);
+    }
+
+    private static JsonNode checkException(JsonNode jsonException, Class<?> expectedType, String expectedMessage){
+        assertThat(jsonException.get("type").textValue()).isEqualTo(expectedType.getName());
+        assertThat(jsonException.get("message").textValue()).isEqualTo(expectedMessage);
+
+        JsonNode jsonStackTrace = jsonException.get("stacktrace");
+        assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
+        assertThat(jsonStackTrace).isNotNull();
+
+        for (JsonNode stackTraceElement : jsonStackTrace) {
+            assertThat(stackTraceElement.get("filename")).isNotNull();
+            assertThat(stackTraceElement.get("function")).isNotNull();
+            assertThat(stackTraceElement.get("library_frame")).isNotNull();
+            assertThat(stackTraceElement.get("lineno")).isNotNull();
+            assertThat(stackTraceElement.get("module")).isNotNull();
+        }
+
+        return jsonException;
     }
 
     @Test
