@@ -240,7 +240,7 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 [[config-service-version]]
 ==== `service_version`
 
-A version string for the currently deployed version of the service. If you don't version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
+A version string for the currently deployed version of the service. If you don’t version your deployments, the recommended value for this field is the commit identifier of the deployed revision, e.g. the output of git rev-parse HEAD.
 
 
 [options="header"]
