@@ -98,9 +98,9 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
+    private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
-    private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
@@ -687,7 +687,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    private boolean isExcluded(StackTraceElement stackTraceElement) {
+    private static boolean isExcluded(StackTraceElement stackTraceElement) {
         // file name is a required field
         if (stackTraceElement.getFileName() == null) {
             return true;
