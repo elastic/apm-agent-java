@@ -31,6 +31,8 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Request;
+import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
@@ -365,7 +367,6 @@ class DslJsonSerializerTest {
         assertThat(frameworkJson.get("name").asText()).isEqualTo("awesome");
         assertThat(frameworkJson.get("version").asText()).isEqualTo("0.0.1-alpha");
 
-
         JsonNode jsonSystem = json.get("system");
         assertThat(jsonSystem.get("container").get("id").asText()).isEqualTo("container_id");
         assertThat(jsonSystem.get("platform").asText()).isEqualTo("9 3/4");
@@ -375,6 +376,90 @@ class DslJsonSerializerTest {
         assertThat(jsonKubernetes.get("pod").get("name").asText()).isEqualTo("pod");
         assertThat(jsonKubernetes.get("pod").get("uid").asText()).isEqualTo("pod_id");
         assertThat(jsonKubernetes.get("namespace").asText()).isEqualTo("ns");
+
+    }
+
+    @Test
+    void errorWithTransactionContext() {
+        ErrorPayload errorPayload = new ErrorPayload(mock(ProcessInfo.class), mock(Service.class), mock(SystemInfo.class));
+
+        ElasticApmTracer tracer = MockTracer.create();
+        Transaction transaction = new Transaction(tracer);
+        ErrorCapture error = new ErrorCapture(tracer).asChildOf(transaction.getTraceContext()).withTimestamp(5000);
+
+        error.getContext().getUser()
+            .withId("42")
+            .withEmail("user@email.com")
+            .withUsername("bob");
+
+
+        Request request = error.getContext().getRequest();
+
+        request.withMethod("PUT")
+            .withHttpVersion("5.0")
+            .addCookie("cookie1", "cookie1_value1")
+            .addCookie("cookie1", "cookie1_value2")
+            .addCookie("cookie2", "cookie2_value")
+            .addHeader("my_header", "header value")
+            .setRawBody("request body");
+
+        request.getUrl()
+            .withHostname("my-hostname")
+            .withPathname("/path/name")
+            .withPort(42)
+            .withProtocol("http")
+            .withSearch("q=test");
+
+        request.getSocket()
+            .withEncrypted(true)
+            .withRemoteAddress("::1");
+
+        error.getContext().getResponse()
+            .withFinished(true)
+            .withHeadersSent(false)
+            .addHeader("response_header", "value")
+            .withStatusCode(418);
+
+        errorPayload.getErrors().add(error);
+
+        String jsonString = serializer.toJsonString(errorPayload);
+        JsonNode json = readJsonString(jsonString);
+
+        JsonNode jsonContext = json.get("errors").get(0).get("context");
+        assertThat(jsonContext.get("user").get("id").asText()).isEqualTo("42");
+        assertThat(jsonContext.get("user").get("email").asText()).isEqualTo("user@email.com");
+        assertThat(jsonContext.get("user").get("username").asText()).isEqualTo("bob");
+
+        JsonNode jsonRequest = jsonContext.get("request");
+        assertThat(jsonRequest.get("method").asText()).isEqualTo("PUT");
+        assertThat(jsonRequest.get("body").asText()).isEqualTo("request body");
+        JsonNode jsonCookies = jsonRequest.get("cookies");
+        assertThat(jsonCookies).hasSize(2);
+        assertThat(jsonCookies.get("cookie1").get(0).asText()).isEqualTo("cookie1_value1");
+        assertThat(jsonCookies.get("cookie1").get(1).asText()).isEqualTo("cookie1_value2");
+        assertThat(jsonCookies.get("cookie2").asText()).isEqualTo("cookie2_value");
+
+        assertThat(jsonRequest.get("headers").get("my_header").asText()).isEqualTo("header value");
+
+        JsonNode jsonUrl = jsonRequest.get("url");
+        assertThat(jsonUrl).hasSize(5);
+        assertThat(jsonUrl.get("hostname").asText()).isEqualTo("my-hostname");
+        assertThat(jsonUrl.get("port").asText()).isEqualTo("42");
+        assertThat(jsonUrl.get("pathname").asText()).isEqualTo("/path/name");
+        assertThat(jsonUrl.get("search").asText()).isEqualTo("q=test");
+        assertThat(jsonUrl.get("protocol").asText()).isEqualTo("http");
+
+        JsonNode jsonSocket = jsonRequest.get("socket");
+        assertThat(jsonSocket).hasSize(2);
+        assertThat(jsonSocket.get("encrypted").asBoolean()).isTrue();
+        assertThat(jsonSocket.get("remote_address").asText()).isEqualTo("::1");
+
+        JsonNode jsonResponse = jsonContext.get("response");
+        assertThat(jsonResponse).hasSize(4);
+        assertThat(jsonResponse.get("headers").get("response_header").asText()).isEqualTo("value");
+        assertThat(jsonResponse.get("finished").asBoolean()).isTrue();
+        assertThat(jsonResponse.get("headers_sent").asBoolean()).isFalse();
+        assertThat(jsonResponse.get("status_code").asInt()).isEqualTo(418);
 
     }
 
