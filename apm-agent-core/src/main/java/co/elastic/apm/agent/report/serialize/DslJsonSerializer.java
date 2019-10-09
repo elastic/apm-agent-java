@@ -143,21 +143,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
     @Override
-    public void serializePayload(final OutputStream os, final Payload payload) {
-        if (logger.isTraceEnabled()) {
-            logger.trace(toJsonString(payload));
-        }
-        jw.reset(os);
-        if (payload instanceof TransactionPayload) {
-            serializeTransactionPayload((TransactionPayload) payload);
-        } else if (payload instanceof ErrorPayload) {
-            serializeErrorPayload((ErrorPayload) payload);
-        }
-        jw.flush();
-        jw.reset();
-    }
-
-    @Override
     public void serializeMetaDataNdJson(MetaData metaData) {
         jw.writeByte(JsonWriter.OBJECT_START);
         writeFieldName("metadata");
@@ -244,6 +229,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         metricRegistry.report(this);
     }
 
+    @Deprecated
     private void serializeErrorPayload(ErrorPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
@@ -369,6 +355,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         return jw.toString();
     }
 
+    @Deprecated
     private void serializeTransactionPayload(final TransactionPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
@@ -382,6 +369,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
+    @Deprecated
     private void serializeTransactions(final TransactionPayload payload) {
         writeFieldName("transactions");
         jw.writeByte(ARRAY_START);
