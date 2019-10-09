@@ -136,6 +136,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
         transaction.resetState();
+        reporter.reset();
 
         final Span childSpan = apmTracer.buildSpan("span")
             .asChildOf(span.context())
@@ -154,6 +155,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final Transaction transaction = reporter.getFirstTransaction();
         String transactionId = transaction.getTraceContext().getId().toString();
         transaction.resetState();
+        reporter.reset();
 
         try (Scope scope = apmTracer.activateSpan(span)) {
             final Span childSpan = apmTracer.buildSpan("span")

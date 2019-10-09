@@ -1,0 +1,142 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2019 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
+package co.elastic.apm.agent.netty;
+
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.nio.AbstractNioChannel;
+import io.netty.channel.nio.AbstractNioChannel.NioUnsafe;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.matcher.ElementMatcher;
+
+import javax.annotation.Nullable;
+import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.Collections;
+
+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
+
+/**
+ * Propagates the trace context when connecting to a channel.
+ * As {@link NioUnsafe#finishConnect()} is called on a different thread than
+ * {@link Channel.Unsafe#connect}, we have to propagate the context.
+ *
+ * Usually, the flow is to connect via {@link ChannelPipeline#connect} and then to register a listener to the returned {@link io.netty.channel.ChannelFuture}
+ * via {@link io.netty.channel.ChannelFuture#addListener(GenericFutureListener)}.
+ * Within that listener, the actual {@link Channel#write} operation is performed.
+ */
+public abstract class ChannelConnectInstrumentation extends ElasticApmInstrumentation {
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Collections.singletonList("netty");
+    }
+
+    /**
+     * {@link NioUnsafe#connect(java.net.SocketAddress, java.net.SocketAddress, io.netty.channel.ChannelPromise)}
+     */
+    public static final class ConnectContextStoringInstrumentation extends ChannelConnectInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return nameStartsWith("io.netty.channel")
+                .and(hasSuperType(named("io.netty.channel.nio.AbstractNioChannel$NioUnsafe")));
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("connect")
+                .and(returns(void.class))
+                .and(takesArguments(3))
+                .and(takesArgument(0, named("java.net.SocketAddress")))
+                .and(takesArgument(1, named("java.net.SocketAddress")))
+                .and(takesArgument(2, named("io.netty.channel.ChannelPromise")));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeConnect(@Advice.Argument(2) ChannelPromise promise) {
+            System.out.println("NioUnsafe.connect");
+            NettyContextUtil.storeContext(promise.channel());
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void afterConnect(@Nullable @Advice.Thrown Throwable t,
+                                         @Advice.Argument(2) ChannelPromise promise) {
+            if (t != null) {
+                NettyContextUtil.removeContext(promise.channel());
+            }
+        }
+    }
+
+    /**
+     * {@link NioUnsafe#finishConnect()} resolves the {@link ChannelPromise}s by calling {@link ChannelPromise#trySuccess()}
+     * and thereby invoking {@link io.netty.util.concurrent.GenericFutureListener#operationComplete(Future)}.
+     *
+     */
+    public static final class FinishConnectContextRestoringInstrumentation extends ChannelConnectInstrumentation {
+
+        @Override
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+            return nameStartsWith("io.netty.channel")
+                .and(hasSuperType(named("io.netty.channel.nio.AbstractNioChannel$NioUnsafe")));
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("finishConnect")
+                .and(returns(void.class))
+                .and(takesArguments(0));
+        }
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeFinishConnect(@Advice.This NioUnsafe unsafe,
+                                                @Advice.Local("context") TraceContextHolder<?> context) {
+            System.out.println("NioUnsafe.finishConnect");
+            Channel channel = unsafe.voidPromise().channel();
+            context = NettyContextUtil.restoreContext(channel);
+            NettyContextUtil.removeContext(channel);
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void afterFinishConnect(@Advice.This NioUnsafe unsafe,
+                                               @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+            if (context != null) {
+                context.deactivate();
+            }
+        }
+    }
+}

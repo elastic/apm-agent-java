@@ -25,19 +25,24 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.httpclient.AbstractHttpClientInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.asynchttpclient.AsyncCompletionHandlerBase;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.RequestBuilder;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
+import static org.awaitility.Awaitility.await;
 
 @RunWith(Parameterized.class)
 public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstrumentationTest {
@@ -63,6 +68,10 @@ public class AsyncHttpClientInstrumentationTest extends AbstractHttpClientInstru
     public void setUp() {
         client = asyncHttpClient(Dsl.config()
             .setFollowRedirect(true)
+            .setReadTimeout(-1)
+            .setRequestTimeout(-1)
+            // avoids creating scopes which would increment the transaction's ref count when closing the client
+            .setIoThreadsCount(1)
             .build());
     }
 

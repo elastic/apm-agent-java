@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -45,6 +45,7 @@ public abstract class AbstractInstrumentationTest {
     protected static ElasticApmTracer tracer;
     protected static MockReporter reporter;
     protected static ConfigurationRegistry config;
+    private boolean verifyRefCount = true;
 
     @BeforeAll
     @BeforeClass
@@ -90,7 +91,14 @@ public abstract class AbstractInstrumentationTest {
     @After
     @AfterEach
     public final void cleanUp() {
+        if (verifyRefCount) {
+            reporter.assertRecycledAfterDecrementingReferences();
+        }
         tracer.resetServiceNameOverrides();
         assertThat(tracer.getActive()).isNull();
+    }
+
+    protected void omitReferenceCountVerification() {
+        this.verifyRefCount = false;
     }
 }

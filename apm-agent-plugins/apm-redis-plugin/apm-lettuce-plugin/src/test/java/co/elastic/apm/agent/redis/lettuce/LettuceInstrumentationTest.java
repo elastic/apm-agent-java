@@ -49,6 +49,15 @@ class LettuceInstrumentationTest extends AbstractRedisInstrumentationTest {
     }
 
     @Test
+    void testClusterCommand() {
+        RedisCommands<String, String> sync = connection.sync();
+        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
+            sync.set("foo", "bar");
+            assertThat(sync.get("foo")).isEqualTo("bar");
+        }
+        assertTransactionWithRedisSpans("SET", "GET");
+    }
+    @Test
     void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {

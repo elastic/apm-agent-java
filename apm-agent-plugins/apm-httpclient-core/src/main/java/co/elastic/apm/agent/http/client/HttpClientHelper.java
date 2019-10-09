@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import java.net.URI;
 
 public class HttpClientHelper {
+
     public static final String EXTERNAL_TYPE = "external";
     public static final String HTTP_SUBTYPE = "http";
 

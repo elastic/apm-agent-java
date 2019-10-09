@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -99,6 +99,7 @@ public class MockReporter implements Reporter {
             return;
         }
         verifyTransactionSchema(asJson(dslJsonSerializer.toJsonString(transaction)));
+        assertThat(transactions).doesNotContain(transaction);
         transactions.add(transaction);
     }
 
@@ -108,6 +109,7 @@ public class MockReporter implements Reporter {
             return;
         }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+        assertThat(spans).doesNotContain(span);
         spans.add(span);
     }
 
@@ -189,6 +191,10 @@ public class MockReporter implements Reporter {
 
     public synchronized Span getFirstSpan() {
         return spans.get(0);
+    }
+
+    public synchronized Span getLastSpan() {
+        return spans.get(spans.size() - 1);
     }
 
     public synchronized List<Span> getSpans() {
@@ -280,9 +286,17 @@ public class MockReporter implements Reporter {
     public void assertRecycledAfterDecrementingReferences() {
         transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isFalse());
         spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isFalse());
+
         transactions.forEach(Transaction::decrementReferences);
         spans.forEach(Span::decrementReferences);
-        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isTrue());
+        System.out.println("verify reference count");
+        spans.forEach(s -> assertThat(s.getReferenceCount())
+            .withFailMessage("Expected reference count to be 0 but is %d: %s", s.getReferenceCount(), s)
+            .isZero());
         spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isTrue());
+        transactions.forEach(t -> assertThat(t.getReferenceCount())
+            .withFailMessage("Expected reference count to be 0 but is %d: %s", t.getReferenceCount(), t)
+            .isZero());
+        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isTrue());
     }
 }

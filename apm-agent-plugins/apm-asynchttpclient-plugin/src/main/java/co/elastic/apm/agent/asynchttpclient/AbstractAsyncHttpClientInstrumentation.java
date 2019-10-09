@@ -25,12 +25,11 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import co.elastic.apm.agent.util.CallDepth;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -51,10 +50,10 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+/**
+ * Context propagation is managed by the Netty instrumentation. See also {@code apm-netty-plugin/src/main/java/co/elastic/apm/agent/netty/package-info.java}
+ */
 public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmInstrumentation {
-
-    @VisibleForAdvice
-    public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -83,7 +82,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             if (span != null) {
                 span.activate();
                 request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-                handlerSpanMap.put(asyncHandler, span);
             }
         }
 
@@ -94,7 +92,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             if (span != null) {
                 span.deactivate();
                 if (t != null) {
-                    handlerSpanMap.remove(asyncHandler);
                     span.captureException(t).end();
                 }
             }
@@ -138,12 +135,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             super(named("onCompleted").and(takesArguments(0)));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
-            if (span != null) {
-                span.end();
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
+            if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
+                System.out.println("onCompleted");
+                TraceContextHolder<?> active = getActive();
+                if (active instanceof Span) {
+                    ((Span) active).end();
+                }
             }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit() {
+            CallDepth.decrement(AsyncHandler.class);
         }
     }
 
@@ -153,12 +158,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             super(named("onThrowable").and(takesArguments(Throwable.class)));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) Throwable t) {
-            final Span span = handlerSpanMap.remove(asyncHandler);
-            if (span != null) {
-                span.captureException(t).end();
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) Throwable t) {
+            if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
+                System.out.println("onThrowable");
+                TraceContextHolder<?> active = getActive();
+                if (active instanceof Span) {
+                    ((Span) active).captureException(t).end();
+                }
             }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit() {
+            CallDepth.decrement(AsyncHandler.class);
         }
     }
 
@@ -168,12 +181,20 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
-            final Span span = handlerSpanMap.get(asyncHandler);
-            if (span != null) {
-                span.getContext().getHttp().withStatusCode(status.getStatusCode());
+        @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+        public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
+            if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
+                System.out.println("onStatusReceived");
+                TraceContextHolder<?> active = getActive();
+                if (active instanceof Span) {
+                    ((Span) active).getContext().getHttp().withStatusCode(status.getStatusCode());
+                }
             }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void onMethodExit() {
+            CallDepth.decrement(AsyncHandler.class);
         }
     }
 

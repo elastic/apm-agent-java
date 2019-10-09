@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +52,14 @@ public class ExecutorServiceInstrumentationTest extends AbstractInstrumentationT
 
     public ExecutorServiceInstrumentationTest(Supplier<ExecutorService> supplier) {
         executor = supplier.get();
+        if (executor instanceof GlobalEventExecutor) {
+            // netty wraps the callable in a runnable
+            // we wrap the runnable for context propagation purposes
+            // the future gets resolved when the callable is done
+            // however, that is shortly before the runnable has run
+            // that means that at this point, the reference count of the transaction is not 0 yet
+            omitReferenceCountVerification();
+        }
     }
 
     @Parameterized.Parameters()

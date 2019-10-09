@@ -1,2 +1,9 @@
-co.elastic.apm.agent.netty.NettyChannelReadContextRestoringInstrumentation
-co.elastic.apm.agent.netty.NettyChannelWriteContextStoringInstrumentation
+co.elastic.apm.agent.netty.ChannelCloseContextRemovingInstrumentation
+co.elastic.apm.agent.netty.ChannelConnectInstrumentation$ConnectContextStoringInstrumentation
+co.elastic.apm.agent.netty.ChannelConnectInstrumentation$FinishConnectContextRestoringInstrumentation
+co.elastic.apm.agent.netty.ChannelDisconnectContextRemovingInstrumentation
+co.elastic.apm.agent.netty.ChannelReadContextRestoringInstrumentation
+co.elastic.apm.agent.netty.ChannelReadCompleteContextRemovingInstrumentation
+co.elastic.apm.agent.netty.ChannelWriteContextStoringInstrumentation
+co.elastic.apm.agent.netty.HttpClientRequestDecoderInstrumentation
+co.elastic.apm.agent.netty.HttpClientRequestEncoderInstrumentation

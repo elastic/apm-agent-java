@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -70,8 +70,12 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
                 Span grandchild = child.createSpan();
                 try (Scope grandchildScope = grandchild.activateInScope()) {
                     assertMdcIsSet(grandchild);
+                } finally {
+                    grandchild.end();
                 }
                 assertMdcIsSet(child);
+            } finally {
+                child.end();
             }
             assertMdcIsSet(transaction);
         }
@@ -107,6 +111,8 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
             Span child = transaction.createSpan();
             try (Scope childScope = child.activateInScope()) {
                 assertMdcIsSet(transaction);
+            } finally {
+                child.end();
             }
             assertMdcIsSet(transaction);
         }
@@ -246,6 +252,8 @@ class Slf4JMdcActivationListenerTest extends AbstractInstrumentationTest {
                 thread.start();
                 assertThat(result.get(1000, TimeUnit.MILLISECONDS).booleanValue()).isTrue();
                 assertMdcIsSet(child);
+            } finally {
+                child.end();
             }
             assertMdcIsSet(transaction);
         }

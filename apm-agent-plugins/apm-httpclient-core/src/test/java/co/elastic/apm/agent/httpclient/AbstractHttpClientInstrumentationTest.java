@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -130,8 +130,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
+        assertThat(reporter.getFirstSpan().getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
+        assertThat(reporter.getFirstSpan().getContext().getHttp().getStatusCode()).isEqualTo(200);
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/redirect"))
