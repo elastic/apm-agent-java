@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,8 +38,6 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -50,18 +48,13 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *     <li>{@link RedisCommand#completeExceptionally(Throwable)}</li>
  *     <li>{@link RedisCommand#cancel()}</li>
  * </ul>
- * Rather than wrapping the {@link RedisCommand},
- * this instruments the relevant methods and uses a {@link ThreadLocal} {@code boolean} flag to detect nested/wrapped {@link RedisCommand}s.
- * The advantage is that we don't have to allocate a {@link RedisCommand} wrapper.
- *
- * The context propagation relies on the Netty instrumentation.
+ * Rather than wrapping the {@link RedisCommand}, the context propagation relies on the Netty instrumentation.
  */
 public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return nameStartsWith("io.lettuce.core.")
-            .and(hasSuperType(named("io.lettuce.core.protocol.RedisCommand")));
+        return named("io.lettuce.core.protocol.Command");
     }
 
     @Override
@@ -72,13 +65,8 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
     public static class OnComplete extends LettuceStopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete(@Advice.Local("nested") boolean nested) {
-            nested = LettuceUtil.beforeComplete(null, false);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void afterComplete(@Advice.Local("nested") boolean nested) {
-            LettuceUtil.afterComplete(nested);
+        private static void beforeComplete() {
+            LettuceUtil.beforeComplete(null);
         }
 
         @Override
@@ -90,14 +78,8 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
     public static class OnCompleteExceptionally extends LettuceStopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete(@Advice.Local("nested") boolean nested,
-                                           @Advice.Argument(0) Throwable throwable) {
-            nested = LettuceUtil.beforeComplete(throwable, false);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void afterComplete(@Advice.Local("nested") boolean nested) {
-            LettuceUtil.afterComplete(nested);
+        private static void beforeComplete(@Advice.Argument(0) Throwable throwable) {
+            LettuceUtil.beforeComplete(throwable);
         }
 
         @Override
@@ -109,13 +91,8 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
     public static class OnCancel extends LettuceStopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete(@Advice.Local("nested") boolean nested) {
-            nested = LettuceUtil.beforeComplete(null, true);
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void afterComplete(@Advice.Local("nested") boolean nested) {
-            LettuceUtil.afterComplete(nested);
+        private static void beforeComplete() {
+            LettuceUtil.beforeComplete(null);
         }
 
         @Override
@@ -126,34 +103,17 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
 
     public static class LettuceUtil {
 
-        private static ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<>();
-
         @VisibleForAdvice
-        public static boolean beforeComplete(@Nullable Throwable t, boolean cancelled) {
-            try {
-                // guard against wrapped RedisCommands
-                if (nestedThreadLocal.get() == Boolean.TRUE || tracer == null) {
-                    return true;
+        public static void beforeComplete(@Nullable Throwable t) {
+            TraceContextHolder<?> active = getActive();
+            if (active instanceof Span) {
+                Span activeSpan = (Span) active;
+                if ("redis".equals(activeSpan.getSubtype())) {
+                    activeSpan
+                        .captureException(t)
+                        .end();
                 }
-                TraceContextHolder<?> active = tracer.getActive();
-                if (active instanceof Span) {
-                    Span activeSpan = (Span) active;
-                    if ("redis".equals(activeSpan.getSubtype())) {
-                        activeSpan
-                            .captureException(t)
-                            .end();
-                    }
-                }
-                return false;
-            } finally {
-                nestedThreadLocal.set(true);
             }
-        }
-
-        @VisibleForAdvice
-        @SuppressWarnings("WeakerAccess")
-        public static void afterComplete(Boolean nested) {
-            nestedThreadLocal.set(nested);
         }
     }
 }

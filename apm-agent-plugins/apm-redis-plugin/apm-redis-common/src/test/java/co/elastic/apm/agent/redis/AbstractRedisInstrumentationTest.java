@@ -36,6 +36,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
     protected RedisServer server;
@@ -63,7 +64,7 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
     }
 
     public void assertTransactionWithRedisSpans(String... commands) {
-        assertThat(reporter.getSpans()).hasSize(2);
+        await().untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(commands.length));
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly(commands);
         assertThat(reporter.getSpans().stream().map(Span::getType).distinct()).containsExactly("db");
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
