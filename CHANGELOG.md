@@ -5,6 +5,7 @@
  * Add ability to ignore some exceptions to be reported as errors [ignore_exceptions](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore_exceptions
 
 ## Bug Fixes
+ * Support registering MBeans which are added after agent startup
 
 # 1.10.0
 
