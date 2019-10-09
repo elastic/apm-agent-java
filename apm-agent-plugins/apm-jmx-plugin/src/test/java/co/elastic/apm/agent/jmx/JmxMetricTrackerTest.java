@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,7 +35,9 @@ import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.management.ObjectName;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.List;
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 class JmxMetricTrackerTest {
@@ -57,7 +60,7 @@ class JmxMetricTrackerTest {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
-        logger = mock(Logger.class);
+        logger = spy(LoggerFactory.getLogger(JmxMetricTracker.class));
         new JmxMetricTracker(tracer, logger).start(tracer);
     }
 
@@ -108,6 +111,26 @@ class JmxMetricTrackerTest {
             assertThat(metricRegistry.getGauge("jvm.jmx.CollectionCount", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
             assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
             assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
+        }
+    }
+
+    @Test
+    void testMetricAddedLater() throws Exception {
+        setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"));
+
+        ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), new ObjectName("foo:type=Bar"));
+        assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
+    }
+
+    public interface TestMetricMBean {
+        int getBaz();
+    }
+
+    public static class TestMetric implements TestMetricMBean {
+
+        @Override
+        public int getBaz() {
+            return 42;
         }
     }
 
