@@ -58,7 +58,7 @@ public class JmxMetricTracker implements LifecycleListener {
 
     private static final String JMX_PREFIX = "jvm.jmx.";
     private final Logger logger;
-    private static final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    private final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     private final JmxConfiguration jmxConfiguration;
     private final MetricRegistry metricRegistry;
     private final CopyOnWriteArrayList<NotificationListener> registeredListeners = new CopyOnWriteArrayList<>();
@@ -78,7 +78,8 @@ public class JmxMetricTracker implements LifecycleListener {
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, new ArrayList<>());
+                removeListeners();
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, new ArrayList<JmxMetric>());
                 ArrayList<JmxMetric> notFound = new ArrayList<>();
                 List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, notFound);
 
@@ -95,7 +96,7 @@ public class JmxMetricTracker implements LifecycleListener {
                 for (JmxMetricRegistration deletedRegistration : deletedRegistrations) {
                     deletedRegistration.unregister(metricRegistry);
                 }
-                removeListeners();
+
                 for (JmxMetric jmxMetric : notFound) {
                     registerListener(jmxMetric);
                 }
@@ -105,8 +106,12 @@ public class JmxMetricTracker implements LifecycleListener {
     }
 
     private void register(List<JmxMetric> jmxMetrics) {
-        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, new ArrayList<>())) {
+        ArrayList<JmxMetric> notFound = new ArrayList<>();
+        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, notFound)) {
             registration.register(server, metricRegistry);
+        }
+        for (JmxMetric jmxMetric : notFound) {
+            registerListener(jmxMetric);
         }
     }
 
@@ -114,18 +119,25 @@ public class JmxMetricTracker implements LifecycleListener {
         if (registeredListeners.isEmpty()) {
             return;
         }
-        logger.debug("Removing MBean listeners because the configuration changed");
+        logger.debug("Removing MBean listeners");
         // remove previously registered listeners so that they are not registered again if the mbean is still missing
         for (NotificationListener registeredListener : registeredListeners) {
-            try {
-                server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, registeredListener);
-            } catch (OperationsException e) {
-                logger.error(e.getMessage(), e);
-            }
+            removeListener(registeredListener);
         }
-        registeredListeners.clear();
     }
 
+    private void removeListener(NotificationListener registeredListener) {
+        try {
+            server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, registeredListener);
+        } catch (OperationsException e) {
+            logger.error(e.getMessage(), e);
+        }
+        registeredListeners.remove(registeredListener);
+    }
+
+    /**
+     * A single {@link JmxMetric} can yield multiple {@link JmxMetricRegistration}s if the {@link JmxMetric} contains multiple {@link JmxMetric#attributes}
+     */
     private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, List<JmxMetric> notFound) {
         List<JmxMetricRegistration> registrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
@@ -148,6 +160,7 @@ public class JmxMetricTracker implements LifecycleListener {
             @Override
             public void handleNotification(Notification notification, Object handback) {
                 logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
+                removeListener(this);
                 if (jmxConfiguration.getCaptureJmxMetrics().get().contains(jmxMetric)) {
                     register(Collections.singletonList(jmxMetric));
                 }
@@ -262,8 +275,12 @@ public class JmxMetricTracker implements LifecycleListener {
         }
     }
 
+    List<NotificationListener> getRegisteredListeners() {
+        return registeredListeners;
+    }
+
     @Override
     public void stop() {
-
+        removeListeners();
     }
 }
