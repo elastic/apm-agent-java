@@ -310,7 +310,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             writeStringValue(exception.getClass().getName());
 
             Throwable cause = exception.getCause();
-            if(cause != null) {
+            if (cause != null) {
                 jw.writeByte(COMMA);
                 writeFieldName("cause");
                 jw.writeByte(ARRAY_START);
