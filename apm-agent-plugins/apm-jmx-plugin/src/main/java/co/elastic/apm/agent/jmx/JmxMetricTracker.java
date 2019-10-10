@@ -98,7 +98,7 @@ public class JmxMetricTracker implements LifecycleListener {
                 }
 
                 for (JmxMetric jmxMetric : notFound) {
-                    registerListener(jmxMetric);
+                    registerListenerForNotFoundMBean(jmxMetric);
                 }
             }
         });
@@ -106,12 +106,12 @@ public class JmxMetricTracker implements LifecycleListener {
     }
 
     private void register(List<JmxMetric> jmxMetrics) {
-        ArrayList<JmxMetric> notFound = new ArrayList<>();
+        List<JmxMetric> notFound = new ArrayList<>();
         for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, notFound)) {
             registration.register(server, metricRegistry);
         }
         for (JmxMetric jmxMetric : notFound) {
-            registerListener(jmxMetric);
+            registerListenerForNotFoundMBean(jmxMetric);
         }
     }
 
@@ -152,7 +152,7 @@ public class JmxMetricTracker implements LifecycleListener {
         return registrations;
     }
 
-    private void registerListener(final JmxMetric jmxMetric) {
+    private void registerListenerForNotFoundMBean(final JmxMetric jmxMetric) {
         logger.info("Could not find mbeans for {}. Adding a listener in case the mbean is registered at a later point.", jmxMetric.getObjectName());
         MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
         filter.enableObjectName(jmxMetric.getObjectName());
