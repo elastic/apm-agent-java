@@ -279,7 +279,7 @@ public class ServletTransactionHelper {
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        if (excludeUrlMatcher != null) {
+        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
                 servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
         }
@@ -289,7 +289,7 @@ public class ServletTransactionHelper {
                 userAgentHeader, excludeAgentMatcher);
         }
         boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
-        if (!isExcluded) {
+        if (!isExcluded && logger.isTraceEnabled()) {
             logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
                 servletPath, pathInfo, userAgentHeader);
         }
