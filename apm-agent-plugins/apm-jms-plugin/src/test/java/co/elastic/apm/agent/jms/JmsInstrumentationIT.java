@@ -62,7 +62,9 @@ import java.util.stream.Collectors;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -328,6 +330,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendListenOnNonTracedThread(String destinationName, int expectedReadTransactions) {
+        await().atMost(500, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
+
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         Span sendSpan = spans.get(0);
@@ -446,7 +450,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
-        Thread.sleep(500);
         verifySendListenOnNonTracedThread(queue.getQueueName(), 1);
     }
 
@@ -467,7 +470,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage2 = incomingMessageFuture2.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage2);
 
-        Thread.sleep(500);
         verifySendListenOnNonTracedThread(topic.getTopicName(), 2);
     }
 
