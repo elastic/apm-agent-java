@@ -24,16 +24,18 @@
  */
 package co.elastic.apm.agent.cmd;
 
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import co.elastic.apm.agent.impl.transaction.Span;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.commons.exec.CommandLine;
 
-import javax.annotation.Nullable;
-import java.util.Map;
-
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class CommonsExecSyncInstrumentation extends CommonsExecInstrumentation {
@@ -43,11 +45,12 @@ public class CommonsExecSyncInstrumentation extends CommonsExecInstrumentation {
         return named("execute")
             .and(
                 takesArguments(1)
-                    .and(takesArguments(CommandLine.class))
-                .or(
-                    takesArguments(2)
-                        .and(takesArguments(CommandLine.class, Map.class))
-                )
+                    .and(takesArgument(0, named("org.apache.commons.exec.CommandLine")))
+                    .or(
+                        takesArguments(2)
+                            .and(takesArgument(0, named("org.apache.commons.exec.CommandLine"))
+                                .and(takesArgument(1, Map.class)))
+                    )
             );
     }
 
