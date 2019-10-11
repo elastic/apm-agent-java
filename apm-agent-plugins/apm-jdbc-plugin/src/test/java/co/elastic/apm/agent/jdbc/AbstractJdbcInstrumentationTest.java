@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -62,8 +62,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
     @Nullable
     private PreparedStatement preparedStatement;
     private final Transaction transaction;
-
-    private SignatureParser signatureParser;
+    private final SignatureParser signatureParser;
 
     AbstractJdbcInstrumentationTest(Connection connection, String expectedDbVendor) throws Exception {
         this.connection = connection;
@@ -105,6 +104,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         testBatch();
         testPreparedStatement();
         testBatchPreparedStatement();
+
+        testMultipleRowsModifiedStatement();
     }
 
     private void testStatement() throws SQLException {
@@ -123,7 +124,10 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(updates).hasSize(2);
         assertThat(updates[0]).isEqualTo(1);
         assertThat(updates[1]).isEqualTo(1);
-        assertSpanRecorded(insert, false);
+
+        // note: in that case, Statement.getUpdateCount() does not return the sum
+        // of the returned array values.
+        assertSpanRecorded(insert, false, 2);
     }
 
     private void testPreparedStatement() throws SQLException {
@@ -150,17 +154,34 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         statement.addBatch();
         int[] updates = statement.executeBatch();
         assertThat(updates).hasSize(2);
-        assertSpanRecorded(query, false);
+        assertThat(updates[0]).isEqualTo(1);
+        assertThat(updates[1]).isEqualTo(1);
+        assertSpanRecorded(query, false, 2);
+    }
+
+    private void testMultipleRowsModifiedStatement() throws SQLException {
+        String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (3, 'TEST')";
+        Statement statement = connection.createStatement();
+        statement.execute(insert);
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        Db db = reporter.getFirstSpan().getContext().getDb();
+        assertThat(db.getStatement()).isEqualTo(insert);
+        assertThat(db.getAffectedRowsCount())
+            .isEqualTo(statement.getUpdateCount())
+            .isEqualTo(1);
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
         assertThat(resultSet.next()).isTrue();
         assertThat(resultSet.getInt("foo")).isEqualTo(1);
         assertThat(resultSet.getString("BAR")).isEqualTo("APM");
-        assertSpanRecorded(rawSql, preparedStatement);
+
+        // this method is only called with select statements, thus no affected rows
+        assertSpanRecorded(rawSql, preparedStatement, -1);
     }
 
-    private void assertSpanRecorded(String rawSql, boolean preparedStatement) throws SQLException {
+    private void assertSpanRecorded(String rawSql, boolean preparedStatement, int expectedAffectedRows) throws SQLException {
         assertThat(reporter.getSpans()).hasSize(1);
         Span jdbcSpan = reporter.getFirstSpan();
         StringBuilder processedSql = new StringBuilder();
@@ -169,10 +190,16 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(jdbcSpan.getType()).isEqualTo(DB_SPAN_TYPE);
         assertThat(jdbcSpan.getSubtype()).isEqualTo(expectedDbVendor);
         assertThat(jdbcSpan.getAction()).isEqualTo(DB_SPAN_ACTION);
+
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
         assertThat(db.getUser()).isEqualToIgnoringCase(connection.getMetaData().getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
+
+        assertThat(db.getAffectedRowsCount())
+            .describedAs("unexpected affected rows count for statement %s", rawSql)
+            .isEqualTo(expectedAffectedRows);
+
         reporter.reset();
     }
 }

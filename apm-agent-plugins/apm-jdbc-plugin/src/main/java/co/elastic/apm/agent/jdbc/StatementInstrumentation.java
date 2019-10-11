@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -47,6 +47,7 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -54,7 +55,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Creates spans for JDBC calls
+ * Creates spans for JDBC {@link Statement} execution
  */
 public abstract class StatementInstrumentation extends ElasticApmInstrumentation {
 
@@ -94,11 +95,21 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         return Collections.singleton(JDBC_INSTRUMENTATION_GROUP);
     }
 
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link Statement#execute(String)} </li>
+     *     <li>{@link Statement#execute(String, int[])} )} </li>
+     *     <li>{@link Statement#execute(String, String[])} </li>
+     *     <li>{@link Statement#execute(String, int)} </li>
+     *     <li>{@link Statement#executeQuery(String)} </li>
+     * </ul>
+     */
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
         public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
             super(tracer,
-                nameStartsWith("execute")
+                named("execute").or(named("executeQuery"))
                     .and(takesArgument(0, String.class))
                     .and(isPublic())
             );
@@ -107,7 +118,8 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         @Nullable
         @VisibleForAdvice
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static Span onBeforeExecute(@Advice.This Statement statement, @Advice.Argument(0) String sql) throws SQLException {
+        public static Span onBeforeExecute(@Advice.This Statement statement,
+                                           @Advice.Argument(0) String sql) throws SQLException {
             if (tracer != null && jdbcHelperManager != null) {
                 JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
                 if (helperImpl != null) {
@@ -119,8 +131,13 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
+        public static void onAfterExecute(@Advice.This Statement statement,
+                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t) throws SQLException {
             if (span != null) {
+                if( t == null){
+                    span.getContext().getDb().withAffectedRowsCount(statement.getUpdateCount());
+                }
                 span.captureException(t)
                     .deactivate()
                     .end();
@@ -128,6 +145,79 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         }
     }
 
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link Statement#executeUpdate(String)} </li>
+     *     <li>{@link Statement#executeUpdate(String, int[])} )} </li>
+     *     <li>{@link Statement#executeUpdate(String, String[])} </li>
+     *     <li>{@link Statement#executeUpdate(String, int)} </li>
+     *     <li>{@link Statement#executeLargeUpdate(String)} (java8)</li>
+     *     <li>{@link Statement#executeLargeUpdate(String, int[])} )} (java8)</li>
+     *     <li>{@link Statement#executeLargeUpdate(String, String[])} (java8)</li>
+     *     <li>{@link Statement#executeLargeUpdate(String, int)} (java8)</li>
+     * </ul>
+     */
+    public static class ExecuteUpdateWithQueryInstrumentation extends StatementInstrumentation {
+
+        public ExecuteUpdateWithQueryInstrumentation(ElasticApmTracer tracer) {
+            super(tracer,
+                nameStartsWith("execute").and(nameEndsWith("Update"))
+                    .and(takesArgument(0, String.class))
+                    .and(isPublic())
+            );
+        }
+
+        @Nullable
+        @VisibleForAdvice
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static Span onBeforeExecute(@Advice.This Statement statement,
+                                           @Advice.Argument(0) String sql) throws SQLException {
+            if (tracer != null && jdbcHelperManager != null) {
+                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (helperImpl != null) {
+                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), false);
+                }
+            }
+            return null;
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.This Statement statement,
+                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Return @Nullable Object returnValue) {
+            if (span != null) {
+                if( t == null){
+                    // for 'executeUpdate' and 'executeLargeUpdate', we have to compute the sum as Statement.getUpdateCount()
+                    // does not seem to return the sum of all elements. As we can use instanceof to check return type
+                    // we do not need to use a separate advice.
+                    long affectedCount = 0;
+                    if(returnValue instanceof int[]){
+                        int[] array = (int[]) returnValue;
+                        for (int i = 0; i < array.length; i++) {
+                            affectedCount += array[i];
+                        }
+                    } else if ( returnValue instanceof long[]){
+                        long[] array = (long[]) returnValue;
+                        for (int i = 0; i < array.length; i++) {
+                            affectedCount += array[i];
+                        }
+                    }
+                    span.getContext().getDb().withAffectedRowsCount(affectedCount);
+                }
+
+                span.captureException(t)
+                    .deactivate()
+                    .end();
+            }
+        }
+    }
+
+    /**
+     * Instruments {@link Statement#addBatch(String)}
+     */
     public static class AddBatchInstrumentation extends StatementInstrumentation {
 
         public AddBatchInstrumentation(ElasticApmTracer tracer) {
@@ -149,6 +239,14 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         }
     }
 
+    /**
+     * Instruments:
+     *  <ul>
+     *      <li>{@link java.sql.PreparedStatement#execute}</li>
+     *      <li>{@link Statement#executeBatch()} </li>
+     *      <li>{@link Statement#executeLargeBatch()} (java8)</li>
+     *  </ul>
+     */
     public static class ExecuteWithoutQueryInstrumentation extends StatementInstrumentation {
         public ExecuteWithoutQueryInstrumentation(ElasticApmTracer tracer) {
             super(tracer,
@@ -172,8 +270,32 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.Enter @Nullable Span span, @Advice.Thrown Throwable t) {
+        public static void onAfterExecute(@Advice.This Statement statement,
+                                          @Advice.Enter @Nullable Span span,
+                                          @Advice.Thrown Throwable t,
+                                          @Advice.Return Object returnValue) throws SQLException {
             if (span != null) {
+
+                // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
+                // does not seem to return the sum of all elements. As we can use instanceof to check return type
+                // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
+                // but there is no extra allocation.
+                long affectedCount = 0;
+                if(returnValue instanceof int[]) {
+                    int[] values = (int[]) returnValue;
+                    for (int i = 0; i < values.length; i++) {
+                        affectedCount += values[i];
+                    }
+                } else if (returnValue instanceof long[]){
+                    long[] values = (long[])returnValue;
+                    for(int i = 0; i< values.length; i++){
+                        affectedCount += values[i];
+                    }
+                } else {
+                    affectedCount = statement.getUpdateCount();
+                }
+                span.getContext().getDb().withAffectedRowsCount(affectedCount);
+
                 span.captureException(t)
                     .deactivate()
                     .end();
