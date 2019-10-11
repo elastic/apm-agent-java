@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -33,28 +34,18 @@ import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import com.mongodb.event.CommandEvent;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
-import org.bson.BsonArray;
-import org.bson.BsonDocument;
-import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 public class MongoClientInstrumentationHelperImpl implements MongoClientInstrumentationHelper<CommandEvent, CommandListener> {
 
-    private static final List<String> COMMANDS = Arrays.asList("insert", "count", "find", "create");
-
-    private static final BsonValue PARAM_CHAR = new BsonString("?");
-
-    public static final String SPAN_TYPE = "db";
-    public static final String MONGO = "mongo";
-    public static final String SPAN_ACTION = "request";
+    private static final String SPAN_TYPE = "db";
+    private static final String MONGO = "mongodb";
+    private static final String SPAN_ACTION = "query";
     private static final int MAX_POOLED_ELEMENTS = 256;
     private final ElasticApmTracer tracer;
 
@@ -79,7 +70,14 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
 
     @Nullable
     @Override
-    public Span createClientSpan() {
+    public Span createClientSpan(CommandEvent commandEvent) {
+        CommandStartedEvent startedEvent;
+        if (commandEvent instanceof CommandStartedEvent) {
+            startedEvent = (CommandStartedEvent) commandEvent;
+        } else {
+            return null;
+        }
+
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return null;
@@ -93,43 +91,24 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
 
         span.withType(SPAN_TYPE)
             .withSubtype(MONGO)
-            .withAction(SPAN_ACTION);
+            .withAction(SPAN_ACTION)
+            .appendToName(startedEvent.getDatabaseName()).appendToName(".").appendToName(startedEvent.getCommandName());
+        computeName(span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT), startedEvent);
         span.getContext().getDb().withType(MONGO);
-        span.activate();
         return span;
     }
 
-    @Nullable
-    @Override
-    public Span createClientSpan(CommandEvent commandEvent, Span span) {
-        if (span == null) {
-            if (commandEvent instanceof CommandStartedEvent) {
-                CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
-                final TraceContextHolder<?> activeSpan = tracer.getActive();
-                if (activeSpan == null || !activeSpan.isSampled()) {
-                    return null;
-                }
-
-                span = activeSpan.createExitSpan();
-
-                if (span == null) {
-                    return null;
-                }
-
-                span.withType(SPAN_TYPE)
-                    .withSubtype(MONGO)
-                    .withAction(SPAN_ACTION)
-                    .appendToName(parseCommand(startedEvent.getCommand()));
-                span.getContext().getDb().withType(MONGO);
-                span.activate();
+    private static void computeName(@Nullable StringBuilder name, CommandStartedEvent startedEvent) {
+        if (name != null) {
+            BsonValue collection = startedEvent.getCommand().get(startedEvent.getCommandName());
+            name.append(startedEvent.getDatabaseName());
+            if (collection != null) {
+                name.append('.')
+                    .append(collection.asString().getValue());
             }
-        } else {
-            if (commandEvent instanceof CommandStartedEvent) {
-                CommandStartedEvent startedEvent = (CommandStartedEvent) commandEvent;
-                span.appendToName(parseCommand(startedEvent.getCommand()));
-            }
+            name.append('.')
+                .append(startedEvent.getCommandName());
         }
-        return span;
     }
 
     @Override
@@ -148,50 +127,11 @@ public class MongoClientInstrumentationHelperImpl implements MongoClientInstrume
     }
 
     @Override
-    public CommandListener wrapCommandListener(CommandListener listener, Span span) {
-        return commandListenerWrapperObjectPool.createInstance().with(listener, span);
+    public CommandListener wrapCommandListener(CommandListener listener) {
+        return commandListenerWrapperObjectPool.createInstance().with(listener);
     }
 
     void recycle(CommandListenerWrapper listenerWrapper) {
         commandListenerWrapperObjectPool.recycle(listenerWrapper);
-    }
-
-    public static String parseCommand(final BsonDocument statement) {
-        final BsonDocument parsed = parse(statement);
-        return parsed.toString();
-    }
-
-    private static BsonDocument parse(final BsonDocument origin) {
-        final BsonDocument transformed = new BsonDocument();
-        for (final Map.Entry<String, BsonValue> entry : origin.entrySet()) {
-            if (COMMANDS.contains(entry.getKey()) && entry.getValue().isString()) {
-                transformed.put(entry.getKey(), entry.getValue());
-            } else {
-                final BsonValue child = parse(entry.getValue());
-                transformed.put(entry.getKey(), child);
-            }
-        }
-        return transformed;
-    }
-
-    private static BsonValue parse(final BsonValue origin) {
-        final BsonValue value;
-        if (origin.isDocument()) {
-            value = parse(origin.asDocument());
-        } else if (origin.isArray()) {
-            value = parse(origin.asArray());
-        } else {
-            value = PARAM_CHAR;
-        }
-        return value;
-    }
-
-    private static BsonValue parse(final BsonArray origin) {
-        final BsonArray array = new BsonArray();
-        for (final BsonValue value : origin) {
-            final BsonValue child = parse(value);
-            array.add(child);
-        }
-        return array;
     }
 }

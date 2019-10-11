@@ -42,6 +42,9 @@ import org.testcontainers.containers.GenericContainer;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 
@@ -55,7 +58,7 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     private static int TIMEOUT_IN_MILLIS = 550;
 
     @BeforeClass
-    public static void startMongoContainerAndClient() throws InterruptedException {
+    public static void startMongoContainerAndClient() throws Exception {
         container = new GenericContainer("mongo:3.4").withExposedPorts(27017);
         container.start();
         mongo = MongoClients.create("mongodb://" + container.getContainerIpAddress() + ":" + container.getMappedPort(27017));
@@ -63,75 +66,80 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     }
 
     @AfterClass
-    public static void closeClient() {
-        mongo.getDatabase(DB_NAME).getCollection(COLLECTION_NAME).drop(getVoidCallback());
+    public static void closeClient() throws Exception {
+        MongoClientAsyncInstrumentationIT.<Void>executeAndGet(c -> mongo.getDatabase(DB_NAME).getCollection(COLLECTION_NAME).drop(c));
         container.stop();
         mongo.close();
     }
 
+    private static void executeAndWait(Consumer<SingleResultCallback<Void>> execution) throws ExecutionException, TimeoutException, InterruptedException {
+        executeAndGet(execution);
+    }
+
+    private static <T> T executeAndGet(Consumer<SingleResultCallback<T>> execution) throws ExecutionException, TimeoutException, InterruptedException {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        SingleResultCallback<T> callback = getCallback(future);
+        execution.accept(callback);
+        return future.get(TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+
     @Before
-    public void initCollection() throws InterruptedException {
-        db.createCollection(COLLECTION_NAME, getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+    public void initCollection() throws Exception {
+        executeAndWait(c -> db.createCollection(COLLECTION_NAME, c));
         reporter.reset();
     }
 
     @After
-    public void dropCollection() throws InterruptedException {
-        db.getCollection(COLLECTION_NAME).drop(getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+    public void dropCollection() throws Exception {
+        executeAndWait(c -> db.getCollection(COLLECTION_NAME).drop(c));
+        reporter.reset();
     }
 
     @Test
-    public void testCreateCollection() throws ExecutionException, InterruptedException {
-        db.getCollection(COLLECTION_NAME).drop(getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+    public void testCreateCollection() throws Exception {
+        executeAndWait(c -> db.getCollection(COLLECTION_NAME).drop(c));
         reporter.reset();
 
-        db.createCollection(COLLECTION_NAME, getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        executeAndWait(c -> db.createCollection(COLLECTION_NAME, c));
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"create\" : \"testcollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }", reporter.getFirstSpan().getNameAsString());
+        assertEquals("testdb.testcollection.create", reporter.getFirstSpan().getNameAsString());
     }
 
     @Test
-    public void testCountCollection() throws InterruptedException {
+    public void testCountCollection() throws Exception {
 
-        db.getCollection(COLLECTION_NAME).count(getLongCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoClientAsyncInstrumentationIT.<Long>executeAndGet(c -> db.getCollection(COLLECTION_NAME).count(c));
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getFirstSpan().getNameAsString());
+        assertEquals("testdb.testcollection.count", reporter.getFirstSpan().getNameAsString());
     }
 
     @Test
-    public void testCreateDocument() throws InterruptedException {
+    public void testCreateDocument() throws Exception {
 
         Document document = new Document();
         document.put("name", "Hello mongo");
 
-        MongoCollection collection = db.getCollection(COLLECTION_NAME);
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoCollection<Document> collection = db.getCollection(COLLECTION_NAME);
         reporter.reset();
 
-        collection.insertOne(document, getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        executeAndWait(c -> collection.insertOne(document, c));
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"insert\" : \"testcollection\", \"ordered\" : \"?\", \"documents\" : [{ \"_id\" : \"?\", \"name\" : \"?\" }] }", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.insert", reporter.getSpans().get(0).getNameAsString());
     }
 
     @Test
-    public void testUpdateDocument() throws InterruptedException {
+    public void testUpdateDocument() throws Exception {
 
         MongoDatabase db = mongo.getDatabase(DB_NAME);
 
         Document document = new Document();
         document.put("name", "Hello mongo");
-        MongoCollection collection = db.getCollection(COLLECTION_NAME);
-        collection.insertOne(document, getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoCollection<Document> collection = db.getCollection(COLLECTION_NAME);
+        executeAndWait(c -> collection.insertOne(document, c));
         reporter.reset();
 
         Document query = new Document();
@@ -141,72 +149,43 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
         Document updatedObject = new Document();
         updatedObject.put("$set", newDocument);
 
-        collection.updateOne(query, updatedObject, getUpdateResultCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoClientAsyncInstrumentationIT.<UpdateResult>executeAndGet(c -> collection.updateOne(query, updatedObject, c));
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"update\" : \"?\", \"ordered\" : \"?\", \"updates\" : [{ \"q\" : { \"name\" : \"?\" }, \"u\" : { \"$set\" : { \"name\" : \"?\" } } }] }", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.update", reporter.getSpans().get(0).getNameAsString());
     }
 
     @Test
-    public void testDeleteDocument() throws InterruptedException {
+    public void testDeleteDocument() throws Exception {
 
         MongoDatabase db = mongo.getDatabase(DB_NAME);
 
         Document document = new Document();
         document.put("name", "Hello mongo");
-        MongoCollection collection = db.getCollection(COLLECTION_NAME);
-        collection.insertOne(document, getVoidCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoCollection<Document> collection = db.getCollection(COLLECTION_NAME);
+        executeAndWait(c -> collection.insertOne(document, c));
         reporter.reset();
 
         Document searchQuery = new Document();
         searchQuery.put("name", "Hello mongo");
 
-        collection.deleteOne(searchQuery, getDeleteResultCallback());
-        Thread.sleep(TIMEOUT_IN_MILLIS);
+        MongoClientAsyncInstrumentationIT.<DeleteResult>executeAndGet(c -> collection.deleteOne(searchQuery, c));
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"delete\" : \"?\", \"ordered\" : \"?\", \"deletes\" : [{ \"q\" : { \"name\" : \"?\" }, \"limit\" : \"?\" }] }", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.delete", reporter.getSpans().get(0).getNameAsString());
     }
 
-    public static SingleResultCallback<Void> getVoidCallback() {
-        CompletableFuture future = new CompletableFuture<>();
+    public static <T> SingleResultCallback<T> getCallback(final CompletableFuture<T> future) {
         return new SingleResultCallback<>() {
             @Override
-            public void onResult(final Void result, final Throwable t) {
-                future.complete(result);
+            public void onResult(final T result, final Throwable t) {
+                if (t != null) {
+                    future.completeExceptionally(t);
+                } else {
+                    future.complete(result);
+                }
             }
         };
     }
 
-    public static SingleResultCallback<Long> getLongCallback() {
-        CompletableFuture future = new CompletableFuture<>();
-        return new SingleResultCallback<>() {
-            @Override
-            public void onResult(final Long result, final Throwable t) {
-                future.complete(result);
-            }
-        };
-    }
-
-    public static SingleResultCallback<UpdateResult> getUpdateResultCallback() {
-        CompletableFuture future = new CompletableFuture<>();
-        return new SingleResultCallback<>() {
-            @Override
-            public void onResult(final UpdateResult result, final Throwable t) {
-                future.complete(result);
-            }
-        };
-    }
-
-    public static SingleResultCallback<DeleteResult> getDeleteResultCallback() {
-        CompletableFuture future = new CompletableFuture<>();
-        return new SingleResultCallback<>() {
-            @Override
-            public void onResult(final DeleteResult result, final Throwable t) {
-                future.complete(result);
-            }
-        };
-    }
 }

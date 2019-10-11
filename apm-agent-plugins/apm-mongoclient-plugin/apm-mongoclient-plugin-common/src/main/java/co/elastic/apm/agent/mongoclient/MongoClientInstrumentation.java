@@ -42,7 +42,6 @@ public abstract class MongoClientInstrumentation extends ElasticApmInstrumentati
     public static HelperClassManager<MongoClientInstrumentationHelper<CommandEvent, CommandListener>> mongoClientInstrHelperManager;
 
     public MongoClientInstrumentation(ElasticApmTracer tracer) {
-        System.out.println("Init MongoClientInstrumentationManger");
         mongoClientInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
             "co.elastic.apm.agent.mongoclient.MongoClientInstrumentationHelperImpl",
             "co.elastic.apm.agent.mongoclient.CommandListenerWrapper",

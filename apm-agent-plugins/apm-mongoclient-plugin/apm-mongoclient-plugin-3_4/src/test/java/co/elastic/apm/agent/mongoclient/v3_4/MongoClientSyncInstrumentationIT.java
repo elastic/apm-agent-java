@@ -65,7 +65,7 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
         db.createCollection(COLLECTION_NAME);
 
         assertEquals(1, reporter.getSpans().size());
-        assertEquals("{ \"create\" : \"testcollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }", reporter.getFirstSpan().getNameAsString());
+        assertEquals("testdb.testcollection.create", reporter.getFirstSpan().getNameAsString());
     }
 
     @Test
@@ -74,7 +74,7 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
         assertEquals(1, reporter.getSpans().size());
         assertEquals(count, 0);
-        assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getFirstSpan().getNameAsString());
+        assertEquals("testdb.testcollection.count", reporter.getFirstSpan().getNameAsString());
     }
 
     @Test
@@ -93,8 +93,8 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
 
         assertEquals(2, reporter.getSpans().size());
         assertEquals(1, count);
-        assertEquals("{ \"insert\" : \"testcollection\", \"ordered\" : \"?\", \"documents\" : [{ \"_id\" : \"?\", \"name\" : \"?\" }] }", reporter.getSpans().get(0).getNameAsString());
-        assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getSpans().get(1).getNameAsString());
+        assertEquals("testdb.testcollection.insert", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.count", reporter.getSpans().get(1).getNameAsString());
     }
 
     @Test
@@ -120,8 +120,8 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
         assertEquals(1, updatedDocCount);
         assertEquals(2, reporter.getSpans().size());
         assertEquals(1, count);
-        assertEquals("{ \"update\" : \"?\", \"ordered\" : \"?\", \"updates\" : [{ \"q\" : { \"name\" : \"?\" }, \"u\" : { \"$set\" : { \"name\" : \"?\" } } }] }", reporter.getSpans().get(0).getNameAsString());
-        assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getSpans().get(1).getNameAsString());
+        assertEquals("testdb.testcollection.update", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.count", reporter.getSpans().get(1).getNameAsString());
     }
 
     @Test
@@ -143,7 +143,7 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
         assertEquals(1, deletedDocCount);
         assertEquals(2, reporter.getSpans().size());
         assertEquals(0, count);
-        assertEquals("{ \"delete\" : \"?\", \"ordered\" : \"?\", \"deletes\" : [{ \"q\" : { \"name\" : \"?\" }, \"limit\" : \"?\" }] }", reporter.getSpans().get(0).getNameAsString());
-        assertEquals("{ \"count\" : \"testcollection\", \"query\" : { } }", reporter.getSpans().get(1).getNameAsString());
+        assertEquals("testdb.testcollection.delete", reporter.getSpans().get(0).getNameAsString());
+        assertEquals("testdb.testcollection.count", reporter.getSpans().get(1).getNameAsString());
     }
 }

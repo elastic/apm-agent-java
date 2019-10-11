@@ -38,40 +38,16 @@ import net.bytebuddy.matcher.ElementMatcher;
 import javax.annotation.Nullable;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+/**
+ * {@link com.mongodb.connection.Protocol#setCommandListener(CommandListener)}
+ */
 public class MongoClientCommonInstrumentation extends MongoClientInstrumentation {
 
     public MongoClientCommonInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
-    }
-
-    public static class MongoClientAsyncAdvice {
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onBeforeSet(@Advice.Argument(value = 0, readOnly = false) CommandListener commandListener,
-                                       @Advice.Local("span") Span span,
-                                       @Advice.Local("helper") MongoClientInstrumentationHelper<CommandEvent, CommandListener> helper) {
-            helper = mongoClientInstrHelperManager.getForClassLoaderOfClass(CommandListener.class);
-
-            if (helper != null) {
-                span = helper.createClientSpan();
-                if (span != null) {
-                    commandListener = helper.<CommandListener>wrapCommandListener(commandListener, span);
-                }
-            }
-        }
-
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onAfterExecute(@Advice.Argument(value = 0) CommandListener commandListener,
-                                           @Advice.Local("span") @Nullable Span span,
-                                           @Advice.Local("helper") @Nullable MongoClientInstrumentationHelper<CommandEvent, CommandListener> helper,
-                                           @Advice.Thrown @Nullable Throwable t) {
-            if (span != null) {
-                // Deactivate in this thread. Span will be ended and reported by the listener
-                span.deactivate();
-            }
-        }
-
     }
 
     @Override
@@ -81,7 +57,8 @@ public class MongoClientCommonInstrumentation extends MongoClientInstrumentation
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("com.mongodb.connection.Protocol"));
+        return nameStartsWith("com.mongodb.connection.")
+            .and(hasSuperType(named("com.mongodb.connection.Protocol")));
     }
 
     @Override
@@ -89,4 +66,17 @@ public class MongoClientCommonInstrumentation extends MongoClientInstrumentation
         return named("setCommandListener");
     }
 
+    public static class MongoClientAsyncAdvice {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static void onBeforeSet(@Advice.Argument(value = 0, readOnly = false) CommandListener commandListener) {
+            if (mongoClientInstrHelperManager == null) {
+                return;
+            }
+            MongoClientInstrumentationHelper<CommandEvent, CommandListener> helper = mongoClientInstrHelperManager.getForClassLoaderOfClass(CommandListener.class);
+            if (helper == null) {
+                return;
+            }
+            commandListener = helper.<CommandListener>wrapCommandListener(commandListener);
+        }
+    }
 }

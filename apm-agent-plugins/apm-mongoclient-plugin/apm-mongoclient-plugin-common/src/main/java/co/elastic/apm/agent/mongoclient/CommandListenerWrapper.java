@@ -38,7 +38,7 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
     private MongoClientInstrumentationHelperImpl helper;
 
     @Nullable
-    private CommandListener delegate;
+    private volatile CommandListener delegate;
 
     @Nullable
     private volatile Span span;
@@ -47,35 +47,46 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
         this.helper = helper;
     }
 
-    CommandListenerWrapper with(CommandListener delegate, Span span) {
+    CommandListenerWrapper with(CommandListener delegate) {
         this.delegate = delegate;
-        this.span = span;
         return this;
     }
 
     @Override
     public void commandStarted(final CommandStartedEvent event) {
-        System.out.println("#Started");
+        CommandListener localDelegate = this.delegate;
+        Span localSpan = null;
         try {
-            Span span = helper.createClientSpan(event, this.span);
-            if (span == null) {
-                return;
+            span = helper.createClientSpan(event);
+            localSpan = this.span;
+            if (localSpan != null) {
+                localSpan.activate();
             }
         } finally {
-            if (delegate != null) {
-                delegate.commandStarted(event);
+            if (localDelegate != null) {
+                localDelegate.commandStarted(event);
+            }
+            if (localSpan != null) {
+                localSpan.deactivate();
             }
         }
     }
 
     @Override
     public void commandSucceeded(final CommandSucceededEvent event) {
-        System.out.println("#Finished");
+        CommandListener localDelegate = this.delegate;
+        Span localSpan = this.span;
+        if (localSpan != null) {
+            localSpan.activate();
+        }
         try {
-            helper.finishClientSpan(event, span, null);
+            helper.finishClientSpan(event, localSpan, null);
         } finally {
-            if (delegate != null) {
-                delegate.commandSucceeded(event);
+            if (localDelegate != null) {
+                localDelegate.commandSucceeded(event);
+            }
+            if (localSpan != null) {
+                localSpan.deactivate();
             }
             helper.recycle(this);
         }
@@ -83,12 +94,19 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
 
     @Override
     public void commandFailed(final CommandFailedEvent event) {
-        System.out.println("#Failed");
+        CommandListener localDelegate = this.delegate;
+        Span localSpan = this.span;
+        if (localSpan != null) {
+            localSpan.activate();
+        }
         try {
             helper.finishClientSpan(event, span, event.getThrowable());
         } finally {
-            if (delegate != null) {
-                delegate.commandFailed(event);
+            if (localDelegate != null) {
+                localDelegate.commandFailed(event);
+            }
+            if (localSpan != null) {
+                localSpan.deactivate();
             }
             helper.recycle(this);
         }
@@ -96,7 +114,7 @@ public class CommandListenerWrapper implements CommandListener, Recyclable {
 
     @Override
     public void resetState() {
-        System.out.println("###Reset");
         delegate = null;
+        span = null;
     }
 }
