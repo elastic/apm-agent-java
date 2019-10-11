@@ -9,7 +9,7 @@
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
-        <version>1.9.1-SNAPSHOT</version>
+        <version>1.10.1-SNAPSHOT</version>
     </parent>
     <packaging>jar</packaging>
 
@@ -238,7 +238,17 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jedis-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-jms-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-jmx-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -268,6 +278,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>apm-mule4-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>apm-mongoclient-plugin-3_4</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -279,6 +294,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>apm-opentracing-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apm-redis-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

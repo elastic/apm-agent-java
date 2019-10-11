@@ -54,10 +54,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
+    public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
+    private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
+
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -107,6 +109,23 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
 
+    private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
+        .key(SERVICE_NODE_NAME)
+        .configurationCategory(CORE_CATEGORY)
+        .label("A unique name for the service node")
+        .description("If set, this name is used to distinguish between different nodes of a service, \n" +
+            "therefore it should be unique for each JVM within a service. \n" +
+            "If not set, data aggregations will be done based on a container ID (where valid) or on the reported \n" +
+            "hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). \n" +
+            "\n" +
+            "NOTE: JVM metrics views rely on aggregations that are based on the service node name. \n" +
+            "If you have multiple JVMs installed on the same host reporting data for the same service name, \n" +
+            "you must set a unique node name for each in order to view metrics at the JVM level.\n" +
+            "\n" +
+            "NOTE: Metrics views can utilize this configuration since APM Server 7.5")
+        .tags("added[1.11.0]")
+        .build();
+
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
         .configurationCategory(CORE_CATEGORY)
@@ -114,9 +133,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
-    
+
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
         .key("hostname")
+        .tags("added[1.10.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.")
         .build();
@@ -222,6 +242,27 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
+
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_exceptions")
+        .tags("added[1.11.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of exceptions that should be ignored and not reported as errors.\n" +
+            "This allows to ignore exceptions thrown in regular control flow that are not actual errors\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
+            "\n" +
+            "Examples:\n" +
+            "\n" +
+            " - `com.mycompany.ExceptionToIgnore`: using fully qualified name\n" +
+            " - `*ExceptionToIgnore`: using wildcard to avoid package name\n" +
+            " - `*exceptiontoignore`: case-insensitive by default\n" +
+            "\n" +
+            "NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types"
+        )
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
@@ -333,7 +374,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
             "Common configurations:\n\n" +
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
@@ -423,6 +464,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceName;
     }
 
+    @Nullable
+    public String getServiceNodeName() {
+        String nodeName = serviceNodeName.get();
+        if (nodeName == null || nodeName.trim().isEmpty()) {
+            return null;
+        }
+        return nodeName;
+    }
+
     public String getServiceVersion() {
         return serviceVersion.get();
     }
@@ -430,7 +480,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public String getHostname() {
         return hostname.get();
     }
-    
+
     public String getEnvironment() {
         return environment.get();
     }
@@ -453,6 +503,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUnnestExceptions() {
         return unnestExceptions.get();
+    }
+
+    public List<WildcardMatcher> getIgnoreExceptions(){
+        return ignoreExceptions.get();
     }
 
     public boolean isTypePoolCacheEnabled() {

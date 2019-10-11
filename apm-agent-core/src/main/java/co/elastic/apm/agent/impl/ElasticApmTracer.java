@@ -40,6 +40,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
@@ -192,6 +193,10 @@ public class ElasticApmTracer {
         assert assertionsEnabled = true;
     }
 
+    public <T> Transaction startRootTransaction(@Nullable ClassLoader initiatingClassLoader) {
+        return startTransaction(TraceContext.asRoot(), null, initiatingClassLoader);
+    }
+
     /**
      * Starts a transaction as a child of the provided parent
      *
@@ -268,11 +273,12 @@ public class ElasticApmTracer {
 
     @Nullable
     public Transaction currentTransaction() {
-        final TraceContextHolder<?> bottomOfStack = activeStack.get().peekLast();
+        Deque<TraceContextHolder<?>> stack = activeStack.get();
+        final TraceContextHolder<?> bottomOfStack = stack.peekLast();
         if (bottomOfStack instanceof Transaction) {
             return (Transaction) bottomOfStack;
-        } else {
-            for (Iterator<TraceContextHolder<?>> it = activeStack.get().descendingIterator(); it.hasNext(); ) {
+        } else if (bottomOfStack != null) {
+            for (Iterator<TraceContextHolder<?>> it = stack.descendingIterator(); it.hasNext(); ) {
                 TraceContextHolder<?> context = it.next();
                 if (context instanceof Transaction) {
                     return (Transaction) context;
@@ -352,7 +358,8 @@ public class ElasticApmTracer {
     }
 
     public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        if (e != null) {
+        // note: if we add inheritance support for exception filtering, caching would be required for performance
+        if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
             error.setException(e);
