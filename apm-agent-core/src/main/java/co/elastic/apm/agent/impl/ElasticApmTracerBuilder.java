@@ -67,7 +67,6 @@ public class ElasticApmTracerBuilder {
     private ConfigurationRegistry configurationRegistry;
     @Nullable
     private Reporter reporter;
-    private final List<LifecycleListener> lifecycleListeners = new ArrayList<>();
     private Map<String, String> inlineConfig = new HashMap<>();
     @Nullable
     private final String agentArguments;
@@ -93,11 +92,6 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
-    public ElasticApmTracerBuilder lifecycleListeners(List<LifecycleListener> lifecycleListeners) {
-        this.lifecycleListeners.addAll(lifecycleListeners);
-        return this;
-    }
-
     public ElasticApmTracerBuilder withConfig(String key, String value) {
         inlineConfig.put(key, value);
         return this;
@@ -114,20 +108,19 @@ public class ElasticApmTracerBuilder {
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
         ApmServerConfigurationSource configurationSource = null;
+        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (addApmServerConfigSource) {
             configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
             configurationRegistry.addConfigurationSource(configurationSource);
+            lifecycleListeners.add(configurationSource);
         }
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
-        if (lifecycleListeners.isEmpty()) {
-            if (configurationSource != null) {
-                lifecycleListeners.add(configurationSource);
-            }
-            lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class));
-        }
-        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter);
+        lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
+        tracer.registerLifecycleListeners(lifecycleListeners);
+        return tracer;
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,9 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
  * Implement this interface and register it as a {@linkplain java.util.ServiceLoader service} under
  * {@code src/main/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener}.
  * </p>
+ * <p>
+ * Implementations may have a constructor with an {@link ElasticApmTracer} argument
+ * </p>
  */
 public interface LifecycleListener {
 
@@ -39,7 +42,9 @@ public interface LifecycleListener {
      * Callback for when the {@link ElasticApmTracer} starts.
      *
      * @param tracer The tracer.
+     * @deprecated in favor of a constructor with an {@link ElasticApmTracer} argument
      */
+    @Deprecated
     void start(ElasticApmTracer tracer);
 
     /**

@@ -34,8 +34,6 @@ import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.management.ObjectName;
 import java.lang.management.GarbageCollectorMXBean;
@@ -43,27 +41,18 @@ import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 class JmxMetricTrackerTest {
 
     private MetricRegistry metricRegistry;
     private JmxConfiguration config;
-    private Logger logger;
-    private JmxMetricTracker jmxMetricTracker;
 
     @BeforeEach
     void setUp() {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
-        logger = spy(LoggerFactory.getLogger(JmxMetricTracker.class));
-        jmxMetricTracker = new JmxMetricTracker(tracer, logger);
-        jmxMetricTracker.start(tracer);
     }
 
     @Test
@@ -84,6 +73,7 @@ class JmxMetricTrackerTest {
 
     @Test
     void testGC() throws Exception {
+        setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count]"));
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
@@ -91,12 +81,6 @@ class JmxMetricTrackerTest {
             assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
         }
         printMetricSets();
-    }
-
-    @Test
-    void testString() throws Exception {
-        setConfig(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[Arch]"));
-        verify(logger).warn(eq("Can't create metric '{}' because attribute '{}' is not a number: '{}'"), any(), any(), any());
     }
 
     @Test
@@ -119,11 +103,9 @@ class JmxMetricTrackerTest {
     @Test
     void testMBeanAddedLater() throws Exception {
         setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"));
-        assertThat(jmxMetricTracker.getRegisteredListeners()).hasSize(1);
         ObjectName objectName = new ObjectName("foo:type=Bar");
         ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
         try {
-            assertThat(jmxMetricTracker.getRegisteredListeners()).isEmpty();
             assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
         } finally {
             ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
@@ -131,18 +113,19 @@ class JmxMetricTrackerTest {
     }
 
     @Test
-    void testMBeanRemoveUnknownJmxMetric() throws Exception {
-        setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"));
-        setConfig(JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
-        assertThat(jmxMetricTracker.getRegisteredListeners()).isEmpty();
-    }
+    void testMBeanMatchingWildcardAddedLater() throws Exception {
+        ObjectName objectName = new ObjectName("foo:type=Foo,name=mbean1");
+        ObjectName objectName2 = new ObjectName("foo:type=Foo,name=mbean2");
+        try {
+            ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
+            setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
+            assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
 
-    @Test
-    void testUnknownMetricThenAddKnown() throws Exception {
-        setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"));
-        assertThat(jmxMetricTracker.getRegisteredListeners()).hasSize(1);
-        setConfig(JmxMetric.valueOf("object_name[foo:type=Bar] attribute[Baz]"), JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
-        assertThat(jmxMetricTracker.getRegisteredListeners()).hasSize(1);
+            ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName2);
+            assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isEqualTo(42);
+        } finally {
+            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
+        }
     }
 
     public interface TestMetricMBean {
