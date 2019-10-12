@@ -53,6 +53,9 @@ public interface LifecycleListener {
      * Typically, this method is used to clean up resources like thread pools
      * so that there are no class loader leaks when a webapp is redeployed in an application server.
      * </p>
+     * <p>
+     * Exceptions thrown from this method are caught and handled so that they don't prevent further cleanup actions.
+     * </p>
      *
      * @throws Exception When something goes wrong performing the cleanup.
      */
