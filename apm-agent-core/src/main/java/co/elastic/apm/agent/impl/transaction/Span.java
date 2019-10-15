@@ -85,6 +85,9 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         if (dropped) {
             traceContext.setRecorded(false);
         }
+        if (parent != null) {
+            parent.onChildStart();
+        }
         if (epochMicros >= 0) {
             setStartTimestamp(epochMicros);
         } else {
@@ -102,11 +105,18 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     }
 
     @Override
+    public void setStartTimestamp(long epochMicros) {
+        super.setStartTimestamp(epochMicros);
+        if (parent != null) {
+            parent.onChildSetStartTimestamp(epochMicros);
+        }
+    }
+
+    @Override
     protected void onAfterStart() {
         super.onAfterStart();
         if (parent != null) {
-            this.parent.incrementReferences();
-            this.parent.onChildStart(getTimestamp());
+            parent.incrementReferences();
         }
     }
 

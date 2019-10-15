@@ -29,6 +29,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.EpochTickClock;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -253,6 +254,45 @@ class SpanTypeBreakdownTest {
         transaction.createSpan(10).withType("db").withSubtype("mysql").end(15);
         transaction.createSpan(20).withType("db").withSubtype("mysql").end(25);
         transaction.end(30);
+
+        tracer.getMetricRegistry().report(metricSets -> {
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);
+            assertThat(getTimer(metricSets, "span.self_time", "app", null).getTotalTimeUs()).isEqualTo(20);
+            assertThat(getTimer(metricSets, "transaction.duration", null, null).getTotalTimeUs()).isEqualTo(30);
+            assertThatTransactionBreakdownCounterCreated(metricSets);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getCount()).isEqualTo(2);
+            assertThat(getTimer(metricSets, "span.self_time", "db", "mysql").getTotalTimeUs()).isEqualTo(10);
+        });
+    }
+
+    /*
+     * Testing setting of arbitrary timestamps with combination to default span creation:
+     *   1. Capture the current time, denoted as Now
+     *   2. Start a transaction and set its start timestamp to Now-20
+     *   3. Start first span and set its timestamp to Now-10
+     *   4. End first span to have a duration of 5
+     *   5. Start a second span without setting timestamp (ie using wall clock)
+     *   6. End second span to have a duration of 5
+     *   7. End the transaction to Now+10
+     *
+     *   ████████████████████░░░░░░░░░░██████████░░░░░░░░░░██████████
+     *   ├──────----------───██████████
+     *   └────────────────--------------------───██████████
+     * Now-20             Now-10    Now-5      ~Now    ~Now+5     Now+10
+     */
+    @Test
+    void testBreakdown_serialDbSpans_notOverlapping_withGap_using_setTimestamp() {
+        long now = new EpochTickClock().getEpochMicros();
+        final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, getClass().getClassLoader())
+            .withName("test")
+            .withType("request");
+        transaction.setStartTimestamp(now - 20);
+        Span dbSpan = transaction.createSpan();
+        dbSpan.setStartTimestamp(now - 10);
+        dbSpan.withType("db").withSubtype("mysql").end(now - 5);
+        dbSpan = transaction.createSpan();
+        dbSpan.withType("db").withSubtype("mysql").end(dbSpan.getTimestamp() + 5);
+        transaction.end(now + 10);
 
         tracer.getMetricRegistry().report(metricSets -> {
             assertThat(getTimer(metricSets, "span.self_time", "app", null).getCount()).isEqualTo(1);

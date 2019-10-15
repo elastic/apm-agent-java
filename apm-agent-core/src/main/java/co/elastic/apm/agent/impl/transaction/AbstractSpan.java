@@ -73,15 +73,18 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         private AtomicLong start = new AtomicLong();
         private AtomicLong duration = new AtomicLong();
 
-        /**
-         * Starts the timer if it has not been started already.
-         *
-         * @param startTimestamp
-         */
-        void onChildStart(long startTimestamp) {
-            if (activeChildren.incrementAndGet() == 1) {
+        void overrideTimestamp(long startTimestamp) {
+            if (activeChildren.get() == 1) {
                 start.set(startTimestamp);
             }
+        }
+
+        /**
+         * Increments active children count.
+         *
+         */
+        void onChildStart() {
+            activeChildren.incrementAndGet();
         }
 
         /**
@@ -359,9 +362,15 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         timestamp = epochMicros;
     }
 
-    void onChildStart(long epochMicros) {
+    void onChildSetStartTimestamp(long startTimestamp) {
         if (collectBreakdownMetrics) {
-            childDurations.onChildStart(epochMicros);
+            childDurations.overrideTimestamp(startTimestamp);
+        }
+    }
+
+    void onChildStart() {
+        if (collectBreakdownMetrics) {
+            childDurations.onChildStart();
         }
     }
 
