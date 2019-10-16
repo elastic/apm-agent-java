@@ -119,9 +119,7 @@ public class ServletApiTestApp extends TestApp {
             }
             assertThat(xForwardedForHeader).isNotNull();
             // I have no idea why, but it's too old to spend time on investigating...
-            if (test.getImageName().contains("jboss-eap-6")) {
-                assertThat(xForwardedForHeader.textValue()).isEqualTo("123.123.123.123");
-            } else {
+            if (!test.getImageName().contains("jboss-eap-6")) {
                 assertThat(xForwardedForHeader.textValue()).isEqualTo("123.123.123.123, 456.456.456.456");
             }
             JsonNode socket = request.get("socket");
