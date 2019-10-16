@@ -42,7 +42,7 @@ public class CdiApplicationServerTestApp extends TestApp {
     public void test(AbstractServletContainerIntegrationTest containerIntegrationTest) throws Exception {
         String testPath = "/cdi-app/greeter";
 
-        containerIntegrationTest.executeAndValidateRequest(testPath, "Hello World!", 200);
+        containerIntegrationTest.executeAndValidateRequest(testPath, "Hello World!", 200, null);
         JsonNode transaction = containerIntegrationTest.assertTransactionReported(testPath, 200);
         assertThat(transaction.get("name").textValue()).isEqualTo("GreeterServlet#doGet");
         String transactionId = transaction.get("id").textValue();

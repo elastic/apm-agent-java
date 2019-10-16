@@ -306,7 +306,7 @@ public class ServletTransactionHelper {
 
         request.getSocket()
             .withEncrypted(secure)
-            .withRemoteAddress(ClientIpUtils.getRealIp(request.getHeaders(), remoteAddr));
+            .withRemoteAddress(remoteAddr);
 
         request.getUrl()
             .withProtocol(scheme)
