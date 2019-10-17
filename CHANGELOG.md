@@ -3,6 +3,8 @@
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
  * Add ability to ignore some exceptions to be reported as errors [ignore_exceptions](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore_exceptions
+ * Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
+   instead of parsing from headers (#889)
 
 ## Bug Fixes
 
