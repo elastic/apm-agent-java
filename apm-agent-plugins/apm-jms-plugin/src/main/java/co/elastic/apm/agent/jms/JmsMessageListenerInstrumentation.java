@@ -43,13 +43,14 @@ import javax.jms.Queue;
 import javax.jms.Topic;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
@@ -114,7 +115,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
                 }
 
-                transaction.withType("messaging").withName("JMS RECEIVE");
+                transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
                 try {
                     if (destination instanceof Queue) {
                         transaction.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
@@ -127,6 +128,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
                 transaction.activate();
             }
+
             return transaction;
         }
 
