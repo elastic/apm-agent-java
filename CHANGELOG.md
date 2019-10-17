@@ -11,6 +11,7 @@
    that is not exposed in the properties file by default.  
  * Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
    instead of parsing from headers (#889)
+ * Logs message when `transaction_max_spans` has been exceeded (#849)
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message

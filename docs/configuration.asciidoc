@@ -333,6 +333,7 @@ This is helpful in cases where a transaction creates a very high amount of spans
 
 Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
 
+A message will be logged when the limit has been exceeded.
 
 [options="header"]
 |============

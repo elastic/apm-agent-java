@@ -317,6 +317,7 @@ public class ElasticApmTracer {
         Transaction transaction = currentTransaction();
         if (transaction != null) {
             if (isTransactionSpanLimitReached(transaction)) {
+                logger.warn("Max spans ({}) for a transaction has been reached for transaction {}. Further spans will be ignored. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans(), transaction);
                 dropped = true;
                 transaction.getSpanCount().getDropped().incrementAndGet();
             } else {
