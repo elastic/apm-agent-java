@@ -171,7 +171,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
-            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
+            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
+            "A message will be logged when the limit has been exceeded.")
         .dynamic(true)
         .buildWithDefault(500);
 
