@@ -321,7 +321,7 @@ public class ElasticApmTracer {
         Transaction transaction = currentTransaction();
         if (transaction != null) {
             if (isTransactionSpanLimitReached(transaction)) {
-                if(lastSpanMaxWarningTimestamp == 0L || (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS)) {
+                if (lastSpanMaxWarningTimestamp == 0L || (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS)) {
                     lastSpanMaxWarningTimestamp = epochMicros;
                     logger.warn("Max spans ({}) for a transaction has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans());
                 }
