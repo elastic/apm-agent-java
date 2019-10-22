@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.web.ClientIpUtils;
 import co.elastic.apm.agent.web.ResultUtil;
 import co.elastic.apm.agent.web.WebConfiguration;
 import org.slf4j.Logger;
