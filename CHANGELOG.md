@@ -11,6 +11,7 @@
    that is not exposed in the properties file by default.  
  * Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
    instead of parsing from headers (#889)
+ * Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message

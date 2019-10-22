@@ -692,8 +692,10 @@ Disables the collection of breakdown metrics (`span.self_time`)
 ==== `config_file` (added[1.8.0])
 
 Sets the path of the agent config file.
-The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.
+The file has to be on the file system.
+You can not refer to classpath locations.
+
 NOTE: this option can only be set via system properties, environment variables or the attacher options.
 
 
@@ -1855,8 +1857,10 @@ The default unit for this option is `ms`
 # breakdown_metrics=true
 
 # Sets the path of the agent config file.
-# The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-# The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+# The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.
+# The file has to be on the file system.
+# You can not refer to classpath locations.
+# 
 # NOTE: this option can only be set via system properties, environment variables or the attacher options.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
