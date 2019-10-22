@@ -316,7 +316,7 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 |API/Code
 |Get the <<api-current-span, current span>> (possibly created by auto instrumentation) and <<api-span-start-span, create a child>> span.
  You can also use the <<opentracing-bridge, OpenTracing API>> instead of the Elastic specific API.
-|This is the most flexible way: you can add labels to the span and customize the span type, name and timestamp.
+|This is the most flexible way: you can add labels to the span and customize the span type, name, and timestamp.
 |Wrong usage of the API may lead to invalid traces (scope leaks).
 
 |Annotations
