@@ -47,7 +47,6 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -136,7 +135,9 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
                                           @Advice.Thrown @Nullable Throwable t) throws SQLException {
             if (span != null) {
                 if( t == null){
-                    span.getContext().getDb().withAffectedRowsCount(statement.getUpdateCount());
+                    span.getContext()
+                        .getDb()
+                        .withAffectedRowsCount(statement.getUpdateCount());
                 }
                 span.captureException(t)
                     .deactivate()
@@ -162,7 +163,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         public ExecuteUpdateWithQueryInstrumentation(ElasticApmTracer tracer) {
             super(tracer,
-                nameStartsWith("execute").and(nameEndsWith("Update"))
+                named("executeUpdate").or(named("executeLargeUpdate"))
                     .and(takesArgument(0, String.class))
                     .and(isPublic())
             );
@@ -187,25 +188,10 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t,
-                                          @Advice.Return @Nullable Object returnValue) {
+                                          @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span != null) {
-                if( t == null){
-                    // for 'executeUpdate' and 'executeLargeUpdate', we have to compute the sum as Statement.getUpdateCount()
-                    // does not seem to return the sum of all elements. As we can use instanceof to check return type
-                    // we do not need to use a separate advice.
-                    long affectedCount = 0;
-                    if(returnValue instanceof int[]){
-                        int[] array = (int[]) returnValue;
-                        for (int i = 0; i < array.length; i++) {
-                            affectedCount += array[i];
-                        }
-                    } else if ( returnValue instanceof long[]){
-                        long[] array = (long[]) returnValue;
-                        for (int i = 0; i < array.length; i++) {
-                            affectedCount += array[i];
-                        }
-                    }
-                    span.getContext().getDb().withAffectedRowsCount(affectedCount);
+                if (t == null) {
+                    span.getContext().getDb().withAffectedRowsCount(returnValue);
                 }
 
                 span.captureException(t)
@@ -239,18 +225,82 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         }
     }
 
+    // FIXME : what about .clearBatch() method ?
+
     /**
      * Instruments:
      *  <ul>
-     *      <li>{@link java.sql.PreparedStatement#execute}</li>
      *      <li>{@link Statement#executeBatch()} </li>
      *      <li>{@link Statement#executeLargeBatch()} (java8)</li>
      *  </ul>
      */
-    public static class ExecuteWithoutQueryInstrumentation extends StatementInstrumentation {
-        public ExecuteWithoutQueryInstrumentation(ElasticApmTracer tracer) {
+    public static class ExecuteBatchInstrumentation extends StatementInstrumentation {
+        public ExecuteBatchInstrumentation(ElasticApmTracer tracer) {
             super(tracer,
-                nameStartsWith("execute")
+                named("executeBatch").or(named("executeLargeBatch"))
+                    .and(takesArguments(0))
+                    .and(isPublic())
+                // TODO : add check on method return type, otherwise seems to instrument hikari CP internal API
+            );
+        }
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static Span onBeforeExecute(@Advice.This Statement statement) throws SQLException {
+            if (tracer != null && jdbcHelperManager != null) {
+                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (helperImpl != null) {
+                    final @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
+                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
+                }
+            }
+            return null;
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+                                          @Advice.Thrown Throwable t,
+                                          @Advice.Return Object returnValue) {
+            if (span != null) {
+
+                // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
+                // does not seem to return the sum of all elements. As we can use instanceof to check return type
+                // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
+                // but there is no extra allocation.
+                long affectedCount = 0;
+                if (returnValue instanceof int[]) {
+                    int[] array = (int[]) returnValue;
+                    for (int i = 0; i < array.length; i++) {
+                        affectedCount += array[i];
+                    }
+                } else if (returnValue instanceof long[]) {
+                    long[] array = (long[]) returnValue;
+                    for (int i = 0; i < array.length; i++) {
+                        affectedCount += array[i];
+                    }
+                }
+                span.getContext()
+                    .getDb()
+                    .withAffectedRowsCount(affectedCount);
+
+                span.captureException(t)
+                    .deactivate()
+                    .end();
+            }
+        }
+    }
+
+    /**
+     * Instruments:
+     *  <ul>
+     *      <li>{@link java.sql.PreparedStatement#execute}</li>
+     *      <li>{@link java.sql.PreparedStatement#executeQuery}</li>
+     *  </ul>
+     */
+    public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
+        public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
+            super(tracer,
+                named("execute").or(named("executeQuery"))
                     .and(takesArguments(0))
                     .and(isPublic())
             );
@@ -272,29 +322,13 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
-                                          @Advice.Thrown Throwable t,
-                                          @Advice.Return Object returnValue) throws SQLException {
+                                          @Advice.Thrown Throwable t) throws SQLException {
             if (span != null) {
-
-                // for 'executeBatch' and 'executeLargeBatch', we have to compute the sum as Statement.getUpdateCount()
-                // does not seem to return the sum of all elements. As we can use instanceof to check return type
-                // we do not need to use a separate advice. 'execute' return value is auto-boxed into a Boolean,
-                // but there is no extra allocation.
-                long affectedCount = 0;
-                if(returnValue instanceof int[]) {
-                    int[] values = (int[]) returnValue;
-                    for (int i = 0; i < values.length; i++) {
-                        affectedCount += values[i];
-                    }
-                } else if (returnValue instanceof long[]){
-                    long[] values = (long[])returnValue;
-                    for(int i = 0; i< values.length; i++){
-                        affectedCount += values[i];
-                    }
-                } else {
-                    affectedCount = statement.getUpdateCount();
-                }
-                span.getContext().getDb().withAffectedRowsCount(affectedCount);
+                span.getContext()
+                    .getDb()
+                    // getUpdateCount javadoc indicates that this method should be called only once
+                    // however in practice adding this extra call seem to not have noticeable side effects
+                    .withAffectedRowsCount(statement.getUpdateCount());
 
                 span.captureException(t)
                     .deactivate()

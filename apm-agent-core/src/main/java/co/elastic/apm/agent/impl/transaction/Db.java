@@ -205,7 +205,7 @@ public class Db implements Recyclable {
     }
 
     /**
-     * @return number of affected rows by statement execution
+     * @return number of affected rows by statement execution. A negative value might indicate feature is not supported by db/driver.
      */
     public long getAffectedRowsCount(){
         return affectedRowsCount;

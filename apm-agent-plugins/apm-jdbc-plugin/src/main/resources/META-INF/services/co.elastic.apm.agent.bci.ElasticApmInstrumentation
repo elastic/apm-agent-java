@@ -2,4 +2,5 @@ co.elastic.apm.agent.jdbc.ConnectionInstrumentation
 co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteWithQueryInstrumentation
 co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteUpdateWithQueryInstrumentation
 co.elastic.apm.agent.jdbc.StatementInstrumentation$AddBatchInstrumentation
-co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteWithoutQueryInstrumentation
+co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecuteBatchInstrumentation
+co.elastic.apm.agent.jdbc.StatementInstrumentation$ExecutePreparedStatementInstrumentation
