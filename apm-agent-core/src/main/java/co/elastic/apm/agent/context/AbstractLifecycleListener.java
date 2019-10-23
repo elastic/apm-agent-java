@@ -34,7 +34,6 @@ public abstract class AbstractLifecycleListener implements LifecycleListener {
     }
 
     @Override
-    @Deprecated
     public void start(ElasticApmTracer tracer) {
     }
 

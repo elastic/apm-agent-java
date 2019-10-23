@@ -42,9 +42,7 @@ public interface LifecycleListener {
      * Callback for when the {@link ElasticApmTracer} starts.
      *
      * @param tracer The tracer.
-     * @deprecated in favor of a constructor with an {@link ElasticApmTracer} argument
      */
-    @Deprecated
     void start(ElasticApmTracer tracer);
 
     /**
