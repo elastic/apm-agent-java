@@ -26,6 +26,7 @@ package co.elastic.apm.agent.error.logging;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -53,6 +55,11 @@ public class Slf4jLoggingInstrumentation extends ElasticApmInstrumentation {
             }
             tracer.getActive().captureException(exception);
         }
+    }
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        return nameContains("Logger");
     }
 
     @Override
