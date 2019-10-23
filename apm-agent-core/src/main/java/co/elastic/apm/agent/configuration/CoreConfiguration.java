@@ -45,8 +45,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.impl.ElasticApmTracer.MAX_LOG_INTERVAL_MICRO_SECS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
@@ -171,7 +173,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
-            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
+            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 

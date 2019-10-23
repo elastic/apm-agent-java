@@ -62,6 +62,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -80,6 +81,9 @@ public class ElasticApmTracer {
      * The requirement increases if the application tends to wrap multiple {@link Runnable}s.
      */
     private static final int MAX_POOLED_RUNNABLES = 256;
+
+    private long lastSpanMaxWarningTimestamp;
+    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
 
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
@@ -317,6 +321,10 @@ public class ElasticApmTracer {
         Transaction transaction = currentTransaction();
         if (transaction != null) {
             if (isTransactionSpanLimitReached(transaction)) {
+                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                    lastSpanMaxWarningTimestamp = epochMicros;
+                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans(), transaction);
+                }
                 dropped = true;
                 transaction.getSpanCount().getDropped().incrementAndGet();
             } else {
