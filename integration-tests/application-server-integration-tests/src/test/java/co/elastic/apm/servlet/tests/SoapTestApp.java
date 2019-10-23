@@ -41,7 +41,7 @@ public class SoapTestApp extends TestApp {
 
     @Override
     public void test(AbstractServletContainerIntegrationTest test) throws Exception {
-        final Response response = test.executeRequest("/soap-test/execute-soap-request");
+        final Response response = test.executeRequest("/soap-test/execute-soap-request", null);
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.body().string()).isNotEmpty();
 

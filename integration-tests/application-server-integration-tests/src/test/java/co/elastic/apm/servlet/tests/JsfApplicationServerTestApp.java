@@ -51,7 +51,7 @@ public class JsfApplicationServerTestApp extends TestApp {
         String viewPath = "/jsf-http-get" + testedPath;
         String fullTestPath = viewPath + additionalPathInfo;
 
-        containerIntegrationTest.executeAndValidateRequest(fullTestPath, "HTTP GET", 200);
+        containerIntegrationTest.executeAndValidateRequest(fullTestPath, "HTTP GET", 200, null);
         JsonNode transaction = containerIntegrationTest.assertTransactionReported(viewPath, 200);
         assertThat(transaction.get("name").textValue()).isEqualTo(testedPath);
         String transactionId = transaction.get("id").textValue();

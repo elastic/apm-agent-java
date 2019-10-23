@@ -67,17 +67,34 @@ public class ElasticApmAttacher {
      * <p>
      * This method may only be invoked once.
      * </p>
+     * <p>
+     * Tries to load {@code elasticapm.properties} from the classpath, if exists.
+     * </p>
      *
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach() {
-        attach(loadProperties());
+        attach(loadProperties("elasticapm.properties"));
     }
 
-    private static Map<String, String> loadProperties() {
+    /**
+     * Attaches the Elastic Apm agent to the current JVM.
+     * <p>
+     * This method may only be invoked once.
+     * </p>
+     *
+     * @throws IllegalStateException if there was a problem while attaching the agent to this VM
+     * @param propertiesLocation the location within the classpath which contains the agent configuration properties file
+     * @since 1.11.0
+     */
+    public static void attach(String propertiesLocation) {
+        attach(loadProperties(propertiesLocation));
+    }
+
+    private static Map<String, String> loadProperties(String propertiesLocation) {
         Map<String, String> propertyMap = new HashMap<>();
         final Properties props = new Properties();
-        try (InputStream resourceStream = ElasticApmAttacher.class.getClassLoader().getResourceAsStream("elasticapm.properties")) {
+        try (InputStream resourceStream = ElasticApmAttacher.class.getClassLoader().getResourceAsStream(propertiesLocation)) {
             if (resourceStream != null) {
                 props.load(resourceStream);
                 for (String propertyName : props.stringPropertyNames()) {
