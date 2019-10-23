@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -37,9 +37,8 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Iterator;
@@ -50,6 +49,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * This is not an actual test.
@@ -88,39 +89,46 @@ class ConfigurationExporterTest {
     }
 
     @Test
-    void exportConfiguration() throws IOException, TemplateException {
+    void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
+        String renderedDocumentation = renderDocumentation(configurationRegistry);
+        assertThat(renderedDocumentation)
+            .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date. Please execute co.elastic.apm.agent.configuration.ConfigurationExporter#main.")
+            .isEqualTo(new String(Files.readAllBytes(Paths.get("../docs/configuration.asciidoc"))));
+    }
+
+    static String renderDocumentation(ConfigurationRegistry configurationRegistry) throws IOException, TemplateException {
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_27);
-        cfg.setClassLoaderForTemplateLoading(getClass().getClassLoader(), "/");
+        cfg.setClassLoaderForTemplateLoading(ConfigurationExporterTest.class.getClassLoader(), "/");
         cfg.setDefaultEncoding("UTF-8");
         cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
         cfg.setLogTemplateExceptions(false);
 
         Template temp = cfg.getTemplate("configuration.asciidoc.ftl");
-        try (Writer out = new FileWriter("../docs/configuration.asciidoc")) {
-            out.write("////\n" +
-                "This file is auto generated\n" +
-                "\n" +
-                "Please only make changes in configuration.asciidoc.ftl\n" +
-                "////\n");
-            final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
-                .values()
-                .stream()
-                .flatMap(List::stream)
-                .filter(option -> !option.getTags().contains("internal"))
-                .collect(Collectors.toList());
-            final Map<String, List<ConfigurationOption<?>>> optionsByCategory = nonInternalOptions.stream()
-                .collect(Collectors.groupingBy(ConfigurationOption::getConfigurationCategory, TreeMap::new, Collectors.toList()));
-            temp.process(Map.of(
-                "config", optionsByCategory,
-                "keys", nonInternalOptions.stream().map(ConfigurationOption::getKey).sorted().collect(Collectors.toList())
-            ), out);
-        }
+        StringWriter tempRenderedFile = new StringWriter();
+        tempRenderedFile.write("////\n" +
+            "This file is auto generated\n" +
+            "\n" +
+            "Please only make changes in configuration.asciidoc.ftl\n" +
+            "////\n");
+        final List<ConfigurationOption<?>> nonInternalOptions = configurationRegistry.getConfigurationOptionsByCategory()
+            .values()
+            .stream()
+            .flatMap(List::stream)
+            .filter(option -> !option.getTags().contains("internal"))
+            .collect(Collectors.toList());
+        final Map<String, List<ConfigurationOption<?>>> optionsByCategory = nonInternalOptions.stream()
+            .collect(Collectors.groupingBy(ConfigurationOption::getConfigurationCategory, TreeMap::new, Collectors.toList()));
+        temp.process(Map.of(
+            "config", optionsByCategory,
+            "keys", nonInternalOptions.stream().map(ConfigurationOption::getKey).sorted().collect(Collectors.toList())
+        ), tempRenderedFile);
+
         // re-process the rendered template to resolve the ${allInstrumentationGroupNames} placeholder
-        final String sourceCode = new String(Files.readAllBytes(Paths.get("../docs/configuration.asciidoc")));
-        try (Writer out = new FileWriter("../docs/configuration.asciidoc")) {
-            new Template("", sourceCode, cfg)
-                .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
-        }
+        StringWriter out = new StringWriter();
+        new Template("", tempRenderedFile.toString(), cfg)
+            .process(Map.of("allInstrumentationGroupNames", getAllInstrumentationGroupNames()), out);
+
+        return out.toString();
     }
 
     public static String getAllInstrumentationGroupNames() {
