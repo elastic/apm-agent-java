@@ -45,8 +45,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.impl.ElasticApmTracer.MAX_LOG_INTERVAL_MICRO_SECS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
@@ -171,7 +173,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
-            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
+            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 
@@ -443,8 +446,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
-            "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
-            "The location can either be in the classpath of the application (when using the attacher API) or on the file system.\n" +
+            "The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.\n" +
+            "The file has to be on the file system.\n" +
+            "You can not refer to classpath locations.\n" +
+            "\n" +
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 

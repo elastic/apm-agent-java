@@ -172,7 +172,7 @@ public class ElasticApmTracerBuilder {
             }
         });
         String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-        if (configFileLocation != null && PropertyFileConfigurationSource.isPresent(configFileLocation)) {
+        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
             result.add(new PropertyFileConfigurationSource(configFileLocation));
         }
         // looks if we can find a elasticapm.properties on the classpath

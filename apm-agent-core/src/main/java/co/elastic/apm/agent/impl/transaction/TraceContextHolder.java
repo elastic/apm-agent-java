@@ -81,7 +81,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
      * Creates a child Span representing a remote call event, unless this TraceContextHolder already represents an exit event.
      * If current TraceContextHolder is representing an Exit- returns null
      *
-     * @return an Exit span if this TraceContextHolder is not an exit span, null othewise
+     * @return an Exit span if this TraceContextHolder is not an exit span, null otherwise
      */
     @Nullable
     public Span createExitSpan() {
