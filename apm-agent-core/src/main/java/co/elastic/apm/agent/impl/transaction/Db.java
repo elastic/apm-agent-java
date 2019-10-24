@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -81,12 +81,17 @@ public class Db implements Recyclable {
      */
     @Nullable
     private String user;
-    
+
     /**
      * DB Link for connections between 2 databases
      */
     @Nullable
     private String dbLink;
+
+    /**
+     * Number of affected rows by statement
+     */
+    private long affectedRowsCount = -1;
 
     /**
      * Database instance name
@@ -182,7 +187,6 @@ public class Db implements Recyclable {
         this.user = user;
         return this;
     }
-    
 
     /**
      * DB Link for connections between 2 databases
@@ -200,6 +204,24 @@ public class Db implements Recyclable {
         return this;
     }
 
+    /**
+     * @return number of affected rows by statement execution. A negative value might indicate feature is not supported by db/driver.
+     */
+    public long getAffectedRowsCount(){
+        return affectedRowsCount;
+    }
+
+    /**
+     * Sets the number of affected rows by statement execution
+     *
+     * @param count number of affected rows
+     * @return this
+     */
+    public Db withAffectedRowsCount(long count){
+        this.affectedRowsCount = count;
+        return this;
+    }
+
     @Override
     public void resetState() {
         instance = null;
@@ -211,6 +233,7 @@ public class Db implements Recyclable {
             charBufferPool.recycle(statementBuffer);
         }
         statementBuffer = null;
+        affectedRowsCount = -1;
     }
 
     public boolean hasContent() {

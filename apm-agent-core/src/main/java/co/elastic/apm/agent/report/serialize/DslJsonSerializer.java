@@ -738,8 +738,9 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             writeFieldName("db");
             jw.writeByte(OBJECT_START);
             writeField("instance", db.getInstance());
-            if (db.getStatement() != null) {
-                writeLongStringField("statement", db.getStatement());
+            String statement = db.getStatement();
+            if (statement != null) {
+                writeLongStringField("statement", statement);
             } else {
                 final CharBuffer statementBuffer = db.getStatementBuffer();
                 if (statementBuffer != null && statementBuffer.length() > 0) {
@@ -747,6 +748,12 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                     jw.writeString(statementBuffer);
                     jw.writeByte(COMMA);
                 }
+            }
+            long affectedRows = db.getAffectedRowsCount();
+            if (affectedRows >= 0) {
+                // a negative value generally indicates that feature is not supported by db/driver
+                // thus we just do not report them
+                writeField("rows_affected", affectedRows);
             }
             writeField("type", db.getType());
             writeField("link", db.getDbLink());
