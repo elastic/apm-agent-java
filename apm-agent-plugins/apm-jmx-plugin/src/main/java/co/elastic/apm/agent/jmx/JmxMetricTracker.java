@@ -213,6 +213,9 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                         } else {
                             return ((Number) ((CompositeData) server.getAttribute(objectName, jmxAttribute)).get(compositeDataKey)).doubleValue();
                         }
+                    } catch (InstanceNotFoundException | AttributeNotFoundException e) {
+                        unregister(metricRegistry);
+                        return Double.NaN;
                     } catch (Exception e) {
                         return Double.NaN;
                     }

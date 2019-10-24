@@ -58,16 +58,16 @@ class JmxMetricTrackerTest {
     @Test
     void testAvailableProcessors() throws Exception {
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=OperatingSystem] attribute[AvailableProcessors:metric_name=available_processors]"));
-        assertThat(metricRegistry.getGauge("jvm.jmx.available_processors", Labels.Mutable.of("type", "OperatingSystem"))).isEqualTo(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors());
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.available_processors", Labels.Mutable.of("type", "OperatingSystem"))).isEqualTo(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors());
     }
 
     @Test
     void testHeap() throws Exception {
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=heap]"));
-        assertThat(metricRegistry.getGauge("jvm.jmx.heap.committed", Labels.Mutable.of("type", "Memory"))).isPositive();
-        assertThat(metricRegistry.getGauge("jvm.jmx.heap.init", Labels.Mutable.of("type", "Memory"))).isPositive();
-        assertThat(metricRegistry.getGauge("jvm.jmx.heap.used", Labels.Mutable.of("type", "Memory"))).isPositive();
-        assertThat(metricRegistry.getGauge("jvm.jmx.heap.max", Labels.Mutable.of("type", "Memory"))).isPositive();
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.heap.committed", Labels.Mutable.of("type", "Memory"))).isPositive();
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.heap.init", Labels.Mutable.of("type", "Memory"))).isPositive();
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.heap.used", Labels.Mutable.of("type", "Memory"))).isPositive();
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.heap.max", Labels.Mutable.of("type", "Memory"))).isPositive();
         printMetricSets();
     }
 
@@ -77,8 +77,8 @@ class JmxMetricTrackerTest {
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
-            assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
-            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
         }
         printMetricSets();
     }
@@ -88,15 +88,15 @@ class JmxMetricTrackerTest {
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount:metric_name=collection_count] attribute[CollectionTime]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
-            assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
-            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
         }
         setConfig(JmxMetric.valueOf("object_name[java.lang:type=GarbageCollector,name=*] attribute[CollectionCount]"));
         for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             String memoryManagerName = gcBean.getName();
-            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionCount", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
-            assertThat(metricRegistry.getGauge("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
-            assertThat(metricRegistry.getGauge("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.CollectionCount", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNotNegative();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.collection_count", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.CollectionTime", Labels.Mutable.of("name", memoryManagerName).add("type", "GarbageCollector"))).isNaN();
         }
     }
 
@@ -106,7 +106,7 @@ class JmxMetricTrackerTest {
         ObjectName objectName = new ObjectName("foo:type=Bar");
         ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
         try {
-            assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("type", "Bar"))).isEqualTo(42);
         } finally {
             ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
         }
@@ -119,13 +119,32 @@ class JmxMetricTrackerTest {
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
             setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
-            assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isNaN();
 
             ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName2);
-            assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isEqualTo(42);
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean1").add("type", "Foo"))).isEqualTo(42);
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "mbean2").add("type", "Foo"))).isEqualTo(42);
+        } finally {
+            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
+            ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName2);
+        }
+    }
+
+    @Test
+    void testMBeanUnregister() throws Exception {
+        ObjectName objectName = new ObjectName("foo:type=Foo,name=testMBeanUnregister");
+        ManagementFactory.getPlatformMBeanServer().registerMBean(new TestMetric(), objectName);
+        try {
+            setConfig(JmxMetric.valueOf("object_name[foo:type=Foo,name=*] attribute[Baz]"));
+            assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isEqualTo(42);
         } finally {
             ManagementFactory.getPlatformMBeanServer().unregisterMBean(objectName);
         }
+
+        // trying to get a non-existing MBean metric value will unregister it
+        assertThat(metricRegistry.getGaugeValue("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isNaN();
+        assertThat(metricRegistry.getGauge("jvm.jmx.Baz", Labels.Mutable.of("name", "testMBeanUnregister").add("type", "Foo"))).isNull();
     }
 
     public interface TestMetricMBean {
