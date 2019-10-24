@@ -226,7 +226,7 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 ### Documenting
 
 HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
-The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporterTest`,
+The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`,
 all the other asciidoc text files are written manually.
 
 A preview of the documentation is generated for each pull-request.
