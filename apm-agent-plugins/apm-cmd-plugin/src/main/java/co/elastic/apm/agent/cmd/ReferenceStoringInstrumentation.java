@@ -214,21 +214,18 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeExecute(@Advice.Return Process process,
                                             @Advice.Local("span") Span span,
+                                            @Advice.Argument(value = 0) String command,
                                             @Advice.Origin("#m") String methodName) {
-            if (tracer != null) {
-                TraceContextHolder<?> active = tracer.getActive();
-                if (active == null) {
-                    return;
+            if (command != null && !command.isEmpty()) {
+                // The first element in the list should be the binary, all others are binary arguments
+                final String[] commandList = command.split(" ");
+                final String binaryName = commandList[0];
+                final String[] binaryArguments = new String[commandList.length - 1];
+                for (int i = 1; i < commandList.length; i++) {
+                    binaryArguments[i - 1] = commandList[i];
                 }
 
-                // TODO: Command arguments are passed as Method parameter with different signatures 😞
-                // TODO: Use ExecuteHelper
-                span = active.createSpan().activate();
-
-                span.withType("execute")
-                    .withSubtype("java runtime api")
-                    .withAction(methodName);
-                span.withName("Execute");
+                span = ExecuteHelper.createAndActivateSpan(tracer, binaryName, binaryArguments, "java runtime api");
 
                 inFlightSpans.put(process, span);
             }
@@ -238,6 +235,8 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
     public static class EndProcessInstrumentation extends ReferenceStoringInstrumentation {
 
         private static final Logger logger = LoggerFactory.getLogger(EndProcessInstrumentation.class);
+
+        private static final String PROCESS_CLASS_NAME = "java.lang.Process";
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterProcessEnds(@Advice.This Process process,
@@ -251,13 +250,13 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
         @Override
         public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
             return not(isBootstrapClassLoader())
-                .and(classLoaderCanLoadClass("java.lang.Process"));
+                .and(classLoaderCanLoadClass(PROCESS_CLASS_NAME));
         }
 
         @Override
-        public ElementMatcher<? super TypeDescription> getTypeMatcher(){
+        public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(hasSuperType(named("java.lang.Process")));
+                .and(hasSuperType(named(PROCESS_CLASS_NAME)));
         }
 
         @Override
