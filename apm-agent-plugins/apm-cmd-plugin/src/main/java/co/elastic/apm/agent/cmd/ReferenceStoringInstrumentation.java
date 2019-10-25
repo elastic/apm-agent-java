@@ -82,7 +82,9 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
             span = ExecuteHelper.createAndActivateSpan(tracer, commandLine.getExecutable(), commandLine.getArguments(), "commons-exec");
 
-            inFlightSpansCommonsExec.put(executeResultHandler, span);
+            if (span != null) {
+                inFlightSpansCommonsExec.put(executeResultHandler, span);
+            }
         }
 
         @Override
@@ -124,11 +126,13 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
         public static void afterProcessEnds(@Advice.This ExecuteResultHandler executeResultHandler,
                                             @Nullable @Advice.Thrown Throwable t) {
             final Span span = inFlightSpansCommonsExec.remove(executeResultHandler);
-            Integer exitValue = null;
-            if (executeResultHandler instanceof DefaultExecuteResultHandler) {
-                exitValue = ((DefaultExecuteResultHandler) executeResultHandler).getExitValue();
+            if (span != null) {
+                Integer exitValue = null;
+                if (executeResultHandler instanceof DefaultExecuteResultHandler) {
+                    exitValue = ((DefaultExecuteResultHandler) executeResultHandler).getExitValue();
+                }
+                ExecuteHelper.endAndDeactivateSpan(span, t, exitValue);
             }
-            ExecuteHelper.endAndDeactivateSpan(span, t, exitValue);
         }
 
         @Override
@@ -188,7 +192,9 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
                 }
                 span = ExecuteHelper.createAndActivateSpan(tracer, binaryName, binaryArguments, "java processbuilder api");
 
-                inFlightSpans.put(process, span);
+                if (span != null) {
+                    inFlightSpans.put(process, span);
+                }
             }
         }
     }
@@ -221,7 +227,9 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
                 span = ExecuteHelper.createAndActivateSpan(tracer, binaryName, binaryArguments, "java runtime api");
 
-                inFlightSpans.put(process, span);
+                if (span != null) {
+                    inFlightSpans.put(process, span);
+                }
             }
         }
     }
@@ -239,7 +247,9 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
                                             @Nullable @Advice.Thrown Throwable t) {
             logger.info("Process wait for end");
             final Span span = inFlightSpans.remove(process);
-            ExecuteHelper.endAndDeactivateSpan(span, t, exitValue);
+            if (span != null) {
+                ExecuteHelper.endAndDeactivateSpan(span, t, exitValue);
+            }
         }
 
         @Override
