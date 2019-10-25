@@ -24,6 +24,8 @@
  */
 package co.elastic.apm.agent.cmd;
 
+import javax.annotation.Nullable;
+
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -35,17 +37,17 @@ public class ExecuteHelper {
     @VisibleForAdvice
     public static Span createAndActivateSpan(final ElasticApmTracer tracer, final String binaryName,
                                              final String[] binaryArguments, final String subType) {
-        if (tracer == null) {
+        if (tracer == null || tracer.getActive() == null) {
             return null;
         }
 
         TraceContextHolder<?> active = tracer.getActive();
-        // avoid creating the same span twice for example, when an instrumented API is wrapped
-        if (active == null || active instanceof Span && subType.equals(((Span) active).getSubtype())) {
+        // avoid creating multiple spans for wrapped APIs
+        if (active instanceof Span && subType.equals(((Span) active).getSubtype())) {
             return null;
         }
 
-        Span span = active.createSpan().activate();
+        final Span span = active.createSpan().activate();
 
         span.withType("execute")
             .withSubtype(subType)
@@ -57,7 +59,7 @@ public class ExecuteHelper {
     }
 
     @VisibleForAdvice
-    public static void endAndDeactivateSpan(final Span span, final Throwable t, final int exitValue) {
+    public static void endAndDeactivateSpan(final Span span, final Throwable t, @Nullable final Integer exitValue) {
         // TODO: Capture exit code of process
         if (span != null) {
             try {
