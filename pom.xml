@@ -4,11 +4,13 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <name>${project.groupId}:${project.artifactId}</name>
     <version>1.11.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <name>${project.groupId}:${project.artifactId}</name>
+
     <inceptionYear>2018</inceptionYear>
+
     <organization>
         <name>Elastic Inc.</name>
         <url>https://www.elastic.co</url>
@@ -40,7 +42,30 @@
         </developer>
     </developers>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <modules>
+        <module>apm-agent-core</module>
+        <module>elastic-apm-agent</module>
+        <module>apm-agent-benchmarks</module>
+        <module>apm-agent-plugins</module>
+        <module>apm-agent-api</module>
+        <module>apm-opentracing</module>
+        <module>integration-tests</module>
+        <module>apm-agent-attach</module>
+    </modules>
+
     <properties>
+
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <animal.sniffer.skip>false</animal.sniffer.skip>
@@ -80,29 +105,10 @@
         <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
 
         <apm-agent-parent.base.dir>${project.basedir}</apm-agent-parent.base.dir>
+
+        <skip.integration.test>false</skip.integration.test>
+        <skip.unit.test>false</skip.unit.test>
     </properties>
-
-    <modules>
-        <module>apm-agent-core</module>
-        <module>elastic-apm-agent</module>
-        <module>apm-agent-benchmarks</module>
-        <module>apm-agent-plugins</module>
-        <module>apm-agent-api</module>
-        <module>apm-opentracing</module>
-        <module>integration-tests</module>
-        <module>apm-agent-attach</module>
-    </modules>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>sonatype-nexus-staging</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
 
     <profiles>
         <!--
@@ -530,4 +536,5 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>
