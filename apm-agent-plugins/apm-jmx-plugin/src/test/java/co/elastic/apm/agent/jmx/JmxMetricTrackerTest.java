@@ -24,9 +24,8 @@
  */
 package co.elastic.apm.agent.jmx;
 
-import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
@@ -43,14 +42,13 @@ import java.util.Arrays;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-class JmxMetricTrackerTest {
+class JmxMetricTrackerTest extends AbstractInstrumentationTest {
 
     private MetricRegistry metricRegistry;
     private JmxConfiguration config;
 
     @BeforeEach
     void setUp() {
-        ElasticApmTracer tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
     }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -73,6 +73,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
@@ -198,6 +199,11 @@ public class ElasticApmAgent {
                         if (typeMatches) {
                             logger.debug("Type match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), typeMatcher, typeDescription);
+                            try {
+                                instrumentation.onTypeMatch(typeDescription, classLoader, protectionDomain, classBeingRedefined);
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
+                            }
                             if (logger.isTraceEnabled()) {
                                 logClassLoaderHierarchy(classLoader, logger, instrumentation);
                             }
@@ -341,6 +347,7 @@ public class ElasticApmAgent {
                     not(
                         nameEndsWith("URLConnection")
                             .or(nameStartsWith("java.util.concurrent."))
+                            .or(named("java.util.logging.LogManager"))
                     )
                 )
             )

@@ -46,7 +46,6 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,29 +55,32 @@ import java.util.Set;
 public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private static final String JMX_PREFIX = "jvm.jmx.";
-    private final Logger logger;
-    private final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    private static final Logger logger = LoggerFactory.getLogger(JmxMetricTracker.class);
+    @Nullable
+    private volatile MBeanServer server;
     private final JmxConfiguration jmxConfiguration;
     private final MetricRegistry metricRegistry;
-    private NotificationListener listener;
+    @Nullable
+    private volatile NotificationListener listener;
 
     public JmxMetricTracker(ElasticApmTracer tracer) {
-        this(tracer, LoggerFactory.getLogger(JmxMetricTracker.class));
-    }
-
-    JmxMetricTracker(ElasticApmTracer tracer, Logger logger) {
         super(tracer);
-        this.logger = logger;
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
         metricRegistry = tracer.getMetricRegistry();
+    }
 
-        registerMBeanNotificationListener();
+    void onLogManagerInitialized(final MBeanServer server) {
+        if (this.server != null) {
+            return;
+        }
+        this.server = server;
+        registerMBeanNotificationListener(server);
 
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue);
-                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue);
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, server);
+                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, server);
 
                 for (JmxMetricRegistration addedRegistration : removeAll(oldRegistrations, newRegistrations)) {
                     addedRegistration.register(server, metricRegistry);
@@ -89,10 +91,10 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
             }
         });
-        register(jmxConfiguration.getCaptureJmxMetrics().get());
+        register(jmxConfiguration.getCaptureJmxMetrics().get(), server);
     }
 
-    private void registerMBeanNotificationListener() {
+    private void registerMBeanNotificationListener(final MBeanServer server) {
         MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
         filter.enableAllObjectNames();
         filter.enableType(MBeanServerNotification.REGISTRATION_NOTIFICATION);
@@ -104,7 +106,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
                     for (JmxMetric jmxMetric : jmxConfiguration.getCaptureJmxMetrics().get()) {
                         if (jmxMetric.getObjectName().apply(mBeanName)) {
                             logger.debug("MBean added at runtime: {}", jmxMetric.getObjectName());
-                            register(Collections.singletonList(jmxMetric));
+                            register(Collections.singletonList(jmxMetric), server);
                         }
                     }
                 }
@@ -123,8 +125,8 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return result;
     }
 
-    private void register(List<JmxMetric> jmxMetrics) {
-        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics)) {
+    private void register(List<JmxMetric> jmxMetrics, MBeanServer server) {
+        for (JmxMetricRegistration registration : compileJmxMetricRegistrations(jmxMetrics, server)) {
             registration.register(server, metricRegistry);
         }
     }
@@ -132,11 +134,11 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
     /**
      * A single {@link JmxMetric} can yield multiple {@link JmxMetricRegistration}s if the {@link JmxMetric} contains multiple {@link JmxMetric#attributes}
      */
-    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics) {
+    private List<JmxMetricRegistration> compileJmxMetricRegistrations(List<JmxMetric> jmxMetrics, MBeanServer server) {
         List<JmxMetricRegistration> registrations = new ArrayList<>();
         for (JmxMetric jmxMetric : jmxMetrics) {
             try {
-                addJmxMetricRegistration(jmxMetric, registrations);
+                addJmxMetricRegistration(jmxMetric, registrations, server);
             } catch (Exception e) {
                 logger.error("Failed to register JMX metric {}", jmxMetric.toString(), e);
             }
@@ -144,7 +146,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         return registrations;
     }
 
-    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations) throws JMException {
+    private void addJmxMetricRegistration(final JmxMetric jmxMetric, List<JmxMetricRegistration> registrations, MBeanServer server) throws JMException {
         Set<ObjectInstance> mbeans = server.queryMBeans(jmxMetric.getObjectName(), null);
         logger.debug("Found mbeans for object name {}", jmxMetric.getObjectName());
         for (ObjectInstance mbean : mbeans) {
@@ -245,6 +247,10 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
     @Override
     public void stop() throws Exception {
-        server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener);
+        MBeanServer server = this.server;
+        NotificationListener listener = this.listener;
+        if (server != null && listener != null) {
+            server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener);
+        }
     }
 }
