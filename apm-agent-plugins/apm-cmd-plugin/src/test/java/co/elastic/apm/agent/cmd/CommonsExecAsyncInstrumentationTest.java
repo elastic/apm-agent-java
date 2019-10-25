@@ -24,6 +24,10 @@
  */
 package co.elastic.apm.agent.cmd;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -33,17 +37,12 @@ import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.Executor;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CommonsExecInstrumentationTest extends AbstractInstrumentationTest {
+class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentationTest {
 
     private Executor executor = new DefaultExecutor();
 
@@ -68,22 +67,6 @@ class CommonsExecInstrumentationTest extends AbstractInstrumentationTest {
         }
     }
 
-    @Test
-    void synchronous() throws IOException {
-        int exitValue = executor.execute(commandLine);
-
-        verifyProcessExecution(exitValue);
-    }
-
-    @Test
-    void synchronousWithMap() throws IOException {
-        Map<String, String> environment = new HashMap<>();
-        environment.put("testKey", "testValue");
-
-        int exitValue = executor.execute(commandLine, environment);
-
-        verifyProcessExecution(exitValue);
-    }
 
     @Test
     void asynchronous() throws IOException, InterruptedException {
@@ -91,7 +74,6 @@ class CommonsExecInstrumentationTest extends AbstractInstrumentationTest {
 
         executor.execute(commandLine, handler);
 
-        // TODO: Should this be done in some other way?
         handler.waitFor();
 
         int exitValue = handler.getExitValue();
@@ -107,7 +89,6 @@ class CommonsExecInstrumentationTest extends AbstractInstrumentationTest {
 
         executor.execute(commandLine, environment, handler);
 
-        // TODO: Should this be done in some other way?
         handler.waitFor();
 
         int exitValue = handler.getExitValue();

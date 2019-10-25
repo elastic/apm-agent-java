@@ -55,10 +55,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class ReferenceStoringInstrumentation extends BinaryExecutionInstrumentation {
 
     @VisibleForAdvice
-    private static final WeakConcurrentMap<Process, Span> inFlightSpans = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    public static final WeakConcurrentMap<Process, Span> inFlightSpans = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     @VisibleForAdvice
-    private static final WeakConcurrentMap<ExecuteResultHandler, Span> inFlightSpansCommonsExec = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    public static final WeakConcurrentMap<ExecuteResultHandler, Span> inFlightSpansCommonsExec = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
     public static class CommonsExecAsyncInstrumentation extends ReferenceStoringInstrumentation {
 
@@ -80,14 +80,11 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
             // ExecuteResultHandler is always the last argument of the method
             final ExecuteResultHandler executeResultHandler = (ExecuteResultHandler) methodArguments[methodArguments.length - 1];
 
-            span = ExecuteHelper.createAndActivateSpan(tracer, commandLine.getExecutable(), commandLine.getArguments(), "commons-exec-async");
-            // TODO: Commons Exec does not return a process but uses it's result handler
-            // FIXME: This leads to java.lang.IllegalAccessError: class org.apache.commons.exec.DefaultExecuteResultHandler tried to access private field co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$EndCommonsExecAsyncInstrumentation.logger (org.apache.commons.exec.DefaultExecuteResultHandler is in unnamed module of loader 'deployment.apm-agent-test-1.0-SNAPSHOT.war' @c641e59; co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$EndCommonsExecAsyncInstrumentation is in unnamed module of loader 'bootstrap')
+            span = ExecuteHelper.createAndActivateSpan(tracer, commandLine.getExecutable(), commandLine.getArguments(), "commons-exec");
+
             inFlightSpansCommonsExec.put(executeResultHandler, span);
         }
 
-        // TODO: How to do this on async calls? -> This must be executed on the waitFor() method of the result handler
-        // TODO: Capture exit code of process -> The exit code can only be retrieved from the result handlers getExitValue() method
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("execute")
@@ -121,16 +118,12 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
     public static class EndCommonsExecAsyncInstrumentation extends ReferenceStoringInstrumentation {
 
-        private static final Logger logger = LoggerFactory.getLogger(EndCommonsExecAsyncInstrumentation.class);
-
         private static final String EXECUTE_RESULT_HANDLER_CLASS_NAME = "org.apache.commons.exec.ExecuteResultHandler";
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterProcessEnds(@Advice.This ExecuteResultHandler executeResultHandler,
                                             @Nullable @Advice.Thrown Throwable t) {
-            logger.info("Process wait for end");
             final Span span = inFlightSpansCommonsExec.remove(executeResultHandler);
-            // TODO: Only the DefaultExecuteResultHandler has a method to get the exit value
             Integer exitValue = null;
             if (executeResultHandler instanceof DefaultExecuteResultHandler) {
                 exitValue = ((DefaultExecuteResultHandler) executeResultHandler).getExitValue();
@@ -158,7 +151,8 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
     public static class JavaProcessBuilderApiInstrumentation extends ReferenceStoringInstrumentation {
 
-        private static final Logger logger = LoggerFactory.getLogger(JavaProcessBuilderApiInstrumentation.class);
+        @VisibleForAdvice
+        public static final Logger logger = LoggerFactory.getLogger(JavaProcessBuilderApiInstrumentation.class);
 
         private static final String PROCESS_BUILDER_CLASS_NAME = "java.lang.ProcessBuilder";
 
@@ -234,7 +228,8 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
     public static class EndProcessInstrumentation extends ReferenceStoringInstrumentation {
 
-        private static final Logger logger = LoggerFactory.getLogger(EndProcessInstrumentation.class);
+        @VisibleForAdvice
+        public static final Logger logger = LoggerFactory.getLogger(EndProcessInstrumentation.class);
 
         private static final String PROCESS_CLASS_NAME = "java.lang.Process";
 
