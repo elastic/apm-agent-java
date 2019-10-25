@@ -30,7 +30,6 @@ import javax.annotation.Nullable;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.asm.Advice;
@@ -40,11 +39,10 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.ExecuteResultHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -155,15 +153,10 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
     public static class JavaProcessBuilderApiInstrumentation extends ReferenceStoringInstrumentation {
 
-        @VisibleForAdvice
-        public static final Logger logger = LoggerFactory.getLogger(JavaProcessBuilderApiInstrumentation.class);
-
-        private static final String PROCESS_BUILDER_CLASS_NAME = "java.lang.ProcessBuilder";
-
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
             return not(isInterface())
-                .and(named(PROCESS_BUILDER_CLASS_NAME));
+                .and(named("java.lang.ProcessBuilder"));
         }
 
         @Override
@@ -176,25 +169,17 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
                                             @Advice.Return Process process,
                                             @Advice.Local("span") Span span,
                                             @Advice.Origin("#m") String methodName) {
-            logger.info("Java Processbuilder api start");
-            if (tracer != null) {
-                TraceContextHolder<?> active = tracer.getActive();
-                if (active == null) {
-                    return;
-                }
+            // The first command is the binary. All other commands are program arguments
+            final String[] processBuilderCommand = processBuilder.command().toArray(new String[0]);
+            final String binaryName = processBuilderCommand[0];
+            final String[] binaryArguments = new String[processBuilderCommand.length - 1];
+            for (int i = 1; i < processBuilderCommand.length; i++) {
+                binaryArguments[i - 1] = processBuilderCommand[i];
+            }
+            span = ExecuteHelper.createAndActivateSpan(tracer, binaryName, binaryArguments, "java processbuilder api");
 
-                // The first command is the binary. All other commands are program arguments
-                final String[] processBuilderCommand = processBuilder.command().toArray(new String[0]);
-                final String binaryName = processBuilderCommand[0];
-                final String[] binaryArguments = new String[processBuilderCommand.length - 1];
-                for (int i = 1; i < processBuilderCommand.length; i++) {
-                    binaryArguments[i - 1] = processBuilderCommand[i];
-                }
-                span = ExecuteHelper.createAndActivateSpan(tracer, binaryName, binaryArguments, "java processbuilder api");
-
-                if (span != null) {
-                    inFlightSpans.put(process, span);
-                }
+            if (span != null) {
+                inFlightSpans.put(process, span);
             }
         }
     }
@@ -236,16 +221,12 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
     public static class EndProcessInstrumentation extends ReferenceStoringInstrumentation {
 
-        @VisibleForAdvice
-        public static final Logger logger = LoggerFactory.getLogger(EndProcessInstrumentation.class);
-
         private static final String PROCESS_CLASS_NAME = "java.lang.Process";
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void afterProcessEnds(@Advice.This Process process,
                                             @Advice.Return int exitValue,
                                             @Nullable @Advice.Thrown Throwable t) {
-            logger.info("Process wait for end");
             final Span span = inFlightSpans.remove(process);
             if (span != null) {
                 ExecuteHelper.endAndDeactivateSpan(span, t, exitValue);
