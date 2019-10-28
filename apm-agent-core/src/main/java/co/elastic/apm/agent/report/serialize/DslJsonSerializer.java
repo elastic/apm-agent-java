@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
@@ -46,8 +47,8 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Db;
-import co.elastic.apm.agent.impl.transaction.Http;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
@@ -723,6 +724,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(OBJECT_START);
 
         serializeServiceName(traceContext);
+        serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
 
@@ -731,6 +733,34 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
+    }
+
+    private void serializeMessageContext(final Message message) {
+        if (message.hasContent()) {
+            writeFieldName("message");
+            jw.writeByte(OBJECT_START);
+            if (message.getTopic().hasContent()) {
+                serializeTopic(message.getTopic());
+            } else {
+                serializeQueue(message.getQueue());
+            }
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeQueue(final Message.Queue queue) {
+        writeFieldName("queue");
+        jw.writeByte(OBJECT_START);
+        writeLastField("name", queue.getName());
+        jw.writeByte(OBJECT_END);
+    }
+
+    private void serializeTopic(final Message.Topic topic) {
+        writeFieldName("topic");
+        jw.writeByte(OBJECT_START);
+        writeLastField("name", topic.getName());
+        jw.writeByte(OBJECT_END);
     }
 
     private void serializeDbContext(final Db db) {
@@ -798,6 +828,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
+        serializeMessageContext(context.getMessage());
         if (context.hasCustom()) {
             writeFieldName("custom");
             serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true, true);

@@ -75,7 +75,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         try {
             if (span.isSampled()) {
                 span.withName("JMS SEND to ");
-                appendDestinationToName(destination, span);
+                addDestinationDetails(destination, span);
             }
 
             message.setStringProperty(JMS_TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
@@ -111,12 +111,16 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     }
 
     @Override
-    public void appendDestinationToName(Destination destination, AbstractSpan span) {
+    public void addDestinationDetails(Destination destination, AbstractSpan span) {
         try {
             if (destination instanceof Queue) {
-                span.appendToName("queue ").appendToName(((Queue) destination).getQueueName());
+                String queueName = ((Queue) destination).getQueueName();
+                span.appendToName("queue ").appendToName(queueName)
+                    .getContext().getMessage().withQueue(queueName);
             } else if (destination instanceof Topic) {
-                span.appendToName("topic ").appendToName(((Topic) destination).getTopicName());
+                String topicName = ((Topic) destination).getTopicName();
+                span.appendToName("topic ").appendToName(topicName)
+                    .getContext().getMessage().withTopic(topicName);
             }
         } catch (JMSException e) {
             logger.error("Failed to obtain destination name", e);
