@@ -320,7 +320,7 @@ If you are seeing gaps in the span timeline and want to include certain methods,
 |Wrong usage of the API may lead to invalid traces (scope leaks).
 
 |Annotations
-|Annotate any method with <<api-capture-span, `@CaptureSpan`>> or <<api-capture-transaction, `@CaptureTransaction`>>.
+|Annotate any method with <<api-capture-span, `@CaptureSpan`>>, <<api-capture-transaction, `@CaptureTransaction`>> or <<api-traced, `@Traced`>>.
 |Easier and more robust as there's nothing you can do wrong like forgetting to end a span or close a scope.
  It's also a bit more performant than the programmatic way.
 |Less flexible on it's own but can be combined with the API.
