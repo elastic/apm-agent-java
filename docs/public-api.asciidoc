@@ -231,6 +231,27 @@ method. It also implicitly ends it and deactivates it before exiting the annotat
 See <<api-span-start-span, `startSpan()`>>, <<api-span-start-span-with-type, `startSpan(String, String, String)`>>,
 <<api-transaction-activate, `span.activate()`>> and <<api-span-end, `span.end()`>>
 
+[float]
+[[api-traced]]
+==== `@Traced`  added[1.11.0]
+Annotating a method with `@Traced` creates a span as the child of the currently active span or transaction.
+
+When there is no current span,
+a transaction will be created instead.
+
+Use this annotation over <<api-capture-span>> or <<api-capture-transaction>> if a method can both be an entry point (a transaction)
+or a unit of work within a transaction (a span).
+
+* `value`: The name of the span or transaction. Defaults to `ClassName#methodName`
+* `type`: The type of the span or transaction. Defaults to `request` for transactions and `app` for spans
+* `subtype`: The subtype of the span, e.g. `mysql` for DB span. Defaults to empty string. Has no effect when a transaction is created.
+* `action`: The action related to the span, e.g. `query` for DB spans. Defaults to empty string. Has no effect when a transaction is created.
+
+NOTE: Using this annotation implicitly creates a span or transaction and activates it when entering the annotated
+method. It also implicitly ends it and deactivates it before exiting the annotated method.
+See <<api-span-start-span, `startSpan()`>>, <<api-span-start-span-with-type, `startSpan(String, String, String)`>>,
+<<api-transaction-activate, `span.activate()`>> and <<api-span-end, `span.end()`>>
+
 //----------------------------
 [float]
 [[api-transaction]]
