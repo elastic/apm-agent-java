@@ -61,5 +61,5 @@ public interface JmsInstrumentationHelper<D, M, L> {
     @Nullable
     L wrapLambda(@Nullable L listener);
 
-    void appendDestinationToName(D destination, AbstractSpan span);
+    void addDestinationDetails(D destination, AbstractSpan span);
 }

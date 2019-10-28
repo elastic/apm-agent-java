@@ -244,6 +244,11 @@ class DslJsonSerializerTest {
         span.withType("template.jsf.render.view");
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").textValue()).isEqualTo("template_jsf_render_view");
+        JsonNode context = spanJson.get("context");
+        assertThat(context).isNotNull();
+        assertThat(context.get("message")).isNull();
+        assertThat(context.get("db")).isNull();
+        assertThat(context.get("http")).isNull();
 
         span.withType("template").withSubtype("jsf.lifecycle").withAction("render.view");
         spanJson = readJsonString(serializer.toJsonString(span));
@@ -266,6 +271,57 @@ class DslJsonSerializerTest {
         span.withSubtype("jsf").withAction("render");
         spanJson = readJsonString(serializer.toJsonString(span));
         assertThat(spanJson.get("type").isNull()).isTrue();
+    }
+
+    @Test
+    void testSpanHttpContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getHttp()
+            .withMethod("GET")
+            .withStatusCode(523)
+            .withUrl("http://whatever.com/path");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode http = context.get("http");
+        assertThat(http).isNotNull();
+        assertThat(http.get("method").textValue()).isEqualTo("GET");
+        assertThat(http.get("url").textValue()).isEqualTo("http://whatever.com/path");
+        assertThat(http.get("status_code").intValue()).isEqualTo(523);
+    }
+
+    @Test
+    void testSpanMessageContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withTopic("test-topic");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode message = context.get("message");
+        assertThat(message).isNotNull();
+        JsonNode queue = message.get("queue");
+        assertThat(queue).isNull();
+        JsonNode topic = message.get("topic");
+        assertThat(topic).isNotNull();
+        assertThat("test-topic").isEqualTo(topic.get("name").textValue());
+    }
+
+    @Test
+    void testSpanDbContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDb()
+            .withAffectedRowsCount(5)
+            .withInstance("test-instance")
+            .withStatement("SELECT * FROM TABLE").withDbLink("db-link");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode db = context.get("db");
+        assertThat(db).isNotNull();
+        assertThat(db.get("rows_affected").longValue()).isEqualTo(5);
+        assertThat(db.get("instance").textValue()).isEqualTo("test-instance");
+        assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM TABLE");
     }
 
     @Test
@@ -368,7 +424,7 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testTransactionContext() {
+    void testTransactionContextSerialization() {
 
         ElasticApmTracer tracer = MockTracer.create();
         Transaction transaction = new Transaction(tracer);
@@ -404,6 +460,8 @@ class DslJsonSerializerTest {
             .withHeadersSent(false)
             .addHeader("response_header", "value")
             .withStatusCode(418);
+
+        transaction.getContext().getMessage().withQueue("test_queue");
 
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
@@ -444,6 +502,13 @@ class DslJsonSerializerTest {
         assertThat(jsonResponse.get("headers_sent").asBoolean()).isFalse();
         assertThat(jsonResponse.get("status_code").asInt()).isEqualTo(418);
 
+        JsonNode message = jsonContext.get("message");
+        assertThat(message).isNotNull();
+        JsonNode topic = message.get("topic");
+        assertThat(topic).isNull();
+        JsonNode queue = message.get("queue");
+        assertThat(queue).isNotNull();
+        assertThat("test_queue").isEqualTo(queue.get("name").textValue());
     }
 
     private JsonNode readJsonString(String jsonString) {

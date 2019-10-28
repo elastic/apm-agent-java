@@ -15,6 +15,7 @@
  * Logs message when `transaction_max_spans` has been exceeded (#849)
  * Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute (#707)
  * Add [`@Traced`](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced) annotation which either creates a span or a transaction, depending on the context
+ * Report JMS destination as a span/transaction context field (#906)
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message

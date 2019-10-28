@@ -118,9 +118,13 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                 transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
                 try {
                     if (destination instanceof Queue) {
-                        transaction.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
+                        String queueName = ((Queue) destination).getQueueName();
+                        transaction.appendToName(" from queue ").appendToName(queueName)
+                            .getContext().getMessage().withQueue(queueName);
                     } else if (destination instanceof Topic) {
-                        transaction.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
+                        String topicName = ((Topic) destination).getTopicName();
+                        transaction.appendToName(" from topic ").appendToName(topicName)
+                            .getContext().getMessage().withTopic(topicName);
                     }
                 } catch (JMSException e) {
                     logger.warn("Failed to retrieve message's destination", e);

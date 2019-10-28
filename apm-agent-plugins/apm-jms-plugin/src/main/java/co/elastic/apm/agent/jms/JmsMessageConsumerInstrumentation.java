@@ -201,7 +201,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             abstractSpan.captureException(throwable);
                             if (message != null && helper != null && destination != null) {
                                 abstractSpan.appendToName(" from ");
-                                helper.appendDestinationToName(destination, abstractSpan);
+                                helper.addDestinationDetails(destination, abstractSpan);
 
                             }
                         }
@@ -221,7 +221,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                     if (helper != null && destination != null) {
                         messageHandlingTransaction.appendToName(" from ");
-                        helper.appendDestinationToName(destination, messageHandlingTransaction);
+                        helper.addDestinationDetails(destination, messageHandlingTransaction);
 
                     }
 
