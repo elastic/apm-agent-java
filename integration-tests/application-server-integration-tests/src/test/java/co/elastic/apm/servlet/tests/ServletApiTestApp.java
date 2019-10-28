@@ -33,6 +33,8 @@ import okhttp3.Response;
 import org.assertj.core.util.Streams;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -172,13 +174,25 @@ public class ServletApiTestApp extends TestApp {
      * Tests that the capture_jmx_metrics config option works with each app server
      * Especially WildFly is problematic see {@link co.elastic.apm.agent.jmx.ManagementFactoryInstrumentation}
      */
-    private void testJmxMetrics(AbstractServletContainerIntegrationTest test) {
+    private void testJmxMetrics(AbstractServletContainerIntegrationTest test) throws Exception {
         // metrics_interval is 1s
-        await().until(() -> !test.getEvents("metricset").isEmpty());
+        await()
+            .pollDelay(Duration.ofMillis(500))
+            .until(() -> {
+                boolean hasMetricsets = !test.getEvents("metricset").isEmpty();
+                if (!hasMetricsets) {
+                    flush(test);
+                }
+                return hasMetricsets;
+            });
         List<JsonNode> metricEvent = test.getEvents("metricset");
         assertThat(metricEvent.stream()
             .flatMap(metricset -> Streams.stream(metricset.get("samples").fieldNames()))
             .distinct())
             .contains("jvm.jmx.test_heap_metric.max");
+    }
+
+    private void flush(AbstractServletContainerIntegrationTest test) throws IOException {
+        test.executeRequest("/simple-webapp/index.jsp", Collections.emptyMap());
     }
 }
