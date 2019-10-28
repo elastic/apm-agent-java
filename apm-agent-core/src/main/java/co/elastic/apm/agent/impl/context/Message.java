@@ -30,86 +30,44 @@ import javax.annotation.Nullable;
 
 public class Message implements Recyclable {
 
-    private Queue queue = new Queue();
+    @Nullable
+    private String queueName;
 
-    private Topic topic = new Topic();
+    @Nullable
+    private String topicName;
 
-    public Queue getQueue() {
-        return queue;
+    @Nullable
+    public String getQueueName() {
+        return queueName;
     }
 
-    public Message withQueue(String name) {
-        queue.setName(name);
+    public Message withQueue(String queueName) {
+        this.queueName = queueName;
         return this;
     }
 
-    public Topic getTopic() {
-        return topic;
+    @Nullable
+    public String getTopicName() {
+        return topicName;
     }
 
-    public Message withTopic(String name) {
-        topic.setName(name);
+    public Message withTopic(String topicName) {
+        this.topicName = topicName;
         return this;
     }
 
     public boolean hasContent() {
-        return queue.hasContent() || topic.hasContent();
+        return queueName != null || topicName != null;
     }
 
     @Override
     public void resetState() {
-        queue.resetState();
-        topic.resetState();
-    }
-
-    public class Queue implements Recyclable {
-        @Nullable
-        String name;
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setName(@Nullable String name) {
-            this.name = name;
-        }
-
-        @Override
-        public void resetState() {
-            name = null;
-        }
-
-        public boolean hasContent() {
-            return name != null;
-        }
-    }
-
-    public class Topic implements Recyclable {
-        @Nullable
-        String name;
-
-        @Nullable
-        public String getName() {
-            return name;
-        }
-
-        public void setName(@Nullable String name) {
-            this.name = name;
-        }
-
-        @Override
-        public void resetState() {
-            name = null;
-        }
-
-        public boolean hasContent() {
-            return name != null;
-        }
+        queueName = null;
+        topicName = null;
     }
 
     public void copyFrom(Message other) {
-        this.queue.setName(other.getQueue().getName());
-        this.topic.setName(other.getTopic().getName());
+        this.queueName = other.getQueueName();
+        this.topicName = other.getTopicName();
     }
 }

@@ -274,36 +274,30 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testSpanContextSerialization() {
+    void testSpanHttpContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getHttp()
             .withMethod("GET")
             .withStatusCode(523)
             .withUrl("http://whatever.com/path");
-        span.getContext().getDb()
-            .withAffectedRowsCount(5)
-            .withInstance("test-instance")
-            .withStatement("SELECT * FROM TABLE").withDbLink("db-link");
-        span.getContext().getMessage()
-            .withTopic("test-topic");
 
-        String jsonString = serializer.toJsonString(span);
-        JsonNode spanJson = readJsonString(jsonString);
-
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
-
         JsonNode http = context.get("http");
         assertThat(http).isNotNull();
         assertThat(http.get("method").textValue()).isEqualTo("GET");
         assertThat(http.get("url").textValue()).isEqualTo("http://whatever.com/path");
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
+    }
 
-        JsonNode db = context.get("db");
-        assertThat(db).isNotNull();
-        assertThat(db.get("rows_affected").longValue()).isEqualTo(5);
-        assertThat(db.get("instance").textValue()).isEqualTo("test-instance");
-        assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM TABLE");
+    @Test
+    void testSpanMessageContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withTopic("test-topic");
 
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
         JsonNode message = context.get("message");
         assertThat(message).isNotNull();
         JsonNode queue = message.get("queue");
@@ -311,6 +305,23 @@ class DslJsonSerializerTest {
         JsonNode topic = message.get("topic");
         assertThat(topic).isNotNull();
         assertThat("test-topic").isEqualTo(topic.get("name").textValue());
+    }
+
+    @Test
+    void testSpanDbContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDb()
+            .withAffectedRowsCount(5)
+            .withInstance("test-instance")
+            .withStatement("SELECT * FROM TABLE").withDbLink("db-link");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode db = context.get("db");
+        assertThat(db).isNotNull();
+        assertThat(db.get("rows_affected").longValue()).isEqualTo(5);
+        assertThat(db.get("instance").textValue()).isEqualTo("test-instance");
+        assertThat(db.get("statement").textValue()).isEqualTo("SELECT * FROM TABLE");
     }
 
     @Test

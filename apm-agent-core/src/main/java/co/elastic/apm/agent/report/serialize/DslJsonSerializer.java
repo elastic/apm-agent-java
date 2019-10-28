@@ -739,28 +739,20 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         if (message.hasContent()) {
             writeFieldName("message");
             jw.writeByte(OBJECT_START);
-            if (message.getTopic().hasContent()) {
-                serializeTopic(message.getTopic());
+            if (message.getTopicName() != null) {
+                writeFieldName("topic");
+                jw.writeByte(OBJECT_START);
+                writeLastField("name", message.getTopicName());
+                jw.writeByte(OBJECT_END);
             } else {
-                serializeQueue(message.getQueue());
+                writeFieldName("queue");
+                jw.writeByte(OBJECT_START);
+                writeLastField("name", message.getQueueName());
+                jw.writeByte(OBJECT_END);
             }
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
-    }
-
-    private void serializeQueue(final Message.Queue queue) {
-        writeFieldName("queue");
-        jw.writeByte(OBJECT_START);
-        writeLastField("name", queue.getName());
-        jw.writeByte(OBJECT_END);
-    }
-
-    private void serializeTopic(final Message.Topic topic) {
-        writeFieldName("topic");
-        jw.writeByte(OBJECT_START);
-        writeLastField("name", topic.getName());
-        jw.writeByte(OBJECT_END);
     }
 
     private void serializeDbContext(final Db db) {
