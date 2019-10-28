@@ -1,1 +1,1 @@
-co.elastic.apm.agent.jmx.LogManagerLoadingListener
+co.elastic.apm.agent.jmx.ManagementFactoryInstrumentation

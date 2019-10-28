@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,12 +30,14 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.assertj.core.util.Streams;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class ServletApiTestApp extends TestApp {
 
@@ -51,6 +53,7 @@ public class ServletApiTestApp extends TestApp {
         testExecutorService(test);
         testHttpUrlConnection(test);
         testCaptureBody(test);
+        testJmxMetrics(test);
     }
 
     private void testCaptureBody(AbstractServletContainerIntegrationTest test) throws Exception {
@@ -163,5 +166,19 @@ public class ServletApiTestApp extends TestApp {
                 test.assertErrorContent(500, test::getReportedErrors, transactionId, "Transaction failure");
             }
         }
+    }
+
+    /**
+     * Tests that the capture_jmx_metrics config option works with each app server
+     * Especially WildFly is problematic see {@link co.elastic.apm.agent.jmx.ManagementFactoryInstrumentation}
+     */
+    private void testJmxMetrics(AbstractServletContainerIntegrationTest test) {
+        // metrics_interval is 1s
+        await().until(() -> !test.getEvents("metricset").isEmpty());
+        List<JsonNode> metricEvent = test.getEvents("metricset");
+        assertThat(metricEvent.stream()
+            .flatMap(metricset -> Streams.stream(metricset.get("samples").fieldNames()))
+            .distinct())
+            .contains("jvm.jmx.test_heap_metric.max");
     }
 }

@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.jmx;
 
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.metrics.DoubleSupplier;
@@ -39,6 +40,7 @@ import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MBeanServerDelegate;
+import javax.management.MBeanServerFactory;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
 import javax.management.NotificationListener;
@@ -67,23 +69,31 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         super(tracer);
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
         metricRegistry = tracer.getMetricRegistry();
+
+        // Avoid creating the platform MBean server, only get it if already initialized
+        // otherwise WildFly fails to start with a IllegalStateException:
+        // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
+        if (!MBeanServerFactory.findMBeanServer(null).isEmpty()) {
+            onPlatformMBeanServerInitialized(MBeanServerFactory.findMBeanServer(null).get(0));
+        }
     }
 
-    void onLogManagerInitialized(final MBeanServer server) {
+    @VisibleForAdvice
+    public void onPlatformMBeanServerInitialized(final MBeanServer platformMBeanServer) {
         if (this.server != null) {
             return;
         }
-        this.server = server;
-        registerMBeanNotificationListener(server);
+        this.server = platformMBeanServer;
+        registerMBeanNotificationListener(platformMBeanServer);
 
         jmxConfiguration.getCaptureJmxMetrics().addChangeListener(new ConfigurationOption.ChangeListener<List<JmxMetric>>() {
             @Override
             public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
-                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, server);
-                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, server);
+                List<JmxMetricRegistration> oldRegistrations = compileJmxMetricRegistrations(oldValue, platformMBeanServer);
+                List<JmxMetricRegistration> newRegistrations = compileJmxMetricRegistrations(newValue, platformMBeanServer);
 
                 for (JmxMetricRegistration addedRegistration : removeAll(oldRegistrations, newRegistrations)) {
-                    addedRegistration.register(server, metricRegistry);
+                    addedRegistration.register(platformMBeanServer, metricRegistry);
                 }
                 for (JmxMetricRegistration deletedRegistration : removeAll(newRegistrations, oldRegistrations)) {
                     deletedRegistration.unregister(metricRegistry);
@@ -91,7 +101,7 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
 
             }
         });
-        register(jmxConfiguration.getCaptureJmxMetrics().get(), server);
+        register(jmxConfiguration.getCaptureJmxMetrics().get(), platformMBeanServer);
     }
 
     private void registerMBeanNotificationListener(final MBeanServer server) {

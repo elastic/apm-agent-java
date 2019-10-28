@@ -30,39 +30,42 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-import javax.annotation.Nullable;
+import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
-import java.security.ProtectionDomain;
 import java.util.Collection;
 import java.util.Collections;
 
-import static net.bytebuddy.matcher.ElementMatchers.isTypeInitializer;
+import static net.bytebuddy.matcher.ElementMatchers.isStatic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Instruments the static initializer of {@link java.util.logging.LogManager}
+ * Instruments {@link ManagementFactory#getPlatformMBeanServer()}
  * <p>
- * Makes sure that tracking of JMX metrics is only done after {@link java.util.logging.LogManager} has been loaded an initialized.
+ * Makes sure that tracking of JMX metrics is only done after the {@linkplain ManagementFactory#getPlatformMBeanServer() platform MBean server}
+ * has been created.
  * </p>
  * <p>
  * The problem is that by calling {@link ManagementFactory#getPlatformMBeanServer()} {@link java.util.logging.LogManager} gets initialized.
- * We have to ensure that containers such as WildFly have the chance to set a custom LogManager to avoid this pitfall:
+ * We have to ensure that containers such as WildFly have the chance to set a custom LogManager.
+ * Otherwise, the startup fails with the following exception:
  * {@code java.lang.IllegalStateException: WFLYLOG0078:
  * The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager.
  * The subsystem has not be initialized and cannot be used.
  * To use JBoss Log Manager you must add the system property "java.util.logging.manager" and set it to "org.jboss.logmanager.LogManager"}
  * </p>
  */
-public class LogManagerLoadingListener extends ElasticApmInstrumentation {
-
+public class ManagementFactoryInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("java.util.logging.LogManager");
+        return named("java.lang.management.ManagementFactory");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return isTypeInitializer();
+        return named("getPlatformMBeanServer")
+            .and(isStatic())
+            .and(takesArguments(0));
     }
 
     @Override
@@ -70,28 +73,12 @@ public class LogManagerLoadingListener extends ElasticApmInstrumentation {
         return Collections.singletonList("jmx");
     }
 
-    @Override
-    public boolean includeWhenInstrumentationIsDisabled() {
-        return true;
-    }
-
-    @Override
-    public void onTypeMatch(TypeDescription typeDescription, ClassLoader classLoader, ProtectionDomain protectionDomain, @Nullable Class<?> classBeingRedefined) {
-        if (classBeingRedefined != null) {
-            // class is already loaded so the static initializer has already been executed
-            startMonitoringJmxMetrics();
-        }
-        // if the class is not loaded yet, we can't initialize the platform MBean server as this would lead to a ClassCircularityError
-        // because we'd indirectly request loading the class java.util.logging.LogManager while loading the class
-        // that's why we instrument the static initializer and start tracking JMX metrics after the class has been initialized
-    }
-
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)
-    public static void startMonitoringJmxMetrics() {
+    @Advice.OnMethodExit
+    private static void onExit(@Advice.Return MBeanServer mBeanServer) {
         if (tracer != null) {
             JmxMetricTracker jmxMetricTracker = tracer.getLifecycleListener(JmxMetricTracker.class);
             if (jmxMetricTracker != null) {
-                jmxMetricTracker.onLogManagerInitialized(ManagementFactory.getPlatformMBeanServer());
+                jmxMetricTracker.onPlatformMBeanServerInitialized(mBeanServer);
             }
         }
     }
