@@ -14,6 +14,7 @@
  * Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
  * Logs message when `transaction_max_spans` has been exceeded (#849)
  * Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute (#707)
+ * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message
