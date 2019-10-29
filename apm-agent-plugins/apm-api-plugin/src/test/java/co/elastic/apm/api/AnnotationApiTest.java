@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -93,6 +93,31 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         assertThat(internalSpan.getAction()).isEqualTo("okhttp");
     }
 
+    @Test
+    void testTracedTransactionAndSpan() {
+        TracedAnnotationTest.tracedTransaction();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(1);
+
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedTransaction");
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("type");
+
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
+        assertThat(reporter.getFirstSpan().getType()).isEqualTo("app");
+        assertThat(reporter.getFirstSpan().getSubtype()).isEqualTo("subtype");
+        assertThat(reporter.getFirstSpan().getAction()).isEqualTo("action");
+    }
+
+    @Test
+    void testTracedTransaction() {
+        TracedAnnotationTest.tracedSpanOrTransaction();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getSpans()).hasSize(0);
+
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TracedAnnotationTest#tracedSpanOrTransaction");
+        assertThat(reporter.getFirstTransaction().getType()).isEqualTo("request");
+    }
+
     public static class AnnotationTestClass {
 
         @CaptureTransaction
@@ -143,6 +168,17 @@ class AnnotationApiTest extends AbstractInstrumentationTest {
         @CaptureSpan(value = "spanWithMissingSubtype", type = "ext.http", action = "okhttp")
         private static void spanWithMissingSubtype() {
 
+        }
+    }
+
+    static class TracedAnnotationTest {
+        @Traced(type = "type")
+        static void tracedTransaction() {
+            tracedSpanOrTransaction();
+        }
+
+        @Traced(subtype = "subtype", action = "action")
+        static void tracedSpanOrTransaction() {
         }
     }
 }

@@ -40,6 +40,11 @@ public abstract class AbstractContext implements Recyclable {
      */
     private final Map<String, Object> labels = new ConcurrentHashMap<>();
 
+    /**
+     * An object containing contextual data for Messages (incoming in case of transactions or outgoing in case of spans)
+     */
+    private final Message message = new Message();
+
     public Iterator<? extends Map.Entry<String, ?>> getLabelIterator() {
         return labels.entrySet().iterator();
     }
@@ -68,16 +73,22 @@ public abstract class AbstractContext implements Recyclable {
         return !labels.isEmpty();
     }
 
+    public Message getMessage() {
+        return message;
+    }
+
     @Override
     public void resetState() {
         labels.clear();
+        message.resetState();
     }
 
     public boolean hasContent() {
-        return !labels.isEmpty();
+        return !labels.isEmpty() || message.hasContent();
     }
 
     public void copyFrom(AbstractContext other) {
         labels.putAll(other.labels);
+        message.copyFrom(other.message);
     }
 }
