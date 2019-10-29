@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,7 +27,7 @@ package co.elastic.apm.agent.impl;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
-import co.elastic.apm.agent.context.LifecycleListener;
+import co.elastic.apm.agent.context.AbstractLifecycleListener;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
@@ -36,15 +36,13 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -337,28 +335,37 @@ class ElasticApmTracerTest {
 
     @Test
     void testLifecycleListener() {
-        final AtomicBoolean startCalled = new AtomicBoolean();
-        final AtomicBoolean stopCalled = new AtomicBoolean();
+        int startBefore = TestLifecycleListener.start.get();
+        int stopBefore = TestLifecycleListener.stop.get();
         final ElasticApmTracer tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
-            .lifecycleListeners(Collections.singletonList(new LifecycleListener() {
-                @Override
-                public void start(ElasticApmTracer tracer) {
-                    startCalled.set(true);
-                }
-
-                @Override
-                public void stop() {
-                    stopCalled.set(true);
-                }
-            }))
             .build();
-        assertThat(startCalled).isTrue();
-        assertThat(stopCalled).isFalse();
+        assertThat(TestLifecycleListener.start.get()).isEqualTo(startBefore + 1);
+        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore);
 
         tracer.stop();
-        assertThat(stopCalled).isTrue();
+        assertThat(TestLifecycleListener.stop.get()).isEqualTo(stopBefore + 1);
+    }
+
+    /*
+     * Has an entry in
+     * src/test/resources/META-INF/services/co.elastic.apm.agent.context.LifecycleListener
+     */
+    public static class TestLifecycleListener extends AbstractLifecycleListener {
+
+        public static final AtomicInteger start = new AtomicInteger();
+        public static final AtomicInteger stop = new AtomicInteger();
+
+        public TestLifecycleListener(ElasticApmTracer tracer) {
+            super(tracer);
+            start.incrementAndGet();
+        }
+
+        @Override
+        public void stop() {
+            stop.incrementAndGet();
+        }
     }
 
     @Test
