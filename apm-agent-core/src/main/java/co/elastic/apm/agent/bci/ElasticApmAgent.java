@@ -347,7 +347,6 @@ public class ElasticApmAgent {
                     not(
                         nameEndsWith("URLConnection")
                             .or(nameStartsWith("java.util.concurrent."))
-                            .or(named("java.lang.management.ManagementFactory"))
                     )
                 )
             )

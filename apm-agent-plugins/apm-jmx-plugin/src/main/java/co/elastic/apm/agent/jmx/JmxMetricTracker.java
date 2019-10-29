@@ -48,16 +48,20 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import javax.management.relation.MBeanServerNotificationFilter;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class JmxMetricTracker extends AbstractLifecycleListener {
 
     private static final String JMX_PREFIX = "jvm.jmx.";
     private static final Logger logger = LoggerFactory.getLogger(JmxMetricTracker.class);
+    @Nullable
+    private volatile Thread logManagerPropertyPoller;
     @Nullable
     private volatile MBeanServer server;
     private final JmxConfiguration jmxConfiguration;
@@ -69,20 +73,83 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         super(tracer);
         jmxConfiguration = tracer.getConfig(JmxConfiguration.class);
         metricRegistry = tracer.getMetricRegistry();
+    }
 
-        // Avoid creating the platform MBean server, only get it if already initialized
-        // otherwise WildFly fails to start with a IllegalStateException:
-        // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
-        if (!MBeanServerFactory.findMBeanServer(null).isEmpty()) {
-            onPlatformMBeanServerInitialized(MBeanServerFactory.findMBeanServer(null).get(0));
+    @Override
+    public void start(ElasticApmTracer tracer) {
+        ConfigurationOption.ChangeListener<List<JmxMetric>> initChangeListener = new ConfigurationOption.ChangeListener<>() {
+            @Override
+            public void onChange(ConfigurationOption<?> configurationOption, List<JmxMetric> oldValue, List<JmxMetric> newValue) {
+                if (oldValue.isEmpty() && !newValue.isEmpty()) {
+                    tryInit();
+                }
+            }
+        };
+        // adding change listener before checking if option is not empty to avoid missing an update due to a race condition
+        jmxConfiguration.getCaptureJmxMetrics().addChangeListener(initChangeListener);
+        if (!jmxConfiguration.getCaptureJmxMetrics().get().isEmpty()) {
+            tryInit();
+            jmxConfiguration.getCaptureJmxMetrics().removeChangeListener(initChangeListener);
+        } else {
+            logger.debug("Deferring initialization of JMX metric tracking until capture_jmx_metrics is set.");
         }
     }
 
-    @VisibleForAdvice
-    public void onPlatformMBeanServerInitialized(final MBeanServer platformMBeanServer) {
+    private synchronized void tryInit() {
+        if (this.server != null || this.logManagerPropertyPoller != null) {
+            return;
+        }
+        // Avoid creating the platform MBean server, only get it if already initialized
+        // otherwise WildFly fails to start with a IllegalStateException:
+        // WFLYLOG0078: The logging subsystem requires the log manager to be org.jboss.logmanager.LogManager
+        if (setsCustomLogManager()) {
+            if (!MBeanServerFactory.findMBeanServer(null).isEmpty()) {
+                // platform MBean server is already initialized
+                init(MBeanServerFactory.findMBeanServer(null).get(0));
+            } else {
+                deferInit();
+            }
+        } else {
+            init(ManagementFactory.getPlatformMBeanServer());
+        }
+    }
+
+    private void deferInit() {
+        logger.debug("Deferring initialization of JMX metric tracking until log manager is initialized");
+        Thread thread = new Thread(new Runnable() {
+
+            private final long timeout = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
+
+            @Override
+            public void run() {
+                while (!Thread.currentThread().isInterrupted() || timeout <= System.currentTimeMillis()) {
+                    if (System.getProperty("java.util.logging.manager") != null || !MBeanServerFactory.findMBeanServer(null).isEmpty()) {
+                        init(ManagementFactory.getPlatformMBeanServer());
+                        return;
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        });
+        thread.setName("elastic-apm-jmx-init");
+        thread.setDaemon(true);
+        thread.start();
+        logManagerPropertyPoller = thread;
+    }
+
+    private boolean setsCustomLogManager() {
+        return ClassLoader.getSystemClassLoader().getResource("org/jboss/modules/Main.class") != null;
+    }
+
+    synchronized void init(final MBeanServer platformMBeanServer) {
         if (this.server != null) {
             return;
         }
+        logger.debug("Init JMX metric tracking with server {}", platformMBeanServer);
         this.server = platformMBeanServer;
         registerMBeanNotificationListener(platformMBeanServer);
 
@@ -261,6 +328,10 @@ public class JmxMetricTracker extends AbstractLifecycleListener {
         NotificationListener listener = this.listener;
         if (server != null && listener != null) {
             server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener);
+        }
+        Thread logManagerPropertyPoller = this.logManagerPropertyPoller;
+        if (logManagerPropertyPoller != null) {
+            logManagerPropertyPoller.interrupt();
         }
     }
 }

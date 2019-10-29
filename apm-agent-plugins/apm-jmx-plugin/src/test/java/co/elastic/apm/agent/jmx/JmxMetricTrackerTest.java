@@ -53,7 +53,7 @@ class JmxMetricTrackerTest {
         ElasticApmTracer tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
-        tracer.getLifecycleListener(JmxMetricTracker.class).onPlatformMBeanServerInitialized(ManagementFactory.getPlatformMBeanServer());
+        tracer.getLifecycleListener(JmxMetricTracker.class).init(ManagementFactory.getPlatformMBeanServer());
     }
 
     @Test
