@@ -1,0 +1,2 @@
+co.elastic.apm.agent.neo4j3.TransactionInstrumentation$CreateSpanInstrumentation
+co.elastic.apm.agent.neo4j3.TransactionInstrumentation$FinishSpanInstrumentation
