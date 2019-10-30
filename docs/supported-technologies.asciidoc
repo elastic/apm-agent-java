@@ -168,6 +168,16 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent creates spans for interactions with the Jedis client.
 |1.10.0
 
+|MongoDB driver
+|3.x
+|The agent creates spans for interactions with the MongoDB driver.
+ At the moment, only the synchronous driver (mongo-java-driver) is supported.
+ The asynchronous and reactive drivers are currently not supported.
+
+ The name of the span is `<db>.<collection>.<action>`.
+ The actual query will not be recorded.
+|1.11.0
+
 |===
 
 [float]

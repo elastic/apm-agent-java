@@ -278,12 +278,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mule4-plugin</artifactId>
+            <artifactId>apm-mongoclient-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-mongoclient-plugin-3_4</artifactId>
+1            <artifactId>apm-mule4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
