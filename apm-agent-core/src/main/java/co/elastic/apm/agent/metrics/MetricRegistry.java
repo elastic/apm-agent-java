@@ -136,7 +136,7 @@ public class MetricRegistry {
         return WildcardMatcher.anyMatch(config.getDisableMetrics(), name) != null;
     }
 
-    public double getGauge(String name, Labels labels) {
+    public double getGaugeValue(String name, Labels labels) {
         final MetricSet metricSet = activeMetricSets.get(labels);
         if (metricSet != null) {
             DoubleSupplier gauge = metricSet.getGauge(name);
@@ -145,6 +145,18 @@ public class MetricRegistry {
             }
         }
         return Double.NaN;
+    }
+
+    @Nullable
+    public DoubleSupplier getGauge(String name, Labels labels) {
+        final MetricSet metricSet = activeMetricSets.get(labels);
+        if (metricSet != null) {
+            DoubleSupplier gauge = metricSet.getGauge(name);
+            if (gauge != null) {
+                return gauge;
+            }
+        }
+        return null;
     }
 
     public void report(MetricsReporter metricsReporter) {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,17 +48,38 @@ public class DataSourceIT extends AbstractJdbcInstrumentationTest {
         super(dataSourceSupplier.get().getConnection(), "h2");
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{0}")
     public static Iterable<Supplier<DataSource>> dataSourceSuppliers() {
         return asList(
-            DataSourceIT::getTomcatDataSource,
-            DataSourceIT::getHikariDataSource,
-            DataSourceIT::getViburDataSource,
-            DataSourceIT::getDruidDataSource,
-            DataSourceIT::getDbcpDataSource,
-            DataSourceIT::getDbcp2DataSource,
-            DataSourceIT::getC3p0DataSource
+            labelledSupplier(DataSourceIT::getTomcatDataSource, "tomcat"),
+            labelledSupplier(DataSourceIT::getHikariDataSource,"hikari"),
+            labelledSupplier(DataSourceIT::getViburDataSource,"vibur"),
+            labelledSupplier(DataSourceIT::getDruidDataSource,"druid"),
+            labelledSupplier(DataSourceIT::getDbcpDataSource, "dbcp"),
+            labelledSupplier(DataSourceIT::getDbcp2DataSource,"dbcp2"),
+            labelledSupplier(DataSourceIT::getC3p0DataSource, "c3p0")
         );
+    }
+
+    /**
+     * Supplier that will provide a label through its {@link #toString()} implementation for easier test labels
+     *
+     * @param supplier datasource provider
+     * @param label    label
+     * @return supplier with label
+     */
+    private static Supplier<DataSource> labelledSupplier(Supplier<DataSource> supplier, String label) {
+        return new Supplier<>() {
+            @Override
+            public DataSource get() {
+                return supplier.get();
+            }
+
+            @Override
+            public String toString() {
+                return label;
+            }
+        };
     }
 
     private static DataSource getTomcatDataSource() {

@@ -106,6 +106,33 @@ they will be executed by a CI server.
     
    <img width="382" alt="configure annotations" src="https://user-images.githubusercontent.com/2163464/43444414-f1e5ce5a-94a3-11e8-8fa4-9f048c50ccc0.png">
 
+##### Useful Live Templates
+
+**`enter`**
+```java
+@Advice.OnMethodEnter(suppress = Throwable.class)
+private static void onEnter() {
+    $END$
+}
+```
+Applicable in Java: Declaration
+
+**`exit`**
+
+```java
+@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+private static void onExit(@Advice.Thrown Throwable thrown) {
+    $END$
+}
+```
+Applicable in Java: Declaration
+
+**`logger`**
+```java
+private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);
+```
+Applicable in Java: Declaration
+
 ### Java Language Formatting Guidelines
 
 Please follow these formatting guidelines:
@@ -226,7 +253,7 @@ See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 ### Documenting
 
 HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
-The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporterTest`,
+The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`,
 all the other asciidoc text files are written manually.
 
 A preview of the documentation is generated for each pull-request.

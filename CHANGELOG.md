@@ -3,8 +3,24 @@
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
  * Add ability to ignore some exceptions to be reported as errors [ignore_exceptions](https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore_exceptions
+ * Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+   polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture 
+   the code executed during actual message handling.
+   This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
+   This polling transaction creation strategy can be reversed through a configuration option (`message_polling_transaction_strategy`) 
+   that is not exposed in the properties file by default.  
+ * Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
+   instead of parsing from headers (#889)
+ * Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
+ * Logs message when `transaction_max_spans` has been exceeded (#849)
+ * Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute (#707)
+ * Add [`@Traced`](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced) annotation which either creates a span or a transaction, depending on the context
+ * Report JMS destination as a span/transaction context field (#906)
+ * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
+ * JMS creates polling transactions even when the API invocations return without a message
+ * Support registering MBeans which are added after agent startup
 
 # 1.10.0
 

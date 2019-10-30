@@ -36,6 +36,8 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.Topic;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -46,6 +48,7 @@ class ActiveMqFacade implements BrokerFacade {
 
     private Connection connection;
     private Session session;
+    private final Map<Destination, MessageConsumer> consumerCache = new HashMap<>();
 
     @Override
     public void prepareResources() throws JMSException {
@@ -68,6 +71,7 @@ class ActiveMqFacade implements BrokerFacade {
     public void afterTest() throws JMSException {
         // This should also close underlying producers and consumers
         session.close();
+        consumerCache.clear();
     }
 
     @Override
@@ -135,12 +139,12 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public Message receive(Destination destination) throws JMSException {
-        return session.createConsumer(destination).receive();
+        return getOrCreateQueueConsumer(destination).receive();
     }
 
     @Override
     public Message receive(Destination destination, long timeout) throws JMSException {
-        return session.createConsumer(destination).receive(timeout);
+        return getOrCreateQueueConsumer(destination).receive(timeout);
     }
 
     @Override
@@ -150,6 +154,15 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public Message receiveNoWait(Destination destination) throws JMSException {
-        return session.createConsumer(destination).receiveNoWait();
+        return getOrCreateQueueConsumer(destination).receiveNoWait();
+    }
+
+    private MessageConsumer getOrCreateQueueConsumer(Destination destination) throws JMSException {
+        MessageConsumer consumer = consumerCache.get(destination);
+        if (consumer == null) {
+            consumer = session.createConsumer(destination);
+            consumerCache.put(destination, consumer);
+        }
+        return consumer;
     }
 }

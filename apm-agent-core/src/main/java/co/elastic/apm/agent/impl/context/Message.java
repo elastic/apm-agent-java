@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,47 +22,52 @@
  * under the License.
  * #L%
  */
-
 package co.elastic.apm.agent.impl.context;
 
+import co.elastic.apm.agent.objectpool.Recyclable;
 
-/**
- * Any other arbitrary data captured by the agent, optionally provided by the user
- */
-public class SpanContext extends AbstractContext {
+import javax.annotation.Nullable;
 
-    /**
-     * An object containing contextual data for database spans
-     */
-    private final Db db = new Db();
+public class Message implements Recyclable {
 
-    /**
-     * An object containing contextual data for outgoing HTTP spans
-     */
-    private final Http http = new Http();
+    @Nullable
+    private String queueName;
 
-    /**
-     * An object containing contextual data for database spans
-     */
-    public Db getDb() {
-        return db;
+    @Nullable
+    private String topicName;
+
+    @Nullable
+    public String getQueueName() {
+        return queueName;
     }
 
-    /**
-     * An object containing contextual data for outgoing HTTP spans
-     */
-    public Http getHttp() {
-        return http;
+    public Message withQueue(String queueName) {
+        this.queueName = queueName;
+        return this;
+    }
+
+    @Nullable
+    public String getTopicName() {
+        return topicName;
+    }
+
+    public Message withTopic(String topicName) {
+        this.topicName = topicName;
+        return this;
+    }
+
+    public boolean hasContent() {
+        return queueName != null || topicName != null;
     }
 
     @Override
     public void resetState() {
-        super.resetState();
-        db.resetState();
-        http.resetState();
+        queueName = null;
+        topicName = null;
     }
 
-    public boolean hasContent() {
-        return super.hasContent() || db.hasContent() || http.hasContent();
+    public void copyFrom(Message other) {
+        this.queueName = other.getQueueName();
+        this.topicName = other.getTopicName();
     }
 }

@@ -116,6 +116,7 @@ Click on a key to get more information.
 
 [[config-core]]
 === Core configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-active]]
 ==== `active`
@@ -142,6 +143,7 @@ You can use this setting to dynamically disable Elastic APM at runtime.
 | `elastic.apm.active` | `active` | `ELASTIC_APM_ACTIVE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-instrument]]
 ==== `instrument`
@@ -164,6 +166,7 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 | `elastic.apm.instrument` | `instrument` | `ELASTIC_APM_INSTRUMENT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-service-name]]
 ==== `service_name`
@@ -207,6 +210,7 @@ If the service name is set explicitly, it overrides all of the above.
 | `elastic.apm.service_name` | `service_name` | `ELASTIC_APM_SERVICE_NAME`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-service-node-name]]
 ==== `service_node_name` (added[1.11.0])
@@ -236,6 +240,7 @@ NOTE: Metrics views can utilize this configuration since APM Server 7.5
 | `elastic.apm.service_node_name` | `service_node_name` | `ELASTIC_APM_SERVICE_NODE_NAME`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-service-version]]
 ==== `service_version`
@@ -256,6 +261,7 @@ A version string for the currently deployed version of the service. If you donâ€
 | `elastic.apm.service_version` | `service_version` | `ELASTIC_APM_SERVICE_VERSION`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-hostname]]
 ==== `hostname` (added[1.10.0])
@@ -276,6 +282,7 @@ Allows for the reported hostname to be manually specified. If unset the hostname
 | `elastic.apm.hostname` | `hostname` | `ELASTIC_APM_HOSTNAME`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-environment]]
 ==== `environment`
@@ -303,6 +310,7 @@ You must use the query bar to filter for a specific environment in versions prio
 | `elastic.apm.environment` | `environment` | `ELASTIC_APM_ENVIRONMENT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-transaction-sample-rate]]
 ==== `transaction_sample_rate` (performance)
@@ -323,6 +331,7 @@ By default, the agent will sample every transaction (e.g. request to your servic
 | `elastic.apm.transaction_sample_rate` | `transaction_sample_rate` | `ELASTIC_APM_TRANSACTION_SAMPLE_RATE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-transaction-max-spans]]
 ==== `transaction_max_spans` (performance)
@@ -332,6 +341,8 @@ Limits the amount of spans that are recorded per transaction.
 This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).
 
 Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
+
+A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 
 
 [options="header"]
@@ -347,6 +358,7 @@ Setting an upper limit will prevent overloading the agent and the APM server wit
 | `elastic.apm.transaction_max_spans` | `transaction_max_spans` | `ELASTIC_APM_TRANSACTION_MAX_SPANS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-sanitize-field-names]]
 ==== `sanitize_field_names` (security)
@@ -384,6 +396,7 @@ you should add an additional entry to this list (make sure to also include the d
 | `elastic.apm.sanitize_field_names` | `sanitize_field_names` | `ELASTIC_APM_SANITIZE_FIELD_NAMES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-disable-instrumentations]]
 ==== `disable_instrumentations`
@@ -407,6 +420,7 @@ set the value to an empty string.
 | `elastic.apm.disable_instrumentations` | `disable_instrumentations` | `ELASTIC_APM_DISABLE_INSTRUMENTATIONS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-unnest-exceptions]]
 ==== `unnest_exceptions`
@@ -435,6 +449,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.unnest_exceptions` | `unnest_exceptions` | `ELASTIC_APM_UNNEST_EXCEPTIONS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-exceptions]]
 ==== `ignore_exceptions` (added[1.11.0])
@@ -469,6 +484,7 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 | `elastic.apm.ignore_exceptions` | `ignore_exceptions` | `ELASTIC_APM_IGNORE_EXCEPTIONS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-global-labels]]
 ==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
@@ -492,6 +508,7 @@ NOTE: This feature requires APM Server 7.2+
 | `elastic.apm.global_labels` | `global_labels` | `ELASTIC_APM_GLOBAL_LABELS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-trace-methods]]
 ==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
@@ -557,6 +574,7 @@ public @@javax.inject.Scope your.application.package.*
 | `elastic.apm.trace_methods` | `trace_methods` | `ELASTIC_APM_TRACE_METHODS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-trace-methods-duration-threshold]]
 ==== `trace_methods_duration_threshold` (added[1.7.0])
@@ -592,6 +610,7 @@ The default unit for this option is `ms`
 | `elastic.apm.trace_methods_duration_threshold` | `trace_methods_duration_threshold` | `ELASTIC_APM_TRACE_METHODS_DURATION_THRESHOLD`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-boot-delegation-packages]]
 ==== `boot_delegation_packages` (added[1.7.0])
@@ -627,6 +646,7 @@ boot_delegation_packages=org.apache.karaf.jaas.boot, org.apache.karaf.jaas.boot.
 | `elastic.apm.boot_delegation_packages` | `boot_delegation_packages` | `ELASTIC_APM_BOOT_DELEGATION_PACKAGES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-central-config]]
 ==== `central_config` (added[1.8.0])
@@ -647,6 +667,7 @@ When enabled, the agent will make periodic requests to the APM Server to fetch u
 | `elastic.apm.central_config` | `central_config` | `ELASTIC_APM_CENTRAL_CONFIG`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-breakdown-metrics]]
 ==== `breakdown_metrics` (added[1.8.0])
@@ -667,13 +688,16 @@ Disables the collection of breakdown metrics (`span.self_time`)
 | `elastic.apm.breakdown_metrics` | `breakdown_metrics` | `ELASTIC_APM_BREAKDOWN_METRICS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-config-file]]
 ==== `config_file` (added[1.8.0])
 
 Sets the path of the agent config file.
-The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.
+The file has to be on the file system.
+You can not refer to classpath locations.
+
 NOTE: this option can only be set via system properties, environment variables or the attacher options.
 
 
@@ -692,6 +716,7 @@ NOTE: this option can only be set via system properties, environment variables o
 
 [[config-http]]
 === HTTP configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body]]
 ==== `capture_body` (performance)
@@ -725,6 +750,7 @@ Valid options: `off`, `errors`, `transactions`, `all`
 | `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body-content-types]]
 ==== `capture_body_content_types` (added[1.5.0] performance)
@@ -752,6 +778,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 | `elastic.apm.capture_body_content_types` | `capture_body_content_types` | `ELASTIC_APM_CAPTURE_BODY_CONTENT_TYPES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-headers]]
 ==== `capture_headers` (performance)
@@ -775,6 +802,7 @@ NOTE: Setting this to `false` reduces network bandwidth, disk space and object a
 | `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-urls]]
 ==== `ignore_urls`
@@ -805,6 +833,7 @@ NOTE: All errors that are captured during a request to an ignored URL are still 
 | `elastic.apm.ignore_urls` | `ignore_urls` | `ELASTIC_APM_IGNORE_URLS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-ignore-user-agents]]
 ==== `ignore_user_agents`
@@ -836,6 +865,7 @@ NOTE: All errors that are captured during a request by an ignored user agent are
 | `elastic.apm.ignore_user_agents` | `ignore_user_agents` | `ELASTIC_APM_IGNORE_USER_AGENTS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-path-as-transaction-name]]
 ==== `use_path_as_transaction_name` (experimental)
@@ -862,6 +892,7 @@ Take a look at the `url_groups` option on how to mitigate this problem by groupi
 | `elastic.apm.use_path_as_transaction_name` | `use_path_as_transaction_name` | `ELASTIC_APM_USE_PATH_AS_TRANSACTION_NAME`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-url-groups]]
 ==== `url_groups`
@@ -891,6 +922,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-jax-rs]]
 === JAX-RS configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-enable-jaxrs-annotation-inheritance]]
 ==== `enable_jaxrs_annotation_inheritance` (performance)
@@ -913,6 +945,7 @@ If your application does not use @Path annotation inheritance, set this property
 | `elastic.apm.enable_jaxrs_annotation_inheritance` | `enable_jaxrs_annotation_inheritance` | `ELASTIC_APM_ENABLE_JAXRS_ANNOTATION_INHERITANCE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-use-jaxrs-path-as-transaction-name]]
 ==== `use_jaxrs_path_as_transaction_name` (added[1.8.0])
@@ -936,9 +969,10 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 
 [[config-jmx]]
 === JMX configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-jmx-metrics]]
-==== `capture_jmx_metrics` (added[1.10.0])
+==== `capture_jmx_metrics` (added[1.11.0])
 
 Report metrics from JMX to the APM Server
 
@@ -1058,6 +1092,7 @@ The resulting documents in Elasticsearch look similar to this:
 
 [[config-logging]]
 === Logging configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-level]]
 ==== `log_level`
@@ -1081,6 +1116,7 @@ Valid options: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
 | `elastic.apm.log_level` | `log_level` | `ELASTIC_APM_LOG_LEVEL`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-log-file]]
 ==== `log_file`
@@ -1109,6 +1145,7 @@ it's content is deleted when the application starts.
 | `elastic.apm.log_file` | `log_file` | `ELASTIC_APM_LOG_FILE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-enable-log-correlation]]
 ==== `enable_log_correlation`
@@ -1135,6 +1172,7 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 
 [[config-reporter]]
 === Reporter configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-secret-token]]
 ==== `secret_token`
@@ -1158,6 +1196,7 @@ Use if APM Server requires a token.
 | `elastic.apm.secret_token` | `secret_token` | `ELASTIC_APM_SECRET_TOKEN`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-server-urls]]
 ==== `server_urls`
@@ -1187,6 +1226,7 @@ NOTE: This configuration can only be reloaded dynamically as of 1.8.0
 | `elastic.apm.server_urls` | `server_urls` | `ELASTIC_APM_SERVER_URLS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-server-timeout]]
 ==== `server_timeout`
@@ -1214,6 +1254,7 @@ The default unit for this option is `s`
 | `elastic.apm.server_timeout` | `server_timeout` | `ELASTIC_APM_SERVER_TIMEOUT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-verify-server-cert]]
 ==== `verify_server_cert`
@@ -1236,6 +1277,7 @@ Verification can be disabled by changing this setting to false.
 | `elastic.apm.verify_server_cert` | `verify_server_cert` | `ELASTIC_APM_VERIFY_SERVER_CERT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-max-queue-size]]
 ==== `max_queue_size`
@@ -1264,6 +1306,7 @@ while a higher value makes it less likely to lose events in case of a temporary 
 | `elastic.apm.max_queue_size` | `max_queue_size` | `ELASTIC_APM_MAX_QUEUE_SIZE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-include-process-args]]
 ==== `include_process_args`
@@ -1285,6 +1328,7 @@ Disabled by default to save disk space.
 | `elastic.apm.include_process_args` | `include_process_args` | `ELASTIC_APM_INCLUDE_PROCESS_ARGS`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-api-request-time]]
 ==== `api_request_time`
@@ -1310,6 +1354,7 @@ The default unit for this option is `s`
 | `elastic.apm.api_request_time` | `api_request_time` | `ELASTIC_APM_API_REQUEST_TIME`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-api-request-size]]
 ==== `api_request_size`
@@ -1333,6 +1378,7 @@ Allowed byte units are `b`, `kb` and `mb`. `1kb` is equal to `1024b`.
 | `elastic.apm.api_request_size` | `api_request_size` | `ELASTIC_APM_API_REQUEST_SIZE`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-metrics-interval]]
 ==== `metrics_interval` (added[1.3.0])
@@ -1358,6 +1404,7 @@ The default unit for this option is `s`
 | `elastic.apm.metrics_interval` | `metrics_interval` | `ELASTIC_APM_METRICS_INTERVAL`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-disable-metrics]]
 ==== `disable_metrics` (added[1.3.0])
@@ -1387,6 +1434,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 
 [[config-stacktrace]]
 === Stacktrace configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-application-packages]]
 ==== `application_packages`
@@ -1423,6 +1471,7 @@ If you are only interested in specific subpackages, you can separate them with c
 | `elastic.apm.application_packages` | `application_packages` | `ELASTIC_APM_APPLICATION_PACKAGES`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-stack-trace-limit]]
 ==== `stack_trace_limit` (performance)
@@ -1443,6 +1492,7 @@ Setting it to 0 will disable stack trace collection. Any positive integer value 
 | `elastic.apm.stack_trace_limit` | `stack_trace_limit` | `ELASTIC_APM_STACK_TRACE_LIMIT`
 |============
 
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-span-frames-min-duration]]
 ==== `span_frames_min_duration` (performance)
@@ -1602,6 +1652,8 @@ The default unit for this option is `ms`
 # This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).
 # 
 # Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.
+# 
+# A message will be logged when the max number of spans has been exceeded but only at a rate of once every 5 minutes to ensure performance is not impacted.
 #
 # This setting can be changed at runtime
 # Type: Integer
@@ -1809,8 +1861,10 @@ The default unit for this option is `ms`
 # breakdown_metrics=true
 
 # Sets the path of the agent config file.
-# The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.
-# The location can either be in the classpath of the application (when using the attacher API) or on the file system.
+# The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.
+# The file has to be on the file system.
+# You can not refer to classpath locations.
+# 
 # NOTE: this option can only be set via system properties, environment variables or the attacher options.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.

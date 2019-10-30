@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.servlet.tests.TestApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -57,7 +58,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -108,6 +111,7 @@ public abstract class AbstractServletContainerIntegrationTest {
     private final GenericContainer servletContainer;
     private final int webPort;
     private final String expectedDefaultServiceName;
+    private final String containerName;
     @Nullable
     private GenericContainer<?> debugProxy;
     private TestApp currentTestApp;
@@ -125,14 +129,17 @@ public abstract class AbstractServletContainerIntegrationTest {
             this.debugProxy = createDebugProxy(servletContainer, debugPort);
         }
         this.expectedDefaultServiceName = expectedDefaultServiceName;
+        this.containerName = containerName;
         servletContainer
             .withNetwork(Network.SHARED)
             .withEnv("ELASTIC_APM_SERVER_URLS", "http://apm-server:1080")
             .withEnv("ELASTIC_APM_IGNORE_URLS", "/status*,/favicon.ico")
             .withEnv("ELASTIC_APM_REPORT_SYNC", "true")
             .withEnv("ELASTIC_APM_LOG_LEVEL", "DEBUG")
+            .withEnv("ELASTIC_APM_METRICS_INTERVAL", "1s")
+            .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
-                .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
+            .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -162,6 +169,14 @@ public abstract class AbstractServletContainerIntegrationTest {
                 servletContainer.copyFileToContainer(MountableFile.forHostPath(pathToAppFile), deploymentPath + "/" + testApp.getAppFileName());
             }
         }
+    }
+
+    public String getContainerName() {
+        return containerName;
+    }
+
+    public String getImageName() {
+        return servletContainer.getDockerImageName();
     }
 
     /**
@@ -257,8 +272,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transaction;
     }
 
-    public String executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode) throws IOException, InterruptedException {
-        Response response = executeRequest(pathToTest);
+    public String executeAndValidateRequest(String pathToTest, String expectedContent, Integer expectedResponseCode,
+                                            Map<String, String> headersMap) throws IOException, InterruptedException {
+        Response response = executeRequest(pathToTest, headersMap);
         if (expectedResponseCode != null) {
             assertThat(response.code()).withFailMessage(response.toString() + getServerLogs()).isEqualTo(expectedResponseCode);
         }
@@ -293,10 +309,13 @@ public abstract class AbstractServletContainerIntegrationTest {
                 .execute();
     }
 
-    public Response executeRequest(String pathToTest) throws IOException {
+    public Response executeRequest(String pathToTest, Map<String, String> headersMap) throws IOException {
+        Headers headers = Headers.of((headersMap != null) ? headersMap : new HashMap<>());
+
         return httpClient.newCall(new Request.Builder()
             .get()
             .url(getBaseUrl() + pathToTest)
+            .headers(headers)
             .build())
             .execute();
     }
@@ -396,7 +415,7 @@ public abstract class AbstractServletContainerIntegrationTest {
         return transactions;
     }
 
-    private List<JsonNode> getEvents(String eventType) {
+    public List<JsonNode> getEvents(String eventType) {
         try {
             final List<JsonNode> events = new ArrayList<>();
             final ObjectMapper objectMapper = new ObjectMapper();
