@@ -283,7 +283,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-1            <artifactId>apm-mule4-plugin</artifactId>
+            <artifactId>apm-mule4-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
