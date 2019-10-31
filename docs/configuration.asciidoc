@@ -491,8 +491,9 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 [[config-capture-body]]
 ==== `capture_body` (performance)
 
-For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
-For transactions that are initiated by receiving a JMS text message, the agent can capture the textual message body.
+For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
+variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
+textual message body.
 
 If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
 
@@ -503,7 +504,8 @@ The option <<config-capture-body-content-types>> determines which content types 
 
 WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
 If your service handles data like this, we advise to only enable this feature with care.
-Turning on body capturing can also significantly increase the overhead in terms of heap usage, network utilisation and Elasticsearch index size.
+Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+network utilisation and Elasticsearch index size.
 
 Valid options: `off`, `errors`, `transactions`, `all`
 
@@ -1179,7 +1181,7 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 [[config-ignore-message-queues]]
 ==== `ignore_message_queues`
 
-Used to filter out specific messaging queues/topics from being traced.
+Used to filter out specific messaging queues/topics from being traced. 
 
 This property should be set to an array containing one or more strings.
 When set, sends-to and receives-from the specified queues/topic will be ignored.
@@ -1188,6 +1190,7 @@ This option supports the wildcard `*`, which matches zero or more characters.
 Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 Matching is case insensitive by default.
 Prepending an element with `(?-i)` makes the matching case sensitive.
+
 
 [options="header"]
 |============
