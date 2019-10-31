@@ -1,4 +1,10 @@
-# 1.11.0 (Next)
+# (Next)
+
+## Features
+
+## Bug Fixes
+
+# 1.11.0
 
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
