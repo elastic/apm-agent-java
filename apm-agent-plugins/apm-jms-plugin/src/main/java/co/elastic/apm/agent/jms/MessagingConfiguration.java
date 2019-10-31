@@ -60,9 +60,9 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "This property should be set to an array containing one or more strings.\n" +
             "When set, sends-to and receives-from the specified queues/topic will be ignored.\n" +
             "\n" +
-            WildcardMatcher.DOCUMENTATION + "\n")
+            WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
-        .buildWithDefault(Collections.emptyList());
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public MessagingConfiguration.Strategy getMessagePollingTransactionStrategy() {
         return messagePollingTransaction.get();

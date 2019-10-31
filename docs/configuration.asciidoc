@@ -2215,7 +2215,6 @@ The default unit for this option is `ms`
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
 # Prepending an element with `(?-i)` makes the matching case sensitive.
-# 
 #
 # This setting can be changed at runtime
 # Type: comma separated list
