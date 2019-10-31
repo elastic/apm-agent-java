@@ -28,6 +28,8 @@ import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 
+import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+
 public class Message implements Recyclable {
 
     @Nullable
@@ -67,6 +69,10 @@ public class Message implements Recyclable {
     public Message withBody(@Nullable String body) {
         this.body = body;
         return this;
+    }
+
+    public void redactBody() {
+        body = REDACTED_CONTEXT_STRING;
     }
 
     public boolean hasContent() {

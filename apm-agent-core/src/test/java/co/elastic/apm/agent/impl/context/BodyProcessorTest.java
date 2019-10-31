@@ -59,6 +59,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
+        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo("bar");
     }
 
     @Test
@@ -68,6 +69,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
+        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo("bar");
     }
 
     @Test
@@ -77,6 +79,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -86,6 +89,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -95,6 +99,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
+        assertThat(error.getContext().getMessage().getBody()).isEqualTo("bar");
     }
 
     @Test
@@ -104,6 +109,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(error.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -113,6 +119,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
+        assertThat(error.getContext().getMessage().getBody()).isEqualTo("bar");
     }
 
     @Test
@@ -122,11 +129,13 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(error.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     private Transaction processTransaction() {
         final Transaction transaction = new Transaction(tracer);
         transaction.getContext().getRequest().withBodyBuffer().append("foo").flip();
+        transaction.getContext().getMessage().withBody("bar");
         bodyProcessor.processBeforeReport(transaction);
         return transaction;
     }
@@ -134,6 +143,7 @@ class BodyProcessorTest {
     private ErrorCapture processError() {
         final ErrorCapture error = new ErrorCapture(tracer);
         error.getContext().getRequest().withBodyBuffer().append("foo").flip();
+        error.getContext().getMessage().withBody("bar");
         bodyProcessor.processBeforeReport(error);
         return error;
     }

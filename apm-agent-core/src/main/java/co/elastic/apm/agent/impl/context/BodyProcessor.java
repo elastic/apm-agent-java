@@ -59,8 +59,11 @@ public class BodyProcessor implements Processor {
 
     private void redactBodyIfNecessary(TransactionContext context, CoreConfiguration.EventType eventType) {
         final CoreConfiguration.EventType eventTypeConfig = coreConfiguration.getCaptureBody();
-        if (context.getRequest().getBody() != null && eventTypeConfig != eventType && eventTypeConfig != ALL) {
-            context.getRequest().redactBody();
+        if (eventTypeConfig != eventType && eventTypeConfig != ALL) {
+            if (context.getRequest().getBody() != null) {
+                context.getRequest().redactBody();
+            }
+            context.getMessage().redactBody();
         }
     }
 }
