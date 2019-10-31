@@ -45,6 +45,6 @@ public class MongoClientSyncVersionIT {
     @After
     public void tearDown() throws Exception {
         // judging from heap dumps, DefaultServerConnection seems to keep the class loader alive
-        // TestClassWithDependencyRunner.assertClassLoadersAreGCed();
+        //runner.assertClassLoaderIsGCed();
     }
 }

@@ -14,7 +14,6 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runners.BlockJUnit4ClassRunner;
-import org.junit.runners.model.InitializationError;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -68,7 +67,7 @@ public class TestClassWithDependencyRunner {
         assertThat(result.wasSuccessful()).isTrue();
     }
 
-    public void assertClassLoadersIsGCed() {
+    public void assertClassLoaderIsGCed() {
         testRunner = null;
         System.gc();
         System.gc();
@@ -95,10 +94,10 @@ public class TestClassWithDependencyRunner {
             return tempTestJar.toURI().toURL();
         }
     }
+
     /*
      * Taken from http://web.archive.org/web/20140420091631/http://developers-blog.org:80/blog/default/2010/11/08/Embed-Ivy-How-to-use-Ivy-with-Java
      */
-
     private static List<URL> resolveArtifacts(String groupId, String artifactId, String version) throws Exception {
         //creates clear ivy settings
         IvySettings ivySettings = new IvySettings();
@@ -142,7 +141,7 @@ public class TestClassWithDependencyRunner {
         for (ArtifactDownloadReport allArtifactsReport : allArtifactsReports) {
             dependencies.add(allArtifactsReport.getLocalFile().toURI().toURL());
         }
-
+        assertThat(dependencies).isNotEmpty();
         return dependencies;
     }
 
