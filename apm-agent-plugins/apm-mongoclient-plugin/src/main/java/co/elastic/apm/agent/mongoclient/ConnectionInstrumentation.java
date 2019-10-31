@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -73,7 +73,7 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
     }
 
     @Nullable
-    @Advice.OnMethodEnter(inline = false, suppress = Throwable.class)
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onEnter(@Advice.Argument(0) MongoNamespace namespace, @Advice.Origin("#m") String methodName) {
         Span span = ElasticApmInstrumentation.createExitSpan();
 
@@ -85,20 +85,21 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             .getContext().getDb().withType("mongodb");
         StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (spanName != null) {
+            String command = methodName;
             if (methodName.equals("query")) {
                 // if the method name is query, that corresponds to the find command
-                methodName = "find";
+                command = "find";
             }
-            int indexOfCommand = methodName.indexOf("Command");
+            int indexOfCommand = command.indexOf("Command");
             spanName.append(namespace.getDatabaseName())
                 .append(".").append(namespace.getCollectionName())
-                .append(".").append(methodName, 0, indexOfCommand > 0 ? indexOfCommand : methodName.length());
+                .append(".").append(command, 0, indexOfCommand > 0 ? indexOfCommand : command.length());
         }
         span.activate();
         return span;
     }
 
-    @Advice.OnMethodExit(inline = false, suppress = Throwable.class, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExit(@Nullable @Advice.Enter Span span, @Advice.Thrown Throwable thrown) {
         if (span != null) {
             span.deactivate().captureException(thrown);

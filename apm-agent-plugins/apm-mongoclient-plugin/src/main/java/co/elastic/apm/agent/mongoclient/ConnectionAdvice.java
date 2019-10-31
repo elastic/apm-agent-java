@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -41,7 +41,7 @@ public class ConnectionAdvice {
     public static final Logger logger = LoggerFactory.getLogger(ConnectionAdvice.class);
 
     @Nullable
-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
+    @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Span onEnter(@Advice.Argument(0) Object databaseOrMongoNamespace, @Advice.Argument(1) BsonDocument command) {
         Span span = ElasticApmInstrumentation.createExitSpan();
 
@@ -82,7 +82,7 @@ public class ConnectionAdvice {
         return span;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false, onThrowable = Throwable.class)
+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
     public static void onExit(@Nullable @Advice.Enter Span span, @Advice.Thrown Throwable thrown, @Advice.Origin("#m") String methodName) {
         if (span != null) {
             span.deactivate().captureException(thrown);
