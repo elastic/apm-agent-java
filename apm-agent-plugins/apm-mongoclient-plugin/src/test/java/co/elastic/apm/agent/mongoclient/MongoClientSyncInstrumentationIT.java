@@ -40,7 +40,7 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     private static MongoDatabase db = null;
 
     @BeforeClass
-    public static void startMongoContainerAndClient() throws InterruptedException {
+    public static void startMongoContainerAndClient() {
         mongo = new MongoClient(new ServerAddress(container.getContainerIpAddress(), container.getMappedPort(27017)));
         db = mongo.getDatabase(DB_NAME);
     }
@@ -48,6 +48,8 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     @AfterClass
     public static void closeClient() {
         mongo.close();
+        mongo = null;
+        db = null;
     }
 
     @Override

@@ -56,6 +56,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
     @AfterClass
     public static void stopContainer() {
         container.stop();
+        container = null;
     }
 
     @Before
