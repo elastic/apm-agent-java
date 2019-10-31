@@ -267,6 +267,27 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
+        .key("capture_body")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST " +
+            "variables).\n" +
+            "\n" +
+            "If the request has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
+            "\n" +
+            "This option is case-insensitive.\n" +
+            "\n" +
+            "NOTE: Currently, only UTF-8 encoded plain text content types are supported.\n" +
+            "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
+            "\n" +
+            "WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.\n" +
+            "If your service handles data like this, we advise to only enable this feature with care.\n" +
+            "Turning on body capturing can also significantly increase the overhead in terms of heap usage,\n" +
+            "network utilisation and Elasticsearch index size.")
+        .dynamic(true)
+        .buildWithDefault(EventType.OFF);
+
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("global_labels")
@@ -514,6 +535,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return ignoreExceptions.get();
     }
 
+    public EventType getCaptureBody() {
+        return captureBody.get();
+    }
+
     public boolean isTypePoolCacheEnabled() {
         return typePoolCache.get();
     }
@@ -587,6 +612,30 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         } else {
             return configFileLocation;
+        }
+    }
+
+    public enum EventType {
+        /**
+         * Request bodies will never be reported
+         */
+        OFF,
+        /**
+         * Request bodies will only be reported with errors
+         */
+        ERRORS,
+        /**
+         * Request bodies will only be reported with request transactions
+         */
+        TRANSACTIONS,
+        /**
+         * Request bodies will be reported with both errors and request transactions
+         */
+        ALL;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
         }
     }
 }

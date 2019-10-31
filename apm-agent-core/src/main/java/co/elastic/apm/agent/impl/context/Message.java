@@ -37,6 +37,9 @@ public class Message implements Recyclable {
     private String topicName;
 
     @Nullable
+    private String body;
+
+    @Nullable
     public String getQueueName() {
         return queueName;
     }
@@ -56,18 +59,30 @@ public class Message implements Recyclable {
         return this;
     }
 
+    @Nullable
+    public String getBody() {
+        return body;
+    }
+
+    public Message withBody(@Nullable String body) {
+        this.body = body;
+        return this;
+    }
+
     public boolean hasContent() {
-        return queueName != null || topicName != null;
+        return queueName != null || topicName != null || body != null;
     }
 
     @Override
     public void resetState() {
         queueName = null;
         topicName = null;
+        body = null;
     }
 
     public void copyFrom(Message other) {
         this.queueName = other.getQueueName();
         this.topicName = other.getTopicName();
+        this.body = other.body;
     }
 }

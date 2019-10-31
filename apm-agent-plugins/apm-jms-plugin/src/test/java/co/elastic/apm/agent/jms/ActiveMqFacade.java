@@ -35,6 +35,9 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.HashMap;
 import java.util.Map;
@@ -80,12 +83,22 @@ class ActiveMqFacade implements BrokerFacade {
     }
 
     @Override
+    public TemporaryQueue createTempQueue() throws Exception {
+        return session.createTemporaryQueue();
+    }
+
+    @Override
     public Topic createTopic(String topicName) throws JMSException {
         return session.createTopic(topicName);
     }
 
     @Override
-    public Message createTextMessage(String messageText) throws JMSException {
+    public TemporaryTopic createTempTopic() throws Exception {
+        return session.createTemporaryTopic();
+    }
+
+    @Override
+    public TextMessage createTextMessage(String messageText) throws JMSException {
         return session.createTextMessage(messageText);
     }
 

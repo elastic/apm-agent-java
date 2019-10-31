@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,28 +22,29 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.web;
+package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.impl.context.TransactionContext;
-import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.processor.Processor;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
-import static co.elastic.apm.agent.web.WebConfiguration.EventType.ALL;
-import static co.elastic.apm.agent.web.WebConfiguration.EventType.ERRORS;
-import static co.elastic.apm.agent.web.WebConfiguration.EventType.TRANSACTIONS;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.ALL;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.ERRORS;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.TRANSACTIONS;
 
 /**
- * This processor redacts the body according to the {@link WebConfiguration#captureBody} configuration option
+ * This processor redacts the body according to the {@link co.elastic.apm.agent.configuration.CoreConfiguration#captureBody}
+ * configuration option
  */
+@SuppressWarnings("JavadocReference")
 public class BodyProcessor implements Processor {
 
-    private final WebConfiguration webConfiguration;
+    private final CoreConfiguration coreConfiguration;
 
     public BodyProcessor(ConfigurationRegistry configurationRegistry) {
-        webConfiguration = configurationRegistry.getConfig(WebConfiguration.class);
+        coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
     }
 
     @Override
@@ -56,14 +57,10 @@ public class BodyProcessor implements Processor {
         redactBodyIfNecessary(error.getContext(), ERRORS);
     }
 
-    private void redactBodyIfNecessary(TransactionContext context, WebConfiguration.EventType eventType) {
-        final WebConfiguration.EventType eventTypeConfig = webConfiguration.getCaptureBody();
-        if (hasBody(context.getRequest()) && eventTypeConfig != eventType && eventTypeConfig != ALL) {
+    private void redactBodyIfNecessary(TransactionContext context, CoreConfiguration.EventType eventType) {
+        final CoreConfiguration.EventType eventTypeConfig = coreConfiguration.getCaptureBody();
+        if (context.getRequest().getBody() != null && eventTypeConfig != eventType && eventTypeConfig != ALL) {
             context.getRequest().redactBody();
         }
-    }
-
-    private boolean hasBody(Request request) {
-        return request.getBody() != null;
     }
 }

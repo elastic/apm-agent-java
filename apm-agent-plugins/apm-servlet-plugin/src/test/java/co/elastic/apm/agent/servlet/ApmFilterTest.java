@@ -30,7 +30,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;

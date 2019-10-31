@@ -37,6 +37,9 @@ import javax.jms.JMSContext;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.Queue;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.io.File;
 import java.util.HashMap;
@@ -96,12 +99,22 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
+    public TemporaryQueue createTempQueue() throws Exception {
+        return context.createTemporaryQueue();
+    }
+
+    @Override
     public Topic createTopic(String topicName) {
         return context.createTopic(topicName);
     }
 
     @Override
-    public Message createTextMessage(String messageText) {
+    public TemporaryTopic createTempTopic() throws Exception {
+        return context.createTemporaryTopic();
+    }
+
+    @Override
+    public TextMessage createTextMessage(String messageText) {
         return context.createTextMessage(messageText);
     }
 

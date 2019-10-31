@@ -43,6 +43,7 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.Queue;
+import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
@@ -60,6 +61,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP_QUEUE_NAME;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TMP_PREFIX;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -76,6 +79,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private static final BlockingQueue<Message> resultQ = new ArrayBlockingQueue<>(5);
 
     private final BrokerFacade brokerFacade;
+    private final CoreConfiguration coreConfiguration;
     private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
 
     @SuppressWarnings("NullableProblems")
@@ -86,6 +90,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         if (staticBrokerFacade.add(brokerFacade)) {
             brokerFacade.prepareResources();
         }
+        coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
     @Parameterized.Parameters(name = "BrokerFacade={0}")
@@ -111,6 +116,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         transaction.withResult("success");
         brokerFacade.beforeTest();
         noopQ = brokerFacade.createQueue("NOOP");
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
     }
 
     @After
@@ -312,6 +318,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveTransactions).hasSize(1);
         Transaction receiveTransaction = receiveTransactions.get(0);
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
+        assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
+        // Body and headers should not be captured for receive spans
+        assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
@@ -325,15 +334,15 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private void verifyQueueSendReceiveOnNonTracedThread(Queue queue)
         throws Exception {
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        verifySendReceiveOnNonTracedThread(queue.getQueueName());
+        verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
     }
 
-    private void verifySendListenOnNonTracedThread(String destinationName, int expectedReadTransactions) {
+    private void verifySendListenOnNonTracedThread(String destinationName, TextMessage message, int expectedReadTransactions) throws JMSException {
         await().atMost(500, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
 
         List<Span> spans = reporter.getSpans();
@@ -366,10 +375,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             } else {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
+            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
         }
     }
 
-    private void verifySendReceiveOnNonTracedThread(String destinationName) {
+    private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
         MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
         boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
 
@@ -416,6 +426,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             } else {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
+            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
             transactionId = receiveTransaction.getTraceContext().getId();
         }
 
@@ -432,7 +443,25 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testRegisterConcreteListenerImpl() {
         try {
-            testQueueSendListen(brokerFacade::registerConcreteListenerImplementation);
+            testQueueSendListen(createTestQueue(), brokerFacade::registerConcreteListenerImplementation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testTempQueueListener() {
+        try {
+            testQueueSendListen(brokerFacade.createTempQueue(), brokerFacade::registerConcreteListenerImplementation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testTibcoTempQueueListener() {
+        try {
+            testQueueSendListen(brokerFacade.createQueue(TMP_PREFIX + UUID.randomUUID().toString()), brokerFacade::registerConcreteListenerImplementation);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -455,7 +484,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testRegisterListenerLambda() {
         try {
-            testQueueSendListen(brokerFacade::registerListenerLambda);
+            testQueueSendListen(createTestQueue(), brokerFacade::registerListenerLambda);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -464,22 +493,26 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testRegisterListenerMethodReference() {
         try {
-            testQueueSendListen(brokerFacade::registerListenerMethodReference);
+            testQueueSendListen(createTestQueue(), brokerFacade::registerListenerMethodReference);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void testQueueSendListen(Function<Destination, CompletableFuture<Message>> listenerRegistrationFunction)
+    private void testQueueSendListen(Queue queue, Function<Destination, CompletableFuture<Message>> listenerRegistrationFunction)
         throws Exception {
-        Queue queue = createTestQueue();
         CompletableFuture<Message> incomingMessageFuture = listenerRegistrationFunction.apply(queue);
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(queue, outgoingMessage);
         Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
-        verifySendListenOnNonTracedThread(queue.getQueueName(), 1);
+        String queueName = queue.getQueueName();
+        // special handling for temp queues
+        if (queue instanceof TemporaryQueue || queueName.startsWith(TMP_PREFIX)) {
+            queueName = TEMP_QUEUE_NAME;
+        }
+        verifySendListenOnNonTracedThread(queueName, outgoingMessage, 1);
     }
 
     @Test
@@ -490,7 +523,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         final CompletableFuture<Message> incomingMessageFuture2 = brokerFacade.registerConcreteListenerImplementation(topic);
 
         String message = UUID.randomUUID().toString();
-        Message outgoingMessage = brokerFacade.createTextMessage(message);
+        TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
         brokerFacade.send(topic, outgoingMessage);
 
         Message incomingMessage1 = incomingMessageFuture1.get(3, TimeUnit.SECONDS);
@@ -499,7 +532,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage2 = incomingMessageFuture2.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage2);
 
-        verifySendListenOnNonTracedThread(topic.getTopicName(), 2);
+        verifySendListenOnNonTracedThread(topic.getTopicName(), outgoingMessage, 2);
     }
 
     private void verifyMessage(String expectedText, Message message) throws JMSException {

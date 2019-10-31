@@ -31,7 +31,7 @@ import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;

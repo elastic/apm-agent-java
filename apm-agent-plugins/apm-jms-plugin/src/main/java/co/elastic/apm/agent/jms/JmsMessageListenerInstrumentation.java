@@ -39,10 +39,9 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.Topic;
+import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -95,7 +94,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
             if (tracer != null && tracer.currentTransaction() == null) {
                 if (message != null) {
                     try {
-                        String traceParentProperty = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
+                        String traceParentProperty = message.getStringProperty(JMS_TRACE_PARENT_PROPERTY);
                         if (traceParentProperty != null) {
                             transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(),
                                 traceParentProperty, clazz.getClassLoader());
@@ -116,20 +115,15 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                 }
 
                 transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
-                try {
-                    if (destination instanceof Queue) {
-                        String queueName = ((Queue) destination).getQueueName();
-                        transaction.appendToName(" from queue ").appendToName(queueName)
-                            .getContext().getMessage().withQueue(queueName);
-                    } else if (destination instanceof Topic) {
-                        String topicName = ((Topic) destination).getTopicName();
-                        transaction.appendToName(" from topic ").appendToName(topicName)
-                            .getContext().getMessage().withTopic(topicName);
+                //noinspection ConstantConditions
+                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
+                if (helper != null) {
+                    if (destination != null) {
+                        helper.addDestinationDetails(message, destination, transaction.appendToName(" from "));
                     }
-                } catch (JMSException e) {
-                    logger.warn("Failed to retrieve message's destination", e);
+                    helper.addMessageDetails(message, transaction);
                 }
-
                 transaction.activate();
             }
 

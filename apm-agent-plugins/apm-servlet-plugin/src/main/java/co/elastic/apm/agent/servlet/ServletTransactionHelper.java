@@ -35,8 +35,8 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.web.ResultUtil;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.
@@ -160,7 +160,7 @@ public class ServletTransactionHelper {
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (webConfiguration.getCaptureBody() != OFF
+            if (coreConfiguration.getCaptureBody() != OFF
                 && contentTypeHeader != null
                 // form parameters are recorded via ServletRequest.getParameterMap
                 // as the container might not call ServletRequest.getInputStream
@@ -169,7 +169,7 @@ public class ServletTransactionHelper {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
-                if (webConfiguration.getCaptureBody() == OFF) {
+                if (coreConfiguration.getCaptureBody() == OFF) {
                     logger.debug("Not capturing Request body because the capture_body config option is OFF");
                 }
                 if (contentTypeHeader == null) {
@@ -261,7 +261,7 @@ public class ServletTransactionHelper {
     private void fillRequestParameters(Transaction transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (webConfiguration.getCaptureBody() != OFF && parameterMap != null) {
+            if (coreConfiguration.getCaptureBody() != OFF && parameterMap != null) {
                 captureParameters(request, parameterMap, contentTypeHeader);
             }
         }
@@ -272,7 +272,7 @@ public class ServletTransactionHelper {
         return contentTypeHeader != null
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
-            && webConfiguration.getCaptureBody() != OFF
+            && coreConfiguration.getCaptureBody() != OFF
             && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 

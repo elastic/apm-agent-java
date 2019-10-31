@@ -37,7 +37,15 @@ public interface JmsInstrumentationHelper<D, M, L> {
     /**
      * In some cases, dashes are not allowed in JMS Message property names
      */
-    String JMS_TRACE_PARENT_HEADER = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
+    String JMS_TRACE_PARENT_PROPERTY = TraceContext.TRACE_PARENT_HEADER.replace('-', '_');
+
+    /**
+     * When the agent computes a destination name instead of using the default queue name- it should be passed as a
+     * message property, in case the receiver side cannot apply the same computation. For example, temporary queues are
+     * identified based on the queue type and all receive the same generic name. In Artemis Active MQ, the queue
+     * generated at the receiver side is not of the temporary type, so this name computation cannot be made.
+     */
+    String JMS_DESTINATION_NAME_PROPERTY = "elastic_apm_dest_name";
 
     /**
      * Indicates a transaction is created for the message handling flow, but should not be used as the actual type of
@@ -61,5 +69,17 @@ public interface JmsInstrumentationHelper<D, M, L> {
     @Nullable
     L wrapLambda(@Nullable L listener);
 
-    void addDestinationDetails(D destination, AbstractSpan span);
+    /**
+     * Adds the destination details to span name and context. May compute a name and override the default name
+     * obtained through the Destination API, in which case this method should return the computed name.
+     *
+     * @param message
+     * @param destination
+     * @param span
+     * @return name used to override the default destination name, if indeed such used; null otherwise
+     */
+    @Nullable
+    String addDestinationDetails(M message, D destination, AbstractSpan span);
+
+    void addMessageDetails(@Nullable M message, AbstractSpan span);
 }

@@ -45,7 +45,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_HANDLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGE_POLLING;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
@@ -168,12 +168,16 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                                             @Advice.Return @Nullable final Message message,
                                             @Advice.Thrown final Throwable throwable) {
 
+                //noinspection ConstantConditions
+                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
+
                 String messageSenderContext = null;
                 Destination destination = null;
                 boolean discard = false;
                 if (message != null) {
                     try {
-                        messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
+                        messageSenderContext = message.getStringProperty(JMS_TRACE_PARENT_PROPERTY);
                         destination = message.getJMSDestination();
                     } catch (JMSException e) {
                         logger.error("Failed to retrieve meta info from Message", e);
@@ -184,6 +188,9 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             abstractSpan.getTraceContext().asChildOf(messageSenderContext);
                         }
                         ((Transaction) abstractSpan).withType(MESSAGING_TYPE);
+                        if (helper != null) {
+                            helper.addMessageDetails(message, abstractSpan);
+                        }
                     }
                 } else if (abstractSpan instanceof Transaction) {
                     // Do not report polling transactions if not yielding messages
@@ -191,19 +198,14 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                     discard = true;
                 }
 
-                //noinspection ConstantConditions
-                JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
-                    jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
-
                 if (abstractSpan != null) {
                     try {
                         if (!discard) {
-                            abstractSpan.captureException(throwable);
                             if (message != null && helper != null && destination != null) {
                                 abstractSpan.appendToName(" from ");
-                                helper.addDestinationDetails(destination, abstractSpan);
-
+                                helper.addDestinationDetails(message, destination, abstractSpan);
                             }
+                            abstractSpan.captureException(throwable);
                         }
                     } finally {
                         abstractSpan.deactivate().end();
@@ -221,8 +223,8 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
 
                     if (helper != null && destination != null) {
                         messageHandlingTransaction.appendToName(" from ");
-                        helper.addDestinationDetails(destination, messageHandlingTransaction);
-
+                        helper.addDestinationDetails(message, destination, messageHandlingTransaction);
+                        helper.addMessageDetails(message, messageHandlingTransaction);
                     }
 
                     messageHandlingTransaction.activate();

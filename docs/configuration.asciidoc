@@ -74,6 +74,7 @@ Click on a key to get more information.
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-ignore-exceptions>>
+** <<config-capture-body>>
 ** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -82,7 +83,6 @@ Click on a key to get more information.
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
 * <<config-http>>
-** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
 ** <<config-capture-headers>>
 ** <<config-ignore-urls>>
@@ -486,6 +486,38 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-capture-body]]
+==== `capture_body` (performance)
+
+For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
+
+If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
+
+This option is case-insensitive.
+
+NOTE: Currently, only UTF-8 encoded plain text content types are supported.
+The option <<config-capture-body-content-types>> determines which content types are captured.
+
+WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+If your service handles data like this, we advise to only enable this feature with care.
+Turning on body capturing can also significantly increase the overhead in terms of heap usage, network utilisation and Elasticsearch index size.
+
+Valid options: `off`, `errors`, `transactions`, `all`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `OFF` | EventType | true
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-global-labels]]
 ==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
 
@@ -716,40 +748,6 @@ NOTE: this option can only be set via system properties, environment variables o
 
 [[config-http]]
 === HTTP configuration options
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-capture-body]]
-==== `capture_body` (performance)
-
-For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
-
-If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
-
-This option is case-insensitive.
-
-NOTE: Currently, only UTF-8 encoded plain text content types are supported.
-The option <<config-capture-body-content-types>> determines which content types are captured.
-
-WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
-If your service handles data like this, we advise to only enable this feature with care.
-Turning on body capturing can also significantly increase the overhead in terms of heap usage,
-network utilisation and Elasticsearch index size.
-
-Valid options: `off`, `errors`, `transactions`, `all`
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `OFF` | EventType | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
-|============
-
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-body-content-types]]
@@ -1735,6 +1733,27 @@ The default unit for this option is `ms`
 #
 # ignore_exceptions=
 
+# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
+# 
+# If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
+# 
+# This option is case-insensitive.
+# 
+# NOTE: Currently, only UTF-8 encoded plain text content types are supported.
+# The option <<config-capture-body-content-types>> determines which content types are captured.
+# 
+# WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+# If your service handles data like this, we advise to only enable this feature with care.
+# Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+# network utilisation and Elasticsearch index size.
+#
+# Valid options: off, errors, transactions, all
+# This setting can be changed at runtime
+# Type: EventType
+# Default value: OFF
+#
+# capture_body=OFF
+
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
 # 
@@ -1876,27 +1895,6 @@ The default unit for this option is `ms`
 ############################################
 # HTTP                                     #
 ############################################
-
-# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
-# 
-# If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
-# 
-# This option is case-insensitive.
-# 
-# NOTE: Currently, only UTF-8 encoded plain text content types are supported.
-# The option <<config-capture-body-content-types>> determines which content types are captured.
-# 
-# WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
-# If your service handles data like this, we advise to only enable this feature with care.
-# Turning on body capturing can also significantly increase the overhead in terms of heap usage,
-# network utilisation and Elasticsearch index size.
-#
-# Valid options: off, errors, transactions, all
-# This setting can be changed at runtime
-# Type: EventType
-# Default value: OFF
-#
-# capture_body=OFF
 
 # Configures which content types should be recorded.
 # 

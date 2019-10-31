@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.web;
+package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.context.Request;
@@ -34,12 +34,13 @@ import co.elastic.apm.agent.report.processor.Processor;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+
 /**
  * Sanitizes web-related fields according to the {@link CoreConfiguration#sanitizeFieldNames} setting
  */
 public class SanitizingWebProcessor implements Processor {
 
-    static final String REDACTED = "[REDACTED]";
     private final CoreConfiguration config;
 
     public SanitizingWebProcessor(ConfigurationRegistry configurationRegistry) {
@@ -75,7 +76,7 @@ public class SanitizingWebProcessor implements Processor {
     private void sanitizeMap(PotentiallyMultiValuedMap map) {
         for (int i = 0; i < map.size(); i++) {
             if (isSensitive(map.getKey(i))) {
-                map.set(i, REDACTED);
+                map.set(i, REDACTED_CONTEXT_STRING);
             }
         }
     }
