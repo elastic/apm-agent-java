@@ -69,17 +69,12 @@ public interface JmsInstrumentationHelper<D, M, L> {
     @Nullable
     L wrapLambda(@Nullable L listener);
 
-    /**
-     * Adds the destination details to span name and context. May compute a name and override the default name
-     * obtained through the Destination API, in which case this method should return the computed name.
-     *
-     * @param message
-     * @param destination
-     * @param span
-     * @return name used to override the default destination name, if indeed such used; null otherwise
-     */
     @Nullable
-    String addDestinationDetails(M message, D destination, AbstractSpan span);
+    String extractDestinationName(@Nullable M message, D destination);
+
+    boolean ignoreDestination(@Nullable String destinationName);
+
+    void addDestinationDetails(M message, D destination, String destinationName, AbstractSpan span);
 
     void addMessageDetails(@Nullable M message, AbstractSpan span);
 }

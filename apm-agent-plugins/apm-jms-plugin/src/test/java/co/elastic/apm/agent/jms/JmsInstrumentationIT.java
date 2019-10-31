@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -61,7 +62,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP_QUEUE_NAME;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TMP_PREFIX;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
 import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
@@ -81,6 +82,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private final BrokerFacade brokerFacade;
     private final CoreConfiguration coreConfiguration;
     private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
+    private ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
     @SuppressWarnings("NullableProblems")
     private Queue noopQ;
@@ -109,6 +111,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Before
     public void startTransaction() throws Exception {
         receiveNoWaitFlow.set(false);
+        expectNoTraces.set(false);
         reporter.reset();
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
         transaction.withName("JMS-Test Transaction");
@@ -192,6 +195,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testQueueSendReceiveOnNonTracedThreadInActive() throws Exception {
+        when(coreConfiguration.isActive()).thenReturn(false);
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+    }
+
+    @Test
     public void testQueueSendReceiveNoWaitOnNonTracedThread() throws Exception {
         receiveNoWaitFlow.set(true);
         if (!brokerFacade.shouldTestReceiveNoWait()) {
@@ -219,6 +229,16 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     public void testInactiveReceive() throws Exception {
         when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
         final Queue queue = createTestQueue();
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+    }
+
+    @Test
+    public void testQueueDisablement() throws Exception {
+        when(config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy()).thenReturn(BOTH);
+        when(config.getConfig(MessagingConfiguration.class).getIgnoreMessageQueues())
+            .thenReturn(List.of(WildcardMatcher.valueOf("ignore-*")));
+        final Queue queue = brokerFacade.createQueue("ignore-this");
+        expectNoTraces.set(true);
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
@@ -381,9 +401,17 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
         MessagingConfiguration.Strategy strategy = config.getConfig(MessagingConfiguration.class).getMessagePollingTransactionStrategy();
-        boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
 
         List<Span> spans = reporter.getSpans();
+        List<Transaction> receiveTransactions = reporter.getTransactions();
+
+        if (expectNoTraces.get()) {
+            assertThat(spans).isEmpty();
+            assertThat(receiveTransactions).isEmpty();
+            return;
+        }
+
+        boolean isActive = config.getConfig(CoreConfiguration.class).isActive();
         if (!isActive || strategy == POLLING || receiveNoWaitFlow.get()) {
             assertThat(spans).hasSize(1);
         } else {
@@ -405,7 +433,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
         assertThat(sendInitialMessageSpan.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
 
-        List<Transaction> receiveTransactions = reporter.getTransactions();
         if (!isActive) {
             assertThat(receiveTransactions).isEmpty();
             return;
@@ -510,7 +537,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String queueName = queue.getQueueName();
         // special handling for temp queues
         if (queue instanceof TemporaryQueue || queueName.startsWith(TMP_PREFIX)) {
-            queueName = TEMP_QUEUE_NAME;
+            queueName = TEMP;
         }
         verifySendListenOnNonTracedThread(queueName, outgoingMessage, 1);
     }

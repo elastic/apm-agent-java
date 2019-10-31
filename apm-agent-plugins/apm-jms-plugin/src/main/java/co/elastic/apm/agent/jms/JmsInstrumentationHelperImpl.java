@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,16 +49,17 @@ import javax.jms.Topic;
 public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<Destination, Message, MessageListener> {
 
     static final String TMP_PREFIX = "$TMP$";
-    static final String TEMP_QUEUE_NAME = "<Temp-Queue>";
-    static final String TEMP_TOPIC_NAME = "<Temp-Topic>";
+    static final String TEMP = "<temporary>";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelperImpl.class);
     private final ElasticApmTracer tracer;
     private final CoreConfiguration coreConfiguration;
+    private final MessagingConfiguration messagingConfiguration;
 
     public JmsInstrumentationHelperImpl(ElasticApmTracer tracer) {
         this.tracer = tracer;
         coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
 
     @SuppressWarnings("Duplicates")
@@ -68,6 +70,16 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
+            return null;
+        }
+
+        boolean isDestinationNameComputed = false;
+        String destinationName = extractDestinationName(null, destination);
+        if (isTempDestination(destination, destinationName)) {
+            destinationName = TEMP;
+            isDestinationNameComputed = true;
+        }
+        if (ignoreDestination(destinationName)) {
             return null;
         }
 
@@ -83,16 +95,17 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
-            String computedDestinationName = null;
             if (span.isSampled()) {
-                span.withName("JMS SEND to ");
-                computedDestinationName = addDestinationDetails(null, destination, span);
+                message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                if (destinationName != null) {
+                    span.withName("JMS SEND to ");
+                    addDestinationDetails(null, destination, destinationName, span);
+                    if (isDestinationNameComputed) {
+                        message.setStringProperty(JMS_DESTINATION_NAME_PROPERTY, destinationName);
+                    }
+                }
             }
 
-            message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-            if (computedDestinationName != null) {
-                message.setStringProperty(JMS_DESTINATION_NAME_PROPERTY, computedDestinationName);
-            }
         } catch (JMSException e) {
             logger.error("Failed to capture JMS span", e);
         }
@@ -110,7 +123,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         return listener;
     }
 
-    public class MessageListenerWrapper implements MessageListener {
+    public static class MessageListenerWrapper implements MessageListener {
 
         private final MessageListener delegate;
 
@@ -124,11 +137,9 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         }
     }
 
-    @Override
     @Nullable
-    public String addDestinationDetails(@Nullable Message message, Destination destination, AbstractSpan span) {
+    public String extractDestinationName(@Nullable Message message, Destination destination) {
         String destinationName = null;
-        String computedName = null;
         if (message != null) {
             try {
                 destinationName = message.getStringProperty(JMS_DESTINATION_NAME_PROPERTY);
@@ -136,30 +147,40 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 logger.warn("Failed to get destination name from message property", e);
             }
         }
-        try {
-            if (destination instanceof Queue) {
-                if (destinationName == null) {
+        if (destinationName == null) {
+            try {
+                if (destination instanceof Queue) {
                     destinationName = ((Queue) destination).getQueueName();
-                    if (destinationName.startsWith(TMP_PREFIX) || destination instanceof TemporaryQueue) {
-                        destinationName = computedName = TEMP_QUEUE_NAME;
-                    }
-                }
-                span.appendToName("queue ").appendToName(destinationName)
-                    .getContext().getMessage().withQueue(destinationName);
-            } else if (destination instanceof Topic) {
-                if (destinationName == null) {
+                } else if (destination instanceof Topic) {
                     destinationName = ((Topic) destination).getTopicName();
-                    if (destinationName.startsWith(TMP_PREFIX) || destination instanceof TemporaryTopic) {
-                        destinationName = computedName = TEMP_TOPIC_NAME;
-                    }
                 }
-                span.appendToName("topic ").appendToName(destinationName)
-                    .getContext().getMessage().withTopic(destinationName);
+            } catch (JMSException e) {
+                logger.error("Failed to obtain destination name", e);
             }
-        } catch (JMSException e) {
-            logger.error("Failed to obtain destination name", e);
         }
-        return computedName;
+        return destinationName;
+    }
+
+    private boolean isTempDestination(Destination destination, @Nullable String extractedDestinationName) {
+        return destination instanceof TemporaryQueue || destination instanceof TemporaryTopic ||
+            (extractedDestinationName != null && extractedDestinationName.startsWith(TMP_PREFIX));
+    }
+
+    @Override
+    public boolean ignoreDestination(@Nullable String destinationName) {
+        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), destinationName);
+    }
+
+    @Override
+    public void addDestinationDetails(@Nullable Message message, Destination destination, String destinationName,
+                                      AbstractSpan span) {
+        if (destination instanceof Queue) {
+            span.appendToName("queue ").appendToName(destinationName)
+                .getContext().getMessage().withQueue(destinationName);
+        } else if (destination instanceof Topic) {
+            span.appendToName("topic ").appendToName(destinationName)
+                .getContext().getMessage().withTopic(destinationName);
+        }
     }
 
     @Override
@@ -167,7 +188,6 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         if (message == null) {
             return;
         }
-
         try {
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.

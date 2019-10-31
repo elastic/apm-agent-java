@@ -25,8 +25,15 @@
 package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
+import org.stagemonitor.configuration.converter.ListValueConverter;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class MessagingConfiguration extends ConfigurationOptionProvider {
     private static final String MESSAGING_CATEGORY = "Messaging";
@@ -44,8 +51,25 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Strategy.HANDLING);
 
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreMessageQueues = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_message_queues")
+        .configurationCategory(MESSAGING_CATEGORY)
+        .description("Used to filter out specific messaging queues/topics from being traced. \n" +
+            "\n" +
+            "This property should be set to an array containing one or more strings.\n" +
+            "When set, sends-to and receives-from the specified queues/topic will be ignored.\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION + "\n")
+        .dynamic(true)
+        .buildWithDefault(Collections.emptyList());
+
     public MessagingConfiguration.Strategy getMessagePollingTransactionStrategy() {
         return messagePollingTransaction.get();
+    }
+
+    public List<WildcardMatcher> getIgnoreMessageQueues() {
+        return ignoreMessageQueues.get();
     }
 
     @VisibleForAdvice
