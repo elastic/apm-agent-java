@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -76,27 +75,26 @@ public interface JvmDiscoverer {
     enum Jps implements JvmDiscoverer {
         INSTANCE;
 
-        @Nonnull
-        private static String getJpsOutput() throws IOException, InterruptedException {
+        @Override
+        public Collection<JvmInfo> discoverJvms() throws Exception {
+            String jpsOutput;
             final Process jps = new ProcessBuilder("jps", "-lv").start();
             if (jps.waitFor() == 0) {
-                return RemoteAttacher.toString(jps.getInputStream());
+                jpsOutput = RemoteAttacher.toString(jps.getInputStream());
             } else {
                 throw new IllegalStateException(RemoteAttacher.toString(jps.getErrorStream()));
             }
-        }
-
-        @Override
-        public Collection<JvmInfo> discoverJvms() throws Exception {
-            return getJVMs(getJpsOutput());
+            return getJVMs(jpsOutput, jps.pid());
         }
 
         @Nonnull
-        private Set<JvmInfo> getJVMs(String jpsOutput) {
+        private Set<JvmInfo> getJVMs(String jpsOutput, long jpsPid) {
             Set<JvmInfo> set = new HashSet<>();
             for (String s : jpsOutput.split("\n")) {
-                JvmInfo parse = JvmInfo.parse(s);
-                set.add(parse);
+                JvmInfo jvmInfo = JvmInfo.parse(s);
+                if (!jvmInfo.pid.equals(Long.toString(jpsPid))) {
+                    set.add(jvmInfo);
+                }
             }
             return set;
         }
