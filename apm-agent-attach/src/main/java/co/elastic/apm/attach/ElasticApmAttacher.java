@@ -117,19 +117,7 @@ public class ElasticApmAttacher {
      * @throws IllegalStateException if there was a problem while attaching the agent to this VM
      */
     public static void attach(Map<String, String> configuration) {
-        // optimization, this is checked in AgentMain#init again
-        if (Boolean.getBoolean("ElasticApm.attached")) {
-            return;
-        }
-        File tempFile = createTempProperties(configuration);
-        String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
-
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE, agentArgs, ATTACHMENT_PROVIDER);
-        if (tempFile != null) {
-            if (!tempFile.delete()) {
-                tempFile.deleteOnExit();
-            }
-        }
+        attach(ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE.resolve(), configuration);
     }
 
     static File createTempProperties(Map<String, String> configuration) {
@@ -168,7 +156,19 @@ public class ElasticApmAttacher {
      * @param configuration the agent configuration
      */
     public static void attach(String pid, Map<String, String> configuration) {
-        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, toAgentArgs(configuration), ATTACHMENT_PROVIDER);
+        // optimization, this is checked in AgentMain#init again
+        if (Boolean.getBoolean("ElasticApm.attached")) {
+            return;
+        }
+        File tempFile = createTempProperties(configuration);
+        String agentArgs = tempFile == null ? null : TEMP_PROPERTIES_FILE_KEY + "=" + tempFile.getAbsolutePath();
+
+        ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ATTACHMENT_PROVIDER);
+        if (tempFile != null) {
+            if (!tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
+        }
     }
 
     /**
@@ -176,7 +176,9 @@ public class ElasticApmAttacher {
      *
      * @param pid       the PID of the JVM the agent should be attached on
      * @param agentArgs the agent arguments
+     * @deprecated use {@link #attach(String, Map)}
      */
+    @Deprecated
     public static void attach(String pid, String agentArgs) {
         ByteBuddyAgent.attach(AgentJarFileHolder.INSTANCE.agentJarFile, pid, agentArgs, ATTACHMENT_PROVIDER);
     }
