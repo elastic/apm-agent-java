@@ -19,7 +19,7 @@
 
 
     <properties>
-        <version.spring-boot>2.1.8.RELEASE</version.spring-boot>
+        <version.spring-boot>2.2.0.RELEASE</version.spring-boot>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
