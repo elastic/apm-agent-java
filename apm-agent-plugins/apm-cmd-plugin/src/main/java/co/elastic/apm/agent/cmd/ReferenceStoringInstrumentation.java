@@ -235,8 +235,7 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
 
         @Override
         public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
-            return not(isBootstrapClassLoader())
-                .and(classLoaderCanLoadClass(PROCESS_CLASS_NAME));
+            return classLoaderCanLoadClass(PROCESS_CLASS_NAME);
         }
 
         @Override
