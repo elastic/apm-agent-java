@@ -37,6 +37,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
@@ -185,8 +186,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onAfterExecute(@Advice.This Statement statement,
-                                          @Advice.Enter @Nullable Span span,
+        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t,
                                           @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
             if (span != null) {
@@ -293,9 +293,54 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
     /**
      * Instruments:
      *  <ul>
-     *      <li>{@link java.sql.PreparedStatement#execute}</li>
-     *      <li>{@link java.sql.PreparedStatement#executeQuery}</li>
+     *      <li>{@link PreparedStatement#executeUpdate()} </li>
+     *      <li>{@link PreparedStatement#executeLargeUpdate()} ()} (java8)</li>
      *  </ul>
+     */
+    public static class ExecuteUpdateNoQueryInstrumentation extends StatementInstrumentation {
+        public ExecuteUpdateNoQueryInstrumentation(ElasticApmTracer tracer) {
+            super(tracer,
+                named("executeUpdate").or(named("executeLargeUpdate"))
+                    .and(takesArguments(0))
+                    .and(isPublic())
+            );
+        }
+
+        @Nullable
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static Span onBeforeExecute(@Advice.This Statement statement) throws SQLException {
+            if (tracer != null && jdbcHelperManager != null) {
+                JdbcHelper helperImpl = jdbcHelperManager.getForClassLoaderOfClass(Statement.class);
+                if (helperImpl != null) {
+                    final @Nullable String sql = helperImpl.retrieveSqlForStatement(statement);
+                    return helperImpl.createJdbcSpan(sql, statement.getConnection(), tracer.getActive(), true);
+                }
+            }
+            return null;
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        public static void onAfterExecute(@Advice.Enter @Nullable Span span,
+                                          @Advice.Thrown @Nullable Throwable t,
+                                          @Advice.Return long returnValue /* bytebuddy converts int to long for us here ! */) {
+            if (span != null) {
+                if (t == null) {
+                    span.getContext().getDb().withAffectedRowsCount(returnValue);
+                }
+
+                span.captureException(t)
+                    .deactivate()
+                    .end();
+            }
+        }
+    }
+
+    /**
+     * Instruments:
+     * <ul>
+     *     <li>{@link java.sql.PreparedStatement#execute}</li>
+     *     <li>{@link java.sql.PreparedStatement#executeQuery}</li>
+     * </ul>
      */
     public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
         public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
