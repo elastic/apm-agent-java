@@ -14,4 +14,19 @@
     <artifactId>apm-error-logging-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${version.log4j}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${version.log4j}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>

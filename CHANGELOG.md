@@ -1,6 +1,8 @@
 # (Next)
 
 ## Features
+ * Instrument log4j Logger#error(String, Throwable) (#919)
+   Automatically captures exceptions when calling `logger.error("message", exception)`
 
 ## Bug Fixes
 

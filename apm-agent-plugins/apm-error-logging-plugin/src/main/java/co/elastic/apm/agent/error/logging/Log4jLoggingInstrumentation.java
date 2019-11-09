@@ -40,14 +40,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class Slf4jLoggingInstrumentation extends ElasticApmInstrumentation {
+public class Log4jLoggingInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Class<?> getAdviceClass() {
-        return Slf4jLoggingAdviceService.class;
+        return Log4jLoggingAdviceService.class;
     }
 
-    public static class Slf4jLoggingAdviceService {
+    public static class Log4jLoggingAdviceService {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void logEnter(@Advice.Argument(1) Throwable exception) {
@@ -65,7 +65,7 @@ public class Slf4jLoggingInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
+        return hasSuperType(named("org.apache.logging.log4j.Logger")).and(not(hasSuperType(named("org.slf4j.Logger"))));
     }
 
     @Override
@@ -77,6 +77,6 @@ public class Slf4jLoggingInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("logging", "slf4j");
+        return Arrays.asList("logging", "log4j");
     }
 }

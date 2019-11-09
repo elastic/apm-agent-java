@@ -63,6 +63,7 @@
         <version.logback>1.2.3</version.logback>
         <version.okhttp>3.9.1</version.okhttp>
         <version.slf4j>1.7.25</version.slf4j>
+        <version.log4j>2.12.1</version.log4j>
         <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
         <version.junit-vintage-engine>5.3.2</version.junit-vintage-engine>
