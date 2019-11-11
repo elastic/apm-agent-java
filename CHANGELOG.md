@@ -3,6 +3,7 @@
 ## Features
 
 ## Bug Fixes
+ * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
 
 # 1.11.0
 
