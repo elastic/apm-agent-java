@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -94,7 +94,7 @@ public class SystemInfo {
         }
         return new SystemInfo(System.getProperty("os.arch"), reportedHostname, System.getProperty("os.name")).findContainerDetails();
     }
-    
+
     public static SystemInfo create() {
         return create(null);
     }
@@ -191,6 +191,7 @@ public class SystemInfo {
                         for (int i = 1; i <= matcher.groupCount(); i++) {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
+                                podUid = podUid.replace('_', '-');
                                 logger.debug("Found Kubernetes pod UID: {}", podUid);
                                 // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
                                 // the name should use the Downward API to override the pod name.

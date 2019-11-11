@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -65,6 +65,15 @@ public class ContainerInfoTest {
         assertContainerId(validLinePrefix + uuid, uuid);
         assertContainerInfoIsNull(validLinePrefix + validId.concat("/"));
         assertContainerId("5:blkio:/system.slice/garden.service/garden/" + validId, validId);
+    }
+
+    @Test
+    void testOkdInfoParsing() {
+        String groupFileLine = "11:pids:/kubepods.slice/kubepods-burstable.slice/" +
+            "kubepods-burstable-pod3f268d6d_0293_11ea_be82_005056938be8.slice/" +
+            "docker-ff4285cc2723440d824a79f530607873a0763da610d94f69070ee3c62459af15.scope";
+        SystemInfo systemInfo = assertContainerId(groupFileLine, "ff4285cc2723440d824a79f530607873a0763da610d94f69070ee3c62459af15");
+        assertKubernetesInfo(systemInfo, "3f268d6d-0293-11ea-be82-005056938be8", "my-host", null, null);
     }
 
     @Test
