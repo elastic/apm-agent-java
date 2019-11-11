@@ -68,15 +68,6 @@ public class ContainerInfoTest {
     }
 
     @Test
-    void testOkdInfoParsing() {
-        String groupFileLine = "11:pids:/kubepods.slice/kubepods-burstable.slice/" +
-            "kubepods-burstable-pod3f268d6d_0293_11ea_be82_005056938be8.slice/" +
-            "docker-ff4285cc2723440d824a79f530607873a0763da610d94f69070ee3c62459af15.scope";
-        SystemInfo systemInfo = assertContainerId(groupFileLine, "ff4285cc2723440d824a79f530607873a0763da610d94f69070ee3c62459af15");
-        assertKubernetesInfo(systemInfo, "3f268d6d-0293-11ea-be82-005056938be8", "my-host", null, null);
-    }
-
-    @Test
     void testEcsFormat() {
         String id = "7e9139716d9e5d762d22f9f877b87d1be8b1449ac912c025a984750c5dbff157";
         assertContainerId("3:cpuacct:/ecs/eb9d3d0c-8936-42d7-80d8-f82b2f1a629e/" + id, id);
@@ -93,15 +84,16 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    }
 
-        // 1:name=systemd:/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod90d81341_92de_11e7_8cf2_507b9d4141fa.slice/
-        //                                                      crio-2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63.scope
-        containerId = "2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63";
-        podId = "90d81341_92de_11e7_8cf2_507b9d4141fa";
-        line = "1:name=systemd:/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod" + podId + ".slice/crio-" + containerId +
-            ".scope";
-        systemInfo = assertContainerId(line, containerId);
-        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    @Test
+    void testKubernetesInfo_podUid_with_underscores() {
+        // In such cases- underscores should be replaced with hyphens in the pod UID
+        String line = "1:name=systemd:/kubepods.slice/kubepods-burstable.slice/" +
+            "kubepods-burstable-pod90d81341_92de_11e7_8cf2_507b9d4141fa.slice/" +
+            "crio-2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63.scope";
+        SystemInfo systemInfo = assertContainerId(line, "2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63");
+        assertKubernetesInfo(systemInfo, "90d81341-92de-11e7-8cf2-507b9d4141fa", "my-host", null, null);
     }
 
     @Test
