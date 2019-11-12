@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -94,7 +94,7 @@ public class SystemInfo {
         }
         return new SystemInfo(System.getProperty("os.arch"), reportedHostname, System.getProperty("os.name")).findContainerDetails();
     }
-    
+
     public static SystemInfo create() {
         return create(null);
     }
@@ -165,6 +165,17 @@ public class SystemInfo {
      * The virtual file /proc/self/cgroup lists the control groups that the process is a member of. Each line contains
      * three colon-separated fields of the form hierarchy-ID:subsystem-list:cgroup-path.
      *
+     * Depending on the filesystem driver used for cgroup management, the cgroup-path will have
+     * one of the following formats in a Docker container:
+     *
+     * 		systemd: /system.slice/docker-<container-ID>.scope
+     * 		cgroupfs: /docker/<container-ID>
+     *
+     * 	In a Kubernetes pod, the cgroup path will look like:
+     *
+     * 		systemd: /kubepods.slice/kubepods-<QoS-class>.slice/kubepods-<QoS-class>-pod<pod-UID>.slice/<container-iD>.scope
+     * 		cgroupfs: /kubepods/<QoS-class>/pod<pod-UID>/<container-iD>
+     *
      * @param line a line from the /proc/self/cgroup file
      * @return this SystemInfo object after parsing
      */
@@ -191,6 +202,10 @@ public class SystemInfo {
                         for (int i = 1; i <= matcher.groupCount(); i++) {
                             String podUid = matcher.group(i);
                             if (podUid != null && !podUid.isEmpty()) {
+                                if (i == 2) {
+                                    // systemd cgroup driver is being used, so we need to unescape '_' back to '-'.
+                                    podUid = podUid.replace('_', '-');
+                                }
                                 logger.debug("Found Kubernetes pod UID: {}", podUid);
                                 // By default, Kubernetes will set the hostname of the pod containers to the pod name. Users that override
                                 // the name should use the Downward API to override the pod name.
