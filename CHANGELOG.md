@@ -4,6 +4,7 @@
 
 ## Bug Fixes
  * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
+ * When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" (#920)
 
 # 1.11.0
 
