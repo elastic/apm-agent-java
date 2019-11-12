@@ -76,7 +76,8 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
-        return nameContains("Statement");
+        // DB2 driver does not call its Statements statements.
+        return nameContains("Statement").or(nameStartsWith("com.ibm.db2.jcc"));
     }
 
     @Override
