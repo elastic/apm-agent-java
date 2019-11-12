@@ -39,7 +39,6 @@
         <plugins>
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>generate-source-jar</id>
@@ -52,7 +51,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>${version.plugin.jar}</version>
                 <configuration>
                     <archive>
                         <manifestEntries>

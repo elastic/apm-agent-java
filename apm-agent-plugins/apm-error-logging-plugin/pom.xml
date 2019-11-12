@@ -8,11 +8,11 @@
         <version>1.11.1-SNAPSHOT</version>
     </parent>
 
+    <artifactId>apm-error-logging-plugin</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
-
-    <artifactId>apm-error-logging-plugin</artifactId>
-    <name>${project.groupId}:${project.artifactId}</name>
 
 </project>

@@ -8,8 +8,8 @@
         <version>1.11.1-SNAPSHOT</version>
     </parent>
 
-    <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>apm-jedis-3-tests</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>

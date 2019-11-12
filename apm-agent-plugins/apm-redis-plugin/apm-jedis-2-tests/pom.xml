@@ -8,8 +8,8 @@
         <version>1.11.1-SNAPSHOT</version>
     </parent>
 
-    <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>apm-jedis-2-tests</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../../..</apm-agent-parent.base.dir>
@@ -47,9 +47,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>${version.plugin.jar}</version>
                 <executions>
                     <execution>
                         <goals>
