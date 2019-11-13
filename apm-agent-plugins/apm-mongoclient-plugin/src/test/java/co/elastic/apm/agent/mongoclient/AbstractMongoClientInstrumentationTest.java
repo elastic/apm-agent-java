@@ -92,6 +92,14 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
     }
 
     @Test
+    public void testListCollections() throws Exception {
+        listCollections();
+
+        assertThat(reporter.getSpans()).hasSize(1);
+        assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("testdb.listCollections");
+    }
+
+    @Test
     public void testCountCollection() throws Exception {
         long count = count();
 
@@ -186,5 +194,8 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
     protected abstract void insert(Document document) throws Exception;
 
     protected abstract void createCollection() throws Exception;
+
+    protected abstract void listCollections() throws Exception;
+
 }
 

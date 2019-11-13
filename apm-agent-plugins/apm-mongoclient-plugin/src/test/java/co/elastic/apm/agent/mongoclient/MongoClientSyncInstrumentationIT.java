@@ -86,4 +86,9 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     public void delete(Document searchQuery) {
         db.getCollection(COLLECTION_NAME).deleteOne(searchQuery);
     }
+
+    @Override
+    protected void listCollections() {
+        db.listCollections().first();
+    }
 }

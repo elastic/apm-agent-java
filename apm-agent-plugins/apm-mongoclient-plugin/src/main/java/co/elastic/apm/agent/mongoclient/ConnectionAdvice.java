@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
 import net.bytebuddy.asm.Advice;
 import org.bson.BsonDocument;
+import org.bson.BsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class ConnectionAdvice {
             collection = namespace.getCollectionName();
         }
 
-        span.withType("db").withSubtype("mongodb").withAction("query")
+        span.withType("db").withSubtype("mongodb")
             .appendToName(database).getContext().getDb().withType("mongodb");
         try {
             String cmd =
@@ -72,9 +73,13 @@ public class ConnectionAdvice {
                 command.containsKey("create") ? "create" :
                 command.keySet().iterator().next();
             if (collection == null) {
-                collection = command.getString(cmd).getValue();
+                BsonValue collectionName = command.get(cmd);
+                if (collectionName != null && collectionName.isString()) {
+                    collection = collectionName.asString().getValue();
+                    span.appendToName(".").appendToName(collection);
+                }
             }
-            span.appendToName(".").appendToName(collection).appendToName(".").appendToName(cmd);
+            span.appendToName(".").appendToName(cmd).withAction(cmd);
         } catch (RuntimeException e) {
             logger.error("Exception while determining MongoDB command and collection", e);
         }

@@ -116,6 +116,11 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     }
 
     @Override
+    protected void listCollections() throws Exception {
+        MongoClientAsyncInstrumentationIT.<Document>executeAndGet(c -> db.listCollections().first(c));
+    }
+
+    @Override
     protected void insert(Document document) throws Exception {
         executeAndWait(c -> db.getCollection(COLLECTION_NAME).insertOne(document, c));
     }

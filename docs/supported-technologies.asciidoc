@@ -174,7 +174,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
  At the moment, only the synchronous driver (mongo-java-driver) is supported.
  The asynchronous and reactive drivers are currently not supported.
 
- The name of the span is `<db>.<collection>.<action>`.
+ The name of the span is `<db>.<collection>.<command>`.
  The actual query will not be recorded.
 |1.11.0
 

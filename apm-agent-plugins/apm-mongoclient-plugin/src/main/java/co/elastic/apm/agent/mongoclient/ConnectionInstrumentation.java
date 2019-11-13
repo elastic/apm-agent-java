@@ -81,15 +81,16 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             return null;
         }
 
-        span.withType("db").withSubtype("mongodb").withAction("query")
+        span.withType("db").withSubtype("mongodb")
             .getContext().getDb().withType("mongodb");
+        String command = methodName;
+        if (methodName.equals("query")) {
+            // if the method name is query, that corresponds to the find command
+            command = "find";
+        }
+        span.withAction(command);
         StringBuilder spanName = span.getAndOverrideName(AbstractSpan.PRIO_DEFAULT);
         if (spanName != null) {
-            String command = methodName;
-            if (methodName.equals("query")) {
-                // if the method name is query, that corresponds to the find command
-                command = "find";
-            }
             int indexOfCommand = command.indexOf("Command");
             spanName.append(namespace.getDatabaseName())
                 .append(".").append(namespace.getCollectionName())
