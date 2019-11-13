@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -58,7 +58,6 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     private final ObjectPool<ResponseListenerWrapper> responseListenerObjectPool;
 
     public ElasticsearchRestClientInstrumentationHelperImpl(ElasticApmTracer tracer) {
-        System.out.println("Init helper.");
         this.tracer = tracer;
         responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
             AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
@@ -76,7 +75,6 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
     @Override
     @Nullable
     public Span createClientSpan(String method, String endpoint, @Nullable HttpEntity httpEntity) {
-        System.out.println("Create client span");
         final TraceContextHolder<?> activeSpan = tracer.getActive();
         if (activeSpan == null || !activeSpan.isSampled()) {
             return null;
@@ -113,7 +111,6 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
 
     @Override
     public void finishClientSpan(@Nullable Response response, Span span, @Nullable Throwable t) {
-        System.out.println("Try to finish client psan");
         try {
             String url = null;
             int statusCode = -1;

@@ -12,19 +12,6 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <version.mongodb>[3.0.4,)</version.mongodb>
-        <!--manually tested these versions-->
-        <!--<version.mongodb>3.11.1</version.mongodb>-->
-        <!--<version.mongodb>3.10.2</version.mongodb>-->
-        <!--<version.mongodb>3.9.0</version.mongodb>-->
-        <!--<version.mongodb>3.8.2</version.mongodb>-->
-        <!--<version.mongodb>3.7.1</version.mongodb>-->
-        <!--<version.mongodb>3.6.4</version.mongodb>-->
-        <!--<version.mongodb>3.5.0</version.mongodb>-->
-        <!--<version.mongodb>3.4.3</version.mongodb>-->
-        <!--<version.mongodb>3.3.0</version.mongodb>-->
-        <!--<version.mongodb>3.2.2</version.mongodb>-->
-        <!--<version.mongodb>3.1.1</version.mongodb>-->
-        <!--<version.mongodb>3.0.4</version.mongodb>-->
     </properties>
 
     <artifactId>apm-mongoclient-plugin</artifactId>

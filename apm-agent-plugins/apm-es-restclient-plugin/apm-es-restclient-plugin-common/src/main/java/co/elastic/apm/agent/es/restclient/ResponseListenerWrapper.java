@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,7 +40,6 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
     private volatile Span span;
 
     ResponseListenerWrapper(ElasticsearchRestClientInstrumentationHelperImpl helper) {
-        System.out.println("Init wrapper");
         this.helper = helper;
     }
 
@@ -53,7 +52,6 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void onSuccess(Response response) {
-        System.out.println("On success.");
         try {
             finishClientSpan(response, null);
         } finally {
@@ -66,7 +64,6 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void onFailure(Exception exception) {
-        System.out.println("On failure");
         try {
             finishClientSpan(null, exception);
         } finally {
@@ -87,7 +84,6 @@ public class ResponseListenerWrapper implements ResponseListener, Recyclable {
 
     @Override
     public void resetState() {
-        System.out.println("### TRY TO RESET STATE");
         delegate = null;
         span = null;
     }

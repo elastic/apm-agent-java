@@ -72,6 +72,7 @@ public abstract class ElasticApmInstrumentation {
     }
 
     @Nullable
+    @VisibleForAdvice
     public static TraceContextHolder<?> getActive() {
         if (tracer != null) {
             return tracer.getActive();
@@ -80,6 +81,7 @@ public abstract class ElasticApmInstrumentation {
     }
 
     @Nullable
+    @VisibleForAdvice
     public static Span createExitSpan() {
         final TraceContextHolder<?> activeSpan = getActive();
         if (activeSpan == null || activeSpan.isExit()) {

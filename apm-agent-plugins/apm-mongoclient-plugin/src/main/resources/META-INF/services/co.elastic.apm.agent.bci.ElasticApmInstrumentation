@@ -1,3 +1,2 @@
 co.elastic.apm.agent.mongoclient.ConnectionCommandInstrumentation
 co.elastic.apm.agent.mongoclient.ConnectionInstrumentation
-#co.elastic.apm.agent.mongoclient.AsyncConnectionInstrumentation
