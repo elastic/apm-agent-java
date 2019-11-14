@@ -1,182 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <properties>
-        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
-        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-    </properties>
 
     <parent>
         <groupId>co.elastic.apm</groupId>
         <artifactId>apm-agent-parent</artifactId>
         <version>1.11.1-SNAPSHOT</version>
     </parent>
-    <packaging>jar</packaging>
 
     <artifactId>elastic-apm-agent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>generate-source-jar</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.coderplus.maven.plugins</groupId>
-                <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>1.0</version>
-                <executions>
-                    <execution>
-                        <id>copy-file</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
-                            <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <createSourcesJar>true</createSourcesJar>
-                            <shadeSourcesContent>true</shadeSourcesContent>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/module-info.class</exclude>
-                                    </excludes>
-                                </filter>
-                                <filter>
-                                    <artifact>org.hdrhistogram:HdrHistogram</artifact>
-                                    <!--
-                                    Currently, we only need this single class.
-                                    We need to be careful not to use others.
-                                    But even if we did, the integration tests should catch that there's a missing class.
-                                    -->
-                                    <includes>
-                                        <include>org/HdrHistogram/WriterReaderPhaser.class</include>
-                                    </includes>
-                                </filter>
-                            </filters>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.dslplatform</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.lmax</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.lmax</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.slf4j</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.stagemonitor</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.jctools</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
-                                </relocation>
-                                <!--
-                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
-                                Although this is not a package but a string constant, it does work
-                                -->
-                                <relocation>
-                                    <pattern>simplelogger.properties</pattern>
-                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
-                                </relocation>
-                                <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
-                                <relocation>
-                                    <pattern>java.util.logging.Logger</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.HdrHistogram</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
-                                </relocation>
-                            </relocations>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <manifestEntries>
-                                        <Premain-Class>${elastic.apm.agent}</Premain-Class>
-                                        <Agent-Class>${elastic.apm.agent}</Agent-Class>
-                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
-                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
-                                        <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
-                                        <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
-                                    </manifestEntries>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                                    <resource>META-INF/LICENSE</resource>
-                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${version.plugin.javadoc}</version>
-                <configuration>
-                    <additionalOptions>-html5</additionalOptions>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <includeDependencySources>true</includeDependencySources>
-                            <dependencySourceIncludes>
-                                <dependencySourceInclude>${project.groupId}:apm-agent-api</dependencySourceInclude>
-                                <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
-                            </dependencySourceIncludes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <properties>
+        <elastic.apm.agent>co.elastic.apm.agent.bci.AgentMain</elastic.apm.agent>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -352,4 +190,162 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>generate-source-jar</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${apm-agent-parent.base.dir}/NOTICE</sourceFile>
+                            <destinationFile>target/classes/META-INF/NOTICE</destinationFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.hdrhistogram:HdrHistogram</artifact>
+                                    <!--
+                                    Currently, we only need this single class.
+                                    We need to be careful not to use others.
+                                    But even if we did, the integration tests should catch that there's a missing class.
+                                    -->
+                                    <includes>
+                                        <include>org/HdrHistogram/WriterReaderPhaser.class</include>
+                                    </includes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.bytebuddy</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.dslplatform</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.dslplatform</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.lmax</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.lmax</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.slf4j</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.slf4j</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.stagemonitor</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.stagemonitor</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.jctools</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.jctools</shadedPattern>
+                                </relocation>
+                                <!--
+                                Makes sure that the relocated slf4j simple does not look for a simplelogger.properties
+                                Although this is not a package but a string constant, it does work
+                                -->
+                                <relocation>
+                                    <pattern>simplelogger.properties</pattern>
+                                    <shadedPattern>elasticapmlogger.properties</shadedPattern>
+                                </relocation>
+                                <!-- See javadoc of co.elastic.apm.agent.logging.JulBridgeLogger -->
+                                <relocation>
+                                    <pattern>java.util.logging.Logger</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.logging.JulBridgeLogger</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.blogspot.mydailyjava.weaklockfree</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.weaklockfree</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.HdrHistogram</pattern>
+                                    <shadedPattern>co.elastic.apm.agent.shaded.HdrHistogram</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>${elastic.apm.agent}</Premain-Class>
+                                        <Agent-Class>${elastic.apm.agent}</Agent-Class>
+                                        <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                                        <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                        <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                        <Automatic-Module-Name>${project.groupId}.agent</Automatic-Module-Name>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/LICENSE</resource>
+                                    <file>${apm-agent-parent.base.dir}/LICENSE</file>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalOptions>-html5</additionalOptions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <includeDependencySources>true</includeDependencySources>
+                            <dependencySourceIncludes>
+                                <dependencySourceInclude>${project.groupId}:apm-agent-api</dependencySourceInclude>
+                                <dependencySourceInclude>${project.groupId}:apm-agent-core</dependencySourceInclude>
+                            </dependencySourceIncludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
