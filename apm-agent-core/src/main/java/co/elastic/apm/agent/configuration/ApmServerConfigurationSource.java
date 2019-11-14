@@ -191,7 +191,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
                 reader.startObject();
                 config = MapConverter.deserialize(reader);
                 configurationRegistry.reloadDynamicConfigurationOptions();
-                logger.info("Received new configuration from APM Server: {}", config);
+                logger.debug("Received new configuration from APM Server: {}", config);
                 for (Map.Entry<String, String> entry : config.entrySet()) {
                     ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
                     if (conf == null) {
