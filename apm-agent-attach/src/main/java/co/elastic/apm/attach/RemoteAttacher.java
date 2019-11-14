@@ -34,8 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -121,7 +121,7 @@ public class RemoteAttacher {
     private void onJvmStart(JvmInfo jvmInfo) {
         if (isIncluded(jvmInfo) && !isExcluded(jvmInfo)) {
             try {
-                final String agentArgs = getAgentArgs(jvmInfo);
+                final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
                 log("INFO", "Attaching the Elastic APM agent to %s with arguments %s", jvmInfo, agentArgs);
                 ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
                 log("INFO", "Done");
@@ -133,12 +133,20 @@ public class RemoteAttacher {
         }
     }
 
-    private String getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        return arguments.getArgsProvider() != null ? getArgsProviderOutput(jvmInfo) : ElasticApmAttacher.toAgentArgs(arguments.getConfig());
+    private Map<String, String> getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
+        if (arguments.getArgsProvider() != null) {
+            LinkedHashMap<String, String> config = new LinkedHashMap<>();
+            for (String conf : getArgsProviderOutput(jvmInfo).split(";")) {
+                config.put(conf.substring(0, conf.indexOf('=')), conf.substring(conf.indexOf('=') + 1));
+            }
+            return config;
+        } else {
+            return arguments.getConfig();
+        }
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPath).start();
+        final Process argsProvider = new ProcessBuilder(arguments.getArgsProvider(), jvmInfo.pid, jvmInfo.packageOrPathOrJvmProperties).start();
         if (argsProvider.waitFor() == 0) {
             return toString(argsProvider.getInputStream());
         } else {
@@ -153,7 +161,7 @@ public class RemoteAttacher {
             return true;
         }
         for (String include : arguments.getIncludes()) {
-            if (jvmInfo.packageOrPath.matches(include)) {
+            if (jvmInfo.packageOrPathOrJvmProperties.matches(include)) {
                 return true;
             }
         }
@@ -162,7 +170,7 @@ public class RemoteAttacher {
 
     private boolean isExcluded(JvmInfo jvmInfo) {
         for (String exclude : arguments.getExcludes()) {
-            if (jvmInfo.packageOrPath.matches(exclude)) {
+            if (jvmInfo.packageOrPathOrJvmProperties.matches(exclude)) {
                 return true;
             }
         }
@@ -200,7 +208,7 @@ public class RemoteAttacher {
             String pid = null;
             List<String> includes = new ArrayList<>();
             List<String> excludes = new ArrayList<>();
-            Map<String, String> config = new HashMap<>();
+            Map<String, String> config = new LinkedHashMap<>();
             String argsProvider = null;
             boolean help = args.length == 0;
             boolean list = false;
@@ -302,7 +310,7 @@ public class RemoteAttacher {
             out.println();
             out.println("OPTIONS");
             out.println("    -l, --list");
-            out.println("        Lists all running JVMs. Same output as 'jps -l'.");
+            out.println("        Lists all running JVMs. Same output as 'jps -lv'.");
             out.println();
             out.println("    -p, --pid <pid>");
             out.println("        PID of the JVM to attach. If not provided, attaches to all currently running JVMs which match the --exclude and --include filters.");
@@ -311,13 +319,13 @@ public class RemoteAttacher {
             out.println("        If provided, this program continuously runs and attaches to all running and starting JVMs which match the --exclude and --include filters.");
             out.println();
             out.println("    -e, --exclude <exclude_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should not be attached to.");
-            out.println("        (Matches the output of 'jps -l')");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should not be attached to.");
+            out.println("        (Matches the output of 'jps -lv')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -i, --include <include_pattern>...");
-            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications the java agent should be attached to.");
-            out.println("        (Matches the output of 'jps -l')");
+            out.println("        A list of regular expressions of fully qualified main class names or paths to JARs of applications or any JVM system property of the java process the java agent should be attached to.");
+            out.println("        (Matches the output of 'jps -lv')");
             out.println("        Note: this is only available if jps is installed");
             out.println();
             out.println("    -a, --args <agent_arguments>");

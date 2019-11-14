@@ -209,6 +209,10 @@ public class MockReporter implements Reporter {
         return errors.iterator().next();
     }
 
+    /**
+     * @deprecated part of v1 intake protocol
+     */
+    @Deprecated
     public String generateTransactionPayloadJson() {
         TransactionPayload payload = PayloadUtils.createTransactionPayload();
         payload.getTransactions().addAll(transactions);
@@ -216,6 +220,10 @@ public class MockReporter implements Reporter {
         return dslJsonSerializer.toJsonString(payload);
     }
 
+    /**
+     * @deprecated part of v1 intake protocol
+     */
+    @Deprecated
     public String generateErrorPayloadJson() {
         ErrorPayload errorPayload = PayloadUtils.createErrorPayload();
         errorPayload.getErrors().addAll(errors);

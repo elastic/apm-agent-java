@@ -108,11 +108,8 @@ public class SpringJmsTest extends AbstractInstrumentationTest {
             assertThat(result.get(key2).toString()).isEqualTo(value2);
 
             List<Transaction> transactions = reporter.getTransactions();
-            // The way the Spring framework works is polling through a standard JMS receive API in order to get the
-            // message, with which it then invokes the SpringMapMessageListener.onMessage() implementation, so we expect
-            // two JMS receive transactions (one for the receive and one for the onMessage), both with same parent and traceId
-            assertThat(transactions).hasSize(3);
-            Transaction baseTransaction = transactions.get(2);
+            assertThat(transactions).hasSize(2);
+            Transaction baseTransaction = transactions.get(1);
             Id traceId = baseTransaction.getTraceContext().getTraceId();
 
             List<Span> spans = reporter.getSpans();

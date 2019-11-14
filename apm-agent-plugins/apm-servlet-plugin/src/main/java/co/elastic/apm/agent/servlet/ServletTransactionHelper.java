@@ -35,7 +35,6 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.web.ClientIpUtils;
 import co.elastic.apm.agent.web.ResultUtil;
 import co.elastic.apm.agent.web.WebConfiguration;
 import org.slf4j.Logger;
@@ -279,7 +278,7 @@ public class ServletTransactionHelper {
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        if (excludeUrlMatcher != null) {
+        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
                 servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
         }
@@ -288,7 +287,12 @@ public class ServletTransactionHelper {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
                 userAgentHeader, excludeAgentMatcher);
         }
-        return excludeUrlMatcher != null || excludeAgentMatcher != null;
+        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
+        if (!isExcluded && logger.isTraceEnabled()) {
+            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
+                servletPath, pathInfo, userAgentHeader);
+        }
+        return isExcluded;
     }
 
     private void fillResponse(Response response, boolean committed, int status) {
@@ -306,7 +310,7 @@ public class ServletTransactionHelper {
 
         request.getSocket()
             .withEncrypted(secure)
-            .withRemoteAddress(ClientIpUtils.getRealIp(request.getHeaders(), remoteAddr));
+            .withRemoteAddress(remoteAddr);
 
         request.getUrl()
             .withProtocol(scheme)

@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -198,9 +199,14 @@ public class ApmServerClient {
      */
     @Nullable
     public <V> V execute(String path, ConnectionHandler<V> connectionHandler) throws Exception {
+        final List<URL> prioritizedUrlList = getPrioritizedUrlList();
+        if (prioritizedUrlList.isEmpty()) {
+            return null;
+        }
+
         int expectedErrorCount = errorCount.get();
         Exception previousException = null;
-        for (URL serverUrl : getPrioritizedUrlList()) {
+        for (URL serverUrl : prioritizedUrlList) {
             HttpURLConnection connection = null;
             try {
                 connection = startRequestToUrl(appendPath(serverUrl, path));
@@ -213,9 +219,7 @@ public class ApmServerClient {
                 }
                 previousException = e;
             } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+                HttpUtils.consumeAndClose(connection);
             }
         }
         if (previousException == null) {
@@ -234,9 +238,7 @@ public class ApmServerClient {
             } catch (Exception e) {
                 logger.debug("Exception while interacting with APM Server", e);
             } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+                HttpUtils.consumeAndClose(connection);
             }
         }
         return results;
@@ -287,6 +289,17 @@ public class ApmServerClient {
     }
 
     public interface ConnectionHandler<T> {
+
+        /**
+         * Gets the {@link HttpURLConnection} after the connection has been established and returns a result,
+         * for example the status code or the response body.
+         *
+         * NOTE: do not call {@link InputStream#close()} as that is handled by {@link ApmServerClient}
+         *
+         * @param connection the connection
+         * @return the result
+         * @throws IOException if an I/O error occurs while handling the connection
+         */
         @Nullable
         T withConnection(HttpURLConnection connection) throws IOException;
     }

@@ -136,12 +136,27 @@ public class MetricRegistry {
         return WildcardMatcher.anyMatch(config.getDisableMetrics(), name) != null;
     }
 
-    public double getGauge(String name, Labels labels) {
+    public double getGaugeValue(String name, Labels labels) {
         final MetricSet metricSet = activeMetricSets.get(labels);
         if (metricSet != null) {
-            return metricSet.getGauge(name).get();
+            DoubleSupplier gauge = metricSet.getGauge(name);
+            if (gauge != null) {
+                return gauge.get();
+            }
         }
         return Double.NaN;
+    }
+
+    @Nullable
+    public DoubleSupplier getGauge(String name, Labels labels) {
+        final MetricSet metricSet = activeMetricSets.get(labels);
+        if (metricSet != null) {
+            DoubleSupplier gauge = metricSet.getGauge(name);
+            if (gauge != null) {
+                return gauge;
+            }
+        }
+        return null;
     }
 
     public void report(MetricsReporter metricsReporter) {
@@ -233,6 +248,13 @@ public class MetricRegistry {
      */
     public void writerCriticalSectionExit(long criticalValueAtEnter) {
         phaser.writerCriticalSectionExit(criticalValueAtEnter);
+    }
+
+    public void removeGauge(String metricName, Labels labels) {
+        MetricSet metricSet = activeMetricSets.get(labels);
+        if (metricSet != null) {
+            metricSet.getGauges().remove(metricName);
+        }
     }
 
     public interface MetricsReporter {

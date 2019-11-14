@@ -3,7 +3,7 @@
 @Library('apm@current') _
 
 pipeline {
-  agent any
+  agent { label 'linux && immutable' }
   environment {
     REPO = 'apm-agent-java'
     BASE_DIR = "src/github.com/elastic/${env.REPO}"
@@ -38,7 +38,6 @@ pipeline {
 
   stages {
     stage('Initializing'){
-      agent { label 'linux && immutable' }
       options { skipDefaultCheckout() }
       environment {
         HOME = "${env.WORKSPACE}"
@@ -46,7 +45,7 @@ pipeline {
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
       }
-      stages(){
+      stages {
         /**
          Checkout the code and stash it, to use it on other stages.
         */
@@ -92,7 +91,6 @@ pipeline {
           Run only unit test.
         */
         stage('Unit Tests') {
-          agent { label 'linux && immutable' }
           options { skipDefaultCheckout() }
           environment {
             HOME = "${env.WORKSPACE}"

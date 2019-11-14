@@ -9,3 +9,5 @@
 1.7.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.7.0/elastic-apm-agent-1.7.0.jar
 1.8.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.8.0/elastic-apm-agent-1.8.0.jar
 1.9.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.9.0/elastic-apm-agent-1.9.0.jar
+1.10.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.10.0/elastic-apm-agent-1.10.0.jar
+1.11.0: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.11.0/elastic-apm-agent-1.11.0.jar

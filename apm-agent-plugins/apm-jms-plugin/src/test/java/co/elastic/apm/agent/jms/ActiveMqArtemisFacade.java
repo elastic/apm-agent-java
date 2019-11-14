@@ -39,7 +39,9 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Topic;
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -50,6 +52,7 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     private ActiveMQConnectionFactory connectionFactory;
     private ActiveMQServerImpl activeMQServer;
     private JMSContext context;
+    private final Map<Destination, JMSConsumer> consumerCache = new HashMap<>();
 
     @Override
     public void prepareResources() throws Exception {
@@ -84,6 +87,7 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     public void afterTest() {
         // This should also close underlying producers and consumers
         context.close();
+        consumerCache.clear();
     }
 
     @Override
@@ -143,12 +147,12 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
 
     @Override
     public Message receive(Destination destination) {
-        return context.createConsumer(destination).receive();
+        return getOrCreateQueueConsumer(destination).receive();
     }
 
     @Override
     public Message receive(Destination destination, long timeout) {
-        return context.createConsumer(destination).receive(timeout);
+        return getOrCreateQueueConsumer(destination).receive(timeout);
     }
 
     @Override
@@ -158,6 +162,15 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
 
     @Override
     public Message receiveNoWait(Destination destination) {
-        return context.createConsumer(destination).receiveNoWait();
+        return getOrCreateQueueConsumer(destination).receiveNoWait();
+    }
+
+    private JMSConsumer getOrCreateQueueConsumer(Destination destination) {
+        JMSConsumer consumer = consumerCache.get(destination);
+        if (consumer == null) {
+            consumer = context.createConsumer(destination);
+            consumerCache.put(destination, consumer);
+        }
+        return consumer;
     }
 }

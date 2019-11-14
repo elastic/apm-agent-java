@@ -78,7 +78,7 @@ public interface JvmDiscoverer {
 
         @Nonnull
         private static String getJpsOutput() throws IOException, InterruptedException {
-            final Process jps = new ProcessBuilder("jps", "-l").start();
+            final Process jps = new ProcessBuilder("jps", "-lv").start();
             if (jps.waitFor() == 0) {
                 return RemoteAttacher.toString(jps.getInputStream());
             } else {
@@ -104,7 +104,7 @@ public interface JvmDiscoverer {
         @Override
         public boolean isAvailable() {
             try {
-                return new ProcessBuilder("jps", "-l").start().waitFor() == 0;
+                return new ProcessBuilder("jps", "-lv").start().waitFor() == 0;
             } catch (Exception e) {
                 return false;
             }
@@ -143,7 +143,12 @@ public interface JvmDiscoverer {
                 if (temporaryDirectory == null) {
                     temporaryDirectory = "/tmp";
                 }
-            } else {
+            } else if (Platform.isWindows()) {
+				temporaryDirectory = System.getenv("TEMP");
+				if (temporaryDirectory == null) {
+                    temporaryDirectory = "c:/Temp";
+                }
+			} else {
                 temporaryDirectory = "/tmp";
             }
             return new ForHotSpotVm(temporaryDirectory);

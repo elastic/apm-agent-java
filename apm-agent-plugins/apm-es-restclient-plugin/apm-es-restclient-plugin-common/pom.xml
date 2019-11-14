@@ -5,7 +5,7 @@
     <parent>
         <artifactId>apm-es-restclient-plugin</artifactId>
         <groupId>co.elastic.apm</groupId>
-        <version>1.9.1-SNAPSHOT</version>
+        <version>1.11.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>apm-es-restclient-plugin-common</artifactId>
@@ -33,9 +33,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>${version.plugin.jar}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -46,4 +44,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

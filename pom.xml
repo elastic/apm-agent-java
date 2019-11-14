@@ -4,10 +4,13 @@
 
     <groupId>co.elastic.apm</groupId>
     <artifactId>apm-agent-parent</artifactId>
-    <name>${project.groupId}:${project.artifactId}</name>
-    <version>1.9.1-SNAPSHOT</version>
+    <version>1.11.1-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+
     <inceptionYear>2018</inceptionYear>
+
     <organization>
         <name>Elastic Inc.</name>
         <url>https://www.elastic.co</url>
@@ -39,7 +42,30 @@
         </developer>
     </developers>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>sonatype-nexus-staging</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <modules>
+        <module>apm-agent-core</module>
+        <module>elastic-apm-agent</module>
+        <module>apm-agent-benchmarks</module>
+        <module>apm-agent-plugins</module>
+        <module>apm-agent-api</module>
+        <module>apm-opentracing</module>
+        <module>integration-tests</module>
+        <module>apm-agent-attach</module>
+    </modules>
+
     <properties>
+
         <maven.compiler.target>7</maven.compiler.target>
         <maven.compiler.testTarget>9</maven.compiler.testTarget>
         <animal.sniffer.skip>false</animal.sniffer.skip>
@@ -55,53 +81,32 @@
         -->
         <maven-deploy-plugin.skip>false</maven-deploy-plugin.skip>
 
+        <!-- -dependencies versions -->
         <version.error_prone>2.2.0</version.error_prone>
         <version.h2>1.4.196</version.h2>
-        <version.jackson>2.10.0.pr1</version.jackson>
+        <version.jackson>[2.10.0,)</version.jackson>
         <version.junit-jupiter>5.4.2</version.junit-jupiter>
         <version.junit.vintage>4.12</version.junit.vintage>
+        <version.junit-vintage-engine>5.3.2</version.junit-vintage-engine>
         <version.logback>1.2.3</version.logback>
         <version.okhttp>3.9.1</version.okhttp>
         <version.slf4j>1.7.25</version.slf4j>
-        <version.spring>5.0.4.RELEASE</version.spring>
+        <version.spring>5.0.15.RELEASE</version.spring>
         <version.jetty-server>9.4.11.v20180605</version.jetty-server>
-        <version.junit-vintage-engine>5.3.2</version.junit-vintage-engine>
         <version.json-schema-validator>0.1.19</version.json-schema-validator>
-
-        <version.plugin.compiler>3.7.0</version.plugin.compiler>
-        <version.plugin.jar>3.1.0</version.plugin.jar>
-        <version.plugin.javadoc>3.1.0</version.plugin.javadoc>
-        <version.plugin.surefire>2.19.1</version.plugin.surefire>
         <version.byte-buddy>1.10.1</version.byte-buddy>
+
+        <!-- used both for plugin & annotations dependency -->
+        <version.animal-sniffer>1.17</version.animal-sniffer>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <version.plugin.animal-sniffer>1.17</version.plugin.animal-sniffer>
 
         <apm-agent-parent.base.dir>${project.basedir}</apm-agent-parent.base.dir>
+
+        <skip.integration.test>false</skip.integration.test>
+        <skip.unit.test>false</skip.unit.test>
     </properties>
-
-    <modules>
-        <module>apm-agent-core</module>
-        <module>elastic-apm-agent</module>
-        <module>apm-agent-benchmarks</module>
-        <module>apm-agent-plugins</module>
-        <module>apm-agent-api</module>
-        <module>apm-opentracing</module>
-        <module>integration-tests</module>
-        <module>apm-agent-attach</module>
-    </modules>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>sonatype-nexus-staging</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
 
     <profiles>
         <!--
@@ -129,16 +134,13 @@
           <build>
             <plugins>
               <plugin>
-                  <groupId>org.apache.maven.plugins</groupId>
                   <artifactId>maven-failsafe-plugin</artifactId>
-                  <version>${version.plugin.surefire}</version>
                   <configuration>
                     <skipTests>${skip.integration.test}</skipTests>
                   </configuration>
               </plugin>
               <plugin>
                   <artifactId>maven-surefire-plugin</artifactId>
-                  <version>${version.plugin.surefire}</version>
                   <configuration>
                       <enableAssertions>true</enableAssertions>
                       <trimStackTrace>false</trimStackTrace>
@@ -158,9 +160,7 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>${version.plugin.compiler}</version>
                         <configuration>
                             <showWarnings>${maven.compiler.showWarnings}</showWarnings>
                             <source>${maven.compiler.target}</source>
@@ -181,9 +181,7 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>${version.plugin.compiler}</version>
                         <configuration>
                             <compilerId>javac-with-errorprone</compilerId>
                             <forceJavacCompilerUse>true</forceJavacCompilerUse>
@@ -232,9 +230,7 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <phase>verify</phase>
@@ -252,9 +248,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
                 <configuration>
                     <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>gpg</releaseProfiles>
@@ -263,18 +257,14 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>2.8.2</version>
                 <configuration>
                     <skip>${maven-deploy-plugin.skip}</skip>
                 </configuration>
             </plugin>
             <!-- The shadowed source files of this module need to be included explicitly to create a javadoc artifact.-->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${version.plugin.javadoc}</version>
                 <configuration>
                     <additionalOptions>-html5</additionalOptions>
                 </configuration>
@@ -285,24 +275,12 @@
                         </goals>
                     </execution>
                 </executions>
-                <dependencies>
-                    <!--
-                    The transitive dependency has version 3.5,
-                    which is not compatible with Java 10.
-                    TODO Remove this when updating the javadoc plugin version.
-                    -->
-                    <dependency>
-                        <groupId>org.apache.commons</groupId>
-                        <artifactId>commons-lang3</artifactId>
-                        <version>3.7</version>
-                    </dependency>
-                </dependencies>
+
             </plugin>
             <!-- Check that we don't accidentally use features only available in Java 8+ -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
-                <version>${version.plugin.animal-sniffer}</version>
                 <executions>
                     <execution>
                         <id>signature-check</id>
@@ -324,9 +302,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M1</version>
                 <executions>
                     <execution>
                         <id>enforce-java</id>
@@ -346,33 +322,13 @@
 
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${version.plugin.surefire}</version>
                 <configuration>
                     <enableAssertions>true</enableAssertions>
                     <trimStackTrace>false</trimStackTrace>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.platform</groupId>
-                        <artifactId>junit-platform-surefire-provider</artifactId>
-                        <version>1.1.1</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.junit.vintage</groupId>
-                        <artifactId>junit-vintage-engine</artifactId>
-                        <version>${version.junit-vintage-engine}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-engine</artifactId>
-                        <version>${version.junit-jupiter}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${version.plugin.surefire}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -386,7 +342,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.2</version>
                 <executions>
                     <execution>
                         <goals>
@@ -406,7 +361,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>1.19</version>
                 <configuration>
                     <verbose>false</verbose>
                     <licenseName>apache2_license</licenseName>
@@ -447,6 +401,125 @@
             </plugin>
 
         </plugins>
+
+        <pluginManagement>
+            <!-- pin and set plugin versions at parent project level -->
+            <plugins>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.19.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-surefire-provider</artifactId>
+                            <version>1.1.1</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.vintage</groupId>
+                            <artifactId>junit-vintage-engine</artifactId>
+                            <version>${version.junit-vintage-engine}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-engine</artifactId>
+                            <version>${version.junit-jupiter}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.19.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.1.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.5.3</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.6</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.1.1</version>
+                    <dependencies>
+                        <!--
+                        The transitive dependency has version 3.5,
+                        which is not compatible with Java 10.
+                        TODO Remove this when updating the javadoc plugin version.
+                        -->
+                        <dependency>
+                            <groupId>org.apache.commons</groupId>
+                            <artifactId>commons-lang3</artifactId>
+                            <version>3.7</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>animal-sniffer-maven-plugin</artifactId>
+                    <version>${version.animal-sniffer}</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.0.0-M1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>1.19</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.coderplus.maven.plugins</groupId>
+                    <artifactId>copy-rename-maven-plugin</artifactId>
+                    <version>1.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.2.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.0.0-M1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>3.8.2</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <dependencyManagement>
@@ -465,7 +538,7 @@
         <dependency>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>animal-sniffer-annotations</artifactId>
-            <version>${version.plugin.animal-sniffer}</version>
+            <version>${version.animal-sniffer}</version>
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
@@ -538,4 +611,5 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>

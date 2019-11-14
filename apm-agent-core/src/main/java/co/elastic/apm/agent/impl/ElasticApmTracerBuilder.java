@@ -53,16 +53,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracerBuilder {
 
+    /**
+     * See {@link co.elastic.apm.attach.ElasticApmAttacher#TEMP_PROPERTIES_FILE_KEY}
+     */
+    private static final String TEMP_PROPERTIES_FILE_KEY = "c";
     private final Logger logger;
     @Nullable
     private ConfigurationRegistry configurationRegistry;
     @Nullable
     private Reporter reporter;
-    private final List<LifecycleListener> lifecycleListeners = new ArrayList<>();
     private Map<String, String> inlineConfig = new HashMap<>();
     @Nullable
     private final String agentArguments;
@@ -88,11 +92,6 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
-    public ElasticApmTracerBuilder lifecycleListeners(List<LifecycleListener> lifecycleListeners) {
-        this.lifecycleListeners.addAll(lifecycleListeners);
-        return this;
-    }
-
     public ElasticApmTracerBuilder withConfig(String key, String value) {
         inlineConfig.put(key, value);
         return this;
@@ -109,20 +108,19 @@ public class ElasticApmTracerBuilder {
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
         ApmServerConfigurationSource configurationSource = null;
+        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (addApmServerConfigSource) {
             configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
             configurationRegistry.addConfigurationSource(configurationSource);
+            lifecycleListeners.add(configurationSource);
         }
         if (reporter == null) {
             reporter = new ReporterFactory().createReporter(configurationRegistry, apmServerClient, metaData);
         }
-        if (lifecycleListeners.isEmpty()) {
-            if (configurationSource != null) {
-                lifecycleListeners.add(configurationSource);
-            }
-            lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class));
-        }
-        return new ElasticApmTracer(configurationRegistry, reporter, lifecycleListeners);
+        ElasticApmTracer tracer = new ElasticApmTracer(configurationRegistry, reporter);
+        lifecycleListeners.addAll(DependencyInjectingServiceLoader.load(LifecycleListener.class, tracer));
+        tracer.registerLifecycleListeners(lifecycleListeners);
+        return tracer;
     }
 
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
@@ -153,7 +151,12 @@ public class ElasticApmTracerBuilder {
     private List<ConfigurationSource> getConfigSources(@Nullable String agentArguments) {
         List<ConfigurationSource> result = new ArrayList<>();
         if (agentArguments != null && !agentArguments.isEmpty()) {
-            result.add(AgentArgumentsConfigurationSource.parse(agentArguments));
+            AgentArgumentsConfigurationSource agentArgs = AgentArgumentsConfigurationSource.parse(agentArguments);
+            result.add(agentArgs);
+            ConfigurationSource attachmentConfig = getAttachmentArguments(agentArgs.getValue(TEMP_PROPERTIES_FILE_KEY));
+            if (attachmentConfig != null) {
+                result.add(attachmentConfig);
+            }
         }
         result.add(new PrefixingConfigurationSourceWrapper(new SystemPropertyConfigurationSource(), "elastic.apm."));
         result.add(new PrefixingConfigurationSourceWrapper(new EnvironmentVariableConfigurationSource(), "ELASTIC_APM_"));
@@ -169,7 +172,7 @@ public class ElasticApmTracerBuilder {
             }
         });
         String configFileLocation = CoreConfiguration.getConfigFileLocation(result);
-        if (configFileLocation != null && PropertyFileConfigurationSource.isPresent(configFileLocation)) {
+        if (configFileLocation != null && PropertyFileConfigurationSource.getFromFileSystem(configFileLocation) != null) {
             result.add(new PropertyFileConfigurationSource(configFileLocation));
         }
         // looks if we can find a elasticapm.properties on the classpath
@@ -178,6 +181,24 @@ public class ElasticApmTracerBuilder {
             result.add(new PropertyFileConfigurationSource("elasticapm.properties"));
         }
         return result;
+    }
+
+    /**
+     * Loads the configuration from the temporary properties file created by ElasticApmAttacher
+     */
+    @Nullable
+    private ConfigurationSource getAttachmentArguments(@Nullable String configFileLocation) {
+        if (configFileLocation != null) {
+            Properties fromFileSystem = PropertyFileConfigurationSource.getFromFileSystem(configFileLocation);
+            if (fromFileSystem != null) {
+                SimpleSource attachmentConfig = new SimpleSource("Attachment configuration");
+                for (String key : fromFileSystem.stringPropertyNames()) {
+                    attachmentConfig.add(key, fromFileSystem.getProperty(key));
+                }
+                return attachmentConfig;
+            }
+        }
+        return null;
     }
 
 }

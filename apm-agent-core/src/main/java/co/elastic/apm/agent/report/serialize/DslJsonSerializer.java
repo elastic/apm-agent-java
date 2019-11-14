@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.context.Socket;
@@ -38,6 +39,7 @@ import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
+import co.elastic.apm.agent.impl.payload.Node;
 import co.elastic.apm.agent.impl.payload.Payload;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.RuntimeInfo;
@@ -45,8 +47,8 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.transaction.Db;
-import co.elastic.apm.agent.impl.transaction.Http;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
@@ -97,9 +99,9 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
     private static final String[] DISALLOWED_IN_LABEL_KEY = new String[]{".", "*", "\""};
+    private static final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     // visible for testing
     final JsonWriter jw;
-    private final Collection<String> excludedStackFrames = Arrays.asList("java.lang.reflect", "com.sun", "sun.", "jdk.internal.");
     private final StringBuilder replaceBuilder = new StringBuilder(MAX_LONG_STRING_VALUE_LENGTH + 1);
     private final StacktraceConfiguration stacktraceConfiguration;
     private final ApmServerClient apmServerClient;
@@ -139,21 +141,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         } finally {
             jw.reset();
         }
-    }
-
-    @Override
-    public void serializePayload(final OutputStream os, final Payload payload) {
-        if (logger.isTraceEnabled()) {
-            logger.trace(toJsonString(payload));
-        }
-        jw.reset(os);
-        if (payload instanceof TransactionPayload) {
-            serializeTransactionPayload((TransactionPayload) payload);
-        } else if (payload instanceof ErrorPayload) {
-            serializeErrorPayload((ErrorPayload) payload);
-        }
-        jw.flush();
-        jw.reset();
     }
 
     @Override
@@ -243,6 +230,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         metricRegistry.report(this);
     }
 
+    @Deprecated
     private void serializeErrorPayload(ErrorPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
@@ -297,11 +285,25 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     private void serializeException(@Nullable Throwable exception) {
         writeFieldName("exception");
+        recursiveSerializeException(exception);
+    }
+
+    private void recursiveSerializeException(@Nullable Throwable exception) {
         jw.writeByte(JsonWriter.OBJECT_START);
         if (exception != null) {
             writeField("message", String.valueOf(exception.getMessage()));
             serializeStacktrace(exception.getStackTrace());
-            writeLastField("type", exception.getClass().getName());
+            writeFieldName("type");
+            writeStringValue(exception.getClass().getName());
+
+            Throwable cause = exception.getCause();
+            if (cause != null) {
+                jw.writeByte(COMMA);
+                writeFieldName("cause");
+                jw.writeByte(ARRAY_START);
+                recursiveSerializeException(cause);
+                jw.writeByte(ARRAY_END);
+            }
         }
         jw.writeByte(JsonWriter.OBJECT_END);
     }
@@ -354,6 +356,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         return jw.toString();
     }
 
+    @Deprecated
     private void serializeTransactionPayload(final TransactionPayload payload) {
         jw.writeByte(JsonWriter.OBJECT_START);
         serializeService(payload.getService());
@@ -367,6 +370,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
+    @Deprecated
     private void serializeTransactions(final TransactionPayload payload) {
         writeFieldName("transactions");
         jw.writeByte(ARRAY_START);
@@ -396,6 +400,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         final Language language = service.getLanguage();
         if (language != null) {
             serializeLanguage(language);
+        }
+
+        final Node node = service.getNode();
+        if (node != null && node.hasContents()) {
+            serializeNode(node);
         }
 
         final RuntimeInfo runtime = service.getRuntime();
@@ -431,6 +440,14 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_START);
         writeField("name", language.getName());
         writeLastField("version", language.getVersion());
+        jw.writeByte(JsonWriter.OBJECT_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeNode(final Node node) {
+        writeFieldName("node");
+        jw.writeByte(JsonWriter.OBJECT_START);
+        writeLastField("configured_name", node.getName());
         jw.writeByte(JsonWriter.OBJECT_END);
         jw.writeByte(COMMA);
     }
@@ -659,7 +676,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    private boolean isExcluded(StackTraceElement stackTraceElement) {
+    private static boolean isExcluded(StackTraceElement stackTraceElement) {
         // file name is a required field
         if (stackTraceElement.getFileName() == null) {
             return true;
@@ -707,6 +724,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(OBJECT_START);
 
         serializeServiceName(traceContext);
+        serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
 
@@ -717,13 +735,34 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
+    private void serializeMessageContext(final Message message) {
+        if (message.hasContent()) {
+            writeFieldName("message");
+            jw.writeByte(OBJECT_START);
+            if (message.getTopicName() != null) {
+                writeFieldName("topic");
+                jw.writeByte(OBJECT_START);
+                writeLastField("name", message.getTopicName());
+                jw.writeByte(OBJECT_END);
+            } else {
+                writeFieldName("queue");
+                jw.writeByte(OBJECT_START);
+                writeLastField("name", message.getQueueName());
+                jw.writeByte(OBJECT_END);
+            }
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
     private void serializeDbContext(final Db db) {
         if (db.hasContent()) {
             writeFieldName("db");
             jw.writeByte(OBJECT_START);
             writeField("instance", db.getInstance());
-            if (db.getStatement() != null) {
-                writeLongStringField("statement", db.getStatement());
+            String statement = db.getStatement();
+            if (statement != null) {
+                writeLongStringField("statement", statement);
             } else {
                 final CharBuffer statementBuffer = db.getStatementBuffer();
                 if (statementBuffer != null && statementBuffer.length() > 0) {
@@ -731,6 +770,12 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                     jw.writeString(statementBuffer);
                     jw.writeByte(COMMA);
                 }
+            }
+            long affectedRows = db.getAffectedRowsCount();
+            if (affectedRows >= 0) {
+                // a negative value generally indicates that feature is not supported by db/driver
+                // thus we just do not report them
+                writeField("rows_affected", affectedRows);
             }
             writeField("type", db.getType());
             writeField("link", db.getDbLink());
@@ -775,6 +820,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
         serializeRequest(context.getRequest());
         serializeResponse(context.getResponse());
+        serializeMessageContext(context.getMessage());
         if (context.hasCustom()) {
             writeFieldName("custom");
             serializeStringKeyScalarValueMap(context.getCustomIterator(), replaceBuilder, jw, true, true);
