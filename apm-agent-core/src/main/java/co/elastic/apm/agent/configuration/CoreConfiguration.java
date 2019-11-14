@@ -337,7 +337,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         ));
 
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
-        .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE, ",(?![^()]*\\))"), List.class)
+        .builder(MethodMatcherValueConverter.LIST, List.class)
         .key("trace_methods")
         .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)

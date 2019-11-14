@@ -33,6 +33,11 @@ import java.util.List;
 
 public class ListValueConverter<T> extends AbstractCollectionValueConverter<List<T>, T> {
 
+    /**
+     * Specialized delimiter supporting split by comma which is not enclosed in brackets.
+     */
+    public static final String COMMA_OUT_OF_BRACKETS = ",(?![^()]*\\))";
+
     protected final String delimiter;
 
     public ListValueConverter(ValueConverter<T> valueConverter) {
