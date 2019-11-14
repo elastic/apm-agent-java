@@ -1,4 +1,13 @@
-# 1.11.0 (Next)
+# (Next)
+
+## Features
+
+## Bug Fixes
+ * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
+ * When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" (#920)
+ * DB2 jcc4 driver is not traced properly (#926)
+
+# 1.11.0
 
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](

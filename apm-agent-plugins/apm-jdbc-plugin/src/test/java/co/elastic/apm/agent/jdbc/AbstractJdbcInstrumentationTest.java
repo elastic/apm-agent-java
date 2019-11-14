@@ -108,6 +108,9 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         executeTest(()->testUpdate(false));
         executeTest(()->testUpdate(true));
 
+        executeTest(() -> testPreparedStatementUpdate(false));
+        executeTest(() -> testPreparedStatementUpdate(true));
+
         executeTest(()->testBatch(false));
         executeTest(()->testBatch(true));
 
@@ -190,6 +193,25 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         } else {
             statement.executeUpdate(insert);
+        }
+
+        assertSpanRecorded(insert, false, 1);
+    }
+
+    private void testPreparedStatementUpdate(boolean isLargeUpdate) throws SQLException {
+        final String insert = "INSERT INTO ELASTIC_APM (FOO, BAR) VALUES (42, 'TEST')";
+
+        PreparedStatement statement = connection.prepareStatement(insert);
+
+        if (isLargeUpdate) {
+            boolean supported = executePotentiallyUnsupportedFeature(() -> statement.executeLargeUpdate());
+            if (!supported) {
+                // feature not supported, just ignore test
+                return;
+            }
+
+        } else {
+            statement.executeUpdate();
         }
 
         assertSpanRecorded(insert, false, 1);

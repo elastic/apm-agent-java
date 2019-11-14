@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,15 +84,16 @@ public class ContainerInfoTest {
         String line = "1:name=systemd:/kubepods/besteffort/pod" + podId + "/" + containerId;
         SystemInfo systemInfo = assertContainerId(line, containerId);
         assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    }
 
-        // 1:name=systemd:/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod90d81341_92de_11e7_8cf2_507b9d4141fa.slice/
-        //                                                      crio-2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63.scope
-        containerId = "2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63";
-        podId = "90d81341_92de_11e7_8cf2_507b9d4141fa";
-        line = "1:name=systemd:/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod" + podId + ".slice/crio-" + containerId +
-            ".scope";
-        systemInfo = assertContainerId(line, containerId);
-        assertKubernetesInfo(systemInfo, podId, "my-host", null, null);
+    @Test
+    void testKubernetesInfo_podUid_with_underscores() {
+        // In such cases- underscores should be replaced with hyphens in the pod UID
+        String line = "1:name=systemd:/kubepods.slice/kubepods-burstable.slice/" +
+            "kubepods-burstable-pod90d81341_92de_11e7_8cf2_507b9d4141fa.slice/" +
+            "crio-2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63.scope";
+        SystemInfo systemInfo = assertContainerId(line, "2227daf62df6694645fee5df53c1f91271546a9560e8600a525690ae252b7f63");
+        assertKubernetesInfo(systemInfo, "90d81341-92de-11e7-8cf2-507b9d4141fa", "my-host", null, null);
     }
 
     @Test

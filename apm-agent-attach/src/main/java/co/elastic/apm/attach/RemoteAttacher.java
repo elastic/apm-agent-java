@@ -34,8 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -121,7 +121,7 @@ public class RemoteAttacher {
     private void onJvmStart(JvmInfo jvmInfo) {
         if (isIncluded(jvmInfo) && !isExcluded(jvmInfo)) {
             try {
-                final String agentArgs = getAgentArgs(jvmInfo);
+                final Map<String, String> agentArgs = getAgentArgs(jvmInfo);
                 log("INFO", "Attaching the Elastic APM agent to %s with arguments %s", jvmInfo, agentArgs);
                 ElasticApmAttacher.attach(jvmInfo.pid, agentArgs);
                 log("INFO", "Done");
@@ -133,8 +133,16 @@ public class RemoteAttacher {
         }
     }
 
-    private String getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
-        return arguments.getArgsProvider() != null ? getArgsProviderOutput(jvmInfo) : ElasticApmAttacher.toAgentArgs(arguments.getConfig());
+    private Map<String, String> getAgentArgs(JvmInfo jvmInfo) throws IOException, InterruptedException {
+        if (arguments.getArgsProvider() != null) {
+            LinkedHashMap<String, String> config = new LinkedHashMap<>();
+            for (String conf : getArgsProviderOutput(jvmInfo).split(";")) {
+                config.put(conf.substring(0, conf.indexOf('=')), conf.substring(conf.indexOf('=') + 1));
+            }
+            return config;
+        } else {
+            return arguments.getConfig();
+        }
     }
 
     private String getArgsProviderOutput(JvmInfo jvmInfo) throws IOException, InterruptedException {
@@ -200,7 +208,7 @@ public class RemoteAttacher {
             String pid = null;
             List<String> includes = new ArrayList<>();
             List<String> excludes = new ArrayList<>();
-            Map<String, String> config = new HashMap<>();
+            Map<String, String> config = new LinkedHashMap<>();
             String argsProvider = null;
             boolean help = args.length == 0;
             boolean list = false;
