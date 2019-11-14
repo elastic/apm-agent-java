@@ -83,6 +83,13 @@ public class ConnectionAdvice {
                     span.appendToName(".").appendToName(collection);
                 }
             }
+            if (collection == null) {
+                BsonValue collectionName = command.get("collection");
+                if (collectionName != null && collectionName.isString()) {
+                    collection = collectionName.asString().getValue();
+                    span.appendToName(".").appendToName(collection);
+                }
+            }
             span.appendToName(".").appendToName(cmd).withAction(cmd);
         } catch (RuntimeException e) {
             logger.error("Exception while determining MongoDB command and collection", e);

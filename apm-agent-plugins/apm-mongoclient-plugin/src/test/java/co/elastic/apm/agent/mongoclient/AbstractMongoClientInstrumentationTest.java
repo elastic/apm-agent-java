@@ -146,7 +146,7 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
             .containsExactly(
                 "testdb.testcollection.insert",
                 "testdb.testcollection.find",
-                "testdb.getMore");
+                "testdb.testcollection.getMore");
     }
 
     @Test

@@ -49,6 +49,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  *   <li>{@link com.mongodb.connection.Connection#update}</li>
  *   <li>{@link com.mongodb.connection.Connection#delete}</li>
  *   <li>{@link com.mongodb.connection.Connection#query}</li>
+ *   <li>{@link com.mongodb.connection.Connection#getMore}</li>
  *   <li>{@link com.mongodb.connection.Connection#insertCommand}</li>
  *   <li>{@link com.mongodb.connection.Connection#updateCommand}</li>
  *   <li>{@link com.mongodb.connection.Connection#deleteCommand}</li>
@@ -68,6 +69,7 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             .or(nameStartsWith("update"))
             .or(nameStartsWith("delete"))
             .or(nameStartsWith("query"))
+            .or(nameStartsWith("getMore"))
             .and(isPublic())
             .and(takesArgument(0, named("com.mongodb.MongoNamespace")));
     }
