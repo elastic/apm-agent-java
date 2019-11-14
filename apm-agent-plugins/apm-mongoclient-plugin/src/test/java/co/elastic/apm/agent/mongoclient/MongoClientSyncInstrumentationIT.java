@@ -32,6 +32,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrumentationTest {
@@ -73,13 +74,18 @@ public class MongoClientSyncInstrumentationIT extends AbstractMongoClientInstrum
     }
 
     @Override
-    public Collection<Document> find(Document query) {
-        return db.getCollection(COLLECTION_NAME).find(query).into(new ArrayList<>());
+    public Collection<Document> find(Document query, int batchSize) {
+        return db.getCollection(COLLECTION_NAME).find(query).batchSize(batchSize).into(new ArrayList<>());
     }
 
     @Override
     public void insert(Document document) {
         db.getCollection(COLLECTION_NAME).insertOne(document);
+    }
+
+    @Override
+    protected void insert(Document... document) {
+        db.getCollection(COLLECTION_NAME).insertMany(Arrays.asList(document));
     }
 
     @Override

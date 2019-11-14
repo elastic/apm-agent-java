@@ -35,6 +35,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -106,8 +107,8 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     }
 
     @Override
-    public Collection<Document> find(Document query) throws Exception {
-        return MongoClientAsyncInstrumentationIT.<Collection<Document>>executeAndGet(c -> db.getCollection(COLLECTION_NAME).find(query).into(new ArrayList<>(), c));
+    public Collection<Document> find(Document query, int batchSize) throws Exception {
+        return MongoClientAsyncInstrumentationIT.<Collection<Document>>executeAndGet(c -> db.getCollection(COLLECTION_NAME).find(query).batchSize(batchSize).into(new ArrayList<>(), c));
     }
 
     @Override
@@ -123,6 +124,11 @@ public class MongoClientAsyncInstrumentationIT extends AbstractMongoClientInstru
     @Override
     protected void insert(Document document) throws Exception {
         executeAndWait(c -> db.getCollection(COLLECTION_NAME).insertOne(document, c));
+    }
+
+    @Override
+    protected void insert(Document... documents) throws Exception {
+        executeAndWait(c -> db.getCollection(COLLECTION_NAME).insertMany(Arrays.asList(documents), c));
     }
 
 }

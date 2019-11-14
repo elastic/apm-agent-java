@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.mongoclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.bson.Document;
@@ -36,7 +37,7 @@ import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
@@ -125,16 +126,27 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     @Test
     public void testFindDocument() throws Exception {
-        Document document = new Document();
-        document.put("name", "Hello mongo");
+        Document document1 = new Document();
+        document1.put("name", "Hello mongo");
 
-        insert(document);
+        Document document2 = new Document();
+        document2.put("name", "Hello world");
 
-        assertThat(find(document)).isEqualTo(Collections.singletonList(document));
+        Document document3 = new Document();
+        document3.put("name", "Hello world");
 
-        assertThat(reporter.getSpans()).hasSize(2);
-        assertThat(reporter.getSpans().get(0).getNameAsString()).isEqualTo("testdb.testcollection.insert");
-        assertThat(reporter.getSpans().get(1).getNameAsString()).isEqualTo("testdb.testcollection.find");
+        insert(document1, document2, document3);
+
+        assertThat(find(new Document(), 2)).containsExactlyInAnyOrder(document1, document2, document3);
+
+        assertThat(reporter.getSpans()
+            .stream()
+            .map(Span::getNameAsString)
+            .collect(Collectors.toList()))
+            .containsExactly(
+                "testdb.testcollection.insert",
+                "testdb.testcollection.find",
+                "testdb.getMore");
     }
 
     @Test
@@ -189,9 +201,11 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     protected abstract long count() throws Exception;
 
-    protected abstract Collection<Document> find(Document query) throws Exception;
+    protected abstract Collection<Document> find(Document query, int batchSize) throws Exception;
 
     protected abstract void insert(Document document) throws Exception;
+
+    protected abstract void insert(Document... document) throws Exception;
 
     protected abstract void createCollection() throws Exception;
 
