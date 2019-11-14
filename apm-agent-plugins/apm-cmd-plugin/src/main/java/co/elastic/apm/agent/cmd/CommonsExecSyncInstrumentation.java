@@ -44,12 +44,15 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+// TODO : add links to the instrumented classes
+// TODO : async part is not instrumented (yet)
 public class CommonsExecSyncInstrumentation extends BinaryExecutionInstrumentation {
 
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
         return not(isBootstrapClassLoader())
             .and(classLoaderCanLoadClass("org.apache.commons.exec.Executor"));
+        // java.lang is loaded by bootstrap classloader, thus excluded here
     }
 
     @Override
@@ -60,17 +63,15 @@ public class CommonsExecSyncInstrumentation extends BinaryExecutionInstrumentati
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("execute")
-            .and(
-                takesArguments(1)
-                    .and(takesArgument(0, named("org.apache.commons.exec.CommandLine")))
-                    .or(
-                        takesArguments(2)
-                            .and(takesArgument(0, named("org.apache.commons.exec.CommandLine"))
-                                .and(takesArgument(1, Map.class)))
-                    )
-            );
+        ElementMatcher.Junction<TypeDescription> cmdLine = named("org.apache.commons.exec.CommandLine");
+        return named("execute").and(
+            takesArguments(1).and(takesArgument(0, cmdLine))
+                .or(takesArguments(2).and(takesArgument(0, cmdLine).and(takesArgument(1, Map.class))))
+        );
     }
+
+    // TODO : add getTypeMatcherPreFilter to filter out on class name/package otherwise
+    // filtering on classes that implement an interface becomes costly
 
     @Override
     public Class<?> getAdviceClass() {
@@ -82,6 +83,10 @@ public class CommonsExecSyncInstrumentation extends BinaryExecutionInstrumentati
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeExecute(@Advice.Argument(0) CommandLine commandLine,
                                             @Advice.Local("span") Span span) {
+
+            // might be a bit better to not get arguments all the time as it allocates extra memory
+            // it's not necessary when outside a transaction/span
+
             span = ExecuteHelper.createAndActivateSpan(tracer, commandLine.getExecutable(), commandLine.getArguments(), "commons-exec");
         }
 

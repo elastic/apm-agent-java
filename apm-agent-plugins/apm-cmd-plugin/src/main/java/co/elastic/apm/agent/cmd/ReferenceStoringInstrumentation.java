@@ -55,6 +55,8 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
     @VisibleForAdvice
     public static final WeakConcurrentMap<Process, Span> inFlightSpans = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
+    // apache commons exec
+    // TODO : use a dedicated class for commons-exec instrumentation
     @VisibleForAdvice
     public static final WeakConcurrentMap<ExecuteResultHandler, Span> inFlightSpansCommonsExec = DataStructures.createWeakConcurrentMapWithCleanerThread();
 
@@ -151,6 +153,8 @@ public abstract class ReferenceStoringInstrumentation extends BinaryExecutionIns
         }
     }
 
+    // java standard Runtime.exec | ProcessBuilder
+    // TODO : use a dedicated class for java standard instrumentation
     public static class JavaProcessBuilderApiInstrumentation extends ReferenceStoringInstrumentation {
 
         @Override

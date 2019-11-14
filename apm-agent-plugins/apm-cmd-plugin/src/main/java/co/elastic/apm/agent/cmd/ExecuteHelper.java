@@ -53,6 +53,9 @@ public class ExecuteHelper {
             .withSubtype(subType)
             .withAction("execute");
         // TODO: Find a place to add the binary arguments
+
+
+
         span.withName("Execute ").appendToName(binaryName);
 
         return span;

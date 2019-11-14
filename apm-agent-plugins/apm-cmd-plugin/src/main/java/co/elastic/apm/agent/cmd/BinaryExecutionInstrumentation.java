@@ -29,6 +29,20 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import java.util.Collection;
 import java.util.Collections;
 
+// probably not worth having a class hierarchy for this
+// having distinct instrumentation for commons-exec and java standard lib should improve clarity
+// -> does that means having separate plugins ? would somehow make sense
+
+// how do we prevent double instrumentation both at commons-exec and standard lib level as it is likely using
+// the same entry point in the JDK ?
+// it's based on java.lang.Process class under the hood
+
+// j.l.Process{,Builder} -> Process for execution
+// Runtime.exec(...) -> Process for execution (at least in java11)
+
+// question: why not instrument "Process" in the general case
+// start span when calling Process.waitFor(), end span when returning
+// abrupt termination on destroy/destroyForcibly (waitFor should probably throw an exception in this case)
 public abstract class BinaryExecutionInstrumentation extends ElasticApmInstrumentation {
 
     @Override
