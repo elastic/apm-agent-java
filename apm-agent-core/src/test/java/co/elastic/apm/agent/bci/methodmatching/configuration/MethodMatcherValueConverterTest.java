@@ -43,35 +43,33 @@ class MethodMatcherValueConverterTest {
 
         List<MethodMatcher> result = tested.convert(
             "org.example.*, " +
-                // TODO IllegalArgumentException("is not a valid method matcher")
-//                "org.example.#, " +
+                "org.example.*#*, " +
                 "org.example.MyClass#myMethod, " +
                 "org.example.MyClass#myMethod(), " +
                 "org.example.MyClass#myMethod(java.lang.String), " +
                 "org.example.MyClass#myMe*od(java.lang.String, int), " +
                 "private org.example.MyClass#myMe*od(java.lang.String, *), " +
                 "* org.example.MyClas*#myMe*od(*.String, int[]), " +
-                // TODO IllegalArgumentException("is not a valid method matcher")
-//                "public org.example.services.Service#, " +
+                "public org.example.services.*Service#*, " +
                 "public @java.inject.ApplicationScoped org.example.*, " +
                 "public @java.inject.* org.example.*, " +
                 "public @@javax.enterprise.context.NormalScope org.example.*");
 
-        assertThat(result.size()).isEqualTo(10);
+        assertThat(result.size()).isEqualTo(12);
 
         List<String> stringRepresentation = result.stream()
             .map(MethodMatcher::toString).collect(Collectors.toList());
 
         assertThat(stringRepresentation).isEqualTo(Arrays.asList(
             "org.example.*",
-//            "org.example.#",
+            "org.example.*#*",
             "org.example.MyClass#myMethod",
             "org.example.MyClass#myMethod()",
             "org.example.MyClass#myMethod(java.lang.String)",
             "org.example.MyClass#myMe*od(java.lang.String, int)",
             "private org.example.MyClass#myMe*od(java.lang.String, *)",
             "* org.example.MyClas*#myMe*od(*.String, int[])",
-//            "public org.example.services.Service#",
+            "public org.example.services.*Service#*",
             "public @java.inject.ApplicationScoped org.example.*",
             "public @java.inject.* org.example.*",
             "public @@javax.enterprise.context.NormalScope org.example.*"
