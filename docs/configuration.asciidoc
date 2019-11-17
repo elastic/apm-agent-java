@@ -975,7 +975,7 @@ If you want to use the URI template from the `@Path` annotation, set the value t
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-capture-jmx-metrics]]
-==== `capture_jmx_metrics` (added[1.10.0])
+==== `capture_jmx_metrics` (added[1.11.0])
 
 Report metrics from JMX to the APM Server
 

@@ -53,7 +53,7 @@ See <<setup-attach-cli-usage-options>> for the format of the agent arguments.
 
 [source,bash]
 ----
-java -jar apm-agent-attach-standalone.jar --pid <pid> [--args <agent_arguments>]
+java -jar apm-agent-attach-standalone.jar --pid <pid> [--config <agent_config>...]
 ----
 
 Example: The following command attaches the agent to the JVM with the PID 42 and exits.
@@ -62,7 +62,7 @@ Additionally, it applies some <<configuration,configuration options>>.
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar --pid 42 \
-    --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
+    --config service_name=my-cool-service server_urls=http://localhost:8200
 ----
 
 [float]
@@ -74,8 +74,8 @@ Attaches the agent to all matching JVMs on the host which confirm to the optiona
 [source,bash]
 ----
 java -jar apm-agent-attach-standalone.jar [-include <include_pattern>...]
-       [-exclude <exclude_pattern>...] [--continuous]
-       [--args <agent_arguments> | --args-provider <args_provider_script>]
+       [--exclude <exclude_pattern>...] [--continuous]
+       [--config <agent_config>... | --args-provider <args_provider_script>]
 ----
 
 Example: The following command attaches the agent to all JVMs whose main class contains `MyApplication` or which are started from a jar file named `my-application.jar`.
@@ -87,7 +87,8 @@ Additionally, it applies some <<configuration,configuration options>>.
 java -jar apm-agent-attach-standalone.jar \
     --include '.*MyApplication.*' '.*/my-application.jar' \
     --continuous \
-    --args 'service_name=my-cool-service;server_urls=http://localhost:8200'
+    --config service_name=my-cool-service \
+    --config server_urls=http://localhost:8200
 ----
 
 [float]
@@ -148,6 +149,8 @@ NOTE: This option cannot be used in conjunction with `--pid` and requires the `j
 *-a, --args <agent_arguments>*::
 +
 --
+Deprecated in favor of --config.
+
 If set, the arguments are used to configure the agent on the attached JVM (agentArguments of agentmain).
 
 The syntax of the arguments is `key1=value1;key2=value1,value2`.
@@ -175,7 +178,7 @@ When returning a non-zero status code from this program, the agent will not be a
 The syntax of the arguments is `key1=value1;key2=value1,value2`.
 See <<configuration>> for all available configuration options.
 
-NOTE: This option cannot be used in conjunction with `--pid` and `--args`
+NOTE: This option cannot be used in conjunction with `--pid` and `--config`
 --
 
 

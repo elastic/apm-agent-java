@@ -1,4 +1,13 @@
-# 1.11.0 (Next)
+# (Next)
+
+## Features
+
+## Bug Fixes
+ * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
+ * When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" (#920)
+ * DB2 jcc4 driver is not traced properly (#926)
+
+# 1.11.0
 
 ## Features
  * Add the ability to configure a unique name for a JVM within a service through the [`service_node_name` config option](
@@ -16,9 +25,11 @@
  * Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute (#707)
  * Add [`@Traced`](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced) annotation which either creates a span or a transaction, depending on the context
  * Report JMS destination as a span/transaction context field (#906)
+ * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message
+ * Support registering MBeans which are added after agent startup
 
 # 1.10.0
 

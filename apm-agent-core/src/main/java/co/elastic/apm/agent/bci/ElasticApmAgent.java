@@ -73,6 +73,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
@@ -198,6 +199,11 @@ public class ElasticApmAgent {
                         if (typeMatches) {
                             logger.debug("Type match for instrumentation {}: {} matches {}",
                                 instrumentation.getClass().getSimpleName(), typeMatcher, typeDescription);
+                            try {
+                                instrumentation.onTypeMatch(typeDescription, classLoader, protectionDomain, classBeingRedefined);
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
+                            }
                             if (logger.isTraceEnabled()) {
                                 logClassLoaderHierarchy(classLoader, logger, instrumentation);
                             }
