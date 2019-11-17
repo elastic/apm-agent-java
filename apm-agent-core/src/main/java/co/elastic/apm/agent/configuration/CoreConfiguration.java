@@ -293,8 +293,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .key("capture_headers")
         .configurationCategory(CORE_CATEGORY)
         .tags("performance")
-        .description("If set to `true`,\n" +
-            "the agent will capture request and response headers, including cookies.\n" +
+        .description("If set to `true`, the agent will capture request and response headers, including cookies.\n" +
             "\n" +
             "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
         .dynamic(true)

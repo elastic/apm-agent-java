@@ -531,6 +531,7 @@ If set to `true`, the agent will capture request and response headers, including
 
 NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 
+
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
@@ -1790,8 +1791,7 @@ The default unit for this option is `ms`
 #
 # capture_body=OFF
 
-# If set to `true`,
-# the agent will capture request and response headers, including cookies.
+# If set to `true`, the agent will capture request and response headers, including cookies.
 # 
 # NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
