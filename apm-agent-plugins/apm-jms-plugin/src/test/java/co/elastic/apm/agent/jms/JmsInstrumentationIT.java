@@ -32,6 +32,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.util.NoRandomAccessMap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,8 +50,10 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -61,6 +64,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TMP_PREFIX;
@@ -341,6 +347,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
         // Body and headers should not be captured for receive spans
         assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
+        assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
@@ -396,7 +403,19 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
             assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            verifyMessageHeaders(message, receiveTransaction);
         }
+    }
+
+    private void verifyMessageHeaders(Message message, Transaction receiveTransaction) throws JMSException {
+        Map<String, String> headersMap = new HashMap<>();
+        for (NoRandomAccessMap.Entry<String, String> header : receiveTransaction.getContext().getMessage().getHeaders()) {
+            headersMap.put(header.getKey(), header.getValue());
+        }
+        assertThat(headersMap).isNotEmpty();
+        assertThat(message.getJMSMessageID()).isEqualTo(headersMap.get(JMS_MESSAGE_ID_HEADER));
+        assertThat(String.valueOf(message.getJMSExpiration())).isEqualTo(headersMap.get(JMS_EXPIRATION_HEADER));
+        assertThat(String.valueOf(message.getJMSTimestamp())).isEqualTo(headersMap.get(JMS_TIMESTAMP_HEADER));
     }
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {

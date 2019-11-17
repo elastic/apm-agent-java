@@ -412,6 +412,6 @@ public class ServletTransactionHelper {
     }
 
     public boolean isCaptureHeaders() {
-        return webConfiguration.isCaptureHeaders();
+        return coreConfiguration.isCaptureHeaders();
     }
 }

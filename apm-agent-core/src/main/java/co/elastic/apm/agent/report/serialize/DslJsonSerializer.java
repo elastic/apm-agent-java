@@ -58,6 +58,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.util.NoRandomAccessMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -742,6 +743,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             if (message.getBody() != null) {
                 writeLongStringField("body", message.getBody());
             }
+            serializeMessageHeaders(message);
             if (message.getTopicName() != null) {
                 writeFieldName("topic");
                 jw.writeByte(OBJECT_START);
@@ -752,6 +754,25 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 jw.writeByte(OBJECT_START);
                 writeLastField("name", message.getQueueName());
                 jw.writeByte(OBJECT_END);
+            }
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeMessageHeaders(Message message) {
+        NoRandomAccessMap<String, String> headers = message.getHeaders();
+        if (!headers.isEmpty()) {
+            writeFieldName("headers");
+            jw.writeByte(OBJECT_START);
+            Iterator<NoRandomAccessMap.Entry<String, String>> iterator = headers.iterator();
+            while (iterator.hasNext()) {
+                NoRandomAccessMap.Entry<String, String> next = iterator.next();
+                if (iterator.hasNext()) {
+                    writeField(next.getKey(), next.getValue());
+                } else {
+                    writeLastField(next.getKey(), next.getValue());
+                }
             }
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);

@@ -289,6 +289,17 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(EventType.OFF);
 
+    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
+        .key("capture_headers")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("If set to `true`,\n" +
+            "the agent will capture request and response headers, including cookies.\n" +
+            "\n" +
+            "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("global_labels")
@@ -538,6 +549,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public EventType getCaptureBody() {
         return captureBody.get();
+    }
+
+    public boolean isCaptureHeaders() {
+        return captureHeaders.get();
     }
 
     public boolean isTypePoolCacheEnabled() {

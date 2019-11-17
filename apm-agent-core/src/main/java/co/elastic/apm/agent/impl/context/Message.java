@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.util.NoRandomAccessMap;
 
 import javax.annotation.Nullable;
 
@@ -40,6 +41,11 @@ public class Message implements Recyclable {
 
     @Nullable
     private String body;
+
+    /**
+     * A mapping of message headers (in JMS includes properties as well)
+     */
+    private final NoRandomAccessMap<String, String> headers = new NoRandomAccessMap<>();
 
     @Nullable
     public String getQueueName() {
@@ -75,8 +81,17 @@ public class Message implements Recyclable {
         body = REDACTED_CONTEXT_STRING;
     }
 
+    public Message addHeader(String key, String value) {
+        headers.add(key, value);
+        return this;
+    }
+
+    public NoRandomAccessMap<String, String> getHeaders() {
+        return headers;
+    }
+
     public boolean hasContent() {
-        return queueName != null || topicName != null || body != null;
+        return queueName != null || topicName != null || body != null || headers.size() > 0;
     }
 
     @Override
@@ -84,11 +99,13 @@ public class Message implements Recyclable {
         queueName = null;
         topicName = null;
         body = null;
+        headers.resetState();
     }
 
     public void copyFrom(Message other) {
         this.queueName = other.getQueueName();
         this.topicName = other.getTopicName();
         this.body = other.body;
+        this.headers.copyFrom(other.getHeaders());
     }
 }

@@ -189,10 +189,19 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             return;
         }
         try {
+            co.elastic.apm.agent.impl.context.Message messageContext = span.getContext().getMessage();
+
             // Currently only capturing body of TextMessages. The javax.jms.Message#getBody() API is since 2.0, so,
             // if we are supporting JMS 1.1, it makes no sense to rely on isAssignableFrom.
             if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF && message instanceof TextMessage) {
-                span.getContext().getMessage().withBody(((TextMessage) message).getText());
+                messageContext.withBody(((TextMessage) message).getText());
+            }
+
+            // Addition of non-String headers/properties will cause String instance allocations
+            if (coreConfiguration.isCaptureHeaders()) {
+                messageContext.addHeader(JMS_MESSAGE_ID_HEADER, message.getJMSMessageID());
+                messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(message.getJMSExpiration()));
+                messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
             }
         } catch (JMSException e) {
             logger.warn("Failed to retrieve message details", e);

@@ -75,6 +75,7 @@ Click on a key to get more information.
 ** <<config-unnest-exceptions>>
 ** <<config-ignore-exceptions>>
 ** <<config-capture-body>>
+** <<config-capture-headers>>
 ** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -84,7 +85,6 @@ Click on a key to get more information.
 ** <<config-config-file>>
 * <<config-http>>
 ** <<config-capture-body-content-types>>
-** <<config-capture-headers>>
 ** <<config-ignore-urls>>
 ** <<config-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
@@ -524,6 +524,27 @@ Valid options: `off`, `errors`, `transactions`, `all`
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-capture-headers]]
+==== `capture_headers` (performance)
+
+If set to `true`, the agent will capture request and response headers, including cookies.
+
+NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-global-labels]]
 ==== `global_labels` (added[1.7.0, Requires APM Server 7.2+])
 
@@ -780,30 +801,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_body_content_types` | `capture_body_content_types` | `ELASTIC_APM_CAPTURE_BODY_CONTENT_TYPES`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-capture-headers]]
-==== `capture_headers` (performance)
-
-If set to `true`,
-the agent will capture request and response headers, including cookies.
-
-NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `true` | Boolean | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1793,6 +1790,17 @@ The default unit for this option is `ms`
 #
 # capture_body=OFF
 
+# If set to `true`,
+# the agent will capture request and response headers, including cookies.
+# 
+# NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# capture_headers=true
+
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
 # 
@@ -1949,17 +1957,6 @@ The default unit for this option is `ms`
 # Default value: application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
 #
 # capture_body_content_types=application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
-
-# If set to `true`,
-# the agent will capture request and response headers, including cookies.
-# 
-# NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
-#
-# This setting can be changed at runtime
-# Type: Boolean
-# Default value: true
-#
-# capture_headers=true
 
 # Used to restrict requests to certain URLs from being instrumented.
 # 

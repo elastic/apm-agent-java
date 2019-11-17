@@ -56,17 +56,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("application/xml*")
         ));
 
-    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
-        .key("capture_headers")
-        .configurationCategory(HTTP_CATEGORY)
-        .tags("performance")
-        .description("If set to `true`,\n" +
-            "the agent will capture request and response headers, including cookies.\n" +
-            "\n" +
-            "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
-        .dynamic(true)
-        .buildWithDefault(true);
-
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("ignore_urls")
@@ -152,10 +141,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUrlGroups() {
         return urlGroups.get();
-    }
-
-    public boolean isCaptureHeaders() {
-        return captureHeaders.get();
     }
 
     public List<WildcardMatcher> getCaptureContentTypes() {

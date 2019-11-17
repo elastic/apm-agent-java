@@ -63,6 +63,12 @@ public interface JmsInstrumentationHelper<D, M, L> {
 
     String RECEIVE_NAME_PREFIX = "JMS RECEIVE";
 
+    // JMS known headers
+    //----------------------
+    String JMS_MESSAGE_ID_HEADER = "JMSMessageID";
+    String JMS_EXPIRATION_HEADER = "JMSExpiration";
+    String JMS_TIMESTAMP_HEADER = "JMSTimestamp";
+
     @Nullable
     Span startJmsSendSpan(D destination, M message);
 

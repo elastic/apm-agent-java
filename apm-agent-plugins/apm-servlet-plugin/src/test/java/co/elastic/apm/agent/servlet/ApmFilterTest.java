@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -61,11 +61,13 @@ import static org.mockito.Mockito.when;
 class ApmFilterTest extends AbstractInstrumentationTest {
 
     private WebConfiguration webConfiguration;
+    private CoreConfiguration coreConfiguration;
     private MockFilterChain filterChain;
 
     @BeforeEach
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
+        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         filterChain = new MockFilterChain();
     }
 
@@ -250,7 +252,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testNoHeaderRecording() throws IOException, ServletException {
-        when(webConfiguration.isCaptureHeaders()).thenReturn(false);
+        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("Elastic-Apm-Traceparent", "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01");
@@ -269,7 +271,7 @@ class ApmFilterTest extends AbstractInstrumentationTest {
 
     @Test
     void testAllHeaderRecording() throws IOException, ServletException {
-        when(webConfiguration.isCaptureHeaders()).thenReturn(true);
+        when(coreConfiguration.isCaptureHeaders()).thenReturn(true);
         filterChain = new MockFilterChain(new TestServlet());
         final MockHttpServletRequest get = new MockHttpServletRequest("GET", "/foo");
         get.addHeader("foo", "bar");
