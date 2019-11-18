@@ -44,6 +44,7 @@
         <module>apm-error-logging-plugin</module>
         <module>apm-jmx-plugin</module>
         <module>apm-mule4-plugin</module>
+        <module>apm-mongoclient-plugin</module>
         <module>apm-netty-plugin</module>
     </modules>
 
