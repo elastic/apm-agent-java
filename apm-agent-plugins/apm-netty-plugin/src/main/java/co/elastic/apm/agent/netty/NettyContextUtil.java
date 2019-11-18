@@ -58,7 +58,6 @@ public class NettyContextUtil {
                 .attr(AttributeKey.<TraceContextHolder<?>>valueOf(ATTR_TRACE_CONTEXT))
                 .get();
             if (context != null) {
-                System.out.println("restore context");
                 logger.debug("restore context: {}", context);
                 context.activate();
             }
@@ -72,12 +71,11 @@ public class NettyContextUtil {
         if (active != null) {
             Attribute<TraceContextHolder<?>> attr = attributeMap
                 .attr(AttributeKey.<TraceContextHolder<?>>valueOf(ATTR_TRACE_CONTEXT));
+            logger.debug("store context: {}", active);
             if (active instanceof AbstractSpan) {
                 // keep the span alive as long as it's in the attribute map
                 ((AbstractSpan) active).incrementReferences();
             }
-            System.out.println("store context");
-            logger.debug("store context: {}", active);
             TraceContextHolder<?> previousContext = attr.getAndSet(active);
             if (previousContext instanceof AbstractSpan) {
                 ((AbstractSpan) previousContext).decrementReferences();
@@ -94,6 +92,7 @@ public class NettyContextUtil {
             .attr(AttributeKey.<TraceContextHolder<?>>valueOf(ATTR_TRACE_CONTEXT))
             .getAndSet(null);
         if (previousContext instanceof AbstractSpan) {
+            logger.debug("remove context");
             ((AbstractSpan) previousContext).decrementReferences();
         }
     }

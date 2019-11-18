@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,12 +25,15 @@
 package co.elastic.apm.agent.netty;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +50,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * Also called in case of a connect timeout, for example.
  */
 public class ChannelCloseContextRemovingInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(ChannelCloseContextRemovingInstrumentation.class);
+
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return nameStartsWith("io.netty.channel.")
@@ -65,8 +72,9 @@ public class ChannelCloseContextRemovingInstrumentation extends ElasticApmInstru
         return Collections.singletonList("netty");
     }
 
-    @Advice.OnMethodEnter
-    private static void onBeforeDisconnect(@Advice.Argument(0) ChannelPromise promise) {
+    @Advice.OnMethodEnter(suppress = Throwable.class)
+    private static void onBeforeClose(@Advice.Argument(0) ChannelPromise promise) {
+        logger.debug("Channel.Unsafe#close remove context");
         NettyContextUtil.removeContext(promise.channel());
     }
 }

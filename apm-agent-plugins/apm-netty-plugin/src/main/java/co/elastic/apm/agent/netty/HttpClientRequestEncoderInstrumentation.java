@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.netty;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -39,6 +40,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -62,6 +65,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * </p>
  */
 public class HttpClientRequestEncoderInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(HttpClientRequestDecoderInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -90,7 +96,7 @@ public class HttpClientRequestEncoderInstrumentation extends ElasticApmInstrumen
         if (!(thiz instanceof HttpRequestEncoder) || !(msg instanceof HttpRequest) || tracer == null) {
             return;
         }
-        System.out.println("HttpRequestEncoder#write");
+        logger.debug("HttpRequestEncoder#write");
         HttpRequest request = (HttpRequest) msg;
         final TraceContextHolder<?> parent = tracer.getActive();
         if (parent != null && !parent.isExit()) {
@@ -107,6 +113,7 @@ public class HttpClientRequestEncoderInstrumentation extends ElasticApmInstrumen
             }
             span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), url.toString(), host);
             if (span != null) {
+                logger.debug("created netty http client span");
                 ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client")).set(span);
                 request.headers().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
             }

@@ -32,6 +32,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -47,6 +49,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@link ChannelPipeline#fireChannelReadComplete()}
  */
 public class ChannelReadCompleteContextRemovingInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(ChannelReadCompleteContextRemovingInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,12 +72,30 @@ public class ChannelReadCompleteContextRemovingInstrumentation extends ElasticAp
     }
 
     /**
-     * After reading all parts of the response, remove the context
+     * After reading all currently available data of the response, remove the context.
+     *
+     * When handling the {@link ChannelPipeline#fireChannelReadComplete()} event,
+     * the application may trigger another read via {@link ChannelPipeline#read()},
+     * for example when reading a chunked response.
+     * {@link ChannelBeginReadContextStoringInstrumentation} is responsible for propagating the context in this scenario.
      */
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onFireChannelReadComplete(@Advice.This ChannelPipeline channelPipeline) {
-        System.out.println("ChannelPipeline#fireChannelReadComplete");
-        NettyContextUtil.removeContext(channelPipeline.channel());
+    private static void beforeFireChannelReadComplete(@Advice.This ChannelPipeline channelPipeline,
+                                                      @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+        logger.debug("ChannelPipeline#fireChannelReadComplete before: restore and remove context");
+        context = NettyContextUtil.restoreContext(channelPipeline.channel());
+        if (context != null) {
+            NettyContextUtil.removeContext(channelPipeline.channel());
+        }
+    }
+
+    @Advice.OnMethodExit(suppress = Throwable.class)
+    private static void afterFireChannelReadComplete(@Advice.This ChannelPipeline channelPipeline,
+                                                     @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+        logger.debug("ChannelPipeline#fireChannelReadComplete after: deactivate");
+        if (context != null) {
+            context.deactivate();
+        }
     }
 
 }

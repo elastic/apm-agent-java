@@ -1,3 +1,4 @@
+co.elastic.apm.agent.netty.ChannelBeginReadContextStoringInstrumentation
 co.elastic.apm.agent.netty.ChannelCloseContextRemovingInstrumentation
 co.elastic.apm.agent.netty.ChannelConnectInstrumentation$ConnectContextStoringInstrumentation
 co.elastic.apm.agent.netty.ChannelConnectInstrumentation$FinishConnectContextRestoringInstrumentation

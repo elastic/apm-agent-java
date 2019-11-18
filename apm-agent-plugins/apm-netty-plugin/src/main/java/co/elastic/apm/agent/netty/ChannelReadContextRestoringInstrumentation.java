@@ -32,6 +32,8 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -47,6 +49,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * {@link ChannelPipeline#fireChannelRead(Object)}
  */
 public class ChannelReadContextRestoringInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(ChannelReadContextRestoringInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -75,8 +80,8 @@ public class ChannelReadContextRestoringInstrumentation extends ElasticApmInstru
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeFireChannelRead(@Advice.This ChannelPipeline channelPipeline,
                                               @Advice.Local("context") TraceContextHolder<?> context) {
-        System.out.println("read");
         context = NettyContextUtil.restoreContext(channelPipeline.channel());
+        logger.debug("before ChannelPipeline#fireChannelRead restore context {}", context);
     }
 
     /**
@@ -84,6 +89,7 @@ public class ChannelReadContextRestoringInstrumentation extends ElasticApmInstru
      */
     @Advice.OnMethodExit(suppress = Throwable.class)
     private static void afterFireChannelRead(@Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+        logger.debug("after ChannelPipeline#fireChannelRead deactivate context {}", context);
         if (context != null) {
             context.deactivate();
         }

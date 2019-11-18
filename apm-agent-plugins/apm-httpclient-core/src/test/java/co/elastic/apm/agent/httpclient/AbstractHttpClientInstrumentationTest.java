@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.matching.ContentPattern;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +56,8 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
     public final void setUpWiremock() {
         wireMockRule.stubFor(any(urlEqualTo("/"))
             .willReturn(aResponse()
+                // tests chunked encoded responses
+                .withBodyFile("test.txt")
                 .withStatus(200)));
         wireMockRule.stubFor(get(urlEqualTo("/error"))
             .willReturn(aResponse()
@@ -64,7 +67,7 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         wireMockRule.stubFor(get(urlEqualTo("/circular-redirect"))
             .willReturn(seeOther("/circular-redirect")));
         final Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
-        transaction.withType("request").activate();
+        transaction.withName("transaction").withType("request").activate();
     }
 
     @After

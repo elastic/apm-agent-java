@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.asynchttpclient;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -35,8 +36,11 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.asynchttpclient.AsyncHandler;
+import org.asynchttpclient.DefaultAsyncHttpClient;
 import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -55,6 +59,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmInstrumentation {
 
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(AbstractAsyncHttpClientInstrumentation.class);
+
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         return Arrays.asList("http-client", "asynchttpclient");
@@ -66,6 +73,9 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             .and(classLoaderCanLoadClass("org.asynchttpclient.AsyncHandler"));
     }
 
+    /**
+     * {@link DefaultAsyncHttpClient#executeRequest(Request, AsyncHandler)}
+     */
     public static class AsyncHttpClientInstrumentation extends AbstractAsyncHttpClientInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -138,7 +148,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler) {
             if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
-                System.out.println("onCompleted");
+                logger.debug("onCompleted");
                 TraceContextHolder<?> active = getActive();
                 if (active instanceof Span) {
                     ((Span) active).end();
@@ -161,7 +171,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) Throwable t) {
             if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
-                System.out.println("onThrowable");
+                logger.debug("onThrowable");
                 TraceContextHolder<?> active = getActive();
                 if (active instanceof Span) {
                     ((Span) active).captureException(t).end();
@@ -184,7 +194,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static void onMethodEnter(@Advice.This AsyncHandler<?> asyncHandler, @Advice.Argument(0) HttpResponseStatus status) {
             if (CallDepth.getAndIncrement(AsyncHandler.class) == 0) {
-                System.out.println("onStatusReceived");
+                logger.debug("onStatusReceived");
                 TraceContextHolder<?> active = getActive();
                 if (active instanceof Span) {
                     ((Span) active).getContext().getHttp().withStatusCode(status.getStatusCode());

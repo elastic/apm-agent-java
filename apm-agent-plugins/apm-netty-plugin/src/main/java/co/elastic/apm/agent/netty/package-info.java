@@ -25,7 +25,8 @@
 @NonnullApi
 /**
  *                                           {@link ChannelPipeline#write}        These methods are not good candidates for instrumentation because
- *                                           {@link ChannelPipeline#connect}      we'd not propagate context which is added within the handlers
+ *                                           {@link ChannelPipeline#read()}       we'd not propagate context which is added within the handlers
+ *                                           {@link ChannelPipeline#connect()}
  *                                           {@link ChannelPipeline#close()}
  *                                           {@link ChannelPipeline#disconnect()}
  *                           {@link ChannelPipeline}    |
@@ -42,6 +43,7 @@
  *  +------------+--------------------------------------+----------------------+
  *  |            |                                      |                      |
  *  |            |                            {@link Unsafe#write} ]           | {@link ChannelWriteContextStoringInstrumentation}
+ *  |            |                            {@link Unsafe#beginRead()} ]     | {@link ChannelBeginReadContextStoringInstrumentation}
  *  |   {@link NioUnsafe#read()}                                               |
  *  |                                         {@link Unsafe#connect}]          | {@link ChannelConnectInstrumentation.ConnectContextStoringInstrumentation}
  *  |   {@link NioUnsafe#finishConnect()}                                      | {@link ChannelConnectInstrumentation.FinishConnectContextRestoringInstrumentation}
@@ -52,10 +54,79 @@
  *  TODO
  *   - test promise failure (for example when can't connect)
  *   - instrument {@link ChannelPipeline#fireChannelInactive()}?
+ *
+ *
+ * Example of a typical sequence of events for an HTTP client
+ * <pre>
+ * {@link TraceContextHolder#createSpan()}
+ * {@link NioUnsafe#connect}
+ *     instrumentation:
+ *         {@link ChannelConnectInstrumentation.ConnectContextStoringInstrumentation}
+ *     before:
+ *         {@link NettyContextUtil#storeContext}
+ *     error:
+ *         {@link NettyContextUtil#removeContext}
+ * {@link NioUnsafe#finishConnect()}
+ *     instrumentation:
+ *         {@link ChannelConnectInstrumentation.FinishConnectContextRestoringInstrumentation}
+ *     before:
+ *         {@link NettyContextUtil#restoreContext}
+ *         {@link NettyContextUtil#removeContext}
+ *     nested:
+ *       - {@link Unsafe#write}
+ *             instrumentation:
+ *                 {@link ChannelWriteContextStoringInstrumentation}
+ *             before:
+ *                 {@link NettyContextUtil#storeContext}
+ *       - {@link Unsafe#beginRead}
+ *            instrumentation:
+ *                {@link ChannelBeginReadContextStoringInstrumentation}
+ *            before:
+ *                 {@link NettyContextUtil#storeContext}
+ *     after:
+ *         {@link TraceContextHolder#deactivate()}
+ * loop until all chunks of the response have been read:
+ *     {@link ChannelPipeline#fireChannelRead}
+ *         instrumentation:
+ *             {@link ChannelReadContextRestoringInstrumentation}
+ *         before:
+ *             {@link NettyContextUtil#restoreContext}
+ *         nested:
+ *             # The HTTP client instrumentation is responsible for this:
+ *             # depending on what part of the response is read, update or end the span
+ *           - {@link Http#withStatusCode}
+ *             # if the last chunk has been read
+ *           - {@link Span#end()}
+ *         after:
+ *             {@link TraceContextHolder#deactivate()}
+ *     {@link ChannelPipeline#fireChannelReadComplete}
+ *         instrumentation:
+ *             {@link ChannelReadCompleteContextRemovingInstrumentation}
+ *         before:
+ *             {@link NettyContextUtil#restoreContext}
+ *             {@link NettyContextUtil#removeContext}
+ *         nested:
+ *             # triggers another {@link ChannelPipeline#fireChannelRead} when data arrives
+ *           - {@link Unsafe#beginRead}
+ *                instrumentation:
+ *                    {@link ChannelBeginReadContextStoringInstrumentation}
+ *                before:
+ *                     {@link NettyContextUtil#storeContext}
+ *         after:
+ *             {@link TraceContextHolder#deactivate()}
+ * {@link Unsafe#close()}
+ *     instrumentation:
+ *         {@link ChannelCloseContextRemovingInstrumentation}
+ *     before:
+ *         {@link NettyContextUtil#removeContext}
+ * </pre>
  */
 package co.elastic.apm.agent.netty;
 
 import co.elastic.apm.agent.annotation.NonnullApi;
+import co.elastic.apm.agent.impl.context.Http;
+import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.Channel.Unsafe;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelInboundHandler;

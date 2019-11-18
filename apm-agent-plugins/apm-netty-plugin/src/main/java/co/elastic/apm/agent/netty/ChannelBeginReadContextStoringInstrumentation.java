@@ -27,10 +27,8 @@ package co.elastic.apm.agent.netty;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ChannelPromise;
 import io.netty.util.Attribute;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,12 +45,12 @@ import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ChannelWriteContextStoringInstrumentation extends ElasticApmInstrumentation {
+public class ChannelBeginReadContextStoringInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final Logger logger = LoggerFactory.getLogger(ChannelWriteContextStoringInstrumentation.class);
+    public static final Logger logger = LoggerFactory.getLogger(ChannelBeginReadContextStoringInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -61,26 +59,14 @@ public class ChannelWriteContextStoringInstrumentation extends ElasticApmInstrum
     }
 
     /**
-     * <ul>
-     *     <li>{@link io.netty.channel.ChannelOutboundInvoker#write(Object)}</li>
-     *     <li>{@link io.netty.channel.ChannelOutboundInvoker#write(Object, ChannelPromise)}</li>
-     *     <li>{@link io.netty.channel.ChannelOutboundInvoker#writeAndFlush(Object)}</li>
-     *     <li>{@link io.netty.channel.ChannelOutboundInvoker#writeAndFlush(Object, ChannelPromise)}</li>
-     * </ul>
-     * invoked before {@link TracingHttpClientHandler#write(io.netty.channel.ChannelHandlerContext, java.lang.Object, io.netty.channel.ChannelPromise)}
-     *
-     * {@link AbstractChannel#doWrite(io.netty.channel.ChannelOutboundBuffer)}
-     * only executed on flush, writes only write into buffer
-     *
-     * {@link Channel.Unsafe#write(java.lang.Object, io.netty.channel.ChannelPromise)}
+     * {@link Channel.Unsafe#beginRead()}
      */
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("write")
+        return named("beginRead")
             .and(isPublic())
             .and(returns(void.class))
-            .and(takesArgument(0, Object.class))
-            .and(takesArgument(1, named("io.netty.channel.ChannelPromise")));
+            .and(takesArguments(0));
     }
 
     @Override
@@ -88,14 +74,10 @@ public class ChannelWriteContextStoringInstrumentation extends ElasticApmInstrum
         return Collections.singletonList("netty");
     }
 
-    /**
-     * When {@link ChannelPipeline#write} is executed with an active {@link TraceContextHolder},
-     * store the trace context in an {@link Attribute}.
-     */
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeWrite(@Advice.Argument(1) ChannelPromise promise) {
-        logger.debug("Channel.Unsafe#write storing context");
-        NettyContextUtil.storeContext(promise.channel());
+    private static void beforeRead(@Advice.This Channel.Unsafe thiz) {
+        logger.debug("Channel.Unsafe#beginRead storing context");
+        NettyContextUtil.storeContext(thiz.voidPromise().channel());
     }
 
 }
