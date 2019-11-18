@@ -99,7 +99,10 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public TextMessage createTextMessage(String messageText) throws JMSException {
-        return session.createTextMessage(messageText);
+        TextMessage message = session.createTextMessage(messageText);
+        message.setStringProperty("test_string_property", "test123");
+        message.setIntProperty("test_int_property", 123);
+        return message;
     }
 
     @Override

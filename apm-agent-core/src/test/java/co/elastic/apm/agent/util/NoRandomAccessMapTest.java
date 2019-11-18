@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.util;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NoRandomAccessMapTest {
     private NoRandomAccessMap<String, String> map = new NoRandomAccessMap<>();
 
-    @BeforeEach
+    @AfterEach
     void reset() {
         map.resetState();
         assertThat(map.isEmpty()).isTrue();

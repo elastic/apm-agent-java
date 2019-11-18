@@ -44,6 +44,7 @@ import javax.jms.TemporaryQueue;
 import javax.jms.TemporaryTopic;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
+import java.util.Enumeration;
 
 @SuppressWarnings("unused")
 public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<Destination, Message, MessageListener> {
@@ -202,6 +203,14 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 messageContext.addHeader(JMS_MESSAGE_ID_HEADER, message.getJMSMessageID());
                 messageContext.addHeader(JMS_EXPIRATION_HEADER, String.valueOf(message.getJMSExpiration()));
                 messageContext.addHeader(JMS_TIMESTAMP_HEADER, String.valueOf(message.getJMSTimestamp()));
+
+                Enumeration properties = message.getPropertyNames();
+                while (properties.hasMoreElements()) {
+                    String propertyName = String.valueOf(properties.nextElement());
+                    if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)) {
+                        messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
+                    }
+                }
             }
         } catch (JMSException e) {
             logger.warn("Failed to retrieve message details", e);

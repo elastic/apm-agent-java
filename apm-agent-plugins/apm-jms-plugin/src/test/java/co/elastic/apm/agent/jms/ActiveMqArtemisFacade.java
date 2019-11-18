@@ -34,6 +34,7 @@ import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.Queue;
@@ -114,8 +115,11 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
-    public TextMessage createTextMessage(String messageText) {
-        return context.createTextMessage(messageText);
+    public TextMessage createTextMessage(String messageText) throws JMSException {
+        TextMessage message = context.createTextMessage(messageText);
+        message.setStringProperty("test_string_property", "test123");
+        message.setIntProperty("test_int_property", 123);
+        return message;
     }
 
     @Override

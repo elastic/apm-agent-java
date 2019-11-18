@@ -64,9 +64,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_DESTINATION_NAME_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_EXPIRATION_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_MESSAGE_ID_HEADER;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TIMESTAMP_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TMP_PREFIX;
@@ -416,6 +418,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(message.getJMSMessageID()).isEqualTo(headersMap.get(JMS_MESSAGE_ID_HEADER));
         assertThat(String.valueOf(message.getJMSExpiration())).isEqualTo(headersMap.get(JMS_EXPIRATION_HEADER));
         assertThat(String.valueOf(message.getJMSTimestamp())).isEqualTo(headersMap.get(JMS_TIMESTAMP_HEADER));
+        assertThat(String.valueOf(message.getObjectProperty("test_string_property"))).isEqualTo(headersMap.get("test_string_property"));
+        assertThat(String.valueOf(message.getObjectProperty("test_int_property"))).isEqualTo(headersMap.get("test_int_property"));
+        assertThat(headersMap.get(JMS_TRACE_PARENT_PROPERTY)).isNull();
+        assertThat(headersMap.get(JMS_DESTINATION_NAME_PROPERTY)).isNull();
     }
 
     private void verifySendReceiveOnNonTracedThread(String destinationName, TextMessage message) throws JMSException {
