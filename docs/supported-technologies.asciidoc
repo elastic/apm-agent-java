@@ -176,7 +176,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 
  The name of the span is `<db>.<collection>.<command>`.
  The actual query will not be recorded.
-|1.11.0
+|1.12.0
 
 |===
 

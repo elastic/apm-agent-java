@@ -1,4 +1,4 @@
-# (Next)
+# 1.12.0 (Next)
 
 ## Features
  * JMS Enhancements (#911):
@@ -13,6 +13,7 @@
         * Rely on the existing `ELASTIC_APM_CAPTURE_HEADERS` agent config option.
         * Send as `context.message.headers`
         * Sanitize sensitive headers/properties based on the `sanitize_field_names` config option
+ * Added support for the MongoDB sync driver. See [supported data stores](https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases).
 
 ## Bug Fixes
  * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
@@ -38,7 +39,6 @@
  * Add [`@Traced`](https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced) annotation which either creates a span or a transaction, depending on the context
  * Report JMS destination as a span/transaction context field (#906)
  * Added [`capture_jmx_metrics`](https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics) configuration option
- * Added support for the MongoDB sync driver. See [supported data stores](https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases).
 
 ## Bug Fixes
  * JMS creates polling transactions even when the API invocations return without a message
