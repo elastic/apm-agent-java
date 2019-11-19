@@ -119,6 +119,7 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
         TextMessage message = context.createTextMessage(messageText);
         message.setStringProperty("test_string_property", "test123");
         message.setIntProperty("test_int_property", 123);
+        message.setStringProperty("passwd", "secret");
         return message;
     }
 

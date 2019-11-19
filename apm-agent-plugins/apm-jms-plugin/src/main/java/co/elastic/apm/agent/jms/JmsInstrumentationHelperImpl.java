@@ -49,7 +49,7 @@ import java.util.Enumeration;
 @SuppressWarnings("unused")
 public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<Destination, Message, MessageListener> {
 
-    static final String TMP_PREFIX = "$TMP$";
+    static final String TIBCO_TMP_QUEUE_PREFIX = "$TMP$";
     static final String TEMP = "<temporary>";
 
     private static final Logger logger = LoggerFactory.getLogger(JmsInstrumentationHelperImpl.class);
@@ -164,7 +164,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
 
     private boolean isTempDestination(Destination destination, @Nullable String extractedDestinationName) {
         return destination instanceof TemporaryQueue || destination instanceof TemporaryTopic ||
-            (extractedDestinationName != null && extractedDestinationName.startsWith(TMP_PREFIX));
+            (extractedDestinationName != null && extractedDestinationName.startsWith(TIBCO_TMP_QUEUE_PREFIX));
     }
 
     @Override
@@ -207,7 +207,8 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 Enumeration properties = message.getPropertyNames();
                 while (properties.hasMoreElements()) {
                     String propertyName = String.valueOf(properties.nextElement());
-                    if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)) {
+                    if (!propertyName.equals(JMS_DESTINATION_NAME_PROPERTY) && !propertyName.equals(JMS_TRACE_PARENT_PROPERTY)
+                        && WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), propertyName) == null) {
                         messageContext.addHeader(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
                     }
                 }
