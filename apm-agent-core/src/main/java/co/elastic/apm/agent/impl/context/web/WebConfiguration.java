@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.web;
+package co.elastic.apm.agent.impl.context.web;
 
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
@@ -37,26 +37,6 @@ import java.util.List;
 public class WebConfiguration extends ConfigurationOptionProvider {
 
     private static final String HTTP_CATEGORY = "HTTP";
-    private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
-        .key("capture_body")
-        .configurationCategory(HTTP_CATEGORY)
-        .tags("performance")
-        .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST " +
-            "variables).\n" +
-            "\n" +
-            "If the request has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
-            "\n" +
-            "This option is case-insensitive.\n" +
-            "\n" +
-            "NOTE: Currently, only UTF-8 encoded plain text content types are supported.\n" +
-            "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
-            "\n" +
-            "WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.\n" +
-            "If your service handles data like this, we advise to only enable this feature with care.\n" +
-            "Turning on body capturing can also significantly increase the overhead in terms of heap usage,\n" +
-            "network utilisation and Elasticsearch index size.")
-        .dynamic(true)
-        .buildWithDefault(EventType.OFF);
 
     private final ConfigurationOption<List<WildcardMatcher>> captureContentTypes = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -75,17 +55,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.valueOf("application/json*"),
             WildcardMatcher.valueOf("application/xml*")
         ));
-
-    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
-        .key("capture_headers")
-        .configurationCategory(HTTP_CATEGORY)
-        .tags("performance")
-        .description("If set to `true`,\n" +
-            "the agent will capture request and response headers, including cookies.\n" +
-            "\n" +
-            "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
-        .dynamic(true)
-        .buildWithDefault(true);
 
     private final ConfigurationOption<List<WildcardMatcher>> ignoreUrls = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -158,10 +127,6 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
-    public EventType getCaptureBody() {
-        return captureBody.get();
-    }
-
     public List<WildcardMatcher> getIgnoreUrls() {
         return ignoreUrls.get();
     }
@@ -178,35 +143,8 @@ public class WebConfiguration extends ConfigurationOptionProvider {
         return urlGroups.get();
     }
 
-    public boolean isCaptureHeaders() {
-        return captureHeaders.get();
-    }
-
     public List<WildcardMatcher> getCaptureContentTypes() {
         return captureContentTypes.get();
     }
 
-    public enum EventType {
-        /**
-         * Request bodies will never be reported
-         */
-        OFF,
-        /**
-         * Request bodies will only be reported with errors
-         */
-        ERRORS,
-        /**
-         * Request bodies will only be reported with request transactions
-         */
-        TRANSACTIONS,
-        /**
-         * Request bodies will be reported with both errors and request transactions
-         */
-        ALL;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase();
-        }
-    }
 }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,13 +25,13 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.web.WebConfiguration;
 import net.bytebuddy.asm.Advice;
 
 import javax.annotation.Nullable;
@@ -118,7 +118,7 @@ public class ServletApiAdvice {
                 return;
             }
             final Request req = transaction.getContext().getRequest();
-            if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+            if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
                 if (request.getCookies() != null) {
                     for (Cookie cookie : request.getCookies()) {
                         req.addCookie(cookie.getName(), cookie.getValue());
@@ -175,7 +175,7 @@ public class ServletApiAdvice {
             } else {
                 // this is not an async request, so we can end the transaction immediately
                 final HttpServletResponse response = (HttpServletResponse) servletResponse;
-                if (transaction.isSampled() && tracer.getConfig(WebConfiguration.class).isCaptureHeaders()) {
+                if (transaction.isSampled() && tracer.getConfig(CoreConfiguration.class).isCaptureHeaders()) {
                     final Response resp = transaction.getContext().getResponse();
                     for (String headerName : response.getHeaderNames()) {
                         resp.addHeader(headerName, response.getHeaders(headerName));
