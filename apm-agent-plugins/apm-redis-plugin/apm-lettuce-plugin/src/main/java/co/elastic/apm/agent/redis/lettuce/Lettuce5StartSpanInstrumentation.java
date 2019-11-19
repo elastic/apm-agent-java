@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -47,7 +48,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class LettuceStartSpanInstrumentation extends ElasticApmInstrumentation {
+public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -57,9 +58,9 @@ public class LettuceStartSpanInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("dispatch")
-            .and(returns(named("io.lettuce.core.protocol.RedisCommand")))
+            .and(returns(nameEndsWith("RedisCommand")))
             .and(takesArguments(1))
-            .and(takesArgument(0, named("io.lettuce.core.protocol.RedisCommand")));
+            .and(takesArgument(0, nameEndsWith("RedisCommand")));
     }
 
     @Override

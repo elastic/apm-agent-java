@@ -44,7 +44,13 @@
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
-            <version>5.1.8.RELEASE</version>
+            <version>(5.0.5.RELEASE,]</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>biz.paluch.redis</groupId>
+            <artifactId>lettuce</artifactId>
+            <version>4.1.2.Final</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

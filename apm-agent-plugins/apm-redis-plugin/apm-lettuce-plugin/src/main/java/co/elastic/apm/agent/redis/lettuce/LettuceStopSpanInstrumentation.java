@@ -42,7 +42,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Stops the span created by {@link LettuceStartSpanInstrumentation} when one of the following methods are called:
+ * Stops the span created by {@link Lettuce5StartSpanInstrumentation} when one of the following methods are called:
  * <ul>
  *     <li>{@link RedisCommand#complete()}</li>
  *     <li>{@link RedisCommand#completeExceptionally(Throwable)}</li>
@@ -54,7 +54,8 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.lettuce.core.protocol.Command");
+        return named("io.lettuce.core.protocol.Command")
+            .or(named("com.lambdaworks.redis.protocol.Command"));
     }
 
     @Override

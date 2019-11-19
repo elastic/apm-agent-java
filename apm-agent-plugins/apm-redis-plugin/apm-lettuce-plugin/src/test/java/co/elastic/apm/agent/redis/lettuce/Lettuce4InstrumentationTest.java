@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,30 +26,30 @@ package co.elastic.apm.agent.redis.lettuce;
 
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
-import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.async.RedisAsyncCommands;
-import io.lettuce.core.api.reactive.RedisReactiveCommands;
-import io.lettuce.core.api.sync.RedisCommands;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.lambdaworks.redis.RedisClient;
+import com.lambdaworks.redis.RedisURI;
+import com.lambdaworks.redis.api.StatefulRedisConnection;
+import com.lambdaworks.redis.api.async.RedisAsyncCommands;
+import com.lambdaworks.redis.api.rx.RedisReactiveCommands;
+import com.lambdaworks.redis.api.sync.RedisCommands;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class LettuceInstrumentationTest extends AbstractRedisInstrumentationTest {
+public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
 
     private StatefulRedisConnection<String, String> connection;
 
-    @BeforeEach
-    void setUpLettuce() {
+    @Before
+    public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
     }
 
     @Test
-    void testClusterCommand() {
+    public void testClusterCommand() {
         RedisCommands<String, String> sync = connection.sync();
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             sync.set("foo", "bar");
@@ -58,7 +58,7 @@ class LettuceInstrumentationTest extends AbstractRedisInstrumentationTest {
         assertTransactionWithRedisSpans("SET", "GET");
     }
     @Test
-    void testSyncLettuce() {
+    public void testSyncLettuce() {
         RedisCommands<String, String> sync = connection.sync();
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             sync.set("foo", "bar");
@@ -68,7 +68,7 @@ class LettuceInstrumentationTest extends AbstractRedisInstrumentationTest {
     }
 
     @Test
-    void testAsyncLettuce() throws Exception {
+    public void testAsyncLettuce() throws Exception {
         RedisAsyncCommands<String, String> async = connection.async();
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             async.set("foo", "bar").get();
@@ -77,18 +77,18 @@ class LettuceInstrumentationTest extends AbstractRedisInstrumentationTest {
         assertTransactionWithRedisSpans("SET", "GET");
     }
 
-    @Test
-    void testReactiveLettuce() {
+    /*@Test
+    public void testReactiveLettuce() {
         RedisReactiveCommands<String, String> async = connection.reactive();
         try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
             async.set("foo", "bar").block();
             assertThat(async.get("foo").block()).isEqualTo("bar");
         }
         assertTransactionWithRedisSpans("SET", "GET");
-    }
+    }*/
 
-    @AfterEach
-    void tearDownLettuce() {
+    @After
+    public void tearDownLettuce() {
         connection.close();
     }
 }

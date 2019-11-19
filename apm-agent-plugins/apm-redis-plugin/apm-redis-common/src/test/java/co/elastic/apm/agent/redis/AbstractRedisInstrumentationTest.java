@@ -26,6 +26,8 @@ package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import redis.embedded.RedisServer;
@@ -48,8 +50,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         }
     }
 
+    @Before
     @BeforeEach
-    final void initRedis() throws IOException {
+    public final void initRedis() throws IOException {
         redisPort = getAvailablePort();
         server = RedisServer.builder()
             .setting("bind 127.0.0.1")
@@ -58,8 +61,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         server.start();
     }
 
+    @After
     @AfterEach
-    final void stopRedis() {
+    public final void stopRedis() {
         server.stop();
     }
 
