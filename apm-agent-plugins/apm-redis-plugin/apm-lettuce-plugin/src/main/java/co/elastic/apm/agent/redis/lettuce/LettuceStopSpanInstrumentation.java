@@ -54,8 +54,7 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.lettuce.core.protocol.Command")
-            .or(named("com.lambdaworks.redis.protocol.Command"));
+        return named("io.lettuce.core.protocol.Command");
     }
 
     @Override

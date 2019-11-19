@@ -58,9 +58,9 @@ public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("dispatch")
-            .and(returns(nameEndsWith("RedisCommand")))
+            .and(returns(nameEndsWith("io.lettuce.core.protocol.RedisCommand")))
             .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("RedisCommand")));
+            .and(takesArgument(0, nameEndsWith("io.lettuce.core.protocol.RedisCommand")));
     }
 
     @Override
