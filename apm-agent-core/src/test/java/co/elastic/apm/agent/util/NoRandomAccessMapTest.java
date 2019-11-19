@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.util;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +46,18 @@ class NoRandomAccessMapTest {
             numElements++;
             assertThat(entry.getKey()).isEqualTo("foo");
             assertThat(entry.getValue()).isEqualTo("bar");
+        }
+        assertThat(numElements).isEqualTo(1);
+    }
+
+    @Test
+    void testNullValue() {
+        map.add("foo", null);
+        int numElements = 0;
+        for (NoRandomAccessMap.Entry entry : map) {
+            numElements++;
+            assertThat(entry.getKey()).isEqualTo("foo");
+            assertThat(entry.getValue()).isNull();
         }
         assertThat(numElements).isEqualTo(1);
     }

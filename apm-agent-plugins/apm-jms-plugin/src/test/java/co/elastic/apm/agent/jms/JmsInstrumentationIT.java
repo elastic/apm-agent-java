@@ -421,6 +421,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(String.valueOf(message.getObjectProperty("test_int_property"))).isEqualTo(headersMap.get("test_int_property"));
         assertThat(String.valueOf(message.getStringProperty("passwd"))).isEqualTo("secret");
         assertThat(headersMap.get("passwd")).isNull();
+        assertThat(headersMap.get("null_property")).isEqualTo("null");
         assertThat(String.valueOf(message.getStringProperty(JMS_TRACE_PARENT_PROPERTY))).isNotNull();
         assertThat(headersMap.get(JMS_TRACE_PARENT_PROPERTY)).isNull();
     }

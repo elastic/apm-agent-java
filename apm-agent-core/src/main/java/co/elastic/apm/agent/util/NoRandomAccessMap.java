@@ -49,13 +49,13 @@ public class NoRandomAccessMap<K, V> implements Recyclable, Iterable<NoRandomAcc
 
     /**
      * @param key   can't be null
-     * @param value can't be null
-     * @throws NullPointerException if either key or value are null
+     * @param value can be null
+     * @throws NullPointerException if provided key is null
      */
-    public void add(K key, V value) throws NullPointerException {
+    public void add(K key, @Nullable V value) throws NullPointerException {
         //noinspection ConstantConditions
-        if (key == null || value == null) {
-            throw new NullPointerException("This map doesn't support null keys nor values");
+        if (key == null) {
+            throw new NullPointerException("This map doesn't support null keys");
         }
         keys.add(key);
         values.add(value);
@@ -91,6 +91,8 @@ public class NoRandomAccessMap<K, V> implements Recyclable, Iterable<NoRandomAcc
 
     public interface Entry<K, V> {
         K getKey();
+
+        @Nullable
         V getValue();
     }
 
@@ -107,10 +109,8 @@ public class NoRandomAccessMap<K, V> implements Recyclable, Iterable<NoRandomAcc
             return key;
         }
 
+        @Nullable
         public V getValue() {
-            if (value == null) {
-                throw new IllegalStateException("Value shouldn't be null. Make sure you don't read and write to this map concurrently");
-            }
             return value;
         }
 

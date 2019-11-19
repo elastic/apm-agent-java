@@ -103,6 +103,7 @@ class ActiveMqFacade implements BrokerFacade {
         message.setStringProperty("test_string_property", "test123");
         message.setIntProperty("test_int_property", 123);
         message.setStringProperty("passwd", "secret");
+        message.setStringProperty("null_property", null);
         return message;
     }
 
