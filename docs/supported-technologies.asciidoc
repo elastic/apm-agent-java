@@ -4,6 +4,19 @@ The Elastic APM Java Agent automatically instruments various APIs,
 frameworks and application servers.
 This section lists all supported technologies.
 
+* <<supported-java-versions>>
+* <<supported-web-frameworks>>
+* <<supported-app-servers>>
+* <<supported-databases>>
+* <<supported-networking-frameworks>>
+* <<supported-async-frameworks>>
+* <<supported-messaging-frameworks>>
+* <<supported-scheduling-frameworks>>
+* <<supported-logging-frameworks>>
+* <<supported-java-methods>>
+* <<supported-metrics>>
+* <<supported-technologies-caveats>>
+
 If your favorite technology is not supported yet,
 you can vote for it by participating in our
 https://docs.google.com/forms/d/e/1FAIpQLScd0RYiwZGrEuxykYkv9z8Hl3exx_LKCtjsqEo1OWx8BkLrOQ/viewform?usp=sf_link[survey].
