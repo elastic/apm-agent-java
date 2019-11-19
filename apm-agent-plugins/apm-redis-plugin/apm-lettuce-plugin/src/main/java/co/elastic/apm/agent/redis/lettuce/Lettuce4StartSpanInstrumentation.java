@@ -27,7 +27,7 @@ package co.elastic.apm.agent.redis.lettuce;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
-import io.lettuce.core.protocol.RedisCommand;
+import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -37,30 +37,28 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
+import static net.bytebuddy.matcher.ElementMatchers.isPrivate;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.returns;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Starts a span in {@link io.lettuce.core.RedisChannelHandler#dispatch(RedisCommand)}
+ * Starts a span in {@link com.lambdaworks.redis.RedisChannelHandler#dispatch}
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class Lettuce5StartSpanInstrumentation extends ElasticApmInstrumentation {
+public class Lettuce4StartSpanInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.lettuce.core.RedisChannelHandler");
+        return named("com.lambdaworks.redis.RedisChannelHandler");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("dispatch")
-            .and(returns(nameEndsWith("RedisCommand")))
             .and(takesArguments(1))
-            .and(takesArgument(0, nameEndsWith("RedisCommand")));
+            .and(not(isPrivate()));
     }
 
     @Override
