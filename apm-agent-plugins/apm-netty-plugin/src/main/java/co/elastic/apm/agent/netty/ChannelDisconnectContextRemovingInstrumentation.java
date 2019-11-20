@@ -24,19 +24,17 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -47,10 +45,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * {@link Channel.Unsafe#disconnect(io.netty.channel.ChannelPromise)}
  */
-public class ChannelDisconnectContextRemovingInstrumentation extends ElasticApmInstrumentation {
+public class ChannelDisconnectContextRemovingInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelDisconnectContextRemovingInstrumentation.class);
+
+    public ChannelDisconnectContextRemovingInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -66,13 +68,21 @@ public class ChannelDisconnectContextRemovingInstrumentation extends ElasticApmI
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    @Advice.OnMethodEnter
-    private static void onBeforeDisconnect(@Advice.Argument(0) ChannelPromise promise) {
-        logger.debug("Channel.Unsafe#disconnect");
-        NettyContextUtil.removeContext(promise.channel());
+    public static class AdviceClass {
+
+        @Advice.OnMethodEnter
+        private static void onBeforeDisconnect(@Advice.Origin Class<?> clazz, @Advice.Argument(0) ChannelPromise promise) {
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    logger.debug("Channel.Unsafe#disconnect");
+                    helper.removeContext(promise.channel());
+                }
+            }
+        }
     }
 }

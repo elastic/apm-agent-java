@@ -88,45 +88,53 @@ public class HttpClientRequestEncoderInstrumentation extends ElasticApmInstrumen
         return Collections.singletonList("netty");
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void onBeforeWrite(@Advice.This ChannelOutboundHandler thiz,
-                         @Advice.Argument(0) ChannelHandlerContext ctx,
-                         @Advice.Argument(1) Object msg,
-                         @Nullable @Advice.Local("span") Span span) throws Exception {
-        if (!(thiz instanceof HttpRequestEncoder) || !(msg instanceof HttpRequest) || tracer == null) {
-            return;
-        }
-        logger.debug("HttpRequestEncoder#write");
-        HttpRequest request = (HttpRequest) msg;
-        final TraceContextHolder<?> parent = tracer.getActive();
-        if (parent != null && !parent.isExit()) {
-            StringBuilder url = new StringBuilder();
-            String host;
-            if (request.uri().startsWith("http")) {
-                url.append(request.uri());
-                host = new URI(request.uri()).getHost();
-            } else {
-                String hostHeader = request.headers().get("host");
-                int colon = hostHeader.lastIndexOf(':');
-                host = hostHeader.substring(0, colon > 0 ? colon : hostHeader.length());
-                url.append("http://").append(hostHeader).append(request.uri());
-            }
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), url.toString(), host);
-            if (span != null) {
-                logger.debug("created netty http client span");
-                ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client")).set(span);
-                request.headers().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
-            }
-        }
+    @Override
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-    private static void onAfterWrite(@Advice.Argument(0) ChannelHandlerContext ctx,
-                              @Nullable @Advice.Local("span") Span span,
-                              @Nullable @Advice.Thrown Throwable thrown) {
-        if (thrown != null && span != null) {
-            ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client")).set(null);
-            span.captureException(thrown).end();
+    public static class AdviceClass {
+
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void onBeforeWrite(@Advice.This ChannelOutboundHandler thiz,
+                             @Advice.Argument(0) ChannelHandlerContext ctx,
+                             @Advice.Argument(1) Object msg,
+                             @Nullable @Advice.Local("span") Span span) throws Exception {
+            if (!(thiz instanceof HttpRequestEncoder) || !(msg instanceof HttpRequest) || tracer == null) {
+                return;
+            }
+            logger.debug("HttpRequestEncoder#write");
+            HttpRequest request = (HttpRequest) msg;
+            final TraceContextHolder<?> parent = tracer.getActive();
+            if (parent != null && !parent.isExit()) {
+                StringBuilder url = new StringBuilder();
+                String host;
+                if (request.uri().startsWith("http")) {
+                    url.append(request.uri());
+                    host = new URI(request.uri()).getHost();
+                } else {
+                    String hostHeader = request.headers().get("host");
+                    int colon = hostHeader.lastIndexOf(':');
+                    host = hostHeader.substring(0, colon > 0 ? colon : hostHeader.length());
+                    url.append("http://").append(hostHeader).append(request.uri());
+                }
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method().name(), url.toString(), host);
+                if (span != null) {
+                    logger.debug("created netty http client span");
+                    ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client")).set(span);
+                    request.headers().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                }
+            }
+        }
+
+        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+        private static void onAfterWrite(@Advice.Argument(0) ChannelHandlerContext ctx,
+                                  @Nullable @Advice.Local("span") Span span,
+                                  @Nullable @Advice.Thrown Throwable thrown) {
+            if (thrown != null && span != null) {
+                ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client")).set(null);
+                span.captureException(thrown).end();
+            }
         }
     }
 }

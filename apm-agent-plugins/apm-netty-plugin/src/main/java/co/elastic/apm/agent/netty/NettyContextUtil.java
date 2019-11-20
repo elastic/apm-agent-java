@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 @VisibleForAdvice
-public class NettyContextUtil {
+public class NettyContextUtil implements NettyContextHelper<AttributeMap> {
 
     private static final String ATTR_TRACE_CONTEXT = "co.elastic.apm.trace_context";
     private static final Logger logger = LoggerFactory.getLogger(NettyContextUtil.class);
@@ -48,8 +48,9 @@ public class NettyContextUtil {
      * @return
      */
     @Nullable
+    @Override
     @VisibleForAdvice
-    public static TraceContextHolder<?> restoreContext(AttributeMap attributeMap) {
+    public TraceContextHolder<?> restoreContext(AttributeMap attributeMap) {
         TraceContextHolder<?> context = null;
         TraceContextHolder<?> active = ElasticApmInstrumentation.getActive();
         if (active == null) {
@@ -65,8 +66,9 @@ public class NettyContextUtil {
         return context;
     }
 
+    @Override
     @VisibleForAdvice
-    public static void storeContext(AttributeMap attributeMap) {
+    public void storeContext(AttributeMap attributeMap) {
         TraceContextHolder<?> active = ElasticApmInstrumentation.getActive();
         if (active != null) {
             Attribute<TraceContextHolder<?>> attr = attributeMap
@@ -86,8 +88,9 @@ public class NettyContextUtil {
     /**
      * @param attributeMap
      */
+    @Override
     @VisibleForAdvice
-    public static void removeContext(AttributeMap attributeMap) {
+    public void removeContext(AttributeMap attributeMap) {
         TraceContextHolder<?> previousContext = attributeMap
             .attr(AttributeKey.<TraceContextHolder<?>>valueOf(ATTR_TRACE_CONTEXT))
             .getAndSet(null);

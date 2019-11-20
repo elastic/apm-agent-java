@@ -24,13 +24,14 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.nio.AbstractNioChannel.NioUnsafe;
+import io.netty.util.AttributeMap;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import net.bytebuddy.asm.Advice;
@@ -41,8 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -60,20 +59,23 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * via {@link io.netty.channel.ChannelFuture#addListener(GenericFutureListener)}.
  * Within that listener, the actual {@link Channel#write} operation is performed.
  */
-public abstract class ChannelConnectInstrumentation extends ElasticApmInstrumentation {
+public abstract class ChannelConnectInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelConnectInstrumentation.class);
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public ChannelConnectInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
     }
 
     /**
      * {@link NioUnsafe#connect(java.net.SocketAddress, java.net.SocketAddress, io.netty.channel.ChannelPromise)}
      */
     public static final class ConnectContextStoringInstrumentation extends ChannelConnectInstrumentation {
+
+        public ConnectContextStoringInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -91,18 +93,36 @@ public abstract class ChannelConnectInstrumentation extends ElasticApmInstrument
                 .and(takesArgument(2, named("io.netty.channel.ChannelPromise")));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeConnect(@Advice.Argument(2) ChannelPromise promise) {
-            logger.debug("NioUnsafe#connect before: store context");
-            NettyContextUtil.storeContext(promise.channel());
+        @Override
+        public Class<?> getAdviceClass() {
+            return AdviceClass.class;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void afterConnect(@Nullable @Advice.Thrown Throwable t,
-                                         @Advice.Argument(2) ChannelPromise promise) {
-            if (t != null) {
-                logger.debug("NioUnsafe#connect error: remove context");
-                NettyContextUtil.removeContext(promise.channel());
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class)
+            private static void beforeConnect(@Advice.Origin Class<?> clazz, @Advice.Argument(2) ChannelPromise promise) {
+                if (nettyContextHelper != null) {
+                    NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                    if (helper != null) {
+                        logger.debug("NioUnsafe#connect before: store context");
+                        helper.storeContext(promise.channel());
+                    }
+                }
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+            private static void afterConnect(@Advice.Origin Class<?> clazz,
+                                             @Nullable @Advice.Thrown Throwable t,
+                                             @Advice.Argument(2) ChannelPromise promise) {
+                if (t != null) {
+                    if (nettyContextHelper != null) {
+                        NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                        if (helper != null) {
+                            logger.debug("NioUnsafe#connect error: remove context");
+                            helper.removeContext(promise.channel());
+                        }
+                    }
+                }
             }
         }
     }
@@ -113,6 +133,10 @@ public abstract class ChannelConnectInstrumentation extends ElasticApmInstrument
      *
      */
     public static final class FinishConnectContextRestoringInstrumentation extends ChannelConnectInstrumentation {
+
+        public FinishConnectContextRestoringInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
 
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -127,21 +151,35 @@ public abstract class ChannelConnectInstrumentation extends ElasticApmInstrument
                 .and(takesArguments(0));
         }
 
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeFinishConnect(@Advice.This NioUnsafe unsafe,
-                                                @Advice.Local("context") TraceContextHolder<?> context) {
-            logger.debug("NioUnsafe#finishConnect before: restore and remove context");
-            Channel channel = unsafe.voidPromise().channel();
-            context = NettyContextUtil.restoreContext(channel);
-            NettyContextUtil.removeContext(channel);
+        @Override
+        public Class<?> getAdviceClass() {
+            return AdviceClass.class;
         }
 
-        @Advice.OnMethodExit(suppress = Throwable.class)
-        private static void afterFinishConnect(@Advice.This NioUnsafe unsafe,
-                                               @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
-            if (context != null) {
-                logger.debug("NioUnsafe#finishConnect after: deactivate");
-                context.deactivate();
+        public static class AdviceClass {
+            @Advice.OnMethodEnter(suppress = Throwable.class)
+            private static void beforeFinishConnect(@Advice.Origin Class<?> clazz,
+                                                    @Advice.This NioUnsafe unsafe,
+                                                    @Advice.Local("context") TraceContextHolder<?> context) {
+                if (nettyContextHelper != null) {
+                    NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                    if (helper != null) {
+                        logger.debug("NioUnsafe#finishConnect before: restore and remove context");
+                        Channel channel = unsafe.voidPromise().channel();
+                        context = helper.restoreContext(channel);
+                        helper.removeContext(channel);
+                    }
+                }
+            }
+
+            @Advice.OnMethodExit(suppress = Throwable.class)
+            private static void afterFinishConnect(@Advice.Origin Class<?> clazz,
+                                                   @Advice.This NioUnsafe unsafe,
+                                                   @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+                if (context != null) {
+                    logger.debug("NioUnsafe#finishConnect after: deactivate");
+                    context.deactivate();
+                }
             }
         }
     }

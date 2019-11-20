@@ -24,10 +24,11 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.ChannelPipeline;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -36,8 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -48,10 +47,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * {@link ChannelPipeline#fireChannelReadComplete()}
  */
-public class ChannelReadCompleteContextRemovingInstrumentation extends ElasticApmInstrumentation {
+public class ChannelReadCompleteContextRemovingInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelReadCompleteContextRemovingInstrumentation.class);
+
+    public ChannelReadCompleteContextRemovingInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,34 +70,44 @@ public class ChannelReadCompleteContextRemovingInstrumentation extends ElasticAp
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    /**
-     * After reading all currently available data of the response, remove the context.
-     *
-     * When handling the {@link ChannelPipeline#fireChannelReadComplete()} event,
-     * the application may trigger another read via {@link ChannelPipeline#read()},
-     * for example when reading a chunked response.
-     * {@link ChannelBeginReadContextStoringInstrumentation} is responsible for propagating the context in this scenario.
-     */
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeFireChannelReadComplete(@Advice.This ChannelPipeline channelPipeline,
-                                                      @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
-        logger.debug("ChannelPipeline#fireChannelReadComplete before: restore and remove context");
-        context = NettyContextUtil.restoreContext(channelPipeline.channel());
-        if (context != null) {
-            NettyContextUtil.removeContext(channelPipeline.channel());
+    public static class AdviceClass {
+
+        /**
+         * After reading all currently available data of the response, remove the context.
+         * <p>
+         * When handling the {@link ChannelPipeline#fireChannelReadComplete()} event,
+         * the application may trigger another read via {@link ChannelPipeline#read()},
+         * for example when reading a chunked response.
+         * {@link ChannelBeginReadContextStoringInstrumentation} is responsible for propagating the context in this scenario.
+         */
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeFireChannelReadComplete(@Advice.Origin Class<?> clazz,
+                                                          @Advice.This ChannelPipeline channelPipeline,
+                                                          @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    logger.debug("ChannelPipeline#fireChannelReadComplete before: restore and remove context");
+                    context = helper.restoreContext(channelPipeline.channel());
+                    if (context != null) {
+                        helper.removeContext(channelPipeline.channel());
+                    }
+                }
+            }
         }
-    }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    private static void afterFireChannelReadComplete(@Advice.This ChannelPipeline channelPipeline,
-                                                     @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
-        logger.debug("ChannelPipeline#fireChannelReadComplete after: deactivate");
-        if (context != null) {
-            context.deactivate();
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void afterFireChannelReadComplete(@Advice.Origin Class<?> clazz,
+                                                         @Advice.This ChannelPipeline channelPipeline,
+                                                         @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+            logger.debug("ChannelPipeline#fireChannelReadComplete after: deactivate");
+            if (context != null) {
+                context.deactivate();
+            }
         }
     }
 

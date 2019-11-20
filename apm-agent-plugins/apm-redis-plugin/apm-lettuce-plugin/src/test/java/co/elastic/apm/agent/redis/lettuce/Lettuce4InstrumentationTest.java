@@ -27,24 +27,25 @@ package co.elastic.apm.agent.redis.lettuce;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import com.lambdaworks.redis.RedisClient;
-import com.lambdaworks.redis.RedisURI;
 import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
-import com.lambdaworks.redis.api.rx.RedisReactiveCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ExecutionException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTest {
 
+    private RedisClient client;
     private StatefulRedisConnection<String, String> connection;
 
     @Before
     public void setUpLettuce() {
-        RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
+        client = RedisClient.create("redis://localhost:" + redisPort);
         connection = client.connect();
     }
 

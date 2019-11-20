@@ -20,6 +20,7 @@
         <module>apm-jedis-2-tests</module>
         <module>apm-jedis-3-tests</module>
         <module>apm-jedis-plugin</module>
+        <module>apm-lettuce-3-tests</module>
         <module>apm-lettuce-plugin</module>
         <module>apm-redis-common</module>
     </modules>

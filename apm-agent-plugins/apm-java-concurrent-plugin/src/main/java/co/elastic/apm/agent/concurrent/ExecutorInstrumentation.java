@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.isProxy;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -92,7 +93,10 @@ public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation 
             .and(not(named("org.apache.felix.resolver.ResolverImpl$DumbExecutor")))
             // hazelcast tries to serialize the Runnables/Callables to execute them on remote JVMs
             .and(not(nameStartsWith("com.hazelcast")))
-            .and(not(isProxy()));
+            .and(not(isProxy()))
+            // long story but avoids this exception on Lettuce4VersionIT:
+            // java.lang.LinkageError: loader constraint violation in interface itable initialization for class io.netty.channel.SingleThreadEventLoop: when selecting method io.netty.util.concurrent.EventExecutorGroup.next()Lio/netty/util/concurrent/EventExecutor; the class loader 'app' (instance of jdk.internal.loader.ClassLoaders$AppClassLoader) for super interface io.netty.util.concurrent.EventExecutorGroup, and the class loader 'Test class class loader: null' @f627d13 (instance of co.elastic.apm.agent.TestClassWithDependencyRunner$ChildFirstURLClassLoader, child of 'app' jdk.internal.loader.ClassLoaders$AppClassLoader) of the selected method's type, io.netty.channel.SingleThreadEventLoop have different Class objects for the type io.netty.util.concurrent.EventExecutor used in the signature
+            .and(not(isInterface()));
     }
 
     @Override

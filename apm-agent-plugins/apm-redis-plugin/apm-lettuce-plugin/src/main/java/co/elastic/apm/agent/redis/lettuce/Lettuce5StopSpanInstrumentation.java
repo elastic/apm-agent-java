@@ -26,15 +26,15 @@ package co.elastic.apm.agent.redis.lettuce;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import io.lettuce.core.protocol.Command;
 import io.lettuce.core.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -50,12 +50,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * </ul>
  * Rather than wrapping the {@link RedisCommand}, the context propagation relies on the Netty instrumentation.
  */
-public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumentation {
+public abstract class Lettuce5StopSpanInstrumentation extends ElasticApmInstrumentation {
+
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(Lettuce5StopSpanInstrumentation.class);
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("io.lettuce.core.protocol.Command")
-            .or(named("com.lambdaworks.redis.protocol.Command"));
+        return named("io.lettuce.core.protocol.Command");
     }
 
     @Override
@@ -63,11 +65,14 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
         return Arrays.asList("redis", "lettuce");
     }
 
-    public static class OnComplete extends LettuceStopSpanInstrumentation {
+    public static class OnComplete extends Lettuce5StopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete() {
-            LettuceUtil.beforeComplete(null);
+        private static void beforeComplete(@Advice.This Command command) {
+            if (!command.isDone() && !command.isCancelled()) {
+                logger.debug("Command#complete");
+                LettuceUtil.beforeComplete(null);
+            }
         }
 
         @Override
@@ -76,11 +81,14 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
         }
     }
 
-    public static class OnCompleteExceptionally extends LettuceStopSpanInstrumentation {
+    public static class OnCompleteExceptionally extends Lettuce5StopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete(@Advice.Argument(0) Throwable throwable) {
-            LettuceUtil.beforeComplete(throwable);
+        private static void beforeComplete(@Advice.This Command command, @Advice.Argument(0) Throwable throwable) {
+            if (!command.isDone() && !command.isCancelled()) {
+                logger.debug("Command#completeExceptionally");
+                LettuceUtil.beforeComplete(throwable);
+            }
         }
 
         @Override
@@ -89,11 +97,14 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
         }
     }
 
-    public static class OnCancel extends LettuceStopSpanInstrumentation {
+    public static class OnCancel extends Lettuce5StopSpanInstrumentation {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
-        private static void beforeComplete() {
-            LettuceUtil.beforeComplete(null);
+        private static void beforeComplete(@Advice.This Command command) {
+            if (!command.isDone() && !command.isCancelled()) {
+                logger.debug("Command#cancel");
+                LettuceUtil.beforeComplete(null);
+            }
         }
 
         @Override
@@ -102,19 +113,4 @@ public abstract class LettuceStopSpanInstrumentation extends ElasticApmInstrumen
         }
     }
 
-    public static class LettuceUtil {
-
-        @VisibleForAdvice
-        public static void beforeComplete(@Nullable Throwable t) {
-            TraceContextHolder<?> active = getActive();
-            if (active instanceof Span) {
-                Span activeSpan = (Span) active;
-                if ("redis".equals(activeSpan.getSubtype())) {
-                    activeSpan
-                        .captureException(t)
-                        .end();
-                }
-            }
-        }
-    }
 }

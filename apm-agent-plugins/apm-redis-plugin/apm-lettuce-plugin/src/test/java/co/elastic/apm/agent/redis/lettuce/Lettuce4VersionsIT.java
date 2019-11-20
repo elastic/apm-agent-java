@@ -6,31 +6,27 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class Lettuce4VersionsIT {
 
     private final TestClassWithDependencyRunner runner;
 
-    public Lettuce4VersionsIT(String group, String artifact, String version) throws Exception {
-        runner = new TestClassWithDependencyRunner(group, artifact, version, Lettuce4InstrumentationTest.class);
+    public Lettuce4VersionsIT(List<String> dependencies) throws Exception {
+        System.setProperty("io.lettuce.core.kqueue", "false");
+        runner = new TestClassWithDependencyRunner(dependencies, Lettuce4InstrumentationTest.class);
     }
 
-    @Parameterized.Parameters(name= "{0}:{1}:{2}")
+    @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
-//            { "biz.paluch.redis", "lettuce", "4.5.0.Final" },
-//            { "biz.paluch.redis", "lettuce", "4.4.6.Final" },
-//            { "biz.paluch.redis", "lettuce", "4.3.3.Final" },
-//            { "biz.paluch.redis", "lettuce", "4.2.2.Final" },
-            { "biz.paluch.redis", "lettuce", "4.1.2.Final" },
-            { "biz.paluch.redis", "lettuce", "4.0.2.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.5.0.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.4.3.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.3.2.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.2.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.1.Final" },
-//            { "biz.paluch.redis", "lettuce", "3.0.3.Final" },
+            { List.of("biz.paluch.redis:lettuce:4.5.0.Final", "io.netty:netty-all:4.1.29.Final") },
+            { List.of("biz.paluch.redis:lettuce:4.4.6.Final", "io.netty:netty-all:4.1.24.Final") },
+            { List.of("biz.paluch.redis:lettuce:4.3.3.Final", "io.netty:netty-all:4.1.13.Final") },
+            { List.of("biz.paluch.redis:lettuce:4.2.2.Final", "io.netty:netty-all:4.0.40.Final") },
+            { List.of("biz.paluch.redis:lettuce:4.1.2.Final", "io.netty:netty-all:4.0.34.Final", "org.latencyutils:LatencyUtils:2.0.3") },
+            { List.of("biz.paluch.redis:lettuce:4.0.2.Final", "io.netty:netty-all:4.0.30.Final") },
         });
     }
 

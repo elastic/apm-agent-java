@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import com.lambdaworks.redis.protocol.RedisCommand;
@@ -34,8 +33,6 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.isPrivate;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -47,7 +44,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class Lettuce4StartSpanInstrumentation extends ElasticApmInstrumentation {
+public class LegacyLettuceStartSpanInstrumentation extends AbstraceLegacyLettuceInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -61,14 +58,9 @@ public class Lettuce4StartSpanInstrumentation extends ElasticApmInstrumentation 
             .and(not(isPrivate()));
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("redis", "lettuce");
-    }
-
     @Advice.OnMethodEnter(suppress = Throwable.class)
     private static void beforeDispatch(@Advice.Argument(0) RedisCommand command, @Advice.Local("span") Span span) {
-        span = RedisSpanUtils.createRedisSpan(command.getType().name());
+        span = RedisSpanUtils.createRedisSpan(command.getType().toString());
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class)

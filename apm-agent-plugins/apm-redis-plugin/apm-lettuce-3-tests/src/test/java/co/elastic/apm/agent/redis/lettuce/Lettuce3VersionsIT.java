@@ -9,21 +9,20 @@ import java.util.Arrays;
 import java.util.List;
 
 @RunWith(Parameterized.class)
-public class Lettuce5VersionsIT {
+public class Lettuce3VersionsIT {
 
     private final TestClassWithDependencyRunner runner;
 
-    public Lettuce5VersionsIT(List<String> dependencies) throws Exception {
+    public Lettuce3VersionsIT(List<String> dependencies) throws Exception {
         System.setProperty("io.lettuce.core.kqueue", "false");
-        runner = new TestClassWithDependencyRunner(dependencies, Lettuce5InstrumentationTest.class);
+        runner = new TestClassWithDependencyRunner(dependencies, Lettuce3InstrumentationTest.class);
     }
 
     @Parameterized.Parameters(name= "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
-            { List.of("io.lettuce:lettuce-core:5.2.1.RELEASE", "io.netty:netty-all:4.1.43.Final") },
-            { List.of("io.lettuce:lettuce-core:5.1.8.RELEASE", "io.netty:netty-all:4.1.38.Final") },
-            { List.of("io.lettuce:lettuce-core:5.0.5.RELEASE", "io.netty:netty-all:4.1.28.Final") },
+            { List.of("biz.paluch.redis:lettuce:3.5.0.Final", "io.netty:netty-all:4.0.37.Final") },
+            { List.of("biz.paluch.redis:lettuce:3.4.3.Final", "io.netty:netty-all:4.0.34.Final", "org.latencyutils:LatencyUtils:2.0.2") },
         });
     }
 

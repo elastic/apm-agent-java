@@ -24,21 +24,16 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelPipeline;
-import io.netty.util.Attribute;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -47,10 +42,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class ChannelBeginReadContextStoringInstrumentation extends ElasticApmInstrumentation {
+public class ChannelBeginReadContextStoringInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelBeginReadContextStoringInstrumentation.class);
+
+    public ChannelBeginReadContextStoringInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -70,14 +69,20 @@ public class ChannelBeginReadContextStoringInstrumentation extends ElasticApmIns
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeRead(@Advice.This Channel.Unsafe thiz) {
-        logger.debug("Channel.Unsafe#beginRead storing context");
-        NettyContextUtil.storeContext(thiz.voidPromise().channel());
+    public static class AdviceClass {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeRead(@Advice.Origin Class<?> clazz, @Advice.This Channel.Unsafe thiz) {
+            logger.debug("Channel.Unsafe#beginRead storing context");
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    helper.storeContext(thiz.voidPromise().channel());
+                }
+            }
+        }
     }
-
 }

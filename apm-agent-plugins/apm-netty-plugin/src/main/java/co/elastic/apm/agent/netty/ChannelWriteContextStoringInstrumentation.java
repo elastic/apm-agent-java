@@ -24,23 +24,21 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.Attribute;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -49,10 +47,14 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class ChannelWriteContextStoringInstrumentation extends ElasticApmInstrumentation {
+public class ChannelWriteContextStoringInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelWriteContextStoringInstrumentation.class);
+
+    public ChannelWriteContextStoringInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -84,18 +86,26 @@ public class ChannelWriteContextStoringInstrumentation extends ElasticApmInstrum
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    /**
-     * When {@link ChannelPipeline#write} is executed with an active {@link TraceContextHolder},
-     * store the trace context in an {@link Attribute}.
-     */
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeWrite(@Advice.Argument(1) ChannelPromise promise) {
-        logger.debug("Channel.Unsafe#write storing context");
-        NettyContextUtil.storeContext(promise.channel());
+    public static class AdviceClass {
+
+        /**
+         * When {@link ChannelPipeline#write} is executed with an active {@link TraceContextHolder},
+         * store the trace context in an {@link Attribute}.
+         */
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeWrite(@Advice.Origin Class<?> clazz, @Advice.Argument(1) ChannelPromise promise) {
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    logger.debug("Channel.Unsafe#write storing context");
+                    helper.storeContext(promise.channel());
+                }
+            }
+        }
     }
 
 }

@@ -24,10 +24,11 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.ChannelPipeline;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -36,8 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -48,10 +47,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 /**
  * {@link ChannelPipeline#fireChannelRead(Object)}
  */
-public class ChannelReadContextRestoringInstrumentation extends ElasticApmInstrumentation {
+public class ChannelReadContextRestoringInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(ChannelReadContextRestoringInstrumentation.class);
+
+    public ChannelReadContextRestoringInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -67,31 +70,39 @@ public class ChannelReadContextRestoringInstrumentation extends ElasticApmInstru
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    /**
-     * When {@linkplain ChannelPipeline#fireChannelRead(Object) reading} from the channel,
-     * see if we can restore the context form the {@link io.netty.util.AttributeMap}
-     * which may have been set by a previous {@link ChannelPipeline#write(Object)}
-     * (see {@link ChannelWriteContextStoringInstrumentation}.
-     */
-    @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeFireChannelRead(@Advice.This ChannelPipeline channelPipeline,
-                                              @Advice.Local("context") TraceContextHolder<?> context) {
-        context = NettyContextUtil.restoreContext(channelPipeline.channel());
-        logger.debug("before ChannelPipeline#fireChannelRead restore context {}", context);
-    }
+    public static class AdviceClass {
 
-    /**
-     * Deactivate the context after the {@link ChannelPipeline#fireChannelRead(Object)}
-     */
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    private static void afterFireChannelRead(@Nullable @Advice.Local("context") TraceContextHolder<?> context) {
-        logger.debug("after ChannelPipeline#fireChannelRead deactivate context {}", context);
-        if (context != null) {
-            context.deactivate();
+        /**
+         * When {@linkplain ChannelPipeline#fireChannelRead(Object) reading} from the channel,
+         * see if we can restore the context form the {@link io.netty.util.AttributeMap}
+         * which may have been set by a previous {@link ChannelPipeline#write(Object)}
+         * (see {@link ChannelWriteContextStoringInstrumentation}.
+         */
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        private static void beforeFireChannelRead(@Advice.Origin Class<?> clazz, @Advice.This ChannelPipeline channelPipeline,
+                                                  @Advice.Local("context") TraceContextHolder<?> context) {
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    context = helper.restoreContext(channelPipeline.channel());
+                    logger.debug("before ChannelPipeline#fireChannelRead restore context {}", context);
+                }
+            }
+        }
+
+        /**
+         * Deactivate the context after the {@link ChannelPipeline#fireChannelRead(Object)}
+         */
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void afterFireChannelRead(@Advice.Origin Class<?> clazz, @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
+            logger.debug("after ChannelPipeline#fireChannelRead deactivate context {}", context);
+            if (context != null) {
+                context.deactivate();
+            }
         }
     }
 }

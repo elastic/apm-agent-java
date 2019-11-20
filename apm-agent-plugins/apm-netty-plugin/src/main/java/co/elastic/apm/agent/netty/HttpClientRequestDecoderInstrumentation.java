@@ -24,8 +24,8 @@
  */
 package co.elastic.apm.agent.netty;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpClientCodec;
@@ -33,6 +33,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -40,8 +41,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -53,10 +52,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * Can be executed multiple times for the same HTTP response, for example in case of chunked responses.
  */
-public class HttpClientRequestDecoderInstrumentation extends ElasticApmInstrumentation {
+public class HttpClientRequestDecoderInstrumentation extends NettyInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(HttpClientRequestDecoderInstrumentation.class);
+
+    public HttpClientRequestDecoderInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
@@ -73,29 +76,39 @@ public class HttpClientRequestDecoderInstrumentation extends ElasticApmInstrumen
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("netty");
+    public Class<?> getAdviceClass() {
+        return AdviceClass.class;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
-    private static void afterDecode(@Advice.Argument(0) ChannelHandlerContext ctx,
-                                    @Advice.Argument(2) List<Object> out) {
-        logger.debug("HttpObjectDecoder#decode");
-        Attribute<Span> spanAttr = ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client"));
-        Span httpSpan = spanAttr.get();
-        if (httpSpan == null) {
-            return;
-        }
-        for (int i = 0, size = out.size(); i < size; i++) {
-            Object msg = out.get(i);
-            if (msg instanceof HttpResponse) {
-                httpSpan.getContext().getHttp().withStatusCode(((HttpResponse) msg).status().code());
-            }
-            if (msg instanceof LastHttpContent) {
-                spanAttr.set(null);
-                httpSpan.end();
-                logger.debug("HttpObjectDecoder#decode remove context");
-                NettyContextUtil.removeContext(ctx.channel());
+    public static class AdviceClass {
+
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        private static void afterDecode(@Advice.Origin Class<?> clazz,
+                                        @Advice.Argument(0) ChannelHandlerContext ctx,
+                                        @Advice.Argument(2) List<Object> out) {
+
+            if (nettyContextHelper != null) {
+                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                if (helper != null) {
+                    logger.debug("HttpObjectDecoder#decode");
+                    Attribute<Span> spanAttr = ctx.channel().attr(AttributeKey.<Span>valueOf("elastic.apm.trace_context.client"));
+                    Span httpSpan = spanAttr.get();
+                    if (httpSpan == null) {
+                        return;
+                    }
+                    for (int i = 0, size = out.size(); i < size; i++) {
+                        Object msg = out.get(i);
+                        if (msg instanceof HttpResponse) {
+                            httpSpan.getContext().getHttp().withStatusCode(((HttpResponse) msg).status().code());
+                        }
+                        if (msg instanceof LastHttpContent) {
+                            spanAttr.set(null);
+                            httpSpan.end();
+                            logger.debug("HttpObjectDecoder#decode remove context");
+                            helper.removeContext(ctx.channel());
+                        }
+                    }
+                }
             }
         }
     }

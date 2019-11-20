@@ -168,6 +168,11 @@ Other Servlet 3+ compliant servers will most likely work as well.
 |The agent creates spans for interactions with the Jedis client.
 |1.10.0
 
+|Redis Lettuce
+|3.4+
+|The agent creates spans for interactions with the Jedis client.
+|TODO
+
 |MongoDB driver
 |3.x
 |The agent creates spans for interactions with the MongoDB driver.
