@@ -295,7 +295,7 @@ pipeline {
               git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
                   url: "git@github.com:elastic/${OPBEANS_REPO}.git"
               sh script: ".ci/bump-version.sh ${env.BRANCH_NAME}", label: 'Bump version'
-              // The opbeans-go pipeline will trigger a release for the master branch
+              // The opbeans-java pipeline will trigger a release for the master branch
               gitPush()
               // The opbeans-java pipeline will trigger a release for the release tag
               gitCreateTag(tag: "${env.BRANCH_NAME}")
