@@ -14,6 +14,7 @@ pipeline {
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
     MAVEN_CONFIG = '-Dmaven.repo.local=.m2'
+    OPBEANS_REPO = 'opbeans-java'
   }
   options {
     timeout(time: 1, unit: 'HOURS')
@@ -262,12 +263,9 @@ pipeline {
     stage('Integration Tests') {
       agent none
       when {
-        beforeAgent true
-        allOf {
-          anyOf {
-            environment name: 'GIT_BUILD_CAUSE', value: 'pr'
-            expression { return !params.Run_As_Master_Branch }
-          }
+        anyOf {
+          changeRequest()
+          expression { return !params.Run_As_Master_Branch }
         }
       }
       steps {
@@ -279,6 +277,31 @@ pipeline {
                            string(name: 'GITHUB_CHECK_REPO', value: env.REPO),
                            string(name: 'GITHUB_CHECK_SHA1', value: env.GIT_BASE_COMMIT)])
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
+      }
+    }
+    stage('Release') {
+      options { skipDefaultCheckout() }
+      when {
+        tag pattern: 'v\\d+\\.\\d+\\d+', comparator: 'REGEXP'
+      }
+      stages {
+        stage('Opbeans') {
+          environment {
+            REPO_NAME = "${OPBEANS_REPO}"
+          }
+          steps {
+            deleteDir()
+            dir("${OPBEANS_REPO}"){
+              git credentialsId: 'f6c7695a-671e-4f4f-a331-acdce44ff9ba',
+                  url: "git@github.com:elastic/${OPBEANS_REPO}.git"
+              sh script: ".ci/bump-version.sh ${env.BRANCH_NAME}", label: 'Bump version'
+              // The opbeans-go pipeline will trigger a release for the master branch
+              gitPush()
+              // The opbeans-go pipeline will trigger a release for the release tag
+              gitCreateTag(tag: "${env.BRANCH_NAME}")
+            }
+          }
+        }
       }
     }
   }
