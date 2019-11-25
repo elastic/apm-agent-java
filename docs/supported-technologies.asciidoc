@@ -342,7 +342,7 @@ If you are seeing gaps in the span timeline and want to include certain methods,
  That makes it possible to monitor code in 3rd party libraries.
  You can match  methods via wildcards in the package, class or method name,
  by their modifier (like `public`), by a particular annotation, and more.
-|Easy to overuse by matching too many methods which hurts performance. Use together with <<config-trace-methods-duration-threshold, `trace_methods_duration_threshold`>> if setting for entire packages instead of specific methods in order to reduce overhead and avoid having too many spans in the UI.
+|Easy to overuse by matching too many methods which hurts performance. Use together with <<config-trace-methods-duration-threshold, `trace_methods_duration_threshold`>> if setting for entire packages instead of specific methods in order to reduce overhead and avoid having too many spans in the APM app.
 
 |===
 
