@@ -150,7 +150,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "\n" +
             "Environments allow you to easily filter data on a global level in the APM app.\n" +
             "It's important to be consistent when naming environments across agents.\n" +
-            "See {kibana-ref}/filters.html#environment-selector[environment selector] in the APM app for more information.\n\n" +
+            "See {apm-app-ref}/filters.html#environment-selector[environment selector] in the APM app for more information.\n\n" +
             "NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.\n" +
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
