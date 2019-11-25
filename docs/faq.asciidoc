@@ -32,7 +32,7 @@ Elastic APM is using the popular bytecode instrumentation library http://bytebud
 which takes care of the heavy lifting of dealing with actual bytecode and lets us write the instrumentation in pure Java.
 
 Byte Buddy is widely used in popular Open Source projects,
-for example Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
+for example, Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
 It is created by a Java Champion, awarded with the Dukes Choice award and currently downloaded over 75 million times a year.
 
 Unlike other bytecode instrumentation libraries,

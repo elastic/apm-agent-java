@@ -1,6 +1,6 @@
 [[supported-technologies-details]]
 == Supported technologies
-The Elastic APM Java agent automatically instruments various APIs,
+The Elastic APM Java Agent automatically instruments various APIs,
 frameworks and application servers.
 This section lists all supported technologies.
 
