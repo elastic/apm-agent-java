@@ -32,7 +32,7 @@ We do all that in order to not add additional work for the GC which is already b
 The Java agent also uses specialized data structures (LMAX Disruptor and queues from JCTools)
 when we transfer events across threads.
 For example, from the application threads which record transactions to the background reporter thread.
-This is to circumvent problems like lock contention and false sharing you would get from standard JDK data structures like ArrayBlockingQueue.
+This is to circumvent problems like lock contention and false sharing you would get from standard JDK data structures like `ArrayBlockingQueue`.
 
 In single-threaded benchmarks,
 our Java agent imposes an overhead in the order of single-digit microseconds (µs) up to the 99.99th percentile.
