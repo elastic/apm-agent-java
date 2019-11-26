@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.neo4j3;
+package co.elastic.apm.agent.neo4j;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -34,7 +34,7 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 
-public abstract class AbstractTransactionInstrumentationTest extends AbstractInstrumentationTest {
+public abstract class AbstractNeo4jInstrumentationTest extends AbstractInstrumentationTest {
 
   protected static GenericContainer container;
 

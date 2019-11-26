@@ -23,6 +23,6 @@
  * #L%
  */
 @NonnullApi
-package co.elastic.apm.agent.neo4j3;
+package co.elastic.apm.agent.neo4j;
 
 import co.elastic.apm.agent.annotation.NonnullApi;
