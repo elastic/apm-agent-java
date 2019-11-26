@@ -73,6 +73,9 @@ This can be adjusted with the <<tune-sample-rate>>.
 
 The Java agent offers a variety of <<configuration,configuration options>>,
 some of which can have a significant impact on performance.
+To make it easy to determine which options impact performance,
+we've tagged certain configuration options in the documentation with _(performance)_.
+
 
 [float]
 [[tune-sample-rate]]
