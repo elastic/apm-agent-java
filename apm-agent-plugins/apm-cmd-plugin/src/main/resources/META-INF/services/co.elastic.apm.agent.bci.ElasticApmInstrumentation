@@ -1,6 +1,2 @@
-co.elastic.apm.agent.cmd.CommonsExecSyncInstrumentation
-co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$CommonsExecAsyncInstrumentation
-co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$EndCommonsExecAsyncInstrumentation
-#co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$JavaProcessBuilderApiInstrumentation
-#co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$JavaRuntimeExecInstrumentation
-#co.elastic.apm.agent.cmd.ReferenceStoringInstrumentation$EndProcessInstrumentation
+co.elastic.apm.agent.cmd.ProcessStartInstrumentation
+co.elastic.apm.agent.cmd.ProcessExitInstrumentation
