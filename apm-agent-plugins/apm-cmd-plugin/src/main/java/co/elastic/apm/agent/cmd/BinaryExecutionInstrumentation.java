@@ -43,6 +43,7 @@ import java.util.Collections;
 // question: why not instrument "Process" in the general case
 // start span when calling Process.waitFor(), end span when returning
 // abrupt termination on destroy/destroyForcibly (waitFor should probably throw an exception in this case)
+@Deprecated
 public abstract class BinaryExecutionInstrumentation extends ElasticApmInstrumentation {
 
     @Override

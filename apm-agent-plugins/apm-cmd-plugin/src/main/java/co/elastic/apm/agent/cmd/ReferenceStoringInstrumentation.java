@@ -50,6 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
+@Deprecated
 public abstract class ReferenceStoringInstrumentation extends BinaryExecutionInstrumentation {
 
     @VisibleForAdvice

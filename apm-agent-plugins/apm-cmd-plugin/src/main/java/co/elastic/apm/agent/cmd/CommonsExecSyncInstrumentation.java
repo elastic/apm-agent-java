@@ -46,6 +46,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 // TODO : add links to the instrumented classes
 // TODO : async part is not instrumented (yet)
+@Deprecated
 public class CommonsExecSyncInstrumentation extends BinaryExecutionInstrumentation {
 
     @Override
