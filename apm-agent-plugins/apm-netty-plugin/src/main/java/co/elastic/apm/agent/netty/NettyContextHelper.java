@@ -1,19 +1,18 @@
 package co.elastic.apm.agent.netty;
 
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
-import io.netty.util.AttributeMap;
 
 import javax.annotation.Nullable;
 
 /**
- * @param <A> {@link AttributeMap}
+ * @param <C> {@link java.nio.channels.Channel}
  */
-public interface NettyContextHelper<A> {
+public interface NettyContextHelper<C> {
 
     @Nullable
-    TraceContextHolder<?> restoreContext(A attributeMap);
+    TraceContextHolder<?> restoreContext(C channel);
 
-    void storeContext(A attributeMap);
+    void storeContext(C channel);
 
-    void removeContext(A attributeMap);
+    void removeContext(C channel);
 }

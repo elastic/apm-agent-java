@@ -27,8 +27,8 @@ package co.elastic.apm.agent.netty;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -89,7 +89,7 @@ public class ChannelReadCompleteContextRemovingInstrumentation extends NettyInst
                                                           @Advice.This ChannelPipeline channelPipeline,
                                                           @Nullable @Advice.Local("context") TraceContextHolder<?> context) {
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     logger.debug("ChannelPipeline#fireChannelReadComplete before: restore and remove context");
                     context = helper.restoreContext(channelPipeline.channel());

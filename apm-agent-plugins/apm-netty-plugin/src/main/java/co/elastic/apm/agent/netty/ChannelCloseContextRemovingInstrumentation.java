@@ -28,7 +28,6 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -78,7 +77,7 @@ public class ChannelCloseContextRemovingInstrumentation extends NettyInstrumenta
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeClose(@Advice.Origin Class<?> clazz, @Advice.Argument(0) ChannelPromise promise) {
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     logger.debug("Channel.Unsafe#close remove context");
                     helper.removeContext(promise.channel());

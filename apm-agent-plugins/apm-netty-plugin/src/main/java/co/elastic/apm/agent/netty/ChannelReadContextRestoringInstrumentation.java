@@ -27,8 +27,8 @@ package co.elastic.apm.agent.netty;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -86,7 +86,7 @@ public class ChannelReadContextRestoringInstrumentation extends NettyInstrumenta
         private static void beforeFireChannelRead(@Advice.Origin Class<?> clazz, @Advice.This ChannelPipeline channelPipeline,
                                                   @Advice.Local("context") TraceContextHolder<?> context) {
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     context = helper.restoreContext(channelPipeline.channel());
                     logger.debug("before ChannelPipeline#fireChannelRead restore context {}", context);

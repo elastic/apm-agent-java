@@ -50,7 +50,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * </ul>
  * Rather than wrapping the {@link RedisCommand}, the context propagation relies on the Netty instrumentation.
  */
-public abstract class LegacyLettuceStopSpanInstrumentation extends AbstraceLegacyLettuceInstrumentation {
+public abstract class LegacyLettuceStopSpanInstrumentation extends AbstractLegacyLettuceInstrumentation {
 
     @VisibleForAdvice
     public static final Logger logger = LoggerFactory.getLogger(LegacyLettuceStopSpanInstrumentation.class);

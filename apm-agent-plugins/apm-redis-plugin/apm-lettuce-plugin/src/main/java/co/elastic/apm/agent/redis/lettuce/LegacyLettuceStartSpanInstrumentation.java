@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.redis.lettuce;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.netty.NettyInstrumentation;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
@@ -44,7 +45,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  *
  * The context will be propagated via the Netty instrumentation
  */
-public class LegacyLettuceStartSpanInstrumentation extends AbstraceLegacyLettuceInstrumentation {
+public class LegacyLettuceStartSpanInstrumentation extends AbstractLegacyLettuceInstrumentation {
+
+    public LegacyLettuceStartSpanInstrumentation() {
+        NettyInstrumentation.enableContextPropagationForChannelPipelinesContainingHandler(named("com.lambdaworks.redis.protocol.CommandHandler"));
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

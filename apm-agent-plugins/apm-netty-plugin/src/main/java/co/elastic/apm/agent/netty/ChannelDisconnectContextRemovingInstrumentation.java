@@ -28,7 +28,6 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -77,7 +76,7 @@ public class ChannelDisconnectContextRemovingInstrumentation extends NettyInstru
         @Advice.OnMethodEnter
         private static void onBeforeDisconnect(@Advice.Origin Class<?> clazz, @Advice.Argument(0) ChannelPromise promise) {
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     logger.debug("Channel.Unsafe#disconnect");
                     helper.removeContext(promise.channel());

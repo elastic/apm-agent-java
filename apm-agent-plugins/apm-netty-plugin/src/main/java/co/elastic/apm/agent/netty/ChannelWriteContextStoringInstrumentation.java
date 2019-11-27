@@ -32,7 +32,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.Attribute;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -99,7 +98,7 @@ public class ChannelWriteContextStoringInstrumentation extends NettyInstrumentat
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeWrite(@Advice.Origin Class<?> clazz, @Advice.Argument(1) ChannelPromise promise) {
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     logger.debug("Channel.Unsafe#write storing context");
                     helper.storeContext(promise.channel());

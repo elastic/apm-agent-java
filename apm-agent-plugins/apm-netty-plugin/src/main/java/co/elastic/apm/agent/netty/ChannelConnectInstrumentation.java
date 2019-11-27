@@ -31,7 +31,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.nio.AbstractNioChannel.NioUnsafe;
-import io.netty.util.AttributeMap;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import net.bytebuddy.asm.Advice;
@@ -102,7 +101,7 @@ public abstract class ChannelConnectInstrumentation extends NettyInstrumentation
             @Advice.OnMethodEnter(suppress = Throwable.class)
             private static void beforeConnect(@Advice.Origin Class<?> clazz, @Advice.Argument(2) ChannelPromise promise) {
                 if (nettyContextHelper != null) {
-                    NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                    NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                     if (helper != null) {
                         logger.debug("NioUnsafe#connect before: store context");
                         helper.storeContext(promise.channel());
@@ -116,7 +115,7 @@ public abstract class ChannelConnectInstrumentation extends NettyInstrumentation
                                              @Advice.Argument(2) ChannelPromise promise) {
                 if (t != null) {
                     if (nettyContextHelper != null) {
-                        NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                        NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                         if (helper != null) {
                             logger.debug("NioUnsafe#connect error: remove context");
                             helper.removeContext(promise.channel());
@@ -162,7 +161,7 @@ public abstract class ChannelConnectInstrumentation extends NettyInstrumentation
                                                     @Advice.This NioUnsafe unsafe,
                                                     @Advice.Local("context") TraceContextHolder<?> context) {
                 if (nettyContextHelper != null) {
-                    NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                    NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                     if (helper != null) {
                         logger.debug("NioUnsafe#finishConnect before: restore and remove context");
                         Channel channel = unsafe.voidPromise().channel();

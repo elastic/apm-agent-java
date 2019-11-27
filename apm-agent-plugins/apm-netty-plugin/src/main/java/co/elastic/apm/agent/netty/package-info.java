@@ -63,26 +63,26 @@
  *     instrumentation:
  *         {@link ChannelConnectInstrumentation.ConnectContextStoringInstrumentation}
  *     before:
- *         {@link NettyContextUtil#storeContext}
+ *         {@link NettyContextHelperImpl#storeContext}
  *     error:
- *         {@link NettyContextUtil#removeContext}
+ *         {@link NettyContextHelperImpl#removeContext}
  * {@link NioUnsafe#finishConnect()}
  *     instrumentation:
  *         {@link ChannelConnectInstrumentation.FinishConnectContextRestoringInstrumentation}
  *     before:
- *         {@link NettyContextUtil#restoreContext}
- *         {@link NettyContextUtil#removeContext}
+ *         {@link NettyContextHelperImpl#restoreContext}
+ *         {@link NettyContextHelperImpl#removeContext}
  *     nested:
  *       - {@link Unsafe#write}
  *             instrumentation:
  *                 {@link ChannelWriteContextStoringInstrumentation}
  *             before:
- *                 {@link NettyContextUtil#storeContext}
+ *                 {@link NettyContextHelperImpl#storeContext}
  *       - {@link Unsafe#beginRead}
  *            instrumentation:
  *                {@link ChannelBeginReadContextStoringInstrumentation}
  *            before:
- *                 {@link NettyContextUtil#storeContext}
+ *                 {@link NettyContextHelperImpl#storeContext}
  *     after:
  *         {@link TraceContextHolder#deactivate()}
  * loop until all chunks of the response have been read:
@@ -90,7 +90,7 @@
  *         instrumentation:
  *             {@link ChannelReadContextRestoringInstrumentation}
  *         before:
- *             {@link NettyContextUtil#restoreContext}
+ *             {@link NettyContextHelperImpl#restoreContext}
  *         nested:
  *             # The HTTP client instrumentation is responsible for this:
  *             # depending on what part of the response is read, update or end the span
@@ -103,22 +103,22 @@
  *         instrumentation:
  *             {@link ChannelReadCompleteContextRemovingInstrumentation}
  *         before:
- *             {@link NettyContextUtil#restoreContext}
- *             {@link NettyContextUtil#removeContext}
+ *             {@link NettyContextHelperImpl#restoreContext}
+ *             {@link NettyContextHelperImpl#removeContext}
  *         nested:
  *             # triggers another {@link ChannelPipeline#fireChannelRead} when data arrives
  *           - {@link Unsafe#beginRead}
  *                instrumentation:
  *                    {@link ChannelBeginReadContextStoringInstrumentation}
  *                before:
- *                     {@link NettyContextUtil#storeContext}
+ *                     {@link NettyContextHelperImpl#storeContext}
  *         after:
  *             {@link TraceContextHolder#deactivate()}
  * {@link Unsafe#close()}
  *     instrumentation:
  *         {@link ChannelCloseContextRemovingInstrumentation}
  *     before:
- *         {@link NettyContextUtil#removeContext}
+ *         {@link NettyContextHelperImpl#removeContext}
  * </pre>
  */
 package co.elastic.apm.agent.netty;
@@ -128,8 +128,8 @@ import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import io.netty.channel.Channel.Unsafe;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelOutboundHandler;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.AbstractNioChannel.NioUnsafe;
 import io.netty.handler.codec.http.HttpClientCodec;

@@ -27,7 +27,6 @@ package co.elastic.apm.agent.netty;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import io.netty.channel.Channel;
-import io.netty.util.AttributeMap;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -76,9 +75,9 @@ public class ChannelBeginReadContextStoringInstrumentation extends NettyInstrume
     public static class AdviceClass {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeRead(@Advice.Origin Class<?> clazz, @Advice.This Channel.Unsafe thiz) {
-            logger.debug("Channel.Unsafe#beginRead storing context");
             if (nettyContextHelper != null) {
-                NettyContextHelper<AttributeMap> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
+                logger.debug("Channel.Unsafe#beginRead storing context");
+                NettyContextHelper<Channel> helper = nettyContextHelper.getForClassLoaderOfClass(clazz);
                 if (helper != null) {
                     helper.storeContext(thiz.voidPromise().channel());
                 }
