@@ -42,7 +42,7 @@ public abstract class AbstractLoggingInstrumentation extends ElasticApmInstrumen
 
     @SuppressWarnings({"WeakerAccess", "AnonymousHasLambdaAlternative"})
     @VisibleForAdvice
-    public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<>() {
+    public static final ThreadLocal<Boolean> nestedThreadLocal = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return Boolean.FALSE;
