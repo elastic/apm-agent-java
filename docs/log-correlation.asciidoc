@@ -32,10 +32,6 @@ like the timestamp, the log level, and the message. One way to do this is by usi
 In order to correlate logs from your application with transactions captured by the Elastic APM Java Agent,
 the agent will inject the following IDs in your https://www.slf4j.org/api/org/slf4j/MDC.html[MDC] when <<config-enable-log-correlation>> is enabled:
 
-// temporary attribute for ECS 1.1
-// Remove after 7.4 release
-:ecs-ref: https://www.elastic.co/guide/en/ecs/current
-
 * {ecs-ref}/ecs-tracing.html[`transaction.id`]
 * {ecs-ref}/ecs-tracing.html[`trace.id`]
 

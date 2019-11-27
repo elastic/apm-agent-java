@@ -100,11 +100,11 @@ Elastic APM defines some tags which are not included in the OpenTracing API but 
 - `action` - sets the action related to a span,
   for example `query`, `execute` or `render`
 - `user.id` - sets the user id,
-  appears in the "User" tab in the transaction details in the Elastic APM UI
+  appears in the "User" tab in the transaction details in the Elastic APM app
 - `user.email` - sets the user email,
-  appears in the "User" tab in the transaction details in the Elastic APM UI
+  appears in the "User" tab in the transaction details in the Elastic APM app
 - `user.username` - sets the user name,
-  appears in the "User" tab in the transaction details in the Elastic APM UI
+  appears in the "User" tab in the transaction details in the Elastic APM app
 - `result` - sets the result of the transaction. Overrides the default value of `success`.
   If the `error` tag is set to `true`, the default value is `error`.
   Setting `http.status_code` to `200`, for example, implicitly sets the result to `HTTP 2xx` if not explicitly set otherwise.
