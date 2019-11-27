@@ -8,7 +8,7 @@ which have different naming conventions for the property key.
 The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
-. {kibana-ref}/agent-configuration.html[Central configuration]
+. {apm-app-ref}/agent-configuration.html[Central configuration]
 . Java system properties +
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +

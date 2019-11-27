@@ -129,7 +129,7 @@ compileOnly "co.elastic.apm:elastic-apm-agent:$elasticApmVersion"
 
 [float]
 [[trouble-shooting-no-data]]
-==== There is no data in the Kibana APM UI
+==== There is no data in the Kibana APM app
 
 The most common source of this problem are connection issues between the agent and the APM server.
 
