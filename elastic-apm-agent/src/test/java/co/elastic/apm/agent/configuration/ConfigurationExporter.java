@@ -27,6 +27,7 @@ package co.elastic.apm.agent.configuration;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,7 +45,7 @@ public class ConfigurationExporter {
         if (!path.toFile().canWrite()) {
             throw new IllegalStateException(path + " does not exist");
         }
-        Files.write(path, renderDocumentation(configurationRegistry).getBytes());
+        Files.write(path, renderDocumentation(configurationRegistry).getBytes(StandardCharsets.UTF_8));
     }
 
 }
