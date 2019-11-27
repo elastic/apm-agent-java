@@ -108,30 +108,58 @@ they will be executed by a CI server.
 
 ##### Useful Live Templates
 
+These live templates can be pasted in Preferences > Editor > Live Templates > other
+
 **`enter`**
-```java
-@Advice.OnMethodEnter(suppress = Throwable.class)
-private static void onEnter() {
-    $END$
-}
+```xml
+<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class)&#10;private static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
 ```
-Applicable in Java: Declaration
 
 **`exit`**
 
-```java
-@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-private static void onExit(@Advice.Thrown Throwable thrown) {
-    $END$
-}
+```xml
+<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)&#10;private static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
 ```
-Applicable in Java: Declaration
+
 
 **`logger`**
-```java
-private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);
+```xml
+<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="false" toShortenFQNames="true">
+  <variable name="CLASS_NAME" expression="className()" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
 ```
-Applicable in Java: Declaration
+
+**`test`**
+```xml
+<template name="test" value="@Test&#10;void $METHOD$(){&#10;    $END$&#10;}" description="create junit test method" toReformat="true" toShortenFQNames="true">
+  <variable name="METHOD" expression="" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
+```
+
+**`at`**
+```xml
+<template name="at" value="assertThat($EXPR$)$END;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+  <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_STATEMENT" value="true" />
+  </context>
+ </template>
+ ```
+
 
 ### Java Language Formatting Guidelines
 

@@ -25,8 +25,11 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.util.NoRandomAccessMap;
 
 import javax.annotation.Nullable;
+
+import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 
 public class Message implements Recyclable {
 
@@ -35,6 +38,14 @@ public class Message implements Recyclable {
 
     @Nullable
     private String topicName;
+
+    @Nullable
+    private String body;
+
+    /**
+     * A mapping of message headers (in JMS includes properties as well)
+     */
+    private final NoRandomAccessMap<String, String> headers = new NoRandomAccessMap<>();
 
     @Nullable
     public String getQueueName() {
@@ -56,18 +67,45 @@ public class Message implements Recyclable {
         return this;
     }
 
+    @Nullable
+    public String getBody() {
+        return body;
+    }
+
+    public Message withBody(@Nullable String body) {
+        this.body = body;
+        return this;
+    }
+
+    public void redactBody() {
+        body = REDACTED_CONTEXT_STRING;
+    }
+
+    public Message addHeader(String key, String value) {
+        headers.add(key, value);
+        return this;
+    }
+
+    public NoRandomAccessMap<String, String> getHeaders() {
+        return headers;
+    }
+
     public boolean hasContent() {
-        return queueName != null || topicName != null;
+        return queueName != null || topicName != null || body != null || headers.size() > 0;
     }
 
     @Override
     public void resetState() {
         queueName = null;
         topicName = null;
+        body = null;
+        headers.resetState();
     }
 
     public void copyFrom(Message other) {
         this.queueName = other.getQueueName();
         this.topicName = other.getTopicName();
+        this.body = other.body;
+        this.headers.copyFrom(other.getHeaders());
     }
 }

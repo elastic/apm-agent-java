@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <properties>
-        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
-    </properties>
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>apm-agent-parent</artifactId>
+        <groupId>co.elastic.apm</groupId>
+        <version>1.12.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>apm-agent-api</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <licenses>
         <license>
@@ -11,15 +18,9 @@
         </license>
     </licenses>
 
-    <parent>
-        <artifactId>apm-agent-parent</artifactId>
-        <groupId>co.elastic.apm</groupId>
-        <version>1.11.1-SNAPSHOT</version>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>apm-agent-api</artifactId>
-    <name>${project.groupId}:${project.artifactId}</name>
+    <properties>
+        <apm-agent-parent.base.dir>${project.basedir}/..</apm-agent-parent.base.dir>
+    </properties>
 
     <build>
         <resources>
@@ -37,9 +38,7 @@
         </resources>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>generate-source-jar</id>
@@ -51,9 +50,7 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>${version.plugin.jar}</version>
                 <configuration>
                     <archive>
                         <manifestEntries>

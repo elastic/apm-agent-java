@@ -74,6 +74,8 @@ Click on a key to get more information.
 ** <<config-disable-instrumentations>>
 ** <<config-unnest-exceptions>>
 ** <<config-ignore-exceptions>>
+** <<config-capture-body>>
+** <<config-capture-headers>>
 ** <<config-global-labels>>
 ** <<config-trace-methods>>
 ** <<config-trace-methods-duration-threshold>>
@@ -82,9 +84,7 @@ Click on a key to get more information.
 ** <<config-breakdown-metrics>>
 ** <<config-config-file>>
 * <<config-http>>
-** <<config-capture-body>>
 ** <<config-capture-body-content-types>>
-** <<config-capture-headers>>
 ** <<config-ignore-urls>>
 ** <<config-ignore-user-agents>>
 ** <<config-use-path-as-transaction-name>>
@@ -98,6 +98,8 @@ Click on a key to get more information.
 ** <<config-log-level>>
 ** <<config-log-file>>
 ** <<config-enable-log-correlation>>
+* <<config-messaging>>
+** <<config-ignore-message-queues>>
 * <<config-reporter>>
 ** <<config-secret-token>>
 ** <<config-server-urls>>
@@ -402,7 +404,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -482,6 +484,65 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.ignore_exceptions` | `ignore_exceptions` | `ELASTIC_APM_IGNORE_EXCEPTIONS`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-capture-body]]
+==== `capture_body` (performance)
+
+For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
+variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
+textual message body.
+
+If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+
+This option is case-insensitive.
+
+NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
+The option <<config-capture-body-content-types>> determines which content types are captured.
+
+WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+If your service handles data like this, we advise to only enable this feature with care.
+Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+network utilisation and Elasticsearch index size.
+
+Valid options: `off`, `errors`, `transactions`, `all`
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `OFF` | EventType | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-capture-headers]]
+==== `capture_headers` (performance)
+
+If set to `true`, the agent will capture request and response headers, including cookies.
+
+NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `true` | Boolean | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -718,40 +779,6 @@ NOTE: this option can only be set via system properties, environment variables o
 === HTTP configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-capture-body]]
-==== `capture_body` (performance)
-
-For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
-
-If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
-
-This option is case-insensitive.
-
-NOTE: Currently, only UTF-8 encoded plain text content types are supported.
-The option <<config-capture-body-content-types>> determines which content types are captured.
-
-WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
-If your service handles data like this, we advise to only enable this feature with care.
-Turning on body capturing can also significantly increase the overhead in terms of heap usage,
-network utilisation and Elasticsearch index size.
-
-Valid options: `off`, `errors`, `transactions`, `all`
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `OFF` | EventType | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.capture_body` | `capture_body` | `ELASTIC_APM_CAPTURE_BODY`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
 [[config-capture-body-content-types]]
 ==== `capture_body_content_types` (added[1.5.0] performance)
 
@@ -776,30 +803,6 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.capture_body_content_types` | `capture_body_content_types` | `ELASTIC_APM_CAPTURE_BODY_CONTENT_TYPES`
-|============
-
-// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
-[float]
-[[config-capture-headers]]
-==== `capture_headers` (performance)
-
-If set to `true`,
-the agent will capture request and response headers, including cookies.
-
-NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
-
-
-[options="header"]
-|============
-| Default                          | Type                | Dynamic
-| `true` | Boolean | true
-|============
-
-
-[options="header"]
-|============
-| Java System Properties      | Property file   | Environment
-| `elastic.apm.capture_headers` | `capture_headers` | `ELASTIC_APM_CAPTURE_HEADERS`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
@@ -1168,6 +1171,37 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 |============
 | Java System Properties      | Property file   | Environment
 | `elastic.apm.enable_log_correlation` | `enable_log_correlation` | `ELASTIC_APM_ENABLE_LOG_CORRELATION`
+|============
+
+[[config-messaging]]
+=== Messaging configuration options
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
+[[config-ignore-message-queues]]
+==== `ignore_message_queues`
+
+Used to filter out specific messaging queues/topics from being traced. 
+
+This property should be set to an array containing one or more strings.
+When set, sends-to and receives-from the specified queues/topic will be ignored.
+
+This option supports the wildcard `*`, which matches zero or more characters.
+Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+Matching is case insensitive by default.
+Prepending an element with `(?-i)` makes the matching case sensitive.
+
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `<none>` | List | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.ignore_message_queues` | `ignore_message_queues` | `ELASTIC_APM_IGNORE_MESSAGE_QUEUES`
 |============
 
 [[config-reporter]]
@@ -1687,7 +1721,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1734,6 +1768,39 @@ The default unit for this option is `ms`
 # Default value: 
 #
 # ignore_exceptions=
+
+# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
+# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
+# textual message body.
+# 
+# If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
+# 
+# This option is case-insensitive.
+# 
+# NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
+# The option <<config-capture-body-content-types>> determines which content types are captured.
+# 
+# WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
+# If your service handles data like this, we advise to only enable this feature with care.
+# Turning on body capturing can also significantly increase the overhead in terms of heap usage,
+# network utilisation and Elasticsearch index size.
+#
+# Valid options: off, errors, transactions, all
+# This setting can be changed at runtime
+# Type: EventType
+# Default value: OFF
+#
+# capture_body=OFF
+
+# If set to `true`, the agent will capture request and response headers, including cookies.
+# 
+# NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
+#
+# This setting can be changed at runtime
+# Type: Boolean
+# Default value: true
+#
+# capture_headers=true
 
 # Labels added to all events, with the format `key=value[,key=value[,...]]`.
 # Any labels set by application via the API will override global labels with the same keys.
@@ -1877,27 +1944,6 @@ The default unit for this option is `ms`
 # HTTP                                     #
 ############################################
 
-# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST variables).
-# 
-# If the request has a body and this setting is disabled, the body will be shown as [REDACTED].
-# 
-# This option is case-insensitive.
-# 
-# NOTE: Currently, only UTF-8 encoded plain text content types are supported.
-# The option <<config-capture-body-content-types>> determines which content types are captured.
-# 
-# WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
-# If your service handles data like this, we advise to only enable this feature with care.
-# Turning on body capturing can also significantly increase the overhead in terms of heap usage,
-# network utilisation and Elasticsearch index size.
-#
-# Valid options: off, errors, transactions, all
-# This setting can be changed at runtime
-# Type: EventType
-# Default value: OFF
-#
-# capture_body=OFF
-
 # Configures which content types should be recorded.
 # 
 # The defaults end with a wildcard so that content types like `text/plain; charset=utf-8` are captured as well.
@@ -1912,17 +1958,6 @@ The default unit for this option is `ms`
 # Default value: application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
 #
 # capture_body_content_types=application/x-www-form-urlencoded*,text/*,application/json*,application/xml*
-
-# If set to `true`,
-# the agent will capture request and response headers, including cookies.
-# 
-# NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
-#
-# This setting can be changed at runtime
-# Type: Boolean
-# Default value: true
-#
-# capture_headers=true
 
 # Used to restrict requests to certain URLs from being instrumented.
 # 
@@ -2167,6 +2202,26 @@ The default unit for this option is `ms`
 # Default value: false
 #
 # enable_log_correlation=false
+
+############################################
+# Messaging                                #
+############################################
+
+# Used to filter out specific messaging queues/topics from being traced. 
+# 
+# This property should be set to an array containing one or more strings.
+# When set, sends-to and receives-from the specified queues/topic will be ignored.
+# 
+# This option supports the wildcard `*`, which matches zero or more characters.
+# Examples: `/foo/*/bar/*/baz*`, `*foo*`.
+# Matching is case insensitive by default.
+# Prepending an element with `(?-i)` makes the matching case sensitive.
+#
+# This setting can be changed at runtime
+# Type: comma separated list
+# Default value: 
+#
+# ignore_message_queues=
 
 ############################################
 # Reporter                                 #

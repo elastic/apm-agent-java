@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -71,11 +72,23 @@ public abstract class ElasticApmInstrumentation {
     }
 
     @Nullable
+    @VisibleForAdvice
     public static TraceContextHolder<?> getActive() {
         if (tracer != null) {
             return tracer.getActive();
         }
         return null;
+    }
+
+    @Nullable
+    @VisibleForAdvice
+    public static Span createExitSpan() {
+        final TraceContextHolder<?> activeSpan = getActive();
+        if (activeSpan == null || activeSpan.isExit()) {
+            return null;
+        }
+
+       return activeSpan.createExitSpan();
     }
 
     /**

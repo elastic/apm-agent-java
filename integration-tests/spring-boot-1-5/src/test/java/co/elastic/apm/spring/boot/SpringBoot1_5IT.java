@@ -30,7 +30,7 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.report.ReporterConfiguration;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
 import org.junit.Before;

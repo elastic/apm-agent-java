@@ -32,6 +32,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -40,6 +41,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
@@ -80,9 +82,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ConfigurationExporterTest {
 
     private ConfigurationRegistry configurationRegistry;
+    private Path renderedDocumentationPath;
 
     @BeforeEach
     void setUp() {
+        renderedDocumentationPath = Paths.get("../docs/configuration.asciidoc");
         configurationRegistry = ConfigurationRegistry.builder()
             .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
             .build();
@@ -91,9 +95,19 @@ class ConfigurationExporterTest {
     @Test
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
+        String expected = new String(Files.readAllBytes(this.renderedDocumentationPath));
+
+        // even if this test fails, we want to update the documentation
+        Files.write(renderedDocumentationPath, renderedDocumentation.getBytes());
+
         assertThat(renderedDocumentation)
-            .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date. Please execute co.elastic.apm.agent.configuration.ConfigurationExporter#main.")
-            .isEqualTo(new String(Files.readAllBytes(Paths.get("../docs/configuration.asciidoc"))));
+            .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date.\n" +
+                "If you see this error on CI, it means you have to execute the tests locally " +
+                "(./mvnw clean test -pl elastic-apm-agent -am -DfailIfNoTests=false -Dtest=ConfigurationExporterTest) " +
+                "which will update the rendered docs.\n" +
+                "If you see this error while running the tests locally, there's nothing more to do - the rendered docs have been updated. " +
+                "When you execute this test the next time, it will not fail anymore.")
+            .isEqualTo(expected);
     }
 
     static String renderDocumentation(ConfigurationRegistry configurationRegistry) throws IOException, TemplateException {

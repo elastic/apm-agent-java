@@ -294,7 +294,10 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
-            .withTopic("test-topic");
+            .withTopic("test-topic")
+            .withBody("test-body")
+            .addHeader("test-header1", "value")
+            .addHeader("test-header2", "value");
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
@@ -305,6 +308,12 @@ class DslJsonSerializerTest {
         JsonNode topic = message.get("topic");
         assertThat(topic).isNotNull();
         assertThat("test-topic").isEqualTo(topic.get("name").textValue());
+        JsonNode body = message.get("body");
+        assertThat("test-body").isEqualTo(body.textValue());
+        JsonNode headers = message.get("headers");
+        assertThat(headers).isNotNull();
+        assertThat(headers.get("test-header1").textValue()).isEqualTo("value");
+        assertThat(headers.get("test-header2").textValue()).isEqualTo("value");
     }
 
     @Test

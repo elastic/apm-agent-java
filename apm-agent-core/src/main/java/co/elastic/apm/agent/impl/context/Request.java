@@ -38,6 +38,8 @@ import java.nio.Buffer;
 import java.nio.CharBuffer;
 import java.util.Enumeration;
 
+import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
+
 
 /**
  * Request
@@ -130,7 +132,7 @@ public class Request implements Recyclable {
     }
 
     public void redactBody() {
-        setRawBody("[REDACTED]");
+        setRawBody(REDACTED_CONTEXT_STRING);
     }
 
     public Request addFormUrlEncodedParameter(String key, String value) {

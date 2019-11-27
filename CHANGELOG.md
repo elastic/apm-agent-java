@@ -1,10 +1,32 @@
-# (Next)
+# 1.13.0 (Next)
 
 ## Features
  * Instrument log4j Logger#error(String, Throwable) (#919)
    Automatically captures exceptions when calling `logger.error("message", exception)`
 
 ## Bug Fixes
+
+# 1.12.0
+
+## Features
+ * JMS Enhancements (#911):
+    * Add special handling for temporary queues/topics
+    * Capture message bodies of text Messages
+        * Rely on the existing `ELASTIC_APM_CAPTURE_BODY` agent config option (off by default).
+        * Send as `context.message.body`
+        * Limit size to 10000 characters. If longer than this size, trim to 9999 and append with ellipsis
+    * Introduce the `ignore_message_queues` configuration to disable instrumentation (message tagging) for specific 
+      queues/topics as suggested in #710
+    * Capture predefined message headers and all properties
+        * Rely on the existing `ELASTIC_APM_CAPTURE_HEADERS` agent config option.
+        * Send as `context.message.headers`
+        * Sanitize sensitive headers/properties based on the `sanitize_field_names` config option
+ * Added support for the MongoDB sync driver. See [supported data stores](https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases).
+
+## Bug Fixes
+ * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
+ * When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" (#920)
+ * DB2 jcc4 driver is not traced properly (#926)
 
 # 1.11.0
 
