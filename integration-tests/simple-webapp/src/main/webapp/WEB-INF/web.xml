@@ -70,4 +70,14 @@
         <url-pattern>/echo</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>ExecuteCmdServlet</servlet-name>
+        <servlet-class>co.elastic.webapp.ExecuteCmdServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <async-supported>true</async-supported>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ExecuteCmdServlet</servlet-name>
+        <url-pattern>/execute-cmd-servlet</url-pattern>
+    </servlet-mapping>
 </web-app>
