@@ -65,7 +65,7 @@ endif::[]
 * Add the ability to configure a unique name for a JVM within a service through the
 https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-node-name[`service_node_name`]
 config option]
-* Add ability to ignore some exceptions to be reported as errors https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore_exceptions[ignore_exceptions]
+* Add ability to ignore some exceptions to be reported as errors https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore-exceptions[ignore_exceptions]
 * Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
    polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture 
    the code executed during actual message handling.
@@ -147,7 +147,7 @@ Use `apm-agent-attach-standalone.jar` instead.
 [float]
 ===== Features
 * Added support for tracking https://www.elastic.co/guide/en/kibana/7.3/transactions.html[time spent by span type].
-   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/7.3/config-core.html#config-breakdown-metrics[`breakdown_metrics`] to `false`. 
+   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-breakdown-metrics[`breakdown_metrics`] to `false`. 
 * Added support for https://www.elastic.co/guide/en/kibana/7.3/agent-configuration.html[central configuration].
    Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-central-config[`central_config`] to `false`.
 * Added support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
@@ -189,7 +189,7 @@ this enables considerable reduction of overhead by limiting the number of spans 
 NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature.
 * Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
 * Added support for AsyncHttpClient 2.x
-* Added https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#global-labels[`global_labels`] configuration option.
+* Added https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-global-labels[`global_labels`] configuration option.
 This requires APM Server 7.2+.
 * Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and `onMessage`.
 Both Queues and Topics are supported.
@@ -275,7 +275,7 @@ If you are using a spring-based application, the agent will use the setting for 
 See the documentation for https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name[`service_name`]
 for more information.
 Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
-* Previously, enabling https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body[`capture_body`] could only capture form parameters.
+* Previously, enabling https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-capture-body[`capture_body`] could only capture form parameters.
 Now it supports all UTF-8 encoded plain-text content types.
 The option https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types[`capture_body_content_types`]
 controls which `Content-Type`s should be captured.
