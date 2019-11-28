@@ -30,10 +30,15 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Instruments {@code ProcessImpl#waitFor} and {@code UNIXProcess#waitFor}
+ * Instruments:
+ * <ul>
+ *     <li>{@code ProcessImpl#waitFor()}</li>
+ *     <li>{@code ProcessImpl#wwaitFor(long, java.util.concurrent.TimeUnit)}</li>
+ *     <li>{@code UNIXProcess#waitFor()}</li>
+ *     <li>{@code UNIXProcess#waitFor(long, java.util.concurrent.TimeUnit)}</li>
+ * </ul>
  */
 public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
 
@@ -48,13 +53,12 @@ public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
             .or(named("java.lang.UNIXProcess"));
     }
 
-    // TODO : ProcessHandle added in java9
-    // TODO : waitFor with timeout added in java8
+    // TODO : ProcessHandle added in java9, not supported yet
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // stick with simple form for now
-        return named("waitFor").and(takesArguments(0));
+        // will match both variants : with and without timeout
+        return named("waitFor");
     }
 
     @Override
@@ -65,15 +69,13 @@ public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
     public static class ProcessImplWaitForAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(
-            @Advice.This Process process,
-            @Advice.Thrown Throwable thrown) {
+        private static void onExit(@Advice.This Process process) {
 
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
 
-            ProcessHelper.endProcessSpan(process, thrown);
+            ProcessHelper.waitForEnd(process);
         }
     }
 

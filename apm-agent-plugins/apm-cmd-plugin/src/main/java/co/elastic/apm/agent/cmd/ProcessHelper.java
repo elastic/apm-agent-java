@@ -24,38 +24,67 @@
  */
 package co.elastic.apm.agent.cmd;
 
+import co.elastic.apm.agent.annotation.NonnullApi;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
+import javax.annotation.Nonnull;
+import java.util.List;
+
 @VisibleForAdvice
 public class ProcessHelper {
 
-    private static final WeakConcurrentMap<Process, Span> inFlightSpans = DataStructures.createWeakConcurrentMapWithCleanerThread();
+    private static final ProcessHelper INSTANCE = new ProcessHelper(DataStructures.createWeakConcurrentMapWithCleanerThread());
 
-    @VisibleForAdvice
-    public static void startProcessSpan(TraceContextHolder<?> transaction, Process process, String[] processArgs) {
+    private final WeakConcurrentMap<Process, Span> inFlightSpans;
 
-        Span span = transaction.createSpan()
-            .withType("process")
-            .withAction("execute")
-            .withName(processArgs[0])
-            .activate();
-
-        inFlightSpans.put(process, span);
+    ProcessHelper(WeakConcurrentMap<Process, Span> inFlightSpans) {
+        this.inFlightSpans = inFlightSpans;
     }
 
     @VisibleForAdvice
-    public static void endProcessSpan(Process process, Throwable thrown) {
+    public static void startProcess(TraceContextHolder<?> transaction, Process process, List<String> command) {
+        INSTANCE.doStartProcess(transaction, process, command.get(0));
+    }
 
-        Span span = inFlightSpans.get(process);
-        if (null != span) {
+    @VisibleForAdvice
+    public static void waitForEnd(@Nonnull Process process) {
+        INSTANCE.doWaitForEnd(process);
+    }
 
-            // TODO : we should be able to report program exit code in span
-            span.captureException(thrown)
-                .end();
+    void doStartProcess(@Nonnull TraceContextHolder<?> transaction, @Nonnull Process process, @Nonnull String processName) {
+        if (inFlightSpans.containsKey(process)) {
+            return;
+        }
+        Span span = transaction.createSpan()
+            .withType("process")
+            .withSubtype(processName)
+            .withAction("execute")
+            .withName(processName)
+            .activate();
+
+        inFlightSpans.putIfAbsent(process, span);
+    }
+
+    void doWaitForEnd(Process process) {
+
+        // borrowed from java 8 Process#isAlive()
+        boolean terminated;
+        try {
+            process.exitValue();
+            terminated = true;
+        } catch (IllegalThreadStateException e) {
+            terminated = false;
+        }
+
+        if (terminated) {
+            Span span = inFlightSpans.get(process);
+            if (span != null) {
+                span.end();
+            }
         }
     }
 }

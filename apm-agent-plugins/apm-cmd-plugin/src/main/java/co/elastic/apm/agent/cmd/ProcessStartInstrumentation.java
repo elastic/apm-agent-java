@@ -30,21 +30,25 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import javax.annotation.Nullable;
+
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
- * Instruments {@code ProcessImpl#start()}
+ * Instruments {@link ProcessBuilder#start()}
  */
 public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return named("java.lang.ProcessImpl");
+        return named("java.lang.ProcessBuilder");
     }
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("start");
+        return named("start")
+            .and(takesArguments(0));
     }
 
     @Override
@@ -55,9 +59,9 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
     public static class ProcessBuilderStartAdvice {
 
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        public static void onExit(@Advice.Argument(0) String[] processArgs,
+        public static void onExit(@Advice.This ProcessBuilder processBuilder,
                                   @Advice.Return Process process,
-                                  @Advice.Thrown Throwable t) {
+                                  @Advice.Thrown @Nullable Throwable t) {
 
             if (tracer == null || t != null) {
                 return;
@@ -67,7 +71,7 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                 return;
             }
 
-            ProcessHelper.startProcessSpan(transaction, process, processArgs);
+            ProcessHelper.startProcess(transaction, process, processBuilder.command());
         }
     }
 }
