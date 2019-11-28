@@ -25,12 +25,13 @@
 package co.elastic.apm.agent.servlet;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Stream;
 
+import static co.elastic.apm.agent.impl.context.AbstractContext.REDACTED_CONTEXT_STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -67,6 +69,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     private InputStreamConsumer streamConsumer;
     private InputStreamCloser streamCloser;
     private WebConfiguration webConfiguration;
+    private CoreConfiguration coreConfiguration;
     private MockFilterChain filterChain;
 
     static Stream<InputStreamConsumer> streamConsumers() {
@@ -90,7 +93,8 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
     @BeforeEach
     void setUp() {
         webConfiguration = tracer.getConfig(WebConfiguration.class);
-        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
         filterChain = new MockFilterChain(new HttpServlet() {
             @Override
             protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -120,20 +124,20 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testCaptureBodyOff() throws Exception {
-        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.OFF);
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.OFF);
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
-        assertThat(body.toString()).isEqualTo("[REDACTED]");
+        assertThat(body.toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"ALL", "TRANSACTIONS", "ERRORS"})
-    void testCaptureBodyNotOff(WebConfiguration.EventType eventType) throws Exception {
+    void testCaptureBodyNotOff(CoreConfiguration.EventType eventType) throws Exception {
         streamCloser = is -> { throw new RuntimeException(); };
 
-        when(webConfiguration.getCaptureBody()).thenReturn(eventType);
+        when(coreConfiguration.getCaptureBody()).thenReturn(eventType);
         executeRequest(filterChain, "foo".getBytes(StandardCharsets.UTF_8), "text/plain");
 
         final Transaction transaction = reporter.getFirstTransaction();
@@ -182,7 +186,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
         final Object body = reporter.getFirstTransaction().getContext().getRequest().getBody();
         assertThat(body).isNotNull();
-        assertThat(body.toString()).isEqualTo("[REDACTED]");
+        assertThat(body.toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -218,7 +222,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testTrackPostParams() throws IOException, ServletException {
-        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
         request.addParameter("baz", "qux", "quux");
@@ -233,7 +237,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
 
     @Test
     void testTrackPostParamsDisabled() throws IOException, ServletException {
-        when(webConfiguration.getCaptureBody()).thenReturn(WebConfiguration.EventType.ALL);
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
         when(webConfiguration.getCaptureContentTypes()).thenReturn(Collections.emptyList());
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/foo/bar");
         request.addParameter("foo", "bar");
@@ -241,7 +245,7 @@ class TestRequestBodyCapturing extends AbstractInstrumentationTest {
         request.addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=uft-8");
 
         filterChain.doFilter(request, new MockHttpServletResponse());
-        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isEqualTo("[REDACTED]");
+        assertThat(reporter.getFirstTransaction().getContext().getRequest().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test

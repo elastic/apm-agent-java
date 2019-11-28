@@ -1,0 +1,1 @@
+This is a placeholder file. Release notes are published in CHANGELOG.md

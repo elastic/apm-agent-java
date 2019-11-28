@@ -27,6 +27,9 @@ package co.elastic.apm.agent.jms;
 import javax.jms.Destination;
 import javax.jms.Message;
 import javax.jms.Queue;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.util.concurrent.CompletableFuture;
 
@@ -42,9 +45,13 @@ interface BrokerFacade {
 
     Queue createQueue(String queueName) throws Exception;
 
+    TemporaryQueue createTempQueue() throws Exception;
+
     Topic createTopic(String topicName) throws Exception;
 
-    Message createTextMessage(String messageText) throws Exception;
+    TemporaryTopic createTempTopic() throws Exception;
+
+    TextMessage createTextMessage(String messageText) throws Exception;
 
     void send(Destination destination, Message message) throws Exception;
 

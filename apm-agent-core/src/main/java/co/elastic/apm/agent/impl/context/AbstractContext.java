@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractContext implements Recyclable {
+
+    public static final String REDACTED_CONTEXT_STRING = "[REDACTED]";
+
     /**
      * A flat mapping of user-defined labels with {@link String} keys and {@link String}, {@link Number} or {@link Boolean} values
      * (formerly known as tags).

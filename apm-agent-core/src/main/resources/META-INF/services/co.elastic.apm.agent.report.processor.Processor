@@ -1,0 +1,2 @@
+co.elastic.apm.agent.impl.context.BodyProcessor
+co.elastic.apm.agent.impl.context.SanitizingWebProcessor

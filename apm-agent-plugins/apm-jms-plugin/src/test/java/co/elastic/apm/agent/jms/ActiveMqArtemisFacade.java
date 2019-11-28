@@ -34,9 +34,13 @@ import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.Queue;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.io.File;
 import java.util.HashMap;
@@ -96,13 +100,28 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
+    public TemporaryQueue createTempQueue() throws Exception {
+        return context.createTemporaryQueue();
+    }
+
+    @Override
     public Topic createTopic(String topicName) {
         return context.createTopic(topicName);
     }
 
     @Override
-    public Message createTextMessage(String messageText) {
-        return context.createTextMessage(messageText);
+    public TemporaryTopic createTempTopic() throws Exception {
+        return context.createTemporaryTopic();
+    }
+
+    @Override
+    public TextMessage createTextMessage(String messageText) throws JMSException {
+        TextMessage message = context.createTextMessage(messageText);
+        message.setStringProperty("test_string_property", "test123");
+        message.setIntProperty("test_int_property", 123);
+        message.setStringProperty("passwd", "secret");
+        message.setStringProperty("null_property", null);
+        return message;
     }
 
     @Override
