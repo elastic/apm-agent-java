@@ -181,32 +181,23 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
         payloadSerializer.setOutputStream(connection.getOutputStream());
         payloadSerializer.serializeMetadata(metaData);
         payloadSerializer.flush();
-
-        // We need to check for etag value change in order to detect configuration change this is required as server
-        // responds with 200 + empty ETag instead of a 304 when there is no configuration set server-side
-        String responseEtag = connection.getHeaderField("ETag");
-        boolean doLoadConfig = etag == null || !etag.equals(responseEtag);
-        etag = responseEtag;
+        etag = connection.getHeaderField("ETag");
 
         final int status = connection.getResponseCode();
         switch (status) {
             case SC_OK:
-                if (!doLoadConfig) {
-                    logger.debug("Received unchanged configuration, skipping reload");
-                } else {
-                    InputStream is = connection.getInputStream();
-                    final JsonReader<Object> reader = dslJson.newReader(is, buffer);
-                    reader.startObject();
-                    config = MapConverter.deserialize(reader);
-                    configurationRegistry.reloadDynamicConfigurationOptions();
-                    logger.info("Received new configuration from APM Server: {}", config);
-                    for (Map.Entry<String, String> entry : config.entrySet()) {
-                        ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
-                        if (conf == null) {
-                            logger.warn("Received unknown remote configuration key {}", entry.getKey());
-                        } else if (!conf.isDynamic()) {
-                            logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());
-                        }
+                InputStream is = connection.getInputStream();
+                final JsonReader<Object> reader = dslJson.newReader(is, buffer);
+                reader.startObject();
+                config = MapConverter.deserialize(reader);
+                configurationRegistry.reloadDynamicConfigurationOptions();
+                logger.info("Received new configuration from APM Server: {}", config);
+                for (Map.Entry<String, String> entry : config.entrySet()) {
+                    ConfigurationOption<?> conf = configurationRegistry.getConfigurationOptionByKey(entry.getKey());
+                    if (conf == null) {
+                        logger.warn("Received unknown remote configuration key {}", entry.getKey());
+                    } else if (!conf.isDynamic()) {
+                        logger.warn("Can't apply remote configuration {} as this option is not dynamic (aka. reloadable)", entry.getKey());
                     }
                 }
                 break;
