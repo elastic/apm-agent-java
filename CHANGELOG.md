@@ -25,6 +25,7 @@
  * JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced (#918)
  * When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" (#920)
  * DB2 jcc4 driver is not traced properly (#926)
+ * Add support for Redis Lettuce client
 
 # 1.11.0
 
