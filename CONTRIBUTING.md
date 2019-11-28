@@ -152,7 +152,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`at`**
 ```xml
-<template name="at" value="assertThat($EXPR$)$END;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
   <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_STATEMENT" value="true" />
