@@ -33,6 +33,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class ExecuteCmdServlet extends HttpServlet {
 
@@ -47,10 +48,10 @@ public class ExecuteCmdServlet extends HttpServlet {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        
+
         try {
             PrintWriter writer = resp.getWriter();
-            writeMsg(writer, "command = %s", String.join(" ", cmd));
+            writeMsg(writer, "command = %s", Arrays.toString(cmd));
             writeMsg(writer, "return code = %d", returnValue);
         } catch (Exception e) {
             throw new ServletException(e);
