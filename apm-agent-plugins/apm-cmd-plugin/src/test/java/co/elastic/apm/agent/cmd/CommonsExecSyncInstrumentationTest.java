@@ -43,6 +43,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Deprecated
 class CommonsExecSyncInstrumentationTest extends AbstractInstrumentationTest {
 
     private Executor executor = new DefaultExecutor();
