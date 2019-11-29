@@ -404,7 +404,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -491,8 +491,8 @@ NOTE: Exception inheritance is not supported, thus you have to explicitly list a
 [[config-capture-body]]
 ==== `capture_body` (performance)
 
-For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
+For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST
+variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the
 textual message body.
 
 If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
@@ -1180,7 +1180,7 @@ NOTE: While it's allowed to enable this setting at runtime, you can't disable it
 [[config-ignore-message-queues]]
 ==== `ignore_message_queues`
 
-Used to filter out specific messaging queues/topics from being traced. 
+Used to filter out specific messaging queues/topics from being traced.
 
 This property should be set to an array containing one or more strings.
 When set, sends-to and receives-from the specified queues/topic will be ignored.
@@ -1721,7 +1721,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `process`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1769,17 +1769,17 @@ The default unit for this option is `ms`
 #
 # ignore_exceptions=
 
-# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST 
-# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the 
+# For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST
+# variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the
 # textual message body.
-# 
+#
 # If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].
-# 
+#
 # This option is case-insensitive.
-# 
+#
 # NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.
 # The option <<config-capture-body-content-types>> determines which content types are captured.
-# 
+#
 # WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.
 # If your service handles data like this, we advise to only enable this feature with care.
 # Turning on body capturing can also significantly increase the overhead in terms of heap usage,
@@ -1793,7 +1793,7 @@ The default unit for this option is `ms`
 # capture_body=OFF
 
 # If set to `true`, the agent will capture request and response headers, including cookies.
-# 
+#
 # NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.
 #
 # This setting can be changed at runtime
@@ -2207,11 +2207,11 @@ The default unit for this option is `ms`
 # Messaging                                #
 ############################################
 
-# Used to filter out specific messaging queues/topics from being traced. 
-# 
+# Used to filter out specific messaging queues/topics from being traced.
+#
 # This property should be set to an array containing one or more strings.
 # When set, sends-to and receives-from the specified queues/topic will be ignored.
-# 
+#
 # This option supports the wildcard `*`, which matches zero or more characters.
 # Examples: `/foo/*/bar/*/baz*`, `*foo*`.
 # Matching is case insensitive by default.
@@ -2219,7 +2219,7 @@ The default unit for this option is `ms`
 #
 # This setting can be changed at runtime
 # Type: comma separated list
-# Default value: 
+# Default value:
 #
 # ignore_message_queues=
 
