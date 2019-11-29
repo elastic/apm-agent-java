@@ -53,6 +53,7 @@ public class ServletApiTestApp extends TestApp {
         testTransactionErrorReporting(test);
         testSpanErrorReporting(test);
         testExecutorService(test);
+        testExecuteCommandServlet(test);
         testHttpUrlConnection(test);
         testCaptureBody(test);
         testJmxMetrics(test);
@@ -80,6 +81,15 @@ public class ServletApiTestApp extends TestApp {
         test.executeAndValidateRequest(pathToTest, null, 200, null);
         String transactionId = test.assertTransactionReported(pathToTest, 200).get("id").textValue();
         final List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
+        assertThat(spans).hasSize(1);
+    }
+
+    private void testExecuteCommandServlet(AbstractServletContainerIntegrationTest test) throws Exception {
+        test.clearMockServerLog();
+        final String pathToTest = "/simple-webapp/execute-cmd-servlet";
+        test.executeAndValidateRequest(pathToTest, null, 200, null);
+        String transactionId = test.assertTransactionReported(pathToTest, 200).get("id").textValue();
+        List<JsonNode> spans = test.assertSpansTransactionId(test::getReportedSpans, transactionId);
         assertThat(spans).hasSize(1);
     }
 
