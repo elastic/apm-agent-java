@@ -1,2 +1,2 @@
-co.elastic.apm.agent.cmd.ProcessStartInstrumentation
-co.elastic.apm.agent.cmd.ProcessExitInstrumentation
+co.elastic.apm.agent.process.ProcessStartInstrumentation
+co.elastic.apm.agent.process.ProcessExitInstrumentation

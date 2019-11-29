@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.cmd;
+package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;

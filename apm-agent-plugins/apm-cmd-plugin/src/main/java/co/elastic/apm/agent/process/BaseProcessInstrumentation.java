@@ -22,7 +22,27 @@
  * under the License.
  * #L%
  */
-@NonnullApi
-package co.elastic.apm.agent.cmd;
+package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.annotation.NonnullApi;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import net.bytebuddy.matcher.ElementMatcher;
+
+import java.util.Collection;
+import java.util.List;
+
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
+
+public abstract class BaseProcessInstrumentation extends ElasticApmInstrumentation {
+
+    @Override
+    public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // java.lang.* is loaded from bootstrap classloader
+        return isBootstrapClassLoader();
+    }
+
+    @Override
+    public final Collection<String> getInstrumentationGroupNames() {
+        return List.of("process", "incubating");
+    }
+
+}
