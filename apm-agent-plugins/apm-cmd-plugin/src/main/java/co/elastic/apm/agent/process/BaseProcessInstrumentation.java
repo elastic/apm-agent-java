@@ -27,6 +27,7 @@ package co.elastic.apm.agent.process;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public abstract class BaseProcessInstrumentation extends ElasticApmInstrumentati
 
     @Override
     public final Collection<String> getInstrumentationGroupNames() {
-        return List.of("process", "incubating");
+        return Arrays.asList("process", "incubating");
     }
 
 }

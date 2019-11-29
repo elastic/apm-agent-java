@@ -36,7 +36,7 @@ import java.util.List;
 @VisibleForAdvice
 public class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(DataStructures.createWeakConcurrentMapWithCleanerThread());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(DataStructures.<Process, Span>createWeakConcurrentMapWithCleanerThread());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 
