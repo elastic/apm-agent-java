@@ -80,7 +80,7 @@ public class ProcessHelper {
         }
 
         if (terminated) {
-            Span span = inFlightSpans.get(process);
+            Span span = inFlightSpans.remove(process);
             if (span != null) {
                 span.end();
             }
