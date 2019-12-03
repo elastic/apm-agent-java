@@ -29,7 +29,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 

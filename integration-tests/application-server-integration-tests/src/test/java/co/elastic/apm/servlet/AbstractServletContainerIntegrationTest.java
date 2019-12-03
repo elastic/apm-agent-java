@@ -456,11 +456,13 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private void validateServiceName(JsonNode event) {
-        if (currentTestApp.getExpectedServiceName() != null && event != null) {
-            assertThat(event.get("context").get("service"))
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", currentTestApp.getExpectedServiceName(), event)
+        String expectedServiceName = currentTestApp.getExpectedServiceName();
+        if (expectedServiceName != null && event != null) {
+            JsonNode contextService = event.get("context").get("service");
+            assertThat(contextService)
+                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-            assertThat(event.get("context").get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
+                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
         }
     }
 
