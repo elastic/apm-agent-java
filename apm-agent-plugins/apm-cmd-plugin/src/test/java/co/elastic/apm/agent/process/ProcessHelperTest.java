@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,8 +24,7 @@
  */
 package co.elastic.apm.agent.process;
 
-import co.elastic.apm.agent.MockReporter;
-import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.TransactionUtils;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -34,12 +33,15 @@ import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
+
+import java.nio.file.Paths;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class ProcessHelperTest {
+class ProcessHelperTest extends AbstractInstrumentationTest {
 
     // implementation note:
     //
@@ -50,7 +52,7 @@ class ProcessHelperTest {
     // of this instrumentation is. Also, integration test cover this feature for the general case with a packaged
     // agent and thus they don't have such limitation
 
-    private MockReporter reporter = null;
+    @Nullable
     private Transaction transaction = null;
 
     private WeakConcurrentMap<Process, Span> storageMap;
@@ -58,8 +60,7 @@ class ProcessHelperTest {
 
     @BeforeEach
     void before() {
-        reporter = new MockReporter();
-        transaction = new Transaction(MockTracer.createRealTracer(reporter));
+        transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
         storageMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
@@ -70,7 +71,8 @@ class ProcessHelperTest {
     void checkSpanNaming() {
         Process process = mock(Process.class);
 
-        String programName = "hello";
+        String binaryName = "hello";
+        String programName = Paths.get("bin", binaryName).toAbsolutePath().toString();
 
         helper.doStartProcess(transaction, process, programName);
 
@@ -79,9 +81,9 @@ class ProcessHelperTest {
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
 
-        assertThat(span.getNameAsString()).isEqualTo(programName);
+        assertThat(span.getNameAsString()).isEqualTo(binaryName);
         assertThat(span.getType()).isEqualTo("process");
-        assertThat(span.getSubtype()).isEqualTo(programName);
+        assertThat(span.getSubtype()).isEqualTo(binaryName);
         assertThat(span.getAction()).isEqualTo("execute");
     }
 
