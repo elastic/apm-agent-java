@@ -31,6 +31,7 @@ import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.util.List;
 
 @VisibleForAdvice
@@ -58,14 +59,24 @@ public class ProcessHelper {
         if (inFlightSpans.containsKey(process)) {
             return;
         }
+
+        String binaryName = getBinaryName(processName);
+
         Span span = transaction.createSpan()
             .withType("process")
-            .withSubtype(processName)
+            .withSubtype(binaryName)
             .withAction("execute")
-            .withName(processName)
-            .activate();
+            .withName(binaryName);
+
+        // We don't require span to be activated as the background process is not really linked to current thread
+        // and there won't be any child span linked to process span
 
         inFlightSpans.putIfAbsent(process, span);
+    }
+
+    private static String getBinaryName(String processName) {
+        int lastSeparator = processName.lastIndexOf(File.separatorChar);
+        return lastSeparator < 0 ? processName : processName.substring(lastSeparator + 1);
     }
 
     void doWaitForEnd(Process process) {
