@@ -13,7 +13,7 @@
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
     </properties>
 
-    <artifactId>apm-cmd-plugin</artifactId>
+    <artifactId>apm-process-plugin</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
