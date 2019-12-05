@@ -315,3 +315,5 @@ If you have access to make releases, the process is as follows:
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
+1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
+1. Publish release on Github. This will notify users watching repository.
