@@ -119,11 +119,16 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     }
 
     @Test
-    void createMultipleProcessInTransaction() {
+    void executeMultipleProcessesInTransaction() {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
         helper.doWaitForEnd(process);
+
+        helper.doStartProcess(transaction, process, "hello");
+        helper.doWaitForEnd(process);
+
+        assertThat(reporter.getSpans()).hasSize(2);
     }
 
     @Test

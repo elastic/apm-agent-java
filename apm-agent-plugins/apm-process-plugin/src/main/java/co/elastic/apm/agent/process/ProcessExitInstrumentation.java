@@ -35,7 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
  * Instruments:
  * <ul>
  *     <li>{@code ProcessImpl#waitFor()}</li>
- *     <li>{@code ProcessImpl#wwaitFor(long, java.util.concurrent.TimeUnit)}</li>
+ *     <li>{@code ProcessImpl#waitFor(long, java.util.concurrent.TimeUnit)}</li>
  *     <li>{@code UNIXProcess#waitFor()}</li>
  *     <li>{@code UNIXProcess#waitFor(long, java.util.concurrent.TimeUnit)}</li>
  * </ul>
