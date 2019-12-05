@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,7 @@ import org.stagemonitor.util.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /*
@@ -80,6 +81,7 @@ public abstract class WildcardMatcher {
     private static final String CASE_SENSITIVE_PREFIX = "(?-i)";
     private static final String WILDCARD = "*";
     private static final WildcardMatcher MATCH_ALL = valueOf(WILDCARD);
+    private static final List<WildcardMatcher> MATCH_ALL_LIST = Collections.singletonList(MATCH_ALL);
 
     public static WildcardMatcher caseSensitiveMatcher(String matcher) {
         return valueOf(CASE_SENSITIVE_PREFIX + matcher);
@@ -140,9 +142,19 @@ public abstract class WildcardMatcher {
      * @param s        the string to match against
      * @return {@code true}, if any of the matchers match the provided string
      */
-    @Nullable
     public static boolean isAnyMatch(List<WildcardMatcher> matchers, @Nullable String s) {
         return anyMatch(matchers, s) != null;
+    }
+
+    /**
+     * Returns {@code true}, if none of the matchers match the provided string.
+     *
+     * @param matchers the matchers which should be used to match the provided string
+     * @param s        the string to match against
+     * @return {@code true}, if none of the matchers match the provided string
+     */
+    public static boolean isNoneMatch(List<WildcardMatcher> matchers, @Nullable String s) {
+        return !isAnyMatch(matchers, s);
     }
 
     /**
