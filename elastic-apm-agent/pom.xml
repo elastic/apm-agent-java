@@ -176,7 +176,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>apm-cmd-plugin</artifactId>
+            <artifactId>apm-process-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
 

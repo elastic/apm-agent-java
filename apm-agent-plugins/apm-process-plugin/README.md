@@ -2,6 +2,7 @@
 
 This plugin creates spans for external processes executed by the JVM, which use the `java.lang.Process` class.
 
+[Apache commons-exec](https://commons.apache.org/proper/commons-exec/) library support is included.
 
 ## Limitations
 
