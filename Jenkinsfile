@@ -283,7 +283,7 @@ pipeline {
     stage('Release') {
       options { skipDefaultCheckout() }
       when {
-        tag pattern: 'v\\d+\\.\\d+\\d+', comparator: 'REGEXP'
+        tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
         stage('Opbeans') {
