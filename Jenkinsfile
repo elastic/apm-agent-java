@@ -280,7 +280,7 @@ pipeline {
         githubNotify(context: "${env.GITHUB_CHECK_ITS_NAME}", description: "${env.GITHUB_CHECK_ITS_NAME} ...", status: 'PENDING', targetUrl: "${env.JENKINS_URL}search/?q=${env.ITS_PIPELINE.replaceAll('/','+')}")
       }
     }
-    stage('Release') {
+    stage('AfterRelease') {
       options { skipDefaultCheckout() }
       when {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
