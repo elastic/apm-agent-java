@@ -64,11 +64,34 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.caseSensitiveMatcher("jdk.*")
         ));
 
+    private final ConfigurationOption<TimeDuration> profilerDelay = TimeDurationValueConverter.durationOption("s")
+        .key("profiling_delay")
+        .description("The delay between profiling session.")
+        .configurationCategory(PROFILING_CATEGORY)
+        .buildWithDefault(TimeDuration.of("53s"));
+
+    private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
+        .key("profiling_duration")
+        .description("The duration of a profiling session.\n" +
+            "For sampled transactions which fall within a profiling session (they start after and end before the session),\n" +
+            "so-called inferred spans will be created.\n" +
+            "They appear in the trace waterfall view like regular spans.")
+        .configurationCategory(PROFILING_CATEGORY)
+        .buildWithDefault(TimeDuration.of("8s"));
+
     public TimeDuration getSampleRate() {
         return sampleRate.get();
     }
 
     public List<WildcardMatcher> getExcludedClasses() {
         return excludedClasses.get();
+    }
+
+    public TimeDuration getProfilingDelay() {
+        return profilerDelay.get();
+    }
+
+    public TimeDuration getProfilingDuration() {
+        return profilingDuration.get();
     }
 }
