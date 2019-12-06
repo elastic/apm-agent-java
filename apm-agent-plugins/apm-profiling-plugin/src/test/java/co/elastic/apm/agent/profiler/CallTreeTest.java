@@ -27,6 +27,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 10, Collections.emptyList());
+        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 10, WildcardMatcher.matchAllList(), Collections.emptyList());
         root.addStackTrace(List.of(asFrame("a")));
         root.addStackTrace(List.of(asFrame("b"), asFrame("a")));
         root.addStackTrace(List.of(asFrame("a")));
@@ -149,7 +150,7 @@ class CallTreeTest {
 
     public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) {
         TraceContext traceContext = rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), 10, Collections.emptyList());
+        CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), 10, WildcardMatcher.matchAllList(), Collections.emptyList());
         for (int i = 0; i < stackTraces[0].length(); i++) {
             List<StackTraceElement> trace = new ArrayList<>();
             for (String stackTrace : stackTraces) {

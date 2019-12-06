@@ -52,11 +52,11 @@ public class CallTree {
         this.traceContext = traceContext;
     }
 
-    public static CallTree.Root createRoot(TraceContext traceContext, long msPerTick, List<WildcardMatcher> excludedClasses) {
-        return new CallTree.Root(ROOT, 1, msPerTick, excludedClasses, traceContext);
+    public static CallTree.Root createRoot(TraceContext traceContext, long msPerTick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses) {
+        return new CallTree.Root(ROOT, 1, msPerTick, includedClasses, excludedClasses, traceContext);
     }
 
-    protected void addFrame(ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> excludedClasses, @Nullable TraceContext traceContext) {
+    protected void addFrame(ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, @Nullable TraceContext traceContext) {
         count++;
 
         CallTree lastChild = getLastChild();
@@ -66,18 +66,18 @@ public class CallTree {
         // skipping frames corresponding to excludedClasses
         while (iterator.hasPrevious()) {
             final StackTraceElement frame = iterator.previous();
-            if (WildcardMatcher.isNoneMatch(excludedClasses, frame.getClassName())) {
+            if (WildcardMatcher.isAnyMatch(includedClasses, frame.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, frame.getClassName())) {
                 if (lastChild != null) {
                     if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
-                        lastChild.addFrame(iterator, tick, excludedClasses, traceContext);
+                        lastChild.addFrame(iterator, tick, includedClasses, excludedClasses, traceContext);
                         endChild = false;
                     } else {
                         // we're looking at a frame which is a new sibling to listChild
                         lastChild.end(tick - 1);
-                        addChild(frame, iterator, tick, excludedClasses, traceContext);
+                        addChild(frame, iterator, tick, includedClasses, excludedClasses, traceContext);
                     }
                 } else {
-                    addChild(frame, iterator, tick, excludedClasses, traceContext);
+                    addChild(frame, iterator, tick, includedClasses, excludedClasses, traceContext);
                 }
                 break;
             }
@@ -87,10 +87,10 @@ public class CallTree {
         }
     }
 
-    void addChild(StackTraceElement frame, ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> frameMatcher, @Nullable TraceContext traceContext) {
+    void addChild(StackTraceElement frame, ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, @Nullable TraceContext traceContext) {
         CallTree callTree = new CallTree(frame, tick, traceContext);
         children.add(callTree);
-        callTree.addFrame(iterator, tick, frameMatcher, null);
+        callTree.addFrame(iterator, tick, includedClasses, excludedClasses, null);
     }
 
     public int getDurationTicks() {
@@ -212,13 +212,15 @@ public class CallTree {
     public static class Root extends CallTree {
         private long timestamp;
         private long msPerTick;
+        private final List<WildcardMatcher> includedClasses;
         private final List<WildcardMatcher> excludedClasses;
         protected TraceContext traceContext;
         private TraceContext activeSpan;
 
-        public Root(StackTraceElement frame, int start, long msPerTick, List<WildcardMatcher> excludedClasses, TraceContext traceContext) {
+        public Root(StackTraceElement frame, int start, long msPerTick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, TraceContext traceContext) {
             super(frame, start, traceContext);
             this.msPerTick = msPerTick;
+            this.includedClasses = includedClasses;
             this.excludedClasses = excludedClasses;
             this.traceContext = traceContext;
             activeSpan = traceContext;
@@ -232,7 +234,7 @@ public class CallTree {
             if (count == 0) {
                 timestamp = this.traceContext.getClock().getEpochMicros();
             }
-            addFrame(stackTrace.listIterator(stackTrace.size()), count + 1, excludedClasses, activeSpan);
+            addFrame(stackTrace.listIterator(stackTrace.size()), count + 1, includedClasses, excludedClasses, activeSpan);
         }
 
         public void spanify() {

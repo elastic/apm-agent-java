@@ -29,6 +29,7 @@ import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.profiler.CallTreeTest.asFrame;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 class CallTreeSpanifyTest {
 
@@ -97,7 +97,7 @@ class CallTreeSpanifyTest {
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 10, Collections.emptyList());
+        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 10, WildcardMatcher.matchAllList(), Collections.emptyList());
         root.addStackTrace(List.of(asFrame("a")));
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
@@ -105,7 +105,7 @@ class CallTreeSpanifyTest {
 
         root.setActiveSpan(spanContext);
         root.addStackTrace(List.of(asFrame("b"), asFrame("a")));
-        root.setActiveSpan(null);
+        root.setActiveSpan(rootContext);
 
         root.addStackTrace(List.of(asFrame("a")));
         root.end();

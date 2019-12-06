@@ -205,7 +205,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), samplingProfiler.config.getSampleRate().getMillis(), samplingProfiler.config.getExcludedClasses());
+            ProfilingConfiguration config = samplingProfiler.config;
+            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), config.getSampleRate().getMillis(),
+                config.getIncludedClasses(), config.getExcludedClasses());
             if (samplingProfiler.profiledThreads.put(threadId, root) != null) {
                 logger.warn("Tried to register another profiling root on thread {} for span {}", threadId, traceContext);
             }

@@ -34,6 +34,7 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class ProfilingConfiguration extends ConfigurationOptionProvider {
@@ -47,11 +48,20 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .addValidator(RangeValidator.min(TimeDuration.of("10ms")))
         .buildWithDefault(TimeDuration.of("20ms"));
 
+    private final ConfigurationOption<List<WildcardMatcher>> includedClasses = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("profiling_included_classes")
+        .configurationCategory(PROFILING_CATEGORY)
+        .description("\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Collections.singletonList(WildcardMatcher.matchAll()));
+
     private final ConfigurationOption<List<WildcardMatcher>> excludedClasses = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("profiling_excluded_classes")
         .configurationCategory(PROFILING_CATEGORY)
-        .tags("internal")
         .description("\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
@@ -83,6 +93,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getSampleRate() {
         return sampleRate.get();
+    }
+
+    public List<WildcardMatcher> getIncludedClasses() {
+        return includedClasses.get();
     }
 
     public List<WildcardMatcher> getExcludedClasses() {

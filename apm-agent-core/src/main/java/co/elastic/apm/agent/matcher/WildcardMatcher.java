@@ -91,6 +91,10 @@ public abstract class WildcardMatcher {
         return MATCH_ALL;
     }
 
+    public static List<WildcardMatcher> matchAllList() {
+        return MATCH_ALL_LIST;
+    }
+
     /**
      * Constructs a new {@link WildcardMatcher} via a wildcard string.
      * <p>

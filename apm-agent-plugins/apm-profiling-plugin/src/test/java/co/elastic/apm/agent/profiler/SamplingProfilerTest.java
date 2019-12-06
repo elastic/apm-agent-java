@@ -52,14 +52,8 @@ class SamplingProfilerTest {
     void setUp() {
         reporter = new MockReporter();
         tracer = MockTracer.createRealTracer(reporter);
-        when(tracer.getConfigurationRegistry().getConfig(ProfilingConfiguration.class).getExcludedClasses())
-            .thenReturn(List.of(
-                WildcardMatcher.valueOf("java.*"),
-                WildcardMatcher.valueOf("org.junit.*"),
-                WildcardMatcher.valueOf("jdk.*"),
-                WildcardMatcher.valueOf("com.intellij.*")
-                )
-            );
+        when(tracer.getConfigurationRegistry().getConfig(ProfilingConfiguration.class).getIncludedClasses())
+            .thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
     }
 
     @AfterEach
@@ -84,7 +78,7 @@ class SamplingProfilerTest {
         await()
             .pollDelay(10, TimeUnit.MILLISECONDS)
             .timeout(500, TimeUnit.MILLISECONDS)
-            .until(() -> reporter.getSpans().size() >= 2);
+            .until(() -> reporter.getSpans().size() == 2);
         Optional<Span> explicitSpan = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("span")).findAny();
         assertThat(explicitSpan).isPresent();
 
