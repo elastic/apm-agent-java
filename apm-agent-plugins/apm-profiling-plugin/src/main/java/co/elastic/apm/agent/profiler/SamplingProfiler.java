@@ -104,9 +104,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 break;
             }
         }
-        profilingSessionOngoing = false;
-        // TODO do we want to create inferred spans for partially traced transactions?
-        profiledThreads.clear();
+        if (config.getProfilingDelay().getMillis() != 0) {
+            profilingSessionOngoing = false;
+            // TODO do we want to create inferred spans for partially profiled transactions?
+            profiledThreads.clear();
+        }
         // clears the interrupted status so that the thread can return to the pool
         if (!Thread.interrupted()) {
             scheduler.schedule(this, config.getProfilingDelay().getMillis(), TimeUnit.MILLISECONDS);

@@ -68,6 +68,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .key("profiling_delay")
         .description("The delay between profiling session.")
         .configurationCategory(PROFILING_CATEGORY)
+        .addValidator(RangeValidator.min(TimeDuration.of("0ms")))
         .buildWithDefault(TimeDuration.of("53s"));
 
     private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
@@ -77,6 +78,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "so-called inferred spans will be created.\n" +
             "They appear in the trace waterfall view like regular spans.")
         .configurationCategory(PROFILING_CATEGORY)
+        .addValidator(RangeValidator.min(TimeDuration.of("1s")))
         .buildWithDefault(TimeDuration.of("8s"));
 
     public TimeDuration getSampleRate() {
