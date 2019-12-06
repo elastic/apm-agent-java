@@ -24,10 +24,12 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MpscUnboundedArrayQueue;
@@ -38,7 +40,8 @@ import javax.annotation.Nullable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -83,27 +86,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void run() {
-        // the sample rate should be consistent for a given profiling session
-        long sampleRate = config.getSampleRate().getMillis();
-        long deadline = config.getProfilingDuration().getMillis() + System.currentTimeMillis();
+        TimeDuration sampleRate = config.getSampleRate();
+        TimeDuration profilingDuration = config.getProfilingDuration();
         profilingSessionOngoing = true;
-        while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
-            try {
-                long startNs = System.nanoTime();
 
-                takeThreadSnapshot();
+        profile(sampleRate, profilingDuration);
 
-                long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
-                logger.trace("Taking snapshot took {}ms", durationMs);
-
-                Thread.sleep(Math.max(sampleRate - durationMs, 0));
-            } catch (RuntimeException e) {
-                logger.error("Exception while taking profiling snapshot", e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
         if (config.getProfilingDelay().getMillis() != 0) {
             profilingSessionOngoing = false;
             // TODO do we want to create inferred spans for partially profiled transactions?
@@ -115,18 +103,54 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
+    private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) {
+        long sampleRateMs = sampleRate.getMillis();
+        long deadline = profilingDuration.getMillis() + System.currentTimeMillis();
+        while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
+            try {
+                long startNs = System.nanoTime();
+
+                takeThreadSnapshot();
+
+                long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+                logger.trace("Taking snapshot took {}ms", durationMs);
+
+                Thread.sleep(Math.max(sampleRateMs - durationMs, 0));
+            } catch (RuntimeException e) {
+                logger.error("Exception while taking profiling snapshot", e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
     private void takeThreadSnapshot() {
+        List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
+        List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         processActivationEventsUpTo(System.nanoTime());
         long[] profiledThreadIds = getProfiledThreadIds();
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
 
+        List<String> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
             long threadId = profiledThreadIds[i];
             ThreadInfo threadInfo = threadInfos[i];
             if (threadInfo != null) {
-                profiledThreads.get(threadId).addStackTrace(Arrays.asList(threadInfo.getStackTrace()));
+                CallTree.Root root = profiledThreads.get(threadId);
+                for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
+                    if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
+                        stackTraces.add(stackTraceElement.getClassName() + "#" + stackTraceElement.getMethodName());
+                    }
+                }
+                root.addStackTrace(stackTraces);
+                stackTraces.clear();
             }
         }
+    }
+
+    private boolean isIncluded(StackTraceElement stackTraceElement, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
+        return WildcardMatcher.isAnyMatch(includedClasses, stackTraceElement.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackTraceElement.getClassName());
     }
 
     private void processActivationEventsUpTo(long timestamp) {
@@ -206,8 +230,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
             ProfilingConfiguration config = samplingProfiler.config;
-            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), config.getSampleRate().getMillis(),
-                config.getIncludedClasses(), config.getExcludedClasses());
+            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), config.getSampleRate().getMillis());
             if (samplingProfiler.profiledThreads.put(threadId, root) != null) {
                 logger.warn("Tried to register another profiling root on thread {} for span {}", threadId, traceContext);
             }

@@ -26,7 +26,6 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
-import co.elastic.apm.agent.matcher.WildcardMatcher;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -37,49 +36,44 @@ import java.util.ListIterator;
 
 public class CallTree {
 
-    private static final StackTraceElement ROOT = new StackTraceElement(CallTree.class.getName(), "root", null, -1);
     protected int count;
     private List<CallTree> children = new ArrayList<>();
-    private StackTraceElement frame;
+    private String frame;
     private int start;
     private int end;
     @Nullable
     private TraceContext traceContext;
 
-    public CallTree(StackTraceElement frame, int start, @Nullable TraceContext traceContext) {
+    public CallTree(String frame, int start, @Nullable TraceContext traceContext) {
         this.frame = frame;
         this.start = start;
         this.traceContext = traceContext;
     }
 
-    public static CallTree.Root createRoot(TraceContext traceContext, long msPerTick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses) {
-        return new CallTree.Root(ROOT, 1, msPerTick, includedClasses, excludedClasses, traceContext);
+    public static CallTree.Root createRoot(TraceContext traceContext, long msPerTick) {
+        return new CallTree.Root( 1, msPerTick, traceContext);
     }
 
-    protected void addFrame(ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, @Nullable TraceContext traceContext) {
-        count++;
+    protected void addFrame(ListIterator<String> iterator, int tick, int samples, @Nullable TraceContext traceContext) {
+        count += samples;
 
         CallTree lastChild = getLastChild();
-        // if the StackTraceElement corresponding to the last child is not in the stack trace
+        // if the frame corresponding to the last child is not in the stack trace
         // it's assumed to have ended one tick ago
         boolean endChild = true;
-        // skipping frames corresponding to excludedClasses
-        while (iterator.hasPrevious()) {
-            final StackTraceElement frame = iterator.previous();
-            if (WildcardMatcher.isAnyMatch(includedClasses, frame.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, frame.getClassName())) {
-                if (lastChild != null) {
-                    if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
-                        lastChild.addFrame(iterator, tick, includedClasses, excludedClasses, traceContext);
-                        endChild = false;
-                    } else {
-                        // we're looking at a frame which is a new sibling to listChild
-                        lastChild.end(tick - 1);
-                        addChild(frame, iterator, tick, includedClasses, excludedClasses, traceContext);
-                    }
+        if (iterator.hasPrevious()) {
+            final String frame = iterator.previous();
+            if (lastChild != null) {
+                if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
+                    lastChild.addFrame(iterator, tick, samples, traceContext);
+                    endChild = false;
                 } else {
-                    addChild(frame, iterator, tick, includedClasses, excludedClasses, traceContext);
+                    // we're looking at a frame which is a new sibling to listChild
+                    lastChild.end(tick - 1);
+                    addChild(frame, iterator, tick, samples, traceContext);
                 }
-                break;
+            } else {
+                addChild(frame, iterator, tick, samples, traceContext);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
@@ -87,10 +81,10 @@ public class CallTree {
         }
     }
 
-    void addChild(StackTraceElement frame, ListIterator<StackTraceElement> iterator, int tick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, @Nullable TraceContext traceContext) {
+    void addChild(String frame, ListIterator<String> iterator, int tick, int samples, @Nullable TraceContext traceContext) {
         CallTree callTree = new CallTree(frame, tick, traceContext);
         children.add(callTree);
-        callTree.addFrame(iterator, tick, includedClasses, excludedClasses, null);
+        callTree.addFrame(iterator, tick, samples, null);
     }
 
     public int getDurationTicks() {
@@ -105,7 +99,7 @@ public class CallTree {
         return count;
     }
 
-    public StackTraceElement getFrame() {
+    public String getFrame() {
         return frame;
     }
 
@@ -160,7 +154,7 @@ public class CallTree {
         for (int i = 0; i < level; i++) {
             out.append("  ");
         }
-        out.append(frame.getClassName()).append('.').append(frame.getMethodName())
+        out.append(frame)
             .append(' ').append(Integer.toString(count))
             .append('\n');
         for (CallTree node : children) {
@@ -188,9 +182,7 @@ public class CallTree {
         return parent.createSpan(baseTimestamp + ((start - 1) * usPerTick))
             .withType("app")
             .withSubtype("inferred")
-            .appendToName(frame.getClassName())
-            .appendToName("#")
-            .appendToName(frame.getMethodName());
+            .appendToName(frame);
     }
 
     public void removeNodesFasterThan(float percent, int minTicks) {
@@ -212,16 +204,12 @@ public class CallTree {
     public static class Root extends CallTree {
         private long timestamp;
         private long msPerTick;
-        private final List<WildcardMatcher> includedClasses;
-        private final List<WildcardMatcher> excludedClasses;
         protected TraceContext traceContext;
         private TraceContext activeSpan;
 
-        public Root(StackTraceElement frame, int start, long msPerTick, List<WildcardMatcher> includedClasses, List<WildcardMatcher> excludedClasses, TraceContext traceContext) {
-            super(frame, start, traceContext);
+        public Root(int start, long msPerTick, TraceContext traceContext) {
+            super("root", start, traceContext);
             this.msPerTick = msPerTick;
-            this.includedClasses = includedClasses;
-            this.excludedClasses = excludedClasses;
             this.traceContext = traceContext;
             activeSpan = traceContext;
         }
@@ -230,11 +218,15 @@ public class CallTree {
             this.activeSpan = context;
         }
 
-        public void addStackTrace(List<StackTraceElement> stackTrace) {
+        public void addStackTrace(List<String> stackTrace) {
+            addStackTrace(stackTrace, 1);
+        }
+
+        public void addStackTrace(List<String> stackTrace, int samples) {
             if (count == 0) {
                 timestamp = this.traceContext.getClock().getEpochMicros();
             }
-            addFrame(stackTrace.listIterator(stackTrace.size()), count + 1, includedClasses, excludedClasses, activeSpan);
+            addFrame(stackTrace.listIterator(stackTrace.size()), count + 1, samples, activeSpan);
         }
 
         public void spanify() {
