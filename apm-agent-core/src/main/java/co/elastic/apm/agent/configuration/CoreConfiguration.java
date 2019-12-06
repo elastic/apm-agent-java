@@ -27,6 +27,7 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
+import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
@@ -34,7 +35,6 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
-import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -148,10 +148,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".\n" +
             "\n" +
-            "Environments allow you to easily filter data on a global level in the APM UI.\n" +
+            "Environments allow you to easily filter data on a global level in the APM app.\n" +
             "It's important to be consistent when naming environments across agents.\n" +
-            "See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.\n\n" +
-            "NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.\n" +
+            "See {apm-app-ref}/filters.html#environment-selector[environment selector] in the APM app for more information.\n\n" +
+            "NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.\n" +
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
@@ -369,11 +369,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         ));
 
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
-        .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
+        .builder(MethodMatcherValueConverter.LIST, List.class)
         .key("trace_methods")
         .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("A list of methods for with to create a transaction or span.\n" +
+        .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
             "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
             "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
@@ -415,7 +415,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
-            "----\n")
+            "----\n" +
+            "NOTE: This method is only available in the Elastic APM Java Agent.")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")

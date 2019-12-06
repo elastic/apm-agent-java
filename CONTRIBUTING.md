@@ -152,7 +152,7 @@ These live templates can be pasted in Preferences > Editor > Live Templates > ot
 
 **`at`**
 ```xml
-<template name="at" value="assertThat($EXPR$)$END;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
   <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
     <option name="JAVA_STATEMENT" value="true" />
@@ -315,3 +315,5 @@ If you have access to make releases, the process is as follows:
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
+1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
+1. Publish release on Github. This will notify users watching repository.

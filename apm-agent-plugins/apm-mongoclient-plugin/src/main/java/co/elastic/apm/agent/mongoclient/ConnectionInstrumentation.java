@@ -50,9 +50,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
  *   <li>{@link com.mongodb.connection.Connection#delete}</li>
  *   <li>{@link com.mongodb.connection.Connection#query}</li>
  *   <li>{@link com.mongodb.connection.Connection#getMore}</li>
- *   <li>{@link com.mongodb.connection.Connection#insertCommand}</li>
- *   <li>{@link com.mongodb.connection.Connection#updateCommand}</li>
- *   <li>{@link com.mongodb.connection.Connection#deleteCommand}</li>
+ *   <li>com.mongodb.connection.Connection#insertCommand</li>
+ *   <li>com.mongodb.connection.Connection#updateCommand</li>
+ *   <li>com.mongodb.connection.Connection#deleteCommand</li>
  * </ul>
  */
 public class ConnectionInstrumentation extends MongoClientInstrumentation {
