@@ -25,6 +25,7 @@ endif::[]
 
 [float]
 ===== Features
+* Add support for <<supported-databases, Redis Lettuce client>>
 
 [float]
 ===== Bug Fixes
