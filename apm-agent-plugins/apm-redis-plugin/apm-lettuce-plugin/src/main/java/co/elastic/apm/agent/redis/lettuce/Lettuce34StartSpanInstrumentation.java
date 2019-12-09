@@ -24,10 +24,8 @@
  */
 package co.elastic.apm.agent.redis.lettuce;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.redis.RedisSpanUtils;
-import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import com.lambdaworks.redis.protocol.RedisCommand;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -47,10 +45,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  * The context will be propagated via the Netty instrumentation
  */
 public class Lettuce34StartSpanInstrumentation extends Lettuce34Instrumentation {
-
-    @VisibleForAdvice
-    @SuppressWarnings("WeakerAccess")
-    public static final WeakConcurrentMap<RedisCommand, Span> commandToSpan = new WeakConcurrentMap.WithInlinedExpunction<RedisCommand, Span>();
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {

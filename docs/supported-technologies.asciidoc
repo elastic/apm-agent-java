@@ -170,7 +170,7 @@ Other Servlet 3+ compliant servers will most likely work as well.
 
 |Redis Lettuce
 |3.4+
-|The agent creates spans for interactions with the Jedis client.
+|The agent creates spans for interactions with the Lettuce client.
 |1.13.0
 
 |MongoDB driver

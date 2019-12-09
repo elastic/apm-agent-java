@@ -29,6 +29,7 @@ import co.elastic.apm.agent.redis.AbstractRedisInstrumentationTest;
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.api.StatefulRedisConnection;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
+import com.lambdaworks.redis.api.rx.RedisReactiveCommands;
 import com.lambdaworks.redis.api.sync.RedisCommands;
 import org.junit.After;
 import org.junit.Before;
@@ -75,16 +76,6 @@ public class Lettuce4InstrumentationTest extends AbstractRedisInstrumentationTes
         }
         assertTransactionWithRedisSpans("SET", "GET");
     }
-
-    /*@Test
-    public void testReactiveLettuce() {
-        RedisReactiveCommands<String, String> async = connection.reactive();
-        try (Scope scope = tracer.startRootTransaction(getClass().getClassLoader()).withName("transaction").activateInScope()) {
-            async.set("foo", "bar").block();
-            assertThat(async.get("foo").block()).isEqualTo("bar");
-        }
-        assertTransactionWithRedisSpans("SET", "GET");
-    }*/
 
     @After
     public void tearDownLettuce() {

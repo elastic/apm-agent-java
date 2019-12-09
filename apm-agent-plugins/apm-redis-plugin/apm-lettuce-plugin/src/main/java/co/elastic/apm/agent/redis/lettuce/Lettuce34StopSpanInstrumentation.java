@@ -80,12 +80,10 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeComplete(@Advice.This RedisCommand command) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#complete");
-                    span.end();
-                }
+            Span span = commandToSpan.remove(command);
+            if (span != null) {
+                logger.debug("Command#complete");
+                span.end();
             }
         }
 
@@ -99,12 +97,10 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeComplete(@Advice.This RedisCommand command, @Advice.Argument(0) Throwable throwable) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#completeExceptionally");
-                    span.captureException(throwable).end();
-                }
+            Span span = commandToSpan.remove(command);
+            if (span != null) {
+                logger.debug("Command#completeExceptionally");
+                span.captureException(throwable).end();
             }
         }
 
@@ -118,12 +114,10 @@ public abstract class Lettuce34StopSpanInstrumentation extends Lettuce34Instrume
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void beforeComplete(@Advice.This RedisCommand command) {
-            if (!command.isDone() && !command.isCancelled()) {
-                Span span = commandToSpan.remove(command);
-                if (span != null) {
-                    logger.debug("Command#cancel");
-                    span.end();
-                }
+            Span span = commandToSpan.remove(command);
+            if (span != null) {
+                logger.debug("Command#cancel");
+                span.end();
             }
         }
 
