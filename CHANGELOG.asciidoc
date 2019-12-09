@@ -30,6 +30,7 @@ endif::[]
 [float]
 ===== Bug Fixes
 * Fix parsing value of `trace_methods` configuration property {pull}930[#930]
+* Workaround for `java.util.logging` deadlock {pull}965[#965]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x
