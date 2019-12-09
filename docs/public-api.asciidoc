@@ -32,6 +32,11 @@ link:https://search.maven.org/search?q=g:co.elastic.apm%20AND%20a:apm-agent-api[
 latest version from maven central]:
 image:https://img.shields.io/maven-central/v/co.elastic.apm/apm-agent-api.svg[Maven Central]
 
+* <<api-tracer-api>> - Access the currently active transaction and span
+* <<api-annotation>> - Annotations that make easier to create custom spans and transactions
+* <<api-transaction>> - Transaction methods
+* <<api-span>> - Span methods
+
 [float]
 [[api-tracer-api]]
 === Tracer API

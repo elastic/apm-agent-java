@@ -24,8 +24,6 @@
  */
 package co.elastic.apm.agent.report;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
@@ -36,8 +34,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
 public class HttpUtils {
-
-    private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
 
     private HttpUtils() {
     }
@@ -67,16 +63,11 @@ public class HttpUtils {
      */
     public static void consumeAndClose(@Nullable HttpURLConnection connection) {
         if (connection != null) {
+            IOUtils.consumeAndClose(connection.getErrorStream());
             try {
-                InputStream responseInputStream = connection.getErrorStream();
-                if (responseInputStream == null) {
-                    responseInputStream = connection.getInputStream();
-                }
-                if (responseInputStream != null) {
-                    IOUtils.consumeAndClose(responseInputStream);
-                }
-            } catch (Exception e) {
-                logger.error("Exception when closing input stream of HttpURLConnection.");
+                IOUtils.consumeAndClose(connection.getInputStream());
+            } catch (IOException ignored) {
+                // silently ignored
             }
         }
     }
