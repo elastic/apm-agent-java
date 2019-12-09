@@ -1,0 +1,28 @@
+--- Execution profile ---
+Total samples       : 3316
+
+Frame buffer usage  : 0.1099%
+
+--- 560000000 ns (1.69%), 56 samples
+  [ 0] __psynch_cvwait
+  [ 1] os::PlatformEvent::park(long)
+  [ 2] Monitor::IWait(Thread*, long)
+  [ 3] Monitor::wait(bool, long, bool)
+  [ 4] VMThread::loop()
+  [ 5] VMThread::run()
+  [ 6] thread_native_entry(Thread*)
+  [ 7] _pthread_body
+  [ 8] _pthread_start
+  [ 9] thread_start
+  [10] [tid=1]
+
+--- 560000000 ns (1.69%), 56 samples
+  [ 0] __psynch_cvwait
+  [ 1] os::PlatformEvent::park()
+  [ 2] Monitor::IWait(Thread*, long)
+  [ 3] Monitor::wait(bool, long, bool)
+  [ 4] JVM_WaitForReferencePendingList
+  [ 5] java.lang.ref.Reference.waitForReferencePendingList_[j]
+  [ 6] java.lang.ref.Reference.processPendingReferences_[j]
+  [ 7] java.lang.ref.Reference$ReferenceHandler.run_[j]
+  [ 8] [Reference Handler tid=2]
