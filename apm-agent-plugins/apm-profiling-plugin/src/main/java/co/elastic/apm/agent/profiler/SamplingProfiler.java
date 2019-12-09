@@ -130,6 +130,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         processActivationEventsUpTo(System.nanoTime());
         long[] profiledThreadIds = getProfiledThreadIds();
+        if (profiledThreadIds.length == 0) {
+            return;
+        }
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
 
         List<String> stackTraces = new ArrayList<>(256);
