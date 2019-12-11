@@ -62,7 +62,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     public SamplingProfiler(ElasticApmTracer tracer) {
         this(tracer.getConfig(ProfilingConfiguration.class),
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler", 10),
+            ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler"),
             new ConcurrentHashMap<Long, CallTree.Root>());
     }
 
@@ -90,7 +90,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         TimeDuration profilingDuration = config.getProfilingDuration();
         profilingSessionOngoing = true;
 
+        logger.debug("Start profiling session");
         profile(sampleRate, profilingDuration);
+        logger.debug("End profiling session");
 
         if (config.getProfilingDelay().getMillis() != 0) {
             profilingSessionOngoing = false;
@@ -134,6 +136,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             return;
         }
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
+        long nanoTime = System.nanoTime();
 
         List<String> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
@@ -143,10 +146,10 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 CallTree.Root root = profiledThreads.get(threadId);
                 for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
                     if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
-                        stackTraces.add(stackTraceElement.getClassName() + "#" + stackTraceElement.getMethodName());
+                        stackTraces.add(stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName());
                     }
                 }
-                root.addStackTrace(stackTraces);
+                root.addStackTrace(stackTraces, nanoTime);
                 stackTraces.clear();
             }
         }
@@ -176,7 +179,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        scheduler.scheduleAtFixedRate(this, 0, config.getSampleRate().getMillis(), TimeUnit.MILLISECONDS);
+        scheduler.submit(this);
     }
 
     @Override
@@ -232,8 +235,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            ProfilingConfiguration config = samplingProfiler.config;
-            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), config.getSampleRate().getMillis());
+            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), timestamp);
             if (samplingProfiler.profiledThreads.put(threadId, root) != null) {
                 logger.warn("Tried to register another profiling root on thread {} for span {}", threadId, traceContext);
             }

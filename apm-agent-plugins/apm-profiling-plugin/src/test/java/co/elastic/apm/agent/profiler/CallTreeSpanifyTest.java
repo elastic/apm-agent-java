@@ -62,7 +62,7 @@ class CallTreeSpanifyTest {
             " bb ",
             "aaae"
         });
-        long rootTimestamp = callTree.getTimestamp();
+        long rootTimestamp = callTree.getTimestampUs();
         callTree.spanify();
         assertThat(reporter.getSpans()).hasSize(4);
         assertThat(reporter.getSpans().stream()
@@ -73,57 +73,61 @@ class CallTreeSpanifyTest {
         assertThat(d.getNameAsString()).isEqualTo("d");
         assertThat(d.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(d.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
+        assertThat(d.getStackFrames()).containsExactly("c");
 
         Span b = reporter.getSpans().get(1);
         assertThat(b.getNameAsString()).isEqualTo("b");
         assertThat(b.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(b.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
+        assertThat(b.getStackFrames()).isEmpty();
 
         Span a = reporter.getSpans().get(2);
         assertThat(a.getNameAsString()).isEqualTo("a");
         assertThat(a.getTimestamp()).isEqualTo(rootTimestamp);
         assertThat(a.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(20));
+        assertThat(a.getStackFrames()).isEmpty();
 
         Span e = reporter.getSpans().get(3);
         assertThat(e.getNameAsString()).isEqualTo("e");
         assertThat(e.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(30));
         assertThat(e.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
+        assertThat(e.getStackFrames()).isEmpty();
     }
 
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 10);
-        root.addStackTrace(List.of("a"));
+        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 0);
+        root.addStackTrace(List.of("a"), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
         TraceContext.fromParent().asChildOf(spanContext, rootContext);
 
         root.setActiveSpan(spanContext);
-        root.addStackTrace(List.of("b", "a"));
+        root.addStackTrace(List.of("b", "a"), TimeUnit.MILLISECONDS.toNanos(10));
         root.setActiveSpan(rootContext);
 
-        root.addStackTrace(List.of("a"));
+        root.addStackTrace(List.of("a"), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);
 
         assertThat(root.getCount()).isEqualTo(3);
-        assertThat(root.getDurationUs(10_000)).isEqualTo(20_000);
+        assertThat(root.getDurationUs()).isEqualTo(20_000);
         assertThat(root.getChildren()).hasSize(1);
 
         CallTree a = root.getLastChild();
         assertThat(a).isNotNull();
         assertThat(a.getFrame()).isEqualTo("a");
         assertThat(a.getCount()).isEqualTo(3);
-        assertThat(a.getDurationUs(10_000)).isEqualTo(20_000);
+        assertThat(a.getDurationUs()).isEqualTo(20_000);
         assertThat(a.getChildren()).hasSize(1);
 
         CallTree b = a.getLastChild();
         assertThat(b).isNotNull();
         assertThat(b.getFrame()).isEqualTo("b");
         assertThat(b.getCount()).isEqualTo(1);
-        assertThat(b.getDurationUs(10_000)).isEqualTo(0);
+        assertThat(b.getDurationUs()).isEqualTo(0);
         assertThat(b.getChildren()).isEmpty();
 
         root.spanify();

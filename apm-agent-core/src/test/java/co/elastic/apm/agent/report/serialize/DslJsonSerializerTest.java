@@ -56,6 +56,7 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
@@ -518,6 +519,59 @@ class DslJsonSerializerTest {
         JsonNode queue = message.get("queue");
         assertThat(queue).isNotNull();
         assertThat("test_queue").isEqualTo(queue.get("name").textValue());
+    }
+
+    @Test
+    void testAppendFileName() {
+        assertThat(getFileName("Baz.qux")).isEqualTo("Baz.java");
+        assertThat(getFileName("foo.bar.Baz.qux")).isEqualTo("Baz.java");
+        assertThat(getFileName("foo.bar.Baz$Qux.quux")).isEqualTo("Baz.java");
+        assertThat(getFileName("baz")).isEqualTo("<Unknown>");
+    }
+
+    private String getFileName(String classDotMethod) {
+        StringBuilder replaceBuilder = new StringBuilder();
+        DslJsonSerializer.appendFileName(classDotMethod, replaceBuilder);
+        return replaceBuilder.toString();
+    }
+
+    @Test
+    void testAppendMethodName() {
+        assertThat(getMethodName("Baz.qux")).isEqualTo("qux");
+        assertThat(getMethodName("foo.bar.Baz.qux")).isEqualTo("qux");
+        assertThat(getMethodName("foo.bar.Baz$Qux.quux")).isEqualTo("quux");
+        assertThat(getMethodName("baz")).isEqualTo("");
+    }
+
+    private String getMethodName(String classDotMethod) {
+        StringBuilder replaceBuilder = new StringBuilder();
+        DslJsonSerializer.appendMethodName(classDotMethod, replaceBuilder);
+        return replaceBuilder.toString();
+    }
+
+
+    @Test
+    void testSpanStackFrameSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.setStackTrace(Arrays.asList("foo.Bar.baz", "foo.Bar$Baz.qux"));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonStackTrace = spanJson.get("stacktrace");
+        assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
+        assertThat(jsonStackTrace).isNotNull();
+        assertThat(jsonStackTrace).hasSize(2);
+
+        assertThat(jsonStackTrace.get(0).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(0).get("function").textValue()).isEqualTo("baz");
+        assertThat(jsonStackTrace.get(0).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(0).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(0).get("module")).isNull();
+
+        assertThat(jsonStackTrace.get(1).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(1).get("function").textValue()).isEqualTo("qux");
+        assertThat(jsonStackTrace.get(1).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(1).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(1).get("module")).isNull();
     }
 
     private JsonNode readJsonString(String jsonString) {

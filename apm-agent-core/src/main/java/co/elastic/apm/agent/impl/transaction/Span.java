@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class Span extends AbstractSpan<Span> implements Recyclable {
 
@@ -67,6 +68,8 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     private AbstractSpan<?> parent;
     @Nullable
     private Transaction transaction;
+    @Nullable
+    private List<String> stackFrames;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
@@ -224,6 +227,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         action = null;
         parent = null;
         transaction = null;
+        // recycling this array list by clear()-ing it doesn't seem worth it
+        // it's used in the context of profiling-inferred spans which entails allocations anyways
+        // when trying to recycle this list by clearing it, we increase the static memory overhead of the agent
+        // because all spans in the pool contain that list even if they are not used as inferred spans
+        stackFrames = null;
     }
 
     @Override
@@ -255,5 +263,14 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     protected void recycle() {
         tracer.recycle(this);
+    }
+
+    public void setStackTrace(List<String> stackTrace) {
+        this.stackFrames = stackTrace;
+    }
+
+    @Nullable
+    public List<String> getStackFrames() {
+        return stackFrames;
     }
 }

@@ -82,7 +82,7 @@ class SamplingProfilerTest {
         Optional<Span> explicitSpan = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("span")).findAny();
         assertThat(explicitSpan).isPresent();
 
-        Optional<Span> inferredSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals(getClass().getName() + "#b")).findAny();
+        Optional<Span> inferredSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals(getClass().getName() + ".b")).findAny();
         assertThat(inferredSpanB).isPresent();
 
         assertThat(inferredSpanB.get().getTraceContext().getParentId()).isEqualTo(explicitSpan.get().getTraceContext().getId());

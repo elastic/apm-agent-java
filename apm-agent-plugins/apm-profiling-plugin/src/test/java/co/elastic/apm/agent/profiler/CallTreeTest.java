@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,10 +42,10 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 10);
-        root.addStackTrace(List.of("a"));
-        root.addStackTrace(List.of("b", "a"));
-        root.addStackTrace(List.of("a"));
+        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 0);
+        root.addStackTrace(List.of("a"), 0);
+        root.addStackTrace(List.of("b", "a"), TimeUnit.MILLISECONDS.toNanos(10));
+        root.addStackTrace(List.of("a"), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);
@@ -148,8 +149,10 @@ class CallTreeTest {
 
     public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) {
         TraceContext traceContext = rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), 10);
+        long nanoTime = 0;
+        CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), nanoTime);
         for (int i = 0; i < stackTraces[0].length(); i++) {
+            nanoTime = i * TimeUnit.MILLISECONDS.toNanos(10);
             List<String> trace = new ArrayList<>();
             for (String stackTrace : stackTraces) {
                 char c = stackTrace.charAt(i);
@@ -157,7 +160,7 @@ class CallTreeTest {
                     trace.add(Character.toString(c));
                 }
             }
-            root.addStackTrace(trace);
+            root.addStackTrace(trace, nanoTime);
         }
         root.end();
         return root;

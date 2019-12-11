@@ -26,6 +26,8 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -47,8 +49,6 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
@@ -591,6 +591,8 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         writeField("duration", span.getDurationMs());
         if (span.getStacktrace() != null) {
             serializeStacktrace(span.getStacktrace().getStackTrace());
+        } else if (span.getStackFrames() != null) {
+            serializeStackTrace(span.getStackFrames());
         }
         serializeSpanContext(span.getContext(), span.getTraceContext());
         serializeSpanType(span);
@@ -718,6 +720,60 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
             }
         }
         return true;
+    }
+
+    private void serializeStackTrace(List<String> stackTrace) {
+        if (stackTrace.isEmpty()) {
+            return;
+        }
+        writeFieldName("stacktrace");
+        jw.writeByte(ARRAY_START);
+        StringBuilder replaceBuilder = this.replaceBuilder;
+        for (int i = 0, size = stackTrace.size(); i < size; i++) {
+            if (i != 0) {
+                jw.writeByte(COMMA);
+            }
+            serializeStackTraceElement(stackTrace.get(i), replaceBuilder);
+        }
+        jw.writeByte(ARRAY_END);
+        jw.writeByte(COMMA);
+    }
+
+    private void serializeStackTraceElement(String classDotMethod, StringBuilder replaceBuilder) {
+        jw.writeByte(OBJECT_START);
+
+        replaceBuilder.setLength(0);
+        appendFileName(classDotMethod, replaceBuilder);
+        writeField("filename", replaceBuilder);
+
+        replaceBuilder.setLength(0);
+        appendMethodName(classDotMethod, replaceBuilder);
+        writeField("function", replaceBuilder);
+
+        writeField("library_frame", isLibraryFrame(classDotMethod));
+        writeLastField("lineno", -1);
+        jw.writeByte(OBJECT_END);
+    }
+
+    static void appendMethodName(String classDotMethod, StringBuilder replaceBuilder) {
+        int methodNameStart = classDotMethod.lastIndexOf('.') + 1;
+        if (methodNameStart > 0 && methodNameStart < classDotMethod.length()) {
+            replaceBuilder.append(classDotMethod, methodNameStart, classDotMethod.length());
+        }
+    }
+
+    static void appendFileName(String classDotMethod, StringBuilder replaceBuilder) {
+        int classNameEnd = classDotMethod.indexOf('$');
+        if (classNameEnd < 0) {
+            classNameEnd = classDotMethod.lastIndexOf('.');
+        }
+        int classNameStart = classDotMethod.lastIndexOf('.', classNameEnd - 1);
+        if (classNameStart < classNameEnd && classNameEnd <= classDotMethod.length()) {
+            replaceBuilder.append(classDotMethod, classNameStart + 1, classNameEnd);
+            replaceBuilder.append(".java");
+        } else {
+            replaceBuilder.append("<Unknown>");
+        }
     }
 
     private void serializeSpanContext(SpanContext context, TraceContext traceContext) {
