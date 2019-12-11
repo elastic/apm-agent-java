@@ -181,7 +181,7 @@ You can mitigate this by using <<config-url-groups>>,
 which will allow the use of wildcards in transaction URLs.
 
 If the proposed fixes do not solve the problem, or if a custom name is required, transaction names can be set manually throughout the request handling flow using our API:
-+
+
 * <<api-current-transaction>> gets the current transaction.
 * <<api-set-name>> sets the transaction name.
 
