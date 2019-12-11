@@ -26,7 +26,6 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.Recyclable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
