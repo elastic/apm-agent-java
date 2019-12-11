@@ -40,7 +40,7 @@ public class StacktraceConfiguration extends ConfigurationOptionProvider {
         .key(APPLICATION_PACKAGES)
         .configurationCategory(STACKTRACE_CATEGORY)
         .description("Used to determine whether a stack trace frame is an 'in-app frame' or a 'library frame'.\n" +
-            "This allows the UI to collapse the stack frames of library code,\n" +
+            "This allows the APM app to collapse the stack frames of library code,\n" +
             "and highlight the stack frames that originate from your application.\n" +
             "Multiple root packages can be set as a comma-separated list;\n" +
             "there's no need to configure sub-packages.\n" +

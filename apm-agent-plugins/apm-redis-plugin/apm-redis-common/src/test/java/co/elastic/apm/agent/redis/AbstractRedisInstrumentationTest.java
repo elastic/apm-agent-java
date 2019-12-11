@@ -26,6 +26,8 @@ package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import redis.embedded.RedisServer;
@@ -36,6 +38,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumentationTest {
     protected RedisServer server;
@@ -47,8 +50,9 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         }
     }
 
+    @Before
     @BeforeEach
-    final void initRedis() throws IOException {
+    public final void initRedis() throws IOException {
         redisPort = getAvailablePort();
         server = RedisServer.builder()
             .setting("bind 127.0.0.1")
@@ -57,13 +61,14 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         server.start();
     }
 
+    @After
     @AfterEach
-    final void stopRedis() {
+    public final void stopRedis() {
         server.stop();
     }
 
     public void assertTransactionWithRedisSpans(String... commands) {
-        assertThat(reporter.getSpans()).hasSize(2);
+        await().untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(commands.length));
         assertThat(reporter.getSpans().stream().map(Span::getNameAsString)).containsExactly(commands);
         assertThat(reporter.getSpans().stream().map(Span::getType).distinct()).containsExactly("db");
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");

@@ -20,11 +20,15 @@ Starting in Java agent version 1.11.0, it is possible to manually configure a un
 <<config-service-node-name, `service_node_name`>>.
 When multiple JVMs are running on the same host and report data for the same service, this configuration is required in order to be able to view metrics at the JVM level.
 
+* <<metrics-system>>
+* <<metrics-jvm>>
+* <<metrics-application>>
+
 [float]
 [[metrics-system]]
 === System metrics
 
-As of version 6.6, these metrics will be visualized in the APM UI.
+As of version 6.6, these metrics will be visualized in the APM app.
 
 For more system metrics, consider installing {metricbeat-ref}/index.html[metricbeat] on your hosts.
 

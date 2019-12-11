@@ -1,0 +1,8 @@
+co.elastic.apm.agent.redis.lettuce.Lettuce34StartSpanInstrumentation
+co.elastic.apm.agent.redis.lettuce.Lettuce34StopSpanInstrumentation$OnComplete
+co.elastic.apm.agent.redis.lettuce.Lettuce34StopSpanInstrumentation$OnCompleteExceptionally
+co.elastic.apm.agent.redis.lettuce.Lettuce34StopSpanInstrumentation$OnCancel
+co.elastic.apm.agent.redis.lettuce.Lettuce5StartSpanInstrumentation
+co.elastic.apm.agent.redis.lettuce.Lettuce5StopSpanInstrumentation$OnComplete
+co.elastic.apm.agent.redis.lettuce.Lettuce5StopSpanInstrumentation$OnCompleteExceptionally
+co.elastic.apm.agent.redis.lettuce.Lettuce5StopSpanInstrumentation$OnCancel

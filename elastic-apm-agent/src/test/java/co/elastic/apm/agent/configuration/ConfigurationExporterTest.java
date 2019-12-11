@@ -40,6 +40,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -95,10 +96,10 @@ class ConfigurationExporterTest {
     @Test
     void testGeneratedConfigurationDocsAreUpToDate() throws IOException, TemplateException {
         String renderedDocumentation = renderDocumentation(configurationRegistry);
-        String expected = new String(Files.readAllBytes(this.renderedDocumentationPath));
+        String expected = new String(Files.readAllBytes(this.renderedDocumentationPath), StandardCharsets.UTF_8);
 
         // even if this test fails, we want to update the documentation
-        Files.write(renderedDocumentationPath, renderedDocumentation.getBytes());
+        Files.write(renderedDocumentationPath, renderedDocumentation.getBytes(StandardCharsets.UTF_8));
 
         assertThat(renderedDocumentation)
             .withFailMessage("The rendered configuration documentation (/docs/configuration.asciidoc) is not up-to-date.\n" +
