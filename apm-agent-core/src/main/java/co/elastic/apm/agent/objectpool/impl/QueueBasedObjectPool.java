@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,10 +33,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
 
-public class QueueBasedObjectPool<T> extends co.elastic.apm.agent.objectpool.impl.AbstractObjectPool<T> implements Collection<T> {
+public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Collection<T> {
 
     private final Queue<T> queue;
-    private final co.elastic.apm.agent.objectpool.impl.Resetter<T> resetter;
+    private final Resetter<T> resetter;
 
     /**
      * @param queue                   the underlying queue
@@ -46,14 +46,14 @@ public class QueueBasedObjectPool<T> extends co.elastic.apm.agent.objectpool.imp
      *                                used when there are no objects in the queue and to preallocate the queue.
      */
     public static <T extends Recyclable> QueueBasedObjectPool<T> ofRecyclable(Queue<T> queue, boolean preAllocate, Allocator<T> allocator) {
-        return new QueueBasedObjectPool<>(queue, preAllocate, allocator, co.elastic.apm.agent.objectpool.impl.Resetter.ForRecyclable.<T>get());
+        return new QueueBasedObjectPool<>(queue, preAllocate, allocator, Resetter.ForRecyclable.<T>get());
     }
 
-    public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, co.elastic.apm.agent.objectpool.impl.Resetter<T> resetter) {
+    public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
         return new QueueBasedObjectPool<>(queue, preAllocate, allocator, resetter);
     }
 
-    private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, co.elastic.apm.agent.objectpool.impl.Resetter<T> resetter) {
+    private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
         super(allocator);
         this.queue = queue;
         this.resetter = resetter;
