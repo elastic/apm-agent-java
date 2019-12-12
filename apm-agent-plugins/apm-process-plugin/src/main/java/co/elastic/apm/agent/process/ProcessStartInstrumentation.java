@@ -63,15 +63,20 @@ public class ProcessStartInstrumentation extends BaseProcessInstrumentation {
                                   @Advice.Return Process process,
                                   @Advice.Thrown @Nullable Throwable t) {
 
-            if (tracer == null || t != null) {
+            if (tracer == null) {
                 return;
             }
-            TraceContextHolder<?> transaction = tracer.getActive();
-            if (transaction == null) {
+            TraceContextHolder<?> parentSpan = tracer.getActive();
+            if (parentSpan == null) {
                 return;
             }
 
-            ProcessHelper.startProcess(transaction, process, processBuilder.command());
+            if (t != null) {
+                // unable to start process, report exception as it's likely to be a bug
+                parentSpan.captureException(t);
+            }
+
+            ProcessHelper.startProcess(parentSpan, process, processBuilder.command());
         }
     }
 }
