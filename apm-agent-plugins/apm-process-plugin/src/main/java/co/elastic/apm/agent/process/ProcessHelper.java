@@ -51,8 +51,8 @@ public class ProcessHelper {
     }
 
     @VisibleForAdvice
-    public static void waitForEnd(@Nonnull Process process) {
-        INSTANCE.doWaitForEnd(process);
+    public static void endProcess(@Nonnull Process process) {
+        INSTANCE.doEndProcess(process);
     }
 
     void doStartProcess(@Nonnull TraceContextHolder<?> transaction, @Nonnull Process process, @Nonnull String processName) {
@@ -79,7 +79,7 @@ public class ProcessHelper {
         return lastSeparator < 0 ? processName : processName.substring(lastSeparator + 1);
     }
 
-    void doWaitForEnd(Process process) {
+    void doEndProcess(Process process) {
 
         // borrowed from java 8 Process#isAlive()
         boolean terminated;

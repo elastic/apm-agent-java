@@ -75,7 +75,7 @@ public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
                 return;
             }
 
-            ProcessHelper.waitForEnd(process);
+            ProcessHelper.endProcess(process);
         }
     }
 

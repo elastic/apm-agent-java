@@ -76,7 +76,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doStartProcess(transaction, process, programName);
 
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
 
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -107,10 +107,10 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap).isNotEmpty();
 
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
 
         // this second call should be ignored, thus exception not reported
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
 
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors())
@@ -123,10 +123,10 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
 
         helper.doStartProcess(transaction, process, "hello");
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
 
         assertThat(reporter.getSpans()).hasSize(2);
     }
@@ -134,7 +134,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     @Test
     void endUntrackedProcess() {
         Process process = mock(Process.class);
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
     }
 
     @Test
@@ -144,7 +144,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap).isNotEmpty();
 
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
         assertThat(storageMap)
             .describedAs("should remove process in map at end")
             .isEmpty();
@@ -157,7 +157,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doStartProcess(transaction, process, "hello");
 
-        helper.doWaitForEnd(process);
+        helper.doEndProcess(process);
         assertThat(storageMap)
             .describedAs("waitFor exit without exit status should not terminate span")
             .isNotEmpty();
