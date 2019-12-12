@@ -341,7 +341,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         do {
             reportedSpans = supplier.get();
         } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
-        assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
+        assertThat(reportedSpans)
+            .describedAs("at least one span is expected")
+            .isNotEmpty();
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
         }

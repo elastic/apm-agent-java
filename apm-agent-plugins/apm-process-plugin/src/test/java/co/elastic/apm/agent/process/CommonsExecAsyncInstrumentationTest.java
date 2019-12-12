@@ -26,6 +26,7 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
@@ -39,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,8 +58,8 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         asyncProcessHasTransactionContext(false);
     }
 
-    void asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
-        final AtomicBoolean isRunInTransaction = new AtomicBoolean(false);
+    private static TraceContextHolder<?> asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
+        AtomicReference<TraceContextHolder<?>> activeTransaction = new AtomicReference<>();
 
         DefaultExecutor executor = new DefaultExecutor() {
             @Override
@@ -66,7 +68,7 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
                     @Override
                     public void run() {
                         // we don't assert directly here as throwing an exception will wait forever
-                        isRunInTransaction.set(tracer.getActive() != null);
+                        activeTransaction.set(tracer.getActive());
 
                         runnable.run();
                     }
@@ -93,16 +95,27 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
                 processProperlyCompleted.set(false);
             }
         };
+
         executor.execute(new CommandLine(getJavaBinaryPath()).addArgument("-version"), handler);
         handler.waitFor();
+
 
         assertThat(processProperlyCompleted.get())
             .describedAs("async process should have properly executed")
             .isTrue();
 
-        assertThat(isRunInTransaction.get())
-            .describedAs("executor runnable %s the expected transaction context", expectedInTransaction ? "in" : "not in")
-            .isEqualTo(expectedInTransaction);
+        if (expectedInTransaction) {
+            assertThat(activeTransaction.get())
+                .describedAs("executor runnable not in the expected transaction context")
+                .isNotNull();
+        } else {
+            assertThat(activeTransaction.get())
+                .describedAs("executor runnable should not be in transaction context")
+                .isNull();
+        }
+
+
+        return activeTransaction.get();
     }
 
     private static String getJavaBinaryPath() {

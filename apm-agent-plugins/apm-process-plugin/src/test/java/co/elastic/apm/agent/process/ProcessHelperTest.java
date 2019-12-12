@@ -161,6 +161,10 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         assertThat(storageMap)
             .describedAs("waitFor exit without exit status should not terminate span")
             .isNotEmpty();
+
+        when(process.exitValue()).thenReturn(0);
+        helper.doEndProcess(process);
+        assertThat(storageMap).isEmpty();
     }
 
 }
