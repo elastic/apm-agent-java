@@ -342,7 +342,7 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
-            // TODO ideally, those bootstrap classpath inclusions should be set at plugin level
+            // ideally, those bootstrap classpath inclusions should be set at plugin level, see issue #952
             .or(nameStartsWith("java.")
                 .and(
                     not(
