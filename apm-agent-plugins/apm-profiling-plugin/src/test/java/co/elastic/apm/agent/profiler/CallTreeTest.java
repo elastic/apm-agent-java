@@ -26,6 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.Test;
 
@@ -43,9 +44,9 @@ class CallTreeTest {
     @Test
     void testCallTree() {
         CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 0);
-        root.addStackTrace(List.of("a"), 0);
-        root.addStackTrace(List.of("b", "a"), TimeUnit.MILLISECONDS.toNanos(10));
-        root.addStackTrace(List.of("a"), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
+        root.addStackTrace(List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
+        root.addStackTrace(List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);
@@ -55,13 +56,13 @@ class CallTreeTest {
 
         CallTree a = root.getLastChild();
         assertThat(a).isNotNull();
-        assertThat(a.getFrame()).isEqualTo("a");
+        assertThat(a.getFrame().getMethodName()).isEqualTo("a");
         assertThat(a.getCount()).isEqualTo(3);
         assertThat(a.getChildren()).hasSize(1);
 
         CallTree b = a.getLastChild();
         assertThat(b).isNotNull();
-        assertThat(b.getFrame()).isEqualTo("b");
+        assertThat(b.getFrame().getMethodName()).isEqualTo("b");
         assertThat(b.getCount()).isEqualTo(1);
         assertThat(b.getChildren()).isEmpty();
     }
@@ -132,7 +133,7 @@ class CallTreeTest {
         }
 
         String expectedString = root.toString()
-            .replace("CallTreeTest.", "");
+            .replace(CallTreeTest.class.getName() + ".", "");
         expectedString = Arrays.stream(expectedString.split("\n"))
             // skip root node
             .skip(1)
@@ -153,11 +154,11 @@ class CallTreeTest {
         CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), nanoTime);
         for (int i = 0; i < stackTraces[0].length(); i++) {
             nanoTime = i * TimeUnit.MILLISECONDS.toNanos(10);
-            List<String> trace = new ArrayList<>();
+            List<StackFrame> trace = new ArrayList<>();
             for (String stackTrace : stackTraces) {
                 char c = stackTrace.charAt(i);
                 if (!Character.isSpaceChar(c)) {
-                    trace.add(Character.toString(c));
+                    trace.add(StackFrame.of(CallTreeTest.class.getName(), Character.toString(c)));
                 }
             }
             root.addStackTrace(trace, nanoTime);

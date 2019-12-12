@@ -52,6 +52,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
@@ -722,7 +723,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         return true;
     }
 
-    private void serializeStackTrace(List<String> stackTrace) {
+    private void serializeStackTrace(List<StackFrame> stackTrace) {
         if (stackTrace.isEmpty()) {
             return;
         }
@@ -739,41 +740,16 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
-    private void serializeStackTraceElement(String classDotMethod, StringBuilder replaceBuilder) {
+    private void serializeStackTraceElement(StackFrame frame, StringBuilder replaceBuilder) {
         jw.writeByte(OBJECT_START);
 
         replaceBuilder.setLength(0);
-        appendFileName(classDotMethod, replaceBuilder);
+        frame.appendFileName(replaceBuilder);
         writeField("filename", replaceBuilder);
-
-        replaceBuilder.setLength(0);
-        appendMethodName(classDotMethod, replaceBuilder);
-        writeField("function", replaceBuilder);
-
-        writeField("library_frame", isLibraryFrame(classDotMethod));
+        writeField("function", frame.getMethodName());
+        writeField("library_frame", isLibraryFrame(frame.getClassName()));
         writeLastField("lineno", -1);
         jw.writeByte(OBJECT_END);
-    }
-
-    static void appendMethodName(String classDotMethod, StringBuilder replaceBuilder) {
-        int methodNameStart = classDotMethod.lastIndexOf('.') + 1;
-        if (methodNameStart > 0 && methodNameStart < classDotMethod.length()) {
-            replaceBuilder.append(classDotMethod, methodNameStart, classDotMethod.length());
-        }
-    }
-
-    static void appendFileName(String classDotMethod, StringBuilder replaceBuilder) {
-        int classNameEnd = classDotMethod.indexOf('$');
-        if (classNameEnd < 0) {
-            classNameEnd = classDotMethod.lastIndexOf('.');
-        }
-        int classNameStart = classDotMethod.lastIndexOf('.', classNameEnd - 1);
-        if (classNameStart < classNameEnd && classNameEnd <= classDotMethod.length()) {
-            replaceBuilder.append(classDotMethod, classNameStart + 1, classNameEnd);
-            replaceBuilder.append(".java");
-        } else {
-            replaceBuilder.append("<Unknown>");
-        }
     }
 
     private void serializeSpanContext(SpanContext context, TraceContext traceContext) {

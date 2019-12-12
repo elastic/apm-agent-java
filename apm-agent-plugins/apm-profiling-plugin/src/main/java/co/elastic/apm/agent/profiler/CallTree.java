@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 
 import javax.annotation.Nullable;
@@ -41,7 +42,7 @@ public class CallTree {
     private CallTree parent;
     protected int count;
     private List<CallTree> children = new ArrayList<>();
-    private String frame;
+    private StackFrame frame;
     protected long start;
     private long lastSeen;
     private boolean ended;
@@ -49,7 +50,7 @@ public class CallTree {
     private TraceContext traceContext;
     private boolean isSpan;
 
-    public CallTree(@Nullable CallTree parent, String frame, @Nullable TraceContext traceContext, long nanoTime) {
+    public CallTree(@Nullable CallTree parent, StackFrame frame, @Nullable TraceContext traceContext, long nanoTime) {
         this.parent = parent;
         this.frame = frame;
         this.start = nanoTime;
@@ -60,7 +61,7 @@ public class CallTree {
         return new CallTree.Root(traceContext, nanoTime);
     }
 
-    protected void addFrame(ListIterator<String> iterator, @Nullable TraceContext traceContext, long nanoTime) {
+    protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
         count++;
         lastSeen = nanoTime;
 
@@ -69,7 +70,7 @@ public class CallTree {
         // it's assumed to have ended one tick ago
         boolean endChild = true;
         if (iterator.hasPrevious()) {
-            final String frame = iterator.previous();
+            final StackFrame frame = iterator.previous();
             if (lastChild != null) {
                 if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
                     lastChild.addFrame(iterator, traceContext, nanoTime);
@@ -88,7 +89,7 @@ public class CallTree {
         }
     }
 
-    void addChild(String frame, ListIterator<String> iterator, @Nullable TraceContext traceContext, long nanoTime) {
+    void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
         CallTree callTree = new CallTree(this, frame, traceContext, nanoTime);
         children.add(callTree);
         callTree.addFrame(iterator, null, nanoTime);
@@ -102,7 +103,7 @@ public class CallTree {
         return count;
     }
 
-    public String getFrame() {
+    public StackFrame getFrame() {
         return frame;
     }
 
@@ -157,7 +158,9 @@ public class CallTree {
         for (int i = 0; i < level; i++) {
             out.append("  ");
         }
-        out.append(frame)
+        out.append(frame.getClassName())
+            .append('.')
+            .append(frame.getMethodName())
             .append(' ').append(Integer.toString(count))
             .append('\n');
         for (CallTree node : children) {
@@ -185,18 +188,21 @@ public class CallTree {
     protected Span asSpan(Root root, TraceContext parentContext) {
         Span span = parentContext.createSpan(root.getTimestamp(this))
             .withType("app")
-            .withSubtype("inferred")
-            .appendToName(frame);
+            .withSubtype("inferred");
+
+        frame.appendSimpleClassName(span.getNameForSerialization());
+        span.appendToName("#");
+        span.appendToName(frame.getMethodName());
 
         // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
         if (root.traceContext != parentContext) {
             // we're never spanifying the root
             assert this.parent != null;
-            List<String> stackTrace = new ArrayList<>();
+            List<StackFrame> stackTrace = new ArrayList<>();
             this.parent.fillStackTrace(stackTrace);
             span.setStackTrace(stackTrace);
         } else {
-            span.setStackTrace(Collections.<String>emptyList());
+            span.setStackTrace(Collections.<StackFrame>emptyList());
         }
         return span;
     }
@@ -204,7 +210,7 @@ public class CallTree {
     /**
      * Fill in the stack trace up to the parent span
      */
-    private void fillStackTrace(List<String> stackTrace) {
+    private void fillStackTrace(List<StackFrame> stackTrace) {
         if (parent != null && !this.isSpan) {
             stackTrace.add(frame);
             parent.fillStackTrace(stackTrace);
@@ -228,12 +234,13 @@ public class CallTree {
     }
 
     public static class Root extends CallTree {
+        private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
         private long timestampUs;
         protected TraceContext traceContext;
         private TraceContext activeSpan;
 
         public Root(TraceContext traceContext, long nanoTime) {
-            super(null, "root", traceContext, nanoTime);
+            super(null, ROOT_FRAME, traceContext, nanoTime);
             this.traceContext = traceContext;
             activeSpan = traceContext;
         }
@@ -242,7 +249,7 @@ public class CallTree {
             this.activeSpan = context;
         }
 
-        public void addStackTrace(List<String> stackTrace, long nanoTime) {
+        public void addStackTrace(List<StackFrame> stackTrace, long nanoTime) {
             if (count == 0) {
                 timestampUs = this.traceContext.getClock().getEpochMicros();
             }

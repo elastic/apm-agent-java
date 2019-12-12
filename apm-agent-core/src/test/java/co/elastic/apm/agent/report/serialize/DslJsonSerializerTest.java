@@ -42,6 +42,7 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import com.dslplatform.json.JsonWriter;
@@ -522,38 +523,9 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testAppendFileName() {
-        assertThat(getFileName("Baz.qux")).isEqualTo("Baz.java");
-        assertThat(getFileName("foo.bar.Baz.qux")).isEqualTo("Baz.java");
-        assertThat(getFileName("foo.bar.Baz$Qux.quux")).isEqualTo("Baz.java");
-        assertThat(getFileName("baz")).isEqualTo("<Unknown>");
-    }
-
-    private String getFileName(String classDotMethod) {
-        StringBuilder replaceBuilder = new StringBuilder();
-        DslJsonSerializer.appendFileName(classDotMethod, replaceBuilder);
-        return replaceBuilder.toString();
-    }
-
-    @Test
-    void testAppendMethodName() {
-        assertThat(getMethodName("Baz.qux")).isEqualTo("qux");
-        assertThat(getMethodName("foo.bar.Baz.qux")).isEqualTo("qux");
-        assertThat(getMethodName("foo.bar.Baz$Qux.quux")).isEqualTo("quux");
-        assertThat(getMethodName("baz")).isEqualTo("");
-    }
-
-    private String getMethodName(String classDotMethod) {
-        StringBuilder replaceBuilder = new StringBuilder();
-        DslJsonSerializer.appendMethodName(classDotMethod, replaceBuilder);
-        return replaceBuilder.toString();
-    }
-
-
-    @Test
     void testSpanStackFrameSerialization() {
         Span span = new Span(MockTracer.create());
-        span.setStackTrace(Arrays.asList("foo.Bar.baz", "foo.Bar$Baz.qux"));
+        span.setStackTrace(Arrays.asList(StackFrame.of("foo.Bar", "baz"), StackFrame.of("foo.Bar$Baz", "qux")));
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode jsonStackTrace = spanJson.get("stacktrace");

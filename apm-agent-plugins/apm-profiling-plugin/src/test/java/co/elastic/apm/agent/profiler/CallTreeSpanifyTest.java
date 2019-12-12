@@ -28,6 +28,7 @@ import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,28 +68,28 @@ class CallTreeSpanifyTest {
         assertThat(reporter.getSpans()).hasSize(4);
         assertThat(reporter.getSpans().stream()
             .map(Span::getNameAsString)
-        ).containsExactly("d", "b", "a", "e");
+        ).containsExactly("CallTreeTest#d", "CallTreeTest#b", "CallTreeTest#a", "CallTreeTest#e");
 
         Span d = reporter.getSpans().get(0);
-        assertThat(d.getNameAsString()).isEqualTo("d");
+        assertThat(d.getNameAsString()).isEqualTo("CallTreeTest#d");
         assertThat(d.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(d.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
-        assertThat(d.getStackFrames()).containsExactly("c");
+        assertThat(d.getStackFrames().stream().map(StackFrame::getMethodName)).containsExactly("c");
 
         Span b = reporter.getSpans().get(1);
-        assertThat(b.getNameAsString()).isEqualTo("b");
+        assertThat(b.getNameAsString()).isEqualTo("CallTreeTest#b");
         assertThat(b.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(b.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(b.getStackFrames()).isEmpty();
 
         Span a = reporter.getSpans().get(2);
-        assertThat(a.getNameAsString()).isEqualTo("a");
+        assertThat(a.getNameAsString()).isEqualTo("CallTreeTest#a");
         assertThat(a.getTimestamp()).isEqualTo(rootTimestamp);
         assertThat(a.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(20));
         assertThat(a.getStackFrames()).isEmpty();
 
         Span e = reporter.getSpans().get(3);
-        assertThat(e.getNameAsString()).isEqualTo("e");
+        assertThat(e.getNameAsString()).isEqualTo("CallTreeTest#e");
         assertThat(e.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(30));
         assertThat(e.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
         assertThat(e.getStackFrames()).isEmpty();
@@ -98,16 +99,16 @@ class CallTreeSpanifyTest {
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
         CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 0);
-        root.addStackTrace(List.of("a"), 0);
+        root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
         TraceContext.fromParent().asChildOf(spanContext, rootContext);
 
         root.setActiveSpan(spanContext);
-        root.addStackTrace(List.of("b", "a"), TimeUnit.MILLISECONDS.toNanos(10));
+        root.addStackTrace(List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
         root.setActiveSpan(rootContext);
 
-        root.addStackTrace(List.of("a"), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);
@@ -118,14 +119,14 @@ class CallTreeSpanifyTest {
 
         CallTree a = root.getLastChild();
         assertThat(a).isNotNull();
-        assertThat(a.getFrame()).isEqualTo("a");
+        assertThat(a.getFrame().getMethodName()).isEqualTo("a");
         assertThat(a.getCount()).isEqualTo(3);
         assertThat(a.getDurationUs()).isEqualTo(20_000);
         assertThat(a.getChildren()).hasSize(1);
 
         CallTree b = a.getLastChild();
         assertThat(b).isNotNull();
-        assertThat(b.getFrame()).isEqualTo("b");
+        assertThat(b.getFrame().getMethodName()).isEqualTo("b");
         assertThat(b.getCount()).isEqualTo(1);
         assertThat(b.getDurationUs()).isEqualTo(0);
         assertThat(b.getChildren()).isEmpty();

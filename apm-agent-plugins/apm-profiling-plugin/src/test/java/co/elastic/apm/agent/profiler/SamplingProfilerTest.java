@@ -78,14 +78,17 @@ class SamplingProfilerTest {
         await()
             .pollDelay(10, TimeUnit.MILLISECONDS)
             .timeout(500, TimeUnit.MILLISECONDS)
-            .until(() -> reporter.getSpans().size() == 2);
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSizeGreaterThanOrEqualTo(2));
         Optional<Span> explicitSpan = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("span")).findAny();
         assertThat(explicitSpan).isPresent();
 
-        Optional<Span> inferredSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals(getClass().getName() + ".b")).findAny();
+        Optional<Span> inferredSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#b")).findAny();
         assertThat(inferredSpanB).isPresent();
 
-        assertThat(inferredSpanB.get().getTraceContext().getParentId()).isEqualTo(explicitSpan.get().getTraceContext().getId());
+        assertThat(reporter.getSpans().stream()
+            .filter(s -> "inferred".equals(s.getSubtype()))
+            .filter(s -> s.getTraceContext().isChildOf(explicitSpan.get())))
+            .isNotEmpty();
     }
 
     private void a() throws Exception {

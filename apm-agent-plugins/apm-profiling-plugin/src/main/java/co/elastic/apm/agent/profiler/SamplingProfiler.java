@@ -27,6 +27,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -59,6 +60,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final MessagePassingQueue<ActivationEvent> activationEvents = new MpscUnboundedArrayQueue<ActivationEvent>(256);
     private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     private volatile boolean profilingSessionOngoing = false;
+    private final StackFrameCache stackFrameCache = new StackFrameCache();
 
     public SamplingProfiler(ElasticApmTracer tracer) {
         this(tracer.getConfig(ProfilingConfiguration.class),
@@ -138,7 +140,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
         long nanoTime = System.nanoTime();
 
-        List<String> stackTraces = new ArrayList<>(256);
+        List<StackFrame> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
             long threadId = profiledThreadIds[i];
             ThreadInfo threadInfo = threadInfos[i];
@@ -146,7 +148,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 CallTree.Root root = profiledThreads.get(threadId);
                 for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
                     if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
-                        stackTraces.add(stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName());
+                        stackTraces.add(stackFrameCache.getStackFrame(stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
                     }
                 }
                 root.addStackTrace(stackTraces, nanoTime);

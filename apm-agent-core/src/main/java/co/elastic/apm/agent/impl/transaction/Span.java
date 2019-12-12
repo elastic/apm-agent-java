@@ -69,7 +69,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Nullable
     private Transaction transaction;
     @Nullable
-    private List<String> stackFrames;
+    private List<StackFrame> stackFrames;
 
     public Span(ElasticApmTracer tracer) {
         super(tracer);
@@ -265,12 +265,12 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         tracer.recycle(this);
     }
 
-    public void setStackTrace(List<String> stackTrace) {
+    public void setStackTrace(List<StackFrame> stackTrace) {
         this.stackFrames = stackTrace;
     }
 
     @Nullable
-    public List<String> getStackFrames() {
+    public List<StackFrame> getStackFrames() {
         return stackFrames;
     }
 }
