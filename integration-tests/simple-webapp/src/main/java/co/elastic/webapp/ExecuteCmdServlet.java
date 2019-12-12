@@ -37,20 +37,40 @@ import java.util.Arrays;
 
 public class ExecuteCmdServlet extends HttpServlet {
 
+    private enum Variant {
+        WAIT_FOR,
+        DESTROY
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         String[] cmd = new String[]{getJavaBinaryPath(), "-version"};
 
+        String variant = req.getParameter("variant");
+        Variant v = variant != null ? Variant.valueOf(variant) : Variant.WAIT_FOR;
+
         int returnValue;
+
         try {
             Process process = Runtime.getRuntime().exec(cmd);
-            returnValue = process.waitFor();
+            switch (v) {
+                case DESTROY:
+                    process.destroy();
+                    returnValue = -1;
+                    break;
+                case WAIT_FOR:
+                    returnValue = process.waitFor();
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
 
         try {
             PrintWriter writer = resp.getWriter();
+            writeMsg(writer, "using variant = %s", v);
             writeMsg(writer, "command = %s", Arrays.toString(cmd));
             writeMsg(writer, "return code = %d", returnValue);
         } catch (Exception e) {
