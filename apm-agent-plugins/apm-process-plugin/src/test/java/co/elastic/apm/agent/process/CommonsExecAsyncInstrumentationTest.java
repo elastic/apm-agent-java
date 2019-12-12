@@ -137,5 +137,7 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         Transaction transaction = tracer.currentTransaction();
         assertThat(transaction).isNotNull();
         transaction.deactivate().end();
+
+        reporter.assertRecycledAfterDecrementingReferences();
     }
 }
