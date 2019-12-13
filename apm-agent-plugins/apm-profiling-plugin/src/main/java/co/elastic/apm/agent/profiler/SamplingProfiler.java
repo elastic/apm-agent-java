@@ -146,7 +146,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             ThreadInfo threadInfo = threadInfos[i];
             if (threadInfo != null) {
                 CallTree.Root root = profiledThreads.get(threadId);
-                for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
+                for (StackTraceElement stackTraceElement : ThreadInfoStacktraceAccessor.getStackTrace(threadInfo)) {
                     if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
                         stackTraces.add(stackFrameCache.getStackFrame(stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
                     }
