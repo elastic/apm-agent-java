@@ -53,6 +53,7 @@ class CallTreeSpanifyTest {
     @AfterEach
     void tearDown() {
         reporter.assertRecycledAfterDecrementingReferences();
+        tracer.stop();
     }
 
     @Test
@@ -72,25 +73,21 @@ class CallTreeSpanifyTest {
 
         Span d = reporter.getSpans().get(0);
         assertThat(d.getNameAsString()).isEqualTo("CallTreeTest#d");
-        assertThat(d.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(d.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
         assertThat(d.getStackFrames().stream().map(StackFrame::getMethodName)).containsExactly("c");
 
         Span b = reporter.getSpans().get(1);
         assertThat(b.getNameAsString()).isEqualTo("CallTreeTest#b");
-        assertThat(b.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(b.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(10));
         assertThat(b.getStackFrames()).isEmpty();
 
         Span a = reporter.getSpans().get(2);
         assertThat(a.getNameAsString()).isEqualTo("CallTreeTest#a");
-        assertThat(a.getTimestamp()).isEqualTo(rootTimestamp);
         assertThat(a.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(20));
         assertThat(a.getStackFrames()).isEmpty();
 
         Span e = reporter.getSpans().get(3);
         assertThat(e.getNameAsString()).isEqualTo("CallTreeTest#e");
-        assertThat(e.getTimestamp()).isEqualTo(rootTimestamp + TimeUnit.MILLISECONDS.toMicros(30));
         assertThat(e.getDuration()).isEqualTo(TimeUnit.MILLISECONDS.toMicros(0));
         assertThat(e.getStackFrames()).isEmpty();
     }

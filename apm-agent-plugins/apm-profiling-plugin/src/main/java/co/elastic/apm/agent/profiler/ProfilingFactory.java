@@ -46,4 +46,7 @@ public class ProfilingFactory implements LifecycleListener {
         profiler.stop();
     }
 
+    public SamplingProfiler getProfiler() {
+        return profiler;
+    }
 }

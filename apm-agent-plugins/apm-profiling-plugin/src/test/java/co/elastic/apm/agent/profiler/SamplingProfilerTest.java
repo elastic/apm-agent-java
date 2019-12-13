@@ -26,6 +26,7 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
+import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -34,6 +35,7 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,9 +53,11 @@ class SamplingProfilerTest {
     @BeforeEach
     void setUp() {
         reporter = new MockReporter();
-        tracer = MockTracer.createRealTracer(reporter);
-        when(tracer.getConfigurationRegistry().getConfig(ProfilingConfiguration.class).getIncludedClasses())
-            .thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
+        ConfigurationRegistry config = SpyConfiguration.createSpyConfig();
+        ProfilingConfiguration profilingConfig = config.getConfig(ProfilingConfiguration.class);
+        when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
+        when(profilingConfig.isProfilingEnabled()).thenReturn(true);
+        tracer = MockTracer.createRealTracer(reporter, config);
     }
 
     @AfterEach

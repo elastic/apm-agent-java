@@ -41,6 +41,12 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     private static final String PROFILING_CATEGORY = "Profiling";
 
+    private final ConfigurationOption<Boolean> profilingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_enabled")
+        .configurationCategory(PROFILING_CATEGORY)
+        .tags("experimental")
+        .buildWithDefault(false);
+
     private final ConfigurationOption<TimeDuration> sampleRate = TimeDurationValueConverter.durationOption("ms")
         .key("profiling_sample_rate")
         .configurationCategory(PROFILING_CATEGORY)
@@ -90,6 +96,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .addValidator(RangeValidator.min(TimeDuration.of("1s")))
         .buildWithDefault(TimeDuration.of("8s"));
+
+    public boolean isProfilingEnabled() {
+        return profilingEnabled.get();
+    }
 
     public TimeDuration getSampleRate() {
         return sampleRate.get();

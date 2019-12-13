@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 
 public class CallTree {
 
@@ -64,6 +65,17 @@ public class CallTree {
     protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
         count++;
         lastSeen = nanoTime;
+        //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
+        //   bbb dd   <- traceContext set
+        //   ------   <- all new CallTree during this period should have the traceContext set
+        // a aaaaaa a
+        //  |      |
+        // active  deactive
+
+        // this branch is already aware of the activation
+        if (Objects.equals(this.traceContext, traceContext)) {
+            traceContext = null;
+        }
 
         CallTree lastChild = getLastChild();
         // if the frame corresponding to the last child is not in the stack trace
@@ -186,7 +198,7 @@ public class CallTree {
     }
 
     protected Span asSpan(Root root, TraceContext parentContext) {
-        Span span = parentContext.createSpan(root.getTimestamp(this))
+        Span span = parentContext.createSpan(root.getStartTimestampUs(this))
             .withType("app")
             .withSubtype("inferred");
 
@@ -270,7 +282,7 @@ public class CallTree {
             return timestampUs;
         }
 
-        public long getTimestamp(CallTree callTree) {
+        public long getStartTimestampUs(CallTree callTree) {
             long offsetUs = (callTree.start - this.start) / 1000;
             return offsetUs + timestampUs;
         }

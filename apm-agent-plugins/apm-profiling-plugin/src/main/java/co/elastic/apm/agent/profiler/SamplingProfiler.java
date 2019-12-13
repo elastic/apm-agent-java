@@ -86,6 +86,19 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
+    CallTree.Root getRoot() {
+        return profiledThreads.get(Thread.currentThread().getId());
+    }
+
+    void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
+        this.profilingSessionOngoing = profilingSessionOngoing;
+    }
+
+    void clear() {
+        profiledThreads.clear();
+        activationEvents.clear();
+    }
+
     @Override
     public void run() {
         TimeDuration sampleRate = config.getSampleRate();
@@ -161,7 +174,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return WildcardMatcher.isAnyMatch(includedClasses, stackTraceElement.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackTraceElement.getClassName());
     }
 
-    private void processActivationEventsUpTo(long timestamp) {
+    public void processActivationEventsUpTo(long timestamp) {
         MessagePassingQueue<ActivationEvent> activationEvents = this.activationEvents;
 
         for (ActivationEvent event = activationEvents.relaxedPeek(); event != null && event.happenedBefore(timestamp); event = activationEvents.relaxedPeek()) {
@@ -181,7 +194,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        scheduler.submit(this);
+        if (config.isProfilingEnabled()) {
+            scheduler.submit(this);
+        }
     }
 
     @Override
