@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,37 +24,24 @@
  */
 package co.elastic.apm.agent.benchmark;
 
-import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.benchmark.sql.BlackholeConnection;
-import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.report.Reporter;
-import io.undertow.Undertow;
-import io.undertow.server.handlers.BlockingHandler;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
-import org.stagemonitor.configuration.ConfigurationOptionProvider;
-import org.stagemonitor.configuration.ConfigurationRegistry;
-import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.ServiceLoader;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -94,69 +81,21 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
-public abstract class ElasticApmContinuousBenchmark extends AbstractBenchmark {
+public abstract class ElasticApmContinuousBenchmark extends AbstractMockApmServerBenchmark {
 
-    private final boolean apmEnabled;
-    private final byte[] buffer = new byte[32 * 1024];
     protected HttpServlet httpServlet;
-    private Undertow server;
-    private ElasticApmTracer tracer;
-    private long receivedPayloads = 0;
-    private long receivedBytes = 0;
 
     public ElasticApmContinuousBenchmark(boolean apmEnabled) {
-        this.apmEnabled = apmEnabled;
+        super(apmEnabled);
     }
 
-    @Setup
-    public void setUp(Blackhole blackhole) {
-        server = Undertow.builder()
-            .addHttpListener(0, "127.0.0.1")
-            .setHandler(new BlockingHandler(exchange -> {
-                if (!exchange.getRequestPath().equals("/healthcheck")) {
-                    receivedPayloads++;
-                    exchange.startBlocking();
-                    try (InputStream is = exchange.getInputStream()) {
-                        for (int n = 0; -1 != n; n = is.read(buffer)) {
-                            receivedBytes += n;
-                        }
-                    }
-                    System.getProperties().put("server.received.bytes", receivedBytes);
-                    System.getProperties().put("server.received.payloads", receivedPayloads);
-                    exchange.setStatusCode(200).endExchange();
-                }
-            })).build();
-
-        server.start();
-        int port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
-        tracer = new ElasticApmTracerBuilder()
-            .configurationRegistry(ConfigurationRegistry.builder()
-                .addConfigSource(new SimpleSource()
-                    .add(CoreConfiguration.SERVICE_NAME, "benchmark")
-                    .add(CoreConfiguration.INSTRUMENT, Boolean.toString(apmEnabled))
-                    .add(CoreConfiguration.ACTIVE, Boolean.toString(apmEnabled))
-                    .add("api_request_size", "10mb")
-                    .add("capture_headers", "false")
-                    .add("server_urls", "http://localhost:" + port))
-                .optionProviders(ServiceLoader.load(ConfigurationOptionProvider.class))
-                .build())
-            .build();
-        ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
+    @Override
+    public void setUp(Blackhole blackhole) throws IOException {
+        super.setUp(blackhole);
         final BlackholeConnection blackholeConnection = BlackholeConnection.INSTANCE;
         blackholeConnection.init(blackhole);
-        httpServlet = new BenchmarkingServlet(blackholeConnection, tracer, blackhole);
+        httpServlet = new ElasticApmContinuousBenchmark.BenchmarkingServlet(blackholeConnection, tracer, blackhole);
         System.getProperties().put(Reporter.class.getName(), tracer.getReporter());
-    }
-
-    @TearDown
-    public void tearDown() throws ExecutionException, InterruptedException {
-        Thread.sleep(1000);
-        tracer.getReporter().flush().get();
-        server.stop();
-        System.out.println("Reported: " + tracer.getReporter().getReported());
-        System.out.println("Dropped: " + tracer.getReporter().getDropped());
-        System.out.println("receivedPayloads = " + receivedPayloads);
-        System.out.println("receivedBytes = " + receivedBytes);
     }
 
     @State(Scope.Thread)

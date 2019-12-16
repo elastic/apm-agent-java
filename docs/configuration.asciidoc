@@ -411,7 +411,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -1218,7 +1218,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 [[config-profiling-inferred-spans]]
 ==== `profiling_inferred_spans` (experimental)
 
-Set to `true` to create spans for method executions based on a sampling aka statistical profiler.
+Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.
 
 
 [options="header"]
@@ -1266,7 +1266,7 @@ The default unit for this option is `ms`
 [[config-profiling-included-classes]]
 ==== `profiling_included_classes`
 
-If set, will only create inferred spans for methods which match this list.
+If set, the agent will only create inferred spans for methods which match this list.
 Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
 Example: `org.example.myapp.*`
 
@@ -1883,7 +1883,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -2389,7 +2389,7 @@ The default unit for this option is `ms`
 # Profiling                                #
 ############################################
 
-# Set to `true` to create spans for method executions based on a sampling aka statistical profiler.
+# Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
 # Type: Boolean
@@ -2410,7 +2410,7 @@ The default unit for this option is `ms`
 #
 # profiling_sampling_duration=20ms
 
-# If set, will only create inferred spans for methods which match this list.
+# If set, the agent will only create inferred spans for methods which match this list.
 # Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
 # Example: `org.example.myapp.*`
 # 
