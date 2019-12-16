@@ -29,21 +29,15 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
-/**
- * Instruments:
- * <ul>
- *     <li>{@code ProcessImpl#waitFor()}</li>
- *     <li>{@code ProcessImpl#waitFor(long, java.util.concurrent.TimeUnit)}</li>
- *     <li>{@code UNIXProcess#waitFor()}</li>
- *     <li>{@code UNIXProcess#waitFor(long, java.util.concurrent.TimeUnit)}</li>
- * </ul>
- */
-public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
+public abstract class ProcessExitInstrumentation extends BaseProcessInstrumentation {
+
+    // ProcessHandle added in java9, not supported yet, see issue #966
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
+    public final ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // on JDK 7-8
         // Windows : ProcessImpl extends Process
         // Unix/Linux : UNIXProcess extends Process, ProcessImpl does not
@@ -53,29 +47,78 @@ public class ProcessExitInstrumentation extends BaseProcessInstrumentation {
             .or(named("java.lang.UNIXProcess"));
     }
 
-    // TODO : ProcessHandle added in java9, not supported yet
+    /**
+     * Instruments
+     * <ul>
+     *     <li>{@code ProcessImpl#waitFor()}</li>
+     *     <li>{@code ProcessImpl#waitFor(long, java.util.concurrent.TimeUnit)}</li>
+     *     <li>{@code UNIXProcess#waitFor()}</li>
+     *     <li>{@code UNIXProcess#waitFor(long, java.util.concurrent.TimeUnit)}</li>
+     * </ul>
+     */
+    public static class WaitFor extends ProcessExitInstrumentation {
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        // will match both variants : with and without timeout
-        return named("waitFor");
-    }
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            // will match both variants : with and without timeout
+            return named("waitFor");
+        }
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return ProcessImplWaitForAdvice.class;
-    }
+        @Override
+        public Class<?> getAdviceClass() {
+            return WaitForAdvice.class;
+        }
 
-    public static class ProcessImplWaitForAdvice {
+        public static class WaitForAdvice {
 
-        @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
-        private static void onExit(@Advice.This Process process) {
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+            private static void onExit(@Advice.This Process process) {
 
-            if (tracer == null || tracer.getActive() == null) {
-                return;
+                if (tracer == null || tracer.getActive() == null) {
+                    return;
+                }
+
+                // waitFor should poll process termination if interrupted
+                ProcessHelper.endProcess(process, true);
             }
+        }
+    }
 
-            ProcessHelper.endProcess(process);
+    /**
+     * Instruments
+     * <ul>
+     *     <li>{@code ProcessImpl#destroy}</li>
+     *     <li>{@code ProcessImpl#destroyForcibly}</li>
+     *     <li>{@code UNIXProcess#destroy}</li>
+     *     <li>{@code UNIXProcess#destroyForcibly}</li>
+     * </ul>
+     */
+    public static class Destroy extends ProcessExitInstrumentation {
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return isPublic()
+                .and(named("destroy")
+                    .or(named("destroyForcibly")));
+        }
+
+        @Override
+        public Class<?> getAdviceClass() {
+            return DestroyAdvice.class;
+        }
+
+        public static class DestroyAdvice {
+
+            @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
+            private static void onExit(@Advice.This Process process) {
+
+                if (tracer == null || tracer.getActive() == null) {
+                    return;
+                }
+
+                // because destroy will not terminate process immediately, we need to skip checking process termination
+                ProcessHelper.endProcess(process, false);
+            }
         }
     }
 

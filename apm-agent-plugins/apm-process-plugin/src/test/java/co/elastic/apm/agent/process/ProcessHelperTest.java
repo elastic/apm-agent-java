@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class ProcessHelperTest extends AbstractInstrumentationTest {
@@ -76,7 +77,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
 
         helper.doStartProcess(transaction, process, programName);
 
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
 
         assertThat(reporter.getSpans()).hasSize(1);
         Span span = reporter.getSpans().get(0);
@@ -107,10 +108,10 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap).isNotEmpty();
 
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
 
         // this second call should be ignored, thus exception not reported
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
 
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getErrors())
@@ -123,10 +124,10 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         Process process = mock(Process.class);
 
         helper.doStartProcess(transaction, process, "hello");
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
 
         helper.doStartProcess(transaction, process, "hello");
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
 
         assertThat(reporter.getSpans()).hasSize(2);
     }
@@ -134,7 +135,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     @Test
     void endUntrackedProcess() {
         Process process = mock(Process.class);
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
     }
 
     @Test
@@ -144,7 +145,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         helper.doStartProcess(transaction, process, "hello");
         assertThat(storageMap).isNotEmpty();
 
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
         assertThat(storageMap)
             .describedAs("should remove process in map at end")
             .isEmpty();
@@ -153,18 +154,34 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
     @Test
     void waitForWithTimeoutDoesNotEndProcessSpan() {
         Process process = mock(Process.class);
-        when(process.exitValue()).thenThrow(IllegalThreadStateException.class);
+        when(process.exitValue())
+            // 1st call process not finished
+            .thenThrow(IllegalThreadStateException.class)
+            // 2cnd call process finished successfully
+            .thenReturn(0);
 
         helper.doStartProcess(transaction, process, "hello");
 
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
         assertThat(storageMap)
             .describedAs("waitFor exit without exit status should not terminate span")
             .isNotEmpty();
 
-        when(process.exitValue()).thenReturn(0);
-        helper.doEndProcess(process);
+        helper.doEndProcess(process, true);
         assertThat(storageMap).isEmpty();
+    }
+
+    @Test
+    void destroyWithoutProcessTerminatedShouldEndSpan() {
+        Process process = mock(Process.class);
+        verifyNoMoreInteractions(process); // we should not even use any method of process
+
+        helper.doStartProcess(transaction, process, "hello");
+
+        helper.doEndProcess(process, false);
+        assertThat(storageMap)
+            .describedAs("process span should be marked as terminated")
+            .isEmpty();
     }
 
 }

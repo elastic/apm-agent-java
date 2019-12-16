@@ -51,18 +51,25 @@ public class ProcessHelper {
     }
 
     @VisibleForAdvice
-    public static void endProcess(@Nonnull Process process) {
-        INSTANCE.doEndProcess(process);
+    public static void endProcess(@Nonnull Process process, boolean checkTerminatedProcess) {
+        INSTANCE.doEndProcess(process, checkTerminatedProcess);
     }
 
-    void doStartProcess(@Nonnull TraceContextHolder<?> transaction, @Nonnull Process process, @Nonnull String processName) {
+    /**
+     * Starts process span
+     *
+     * @param parentContext parent context
+     * @param process       started process
+     * @param processName   process name
+     */
+    void doStartProcess(@Nonnull TraceContextHolder<?> parentContext, @Nonnull Process process, @Nonnull String processName) {
         if (inFlightSpans.containsKey(process)) {
             return;
         }
 
         String binaryName = getBinaryName(processName);
 
-        Span span = transaction.createSpan()
+        Span span = parentContext.createSpan()
             .withType("process")
             .withSubtype(binaryName)
             .withAction("execute")
@@ -79,15 +86,27 @@ public class ProcessHelper {
         return lastSeparator < 0 ? processName : processName.substring(lastSeparator + 1);
     }
 
-    void doEndProcess(Process process) {
+    /**
+     * Ends process span
+     *
+     * @param process                process that is being terminated
+     * @param checkTerminatedProcess if {@code true}, will only terminate span if process is actually terminated, will
+     *                               unconditionally terminate process span otherwise
+     */
+    void doEndProcess(Process process, boolean checkTerminatedProcess) {
 
         // borrowed from java 8 Process#isAlive()
-        boolean terminated;
-        try {
-            process.exitValue();
-            terminated = true;
-        } catch (IllegalThreadStateException e) {
-            terminated = false;
+        // it has the same caveat as isAlive, which means that it will not detect process termination
+        // until the actual process has terminated, for example right after a call to Process#destroy().
+        // in that case, ignoring the process actual status is relevant.
+        boolean terminated = !checkTerminatedProcess;
+        if (checkTerminatedProcess) {
+            try {
+                process.exitValue();
+                terminated = true;
+            } catch (IllegalThreadStateException e) {
+                terminated = false;
+            }
         }
 
         if (terminated) {
