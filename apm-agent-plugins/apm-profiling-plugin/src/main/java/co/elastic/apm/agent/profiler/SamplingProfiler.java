@@ -103,20 +103,22 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     public void run() {
         TimeDuration sampleRate = config.getSampleRate();
         TimeDuration profilingDuration = config.getProfilingDuration();
+        TimeDuration profilingInterval = config.getProfilingInterval();
         profilingSessionOngoing = true;
 
         logger.debug("Start profiling session");
         profile(sampleRate, profilingDuration);
         logger.debug("End profiling session");
 
-        if (config.getProfilingDelay().getMillis() != 0) {
+        if (profilingInterval.getMillis() != 0) {
             profilingSessionOngoing = false;
             // TODO do we want to create inferred spans for partially profiled transactions?
             profiledThreads.clear();
         }
         // clears the interrupted status so that the thread can return to the pool
         if (!Thread.interrupted()) {
-            scheduler.schedule(this, config.getProfilingDelay().getMillis(), TimeUnit.MILLISECONDS);
+            long delay = profilingInterval.getMillis() - config.getProfilingDuration().getMillis();
+            scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -202,6 +204,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void stop() throws Exception {
+        // cancels/interrupts the profiling thread
         scheduler.shutdownNow();
     }
 
