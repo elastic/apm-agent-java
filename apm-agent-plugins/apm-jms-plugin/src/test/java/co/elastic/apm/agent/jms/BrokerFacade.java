@@ -53,7 +53,7 @@ interface BrokerFacade {
 
     TextMessage createTextMessage(String messageText) throws Exception;
 
-    void send(Destination destination, Message message) throws Exception;
+    void send(Destination destination, Message message, boolean disableTimestamp) throws Exception;
 
     CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination);
 

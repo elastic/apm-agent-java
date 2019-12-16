@@ -91,7 +91,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     private ThreadLocal<Boolean> receiveNoWaitFlow = new ThreadLocal<>();
     private ThreadLocal<Boolean> expectNoTraces = new ThreadLocal<>();
 
-    @SuppressWarnings("NullableProblems")
     private Queue noopQ;
 
     public JmsInstrumentationIT(BrokerFacade brokerFacade) throws Exception {
@@ -142,7 +141,13 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     @Test
     public void testQueueSendReceiveOnTracedThread() throws Exception {
         final Queue queue = createTestQueue();
-        doTestSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+        doTestSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 10), queue, false, false);
+    }
+
+    @Test
+    public void testQueueSendReceiveOnTracedThreadNoTimestamp() throws Exception {
+        final Queue queue = createTestQueue();
+        doTestSendReceiveOnTracedThread(() -> brokerFacade.receive(queue, 10), queue, false, true);
     }
 
     @Test
@@ -152,10 +157,11 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             return;
         }
         final Queue queue = createTestQueue();
-        doTestSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true);
+        doTestSendReceiveOnTracedThread(() -> brokerFacade.receiveNoWait(queue), queue, true, false);
     }
 
-    private void doTestSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue, boolean sleepBetweenCycles) throws Exception {
+    private void doTestSendReceiveOnTracedThread(Callable<Message> receiveMethod, Queue queue,
+                                                 boolean sleepBetweenCycles, boolean disableTimestamp) throws Exception {
         final CancellableThread thread = new CancellableThread(() -> {
             Transaction transaction = null;
             Message message = null;
@@ -167,7 +173,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
                 if (message != null) {
                     // create a span for testing context propagation
-                    brokerFacade.send(noopQ, brokerFacade.createTextMessage("testQueueSendReceiveOnTracedThread"));
+                    brokerFacade.send(noopQ, brokerFacade.createTextMessage("testQueueSendReceiveOnTracedThread"), false);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -187,7 +193,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Thread.sleep(40);
 
         try {
-            verifyQueueSendReceiveOnTracedThread(queue);
+            verifyQueueSendReceiveOnTracedThread(queue, disableTimestamp);
         } finally {
             thread.cancel();
             thread.join(1000);
@@ -269,7 +275,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 if (message != null) {
                     messageHolder.message = message;
                     // create a span for testing context propagation
-                    brokerFacade.send(noopQ, brokerFacade.createTextMessage("testQueueSendReceiveOnNonTracedThread"));
+                    brokerFacade.send(noopQ, brokerFacade.createTextMessage("testQueueSendReceiveOnNonTracedThread"), false);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -300,10 +306,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     // tests receive as a span
-    private void verifyQueueSendReceiveOnTracedThread(Queue queue) throws Exception {
+    private void verifyQueueSendReceiveOnTracedThread(Queue queue, boolean disableTimestamp) throws Exception {
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
-        brokerFacade.send(queue, outgoingMessage);
+        brokerFacade.send(queue, outgoingMessage, disableTimestamp);
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
@@ -349,6 +355,12 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         // Body and headers should not be captured for receive spans
         assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
         assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
+        // Age should be captured for receive spans, unless disabled
+        if (disableTimestamp) {
+            assertThat(receiveSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
+        } else {
+            assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThan(0);
+        }
 
         if (sendToNoopSpan != null) {
             assertThat(sendToNoopSpan.getTraceContext().getTraceId()).isEqualTo(receiveTraceId);
@@ -363,7 +375,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         throws Exception {
         String message = UUID.randomUUID().toString();
         TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
-        brokerFacade.send(queue, outgoingMessage);
+        brokerFacade.send(queue, outgoingMessage, false);
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
@@ -385,6 +397,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } else {
             assertThat(sendSpan.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
         }
+        assertThat(sendSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -404,6 +417,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
             assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThan(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
     }
@@ -455,6 +469,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         } else {
             assertThat(sendInitialMessageSpan.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
         }
+        assertThat(sendInitialMessageSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
 
         //noinspection ConstantConditions
         Id currentTraceId = tracer.currentTransaction().getTraceContext().getTraceId();
@@ -475,12 +490,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getNameAsString()).endsWith(destinationName);
             assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTraceId);
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
+            assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             if (isQueue) {
                 assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
             } else {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
             assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThan(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }
 
@@ -529,7 +546,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         CompletableFuture<Message> incomingMessageFuture = brokerFacade.registerConcreteListenerImplementation(queue);
         String message = UUID.randomUUID().toString();
         Message outgoingMessage = brokerFacade.createTextMessage(message);
-        brokerFacade.send(queue, outgoingMessage);
+        brokerFacade.send(queue, outgoingMessage, false);
         Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         Thread.sleep(500);
@@ -559,7 +576,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         CompletableFuture<Message> incomingMessageFuture = listenerRegistrationFunction.apply(queue);
         String message = UUID.randomUUID().toString();
         TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
-        brokerFacade.send(queue, outgoingMessage);
+        brokerFacade.send(queue, outgoingMessage, false);
         Message incomingMessage = incomingMessageFuture.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage);
         String queueName = queue.getQueueName();
@@ -579,7 +596,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
 
         String message = UUID.randomUUID().toString();
         TextMessage outgoingMessage = brokerFacade.createTextMessage(message);
-        brokerFacade.send(topic, outgoingMessage);
+        brokerFacade.send(topic, outgoingMessage, false);
 
         Message incomingMessage1 = incomingMessageFuture1.get(3, TimeUnit.SECONDS);
         verifyMessage(message, incomingMessage1);
