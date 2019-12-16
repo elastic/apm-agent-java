@@ -145,13 +145,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void takeThreadSnapshot() {
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
-        processActivationEventsUpTo(System.nanoTime());
+        long nanoTime = System.nanoTime();
+        processActivationEventsUpTo(nanoTime);
         long[] profiledThreadIds = getProfiledThreadIds();
+        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
         if (profiledThreadIds.length == 0) {
             return;
         }
-        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
-        long nanoTime = System.nanoTime();
+        logger.trace("Taking snapshot of threads {} timestamp {}", profiledThreadIds, nanoTime);
 
         List<StackFrame> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
@@ -233,6 +234,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
 
         public void handle(SamplingProfiler samplingProfiler) {
+            logger.trace("Handling {}activation event for {} timestamp {}", activation ? "" : "de", traceContext, timestamp);
             if (activation) {
                 handleActivationEvent(samplingProfiler);
             } else {
