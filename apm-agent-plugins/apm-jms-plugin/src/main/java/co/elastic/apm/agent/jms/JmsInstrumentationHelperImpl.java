@@ -185,6 +185,23 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     }
 
     @Override
+    public void setMessageAge(Message message, AbstractSpan span) {
+        try {
+            long messageTimestamp = message.getJMSTimestamp();
+            if (messageTimestamp > 0) {
+                long now = System.currentTimeMillis();
+                if (now > messageTimestamp) {
+                    span.getContext().getMessage().withAge(now - messageTimestamp);
+                } else {
+                    span.getContext().getMessage().withAge(0);
+                }
+            }
+        } catch (JMSException e) {
+            logger.warn("Failed to get message timestamp", e);
+        }
+    }
+
+    @Override
     public void addMessageDetails(@Nullable Message message, AbstractSpan span) {
         if (message == null) {
             return;

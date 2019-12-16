@@ -359,7 +359,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         if (disableTimestamp) {
             assertThat(receiveSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
         } else {
-            assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThan(0);
+            assertThat(receiveSpan.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
         }
 
         if (sendToNoopSpan != null) {
@@ -417,7 +417,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
             assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
-            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThan(0);
+            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
     }
@@ -497,7 +497,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
             assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
-            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThan(0);
+            assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }
 

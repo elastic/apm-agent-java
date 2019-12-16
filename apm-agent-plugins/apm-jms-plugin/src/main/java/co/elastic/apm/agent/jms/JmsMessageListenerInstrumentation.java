@@ -136,9 +136,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
                 }
                 helper.addMessageDetails(message, transaction);
-                if (timestamp > 0) {
-                    transaction.getContext().getMessage().withAge(System.currentTimeMillis() - timestamp);
-                }
+                helper.setMessageAge(message, transaction);
             }
             transaction.activate();
 

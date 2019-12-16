@@ -175,7 +175,6 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                 String messageSenderContext = null;
                 Destination destination = null;
                 String destinationName = null;
-                long messageAge = 0;
                 boolean discard = false;
                 boolean addDetails = true;
                 if (message != null) {
@@ -185,10 +184,6 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         if (helper != null) {
                             destinationName = helper.extractDestinationName(message, destination);
                             discard = helper.ignoreDestination(destinationName);
-                        }
-                        long timestamp = message.getJMSTimestamp();
-                        if (timestamp > 0) {
-                            messageAge = System.currentTimeMillis() - timestamp;
                         }
                     } catch (JMSException e) {
                         logger.error("Failed to retrieve meta info from Message", e);
@@ -221,9 +216,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             if (message != null && helper != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
                                 helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
-                                if (messageAge > 0) {
-                                    abstractSpan.getContext().getMessage().withAge(messageAge);
-                                }
+                                helper.setMessageAge(message, abstractSpan);
                             }
                             abstractSpan.captureException(throwable);
                         }
@@ -245,9 +238,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         messageHandlingTransaction.appendToName(" from ");
                         helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
                         helper.addMessageDetails(message, messageHandlingTransaction);
-                        if (messageAge > 0) {
-                            messageHandlingTransaction.getContext().getMessage().withAge(messageAge);
-                        }
+                        helper.setMessageAge(message, messageHandlingTransaction);
                     }
 
                     messageHandlingTransaction.activate();

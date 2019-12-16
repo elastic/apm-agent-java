@@ -82,5 +82,7 @@ public interface JmsInstrumentationHelper<D, M, L> {
 
     void addDestinationDetails(M message, D destination, String destinationName, AbstractSpan span);
 
+    void setMessageAge(M message, AbstractSpan span);
+
     void addMessageDetails(@Nullable M message, AbstractSpan span);
 }
