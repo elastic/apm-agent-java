@@ -95,7 +95,7 @@ class CallTreeSpanifyTest {
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext().copy(), 0);
+        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext(), 0);
         root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);

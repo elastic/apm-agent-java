@@ -71,7 +71,7 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext().copy(), 0);
+        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext(), 0);
         root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
         root.addStackTrace(List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
         root.addStackTrace(List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
