@@ -101,7 +101,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         this.sequenceBarrier = eventBuffer.newBarrier();
     }
 
-    private RingBuffer<ActivationEvent> createRingBuffer(ElasticApmTracer tracer) {
+    private RingBuffer<ActivationEvent> createRingBuffer(final ElasticApmTracer tracer) {
         return RingBuffer.<ActivationEvent>createMultiProducer(
             new EventFactory<ActivationEvent>() {
                 @Override
