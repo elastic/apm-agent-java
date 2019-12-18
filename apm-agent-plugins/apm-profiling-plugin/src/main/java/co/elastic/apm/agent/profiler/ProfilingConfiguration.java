@@ -46,6 +46,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .description("Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.")
         .tags("experimental")
+        .dynamic(true)
         .buildWithDefault(false);
 
     private final ConfigurationOption<TimeDuration> sampleRate = TimeDurationValueConverter.durationOption("ms")
@@ -87,11 +88,12 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.caseSensitiveMatcher("jdk.*")
         ));
 
-    private final ConfigurationOption<TimeDuration> profilerDelay = TimeDurationValueConverter.durationOption("s")
+    private final ConfigurationOption<TimeDuration> profilerInterval = TimeDurationValueConverter.durationOption("s")
         .key("profiling_interval")
         .description("The interval at which profiling sessions should be started.")
         .configurationCategory(PROFILING_CATEGORY)
         .addValidator(RangeValidator.min(TimeDuration.of("0ms")))
+        .dynamic(true)
         .buildWithDefault(TimeDuration.of("61s"));
 
     private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
@@ -101,11 +103,16 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "so-called inferred spans will be created.\n" +
             "They appear in the trace waterfall view like regular spans.")
         .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
         .addValidator(RangeValidator.min(TimeDuration.of("1s")))
         .buildWithDefault(TimeDuration.of("10s"));
 
     public boolean isProfilingEnabled() {
         return profilingEnabled.get();
+    }
+
+    public boolean isProfilingDisabled() {
+        return !isProfilingEnabled();
     }
 
     public TimeDuration getSampleRate() {
@@ -121,10 +128,14 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
     }
 
     public TimeDuration getProfilingInterval() {
-        return profilerDelay.get();
+        return profilerInterval.get();
     }
 
     public TimeDuration getProfilingDuration() {
         return profilingDuration.get();
+    }
+
+    public boolean isNonStopProfiling() {
+        return getProfilingDuration().getMillis() >= getProfilingInterval().getMillis();
     }
 }

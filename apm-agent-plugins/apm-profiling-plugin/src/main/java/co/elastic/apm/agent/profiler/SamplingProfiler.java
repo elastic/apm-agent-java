@@ -129,23 +129,26 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void run() {
+        if (config.isProfilingDisabled()) {
+            scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+            return;
+        }
+
         TimeDuration sampleRate = config.getSampleRate();
         TimeDuration profilingDuration = config.getProfilingDuration();
-        TimeDuration profilingInterval = config.getProfilingInterval();
-        profilingSessionOngoing = true;
+
+        setProfilingSessionOngoing(true);
 
         logger.debug("Start profiling session");
         profile(sampleRate, profilingDuration);
         logger.debug("End profiling session");
 
-        if (profilingInterval.getMillis() != 0) {
-            profilingSessionOngoing = false;
-            // TODO do we want to create inferred spans for partially profiled transactions?
-            profiledThreads.clear();
-        }
-        // clears the interrupted status so that the thread can return to the pool
-        if (!Thread.interrupted()) {
-            long delay = profilingInterval.getMillis() - config.getProfilingDuration().getMillis();
+        boolean interrupted = Thread.currentThread().isInterrupted();
+        boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled();
+        setProfilingSessionOngoing(continueProfilingSession);
+
+        if (!interrupted) {
+            long delay = config.getProfilingInterval().getMillis() - profilingDuration.getMillis();
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
     }
@@ -253,13 +256,16 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         scheduler.shutdownNow();
     }
 
+    void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
+        this.profilingSessionOngoing = profilingSessionOngoing;
+        if (!profilingSessionOngoing) {
+            profiledThreads.clear();
+        }
+    }
+
     // for testing
     CallTree.Root getRoot() {
         return profiledThreads.get(Thread.currentThread().getId());
-    }
-
-    void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
-        this.profilingSessionOngoing = profilingSessionOngoing;
     }
 
     void clear() {

@@ -1224,7 +1224,7 @@ Set to `true` to make the agent create spans for method executions based on a sa
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `false` | Boolean | false
+| `false` | Boolean | true
 |============
 
 
@@ -1329,7 +1329,7 @@ The default unit for this option is `s`
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `61s` | TimeDuration | false
+| `61s` | TimeDuration | true
 |============
 
 
@@ -1356,7 +1356,7 @@ The default unit for this option is `s`
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `10s` | TimeDuration | false
+| `10s` | TimeDuration | true
 |============
 
 
@@ -2391,7 +2391,7 @@ The default unit for this option is `ms`
 
 # Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: false
 #
@@ -2440,7 +2440,7 @@ The default unit for this option is `ms`
 
 # The interval at which profiling sessions should be started.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 61s.
 # The default unit for this option is s.
@@ -2453,7 +2453,7 @@ The default unit for this option is `ms`
 # so-called inferred spans will be created.
 # They appear in the trace waterfall view like regular spans.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: TimeDuration
 # Supports the duration suffixes ms, s and m. Example: 10s.
 # The default unit for this option is s.
