@@ -53,7 +53,15 @@ interface BrokerFacade {
 
     TextMessage createTextMessage(String messageText) throws Exception;
 
-    void send(Destination destination, Message message) throws Exception;
+    /**
+     * Send the given message to the given destination.
+     *
+     * @param destination      destination to send the message to
+     * @param message          message to be sent
+     * @param disableTimestamp indicates whether the underlying {@link javax.jms.MessageProducer} should disable message timestamp
+     * @throws Exception an internal client error
+     */
+    void send(Destination destination, Message message, boolean disableTimestamp) throws Exception;
 
     CompletableFuture<Message> registerConcreteListenerImplementation(Destination destination);
 

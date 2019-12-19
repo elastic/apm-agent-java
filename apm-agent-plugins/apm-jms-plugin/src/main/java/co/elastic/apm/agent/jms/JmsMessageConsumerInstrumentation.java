@@ -216,6 +216,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                             if (message != null && helper != null && destinationName != null) {
                                 abstractSpan.appendToName(" from ");
                                 helper.addDestinationDetails(message, destination, destinationName, abstractSpan);
+                                helper.setMessageAge(message, abstractSpan);
                             }
                             abstractSpan.captureException(throwable);
                         }
@@ -237,6 +238,7 @@ public abstract class JmsMessageConsumerInstrumentation extends BaseJmsInstrumen
                         messageHandlingTransaction.appendToName(" from ");
                         helper.addDestinationDetails(message, destination, destinationName, messageHandlingTransaction);
                         helper.addMessageDetails(message, messageHandlingTransaction);
+                        helper.setMessageAge(message, messageHandlingTransaction);
                     }
 
                     messageHandlingTransaction.activate();
