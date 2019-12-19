@@ -24,9 +24,11 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -37,12 +39,14 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
-public class CallTree {
+public class CallTree implements Recyclable {
 
+    private static final List<CallTree.Root> rootPool = new ArrayList<>();
     @Nullable
     private CallTree parent;
     protected int count;
     private List<CallTree> children = new ArrayList<>();
+    @Nullable
     private StackFrame frame;
     protected long start;
     private long lastSeen;
@@ -51,15 +55,31 @@ public class CallTree {
     private TraceContext traceContext;
     private boolean isSpan;
 
-    public CallTree(@Nullable CallTree parent, StackFrame frame, @Nullable TraceContext traceContext, long nanoTime) {
+    public CallTree() {
+    }
+
+    public void set(@Nullable CallTree parent, StackFrame frame, @Nullable TraceContext traceContext, long nanoTime) {
         this.parent = parent;
         this.frame = frame;
         this.start = nanoTime;
         this.traceContext = traceContext;
     }
 
-    public static CallTree.Root createRoot(TraceContext traceContext, long nanoTime) {
-        return new CallTree.Root(traceContext, nanoTime);
+    public static CallTree.Root createRoot(ElasticApmTracer tracer, TraceContext traceContext, long nanoTime) {
+        byte[] serializedTraceContext = new byte[TraceContext.SERIALIZED_LENGTH];
+        traceContext.serialize(serializedTraceContext);
+        return createRoot(tracer, traceContext.serialize(), traceContext.getServiceName(), nanoTime);
+    }
+
+    public static CallTree.Root createRoot(ElasticApmTracer tracer, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+        Root root;
+        if (rootPool.isEmpty()) {
+            root = new Root(tracer);
+        } else {
+            root = rootPool.remove(rootPool.size() - 1);
+        }
+        root.set(traceContext, serviceName, nanoTime);
+        return root;
     }
 
     protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
@@ -84,7 +104,7 @@ public class CallTree {
         if (iterator.hasPrevious()) {
             final StackFrame frame = iterator.previous();
             if (lastChild != null) {
-                if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
+                if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
                     lastChild.addFrame(iterator, traceContext, nanoTime);
                     endChild = false;
                 } else {
@@ -102,7 +122,8 @@ public class CallTree {
     }
 
     void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
-        CallTree callTree = new CallTree(this, frame, traceContext, nanoTime);
+        CallTree callTree = new CallTree();
+        callTree.set(this, frame, traceContext, nanoTime);
         children.add(callTree);
         callTree.addFrame(iterator, null, nanoTime);
     }
@@ -245,25 +266,51 @@ public class CallTree {
         }
     }
 
-    public static class Root extends CallTree {
+    @Override
+    public void resetState() {
+         parent = null;
+         count = 0;
+         frame = null;
+         start = 0;
+         lastSeen = 0;
+         ended = false;
+         traceContext = null;
+         isSpan = false;
+         children.clear();
+    }
+
+    public static class Root extends CallTree implements Recyclable {
         private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
         private long timestampUs;
         protected TraceContext traceContext;
+        @Nullable
         private TraceContext activeSpan;
+        private byte[] activeSpanSerialized = new byte[TraceContext.SERIALIZED_LENGTH];
 
-        public Root(TraceContext traceContext, long nanoTime) {
-            super(null, ROOT_FRAME, traceContext, nanoTime);
-            this.traceContext = traceContext;
-            activeSpan = traceContext;
+        public Root(ElasticApmTracer tracer) {
+            this.traceContext = TraceContext.with64BitId(tracer);
         }
 
-        public void setActiveSpan(TraceContext context) {
-            this.activeSpan = context;
+        public void set(byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+            super.set(null, ROOT_FRAME, null, nanoTime);
+            this.traceContext.deserialize(traceContext, serviceName);
+            setActiveSpan(traceContext);
         }
 
-        public void addStackTrace(List<StackFrame> stackTrace, long nanoTime) {
+        public void setActiveSpan(byte[] activeSpanSerialized) {
+            System.arraycopy(activeSpanSerialized, 0, this.activeSpanSerialized, 0, activeSpanSerialized.length);
+            this.activeSpan = null;
+        }
+
+        public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime) {
             if (count == 0) {
                 timestampUs = this.traceContext.getClock().getEpochMicros();
+            }
+            // only "materialize" trace context if there's actually an associated stack trace to the activation
+            // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
+            if (activeSpan == null) {
+                activeSpan = TraceContext.with64BitId(tracer);
+                activeSpan.deserialize(activeSpanSerialized, traceContext.getServiceName());
             }
             addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, nanoTime);
         }
@@ -285,6 +332,18 @@ public class CallTree {
         public long getStartTimestampUs(CallTree callTree) {
             long offsetUs = (callTree.start - this.start) / 1000;
             return offsetUs + timestampUs;
+        }
+
+        @Override
+        public void resetState() {
+            super.resetState();
+            timestampUs = 0;
+            activeSpan = null;
+        }
+
+        public void recycle() {
+            resetState();
+            rootPool.add(this);
         }
     }
 }

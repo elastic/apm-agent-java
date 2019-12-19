@@ -71,10 +71,10 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        CallTree.Root root = CallTree.createRoot(TraceContext.with64BitId(mock(ElasticApmTracer.class)).getTraceContext(), 0);
-        root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
-        root.addStackTrace(List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
-        root.addStackTrace(List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
+        CallTree.Root root = CallTree.createRoot(tracer, TraceContext.with64BitId(mock(ElasticApmTracer.class)), 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);
@@ -279,7 +279,7 @@ class CallTreeTest {
                 }
             }
             if (!trace.isEmpty()) {
-                root.addStackTrace(trace, nanoTime);
+                root.addStackTrace(tracer, trace, nanoTime);
             }
         }
         transaction.deactivate().end(nanoTime / 1000);

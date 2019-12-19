@@ -468,6 +468,12 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
+    public byte[] serialize() {
+        byte[] result = new byte[SERIALIZED_LENGTH];
+        serialize(result);
+        return result;
+    }
+
     public void serialize(byte[] buffer) {
         int offset = 0;
         offset = traceId.toBytes(buffer, offset);

@@ -95,17 +95,17 @@ class CallTreeSpanifyTest {
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(rootContext.getTraceContext(), 0);
-        root.addStackTrace(List.of(StackFrame.of("A", "a")), 0);
+        CallTree.Root root = CallTree.createRoot(tracer, rootContext.getTraceContext(), 0);
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
         TraceContext.fromParent().asChildOf(spanContext, rootContext);
 
-        root.setActiveSpan(spanContext);
-        root.addStackTrace(List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
-        root.setActiveSpan(rootContext);
+        root.setActiveSpan(spanContext.serialize());
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
+        root.setActiveSpan(rootContext.serialize());
 
-        root.addStackTrace(List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();
 
         System.out.println(root);

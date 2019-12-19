@@ -200,7 +200,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                         stackTraces.add(stackFrameCache.getStackFrame(stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
                     }
                 }
-                root.addStackTrace(stackTraces, nanoTime);
+                root.addStackTrace(tracer, stackTraces, nanoTime);
                 stackTraces.clear();
             }
         }
@@ -325,15 +325,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
-                    root.setActiveSpan(getTraceContext(samplingProfiler, traceContextBuffer));
+                    root.setActiveSpan(traceContextBuffer);
                 }
             }
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            TraceContext traceContext = getTraceContext(samplingProfiler, traceContextBuffer);
-            logger.debug("Start profiling for {}", traceContext);
-            CallTree.Root root = CallTree.createRoot(traceContext, timestamp);
+            logger.debug("Start profiling for thread {}", threadId);
+            CallTree.Root root = CallTree.createRoot(samplingProfiler.tracer, traceContextBuffer, serviceName, timestamp);
             samplingProfiler.profiledThreads.put(threadId, root);
         }
 
@@ -349,7 +348,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
-                    root.setActiveSpan(getTraceContext(samplingProfiler, previousContextBuffer));
+                    root.setActiveSpan(previousContextBuffer);
                 }
             }
         }
@@ -361,6 +360,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 callTree.end();
                 callTree.removeNodesFasterThan(0.01f, 2);
                 callTree.spanify();
+                callTree.recycle();
             }
         }
     }
