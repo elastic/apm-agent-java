@@ -58,24 +58,17 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
         asyncProcessHasTransactionContext(false);
     }
 
+    @Test
+    void customInstrumentationClassName() {
+        assertThat(MyExecutor.class.getSimpleName())
+            .describedAs("'Executor' is required in subclass name for faster instrumentation non-matching")
+            .contains("Executor");
+    }
+
     private static TraceContextHolder<?> asyncProcessHasTransactionContext(boolean expectedInTransaction) throws IOException, InterruptedException {
         AtomicReference<TraceContextHolder<?>> activeTransaction = new AtomicReference<>();
 
-        DefaultExecutor executor = new DefaultExecutor() {
-            @Override
-            protected Thread createThread(final Runnable runnable, String name) {
-                Runnable wrapped = new Runnable() {
-                    @Override
-                    public void run() {
-                        // we don't assert directly here as throwing an exception will wait forever
-                        activeTransaction.set(tracer.getActive());
-
-                        runnable.run();
-                    }
-                };
-                return super.createThread(wrapped, name);
-            }
-        };
+        DefaultExecutor executor = new MyExecutor(activeTransaction);
 
         final AtomicBoolean processProperlyCompleted = new AtomicBoolean(false);
 
@@ -140,4 +133,31 @@ public class CommonsExecAsyncInstrumentationTest extends AbstractInstrumentation
 
         reporter.assertRecycledAfterDecrementingReferences();
     }
+
+    /**
+     * Custom implementation for testing, requires to have 'Executor' in name
+     */
+    private static class MyExecutor extends DefaultExecutor {
+
+        private AtomicReference<TraceContextHolder<?>> activeTransaction;
+
+        private MyExecutor(AtomicReference<TraceContextHolder<?>> activeTransaction) {
+            this.activeTransaction = activeTransaction;
+        }
+
+        @Override
+        protected Thread createThread(final Runnable runnable, String name) {
+            Runnable wrapped = new Runnable() {
+                @Override
+                public void run() {
+                    // we don't assert directly here as throwing an exception will wait forever
+                    activeTransaction.set(tracer.getActive());
+
+                    runnable.run();
+                }
+            };
+            return super.createThread(wrapped, name);
+        }
+    }
+
 }

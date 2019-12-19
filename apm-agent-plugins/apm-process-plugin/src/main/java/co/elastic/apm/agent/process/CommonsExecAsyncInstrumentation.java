@@ -26,6 +26,7 @@ package co.elastic.apm.agent.process;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperClass;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
@@ -47,11 +49,22 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 public class CommonsExecAsyncInstrumentation extends ElasticApmInstrumentation {
 
     private static final String DEFAULT_EXECUTOR_CLASS = "org.apache.commons.exec.DefaultExecutor";
+    // only known subclass of default implementation
+    private static final String DAEMON_EXECUTOR_CLASS = "org.apache.commons.exec.DaemonExecutor";
+
+    @Override
+    public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
+        // Most implementations are likely to have 'Executor' in their name, which will work most of the time
+        // while not perfect this allows to avoid the expensive 'hasSuperClass' in most cases
+        return nameContains("Executor");
+    }
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         // instrument default implementation and direct subclasses
         return named(DEFAULT_EXECUTOR_CLASS)
+            .or(named(DAEMON_EXECUTOR_CLASS))
+            // this super class check is expensive
             .or(hasSuperClass(named(DEFAULT_EXECUTOR_CLASS)));
     }
 
