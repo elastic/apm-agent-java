@@ -42,7 +42,7 @@ public abstract class Lettuce34Instrumentation extends ElasticApmInstrumentation
     public static final WeakConcurrentMap<RedisCommand, Span> commandToSpan = new WeakConcurrentMap.WithInlinedExpunction<RedisCommand, Span>();
 
     /**
-     * We don't support Lettuce <= 3.3, as the {@code RedisCommand#getType()} method is missing
+     * We don't support Lettuce up to version 3.3, as the {@link RedisCommand#getType()} method is missing
      */
     @Override
     public ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
