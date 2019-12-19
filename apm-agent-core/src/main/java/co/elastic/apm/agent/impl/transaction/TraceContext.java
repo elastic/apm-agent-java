@@ -54,6 +54,7 @@ import java.util.concurrent.Callable;
 public class TraceContext extends TraceContextHolder {
 
     public static final String TRACE_PARENT_HEADER = "elastic-apm-traceparent";
+    public static final int SERIALIZED_LENGTH = 42;
     private static final int EXPECTED_LENGTH = 55;
     private static final int TRACE_ID_OFFSET = 3;
     private static final int PARENT_ID_OFFSET = 36;
@@ -97,6 +98,14 @@ public class TraceContext extends TraceContextHolder {
             return false;
         }
     };
+    private static final ChildContextCreatorTwoArg<byte[], String> FROM_SERIALIZED = new ChildContextCreatorTwoArg<byte[], String>() {
+        @Override
+        public boolean asChildOf(TraceContext child, byte[] serializedContext, @Nullable String serviceName) {
+            child.asChildOf(serializedContext, serviceName);
+            return true;
+        }
+    };
+
     private static final int TRACE_PARENT_LENGTH = EXPECTED_LENGTH;
     // ???????1 -> maybe recorded
     // ???????0 -> not recorded
@@ -161,6 +170,10 @@ public class TraceContext extends TraceContextHolder {
 
     public static ChildContextCreator<?> asRoot() {
         return AS_ROOT;
+    }
+
+    public static ChildContextCreatorTwoArg<byte[], String> fromSerialized() {
+        return FROM_SERIALIZED;
     }
 
     public boolean asChildOf(String traceParentHeader) {
@@ -427,8 +440,7 @@ public class TraceContext extends TraceContextHolder {
         TraceContext that = (TraceContext) o;
         return flags == that.flags &&
             traceId.equals(that.traceId) &&
-            id.equals(that.id) &&
-            parentId.equals(that.parentId);
+            id.equals(that.id);
     }
 
     @Override
@@ -456,8 +468,69 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
+    public void serialize(byte[] buffer) {
+        int offset = 0;
+        offset = traceId.toBytes(buffer, offset);
+        offset = transactionId.toBytes(buffer, offset);
+        offset = id.toBytes(buffer, offset);
+        buffer[offset++] = flags;
+        buffer[offset++] = (byte) (discard ? 1 : 0);
+        putLong(buffer, offset, clock.getOffset());
+    }
+
+    private void asChildOf(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset = traceId.fromBytes(buffer, offset);
+        offset = transactionId.fromBytes(buffer, offset);
+        offset = parentId.fromBytes(buffer, offset);
+        id.setToRandomValue();
+        flags = buffer[offset++];
+        discard = buffer[offset++] == (byte) 1;
+        clock.init(getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    public void deserialize(byte[] buffer, @Nullable String serviceName) {
+        int offset = 0;
+        offset = traceId.fromBytes(buffer, offset);
+        offset = transactionId.fromBytes(buffer, offset);
+        offset = id.fromBytes(buffer, offset);
+        flags = buffer[offset++];
+        discard = buffer[offset++] == (byte) 1;
+        clock.init(getLong(buffer, offset));
+        this.serviceName = serviceName;
+        onMutation();
+    }
+
+    private static void putLong(byte[] buffer, int offset, long l) {
+        buffer[offset++] = (byte) l;
+        buffer[offset++] = (byte) (l >> 8);
+        buffer[offset++] = (byte) (l >> 16);
+        buffer[offset++] = (byte) (l >> 24);
+        buffer[offset++] = (byte) (l >> 32);
+        buffer[offset++] = (byte) (l >> 40);
+        buffer[offset++] = (byte) (l >> 48);
+        buffer[offset] = (byte) (l >> 56);
+    }
+
+    private long getLong(byte[] buffer, int offset) {
+        return ((long) buffer[offset + 7] << 56)
+            | ((long) buffer[offset + 6] & 0xff) << 48
+            | ((long) buffer[offset + 5] & 0xff) << 40
+            | ((long) buffer[offset + 4] & 0xff) << 32
+            | ((long) buffer[offset + 3] & 0xff) << 24
+            | ((long) buffer[offset + 2] & 0xff) << 16
+            | ((long) buffer[offset + 1] & 0xff) << 8
+            | ((long) buffer[offset] & 0xff);
+    }
+
     public interface ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
+    }
+
+    public interface ChildContextCreatorTwoArg<A, B> {
+        boolean asChildOf(TraceContext child, A arg0, @Nullable B arg1);
     }
 
     public TraceContext copy() {

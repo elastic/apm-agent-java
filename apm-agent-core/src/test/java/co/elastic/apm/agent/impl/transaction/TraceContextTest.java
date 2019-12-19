@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -186,5 +186,43 @@ class TraceContextTest {
     private void assertValid(String s) {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         assertThat(traceContext.asChildOf(s)).isTrue();
+    }
+
+    @Test
+    void testDeserialization() {
+        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        traceContext.asRootSpan(ConstantSampler.of(true));
+
+        byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
+        traceContext.serialize(serializedContext);
+
+        TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        child.deserialize(serializedContext, null);
+
+        assertThat(child.getTraceId()).isEqualTo(traceContext.getTraceId());
+        assertThat(child.getTransactionId()).isEqualTo(traceContext.getTransactionId());
+        assertThat(child.getId()).isEqualTo(traceContext.getId());
+        assertThat(child.isSampled()).isEqualTo(traceContext.isSampled());
+        assertThat(child.isDiscard()).isEqualTo(traceContext.isDiscard());
+        assertThat(child.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
+    }
+
+    @Test
+    void testDeserializationChildOf() {
+        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        traceContext.asRootSpan(ConstantSampler.of(true));
+
+        byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
+        traceContext.serialize(serializedContext);
+
+        TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        TraceContext.fromSerialized().asChildOf(child, serializedContext, null);
+
+        assertThat(child.getTraceId()).isEqualTo(traceContext.getTraceId());
+        assertThat(child.getTransactionId()).isEqualTo(traceContext.getTransactionId());
+        assertThat(child.getParentId()).isEqualTo(traceContext.getId());
+        assertThat(child.isSampled()).isEqualTo(traceContext.isSampled());
+        assertThat(child.isDiscard()).isEqualTo(traceContext.isDiscard());
+        assertThat(child.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
     }
 }

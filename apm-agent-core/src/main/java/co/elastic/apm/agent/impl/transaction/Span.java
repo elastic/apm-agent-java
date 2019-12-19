@@ -75,6 +75,11 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
         super(tracer);
     }
 
+    public <A, B> Span start(TraceContext.ChildContextCreatorTwoArg<A, B> childContextCreator, A arg0, @Nullable B arg1, long epochMicros, boolean dropped) {
+        childContextCreator.asChildOf(traceContext, arg0, arg1);
+        return start(epochMicros, dropped);
+    }
+
     public <T> Span start(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros, boolean dropped) {
         childContextCreator.asChildOf(traceContext, parentContext);
         if (parentContext instanceof Transaction) {
@@ -85,6 +90,10 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
             this.parent = parentSpan;
             this.transaction = parentSpan.transaction;
         }
+        return start(epochMicros, dropped);
+    }
+
+    private Span start(long epochMicros, boolean dropped) {
         if (dropped) {
             traceContext.setRecorded(false);
         }
