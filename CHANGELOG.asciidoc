@@ -1,6 +1,6 @@
 ifdef::env-github[]
 NOTE: Release notes are best read in our documentation at
-https://www.elastic.co/guide/en/apm/agent/ruby/current/release-notes.html[elastic.co]
+https://www.elastic.co/guide/en/apm/agent/java/current/release-notes.html[elastic.co]
 endif::[]
 
 ////
@@ -26,8 +26,15 @@ endif::[]
 [float]
 ===== Features
 
+* Add support for <<supported-databases, Redis Lettuce client>>
+* Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
+* Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
+
 [float]
 ===== Bug Fixes
+
+* Fix parsing value of `trace_methods` configuration property {pull}930[#930]
+* Workaround for `java.util.logging` deadlock {pull}965[#965]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

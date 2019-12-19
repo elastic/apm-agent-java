@@ -33,6 +33,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TemporaryQueue;
@@ -108,8 +109,12 @@ class ActiveMqFacade implements BrokerFacade {
     }
 
     @Override
-    public void send(Destination destination, Message message) throws JMSException {
-        session.createProducer(destination).send(message);
+    public void send(Destination destination, Message message, boolean disableTimestamp) throws JMSException {
+        MessageProducer producer = session.createProducer(destination);
+        if (disableTimestamp) {
+            producer.setDisableMessageTimestamp(true);
+        }
+        producer.send(message);
     }
 
     @Override

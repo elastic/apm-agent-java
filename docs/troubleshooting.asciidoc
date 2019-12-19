@@ -150,6 +150,42 @@ have a look at the APM server logs to verify that the server is actually running
 Also make sure to configure your firewalls so that the host the agent runs on can open HTTP connections to the APM server.
 
 [float]
+[[trouble-shooting-unknown-route]]
+==== Kibana APM app shows "unknown route"
+
+By default, transactions are named with the Servlet name that handled the request.
+Thus, if request does not reach a servlet, the Agent defaults to naming the transaction "unknown route"
+
+There are two reasons why this might happen:
+
+1. Requests reach a servlet, but the Agent is not properly able to detect them.
+2. Requests do not reach a servlet. It might've been handled by filter, static resources, etc.
+
+Requests reach a servlet::
+
+The Agent has a 'pre-filter' heuristic to only consider classes whose names end with 'Servlet'.
+This heuristic can be disabled by setting the internal configuration `enable_type_matching_name_pre_filtering=false`.
++
+Please note that this has an impact on all plugins.
+A small increase of overhead during application startup time is expected.
+
+Requests do not reach a servlet::
+
+It's possible to change the default transaction naming to use the URL path instead.
+See <<config-use-path-as-transaction-name>> for more information.
++
+Unfortunately, this may create a lot of duplicate transactions if they have similar paths.
+For example, in `/usr/{id}`, where `{id}` is the user ID,
+you can end up with as many transactions as there are users.
+You can mitigate this by using <<config-url-groups>>,
+which will allow the use of wildcards in transaction URLs.
+
+If the proposed fixes do not solve the problem, or if a custom name is required, transaction names can be set manually throughout the request handling flow using our API:
+
+* <<api-current-transaction>> gets the current transaction.
+* <<api-set-name>> sets the transaction name.
+
+[float]
 [[trouble-shooting-old-jdbc-drivers]]
 ==== Libraries compiled against old Java versions
 

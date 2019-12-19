@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -49,6 +49,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -69,7 +70,11 @@ public class TestClassWithDependencyRunner {
      * This avoids that the dependency will be loaded by the parent class loader which contains the {@code provided}-scoped maven dependency.
      */
     public TestClassWithDependencyRunner(String groupId, String artifactId, String version, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
-        List<URL> urls = resolveArtifacts(groupId, artifactId, version);
+        this(Collections.singletonList(groupId + ":" + artifactId + ":" + version), testClass, classesReferencingDependency);
+    }
+
+    public TestClassWithDependencyRunner(List<String> dependencies, Class<?> testClass, Class<?>... classesReferencingDependency) throws Exception {
+        List<URL> urls = resolveArtifacts(dependencies);
         List<Class<?>> classesToExport = new ArrayList<>();
         classesToExport.add(testClass);
         classesToExport.addAll(Arrays.asList(classesReferencingDependency));
@@ -87,6 +92,7 @@ public class TestClassWithDependencyRunner {
         Result result = new JUnitCore().run(testRunner);
         for (Failure failure : result.getFailures()) {
             System.out.println(failure);
+            failure.getException().printStackTrace();
         }
         assertThat(result.wasSuccessful()).isTrue();
     }
@@ -122,7 +128,7 @@ public class TestClassWithDependencyRunner {
     /*
      * Taken from http://web.archive.org/web/20140420091631/http://developers-blog.org:80/blog/default/2010/11/08/Embed-Ivy-How-to-use-Ivy-with-Java
      */
-    private static List<URL> resolveArtifacts(String groupId, String artifactId, String version) throws Exception {
+    private static List<URL> resolveArtifacts(List<String> dependencies) throws Exception {
         //creates clear ivy settings
         IvySettings ivySettings = new IvySettings();
         //url resolver for configuration of maven repo
@@ -144,12 +150,14 @@ public class TestClassWithDependencyRunner {
         ivyfile.deleteOnExit();
 
         DefaultModuleDescriptor md =
-            DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId.newInstance(groupId,
-                artifactId + "-caller", "working"));
+            DefaultModuleDescriptor.newDefaultInstance(ModuleRevisionId.newInstance("foo", "foo" + "-caller", "working"));
+        for (String dependency : dependencies) {
+            String[] split = dependency.split(":");
 
-        DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(md,
-            ModuleRevisionId.newInstance(groupId, artifactId, version), false, false, true);
-        md.addDependency(dd);
+            DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(md,
+                ModuleRevisionId.newInstance(split[0], split[1], split[2]), false, false, true);
+            md.addDependency(dd);
+        }
 
         //creates an ivy configuration file
         XmlModuleDescriptorWriter.write(md, ivyfile);
@@ -160,13 +168,13 @@ public class TestClassWithDependencyRunner {
         //init resolve report
         ResolveReport report = ivy.resolve(ivyfile.toURL(), resolveOptions);
 
-        List<URL> dependencies = new ArrayList<>();
+        List<URL> resolvedDependencies = new ArrayList<>();
         ArtifactDownloadReport[] allArtifactsReports = report.getAllArtifactsReports();
         for (ArtifactDownloadReport allArtifactsReport : allArtifactsReports) {
-            dependencies.add(allArtifactsReport.getLocalFile().toURI().toURL());
+            resolvedDependencies.add(allArtifactsReport.getLocalFile().toURI().toURL());
         }
-        assertThat(dependencies).isNotEmpty();
-        return dependencies;
+        assertThat(resolvedDependencies).hasSizeGreaterThanOrEqualTo(dependencies.size());
+        return resolvedDependencies;
     }
 
     private static class ChildFirstURLClassLoader extends URLClassLoader {
@@ -185,20 +193,38 @@ public class TestClassWithDependencyRunner {
 
         @Override
         protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-            try {
-                Class<?> c = findClass(name);
-                if (resolve) {
-                    resolveClass(c);
+            synchronized (getClassLoadingLock(name)) {
+                try {
+                    // First, check if the class has already been loaded
+                    Class<?> c = findLoadedClass(name);
+                    if (c == null) {
+                        c = findClass(name);
+                        if (resolve) {
+                            resolveClass(c);
+                        }
+                    }
+                    return c;
+                } catch (ClassNotFoundException e) {
+                    return super.loadClass(name, resolve);
                 }
-                return c;
-            } catch (ClassNotFoundException e) {
-                return super.loadClass(name, resolve);
             }
+        }
+
+
+        @Override
+        public URL findResource(String name) {
+            return super.findResource(name);
         }
 
         @Override
         public Enumeration<URL> getResources(String name) throws IOException {
-            return super.getResources(name);
+            Enumeration<URL> resources = super.getResources(name);
+            List<URL> resourcesList = new ArrayList<>();
+            while (resources.hasMoreElements()) {
+                resourcesList.add(resources.nextElement());
+            }
+            Collections.reverse(resourcesList);
+            return Collections.enumeration(resourcesList);
         }
 
         @Override
