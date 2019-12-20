@@ -46,8 +46,8 @@ public class ProcessHelper {
     }
 
     @VisibleForAdvice
-    public static void startProcess(TraceContextHolder<?> transaction, Process process, List<String> command) {
-        INSTANCE.doStartProcess(transaction, process, command.get(0));
+    public static void startProcess(TraceContextHolder<?> parentContext, Process process, List<String> command) {
+        INSTANCE.doStartProcess(parentContext, process, command.get(0));
     }
 
     @VisibleForAdvice
@@ -78,7 +78,7 @@ public class ProcessHelper {
         // We don't require span to be activated as the background process is not really linked to current thread
         // and there won't be any child span linked to process span
 
-        inFlightSpans.putIfAbsent(process, span);
+        inFlightSpans.put(process, span);
     }
 
     private static String getBinaryName(String processName) {
