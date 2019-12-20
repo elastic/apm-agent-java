@@ -64,7 +64,7 @@ class ProcessHelperTest extends AbstractInstrumentationTest {
         transaction = new Transaction(tracer);
         TransactionUtils.fillTransaction(transaction);
 
-        storageMap = DataStructures.createWeakConcurrentMapWithCleanerThread();
+        storageMap = new WeakConcurrentMap.WithInlinedExpunction<>();
         helper = new ProcessHelper(storageMap);
     }
 
