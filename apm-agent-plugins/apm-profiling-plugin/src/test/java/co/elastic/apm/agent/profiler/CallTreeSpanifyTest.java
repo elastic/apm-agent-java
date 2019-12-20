@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,15 +96,16 @@ class CallTreeSpanifyTest {
     @Test
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
-        CallTree.Root root = CallTree.createRoot(tracer, rootContext.getTraceContext(), 0);
+        TraceContext traceContext = rootContext.getTraceContext();
+        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);
         TraceContext.fromParent().asChildOf(spanContext, rootContext);
 
-        root.setActiveSpan(spanContext.serialize());
+        root.onActivation(spanContext.serialize(), TimeUnit.MILLISECONDS.toNanos(5));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
-        root.setActiveSpan(rootContext.serialize());
+        root.onDeactivation(rootContext.serialize(), TimeUnit.MILLISECONDS.toNanos(15));
 
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
         root.end();

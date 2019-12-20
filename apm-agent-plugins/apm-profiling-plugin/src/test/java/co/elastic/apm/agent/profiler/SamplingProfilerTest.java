@@ -69,12 +69,7 @@ class SamplingProfilerTest {
     void testProfileTransaction() throws Exception {
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
-            Span span = transaction.createSpan().withName("span").withType("test");
-            try (Scope spanScope = span.activateInScope()) {
-                a();
-            } finally {
-                span.end();
-            }
+            aInferred(transaction);
         } finally {
             transaction.end();
         }
@@ -83,23 +78,42 @@ class SamplingProfilerTest {
             .pollDelay(10, TimeUnit.MILLISECONDS)
             .timeout(500, TimeUnit.MILLISECONDS)
             .untilAsserted(() -> assertThat(reporter.getSpans()).hasSizeGreaterThanOrEqualTo(2));
-        Optional<Span> explicitSpan = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("span")).findAny();
-        assertThat(explicitSpan).isPresent();
 
-        Optional<Span> inferredSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#b")).findAny();
-        assertThat(inferredSpanB).isPresent();
+        Optional<Span> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
+        assertThat(inferredSpanA).isPresent();
+        assertThat(inferredSpanA.get().isChildOf(transaction)).isTrue();
 
-        assertThat(reporter.getSpans().stream()
-            .filter(s -> "inferred".equals(s.getSubtype()))
-            .filter(s -> s.getTraceContext().isChildOf(explicitSpan.get())))
-            .isNotEmpty();
+        Optional<Span> explicitSpanB = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("bExplicit")).findAny();
+        assertThat(explicitSpanB).isPresent();
+        // not supported yet - an explicit span can't be a span of an inferred one
+        // assertThat(explicitSpanB.get().isChildOf(inferredSpanA.get())).isTrue();
+
+        Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
+        assertThat(inferredSpanC).isPresent();
+        System.out.println(inferredSpanC.get().getTraceContext().getParentId());
+        assertThat(inferredSpanC.get().isChildOf(explicitSpanB.get())).isTrue();
+
+        Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
+        assertThat(inferredSpanD).isPresent();
+        assertThat(inferredSpanD.get().isChildOf(inferredSpanC.get())).isTrue();
     }
 
-    private void a() throws Exception {
-        b();
+    private void aInferred(Transaction transaction) throws Exception {
+        Span span = transaction.createSpan().withName("bExplicit").withType("test");
+        try (Scope spanScope = span.activateInScope()) {
+            cInferred();
+        } finally {
+            span.end();
+        }
+        Thread.sleep(100);
     }
 
-    private void b() throws Exception {
+    private void cInferred() throws Exception {
+        dInferred();
+        Thread.sleep(100);
+    }
+
+    private void dInferred() throws Exception {
         Thread.sleep(100);
     }
 }

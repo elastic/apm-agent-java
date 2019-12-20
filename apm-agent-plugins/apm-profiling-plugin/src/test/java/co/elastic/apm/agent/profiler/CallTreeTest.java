@@ -33,6 +33,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.objectpool.NoopObjectPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,8 @@ class CallTreeTest {
 
     @Test
     void testCallTree() {
-        CallTree.Root root = CallTree.createRoot(tracer, TraceContext.with64BitId(mock(ElasticApmTracer.class)), 0);
+        TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
@@ -172,7 +174,27 @@ class CallTreeTest {
             {"    2",     7},
             {"      b",   2},
             {"        c", 0},
-            {"    e",     1, List.of("d")},
+            {"      e",   1, List.of("d")},
+        });
+    }
+
+    @Test
+    void testDectivationBeforeEnd() {
+        assertCallTree(new String[]{
+            "   cc      ",
+            "   bbbb b  ", // <- deactivation for span 2 happens before b ends
+            " a aaaa aa ", //    that means b must have started before 2 has been activated
+            "1 2    2  1"  //    but we saw the first stack trace of b only after the activation of 2
+        }, new Object[][] {
+            {"a",     7},
+            {"  b",   5},
+            {"    c", 2},
+        }, new Object[][] {
+            {"1",        10},
+            {"  a",       8},
+            {"    b",     6},
+            {"      2",   5},
+            {"        c", 1},
         });
     }
 
@@ -221,7 +243,10 @@ class CallTreeTest {
                 assertThat(spans).containsKey(spanName);
                 assertThat(spans).containsKey(parentName);
                 AbstractSpan<?> span = spans.get(spanName);
-                assertThat(span.getTraceContext().isChildOf(spans.get(parentName)));
+                // span names denoted by digits are actual spans, not inferred spans
+                if (!Character.isDigit(spanName.charAt(0))) {
+                    assertThat(span.getTraceContext().isChildOf(spans.get(parentName))).isTrue();
+                }
                 assertThat(span.getDuration()).isEqualTo(durationMs * 1000);
                 if (stackTrace != null) {
                     assertThat(((Span) span).getStackFrames()
@@ -255,34 +280,36 @@ class CallTreeTest {
     }
 
     public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) {
-        SamplingProfiler profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
+        ProfilingFactory profilingFactory = tracer.getLifecycleListener(ProfilingFactory.class);
+        SamplingProfiler profiler = profilingFactory.getProfiler();
+        FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
+        nanoClock.setNanoTime(0);
         profiler.setProfilingSessionOngoing(true);
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, null)
             .activate();
-        transaction.getTraceContext().getClock().init(0, System.nanoTime());
-        profiler.processActivationEventsUpTo(System.nanoTime());
+        transaction.getTraceContext().getClock().init(0, 0);
+        profiler.processActivationEventsUpTo(nanoClock.nanoTime());
         CallTree.Root root = profiler.getRoot();
         assertThat(root).isNotNull();
-        long nanoTime = 0;
         Map<String, AbstractSpan<?>> spanMap = new HashMap<>();
         for (int i = 0; i < stackTraces[0].length(); i++) {
-            nanoTime = i * TimeUnit.MILLISECONDS.toNanos(10);
+            nanoClock.setNanoTime(i * TimeUnit.MILLISECONDS.toNanos(10));
             List<StackFrame> trace = new ArrayList<>();
             for (String stackTrace : stackTraces) {
                 char c = stackTrace.charAt(i);
                 if (Character.isDigit(c)) {
-                    handleSpanEvent(tracer, spanMap, Character.toString(c), nanoTime);
-                    profiler.processActivationEventsUpTo(System.nanoTime());
+                    handleSpanEvent(tracer, spanMap, Character.toString(c), nanoClock.nanoTime());
+                    profiler.processActivationEventsUpTo(nanoClock.nanoTime());
                     break;
                 } else if (!Character.isSpaceChar(c)) {
                     trace.add(StackFrame.of(CallTreeTest.class.getName(), Character.toString(c)));
                 }
             }
             if (!trace.isEmpty()) {
-                root.addStackTrace(tracer, trace, nanoTime);
+                root.addStackTrace(tracer, trace, nanoClock.nanoTime());
             }
         }
-        transaction.deactivate().end(nanoTime / 1000);
+        transaction.deactivate().end(nanoClock.nanoTime() / 1000);
         root.end();
         profiler.clear();
         return root;

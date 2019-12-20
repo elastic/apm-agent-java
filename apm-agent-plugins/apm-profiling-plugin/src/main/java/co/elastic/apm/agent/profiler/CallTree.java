@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
@@ -51,38 +52,44 @@ public class CallTree implements Recyclable {
     protected long start;
     private long lastSeen;
     private boolean ended;
+    private long activationTimestamp = -1;
     @Nullable
-    private TraceContext traceContext;
+    private TraceContext activeContext;
+    private long deactivationTimestamp = -1;
     private boolean isSpan;
 
     public CallTree() {
     }
 
-    public void set(@Nullable CallTree parent, StackFrame frame, @Nullable TraceContext traceContext, long nanoTime) {
+    public void set(@Nullable CallTree parent, StackFrame frame, long nanoTime) {
         this.parent = parent;
         this.frame = frame;
         this.start = nanoTime;
-        this.traceContext = traceContext;
     }
 
-    public static CallTree.Root createRoot(ElasticApmTracer tracer, TraceContext traceContext, long nanoTime) {
-        byte[] serializedTraceContext = new byte[TraceContext.SERIALIZED_LENGTH];
-        traceContext.serialize(serializedTraceContext);
-        return createRoot(tracer, traceContext.serialize(), traceContext.getServiceName(), nanoTime);
+    public void activation(TraceContext traceContext, long activationTimestamp) {
+        this.activeContext = traceContext;
+        this.activationTimestamp = activationTimestamp;
     }
 
-    public static CallTree.Root createRoot(ElasticApmTracer tracer, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
-        Root root;
-        if (rootPool.isEmpty()) {
-            root = new Root(tracer);
+    protected void handleDeactivation(TraceContext deactivatedSpan, long timestamp) {
+        if (activeContext == deactivatedSpan) {
+            deactivationTimestamp = timestamp;
         } else {
-            root = rootPool.remove(rootPool.size() - 1);
+            CallTree lastChild = getLastChild();
+            if (lastChild != null && !lastChild.isEnded()) {
+                lastChild.handleDeactivation(deactivatedSpan, timestamp);
+            }
         }
+    }
+
+    public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+        CallTree.Root root = rootPool.createInstance();
         root.set(traceContext, serviceName, nanoTime);
         return root;
     }
 
-    protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
+    protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
         count++;
         lastSeen = nanoTime;
         //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
@@ -93,7 +100,7 @@ public class CallTree implements Recyclable {
         // active  deactive
 
         // this branch is already aware of the activation
-        if (Objects.equals(this.traceContext, traceContext)) {
+        if (Objects.equals(this.activeContext, traceContext)) {
             traceContext = null;
         }
 
@@ -105,15 +112,13 @@ public class CallTree implements Recyclable {
             final StackFrame frame = iterator.previous();
             if (lastChild != null) {
                 if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
-                    lastChild.addFrame(iterator, traceContext, nanoTime);
+                    lastChild.addFrame(iterator, traceContext, activationTimestamp, nanoTime);
                     endChild = false;
                 } else {
-                    // we're looking at a frame which is a new sibling to listChild
-                    lastChild.end();
-                    addChild(frame, iterator, traceContext, nanoTime);
+                    addChild(frame, iterator, traceContext, activationTimestamp, nanoTime);
                 }
             } else {
-                addChild(frame, iterator, traceContext, nanoTime);
+                addChild(frame, iterator, traceContext, activationTimestamp, nanoTime);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
@@ -121,11 +126,14 @@ public class CallTree implements Recyclable {
         }
     }
 
-    void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long nanoTime) {
+    void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
         CallTree callTree = new CallTree();
-        callTree.set(this, frame, traceContext, nanoTime);
+        callTree.set(this, frame, nanoTime);
+        if (traceContext != null) {
+            callTree.activation(traceContext, activationTimestamp);
+        }
         children.add(callTree);
-        callTree.addFrame(iterator, null, nanoTime);
+        callTree.addFrame(iterator, null, activationTimestamp, nanoTime);
     }
 
     long getDurationUs() {
@@ -145,14 +153,34 @@ public class CallTree implements Recyclable {
     }
 
     void end() {
-        if (isEnded()) {
-            return;
-        }
         ended = true;
+        // if the parent span has already been deactivated before this call tree node has ended
+        // it means that this node is actually the parent of the already deactivated span
+        //                     make b parent of a and pre-date the start of b to the activation of a
+        // [c        ]      -> [a           ]
+        // └[a          ]      [b          ]
+        //  [b         ]       [c        ]
+        //  └─[d  ]            └──[d  ]
+        if (deactivationHappenedBeforeEnd()) {
+            start = Math.min(activationTimestamp, start);
+            List<CallTree> callTrees = getChildren();
+            for (int i = 0, size = callTrees.size(); i < size; i++) {
+                CallTree child = callTrees.get(i);
+                child.activation(activeContext, activationTimestamp);
+                child.deactivationTimestamp = deactivationTimestamp;
+            }
+            activeContext = null;
+            activationTimestamp = -1;
+            deactivationTimestamp = -1;
+        }
         CallTree lastChild = getLastChild();
         if (lastChild != null && !lastChild.isEnded()) {
             lastChild.end();
         }
+    }
+
+    private boolean deactivationHappenedBeforeEnd() {
+        return activeContext != null && deactivationTimestamp > -1 && lastSeen > deactivationTimestamp;
     }
 
     public boolean isLeaf() {
@@ -202,8 +230,8 @@ public class CallTree implements Recyclable {
     }
 
     void spanify(CallTree.Root root, TraceContext parentContext) {
-        if (traceContext != null) {
-            parentContext = traceContext;
+        if (activeContext != null) {
+            parentContext = activeContext;
         }
         Span span = null;
         if (!isPillar() || isLeaf()) {
@@ -268,21 +296,24 @@ public class CallTree implements Recyclable {
 
     @Override
     public void resetState() {
-         parent = null;
-         count = 0;
-         frame = null;
-         start = 0;
-         lastSeen = 0;
-         ended = false;
-         traceContext = null;
-         isSpan = false;
-         children.clear();
+        parent = null;
+        count = 0;
+        frame = null;
+        start = 0;
+        lastSeen = 0;
+        ended = false;
+        activationTimestamp = -1;
+        activeContext = null;
+        deactivationTimestamp = -1;
+        isSpan = false;
+        children.clear();
     }
 
     public static class Root extends CallTree implements Recyclable {
         private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
         private long timestampUs;
         protected TraceContext traceContext;
+        private long activationTimestamp;
         @Nullable
         private TraceContext activeSpan;
         private byte[] activeSpanSerialized = new byte[TraceContext.SERIALIZED_LENGTH];
@@ -291,15 +322,27 @@ public class CallTree implements Recyclable {
             this.traceContext = TraceContext.with64BitId(tracer);
         }
 
-        public void set(byte[] traceContext, @Nullable String serviceName, long nanoTime) {
-            super.set(null, ROOT_FRAME, null, nanoTime);
+        private void set(byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+            super.set(null, ROOT_FRAME, nanoTime);
             this.traceContext.deserialize(traceContext, serviceName);
-            setActiveSpan(traceContext);
+            setActiveSpan(traceContext, nanoTime);
         }
 
-        public void setActiveSpan(byte[] activeSpanSerialized) {
+        public void setActiveSpan(byte[] activeSpanSerialized, long timestamp) {
+            activationTimestamp = timestamp;
             System.arraycopy(activeSpanSerialized, 0, this.activeSpanSerialized, 0, activeSpanSerialized.length);
             this.activeSpan = null;
+        }
+
+        public void onActivation(byte[] active, long timestamp) {
+            setActiveSpan(active, timestamp);
+        }
+
+        public void onDeactivation(byte[] active, long timestamp) {
+            if (activeSpan != null) {
+                handleDeactivation(activeSpan, timestamp);
+            }
+            setActiveSpan(active, timestamp);
         }
 
         public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime) {
@@ -312,7 +355,7 @@ public class CallTree implements Recyclable {
                 activeSpan = TraceContext.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, traceContext.getServiceName());
             }
-            addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, nanoTime);
+            addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, activationTimestamp, nanoTime);
         }
 
         public void spanify() {
