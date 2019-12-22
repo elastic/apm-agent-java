@@ -73,7 +73,7 @@ public class CallTree implements Recyclable {
     }
 
     protected void handleDeactivation(TraceContext deactivatedSpan, long timestamp) {
-        if (activeContext == deactivatedSpan) {
+        if (deactivatedSpan.equals(activeContext)) {
             deactivationTimestamp = timestamp;
         } else {
             CallTree lastChild = getLastChild();
@@ -259,7 +259,7 @@ public class CallTree implements Recyclable {
         span.appendToName(frame.getMethodName());
 
         // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
-        if (root.traceContext != parentContext) {
+        if (!root.traceContext.equals(parentContext)) {
             // we're never spanifying the root
             assert this.parent != null;
             List<StackFrame> stackTrace = new ArrayList<>();

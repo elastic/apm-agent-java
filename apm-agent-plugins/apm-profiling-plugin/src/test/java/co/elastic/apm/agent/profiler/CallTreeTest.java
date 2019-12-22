@@ -176,6 +176,19 @@ class CallTreeTest {
     }
 
     @Test
+    void testFirstInferredSpanShouldHaveNoStackTrace() {
+        assertCallTree(new String[]{
+            "bb",
+            "aa"
+        }, new Object[][] {
+            {"a",   2},
+            {"  b", 2},
+        }, new Object[][] {
+            {"b",   1},
+        });
+    }
+
+    @Test
     void testCallTreeWithSpanActivations() {
         assertCallTree(new String[]{
             "     c ee   ",

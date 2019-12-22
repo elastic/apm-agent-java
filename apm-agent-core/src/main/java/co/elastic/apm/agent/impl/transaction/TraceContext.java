@@ -438,9 +438,8 @@ public class TraceContext extends TraceContextHolder {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TraceContext that = (TraceContext) o;
-        return flags == that.flags &&
-            traceId.equals(that.traceId) &&
-            id.equals(that.id);
+        return id.equals(that.id) &&
+            traceId.equals(that.traceId);
     }
 
     @Override
