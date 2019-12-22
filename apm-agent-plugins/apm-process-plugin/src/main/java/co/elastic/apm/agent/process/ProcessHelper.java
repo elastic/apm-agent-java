@@ -37,7 +37,7 @@ import java.util.List;
 @VisibleForAdvice
 public class ProcessHelper {
 
-    private static final ProcessHelper INSTANCE = new ProcessHelper(new WeakConcurrentMap.WithInlinedExpunction<>());
+    private static final ProcessHelper INSTANCE = new ProcessHelper(new WeakConcurrentMap.WithInlinedExpunction<Process, Span>());
 
     private final WeakConcurrentMap<Process, Span> inFlightSpans;
 
