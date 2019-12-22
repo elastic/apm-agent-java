@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,6 +35,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import okhttp3.HttpUrl;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -69,7 +70,8 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
 
             if (originalRequest instanceof okhttp3.Request) {
                 okhttp3.Request request = (okhttp3.Request) originalRequest;
-                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().host());
+                HttpUrl url = request.url();
+                span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.scheme(), url.host(), url.port());
                 if (span != null) {
                     span.activate();
                     originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();

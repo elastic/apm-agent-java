@@ -280,6 +280,9 @@ class DslJsonSerializerTest {
             .withMethod("GET")
             .withStatusCode(523)
             .withUrl("http://whatever.com/path");
+        span.getContext().getDestination().getService().withName("http://whatever.com");
+        span.getContext().getDestination().getService().withResource("whatever.com:80");
+        span.getContext().getDestination().getService().withType("external");
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
@@ -288,6 +291,13 @@ class DslJsonSerializerTest {
         assertThat(http.get("method").textValue()).isEqualTo("GET");
         assertThat(http.get("url").textValue()).isEqualTo("http://whatever.com/path");
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
+        JsonNode destination = context.get("destination");
+        assertThat(destination).isNotNull();
+        JsonNode service = destination.get("service");
+        assertThat(service).isNotNull();
+        assertThat("http://whatever.com").isEqualTo(service.get("name").textValue());
+        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat("external").isEqualTo(service.get("type").textValue());
     }
 
     @Test

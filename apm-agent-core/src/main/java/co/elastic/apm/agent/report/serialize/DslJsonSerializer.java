@@ -26,6 +26,7 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -728,12 +729,34 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
+        serializeDestination(context.getDestination());
 
         writeFieldName("tags");
         serializeLabels(context);
 
         jw.writeByte(OBJECT_END);
         jw.writeByte(COMMA);
+    }
+
+    private void serializeDestination(Destination destination) {
+        if (destination.hasContent()) {
+            writeFieldName("destination");
+            jw.writeByte(OBJECT_START);
+            serializeService(destination.getService());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeService(Destination.Service service) {
+        if (service.hasContent()) {
+            writeFieldName("service");
+            jw.writeByte(OBJECT_START);
+            writeField("name", service.getName());
+            writeField("resource", service.getResource());
+            writeLastField("type", service.getType());
+            jw.writeByte(OBJECT_END);
+        }
     }
 
     private void serializeMessageContext(final Message message) {
