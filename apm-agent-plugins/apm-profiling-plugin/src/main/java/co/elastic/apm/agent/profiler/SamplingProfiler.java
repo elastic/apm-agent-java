@@ -168,7 +168,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) {
-        long sampleRateMs = sampleRate.getMillis();
+        long sampleRateNs = TimeUnit.MILLISECONDS.toNanos(sampleRate.getMillis());
         long deadline = profilingDuration.getMillis() + System.currentTimeMillis();
         while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
             try {
@@ -176,10 +176,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
                 takeThreadSnapshot();
 
-                long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
-                logger.trace("Taking snapshot took {}ms", durationMs);
-
-                Thread.sleep(Math.max(sampleRateMs - durationMs, 0));
+                long durationNs = System.nanoTime() - startNs;
+                logger.trace("Taking snapshot took {}ns", durationNs);
+                TimeUnit.NANOSECONDS.sleep(sampleRateNs - durationNs);
             } catch (RuntimeException e) {
                 logger.error("Exception while taking profiling snapshot", e);
             } catch (InterruptedException e) {

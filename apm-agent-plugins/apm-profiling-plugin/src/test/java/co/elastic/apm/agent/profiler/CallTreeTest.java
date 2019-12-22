@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -99,7 +100,7 @@ class CallTreeTest {
 
 
     @Test
-    void testCallTrees() {
+    void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() {
         assertCallTree(new String[]{
             " b b",
             "aaaa"
@@ -108,6 +109,10 @@ class CallTreeTest {
             {"  b", 1},
             {"  b", 1}
         });
+    }
+
+    @Test
+    void testBasicCallTree() {
         assertCallTree(new String[]{
             " c  ",
             " bb ",
@@ -121,6 +126,10 @@ class CallTreeTest {
             {"  b",   1},
             {"    c", 0}
         });
+    }
+
+    @Test
+    void testShouldNotCreateInferredSpansForPillarsAndLeafShouldHaveStacktrace() {
         assertCallTree(new String[]{
             " d ",
             " c ",
@@ -135,7 +144,10 @@ class CallTreeTest {
             {"a",   2},
             {"  d", 0, List.of("c", "b")}
         });
+    }
 
+    @Test
+    void testSameTopOfStackDifferentBottom() {
         assertCallTree(new String[]{
             "cccc",
             "aabb"
@@ -145,6 +157,10 @@ class CallTreeTest {
             {"b",   2},
             {"  c", 2},
         });
+    }
+
+    @Test
+    void testStackTraceWithRecursion() {
         assertCallTree(new String[]{
             "bcbc",
             "bbbb",
@@ -156,7 +172,11 @@ class CallTreeTest {
             {"    c", 1},
             {"    b", 1},
             {"    c", 1},
-        }, null);
+        });
+    }
+
+    @Test
+    void testCallTreeWithSpanActivations() {
         assertCallTree(new String[]{
             "     c ee   ",
             "   bbb dd   ",
@@ -181,20 +201,23 @@ class CallTreeTest {
     @Test
     void testDectivationBeforeEnd() {
         assertCallTree(new String[]{
-            "   cc      ",
-            "   bbbb b  ", // <- deactivation for span 2 happens before b ends
-            " a aaaa aa ", //    that means b must have started before 2 has been activated
+            "   dd      ",
+            "   cccc c  ",
+            "   bbbb bb ", // <- deactivation for span 2 happens before b and c ends
+            " a aaaa aa ", //    that means b and c must have started before 2 has been activated
             "1 2    2  1"  //    but we saw the first stack trace of b only after the activation of 2
         }, new Object[][] {
-            {"a",     7},
-            {"  b",   5},
-            {"    c", 2},
+            {"a",       7},
+            {"  b",     6},
+            {"    c",   5},
+            {"      d", 2},
         }, new Object[][] {
-            {"1",        10},
-            {"  a",       8},
-            {"    b",     6},
-            {"      2",   5},
-            {"        c", 1},
+            {"1",          10},
+            {"  a",         8},
+            {"    b",       7},
+            {"      c",     6},
+            {"        2",   5},
+            {"          d", 1},
         });
     }
 
@@ -237,24 +260,26 @@ class CallTreeTest {
                 Object[] expectedSpan = expectedSpans[i];
                 String spanName = ((String) expectedSpan[0]).trim();
                 long durationMs = (int) expectedSpan[1] * 10;
-                List<String> stackTrace = expectedSpan.length == 3 ? (List<String>) expectedSpan[2] : null;
+                List<String> stackTrace = expectedSpan.length == 3 ? (List<String>) expectedSpan[2] : List.of();
                 int nestingLevel = getNestingLevel((String) expectedSpan[0]);
                 String parentName = getParentName(expectedSpans, i, nestingLevel);
                 assertThat(spans).containsKey(spanName);
                 assertThat(spans).containsKey(parentName);
                 AbstractSpan<?> span = spans.get(spanName);
-                // span names denoted by digits are actual spans, not inferred spans
+                // span names denoted by digits are actual spans, not profiler-inferred spans
+                // currently, the parent of an actual span can't be an inferred span
                 if (!Character.isDigit(spanName.charAt(0))) {
-                    assertThat(span.getTraceContext().isChildOf(spans.get(parentName))).isTrue();
+                    assertThat(span.getTraceContext().isChildOf(spans.get(parentName)))
+                        .withFailMessage("Expected %s (%s) to be a child of %s (%s) but was %s", spanName, span.getTraceContext().getId(),
+                            parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
+                        .isTrue();
                 }
                 assertThat(span.getDuration()).isEqualTo(durationMs * 1000);
-                if (stackTrace != null) {
-                    assertThat(((Span) span).getStackFrames()
-                        .stream()
-                        .map(StackFrame::getMethodName)
-                        .collect(Collectors.toList()))
-                        .isEqualTo(stackTrace);
-                }
+                assertThat(Objects.requireNonNullElse(((Span) span).getStackFrames(), List.<StackFrame>of())
+                    .stream()
+                    .map(StackFrame::getMethodName)
+                    .collect(Collectors.toList()))
+                    .isEqualTo(stackTrace);
             }
         }
         reporter.reset();

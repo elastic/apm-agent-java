@@ -157,10 +157,11 @@ public class CallTree implements Recyclable {
         // if the parent span has already been deactivated before this call tree node has ended
         // it means that this node is actually the parent of the already deactivated span
         //                     make b parent of a and pre-date the start of b to the activation of a
-        // [c        ]      -> [a           ]
-        // └[a          ]      [b          ]
-        //  [b         ]       [c        ]
-        //  └─[d  ]            └──[d  ]
+        // [c        ]    ──┐  [a(inferred) ]
+        // └[a(inferred)]   │  [b(inferred)]
+        //  [b(infer.) ]    └► [c        ]
+        //  └─[d(i.)]          └──[d(i.)]
+        // see also profiler.CallTreeTest::testDectivationBeforeEnd
         if (deactivationHappenedBeforeEnd()) {
             start = Math.min(activationTimestamp, start);
             List<CallTree> callTrees = getChildren();
@@ -168,6 +169,8 @@ public class CallTree implements Recyclable {
                 CallTree child = callTrees.get(i);
                 child.activation(activeContext, activationTimestamp);
                 child.deactivationTimestamp = deactivationTimestamp;
+                // re-run this logic for all children, even if they have already ended
+                child.end();
             }
             activeContext = null;
             activationTimestamp = -1;

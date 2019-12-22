@@ -1241,8 +1241,8 @@ Set to `true` to make the agent create spans for method executions based on a sa
 
 The frequency at which stack traces are gathered within a profiling session.
 The lower you set it, the more accurate the durations will be.
-This comes at the expense of higher overhead and more spans for potentially irrelevant spans.
-The minimal duration of a profiling-inferred span is `profiling_sampling_duration * 2`.
+This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+The minimal duration of a profiling-inferred span is the same as the value of this setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `20ms`.
@@ -2399,8 +2399,8 @@ The default unit for this option is `ms`
 
 # The frequency at which stack traces are gathered within a profiling session.
 # The lower you set it, the more accurate the durations will be.
-# This comes at the expense of higher overhead and more spans for potentially irrelevant spans.
-# The minimal duration of a profiling-inferred span is `profiling_sampling_duration * 2`.
+# This comes at the expense of higher overhead and more spans for potentially irrelevant operations.
+# The minimal duration of a profiling-inferred span is the same as the value of this setting.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration

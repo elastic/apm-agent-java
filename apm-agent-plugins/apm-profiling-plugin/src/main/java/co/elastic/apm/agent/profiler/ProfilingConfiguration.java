@@ -55,8 +55,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .description("The frequency at which stack traces are gathered within a profiling session.\n" +
             "The lower you set it, the more accurate the durations will be.\n" +
-            "This comes at the expense of higher overhead and more spans for potentially irrelevant spans.\n" +
-            "The minimal duration of a profiling-inferred span is `profiling_sampling_duration * 2`.")
+            "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
+            "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
         .addValidator(RangeValidator.min(TimeDuration.of("10ms")))
         .buildWithDefault(TimeDuration.of("20ms"));
 
