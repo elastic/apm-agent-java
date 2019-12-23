@@ -38,7 +38,7 @@ public class HttpClientHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, @Nullable String hostName) {
+    public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable URI uri, @Nullable CharSequence hostName) {
         String uriString = null;
         String scheme = null;
         int port = -1;
@@ -56,7 +56,7 @@ public class HttpClientHelper {
     @Nullable
     @VisibleForAdvice
     public static Span startHttpClientSpan(TraceContextHolder<?> parent, String method, @Nullable String uri,
-                                           String scheme, String hostName, int port) {
+                                           String scheme, CharSequence hostName, int port) {
         Span span = parent.createExitSpan();
         if (span != null) {
             span.withType(EXTERNAL_TYPE)
@@ -72,8 +72,8 @@ public class HttpClientHelper {
     }
 
     @VisibleForAdvice
-    public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable String host, int port) {
-        if (scheme == null || host == null) {
+    public static void setDestinationServiceDetails(Span span, @Nullable String scheme, @Nullable CharSequence host, int port) {
+        if (scheme == null || host == null || host.length() == 0) {
             return;
         }
 

@@ -97,8 +97,15 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
 
     @Test
     public void testHttpCallWithIpv6() throws Exception {
+        if (!isIpv6Supported()) {
+            return;
+        }
         performGet("http://[::1]:" + wireMockRule.port() + "/");
         verifyHttpSpan("http", "[::1]", wireMockRule.port(), "/");
+    }
+
+    protected boolean isIpv6Supported() {
+        return true;
     }
 
     protected void verifyHttpSpan(String path) throws Exception {
