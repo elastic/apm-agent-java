@@ -96,7 +96,7 @@ public class HttpClientHelper {
             return;
         }
 
-        Destination destination = span.getContext().getDestination();
+        Destination destination = span.getContext().getDestination().withAddress(host).withPort(port);
         destination.getService().getResource().append(host).append(":").append(port);
         destination.getService().getName().append(scheme).append("://").append(host);
         if (!isDefaultPort) {

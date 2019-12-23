@@ -41,6 +41,13 @@ public class OkHttpClientHelper {
         }
     };
 
+    /**
+     * NOTE: this method returns a StringBuilder instance that is kept as this class's ThreadLocal. Callers of this
+     * method MAY NOT KEEP A REFERENCE TO THE RETURNED OBJECT, only copy its contents.
+     *
+     * @param originalHostName the original host name retrieved from the OkHttp client
+     * @return a StringBuilder instance that is kept as a ThreadLocal
+     */
     @VisibleForAdvice
     @Nullable
     public static CharSequence computeHostName(@Nullable String originalHostName) {

@@ -32,6 +32,46 @@ import javax.annotation.Nullable;
  * Context information about a destination of outgoing calls.
  */
 public class Destination implements Recyclable {
+
+    /**
+     * An IP (v4 or v6) or a host/domain name.
+     */
+    private final StringBuilder address = new StringBuilder();
+
+    /**
+     * The destination's port used within this context.
+     */
+    private int port;
+
+    public Destination withAddress(CharSequence address) {
+        if (address.length() > 0) {
+            // remove square brackets for IPv6 addresses
+            int startIndex = 0;
+            if (address.charAt(0) == '[') {
+                startIndex = 1;
+            }
+            int endIndex = address.length();
+            if (address.charAt(endIndex - 1) == ']') {
+                endIndex--;
+            }
+            this.address.append(address, startIndex, endIndex);
+        }
+        return this;
+    }
+
+    public StringBuilder getAddress() {
+        return address;
+    }
+
+    public Destination withPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
     /**
      * Information about the service related to this destination.
      */
@@ -42,11 +82,13 @@ public class Destination implements Recyclable {
     }
 
     public boolean hasContent() {
-        return service.hasContent();
+        return address.length() > 0 || port > 0 || service.hasContent();
     }
 
     @Override
     public void resetState() {
+        address.setLength(0);
+        port = -1;
         service.resetState();
     }
 

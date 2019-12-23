@@ -742,6 +742,12 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         if (destination.hasContent()) {
             writeFieldName("destination");
             jw.writeByte(OBJECT_START);
+            if (destination.getAddress().length() > 0) {
+                writeField("address", destination.getAddress());
+            }
+            if (destination.getPort() > 0) {
+                writeField("port", destination.getPort());
+            }
             serializeService(destination.getService());
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);

@@ -123,6 +123,10 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(span.getSubtype()).isEqualTo("http");
         assertThat(span.getAction()).isNull();
         Destination destination = span.getContext().getDestination();
+        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
+        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
+        assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
+        assertThat(destination.getPort()).isEqualTo(wireMockRule.port());
         assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
         assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockRule.port());
         assertThat(destination.getService().getType()).isEqualTo("external");
