@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.assertj.core.api.Java6Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +38,7 @@ import javax.net.ServerSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -74,5 +77,15 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
         assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
         assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
+        verifyDestinationDetails(reporter.getSpans());
+    }
+
+    private void verifyDestinationDetails(List<Span> spanList) {
+        for (Span span : spanList) {
+            Destination.Service service = span.getContext().getDestination().getService();
+            Java6Assertions.assertThat(service.getName().toString()).isEqualTo("redis");
+            Java6Assertions.assertThat(service.getResource().toString()).isEqualTo("redis");
+            Java6Assertions.assertThat(service.getType()).isEqualTo("db");
+        }
     }
 }

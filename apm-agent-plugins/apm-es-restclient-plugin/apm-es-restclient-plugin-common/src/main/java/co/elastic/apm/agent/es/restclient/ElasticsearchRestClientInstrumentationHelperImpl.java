@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -105,6 +106,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     }
                 }
             }
+            span.getContext().getDestination().getService().withName(ELASTICSEARCH).withResource(ELASTICSEARCH).withType(SPAN_TYPE);
         }
         return span;
     }

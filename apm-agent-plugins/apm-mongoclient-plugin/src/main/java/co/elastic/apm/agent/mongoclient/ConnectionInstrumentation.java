@@ -85,6 +85,8 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
         span.withType("db").withSubtype("mongodb")
             .getContext().getDb().withType("mongodb");
+        span.getContext().getDestination().getService()
+            .withName("mongodb").withResource("mongodb").withType("db");
         String command = methodName;
         if (methodName.equals("query")) {
             // if the method name is query, that corresponds to the find command

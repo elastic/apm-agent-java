@@ -26,6 +26,7 @@ package co.elastic.apm.agent.jdbc;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -310,6 +311,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(db.getAffectedRowsCount())
             .describedAs("unexpected affected rows count for statement %s", rawSql)
             .isEqualTo(expectedAffectedRows);
+
+        Destination.Service service = jdbcSpan.getContext().getDestination().getService();
+        assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
+        assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
+        assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);
     }
 
     private static long[] toLongArray(int[] a) {
