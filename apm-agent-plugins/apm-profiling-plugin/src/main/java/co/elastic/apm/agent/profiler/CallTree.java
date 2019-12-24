@@ -35,14 +35,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
 public class CallTree implements Recyclable {
 
-    private static final List<CallTree.Root> rootPool = new ArrayList<>();
     @Nullable
     private CallTree parent;
     protected int count;
@@ -287,10 +285,11 @@ public class CallTree implements Recyclable {
     }
 
     public void removeNodesFasterThan(int minCount) {
-        for (Iterator<CallTree> iterator = getChildren().iterator(); iterator.hasNext(); ) {
-            CallTree child = iterator.next();
+        List<CallTree> callTrees = getChildren();
+        for (int i = 0; i < callTrees.size(); i++) {
+            CallTree child = callTrees.get(i);
             if (child.count < minCount) {
-                iterator.remove();
+                callTrees.remove(i--);
             } else {
                 child.removeNodesFasterThan(minCount);
             }
@@ -362,8 +361,9 @@ public class CallTree implements Recyclable {
         }
 
         public void spanify() {
-            for (CallTree child : getChildren()) {
-                child.spanify(this, traceContext);
+            List<CallTree> callTrees = getChildren();
+            for (int i = 0, size = callTrees.size(); i < size; i++) {
+                callTrees.get(i).spanify(this, traceContext);
             }
         }
 
@@ -385,11 +385,6 @@ public class CallTree implements Recyclable {
             super.resetState();
             timestampUs = 0;
             activeSpan = null;
-        }
-
-        public void recycle() {
-            resetState();
-            rootPool.add(this);
         }
     }
 }

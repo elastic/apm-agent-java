@@ -123,6 +123,11 @@ public class Id implements Recyclable {
         return Arrays.equals(data, that.data);
     }
 
+    public boolean dataEquals(byte[] data, int offset) {
+        int length = this.data.length;
+        return Arrays.equals(this.data, 0, length, data, offset, offset + length);
+    }
+
     @Override
     public int hashCode() {
         return Arrays.hashCode(data);

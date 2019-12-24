@@ -476,8 +476,8 @@ public class TraceContext extends TraceContextHolder {
     public void serialize(byte[] buffer) {
         int offset = 0;
         offset = traceId.toBytes(buffer, offset);
-        offset = transactionId.toBytes(buffer, offset);
         offset = id.toBytes(buffer, offset);
+        offset = transactionId.toBytes(buffer, offset);
         buffer[offset++] = flags;
         buffer[offset++] = (byte) (discard ? 1 : 0);
         putLong(buffer, offset, clock.getOffset());
@@ -486,8 +486,8 @@ public class TraceContext extends TraceContextHolder {
     private void asChildOf(byte[] buffer, @Nullable String serviceName) {
         int offset = 0;
         offset = traceId.fromBytes(buffer, offset);
-        offset = transactionId.fromBytes(buffer, offset);
         offset = parentId.fromBytes(buffer, offset);
+        offset = transactionId.fromBytes(buffer, offset);
         id.setToRandomValue();
         flags = buffer[offset++];
         discard = buffer[offset++] == (byte) 1;
@@ -499,13 +499,17 @@ public class TraceContext extends TraceContextHolder {
     public void deserialize(byte[] buffer, @Nullable String serviceName) {
         int offset = 0;
         offset = traceId.fromBytes(buffer, offset);
-        offset = transactionId.fromBytes(buffer, offset);
         offset = id.fromBytes(buffer, offset);
+        offset = transactionId.fromBytes(buffer, offset);
         flags = buffer[offset++];
         discard = buffer[offset++] == (byte) 1;
         clock.init(getLong(buffer, offset));
         this.serviceName = serviceName;
         onMutation();
+    }
+
+    public boolean traceIdAndIdEquals(byte[] serialized) {
+        return id.dataEquals(serialized, traceId.getLength()) && traceId.dataEquals(serialized, 0);
     }
 
     private static void putLong(byte[] buffer, int offset, long l) {

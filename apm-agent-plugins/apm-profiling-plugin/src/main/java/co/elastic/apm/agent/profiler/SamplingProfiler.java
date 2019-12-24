@@ -170,11 +170,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) {
         long sampleRateNs = TimeUnit.MILLISECONDS.toNanos(sampleRate.getMillis());
         long deadline = profilingDuration.getMillis() + System.currentTimeMillis();
+        ArrayList<StackFrame> stackTraces = new ArrayList<>(256);
         while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
             try {
                 long startNs = System.nanoTime();
 
-                takeThreadSnapshot();
+                takeThreadSnapshot(stackTraces);
 
                 long durationNs = System.nanoTime() - startNs;
                 logger.trace("Taking snapshot took {}ns", durationNs);
@@ -188,7 +189,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    private void takeThreadSnapshot() {
+    private void takeThreadSnapshot(List<StackFrame> stackTraces) {
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         long nanoTime = System.nanoTime();
@@ -200,7 +201,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
         logger.trace("Taking snapshot of threads {} timestamp {}", profiledThreadIds, nanoTime);
 
-        List<StackFrame> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
             long threadId = profiledThreadIds[i];
             ThreadInfo threadInfo = threadInfos[i];
@@ -250,8 +250,15 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private long[] getProfiledThreadIds() {
         long[] result = new long[profiledThreads.size()];
         int i = 0;
-        for (Long threadId : profiledThreads.keySet()) {
-            result[i++] = threadId;
+        for (Map.Entry<Long, CallTree.Root> entry : profiledThreads.entrySet()) {
+            if (entry.getValue() != null) {
+                result[i++] = entry.getKey();
+            }
+        }
+        if (i < result.length) {
+            long[] resultTruncated = new long[i];
+            System.arraycopy(result, 0, resultTruncated, 0, i);
+            return resultTruncated;
         }
         return result;
     }
@@ -372,12 +379,13 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
         private void stopProfiling(SamplingProfiler samplingProfiler) {
             CallTree.Root callTree = samplingProfiler.profiledThreads.get(threadId);
-            if (callTree != null && getTraceContext(samplingProfiler, traceContextBuffer).equals(callTree.getTraceContext())) {
-                samplingProfiler.profiledThreads.remove(threadId);
+            if (callTree != null && callTree.getTraceContext().traceIdAndIdEquals(traceContextBuffer)) {
+                // not removing so Map.Entry objects are reused
+                samplingProfiler.profiledThreads.put(threadId, null);
                 callTree.end();
                 callTree.removeNodesFasterThan(0.01f, 2);
                 callTree.spanify();
-                callTree.recycle();
+                samplingProfiler.rootPool.recycle(callTree);
             }
         }
     }
