@@ -42,6 +42,7 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
 import com.dslplatform.json.JsonWriter;
@@ -56,6 +57,7 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
@@ -518,6 +520,30 @@ class DslJsonSerializerTest {
         JsonNode queue = message.get("queue");
         assertThat(queue).isNotNull();
         assertThat("test_queue").isEqualTo(queue.get("name").textValue());
+    }
+
+    @Test
+    void testSpanStackFrameSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.setStackTrace(Arrays.asList(StackFrame.of("foo.Bar", "baz"), StackFrame.of("foo.Bar$Baz", "qux")));
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode jsonStackTrace = spanJson.get("stacktrace");
+        assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
+        assertThat(jsonStackTrace).isNotNull();
+        assertThat(jsonStackTrace).hasSize(2);
+
+        assertThat(jsonStackTrace.get(0).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(0).get("function").textValue()).isEqualTo("baz");
+        assertThat(jsonStackTrace.get(0).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(0).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(0).get("module")).isNull();
+
+        assertThat(jsonStackTrace.get(1).get("filename").textValue()).isEqualTo("Bar.java");
+        assertThat(jsonStackTrace.get(1).get("function").textValue()).isEqualTo("qux");
+        assertThat(jsonStackTrace.get(1).get("library_frame").booleanValue()).isTrue();
+        assertThat(jsonStackTrace.get(1).get("lineno").intValue()).isEqualTo(-1);
+        assertThat(jsonStackTrace.get(1).get("module")).isNull();
     }
 
     private JsonNode readJsonString(String jsonString) {

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -70,13 +70,15 @@ public class Id implements Recyclable {
         onMutation();
     }
 
-    public void fromBytes(byte[] bytes, int offset) {
+    public int fromBytes(byte[] bytes, int offset) {
         System.arraycopy(bytes, offset, data, 0, data.length);
         onMutation();
+        return offset + data.length;
     }
 
-    public void toBytes(byte[] bytes, int offset) {
+    public int toBytes(byte[] bytes, int offset) {
         System.arraycopy(data, 0, bytes, offset, data.length);
+        return offset + data.length;
     }
 
     public void fromLongs(long... values) {
@@ -119,6 +121,11 @@ public class Id implements Recyclable {
         if (o == null || getClass() != o.getClass()) return false;
         Id that = (Id) o;
         return Arrays.equals(data, that.data);
+    }
+
+    public boolean dataEquals(byte[] data, int offset) {
+        int length = this.data.length;
+        return Arrays.equals(this.data, 0, length, data, offset, offset + length);
     }
 
     @Override

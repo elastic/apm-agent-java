@@ -41,10 +41,22 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     private static final String PROFILING_CATEGORY = "Profiling";
 
+    private final ConfigurationOption<Boolean> profilingEnabled = ConfigurationOption.<Boolean>booleanOption()
+        .key("profiling_inferred_spans")
+        .configurationCategory(PROFILING_CATEGORY)
+        .description("Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.")
+        .tags("experimental")
+        .dynamic(true)
+        .buildWithDefault(false);
+
     private final ConfigurationOption<TimeDuration> sampleRate = TimeDurationValueConverter.durationOption("ms")
-        .key("profiling_sample_rate")
+        .key("profiling_sampling_duration")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
+        .description("The frequency at which stack traces are gathered within a profiling session.\n" +
+            "The lower you set it, the more accurate the durations will be.\n" +
+            "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
+            "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
         .addValidator(RangeValidator.min(TimeDuration.of("10ms")))
         .buildWithDefault(TimeDuration.of("20ms"));
 
@@ -52,7 +64,9 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("profiling_included_classes")
         .configurationCategory(PROFILING_CATEGORY)
-        .description("\n" +
+        .description("If set, the agent will only create inferred spans for methods which match this list.\n" +
+            "Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.\n" +
+            "Example: `org.example.myapp.*`\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
@@ -62,7 +76,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
         .key("profiling_excluded_classes")
         .configurationCategory(PROFILING_CATEGORY)
-        .description("\n" +
+        .description("Excludes classes for which no profiler-inferred spans should be created.\n" +
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
@@ -74,12 +88,13 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             WildcardMatcher.caseSensitiveMatcher("jdk.*")
         ));
 
-    private final ConfigurationOption<TimeDuration> profilerDelay = TimeDurationValueConverter.durationOption("s")
-        .key("profiling_delay")
-        .description("The delay between profiling session.")
+    private final ConfigurationOption<TimeDuration> profilerInterval = TimeDurationValueConverter.durationOption("s")
+        .key("profiling_interval")
+        .description("The interval at which profiling sessions should be started.")
         .configurationCategory(PROFILING_CATEGORY)
         .addValidator(RangeValidator.min(TimeDuration.of("0ms")))
-        .buildWithDefault(TimeDuration.of("53s"));
+        .dynamic(true)
+        .buildWithDefault(TimeDuration.of("61s"));
 
     private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
         .key("profiling_duration")
@@ -88,8 +103,17 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "so-called inferred spans will be created.\n" +
             "They appear in the trace waterfall view like regular spans.")
         .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
         .addValidator(RangeValidator.min(TimeDuration.of("1s")))
-        .buildWithDefault(TimeDuration.of("8s"));
+        .buildWithDefault(TimeDuration.of("10s"));
+
+    public boolean isProfilingEnabled() {
+        return profilingEnabled.get();
+    }
+
+    public boolean isProfilingDisabled() {
+        return !isProfilingEnabled();
+    }
 
     public TimeDuration getSampleRate() {
         return sampleRate.get();
@@ -103,11 +127,15 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return excludedClasses.get();
     }
 
-    public TimeDuration getProfilingDelay() {
-        return profilerDelay.get();
+    public TimeDuration getProfilingInterval() {
+        return profilerInterval.get();
     }
 
     public TimeDuration getProfilingDuration() {
         return profilingDuration.get();
+    }
+
+    public boolean isNonStopProfiling() {
+        return getProfilingDuration().getMillis() >= getProfilingInterval().getMillis();
     }
 }

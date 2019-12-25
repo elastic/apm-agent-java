@@ -24,82 +24,125 @@
  */
 package co.elastic.apm.agent.profiler;
 
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Recyclable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 
-public class CallTree {
+public class CallTree implements Recyclable {
 
+    @Nullable
+    private CallTree parent;
     protected int count;
     private List<CallTree> children = new ArrayList<>();
-    private String frame;
-    private int start;
-    private int end;
     @Nullable
-    private TraceContext traceContext;
+    private StackFrame frame;
+    protected long start;
+    private long lastSeen;
+    private boolean ended;
+    private long activationTimestamp = -1;
+    @Nullable
+    private TraceContext activeContext;
+    private long deactivationTimestamp = -1;
+    private boolean isSpan;
 
-    public CallTree(String frame, int start, @Nullable TraceContext traceContext) {
+    public CallTree() {
+    }
+
+    public void set(@Nullable CallTree parent, StackFrame frame, long nanoTime) {
+        this.parent = parent;
         this.frame = frame;
-        this.start = start;
-        this.traceContext = traceContext;
+        this.start = nanoTime;
     }
 
-    public static CallTree.Root createRoot(TraceContext traceContext, long msPerTick) {
-        return new CallTree.Root( 1, msPerTick, traceContext);
+    public void activation(TraceContext traceContext, long activationTimestamp) {
+        this.activeContext = traceContext;
+        this.activationTimestamp = activationTimestamp;
     }
 
-    protected void addFrame(ListIterator<String> iterator, int tick, int samples, @Nullable TraceContext traceContext) {
-        count += samples;
+    protected void handleDeactivation(TraceContext deactivatedSpan, long timestamp) {
+        if (deactivatedSpan.equals(activeContext)) {
+            deactivationTimestamp = timestamp;
+        } else {
+            CallTree lastChild = getLastChild();
+            if (lastChild != null && !lastChild.isEnded()) {
+                lastChild.handleDeactivation(deactivatedSpan, timestamp);
+            }
+        }
+    }
+
+    public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+        CallTree.Root root = rootPool.createInstance();
+        root.set(traceContext, serviceName, nanoTime);
+        return root;
+    }
+
+    protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
+        count++;
+        lastSeen = nanoTime;
+        //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
+        //   bbb dd   <- traceContext set
+        //   ------   <- all new CallTree during this period should have the traceContext set
+        // a aaaaaa a
+        //  |      |
+        // active  deactive
+
+        // this branch is already aware of the activation
+        if (Objects.equals(this.activeContext, traceContext)) {
+            traceContext = null;
+        }
 
         CallTree lastChild = getLastChild();
         // if the frame corresponding to the last child is not in the stack trace
         // it's assumed to have ended one tick ago
         boolean endChild = true;
         if (iterator.hasPrevious()) {
-            final String frame = iterator.previous();
+            final StackFrame frame = iterator.previous();
             if (lastChild != null) {
-                if (!lastChild.isEnded() && lastChild.frame.equals(frame)) {
-                    lastChild.addFrame(iterator, tick, samples, traceContext);
+                if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
+                    lastChild.addFrame(iterator, traceContext, activationTimestamp, nanoTime);
                     endChild = false;
                 } else {
-                    // we're looking at a frame which is a new sibling to listChild
-                    lastChild.end(tick - 1);
-                    addChild(frame, iterator, tick, samples, traceContext);
+                    addChild(frame, iterator, traceContext, activationTimestamp, nanoTime);
                 }
             } else {
-                addChild(frame, iterator, tick, samples, traceContext);
+                addChild(frame, iterator, traceContext, activationTimestamp, nanoTime);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
-            lastChild.end(tick - 1);
+            lastChild.end();
         }
     }
 
-    void addChild(String frame, ListIterator<String> iterator, int tick, int samples, @Nullable TraceContext traceContext) {
-        CallTree callTree = new CallTree(frame, tick, traceContext);
+    void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
+        CallTree callTree = new CallTree();
+        callTree.set(this, frame, nanoTime);
+        if (traceContext != null) {
+            callTree.activation(traceContext, activationTimestamp);
+        }
         children.add(callTree);
-        callTree.addFrame(iterator, tick, samples, null);
+        callTree.addFrame(iterator, null, activationTimestamp, nanoTime);
     }
 
-    public int getDurationTicks() {
-        return end - start;
-    }
-
-    long getDurationUs(long usPerTick) {
-        return getDurationTicks() * usPerTick;
+    long getDurationUs() {
+        return (lastSeen - start) / 1000;
     }
 
     public int getCount() {
         return count;
     }
 
-    public String getFrame() {
+    public StackFrame getFrame() {
         return frame;
     }
 
@@ -107,15 +150,38 @@ public class CallTree {
         return children;
     }
 
-    void end(int tick) {
-        if (end != 0) {
-            return;
+    void end() {
+        ended = true;
+        // if the parent span has already been deactivated before this call tree node has ended
+        // it means that this node is actually the parent of the already deactivated span
+        //                     make b parent of a and pre-date the start of b to the activation of a
+        // [c        ]    ──┐  [a(inferred) ]
+        // └[a(inferred)]   │  [b(inferred)]
+        //  [b(infer.) ]    └► [c        ]
+        //  └─[d(i.)]          └──[d(i.)]
+        // see also profiler.CallTreeTest::testDectivationBeforeEnd
+        if (deactivationHappenedBeforeEnd()) {
+            start = Math.min(activationTimestamp, start);
+            List<CallTree> callTrees = getChildren();
+            for (int i = 0, size = callTrees.size(); i < size; i++) {
+                CallTree child = callTrees.get(i);
+                child.activation(activeContext, activationTimestamp);
+                child.deactivationTimestamp = deactivationTimestamp;
+                // re-run this logic for all children, even if they have already ended
+                child.end();
+            }
+            activeContext = null;
+            activationTimestamp = -1;
+            deactivationTimestamp = -1;
         }
-        end = tick;
         CallTree lastChild = getLastChild();
         if (lastChild != null && !lastChild.isEnded()) {
-            lastChild.end(tick);
+            lastChild.end();
         }
+    }
+
+    private boolean deactivationHappenedBeforeEnd() {
+        return activeContext != null && deactivationTimestamp > -1 && lastSeen > deactivationTimestamp;
     }
 
     public boolean isLeaf() {
@@ -132,7 +198,7 @@ public class CallTree {
     }
 
     public boolean isEnded() {
-        return end != 0;
+        return ended;
     }
 
     @Override
@@ -154,7 +220,9 @@ public class CallTree {
         for (int i = 0; i < level; i++) {
             out.append("  ");
         }
-        out.append(frame)
+        out.append(frame.getClassName())
+            .append('.')
+            .append(frame.getMethodName())
             .append(' ').append(Integer.toString(count))
             .append('\n');
         for (CallTree node : children) {
@@ -162,76 +230,140 @@ public class CallTree {
         }
     }
 
-    void spanify(TraceContext parent, long baseTimestamp, long usPerTick) {
-        if (traceContext != null) {
-            parent = traceContext;
+    void spanify(CallTree.Root root, TraceContext parentContext) {
+        if (activeContext != null) {
+            parentContext = activeContext;
         }
         Span span = null;
         if (!isPillar() || isLeaf()) {
-            span = asSpan(parent, baseTimestamp, usPerTick);
+            span = asSpan(root, parentContext);
+            this.isSpan = true;
         }
         for (CallTree child : getChildren()) {
-            child.spanify(span != null ? span.getTraceContext() : parent, baseTimestamp, usPerTick);
+            child.spanify(root, span != null ? span.getTraceContext() : parentContext);
         }
         if (span != null) {
-            span.end(span.getTimestamp() + getDurationUs(usPerTick));
+            span.end(span.getTimestamp() + getDurationUs());
         }
     }
 
-    protected Span asSpan(TraceContext parent, long baseTimestamp, long usPerTick) {
-        return parent.createSpan(baseTimestamp + ((start - 1) * usPerTick))
+    protected Span asSpan(Root root, TraceContext parentContext) {
+        Span span = parentContext.createSpan(root.getStartTimestampUs(this))
             .withType("app")
-            .withSubtype("inferred")
-            .appendToName(frame);
+            .withSubtype("inferred");
+
+        frame.appendSimpleClassName(span.getNameForSerialization());
+        span.appendToName("#");
+        span.appendToName(frame.getMethodName());
+
+        // we're not interested in the very bottom of the stack which contains things like accepting and handling connections
+        if (!root.traceContext.equals(parentContext)) {
+            // we're never spanifying the root
+            assert this.parent != null;
+            List<StackFrame> stackTrace = new ArrayList<>();
+            this.parent.fillStackTrace(stackTrace);
+            span.setStackTrace(stackTrace);
+        } else {
+            span.setStackTrace(Collections.<StackFrame>emptyList());
+        }
+        return span;
     }
 
-    public void removeNodesFasterThan(float percent, int minTicks) {
-        int ticks = (int) (getDurationTicks() * percent);
-        removeNodesFasterThan(Math.max(ticks, minTicks));
+    /**
+     * Fill in the stack trace up to the parent span
+     */
+    private void fillStackTrace(List<StackFrame> stackTrace) {
+        if (parent != null && !this.isSpan) {
+            stackTrace.add(frame);
+            parent.fillStackTrace(stackTrace);
+        }
     }
 
-    public void removeNodesFasterThan(int ticks) {
-        for (Iterator<CallTree> iterator = getChildren().iterator(); iterator.hasNext(); ) {
-            CallTree child = iterator.next();
-            if (child.getDurationTicks() < ticks) {
-                iterator.remove();
+    public void removeNodesFasterThan(float percent, int minCount) {
+        int ticks = (int) (count * percent);
+        removeNodesFasterThan(Math.max(ticks, minCount));
+    }
+
+    public void removeNodesFasterThan(int minCount) {
+        List<CallTree> callTrees = getChildren();
+        for (int i = 0; i < callTrees.size(); i++) {
+            CallTree child = callTrees.get(i);
+            if (child.count < minCount) {
+                callTrees.remove(i--);
             } else {
-                child.removeNodesFasterThan(ticks);
+                child.removeNodesFasterThan(minCount);
             }
         }
     }
 
-    public static class Root extends CallTree {
-        private long timestamp;
-        private long msPerTick;
+    @Override
+    public void resetState() {
+        parent = null;
+        count = 0;
+        frame = null;
+        start = 0;
+        lastSeen = 0;
+        ended = false;
+        activationTimestamp = -1;
+        activeContext = null;
+        deactivationTimestamp = -1;
+        isSpan = false;
+        children.clear();
+    }
+
+    public static class Root extends CallTree implements Recyclable {
+        private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
+        private long timestampUs;
         protected TraceContext traceContext;
+        private long activationTimestamp;
+        @Nullable
         private TraceContext activeSpan;
+        private byte[] activeSpanSerialized = new byte[TraceContext.SERIALIZED_LENGTH];
 
-        public Root(int start, long msPerTick, TraceContext traceContext) {
-            super("root", start, traceContext);
-            this.msPerTick = msPerTick;
-            this.traceContext = traceContext;
-            activeSpan = traceContext;
+        public Root(ElasticApmTracer tracer) {
+            this.traceContext = TraceContext.with64BitId(tracer);
         }
 
-        public void setActiveSpan(TraceContext context) {
-            this.activeSpan = context;
+        private void set(byte[] traceContext, @Nullable String serviceName, long nanoTime) {
+            super.set(null, ROOT_FRAME, nanoTime);
+            this.traceContext.deserialize(traceContext, serviceName);
+            setActiveSpan(traceContext, nanoTime);
         }
 
-        public void addStackTrace(List<String> stackTrace) {
-            addStackTrace(stackTrace, 1);
+        public void setActiveSpan(byte[] activeSpanSerialized, long timestamp) {
+            activationTimestamp = timestamp;
+            System.arraycopy(activeSpanSerialized, 0, this.activeSpanSerialized, 0, activeSpanSerialized.length);
+            this.activeSpan = null;
         }
 
-        public void addStackTrace(List<String> stackTrace, int samples) {
-            if (count == 0) {
-                timestamp = this.traceContext.getClock().getEpochMicros();
+        public void onActivation(byte[] active, long timestamp) {
+            setActiveSpan(active, timestamp);
+        }
+
+        public void onDeactivation(byte[] active, long timestamp) {
+            if (activeSpan != null) {
+                handleDeactivation(activeSpan, timestamp);
             }
-            addFrame(stackTrace.listIterator(stackTrace.size()), count + 1, samples, activeSpan);
+            setActiveSpan(active, timestamp);
+        }
+
+        public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime) {
+            if (count == 0) {
+                timestampUs = this.traceContext.getClock().getEpochMicros();
+            }
+            // only "materialize" trace context if there's actually an associated stack trace to the activation
+            // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
+            if (activeSpan == null) {
+                activeSpan = TraceContext.with64BitId(tracer);
+                activeSpan.deserialize(activeSpanSerialized, traceContext.getServiceName());
+            }
+            addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, activationTimestamp, nanoTime);
         }
 
         public void spanify() {
-            for (CallTree child : getChildren()) {
-                child.spanify(traceContext, timestamp, msPerTick * 1000);
+            List<CallTree> callTrees = getChildren();
+            for (int i = 0, size = callTrees.size(); i < size; i++) {
+                callTrees.get(i).spanify(this, traceContext);
             }
         }
 
@@ -239,12 +371,20 @@ public class CallTree {
             return traceContext;
         }
 
-        public long getTimestamp() {
-            return timestamp;
+        public long getTimestampUs() {
+            return timestampUs;
         }
 
-        public void end() {
-            end(count);
+        public long getStartTimestampUs(CallTree callTree) {
+            long offsetUs = (callTree.start - this.start) / 1000;
+            return offsetUs + timestampUs;
+        }
+
+        @Override
+        public void resetState() {
+            super.resetState();
+            timestampUs = 0;
+            activeSpan = null;
         }
     }
 }

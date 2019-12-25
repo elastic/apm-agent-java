@@ -14,7 +14,7 @@ follow these steps:
 1. Properly test your module with unit tests and consider adding integration tests.
    See [`CONTRIBUTING.md`](../CONTRIBUTING.md#coding-guidelines) for more guidance.
 1. Add information about the supported technology in [`docs/intro.asciidoc`](../docs/intro.asciidoc)
-1. Add a line in [`CHANGELOG.md`](../CHANGELOG.md) 
+1. Add a line in [`CHANGELOG.asciidoc`](../CHANGELOG.asciidoc)
 
 
 NOTE: when adding advices, make sure to add `(suppress = Throwable.class)`

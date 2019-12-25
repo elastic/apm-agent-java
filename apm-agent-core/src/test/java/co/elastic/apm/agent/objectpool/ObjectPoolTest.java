@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,24 +24,35 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
+@RunWith(Parameterized.class)
 public class ObjectPoolTest {
 
     private static final int MAX_SIZE = 16;
-    private ObjectPool<TestRecyclable> objectPool;
+    private final ObjectPool<TestRecyclable> objectPool;
 
-    @BeforeEach
-    void setUp() {
-//        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
-        objectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
+    @Parameterized.Parameters(name= "{0}")
+    public static Iterable<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+            { QueueBasedObjectPool.class, QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new) },
+            { ListBasedObjectPool.class, ListBasedObjectPool.ofRecyclable(new ArrayList<>(), MAX_SIZE, TestRecyclable::new) }
+        });
+    }
+
+    public ObjectPoolTest(Class<ObjectPool<?>> clazz, ObjectPool<TestRecyclable> objectPool) {
+        this.objectPool = objectPool;
     }
 
     @Test

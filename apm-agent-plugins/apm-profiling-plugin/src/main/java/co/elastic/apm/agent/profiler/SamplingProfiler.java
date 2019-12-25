@@ -27,12 +27,20 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.Allocator;
+import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
 import co.elastic.apm.agent.util.ExecutorUtils;
-import org.jctools.queues.MessagePassingQueue;
-import org.jctools.queues.MpscUnboundedArrayQueue;
+import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.EventTranslatorThreeArg;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.Sequence;
+import com.lmax.disruptor.SequenceBarrier;
+import com.lmax.disruptor.WaitStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,81 +49,137 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
+    private final EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread> ACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
+            @Override
+            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive, Thread thread) {
+                event.activation(active, thread.getId(), previouslyActive, nanoClock.nanoTime());
+            }
+        };
+    private final EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread> DEACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
+            @Override
+            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive, Thread thread) {
+                event.deactivation(active, thread.getId(), previouslyActive, nanoClock.nanoTime());
+            }
+        };
+    // sizeof(ActivationEvent) is 176B so the ring buffer should be around 880KiB
+    static final int RING_BUFFER_SIZE = 4 * 1024;
 
     private final ProfilingConfiguration config;
     private final ScheduledExecutorService scheduler;
-    private final ConcurrentMap<Long, CallTree.Root> profiledThreads;
-    // TODO limit the queue size
-    //  how do we deal with lost events?
-    private final MessagePassingQueue<ActivationEvent> activationEvents = new MpscUnboundedArrayQueue<ActivationEvent>(256);
+    private final Map<Long, CallTree.Root> profiledThreads;
+    private final RingBuffer<ActivationEvent> eventBuffer;
     private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     private volatile boolean profilingSessionOngoing = false;
+    private final StackFrameCache stackFrameCache = new StackFrameCache();
+    private final Sequence sequence;
+    private final SequenceBarrier sequenceBarrier;
+    private final ElasticApmTracer tracer;
+    private final NanoClock nanoClock;
+    private final ObjectPool<CallTree.Root> rootPool;
 
-    public SamplingProfiler(ElasticApmTracer tracer) {
-        this(tracer.getConfig(ProfilingConfiguration.class),
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler", 10),
-            new ConcurrentHashMap<Long, CallTree.Root>());
+    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
+        this(tracer,
+            tracer.getConfig(ProfilingConfiguration.class),
+            ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler"),
+            new HashMap<Long, CallTree.Root>(), nanoClock);
     }
 
-    public SamplingProfiler(ProfilingConfiguration config, ScheduledExecutorService scheduler, ConcurrentMap<Long, CallTree.Root> profiledThreads) {
+    SamplingProfiler(final ElasticApmTracer tracer, ProfilingConfiguration config, ScheduledExecutorService scheduler, Map<Long, CallTree.Root> profiledThreads, NanoClock nanoClock) {
+        this.tracer = tracer;
         this.config = config;
         this.scheduler = scheduler;
         this.profiledThreads = profiledThreads;
+        this.nanoClock = nanoClock;
+        this.eventBuffer = createRingBuffer();
+        this.sequence = new Sequence();
+        // tells the ring buffer to not override slots which have not been read yet
+        this.eventBuffer.addGatingSequences(sequence);
+        // allows to get/wait for the sequences available for read via waitFor
+        this.sequenceBarrier = eventBuffer.newBarrier();
+        this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(new ArrayList<CallTree.Root>(), 512, new Allocator<CallTree.Root>() {
+            @Override
+            public CallTree.Root createInstance() {
+                return new CallTree.Root(tracer);
+            }
+        });
     }
 
-    public void onActivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
-        if (profilingSessionOngoing) {
-            activationEvents.offer(ActivationEvent.activation(activeSpan, thread.getId(), previouslyActive));
-        }
+    private RingBuffer<ActivationEvent> createRingBuffer() {
+        return RingBuffer.<ActivationEvent>createMultiProducer(
+            new EventFactory<ActivationEvent>() {
+                @Override
+                public ActivationEvent newInstance() {
+                    return new ActivationEvent();
+                }
+            },
+            RING_BUFFER_SIZE,
+            new NoWaitStrategy());
     }
 
-    public void onDeactivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onActivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            activationEvents.offer(ActivationEvent.deactivation(activeSpan, thread.getId(), previouslyActive));
+            return eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive, thread);
         }
+        return false;
+    }
+
+    public boolean onDeactivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+        if (profilingSessionOngoing) {
+            return eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive, thread);
+        }
+        return false;
     }
 
     @Override
     public void run() {
+        if (config.isProfilingDisabled()) {
+            scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
+            return;
+        }
+
         TimeDuration sampleRate = config.getSampleRate();
         TimeDuration profilingDuration = config.getProfilingDuration();
-        profilingSessionOngoing = true;
 
+        setProfilingSessionOngoing(true);
+
+        logger.debug("Start profiling session");
         profile(sampleRate, profilingDuration);
+        logger.debug("End profiling session");
 
-        if (config.getProfilingDelay().getMillis() != 0) {
-            profilingSessionOngoing = false;
-            // TODO do we want to create inferred spans for partially profiled transactions?
-            profiledThreads.clear();
-        }
-        // clears the interrupted status so that the thread can return to the pool
-        if (!Thread.interrupted()) {
-            scheduler.schedule(this, config.getProfilingDelay().getMillis(), TimeUnit.MILLISECONDS);
+        boolean interrupted = Thread.currentThread().isInterrupted();
+        boolean continueProfilingSession = config.isNonStopProfiling() && !interrupted && config.isProfilingEnabled();
+        setProfilingSessionOngoing(continueProfilingSession);
+
+        if (!interrupted) {
+            long delay = config.getProfilingInterval().getMillis() - profilingDuration.getMillis();
+            scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
     }
 
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) {
-        long sampleRateMs = sampleRate.getMillis();
+        long sampleRateNs = TimeUnit.MILLISECONDS.toNanos(sampleRate.getMillis());
         long deadline = profilingDuration.getMillis() + System.currentTimeMillis();
+        ArrayList<StackFrame> stackTraces = new ArrayList<>(256);
         while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
             try {
                 long startNs = System.nanoTime();
 
-                takeThreadSnapshot();
+                takeThreadSnapshot(stackTraces);
 
-                long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
-                logger.trace("Taking snapshot took {}ms", durationMs);
-
-                Thread.sleep(Math.max(sampleRateMs - durationMs, 0));
+                long durationNs = System.nanoTime() - startNs;
+                logger.trace("Taking snapshot took {}ns", durationNs);
+                TimeUnit.NANOSECONDS.sleep(sampleRateNs - durationNs);
             } catch (RuntimeException e) {
                 logger.error("Exception while taking profiling snapshot", e);
             } catch (InterruptedException e) {
@@ -125,25 +189,29 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    private void takeThreadSnapshot() {
+    private void takeThreadSnapshot(List<StackFrame> stackTraces) {
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
-        processActivationEventsUpTo(System.nanoTime());
+        long nanoTime = System.nanoTime();
+        processActivationEventsUpTo(nanoTime);
         long[] profiledThreadIds = getProfiledThreadIds();
         ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
+        if (profiledThreadIds.length == 0) {
+            return;
+        }
+        logger.trace("Taking snapshot of threads {} timestamp {}", profiledThreadIds, nanoTime);
 
-        List<String> stackTraces = new ArrayList<>(256);
         for (int i = 0; i < profiledThreadIds.length; i++) {
             long threadId = profiledThreadIds[i];
             ThreadInfo threadInfo = threadInfos[i];
             if (threadInfo != null) {
                 CallTree.Root root = profiledThreads.get(threadId);
-                for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
+                for (StackTraceElement stackTraceElement : ThreadInfoStacktraceAccessor.getStackTrace(threadInfo)) {
                     if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
-                        stackTraces.add(stackTraceElement.getClassName() + "#" + stackTraceElement.getMethodName());
+                        stackTraces.add(stackFrameCache.getStackFrame(stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
                     }
                 }
-                root.addStackTrace(stackTraces);
+                root.addStackTrace(tracer, stackTraces, nanoTime);
                 stackTraces.clear();
             }
         }
@@ -153,60 +221,118 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return WildcardMatcher.isAnyMatch(includedClasses, stackTraceElement.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackTraceElement.getClassName());
     }
 
-    private void processActivationEventsUpTo(long timestamp) {
-        MessagePassingQueue<ActivationEvent> activationEvents = this.activationEvents;
-
-        for (ActivationEvent event = activationEvents.relaxedPeek(); event != null && event.happenedBefore(timestamp); event = activationEvents.relaxedPeek()) {
-            activationEvents.relaxedPoll();
-            event.handle(this);
+    public void processActivationEventsUpTo(long timestamp) {
+        RingBuffer<ActivationEvent> eventBuffer = this.eventBuffer;
+        try {
+            long nextSequence = sequence.get() + 1L;
+            // We never want to wait until new elements are available,
+            // we just want to process all available events
+            // See NoWaitStrategy
+            long availableSequence = sequenceBarrier.waitFor(nextSequence);
+            while (nextSequence <= availableSequence) {
+                ActivationEvent event = eventBuffer.get(nextSequence);
+                if (event.happenedBeforeOrAt(timestamp)) {
+                    event.handle(this);
+                    nextSequence++;
+                } else {
+                    // the next events are guaranteed to be older
+                    // only after a sequence is acquired, the timestamp is set within the EventTranslator
+                    sequence.set(nextSequence - 1);
+                    return;
+                }
+            }
+            sequence.set(availableSequence);
+        } catch (Exception ignore) {
+            // our NoWaitStrategy does not throw exceptions
         }
     }
 
     private long[] getProfiledThreadIds() {
         long[] result = new long[profiledThreads.size()];
         int i = 0;
-        for (Long threadId : profiledThreads.keySet()) {
-            result[i++] = threadId;
+        for (Map.Entry<Long, CallTree.Root> entry : profiledThreads.entrySet()) {
+            if (entry.getValue() != null) {
+                result[i++] = entry.getKey();
+            }
+        }
+        if (i < result.length) {
+            long[] resultTruncated = new long[i];
+            System.arraycopy(result, 0, resultTruncated, 0, i);
+            return resultTruncated;
         }
         return result;
     }
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        scheduler.scheduleAtFixedRate(this, 0, config.getSampleRate().getMillis(), TimeUnit.MILLISECONDS);
+        if (config.isProfilingEnabled()) {
+            scheduler.submit(this);
+        }
     }
 
     @Override
     public void stop() throws Exception {
+        // cancels/interrupts the profiling thread
         scheduler.shutdownNow();
     }
 
+    void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
+        this.profilingSessionOngoing = profilingSessionOngoing;
+        if (!profilingSessionOngoing) {
+            profiledThreads.clear();
+        }
+    }
+
+    // for testing
+    CallTree.Root getRoot() {
+        return profiledThreads.get(Thread.currentThread().getId());
+    }
+
+    void clear() {
+        profiledThreads.clear();
+        try {
+            // skip all events in buffer
+            sequence.set(sequenceBarrier.waitFor(sequence.get() + 1L));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    // --
+
     private static class ActivationEvent {
-        private TraceContext traceContext;
         @Nullable
-        private TraceContext previousContext;
+        private String serviceName;
+        private byte[] traceContextBuffer = new byte[TraceContext.SERIALIZED_LENGTH];
+        private byte[] previousContextBuffer = new byte[TraceContext.SERIALIZED_LENGTH];
+        private boolean rootContext;
         private long threadId;
         private boolean activation;
         private long timestamp;
 
-        public ActivationEvent(TraceContext traceContext, long threadId, boolean activation, @Nullable TraceContext previousContext) {
-            this.traceContext = traceContext;
+        public boolean happenedBeforeOrAt(long timestamp) {
+            return this.timestamp <= timestamp;
+        }
+
+        public void activation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
+            set(context.getTraceContext(), threadId, true, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        }
+
+        public void deactivation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
+            set(context.getTraceContext(), threadId, false, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
+        }
+
+        private void set(TraceContext traceContext, long threadId, boolean activation, @Nullable TraceContext previousContext, long nanoTime) {
+            traceContext.serialize(traceContextBuffer);
             this.threadId = threadId;
             this.activation = activation;
-            this.previousContext = previousContext;
-            this.timestamp = System.nanoTime();
-        }
-
-        public boolean happenedBefore(long timestamp) {
-            return this.timestamp < timestamp;
-        }
-
-        public static ActivationEvent activation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext) {
-            return new ActivationEvent(context.getTraceContext().copy(), threadId, true, previousContext != null ? previousContext.getTraceContext() : null);
-        }
-
-        public static ActivationEvent deactivation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext) {
-            return new ActivationEvent(context.getTraceContext().copy(), threadId, false, previousContext != null ? previousContext.getTraceContext() : null);
+            this.serviceName = traceContext.getServiceName();
+            if (previousContext != null) {
+                previousContext.serialize(previousContextBuffer);
+                rootContext = false;
+            } else {
+                rootContext = true;
+            }
+            this.timestamp = nanoTime;
         }
 
         public void handle(SamplingProfiler samplingProfiler) {
@@ -218,43 +344,66 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
 
         private void handleActivationEvent(SamplingProfiler samplingProfiler) {
-            if (previousContext == null) {
+            if (rootContext) {
                 startProfiling(samplingProfiler);
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
-                    root.setActiveSpan(traceContext);
+                    root.onActivation(traceContextBuffer, timestamp);
                 }
             }
         }
 
         private void startProfiling(SamplingProfiler samplingProfiler) {
-            ProfilingConfiguration config = samplingProfiler.config;
-            CallTree.Root root = CallTree.createRoot(traceContext.getTraceContext().copy(), config.getSampleRate().getMillis());
-            if (samplingProfiler.profiledThreads.put(threadId, root) != null) {
-                logger.warn("Tried to register another profiling root on thread {} for span {}", threadId, traceContext);
-            }
+            logger.debug("Start profiling for thread {}", threadId);
+            CallTree.Root root = CallTree.createRoot(samplingProfiler.rootPool, traceContextBuffer, serviceName, timestamp);
+            samplingProfiler.profiledThreads.put(threadId, root);
+        }
+
+        private TraceContext getTraceContext(SamplingProfiler samplingProfiler, byte[] traceContextBuffer) {
+            TraceContext traceContext = TraceContext.with64BitId(samplingProfiler.tracer);
+            traceContext.deserialize(traceContextBuffer, serviceName);
+            return traceContext;
         }
 
         private void handleDeactivationEvent(SamplingProfiler samplingProfiler) {
-            if (previousContext == null) {
+            if (rootContext) {
                 stopProfiling(samplingProfiler);
             } else {
                 CallTree.Root root = samplingProfiler.profiledThreads.get(threadId);
                 if (root != null) {
-                    root.setActiveSpan(previousContext);
+                    root.onDeactivation(previousContextBuffer, timestamp);
                 }
             }
         }
 
         private void stopProfiling(SamplingProfiler samplingProfiler) {
             CallTree.Root callTree = samplingProfiler.profiledThreads.get(threadId);
-            if (callTree != null && traceContext.getTraceContext().equals(callTree.getTraceContext())) {
-                samplingProfiler.profiledThreads.remove(threadId);
+            if (callTree != null && callTree.getTraceContext().traceIdAndIdEquals(traceContextBuffer)) {
+                // not removing so Map.Entry objects are reused
+                samplingProfiler.profiledThreads.put(threadId, null);
                 callTree.end();
                 callTree.removeNodesFasterThan(0.01f, 2);
                 callTree.spanify();
+                samplingProfiler.rootPool.recycle(callTree);
             }
+        }
+    }
+
+    /**
+     * Does not wait but immediately returns the highest sequence which is available for read
+     * We never want to wait until new elements are available,
+     * we just want to process all available events
+     */
+    private static class NoWaitStrategy implements WaitStrategy {
+
+        @Override
+        public long waitFor(long sequence, Sequence cursor, Sequence dependentSequence, SequenceBarrier barrier) {
+            return dependentSequence.get();
+        }
+
+        @Override
+        public void signalAllWhenBlocking() {
         }
     }
 }

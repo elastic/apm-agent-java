@@ -30,9 +30,14 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 public class ProfilingFactory implements LifecycleListener {
 
     private final SamplingProfiler profiler;
+    private final NanoClock nanoClock;
 
     public ProfilingFactory(ElasticApmTracer tracer) {
-        profiler = new SamplingProfiler(tracer);
+        boolean envTest = false;
+        // in unit tests, where assertions are enabled, this envTest is true
+        assert envTest = true;
+        nanoClock = envTest ? new FixedNanoClock() : new SystemNanoClock();
+        profiler = new SamplingProfiler(tracer, nanoClock);
     }
 
     @Override
@@ -46,4 +51,11 @@ public class ProfilingFactory implements LifecycleListener {
         profiler.stop();
     }
 
+    public SamplingProfiler getProfiler() {
+        return profiler;
+    }
+
+    public NanoClock getNanoClock() {
+        return nanoClock;
+    }
 }

@@ -70,6 +70,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoa
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -175,7 +176,7 @@ public class ElasticApmAgent {
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = instrumentation.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
         final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getImplementationVersionPostFilter();
-        final ElementMatcher<? super TypeDescription> typeMatcher = instrumentation.getTypeMatcher();
+        final ElementMatcher<? super TypeDescription> typeMatcher = new ElementMatcher.Junction.Conjunction<>(instrumentation.getTypeMatcher(), not(isInterface()));
         final ElementMatcher<? super MethodDescription> methodMatcher = instrumentation.getMethodMatcher();
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
@@ -347,6 +348,7 @@ public class ElasticApmAgent {
                     not(
                         nameEndsWith("URLConnection")
                             .or(nameStartsWith("java.util.concurrent."))
+                            .or(named("java.lang.management.ThreadInfo"))
                     )
                 )
             )
