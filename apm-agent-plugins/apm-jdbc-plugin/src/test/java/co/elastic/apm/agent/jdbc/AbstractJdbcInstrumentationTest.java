@@ -168,6 +168,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         boolean nullForLargeBatch = isKnownDatabase("MySQL", "5.7");
         nullForLargeBatch = nullForLargeBatch || isKnownDatabase("MySQL", "10."); // mariadb
         nullForLargeBatch = nullForLargeBatch || isKnownDatabase("Microsoft SQL Server", "14.");
+        nullForLargeBatch = nullForLargeBatch || isKnownDatabase("Oracle", "");
         if (isLargeBatch && nullForLargeBatch) {
             // we might actually test for a bug or driver implementation detail here
             assertThat(updates).isNull();
@@ -248,7 +249,7 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
                 long[] batchUpdates = statement.executeLargeBatch();
                 System.arraycopy(batchUpdates, 0, updates, 0, batchUpdates.length);
             });
-            if(!supported){
+            if (!supported) {
                 // ignore unsupported feature
                 return;
             }
@@ -258,8 +259,8 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         }
 
         long expectedAffected = 2;
-        if (isKnownDatabase("MySQL", "10.")) {
-            // for an unknown reason mariadb 10 has unexpected but somehow consistent behavior here
+        if (isKnownDatabase("MySQL", "10.") || isKnownDatabase("Oracle", "")) {
+            // for an unknown reason mariadb 10 and Oracle express have unexpected but somehow consistent behavior here
             assertThat(updates).containsExactly(-2, -2);
             expectedAffected = -4;
         } else {
@@ -277,9 +278,11 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
         assertThat(reporter.getSpans()).hasSize(1);
         Db db = reporter.getFirstSpan().getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(insert);
-        assertThat(db.getAffectedRowsCount())
-            .isEqualTo(statement.getUpdateCount())
-            .isEqualTo(1);
+        if (!isKnownDatabase("Oracle", "")) {
+            assertThat(db.getAffectedRowsCount())
+                .isEqualTo(statement.getUpdateCount())
+                .isEqualTo(1);
+        }
     }
 
     private void assertQuerySucceededAndSpanRecorded(ResultSet resultSet, String rawSql, boolean preparedStatement) throws SQLException {
@@ -305,14 +308,23 @@ public abstract class AbstractJdbcInstrumentationTest extends AbstractInstrument
 
         Db db = jdbcSpan.getContext().getDb();
         assertThat(db.getStatement()).isEqualTo(rawSql);
-        assertThat(db.getUser()).isEqualToIgnoringCase(connection.getMetaData().getUserName());
+        DatabaseMetaData metaData = connection.getMetaData();
+        assertThat(db.getUser()).isEqualToIgnoringCase(metaData.getUserName());
         assertThat(db.getType()).isEqualToIgnoringCase("sql");
 
         assertThat(db.getAffectedRowsCount())
             .describedAs("unexpected affected rows count for statement %s", rawSql)
             .isEqualTo(expectedAffectedRows);
 
-        Destination.Service service = jdbcSpan.getContext().getDestination().getService();
+        Destination destination = jdbcSpan.getContext().getDestination();
+        assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+        if (expectedDbVendor.equals("h2")) {
+            assertThat(destination.getPort()).isEqualTo(-1);
+        } else {
+            assertThat(destination.getPort()).isGreaterThan(0);
+        }
+
+        Destination.Service service = destination.getService();
         assertThat(service.getName().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getResource().toString()).isEqualTo(expectedDbVendor);
         assertThat(service.getType()).isEqualTo(DB_SPAN_TYPE);

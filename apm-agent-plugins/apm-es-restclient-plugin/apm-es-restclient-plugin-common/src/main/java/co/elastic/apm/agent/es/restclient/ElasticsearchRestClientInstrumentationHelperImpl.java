@@ -25,7 +25,6 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.objectpool.Allocator;
@@ -33,6 +32,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
@@ -116,13 +116,21 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
         try {
             String url = null;
             int statusCode = -1;
+            String address = null;
+            int port = -1;
             if (response != null) {
-                url = response.getHost().toURI();
+                HttpHost host = response.getHost();
+                address = host.getHostName();
+                port = host.getPort();
+                url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
             } else if (t != null) {
                 if (t instanceof ResponseException) {
                     ResponseException esre = (ResponseException) t;
-                    url = esre.getResponse().getHost().toURI();
+                    HttpHost host = esre.getResponse().getHost();
+                    address = host.getHostName();
+                    port = host.getPort();
+                    url = host.toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
                 }
                 span.captureException(t);
@@ -131,9 +139,8 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
             if (url != null && !url.isEmpty()) {
                 span.getContext().getHttp().withUrl(url);
             }
-            if (statusCode > 0) {
-                span.getContext().getHttp().withStatusCode(statusCode);
-            }
+            span.getContext().getHttp().withStatusCode(statusCode);
+            span.getContext().getDestination().withAddress(address).withPort(port);
         } finally {
             span.end();
         }

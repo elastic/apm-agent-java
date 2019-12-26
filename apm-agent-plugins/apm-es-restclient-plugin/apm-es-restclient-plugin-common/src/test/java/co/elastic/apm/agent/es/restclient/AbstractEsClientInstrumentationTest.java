@@ -126,6 +126,8 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     private void validateDestinationContextContent(Destination destination) {
         assertThat(destination).isNotNull();
+        assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
         assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
         assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);

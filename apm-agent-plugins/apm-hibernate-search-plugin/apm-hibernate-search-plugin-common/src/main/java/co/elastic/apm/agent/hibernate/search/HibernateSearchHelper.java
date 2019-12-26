@@ -59,10 +59,6 @@ public final class HibernateSearchHelper {
                     .withStatement(query);
             span.withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME)
                     .appendToName(" ").appendToName(methodName).appendToName("()");
-            span.getContext().getDestination().getService()
-                    .withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withResource(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                    .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE);
         }
         return span;
     }

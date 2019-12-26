@@ -43,8 +43,8 @@ public class Destination implements Recyclable {
      */
     private int port;
 
-    public Destination withAddress(CharSequence address) {
-        if (address.length() > 0) {
+    public Destination withAddress(@Nullable CharSequence address) {
+        if (address != null && address.length() > 0) {
             // remove square brackets for IPv6 addresses
             int startIndex = 0;
             if (address.charAt(0) == '[') {

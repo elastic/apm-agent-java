@@ -44,10 +44,6 @@ public final class HibernateSearchAssertionHelper {
         assertThat(span.getType()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE);
         assertThat(span.getAction()).isEqualTo(searchMethod);
         assertThat(span.getNameAsString()).isEqualTo(buildSpanName(searchMethod));
-        Destination.Service service = span.getContext().getDestination().getService();
-        assertThat(service.getName().toString()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
-        assertThat(service.getResource().toString()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE);
-        assertThat(service.getType()).isEqualTo(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE);
     }
 
     private static String buildSpanName(final String methodName) {
