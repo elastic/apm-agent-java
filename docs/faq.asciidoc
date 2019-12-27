@@ -18,7 +18,7 @@ it injects monitoring code before and after the servlet invocation.
 
 These events, called Transactions and Spans, are sent to the APM Server which converts them to a format suitable for Elasticsearch,
 and sends them to an Elasticsearch cluster.
-You can then use the APM UI in Kibana to gain insight into latency issues and error culprits within your application.
+You can then use the APM app in Kibana to gain insight into latency issues and error culprits within your application.
 
 [float]
 [[faq-bytecode-instrumentation]]
@@ -32,7 +32,7 @@ Elastic APM is using the popular bytecode instrumentation library http://bytebud
 which takes care of the heavy lifting of dealing with actual bytecode and lets us write the instrumentation in pure Java.
 
 Byte Buddy is widely used in popular Open Source projects,
-for example Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
+for example, Hibernate, Jackson, Mockito and is also commonly used by APM vendors.
 It is created by a Java Champion, awarded with the Dukes Choice award and currently downloaded over 75 million times a year.
 
 Unlike other bytecode instrumentation libraries,

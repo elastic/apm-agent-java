@@ -39,17 +39,17 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.Topic;
+import javax.jms.MessageListener;
 
-import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_HEADER;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT_PROPERTY;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
+import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.RECEIVE_NAME_PREFIX;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
@@ -83,53 +83,67 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
     public static class MessageListenerAdvice {
 
+        @SuppressWarnings("unused")
         @Advice.OnMethodEnter(suppress = Throwable.class)
         @Nullable
         public static Transaction beforeOnMessage(@Advice.Argument(0) @Nullable final Message message,
                                                   @Advice.Origin Class<?> clazz) {
 
+            if (message == null || tracer == null || tracer.currentTransaction() != null) {
+                return null;
+            }
+
+            Destination destination = null;
+            String destinationName = null;
+            long timestamp = 0;
+            try {
+                destination = message.getJMSDestination();
+                timestamp = message.getJMSTimestamp();
+            } catch (JMSException e) {
+                logger.warn("Failed to retrieve message's destination", e);
+            }
+
+            //noinspection ConstantConditions
+            JmsInstrumentationHelper<Destination, Message, MessageListener> helper =
+                jmsInstrHelperManager.getForClassLoaderOfClass(MessageListener.class);
+            if (helper != null && destination != null) {
+                destinationName = helper.extractDestinationName(message, destination);
+                if (helper.ignoreDestination(destinationName)) {
+                    return null;
+                }
+            }
+
             // Create a transaction - even if running on same JVM as the sender
             Transaction transaction = null;
-            Destination destination = null;
-            if (tracer != null && tracer.currentTransaction() == null) {
-                if (message != null) {
-                    try {
-                        String traceParentProperty = message.getStringProperty(JMS_TRACE_PARENT_HEADER);
-                        if (traceParentProperty != null) {
-                            transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(),
-                                traceParentProperty, clazz.getClassLoader());
-                        }
-                    } catch (JMSException e) {
-                        logger.warn("Failed to retrieve trace context property from JMS message", e);
-                    }
 
-                    try {
-                        destination = message.getJMSDestination();
-                    } catch (JMSException e) {
-                        logger.warn("Failed to retrieve message's destination", e);
-                    }
+            try {
+                String traceParentProperty = message.getStringProperty(JMS_TRACE_PARENT_PROPERTY);
+                if (traceParentProperty != null) {
+                    transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(),
+                        traceParentProperty, clazz.getClassLoader());
                 }
-
-                if (transaction == null) {
-                    transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
-                }
-
-                transaction.withType("messaging").withName("JMS RECEIVE");
-                try {
-                    if (destination instanceof Queue) {
-                        transaction.appendToName(" from queue ").appendToName(((Queue) destination).getQueueName());
-                    } else if (destination instanceof Topic) {
-                        transaction.appendToName(" from topic ").appendToName(((Topic) destination).getTopicName());
-                    }
-                } catch (JMSException e) {
-                    logger.warn("Failed to retrieve message's destination", e);
-                }
-
-                transaction.activate();
+            } catch (JMSException e) {
+                logger.warn("Failed to retrieve trace context property from JMS message", e);
             }
+
+            if (transaction == null) {
+                transaction = tracer.startTransaction(TraceContext.asRoot(), null, clazz.getClassLoader());
+            }
+
+            transaction.withType(MESSAGING_TYPE).withName(RECEIVE_NAME_PREFIX);
+            if (helper != null) {
+                if (destinationName != null) {
+                    helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
+                }
+                helper.addMessageDetails(message, transaction);
+                helper.setMessageAge(message, transaction);
+            }
+            transaction.activate();
+
             return transaction;
         }
 
+        @SuppressWarnings("unused")
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void afterOnMessage(@Advice.Enter @Nullable final Transaction transaction,
                                           @Advice.Thrown final Throwable throwable) {

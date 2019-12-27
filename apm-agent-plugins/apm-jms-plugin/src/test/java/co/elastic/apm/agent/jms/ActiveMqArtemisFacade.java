@@ -34,12 +34,18 @@ import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.Queue;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -50,6 +56,7 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     private ActiveMQConnectionFactory connectionFactory;
     private ActiveMQServerImpl activeMQServer;
     private JMSContext context;
+    private final Map<Destination, JMSConsumer> consumerCache = new HashMap<>();
 
     @Override
     public void prepareResources() throws Exception {
@@ -84,6 +91,7 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     public void afterTest() {
         // This should also close underlying producers and consumers
         context.close();
+        consumerCache.clear();
     }
 
     @Override
@@ -92,18 +100,33 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
+    public TemporaryQueue createTempQueue() throws Exception {
+        return context.createTemporaryQueue();
+    }
+
+    @Override
     public Topic createTopic(String topicName) {
         return context.createTopic(topicName);
     }
 
     @Override
-    public Message createTextMessage(String messageText) {
-        return context.createTextMessage(messageText);
+    public TemporaryTopic createTempTopic() throws Exception {
+        return context.createTemporaryTopic();
     }
 
     @Override
-    public void send(Destination destination, Message message) {
-        context.createProducer().send(destination, message);
+    public TextMessage createTextMessage(String messageText) throws JMSException {
+        TextMessage message = context.createTextMessage(messageText);
+        message.setStringProperty("test_string_property", "test123");
+        message.setIntProperty("test_int_property", 123);
+        message.setStringProperty("passwd", "secret");
+        message.setStringProperty("null_property", null);
+        return message;
+    }
+
+    @Override
+    public void send(Destination destination, Message message, boolean disableTimestamp) {
+        context.createProducer().setDisableMessageTimestamp(disableTimestamp).send(destination, message);
     }
 
     @Override
@@ -143,12 +166,12 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
 
     @Override
     public Message receive(Destination destination) {
-        return context.createConsumer(destination).receive();
+        return getOrCreateQueueConsumer(destination).receive();
     }
 
     @Override
     public Message receive(Destination destination, long timeout) {
-        return context.createConsumer(destination).receive(timeout);
+        return getOrCreateQueueConsumer(destination).receive(timeout);
     }
 
     @Override
@@ -158,6 +181,15 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
 
     @Override
     public Message receiveNoWait(Destination destination) {
-        return context.createConsumer(destination).receiveNoWait();
+        return getOrCreateQueueConsumer(destination).receiveNoWait();
+    }
+
+    private JMSConsumer getOrCreateQueueConsumer(Destination destination) {
+        JMSConsumer consumer = consumerCache.get(destination);
+        if (consumer == null) {
+            consumer = context.createConsumer(destination);
+            consumerCache.put(destination, consumer);
+        }
+        return consumer;
     }
 }

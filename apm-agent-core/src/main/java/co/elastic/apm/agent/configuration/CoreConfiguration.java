@@ -27,6 +27,7 @@ package co.elastic.apm.agent.configuration;
 import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.methodmatching.MethodMatcher;
 import co.elastic.apm.agent.bci.methodmatching.configuration.MethodMatcherValueConverter;
+import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
 import co.elastic.apm.agent.configuration.validation.RegexValidator;
@@ -34,7 +35,6 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
-import org.stagemonitor.configuration.converter.ListValueConverter;
 import org.stagemonitor.configuration.converter.MapValueConverter;
 import org.stagemonitor.configuration.converter.StringValueConverter;
 import org.stagemonitor.configuration.source.ConfigurationSource;
@@ -45,8 +45,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.impl.ElasticApmTracer.MAX_LOG_INTERVAL_MICRO_SECS;
 import static co.elastic.apm.agent.logging.LoggingConfiguration.AGENT_HOME_PLACEHOLDER;
 
 public class CoreConfiguration extends ConfigurationOptionProvider {
@@ -54,10 +56,12 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public static final String ACTIVE = "active";
     public static final String INSTRUMENT = "instrument";
     public static final String SERVICE_NAME = "service_name";
+    public static final String SERVICE_NODE_NAME = "service_node_name";
     public static final String SAMPLE_RATE = "transaction_sample_rate";
     private static final String CORE_CATEGORY = "Core";
-    public static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
+    private static final String DEFAULT_CONFIG_FILE = AGENT_HOME_PLACEHOLDER + "/elasticapm.properties";
     public static final String CONFIG_FILE = "config_file";
+
     private final ConfigurationOption<Boolean> active = ConfigurationOption.booleanOption()
         .key(ACTIVE)
         .configurationCategory(CORE_CATEGORY)
@@ -107,6 +111,23 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "from the ASCII alphabet, numbers, dashes, underscores and spaces"))
         .buildWithDefault(ServiceNameUtil.getDefaultServiceName());
 
+    private final ConfigurationOption<String> serviceNodeName = ConfigurationOption.stringOption()
+        .key(SERVICE_NODE_NAME)
+        .configurationCategory(CORE_CATEGORY)
+        .label("A unique name for the service node")
+        .description("If set, this name is used to distinguish between different nodes of a service, \n" +
+            "therefore it should be unique for each JVM within a service. \n" +
+            "If not set, data aggregations will be done based on a container ID (where valid) or on the reported \n" +
+            "hostname (automatically discovered or manually configured through <<config-hostname, `hostname`>>). \n" +
+            "\n" +
+            "NOTE: JVM metrics views rely on aggregations that are based on the service node name. \n" +
+            "If you have multiple JVMs installed on the same host reporting data for the same service name, \n" +
+            "you must set a unique node name for each in order to view metrics at the JVM level.\n" +
+            "\n" +
+            "NOTE: Metrics views can utilize this configuration since APM Server 7.5")
+        .tags("added[1.11.0]")
+        .build();
+
     private final ConfigurationOption<String> serviceVersion = ConfigurationOption.stringOption()
         .key("service_version")
         .configurationCategory(CORE_CATEGORY)
@@ -114,9 +135,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "the recommended value for this field is the commit identifier of the deployed revision, " +
             "e.g. the output of git rev-parse HEAD.")
         .build();
-    
+
     private final ConfigurationOption<String> hostname = ConfigurationOption.stringOption()
         .key("hostname")
+        .tags("added[1.10.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Allows for the reported hostname to be manually specified. If unset the hostname will be looked up.")
         .build();
@@ -126,10 +148,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("The name of the environment this service is deployed in, e.g. \"production\" or \"staging\".\n" +
             "\n" +
-            "Environments allow you to easily filter data on a global level in the APM UI.\n" +
+            "Environments allow you to easily filter data on a global level in the APM app.\n" +
             "It's important to be consistent when naming environments across agents.\n" +
-            "See {kibana-ref}/filters.html#environment-selector[environment selector] in the Kibana UI for more information.\n\n" +
-            "NOTE: This feature is fully supported in the APM UI in Kibana versions >= 7.2.\n" +
+            "See {apm-app-ref}/filters.html#environment-selector[environment selector] in the APM app for more information.\n\n" +
+            "NOTE: This feature is fully supported in the APM app in Kibana versions >= 7.2.\n" +
             "You must use the query bar to filter for a specific environment in versions prior to 7.2.")
         .build();
 
@@ -151,7 +173,8 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("performance")
         .description("Limits the amount of spans that are recorded per transaction.\n\n" +
             "This is helpful in cases where a transaction creates a very high amount of spans (e.g. thousands of SQL queries).\n\n" +
-            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.")
+            "Setting an upper limit will prevent overloading the agent and the APM server with too much work for such edge cases.\n\n" +
+            "A message will be logged when the max number of spans has been exceeded but only at a rate of once every " + TimeUnit.MICROSECONDS.toMinutes(MAX_LOG_INTERVAL_MICRO_SECS)  + " minutes to ensure performance is not impacted.")
         .dynamic(true)
         .buildWithDefault(500);
 
@@ -223,6 +246,59 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.singletonList(WildcardMatcher.valueOf("(?-i)*Nested*Exception")));
 
+    private final ConfigurationOption<List<WildcardMatcher>> ignoreExceptions = ConfigurationOption
+        .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
+        .key("ignore_exceptions")
+        .tags("added[1.11.0]")
+        .configurationCategory(CORE_CATEGORY)
+        .description("A list of exceptions that should be ignored and not reported as errors.\n" +
+            "This allows to ignore exceptions thrown in regular control flow that are not actual errors\n" +
+            "\n" +
+            WildcardMatcher.DOCUMENTATION + "\n" +
+            "\n" +
+            "Examples:\n" +
+            "\n" +
+            " - `com.mycompany.ExceptionToIgnore`: using fully qualified name\n" +
+            " - `*ExceptionToIgnore`: using wildcard to avoid package name\n" +
+            " - `*exceptiontoignore`: case-insensitive by default\n" +
+            "\n" +
+            "NOTE: Exception inheritance is not supported, thus you have to explicitly list all the thrown exception types"
+        )
+        .dynamic(true)
+        .buildWithDefault(Collections.<WildcardMatcher>emptyList());
+
+    private final ConfigurationOption<EventType> captureBody = ConfigurationOption.enumOption(EventType.class)
+        .key("capture_body")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("For transactions that are HTTP requests, the Java agent can optionally capture the request body (e.g. POST \n" +
+            "variables). For transactions that are initiated by receiving a JMS text message, the agent can capture the \n" +
+            "textual message body.\n" +
+            "\n" +
+            "If the HTTP request or the JMS message has a body and this setting is disabled, the body will be shown as [REDACTED].\n" +
+            "\n" +
+            "This option is case-insensitive.\n" +
+            "\n" +
+            "NOTE: Currently, only UTF-8 encoded plain text HTTP content types are supported.\n" +
+            "The option <<config-capture-body-content-types>> determines which content types are captured.\n" +
+            "\n" +
+            "WARNING: Request bodies often contain sensitive values like passwords, credit card numbers etc.\n" +
+            "If your service handles data like this, we advise to only enable this feature with care.\n" +
+            "Turning on body capturing can also significantly increase the overhead in terms of heap usage,\n" +
+            "network utilisation and Elasticsearch index size.")
+        .dynamic(true)
+        .buildWithDefault(EventType.OFF);
+
+    private final ConfigurationOption<Boolean> captureHeaders = ConfigurationOption.booleanOption()
+        .key("capture_headers")
+        .configurationCategory(CORE_CATEGORY)
+        .tags("performance")
+        .description("If set to `true`, the agent will capture request and response headers, including cookies.\n" +
+            "\n" +
+            "NOTE: Setting this to `false` reduces network bandwidth, disk space and object allocations.")
+        .dynamic(true)
+        .buildWithDefault(true);
+
     private final ConfigurationOption<Map<String, String>> globalLabels = ConfigurationOption
         .builder(new MapValueConverter<String, String>(StringValueConverter.INSTANCE, StringValueConverter.INSTANCE, "=", ","), Map.class)
         .key("global_labels")
@@ -293,11 +369,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         ));
 
     private final ConfigurationOption<List<MethodMatcher>> traceMethods = ConfigurationOption
-        .builder(new ListValueConverter<>(MethodMatcherValueConverter.INSTANCE), List.class)
+        .builder(MethodMatcherValueConverter.LIST, List.class)
         .key("trace_methods")
         .tags("added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0]")
         .configurationCategory(CORE_CATEGORY)
-        .description("A list of methods for with to create a transaction or span.\n" +
+        .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
             "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
             "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
@@ -333,13 +409,14 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "<<config-span-frames-min-duration, `span_frames_min_duration`>>.\n" +
             "When tracing a large number of methods (for example by using wildcards),\n" +
             "this may lead to high overhead.\n" +
-            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" + 
+            "Consider increasing the threshold or disabling stack trace collection altogether.\n\n" +
             "Common configurations:\n\n" +
             "Trace all public methods in CDI-Annotated beans:\n\n" +
             "----\n" +
             "public @@javax.enterprise.context.NormalScope your.application.package.*\n" +
             "public @@javax.inject.Scope your.application.package.*\n" +
-            "----\n")
+            "----\n" +
+            "NOTE: This method is only available in the Elastic APM Java Agent.")
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
@@ -402,8 +479,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .tags("added[1.8.0]")
         .configurationCategory(CORE_CATEGORY)
         .description("Sets the path of the agent config file.\n" +
-            "The special value `_AGENT_HOME_` is a placeholder for the folder the elastic-apm-agent.jar is in.\n" +
-            "The location can either be in the classpath of the application (when using the attacher API) or on the file system.\n" +
+            "The special value `_AGENT_HOME_` is a placeholder for the folder the `elastic-apm-agent.jar` is in.\n" +
+            "The file has to be on the file system.\n" +
+            "You can not refer to classpath locations.\n" +
+            "\n" +
             "NOTE: this option can only be set via system properties, environment variables or the attacher options.")
         .buildWithDefault(DEFAULT_CONFIG_FILE);
 
@@ -423,6 +502,15 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         return serviceName;
     }
 
+    @Nullable
+    public String getServiceNodeName() {
+        String nodeName = serviceNodeName.get();
+        if (nodeName == null || nodeName.trim().isEmpty()) {
+            return null;
+        }
+        return nodeName;
+    }
+
     public String getServiceVersion() {
         return serviceVersion.get();
     }
@@ -430,7 +518,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
     public String getHostname() {
         return hostname.get();
     }
-    
+
     public String getEnvironment() {
         return environment.get();
     }
@@ -453,6 +541,18 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public List<WildcardMatcher> getUnnestExceptions() {
         return unnestExceptions.get();
+    }
+
+    public List<WildcardMatcher> getIgnoreExceptions(){
+        return ignoreExceptions.get();
+    }
+
+    public EventType getCaptureBody() {
+        return captureBody.get();
+    }
+
+    public boolean isCaptureHeaders() {
+        return captureHeaders.get();
     }
 
     public boolean isTypePoolCacheEnabled() {
@@ -528,6 +628,30 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             }
         } else {
             return configFileLocation;
+        }
+    }
+
+    public enum EventType {
+        /**
+         * Request bodies will never be reported
+         */
+        OFF,
+        /**
+         * Request bodies will only be reported with errors
+         */
+        ERRORS,
+        /**
+         * Request bodies will only be reported with request transactions
+         */
+        TRANSACTIONS,
+        /**
+         * Request bodies will be reported with both errors and request transactions
+         */
+        ALL;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
         }
     }
 }

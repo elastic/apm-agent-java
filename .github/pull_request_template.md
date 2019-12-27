@@ -17,6 +17,7 @@ If this pull request is work in progress, create a draft PR instead of prefixing
 - [x] Implement code
 - [ ] Add tests
 - [ ] Update documentation
-- [ ] Update [CHANGELOG.md](CHANGELOG.md)
+- [ ] Update [CHANGELOG.asciidoc](CHANGELOG.asciidoc)
 - [ ] Update [supported-technologies.asciidoc](docs/supported-technologies.asciidoc)
 - [ ] Added an API method or config option? Document in which version this will be introduced.
+- [ ] Added an instrumentation plugin? How did you make sure that old, non-supported versions are not instrumented by accident?

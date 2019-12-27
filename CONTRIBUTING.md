@@ -106,6 +106,61 @@ they will be executed by a CI server.
     
    <img width="382" alt="configure annotations" src="https://user-images.githubusercontent.com/2163464/43444414-f1e5ce5a-94a3-11e8-8fa4-9f048c50ccc0.png">
 
+##### Useful Live Templates
+
+These live templates can be pasted in Preferences > Editor > Live Templates > other
+
+**`enter`**
+```xml
+<template name="enter" value="@Advice.OnMethodEnter(suppress = Throwable.class)&#10;private static void onEnter() {&#10;    $END$&#10;}" description="Adds @OnMethodEnter advice" toReformat="false" toShortenFQNames="true">
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
+```
+
+**`exit`**
+
+```xml
+<template name="exit" value="@Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)&#10;private static void onExit(@Advice.Thrown Throwable thrown) {&#10;    $END$&#10;}" description="Adds @OnMethodExit advice" toReformat="false" toShortenFQNames="true">
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
+```
+
+
+**`logger`**
+```xml
+<template name="logger" value="private static final Logger logger = LoggerFactory.getLogger($CLASS_NAME$.class);" description="" toReformat="false" toShortenFQNames="true">
+  <variable name="CLASS_NAME" expression="className()" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
+```
+
+**`test`**
+```xml
+<template name="test" value="@Test&#10;void $METHOD$(){&#10;    $END$&#10;}" description="create junit test method" toReformat="true" toShortenFQNames="true">
+  <variable name="METHOD" expression="" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_DECLARATION" value="true" />
+  </context>
+</template>
+```
+
+**`at`**
+```xml
+<template name="at" value="assertThat($EXPR$)$END$;" description="assertJ assert expression" toReformat="false" toShortenFQNames="true">
+  <variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true" />
+  <context>
+    <option name="JAVA_STATEMENT" value="true" />
+  </context>
+ </template>
+ ```
+
+
 ### Java Language Formatting Guidelines
 
 Please follow these formatting guidelines:
@@ -223,6 +278,18 @@ See [`apm-agent-core/README.md`](apm-agent-core/README.md)
 
 See [`apm-agent-plugins/README.md`](apm-agent-plugins/README.md)
 
+### Documenting
+
+HTML Documentation is generated from text files stored in `docs` folder using [AsciiDoc](http://asciidoc.org/) format.
+The ``configuration.asciidoc`` file is generated from running `co.elastic.apm.agent.configuration.ConfigurationExporter`,
+all the other asciidoc text files are written manually.
+
+A preview of the documentation is generated for each pull-request.
+Click on the build `Details` of the `elasticsearch-ci/docs` job and go to the bottom of the `Console Output` to see the link.
+
+In order to generate a local copy of agent documentation, you will need to clone [docs](https://github.com/elastic/docs) repository
+and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo).
+
 ### Releasing
 
 If you have access to make releases, the process is as follows:
@@ -244,7 +311,9 @@ If you have access to make releases, the process is as follows:
 1. If this was a minor release,
    reset the current major branch (`1.x`, `2.x` etc) to point to the current tag, e.g. `git branch -f 1.x v1.1.0`
    1. Update the branch on upstream with `git push origin 1.x`
-1. Update [`CHANGELOG.md`](CHANGELOG.md) to reflect version release. Go over PRs or git log and add bug fixes and features.
+1. Update [`CHANGELOG.asciidoc`](CHANGELOG.asciidoc) to reflect version release. Go over PRs or git log and add bug fixes and features.
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
-   Use the contents of [`CHANGELOG.md`](CHANGELOG.md) for the release description.
+   Provide a link to release notes in documentation as release description.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
+1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
+1. Publish release on Github. This will notify users watching repository.

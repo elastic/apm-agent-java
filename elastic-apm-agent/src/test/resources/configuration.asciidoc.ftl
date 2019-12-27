@@ -8,7 +8,7 @@ which have different naming conventions for the property key.
 The first configuration sources override the configuration values of over the latter sources.
 
 [arabic]
-. {kibana-ref}/agent-configuration.html[Central configuration]
+. {apm-app-ref}/agent-configuration.html[Central configuration]
 . Java system properties +
   All configuration keys are prefixed with `elastic.apm.`
 . Environment variables +
@@ -75,6 +75,7 @@ Click on a key to get more information.
 [[config-${category?lower_case?replace(" ", "-")}]]
 === ${category} configuration options
     <#list options as option>
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-${option.key?replace("[^a-z]", "-", "r")}]]
 ==== `${option.key}`${option.tags?has_content?then(" (${option.tags?join(' ')})", '')}

@@ -40,6 +40,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
@@ -61,6 +62,8 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
@@ -80,9 +83,12 @@ public class ElasticApmTracer {
      */
     private static final int MAX_POOLED_RUNNABLES = 256;
 
+    private long lastSpanMaxWarningTimestamp;
+    public static final long MAX_LOG_INTERVAL_MICRO_SECS = TimeUnit.MINUTES.toMicros(5);
+
     private final ConfigurationRegistry configurationRegistry;
     private final StacktraceConfiguration stacktraceConfiguration;
-    private final Iterable<LifecycleListener> lifecycleListeners;
+    private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
     private final ObjectPool<Transaction> transactionPool;
     private final ObjectPool<Span> spanPool;
     private final ObjectPool<ErrorCapture> errorPool;
@@ -115,12 +121,11 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, Iterable<LifecycleListener> lifecycleListeners) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
-        this.lifecycleListeners = lifecycleListeners;
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
         transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
@@ -182,9 +187,6 @@ public class ElasticApmTracer {
                 sampler = ProbabilitySampler.of(newValue);
             }
         });
-        for (LifecycleListener lifecycleListener : lifecycleListeners) {
-            lifecycleListener.start(this);
-        }
         this.activationListeners = DependencyInjectingServiceLoader.load(ActivationListener.class, this);
         reporter.scheduleMetricReporting(metricRegistry, configurationRegistry.getConfig(ReporterConfiguration.class).getMetricsIntervalMs());
 
@@ -316,6 +318,10 @@ public class ElasticApmTracer {
         Transaction transaction = currentTransaction();
         if (transaction != null) {
             if (isTransactionSpanLimitReached(transaction)) {
+                if (epochMicros - lastSpanMaxWarningTimestamp > MAX_LOG_INTERVAL_MICRO_SECS) {
+                    lastSpanMaxWarningTimestamp = epochMicros;
+                    logger.warn("Max spans ({}) for transaction {} has been reached. For this transaction and possibly others, further spans will be dropped. See config param 'transaction_max_spans'.", coreConfiguration.getTransactionMaxSpans(), transaction);
+                }
                 dropped = true;
                 transaction.getSpanCount().getDropped().incrementAndGet();
             } else {
@@ -357,7 +363,8 @@ public class ElasticApmTracer {
     }
 
     public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
-        if (e != null) {
+        // note: if we add inheritance support for exception filtering, caching would be required for performance
+        if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
             error.withTimestamp(epochMicros);
             error.setException(e);
@@ -515,6 +522,23 @@ public class ElasticApmTracer {
 
     public List<ActivationListener> getActivationListeners() {
         return activationListeners;
+    }
+
+    void registerLifecycleListeners(List<LifecycleListener> lifecycleListeners) {
+        this.lifecycleListeners.addAll(lifecycleListeners);
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            lifecycleListener.start(this);
+        }
+    }
+
+    @Nullable
+    public <T> T getLifecycleListener(Class<T> listenerClass) {
+        for (LifecycleListener lifecycleListener : lifecycleListeners) {
+            if (listenerClass.isInstance(lifecycleListener)) {
+                return (T) lifecycleListener;
+            }
+        }
+        return null;
     }
 
     public void activate(TraceContextHolder<?> holder) {

@@ -35,9 +35,8 @@ import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.web.ClientIpUtils;
-import co.elastic.apm.agent.web.ResultUtil;
-import co.elastic.apm.agent.web.WebConfiguration;
+import co.elastic.apm.agent.impl.context.web.ResultUtil;
+import co.elastic.apm.agent.impl.context.web.WebConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_DEFAULT;
 import static co.elastic.apm.agent.impl.transaction.AbstractSpan.PRIO_LOW_LEVEL_FRAMEWORK;
-import static co.elastic.apm.agent.web.WebConfiguration.EventType.OFF;
+import static co.elastic.apm.agent.configuration.CoreConfiguration.EventType.OFF;
 
 /**
  * This class must not import classes from {@code javax.servlet} due to class loader issues.
@@ -161,7 +160,7 @@ public class ServletTransactionHelper {
     private void startCaptureBody(Transaction transaction, String method, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (webConfiguration.getCaptureBody() != OFF
+            if (coreConfiguration.getCaptureBody() != OFF
                 && contentTypeHeader != null
                 // form parameters are recorded via ServletRequest.getParameterMap
                 // as the container might not call ServletRequest.getInputStream
@@ -170,7 +169,7 @@ public class ServletTransactionHelper {
                 request.withBodyBuffer();
             } else {
                 request.redactBody();
-                if (webConfiguration.getCaptureBody() == OFF) {
+                if (coreConfiguration.getCaptureBody() == OFF) {
                     logger.debug("Not capturing Request body because the capture_body config option is OFF");
                 }
                 if (contentTypeHeader == null) {
@@ -262,7 +261,7 @@ public class ServletTransactionHelper {
     private void fillRequestParameters(Transaction transaction, String method, @Nullable Map<String, String[]> parameterMap, @Nullable String contentTypeHeader) {
         Request request = transaction.getContext().getRequest();
         if (hasBody(contentTypeHeader, method)) {
-            if (webConfiguration.getCaptureBody() != OFF && parameterMap != null) {
+            if (coreConfiguration.getCaptureBody() != OFF && parameterMap != null) {
                 captureParameters(request, parameterMap, contentTypeHeader);
             }
         }
@@ -273,13 +272,13 @@ public class ServletTransactionHelper {
         return contentTypeHeader != null
             && contentTypeHeader.startsWith(CONTENT_TYPE_FROM_URLENCODED)
             && hasBody(contentTypeHeader, method)
-            && webConfiguration.getCaptureBody() != OFF
+            && coreConfiguration.getCaptureBody() != OFF
             && WildcardMatcher.isAnyMatch(webConfiguration.getCaptureContentTypes(), contentTypeHeader);
     }
 
     private boolean isExcluded(String servletPath, @Nullable String pathInfo, @Nullable String userAgentHeader) {
         final WildcardMatcher excludeUrlMatcher = WildcardMatcher.anyMatch(webConfiguration.getIgnoreUrls(), servletPath, pathInfo);
-        if (excludeUrlMatcher != null) {
+        if (excludeUrlMatcher != null && logger.isDebugEnabled()) {
             logger.debug("Not tracing this request as the URL {}{} is ignored by the matcher {}",
                 servletPath, Objects.toString(pathInfo, ""), excludeUrlMatcher);
         }
@@ -288,7 +287,12 @@ public class ServletTransactionHelper {
             logger.debug("Not tracing this request as the User-Agent {} is ignored by the matcher {}",
                 userAgentHeader, excludeAgentMatcher);
         }
-        return excludeUrlMatcher != null || excludeAgentMatcher != null;
+        boolean isExcluded = excludeUrlMatcher != null || excludeAgentMatcher != null;
+        if (!isExcluded && logger.isTraceEnabled()) {
+            logger.trace("No matcher found for excluding this request with servlet-path: {}, path-info: {} and User-Agent: {}",
+                servletPath, pathInfo, userAgentHeader);
+        }
+        return isExcluded;
     }
 
     private void fillResponse(Response response, boolean committed, int status) {
@@ -306,7 +310,7 @@ public class ServletTransactionHelper {
 
         request.getSocket()
             .withEncrypted(secure)
-            .withRemoteAddress(ClientIpUtils.getRealIp(request.getHeaders(), remoteAddr));
+            .withRemoteAddress(remoteAddr);
 
         request.getUrl()
             .withProtocol(scheme)
@@ -408,6 +412,6 @@ public class ServletTransactionHelper {
     }
 
     public boolean isCaptureHeaders() {
-        return webConfiguration.isCaptureHeaders();
+        return coreConfiguration.isCaptureHeaders();
     }
 }

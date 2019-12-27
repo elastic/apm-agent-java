@@ -25,9 +25,6 @@
 
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.impl.transaction.Db;
-import co.elastic.apm.agent.impl.transaction.Http;
-
 
 /**
  * Any other arbitrary data captured by the agent, optionally provided by the user

@@ -1,0 +1,522 @@
+ifdef::env-github[]
+NOTE: Release notes are best read in our documentation at
+https://www.elastic.co/guide/en/apm/agent/java/current/release-notes.html[elastic.co]
+endif::[]
+
+////
+[[release-notes-x.x.x]]
+==== x.x.x - YYYY/MM/DD
+
+[float]
+===== Breaking changes
+
+[float]
+===== Features
+* Cool new feature: {pull}2526[#2526]
+
+[float]
+===== Bug fixes
+////
+
+=== Unreleased
+
+[[release-notes-1.13.0]]
+==== 1.13.0 (Next)
+
+[float]
+===== Features
+
+* Add support for <<supported-databases, Redis Lettuce client>>
+* Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
+
+[float]
+===== Bug Fixes
+
+* Fix parsing value of `trace_methods` configuration property {pull}930[#930]
+* Workaround for `java.util.logging` deadlock {pull}965[#965]
+
+[[release-notes-1.x]]
+=== Java Agent version 1.x
+
+[[release-notes-1.12.0]]
+==== 1.12.0 - 2019/11/21
+
+[float]
+===== Features
+* JMS Enhancements {pull}911[#911]:
+** Add special handling for temporary queues/topics
+** Capture message bodies of text Messages
+*** Rely on the existing `ELASTIC_APM_CAPTURE_BODY` agent config option (off by default).
+*** Send as `context.message.body`
+*** Limit size to 10000 characters. If longer than this size, trim to 9999 and append with ellipsis
+** Introduce the `ignore_message_queues` configuration to disable instrumentation (message tagging) for specific 
+      queues/topics as suggested in {pull}710[#710]
+** Capture predefined message headers and all properties
+*** Rely on the existing `ELASTIC_APM_CAPTURE_HEADERS` agent config option.
+*** Send as `context.message.headers`
+*** Sanitize sensitive headers/properties based on the `sanitize_field_names` config option
+* Added support for the MongoDB sync driver. See https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[supported data stores].
+
+[float]
+===== Bug Fixes
+* JDBC regression- `PreparedStatement#executeUpdate()` and `PreparedStatement#executeLargeUpdate()` are not traced {pull}918[#918]
+* When systemd cgroup driver is used, the discovered Kubernetes pod UID contains "_" instead of "-" {pull}920[#920]
+* DB2 jcc4 driver is not traced properly {pull}926[#926]
+
+[[release-notes-1.11.0]]
+==== 1.11.0 - 2019/10/31
+
+[float]
+===== Features
+* Add the ability to configure a unique name for a JVM within a service through the
+https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-node-name[`service_node_name`]
+config option]
+* Add ability to ignore some exceptions to be reported as errors https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-ignore-exceptions[ignore_exceptions]
+* Applying new logic for JMS `javax.jms.MessageConsumer#receive` so that, instead of the transaction created for the 
+   polling method itself (ie from `receive` start to end), the agent will create a transaction attempting to capture 
+   the code executed during actual message handling.
+   This logic is suitable for environments where polling APIs are invoked within dedicated polling threads.
+   This polling transaction creation strategy can be reversed through a configuration option (`message_polling_transaction_strategy`) 
+   that is not exposed in the properties file by default.  
+* Send IP obtained through `javax.servlet.ServletRequest#getRemoteAddr()` in `context.request.socket.remote_address` 
+   instead of parsing from headers {pull}889[#889]
+* Added `ElasticApmAttacher.attach(String propertiesLocation)` to specify a custom properties location
+* Logs message when `transaction_max_spans` has been exceeded {pull}849[#849]
+* Report the number of affected rows by a SQL statement (UPDATE,DELETE,INSERT) in 'affected_rows' span attribute {pull}707[#707]
+* Add https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-traced[`@Traced`] annotation which either creates a span or a transaction, depending on the context
+* Report JMS destination as a span/transaction context field {pull}906[#906]
+* Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
+
+[float]
+===== Bug Fixes
+* JMS creates polling transactions even when the API invocations return without a message
+* Support registering MBeans which are added after agent startup
+
+[[release-notes-1.10.0]]
+==== 1.10.0 - 2019/09/30
+
+[float]
+===== Features
+* Add ability to manually specify reported https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-hostname[hostname]
+* Add support for https://www.elastic.co/guide/en/apm/agent/java/master/supported-technologies-details.html#supported-databases[Redis Jedis client]
+* Add support for identifying target JVM to attach apm agent to using JMV property. See also the documentation of the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html#setup-attach-cli-usage-list[`--include` and `--exclude` flags]
+* Added https://www.elastic.co/guide/en/apm/agent/java/master/config-jmx.html#config-capture-jmx-metrics[`capture_jmx_metrics`] configuration option
+* Improve servlet error capture {pull}812[#812]
+  Among others, now also takes Spring MVC `@ExceptionHandler`s into account 
+* Instrument Logger#error(String, Throwable) {pull}821[#821]
+  Automatically captures exceptions when calling `logger.error("message", exception)`
+* Easier log correlation with https://github.com/elastic/java-ecs-logging. See https://www.elastic.co/guide/en/apm/agent/java/master/log-correlation.html[docs].
+* Avoid creating a temp agent file for each attachment {pull}859[#859]
+* Instrument `View#render` instead of `DispatcherServlet#render` {pull}829[#829]
+  This makes the transaction breakdown graph more useful. Instead of `dispatcher-servlet`, the graph now shows a type which is based on the view name, for example, `FreeMarker` or `Thymeleaf`.
+
+[float]
+===== Bug Fixes
+* Error in log when setting https://www.elastic.co/guide/en/apm/agent/java/current/config-reporter.html#config-server-urls[server_urls] 
+ to an empty string - `co.elastic.apm.agent.configuration.ApmServerConfigurationSource - Expected previousException not to be null`
+* Avoid terminating the TCP connection to APM Server when polling for configuration updates {pull}823[#823]
+ 
+[[release-notes-1.9.0]]
+==== 1.9.0 - 2019/08/22
+
+[float]
+===== Features
+* Upgrading supported OpenTracing version from 0.31 to 0.33
+* Added annotation and meta-annotation matching support for `trace_methods`, for example:
+** `public @java.inject.* org.example.*` (for annotation)
+** `public @@javax.enterprise.context.NormalScope org.example.*` (for meta-annotation)
+* The runtime attachment now also works when the `tools.jar` or the `jdk.attach` module is not available.
+This means you don't need a full JDK installation - the JRE is sufficient.
+This makes the runtime attachment work in more environments such as minimal Docker containers.
+Note that the runtime attachment currently does not work for OSGi containers like those used in many application servers such as JBoss and WildFly.
+See the https://www.elastic.co/guide/en/apm/agent/java/master/setup-attach-cli.html[documentation] for more information.
+* Support for Hibernate Search
+
+[float]
+===== Bug Fixes
+* A warning in logs saying APM server is not available when using 1.8 with APM server 6.x.
+Due to that, agent 1.8.0 will silently ignore non-string labels, even if used with APM server of versions 6.7.x or 6.8.x that support such.
+If APM server version is <6.7 or 7.0+, this should have no effect. Otherwise, upgrade the Java agent to 1.9.0+.
+* `ApacheHttpAsyncClientInstrumentation` matching increases startup time considerably
+* Log correlation feature is active when `active==false`
+* Tomcat's memory leak prevention mechanism is causing a... memory leak. JDBC statement map is leaking in Tomcat if the application that first used it is udeployed/redeployed.
+See https://discuss.elastic.co/t/elastic-apm-agent-jdbchelper-seems-to-use-a-lot-of-memory/195295[this related discussion].
+
+[float]
+==== Breaking Changes
+* The `apm-agent-attach.jar` is not executable anymore.
+Use `apm-agent-attach-standalone.jar` instead. 
+
+[[release-notes-1.8.0]]
+==== 1.8.0 - 2019/07/30
+
+[float]
+===== Features
+* Added support for tracking https://www.elastic.co/guide/en/kibana/7.3/transactions.html[time spent by span type].
+   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-breakdown-metrics[`breakdown_metrics`] to `false`. 
+* Added support for https://www.elastic.co/guide/en/kibana/7.3/agent-configuration.html[central configuration].
+   Can be disabled by setting https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-central-config[`central_config`] to `false`.
+* Added support for Spring's JMS flavor - instrumenting `org.springframework.jms.listener.SessionAwareMessageListener`
+* Added support to legacy ApacheHttpClient APIs (which adds support to Axis2 configured to use ApacheHttpClient)
+* Added support for setting https://www.elastic.co/guide/en/apm/agent/java/1.x/config-reporter.html#config-server-urls[`server_urls`] dynamically via properties file {pull}723[#723]
+* Added https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-config-file[`config_file`] option 
+* Added option to use `@javax.ws.rs.Path` value as transaction name https://www.elastic.co/guide/en/apm/agent/java/current/config-jax-rs.html#config-use-jaxrs-path-as-transaction-name[`use_jaxrs_path_as_transaction_name`]
+* Instrument quartz jobs https://www.elastic.co/guide/en/apm/agent/java/current/supported-technologies-details.html#supported-scheduling-frameworks[docs]
+* SQL parsing improvements {pull}696[#696]
+* Introduce priorities for transaction name {pull}748[#748].
+   Now uses the path as transaction name if https://www.elastic.co/guide/en/apm/agent/java/current/config-http.html#config-use-path-as-transaction-name[`use_path_as_transaction_name`] is set to `true`
+   rather than `ServletClass#doGet`.
+   But if a name can be determined from a high level framework,
+   like Spring MVC, that takes precedence.
+   User-supplied names from the API always take precedence over any others.
+* Use JSP path name as transaction name as opposed to the generated servlet class name {pull}751[#751]
+
+[float]
+===== Bug Fixes
+* Some JMS Consumers and Producers are filtered due to class name filtering in instrumentation matching
+* Jetty: When no display name is set and context path is "/" transaction service names will now correctly fall back to configured values
+* JDBC's `executeBatch` is not traced
+* Drops non-String labels when connected to APM Server < 6.7 to avoid validation errors {pull}687[#687]
+* Parsing container ID in cloud foundry garden {pull}695[#695]
+* Automatic instrumentation should not override manual results {pull}752[#752]
+
+[float]
+===== Breaking changes
+* The log correlation feature does not add `span.id` to the MDC anymore but only `trace.id` and `transaction.id` {pull}742[#742].
+
+[[release-notes-1.7.0]]
+==== 1.7.0 - 2019/06/13
+
+[float]
+===== Features
+* Added the `trace_methods_duration_threshold` config option. When using the `trace_methods` config option with wild cards,
+this enables considerable reduction of overhead by limiting the number of spans captured and reported
+(see more details in config documentation).
+NOTE: Using wildcards is still not the recommended approach for the `trace_methods` feature.
+* Add `Transaction#addCustomContext(String key, String|Number|boolean value)` to public API
+* Added support for AsyncHttpClient 2.x
+* Added https://www.elastic.co/guide/en/apm/agent/java/current/config-core.html#config-global-labels[`global_labels`] configuration option.
+This requires APM Server 7.2+.
+* Added basic support for JMS- distributed tracing for basic scenarios of `send`, `receive`, `receiveNoWait` and `onMessage`.
+Both Queues and Topics are supported.
+Async `send` APIs are not supported in this version. 
+NOTE: This feature is currently marked as "Incubating" and is disabled by default. In order to enable,
+it is required to set the
+https://www.elastic.co/guide/en/apm/agent/java/1.x/config-core.html#config-disable-instrumentations[`disable_instrumentations`] 
+configuration property to an empty string.
+* Improved OSGi support: added a configuration option for `bootdelegation` packages {pull}641[#641]
+* Better span names for SQL spans. For example, `SELECT FROM user` instead of just `SELECT` {pull}633[#633]
+
+[float]
+===== Bug Fixes
+* ClassCastException related to async instrumentation of Pilotfish Executor causing thread hang (applied workaround)
+* NullPointerException when computing Servlet transaction name with null HTTP method name
+* FileNotFoundException when trying to find implementation version of jar with encoded URL
+* NullPointerException when closing Apache AsyncHttpClient request producer
+* Fixes loading of `elasticapm.properties` for Spring Boot applications
+* Fix startup error on WebLogic 12.2.1.2.0 {pull}649[#649]
+* Disable metrics reporting and APM Server health check when active=false {pull}653[#653]
+
+[[release-notes-1.6.1]]
+==== 1.6.1 - 2019/04/26
+
+[float]
+===== Bug Fixes
+* Fixes transaction name for non-sampled transactions https://github.com/elastic/apm-agent-java/issues/581[#581]
+* Makes log_file option work again https://github.com/elastic/apm-agent-java/issues/594[#594]
+* Async context propagation fixes
+** Fixing some async mechanisms lifecycle issues https://github.com/elastic/apm-agent-java/issues/605[#605]
+** Fixes exceptions when using WildFly managed executor services https://github.com/elastic/apm-agent-java/issues/589[#589]
+** Exclude glassfish Executor which does not permit wrapped runnables https://github.com/elastic/apm-agent-java/issues/596[#596]
+** Exclude DumbExecutor https://github.com/elastic/apm-agent-java/issues/598[#598]
+* Fixes Manifest version reading error to support `jar:file` protocol https://github.com/elastic/apm-agent-java/issues/601[#601]
+* Fixes transaction name for non-sampled transactions https://github.com/elastic/apm-agent-java/issues/597[#597]
+* Fixes potential classloader deadlock by preloading `FileSystems.getDefault()` https://github.com/elastic/apm-agent-java/issues/603[#603]
+
+[[release-notes-1.6.0]]
+==== 1.6.0 - 2019/04/16
+
+[float]
+===== Related Announcements
+* Java APM Agent became part of the Cloud Foundry Java Buildpack as of https://github.com/cloudfoundry/java-buildpack/releases/tag/v4.19[Release v4.19]
+ 
+[float]
+===== Features
+* Support Apache HttpAsyncClient - span creation and cross-service trace context propagation
+* Added the `jvm.thread.count` metric, indicating the number of live threads in the JVM (daemon and non-daemon) 
+* Added support for WebLogic
+* Added support for Spring `@Scheduled` and EJB `@Schedule` annotations - https://github.com/elastic/apm-agent-java/pull/569[#569]
+
+[float]
+===== Bug Fixes
+* Avoid that the agent blocks server shutdown in case the APM Server is not available - https://github.com/elastic/apm-agent-java/pull/554[#554]
+* Public API annotations improper retention prevents it from being used with Groovy - https://github.com/elastic/apm-agent-java/pull/567[#567]
+* Eliminate side effects of class loading related to Instrumentation matching mechanism
+
+[[release-notes-1.5.0]]
+==== 1.5.0 - 2019/03/26
+
+[float]
+===== Potentially breaking changes
+* If you didn't explicitly set the https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name[`service_name`]
+previously and you are dealing with a servlet-based application (including Spring Boot),
+your `service_name` will change.
+See the documentation for https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name[`service_name`]
+and the corresponding section in _Features_ for more information.
+Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
+
+[float]
+===== Features
+* Added property `"allow_path_on_hierarchy"` to JAX-RS plugin, to lookup inherited usage of `@path`
+* Support for number and boolean labels in the public API {pull}497[497].
+This change also renames `tag` to `label` on the API level to be compliant with the https://github.com/elastic/ecs#-base-fields[Elastic Common Schema (ECS)].
+The `addTag(String, String)` method is still supported but deprecated in favor of `addLabel(String, String)`.
+As of version 7.x of the stack, labels will be stored under `labels` in Elasticsearch.
+Previously, they were stored under `context.tags`.
+* Support async queries made by Elasticsearch REST client 
+* Added `setStartTimestamp(long epochMicros)` and `end(long epochMicros)` API methods to `Span` and `Transaction`,
+allowing to set custom start and end timestamps.
+* Auto-detection of the `service_name` based on the `<display-name>` element of the `web.xml` with a fallback to the servlet context path.
+If you are using a spring-based application, the agent will use the setting for `spring.application.name` for its `service_name`.
+See the documentation for https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-service-name[`service_name`]
+for more information.
+Note: this requires APM Server 7.0+. If using previous versions, nothing will change.
+* Previously, enabling https://www.elastic.co/guide/en/apm/agent/java/master/config-core.html#config-capture-body[`capture_body`] could only capture form parameters.
+Now it supports all UTF-8 encoded plain-text content types.
+The option https://www.elastic.co/guide/en/apm/agent/java/master/config-http.html#config-capture-body-content-types[`capture_body_content_types`]
+controls which `Content-Type`s should be captured.
+* Support async calls made by OkHttp client (`Call#enqueue`)
+* Added support for providing config options on agent attach.
+** CLI example: `--config server_urls=http://localhost:8200,http://localhost:8201`
+** API example: `ElasticApmAttacher.attach(Map.of("server_urls", "http://localhost:8200,http://localhost:8201"));`
+
+[float]
+===== Bug Fixes
+* Logging integration through MDC is not working properly - https://github.com/elastic/apm-agent-java/issues/499[#499]
+* ClassCastException with adoptopenjdk/openjdk11-openj9 - https://github.com/elastic/apm-agent-java/issues/505[#505]
+* Span count limitation is not working properly - reported https://discuss.elastic.co/t/kibana-apm-not-showing-spans-which-are-visible-in-discover-too-many-spans/171690[in our forum]
+* Java agent causes Exceptions in Alfresco cluster environment due to failure in the instrumentation of Hazelcast `Executor`s - reported https://discuss.elastic.co/t/cant-run-apm-java-agent-in-alfresco-cluster-environment/172962[in our forum]
+
+[[release-notes-1.4.0]]
+==== 1.4.0 - 2019/02/14
+
+[float]
+===== Features
+* Added support for sync calls of OkHttp client
+* Added support for context propagation for `java.util.concurrent.ExecutorService`s
+* The `trace_methods` configuration now allows to omit the method matcher.
+   Example: `com.example.*` traces all classes and methods within the `com.example` package and sub-packages.
+* Added support for JSF. Tested on WildFly, WebSphere Liberty and Payara with embedded JSF implementation and on Tomcat and Jetty with
+ MyFaces 2.2 and 2.3
+* Introduces a new configuration option `disable_metrics` which disables the collection of metrics via a wildcard expression.
+* Support for HttpUrlConnection
+* Adds `subtype` and `action` to spans. This replaces former typing mechanism where type, subtype and action were all set through
+   the type in an hierarchical dotted-syntax. In order to support existing API usages, dotted types are parsed into subtype and action, 
+   however `Span.createSpan` and `Span.setType` are deprecated starting this version. Instead, type-less spans can be created using the new 
+   `Span.startSpan` API and typed spans can be created using the new `Span.startSpan(String type, String subtype, String action)` API
+* Support for JBoss EAP 6.4, 7.0, 7.1 and 7.2
+* Improved startup times
+* Support for SOAP (JAX-WS).
+   SOAP client create spans and propagate context.
+   Transactions are created for `@WebService` classes and `@WebMethod` methods.  
+
+[float]
+===== Bug Fixes
+* Fixes a failure in BitBucket when agent deployed https://github.com/elastic/apm-agent-java/issues/349[#349]
+* Fixes increased CPU consumption https://github.com/elastic/apm-agent-java/issues/453[#453] and https://github.com/elastic/apm-agent-java/issues/443[#443]
+* Fixed some OpenTracing bridge functionalities that were not working when auto-instrumentation is disabled
+* Fixed an error occurring when ending an OpenTracing span before deactivating
+* Sending proper `null` for metrics that have a NaN value
+* Fixes JVM crash with Java 7 https://github.com/elastic/apm-agent-java/issues/458[#458]
+* Fixes an application deployment failure when using EclipseLink and `trace_methods` configuration https://github.com/elastic/apm-agent-java/issues/474[#474]
+
+[[release-notes-1.3.0]]
+==== 1.3.0 - 2019/01/10
+
+[float]
+===== Features
+* The agent now collects system and JVM metrics https://github.com/elastic/apm-agent-java/pull/360[#360]
+* Add API methods `ElasticApm#startTransactionWithRemoteParent` and `Span#injectTraceHeaders` to allow for manual context propagation https://github.com/elastic/apm-agent-java/pull/396[#396].
+* Added `trace_methods` configuration option which lets you define which methods in your project or 3rd party libraries should be traced.
+   To create spans for all `public` methods of classes whose name ends in `Service` which are in a sub-package of `org.example.services` use this matcher:
+   `public org.example.services.*.*Service#*` https://github.com/elastic/apm-agent-java/pull/398[#398]
+* Added span for `DispatcherServlet#render` https://github.com/elastic/apm-agent-java/pull/409[#409].
+* Flush reporter on shutdown to make sure all recorded Spans are sent to the server before the programm exits https://github.com/elastic/apm-agent-java/pull/397[#397]
+* Adds Kubernetes https://github.com/elastic/apm-agent-java/issues/383[#383] and Docker metadata to, enabling correlation with the Kibana Infra UI.
+* Improved error handling of the Servlet Async API https://github.com/elastic/apm-agent-java/issues/399[#399]
+* Support async API’s used with AsyncContext.start https://github.com/elastic/apm-agent-java/issues/388[#388]
+
+[float]
+===== Bug Fixes
+* Fixing a potential memory leak when there is no connection with APM server
+* Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 https://github.com/elastic/apm-agent-java/pull/401[#401]
+
+ 
+[[release-notes-1.2.0]]
+==== 1.2.0 - 2018/12/19
+
+[float]
+===== Features
+* Added `capture_headers` configuration option.
+   Set to `false` to disable capturing request and response headers.
+   This will reduce the allocation rate of the agent and can save you network bandwidth and disk space.
+* Makes the API methods `addTag`, `setName`, `setType`, `setUser` and `setResult` fluent, so that calls can be chained. 
+
+[float]
+===== Bug Fixes
+* Catch all errors thrown within agent injected code
+* Enable public APIs and OpenTracing bridge to work properly in OSGi systems, fixes https://github.com/elastic/apm-agent-java/issues/362[this WildFly issue]
+* Remove module-info.java to enable agent working on early Tomcat 8.5 versions
+* Fix https://github.com/elastic/apm-agent-java/issues/371[async Servlet API issue]
+
+[[release-notes-1.1.0]]
+==== 1.1.0 - 2018/11/28
+
+[float]
+===== Features
+* Some memory allocation improvements
+* Enabling bootdelegation for agent classes in Atlassian OSGI systems
+
+[float]
+===== Bug Fixes
+* Update dsl-json which fixes a memory leak.
+ See https://github.com/ngs-doo/dsl-json/pull/102[ngs-doo/dsl-json#102] for details. 
+* Avoid `VerifyError`s by non instrumenting classes compiled for Java 4 or earlier
+* Enable APM Server URL configuration with path (fixes #339)
+* Reverse `system.hostname` and `system.platform` order sent to APM server
+
+[[release-notes-1.0.1]]
+==== 1.0.1 - 2018/11/15
+
+[float]
+===== Bug Fixes
+* Fixes NoSuchMethodError CharBuffer.flip() which occurs when using the Elasticsearch RestClient and Java 7 or 8 {pull}313[#313]
+
+[[release-notes-1.0.0]]
+==== 1.0.0 - 2018/11/14
+
+[float]
+===== Breaking changes
+* Remove intake v1 support. This version requires APM Server 6.5.0+ which supports the intake api v2.
+   Until the time the APM Server 6.5.0 is officially released,
+   you can test with docker by pulling the APM Server image via
+   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`. 
+
+[float]
+===== Features
+* Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
+   Note that it is required to configure the `application_packages` for this to work.
+   See the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation[documentation] for more information.
+* The public API now supports to activate a span on the current thread.
+   This makes the span available via `ElasticApm#currentSpan()`
+   Refer to the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate[documentation] for more details.
+* Capturing of Elasticsearch RestClient 5.0.2+ calls.
+   Currently, the `*Async` methods are not supported, only their synchronous counterparts.
+* Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
+   More information can be found in the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id[documentation].
+* Added `Transaction.isSampled()` and `Span.isSampled()` methods to the public API
+* Added `Transaction#setResult` to the public API {pull}293[#293]
+
+[float]
+===== Bug Fixes
+* Fix for situations where status code is reported as `200`, even though it actually was `500` {pull}225[#225]
+* Capturing the username now properly works when using Spring security {pull}183[#183]
+
+[[release-notes-1.0.0.rc1]]
+==== 1.0.0.RC1 - 2018/11/06
+
+[float]
+===== Breaking changes
+* Remove intake v1 support. This version requires APM Server 6.5.0+ which supports the intake api v2.
+   Until the time the APM Server 6.5.0 is officially released,
+   you can test with docker by pulling the APM Server image via
+   `docker pull docker.elastic.co/apm/apm-server:6.5.0-SNAPSHOT`.
+* Wildcard patterns are case insensitive by default. Prepend `(?-i)` to make the matching case sensitive.
+
+[float]
+===== Features
+* Support for Distributed Tracing
+* Adds `@CaptureTransaction` and `@CaptureSpan` annotations which let you declaratively add custom transactions and spans.
+   Note that it is required to configure the `application_packages` for this to work.
+   See the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-annotation[documentation] for more information.
+* The public API now supports to activate a span on the current thread.
+   This makes the span available via `ElasticApm#currentSpan()`
+   Refer to the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-span-activate[documentation] for more details.
+* Capturing of Elasticsearch RestClient 5.0.2+ calls.
+   Currently, the `*Async` methods are not supported, only their synchronous counterparts.
+* Added API methods to enable correlating the spans created from the JavaScrip Real User Monitoring agent with the Java agent transaction.
+   More information can be found in the https://www.elastic.co/guide/en/apm/agent/java/master/public-api.html#api-ensure-parent-id[documentation].
+* Microsecond accurate timestamps {pull}261[#261]
+* Support for JAX-RS annotations.
+Transactions are named based on your resources (`ResourceClass#resourceMethod`).
+
+[float]
+===== Bug Fixes
+* Fix for situations where status code is reported as `200`, even though it actually was `500` {pull}225[#225]
+
+[[release-notes-0.8.x]]
+=== Java Agent version 0.8.x
+
+[[release-notes-0.8.0]]
+==== 0.8.0
+
+[float]
+===== Breaking changes
+* Wildcard patterns are case insensitive by default. Prepend `(?-i)` to make the matching case sensitive.
+
+[float]
+===== Features
+* Wildcard patterns are now not limited to only one wildcard in the middle and can be arbitrarily complex now.
+   Example: `*foo*bar*baz`.
+* Support for JAX-RS annotations.
+   Transactions are named based on your resources (`ResourceClass#resourceMethod`).
+
+[[release-notes-0.7.x]]
+=== Java Agent version 0.7.x
+
+[[release-notes-0.7.1]]
+==== 0.7.1 - 2018/10/24
+
+[float]
+===== Bug Fixes
+* Avoid recycling transactions twice {pull}178[#178]
+
+[[release-notes-0.7.0]]
+==== 0.7.0 - 2018/09/12
+
+[float]
+===== Breaking changes
+* Removed `ElasticApm.startSpan`. Spans can now only be created from their transactions via `Transaction#createSpan`.
+* `ElasticApm.startTransaction` and `Transaction#createSpan` don't activate the transaction and spans
+   and are thus not available via `ElasticApm.activeTransaction` and `ElasticApm.activeSpan`.
+
+[float]
+===== Features
+* Public API
+** Add `Span#captureException` and `Transaction#captureException` to public API.
+      `ElasticApm.captureException` is deprecated now. Use `ElasticApm.currentSpan().captureException(exception)` instead.
+** Added `Transaction.getId` and `Span.getId` methods 
+* Added support for async servlet requests
+* Added support for Payara/Glassfish
+* Incubating support for Apache HttpClient
+* Support for Spring RestTemplate
+* Added configuration options `use_path_as_transaction_name` and `url_groups`,
+   which allow to use the URL path as the transaction name.
+   As that could contain path parameters, like `/user/$userId` however,
+   You can set the `url_groups` option to define a wildcard pattern, like `/user/*`,
+   to group those paths together.
+   This is especially helpful when using an unsupported Servlet API-based framework. 
+* Support duration suffixes (`ms`, `s` and `m`) for duration configuration options.
+   Not using the duration suffix logs out a deprecation warning and will not be supported in future versions.
+* Add ability to add multiple APM server URLs, which enables client-side load balancing.
+   The configuration option `server_url` has been renamed to `server_urls` to reflect this change.
+   However, `server_url` still works for backwards compatibility.
+* The configuration option `service_name` is now optional.
+   It defaults to the main class name,
+   the name of the executed jar file (removing the version number),
+   or the application server name (for example `tomcat-application`).
+   In a lot of cases,
+   you will still want to set the `service_name` explicitly.
+   But it helps getting started and seeing data easier,
+   as there are no required configuration options anymore.
+   In the future we will most likely determine more useful application names for Servlet API-based applications.

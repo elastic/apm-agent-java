@@ -38,7 +38,8 @@ public class ServiceFactory {
             .withEnvironment(coreConfiguration.getEnvironment())
             .withAgent(new Agent("java", getAgentVersion()))
             .withRuntime(new RuntimeInfo("Java", System.getProperty("java.version")))
-            .withLanguage(new Language("Java", System.getProperty("java.version")));
+            .withLanguage(new Language("Java", System.getProperty("java.version")))
+            .withNode(new Node(coreConfiguration.getServiceNodeName()));
         if (frameworkName != null && frameworkVersion != null) {
             service.withFramework(new Framework(frameworkName, frameworkVersion));
         }

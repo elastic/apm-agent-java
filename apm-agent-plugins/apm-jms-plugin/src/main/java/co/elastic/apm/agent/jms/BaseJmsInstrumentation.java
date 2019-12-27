@@ -48,12 +48,19 @@ public abstract class BaseJmsInstrumentation extends ElasticApmInstrumentation {
     // Referencing JMS classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
     public static HelperClassManager<JmsInstrumentationHelper<Destination, Message, MessageListener>> jmsInstrHelperManager;
 
+    @SuppressWarnings("WeakerAccess")
+    @Nullable
+    @VisibleForAdvice
+    public static MessagingConfiguration messagingConfiguration;
+
     private synchronized static void init(ElasticApmTracer tracer) {
         if (jmsInstrHelperManager == null) {
             jmsInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
                 "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl",
                 "co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl$MessageListenerWrapper");
         }
+
+        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
 
     BaseJmsInstrumentation(ElasticApmTracer tracer) {

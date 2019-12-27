@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,7 +34,7 @@ public class JmxConfiguration extends ConfigurationOptionProvider {
 
     private ConfigurationOption<List<JmxMetric>> captureJmxMetrics = ConfigurationOption.<List<JmxMetric>>builder(JmxMetric.TokenValueConverter.INSTANCE, List.class)
         .key("capture_jmx_metrics")
-        .tags("added[1.10.0]")
+        .tags("added[1.11.0]")
         .description("Report metrics from JMX to the APM Server\n" +
             "\n" +
             "Can contain multiple comma separated JMX metric definitions:\n" +

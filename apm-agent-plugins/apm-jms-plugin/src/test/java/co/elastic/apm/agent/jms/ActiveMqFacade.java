@@ -33,9 +33,15 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -46,6 +52,7 @@ class ActiveMqFacade implements BrokerFacade {
 
     private Connection connection;
     private Session session;
+    private final Map<Destination, MessageConsumer> consumerCache = new HashMap<>();
 
     @Override
     public void prepareResources() throws JMSException {
@@ -68,6 +75,7 @@ class ActiveMqFacade implements BrokerFacade {
     public void afterTest() throws JMSException {
         // This should also close underlying producers and consumers
         session.close();
+        consumerCache.clear();
     }
 
     @Override
@@ -76,18 +84,37 @@ class ActiveMqFacade implements BrokerFacade {
     }
 
     @Override
+    public TemporaryQueue createTempQueue() throws Exception {
+        return session.createTemporaryQueue();
+    }
+
+    @Override
     public Topic createTopic(String topicName) throws JMSException {
         return session.createTopic(topicName);
     }
 
     @Override
-    public Message createTextMessage(String messageText) throws JMSException {
-        return session.createTextMessage(messageText);
+    public TemporaryTopic createTempTopic() throws Exception {
+        return session.createTemporaryTopic();
     }
 
     @Override
-    public void send(Destination destination, Message message) throws JMSException {
-        session.createProducer(destination).send(message);
+    public TextMessage createTextMessage(String messageText) throws JMSException {
+        TextMessage message = session.createTextMessage(messageText);
+        message.setStringProperty("test_string_property", "test123");
+        message.setIntProperty("test_int_property", 123);
+        message.setStringProperty("passwd", "secret");
+        message.setStringProperty("null_property", null);
+        return message;
+    }
+
+    @Override
+    public void send(Destination destination, Message message, boolean disableTimestamp) throws JMSException {
+        MessageProducer producer = session.createProducer(destination);
+        if (disableTimestamp) {
+            producer.setDisableMessageTimestamp(true);
+        }
+        producer.send(message);
     }
 
     @Override
@@ -135,12 +162,12 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public Message receive(Destination destination) throws JMSException {
-        return session.createConsumer(destination).receive();
+        return getOrCreateQueueConsumer(destination).receive();
     }
 
     @Override
     public Message receive(Destination destination, long timeout) throws JMSException {
-        return session.createConsumer(destination).receive(timeout);
+        return getOrCreateQueueConsumer(destination).receive(timeout);
     }
 
     @Override
@@ -150,6 +177,15 @@ class ActiveMqFacade implements BrokerFacade {
 
     @Override
     public Message receiveNoWait(Destination destination) throws JMSException {
-        return session.createConsumer(destination).receiveNoWait();
+        return getOrCreateQueueConsumer(destination).receiveNoWait();
+    }
+
+    private MessageConsumer getOrCreateQueueConsumer(Destination destination) throws JMSException {
+        MessageConsumer consumer = consumerCache.get(destination);
+        if (consumer == null) {
+            consumer = session.createConsumer(destination);
+            consumerCache.put(destination, consumer);
+        }
+        return consumer;
     }
 }

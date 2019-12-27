@@ -57,7 +57,7 @@ public class SpyConfiguration {
      * <p>
      * That way, the default configuration values are returned but can be overridden by {@link org.mockito.Mockito#when(Object)}
      *
-     * @return a syp configuration registry
+     * @return a spy configuration registry
      * @param configurationSource
      */
     public static ConfigurationRegistry createSpyConfig(ConfigurationSource configurationSource) {
