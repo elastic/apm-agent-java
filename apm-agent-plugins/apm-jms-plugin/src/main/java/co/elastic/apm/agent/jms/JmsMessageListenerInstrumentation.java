@@ -95,8 +95,10 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
 
             Destination destination = null;
             String destinationName = null;
+            long timestamp = 0;
             try {
                 destination = message.getJMSDestination();
+                timestamp = message.getJMSTimestamp();
             } catch (JMSException e) {
                 logger.warn("Failed to retrieve message's destination", e);
             }
@@ -134,6 +136,7 @@ public class JmsMessageListenerInstrumentation extends BaseJmsInstrumentation {
                     helper.addDestinationDetails(message, destination, destinationName, transaction.appendToName(" from "));
                 }
                 helper.addMessageDetails(message, transaction);
+                helper.setMessageAge(message, transaction);
             }
             transaction.activate();
 

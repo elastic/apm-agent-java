@@ -297,7 +297,8 @@ class DslJsonSerializerTest {
             .withTopic("test-topic")
             .withBody("test-body")
             .addHeader("test-header1", "value")
-            .addHeader("test-header2", "value");
+            .addHeader("test-header2", "value")
+            .withAge(20);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
@@ -314,6 +315,28 @@ class DslJsonSerializerTest {
         assertThat(headers).isNotNull();
         assertThat(headers.get("test-header1").textValue()).isEqualTo("value");
         assertThat(headers.get("test-header2").textValue()).isEqualTo("value");
+        JsonNode age = message.get("age");
+        assertThat(age).isNotNull();
+        JsonNode ms = age.get("ms");
+        assertThat(ms).isNotNull();
+        assertThat(ms.longValue()).isEqualTo(20);
+    }
+
+    @Test
+    void testSpanMessageContextInvalidTimestamp() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode message = context.get("message");
+        assertThat(message).isNotNull();
+        JsonNode queue = message.get("queue");
+        assertThat(queue).isNotNull();
+        assertThat("test-queue").isEqualTo(queue.get("name").textValue());
+        JsonNode age = message.get("age");
+        assertThat(age).isNull();
     }
 
     @Test
@@ -470,7 +493,7 @@ class DslJsonSerializerTest {
             .addHeader("response_header", "value")
             .withStatusCode(418);
 
-        transaction.getContext().getMessage().withQueue("test_queue");
+        transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
 
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
@@ -518,6 +541,11 @@ class DslJsonSerializerTest {
         JsonNode queue = message.get("queue");
         assertThat(queue).isNotNull();
         assertThat("test_queue").isEqualTo(queue.get("name").textValue());
+        JsonNode age = message.get("age");
+        assertThat(age).isNotNull();
+        JsonNode ms = age.get("ms");
+        assertThat(ms).isNotNull();
+        assertThat(ms.longValue()).isEqualTo(0);
     }
 
     private JsonNode readJsonString(String jsonString) {
