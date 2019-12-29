@@ -1,14 +1,14 @@
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
+import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.util.IOUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
-
-import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 
 /**
  * Java API for in-process profiling. Serves as a wrapper around
@@ -19,24 +19,23 @@ import static co.elastic.apm.agent.matcher.WildcardMatcher.caseSensitiveMatcher;
 public abstract class AsyncProfiler {
 
     public static void main(String[] args) throws Exception {
-        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance("/Users/felixbarnsteiner/projects/github/elastic/apm-agent-java/apm-agent-plugins/apm-profiling-plugin/src/main/resources/libasyncProfiler.so");
+        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
 
-        File file = new File(System.getProperty("java.io.tmpdir") + "/traces" + System.currentTimeMillis() + ".txt");
+        File file = new File(System.getProperty("java.io.tmpdir") + "/traces" + System.currentTimeMillis() + ".jfr");
         try {
-            System.out.println(asyncProfiler.execute("start,event=wall,interval=10000000,threads,alluser"));
+            System.out.println(asyncProfiler.execute("start,jfr,event=wall,interval=10000000,alluser,file=" + file));
             a();
-            System.out.println(asyncProfiler.execute("stop,traces,ann,file=" + file));
-            AsyncProfilerParser parser = new AsyncProfilerParser(file, List.of(caseSensitiveMatcher("co.elastic.apm.agent.profiler.asyncprofiler.*")), List.of(caseSensitiveMatcher("jdk.internal.*"), caseSensitiveMatcher("com.sun.*")));
-            System.out.println(Files.readString(file.toPath()));
-            System.out.println();
-            parser.parse((stackTraceElements, threadId, samples) -> {
-                if (!stackTraceElements.isEmpty()) {
-                    System.out.println("threadId = " + threadId);
-                    System.out.println("samples = " + samples);
-                    System.out.println("stackTraceElements = " + stackTraceElements);
-                    System.out.println();
+            System.out.println(asyncProfiler.execute("stop"));
+            JfrParser jfrParser = new JfrParser(file);
+            jfrParser.parse((threadId, stackTraceId, nanoTime) -> {
+                List<StackFrame> stackFrames = new ArrayList<>();
+                jfrParser.getStackTrace(stackTraceId, false, stackFrames);
+                if (!stackFrames.isEmpty()) {
+                    System.out.println(stackFrames);
                 }
+                stackFrames.clear();
             });
+
         } finally {
             if (!file.delete()) {
                 file.deleteOnExit();
@@ -66,19 +65,11 @@ public abstract class AsyncProfiler {
 
     // TODO export libasyncProfiler.so to temp directory, based on current OS (reuse if unchanged)
     public static AsyncProfiler getInstance() {
-        return getInstance(null);
-    }
-
-    public static synchronized AsyncProfiler getInstance(@Nullable String libPath) {
         if (instance != null) {
             return instance;
         }
-
-        if (libPath == null) {
-            System.loadLibrary("asyncProfiler");
-        } else {
-            System.load(libPath);
-        }
+        File file = IOUtils.exportResourceToTemp("libasyncProfiler.so");
+        System.load(file.getAbsolutePath());
 
         instance = newInstance();
         return instance;
@@ -193,6 +184,24 @@ public abstract class AsyncProfiler {
         return dumpFlat0(maxMethods);
     }
 
+    /**
+     * Get OS thread ID of the given Java thread. On Linux, this is the same number
+     * as gettid() returns. The result ID matches 'tid' in the profiler output.
+     *
+     * @param thread Java thread object
+     * @return Positive number that matches native (OS level) thread ID,
+     * or -1 if the given thread has not yet started or has already finished
+     */
+    public long getNativeThreadId(Thread thread) {
+        synchronized (thread) {
+            Thread.State state = thread.getState();
+            if (state != Thread.State.NEW && state != Thread.State.TERMINATED) {
+                return getNativeThreadId0(thread);
+            }
+        }
+        return -1;
+    }
+
     public abstract void start0(String event, long interval, boolean reset) throws IllegalStateException;
     public abstract void stop0() throws IllegalStateException;
     public abstract String execute0(String command) throws IllegalArgumentException, java.io.IOException;
@@ -200,6 +209,7 @@ public abstract class AsyncProfiler {
     public abstract String dumpTraces0(int maxTraces);
     public abstract String dumpFlat0(int maxMethods);
     public abstract String version0();
+    public abstract long getNativeThreadId0(Thread thread);
 
     public static class DirectNativeBinding extends AsyncProfiler {
 
@@ -210,6 +220,7 @@ public abstract class AsyncProfiler {
         public native String dumpTraces0(int maxTraces);
         public native String dumpFlat0(int maxMethods);
         public native String version0();
+        public native long getNativeThreadId0(Thread thread);
     }
 
     /**

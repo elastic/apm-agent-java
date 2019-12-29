@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,14 +26,22 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @VisibleForAdvice
 public class IOUtils {
@@ -198,6 +206,39 @@ public class IOUtils {
         } finally {
             ((Buffer) buffer).clear();
             charsetDecoder.reset();
+        }
+    }
+
+    public static File exportResourceToTemp(String resource) {
+        try (InputStream resourceStream = IOUtils.class.getClassLoader().getResourceAsStream(resource)) {
+            if (resourceStream == null) {
+                throw new IllegalStateException("Agent jar not found");
+            }
+            String hash = md5Hash(IOUtils.class.getClassLoader().getResourceAsStream(resource));
+            File tempFile = new File(System.getProperty("java.io.tmpdir"), resource + "." + hash);
+            if (!tempFile.exists()) {
+                try (OutputStream out = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[1024];
+                    for (int length; (length = resourceStream.read(buffer)) != -1; ) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+            } else if (!md5Hash(new FileInputStream(tempFile)).equals(hash)) {
+                throw new IllegalStateException("Invalid MD5 checksum of " + tempFile + ". Please delete this file.");
+            }
+            return tempFile;
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
+        try (InputStream agentJar = resourceAsStream) {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] buffer = new byte[1024];
+            DigestInputStream dis = new DigestInputStream(agentJar, md);
+            while (dis.read(buffer) != -1) {}
+            return String.format("%032x", new BigInteger(1, md.digest()));
         }
     }
 }
