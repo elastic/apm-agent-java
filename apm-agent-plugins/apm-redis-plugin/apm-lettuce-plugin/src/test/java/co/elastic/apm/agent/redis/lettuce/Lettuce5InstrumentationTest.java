@@ -109,4 +109,9 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     public void tearDownLettuce() {
         connection.close();
     }
+
+    @Override
+    protected boolean destinationAddressSupported() {
+        return false;
+    }
 }

@@ -82,10 +82,19 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
 
     private void verifyDestinationDetails(List<Span> spanList) {
         for (Span span : spanList) {
-            Destination.Service service = span.getContext().getDestination().getService();
+            Destination destination = span.getContext().getDestination();
+            if (destinationAddressSupported()) {
+                assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+                assertThat(destination.getPort()).isEqualTo(redisPort);
+            }
+            Destination.Service service = destination.getService();
             Java6Assertions.assertThat(service.getName().toString()).isEqualTo("redis");
             Java6Assertions.assertThat(service.getResource().toString()).isEqualTo("redis");
             Java6Assertions.assertThat(service.getType()).isEqualTo("db");
         }
+    }
+
+    protected boolean destinationAddressSupported() {
+        return true;
     }
 }

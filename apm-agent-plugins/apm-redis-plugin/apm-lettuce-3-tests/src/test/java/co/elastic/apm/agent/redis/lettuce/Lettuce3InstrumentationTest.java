@@ -60,4 +60,9 @@ public class Lettuce3InstrumentationTest extends AbstractRedisInstrumentationTes
     public void tearDownLettuce() throws ExecutionException, InterruptedException {
         connection.close();
     }
+
+    @Override
+    protected boolean destinationAddressSupported() {
+        return false;
+    }
 }
