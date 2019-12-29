@@ -28,6 +28,8 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
+import com.mongodb.ServerAddress;
+import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -76,7 +78,9 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Span onEnter(@Advice.Argument(0) MongoNamespace namespace, @Advice.Origin("#m") String methodName) {
+    public static Span onEnter(@Advice.This Connection thiz,
+                               @Advice.Argument(0) MongoNamespace namespace,
+                               @Advice.Origin("#m") String methodName) {
         Span span = ElasticApmInstrumentation.createExitSpan();
 
         if (span == null) {
@@ -87,6 +91,11 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
             .getContext().getDb().withType("mongodb");
         span.getContext().getDestination().getService()
             .withName("mongodb").withResource("mongodb").withType("db");
+        ServerAddress serverAddress = thiz.getDescription().getServerAddress();
+        span.getContext().getDestination()
+            .withAddress(serverAddress.getHost())
+            .withPort(serverAddress.getPort());
+
         String command = methodName;
         if (methodName.equals("query")) {
             // if the method name is query, that corresponds to the find command

@@ -205,7 +205,10 @@ public abstract class AbstractMongoClientInstrumentationTest extends AbstractIns
 
     private void verifyDestinationDetails(List<Span> spanList) {
         for (Span span : spanList) {
-            Destination.Service service = span.getContext().getDestination().getService();
+            Destination destination = span.getContext().getDestination();
+            assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+            assertThat(destination.getPort()).isEqualTo(container.getMappedPort(27017));
+            Destination.Service service = destination.getService();
             assertThat(service.getName().toString()).isEqualTo("mongodb");
             assertThat(service.getResource().toString()).isEqualTo("mongodb");
             assertThat(service.getType()).isEqualTo("db");
