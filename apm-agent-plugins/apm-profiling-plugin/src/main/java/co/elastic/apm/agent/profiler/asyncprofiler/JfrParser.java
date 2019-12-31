@@ -1,6 +1,31 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2019 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.impl.transaction.StackFrame;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,6 +33,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -40,6 +66,7 @@ public class JfrParser {
 
     public JfrParser(File file) throws IOException {
         FileChannel channel = new RandomAccessFile(file, "r").getChannel();
+        logger.info("Parsing {} ({} bytes)", file, channel.size());
         if (channel.size() > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Input file too large");
         }
@@ -49,7 +76,6 @@ public class JfrParser {
                 throw new IllegalArgumentException("Not a JFR file");
             }
         }
-        logger.debug("This is a JFR file: {}", file);
         major = buffer.getShort();
         minor = buffer.getShort();
         if (major != 0 && minor != 9) {
@@ -58,9 +84,9 @@ public class JfrParser {
         metadataOffset = (int) buffer.getLong();
         eventsOffset = buffer.position();
 
-        buffer.position(metadataOffset);
+        setPosition(buffer, metadataOffset);
         int checkpointOffset = parseMetadata(buffer);
-        buffer.position(checkpointOffset);
+        setPosition(buffer, checkpointOffset);
         parseCheckpoint(buffer);
     }
 
@@ -68,7 +94,7 @@ public class JfrParser {
         int size = buffer.getInt();
         expectEventType(buffer, EventTypeId.EVENT_METADATA);
         int checkpointOffsetPosition = size - 16;
-        buffer.position(buffer.position() + checkpointOffsetPosition);
+        setPosition(buffer, buffer.position() + checkpointOffsetPosition);
         return (int) buffer.getLong();
     }
 
@@ -91,19 +117,9 @@ public class JfrParser {
 
     private void parseContentType(MappedByteBuffer buffer) throws IOException {
         int contentTypeId = buffer.getInt();
-        logger.info("Parsing content type {}", contentTypeId);
+        logger.debug("Parsing content type {}", contentTypeId);
         int count = buffer.getInt();
         switch (contentTypeId) {
-            case ContentTypeId.CONTENT_NONE:
-                break;
-            case ContentTypeId.CONTENT_MEMORY:
-                break;
-            case ContentTypeId.CONTENT_EPOCHMILLIS:
-                break;
-            case ContentTypeId.CONTENT_MILLIS:
-                break;
-            case ContentTypeId.CONTENT_NANOS:
-                break;
             case ContentTypeId.CONTENT_THREAD:
                 // currently no thread info
                 break;
@@ -114,7 +130,7 @@ public class JfrParser {
                     this.stackTracePositions.put(stackTraceKey, pos);
                     buffer.get(); // truncated
                     int numFrames = buffer.getInt();
-                    buffer.position(buffer.position() + numFrames * 13);
+                    setPosition(buffer, buffer.position() + numFrames * 13);
                 }
                 break;
             case ContentTypeId.CONTENT_CLASS:
@@ -149,7 +165,7 @@ public class JfrParser {
                 for (int i = 1; i <= count; i++) {
                     short id = buffer.getShort();
                     assert i == id;
-                    threadStates[i] = readUtf8String(false);
+                    threadStates[i] = readUtf8String();
                 }
                 break;
             case ContentTypeId.CONTENT_FRAME_TYPE:
@@ -157,7 +173,7 @@ public class JfrParser {
                 for (int i = 1 ; i <= count; i++) {
                     byte id = buffer.get();
                     assert i == id;
-                    isJavaFrameType[(int) id] = JAVA_FRAME_TYPES.contains(readUtf8String(false));
+                    isJavaFrameType[(int) id] = JAVA_FRAME_TYPES.contains(readUtf8String());
                 }
                 break;
             default:
@@ -175,11 +191,11 @@ public class JfrParser {
 
     private void skipString() {
         short stringLength = buffer.getShort();
-        buffer.position(buffer.position() + stringLength);
+        setPosition(buffer, buffer.position() + stringLength);
     }
 
-    public void parse(StackTraceCallback callback) throws IOException {
-        buffer.position(eventsOffset);
+    public void consumeStackTraces(StackTraceConsumer callback) throws IOException {
+        setPosition(buffer, eventsOffset);
         while (buffer.position() < metadataOffset) {
             int size = buffer.getInt();
             int eventType = buffer.getInt();
@@ -197,28 +213,36 @@ public class JfrParser {
         }
     }
 
-    public interface StackTraceCallback {
+    public interface StackTraceConsumer {
 
         void onCallTree(int threadId, long stackTraceId, long nanoTime);
     }
 
-    public void getStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames) {
+    public void getStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
         MappedByteBuffer buffer = this.buffer;
         int position = buffer.position();
-        buffer.position(stackTracePositions.get((int) stackTraceId));
-        assert stackTraceId == buffer.getLong();
+        setPosition(buffer, stackTracePositions.get((int) stackTraceId));
+        long stackTraceIdFromFile = buffer.getLong();
+        assert stackTraceId == stackTraceIdFromFile;
         buffer.get(); // truncated
         int numFrames = buffer.getInt();
-        for (int j = 0; j < numFrames; j++) {
+        for (int i = 0; i < numFrames; i++) {
             long method = (int) buffer.getLong();
             buffer.getInt(); // bci (always set to 0 by async-profiler)
             byte frameType = buffer.get();
             if (!onlyJavaFrames || isJavaFrameType(frameType)) {
                 LazyStackFrame lazyStackFrame = frames.get(method);
-                stackFrames.add(lazyStackFrame.getStackFrame(this));
+                StackFrame stackFrame = lazyStackFrame.getStackFrame(this);
+                if (isIncluded(stackFrame, excludedClasses, includedClasses)) {
+                    stackFrames.add(stackFrame);
+                }
             }
         }
-        buffer.position(position);
+        setPosition(buffer, position);
+    }
+
+    private static boolean isIncluded(StackFrame stackFrame, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
+        return WildcardMatcher.isAnyMatch(includedClasses, stackFrame.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackFrame.getClassName());
     }
 
     private boolean isJavaFrameType(byte frameType) {
@@ -227,18 +251,26 @@ public class JfrParser {
 
     private String resolveSymbol(int pos, boolean replaceSlashWithDot) {
         int currentPos = buffer.position();
-        buffer.position(pos);
+        setPosition(buffer, pos);
         try {
             return readUtf8String(replaceSlashWithDot);
         } finally {
-            buffer.position(currentPos);
+            setPosition(buffer, currentPos);
         }
+    }
+
+    private static void setPosition(MappedByteBuffer buffer, int pos) {
+        ((Buffer) buffer).position(pos);
     }
 
     private StackFrame resolveStackFrame(int classId, int methodName) {
         String className = symbols.get(classes.get(classId)).resolveClassName(this);
         String method = symbols.get(methodName).resolve(this);
         return new StackFrame(className, Objects.requireNonNull(method));
+    }
+
+    private String readUtf8String() {
+        return readUtf8String(false);
     }
 
     private String readUtf8String(boolean replaceSlashWithDot) {
@@ -265,11 +297,6 @@ public class JfrParser {
 
     };
     private interface ContentTypeId {
-        int CONTENT_NONE        = 0;
-        int CONTENT_MEMORY      = 1;
-        int CONTENT_EPOCHMILLIS = 2;
-        int CONTENT_MILLIS      = 3;
-        int CONTENT_NANOS       = 4;
         int CONTENT_THREAD      = 7;
         int CONTENT_STACKTRACE  = 9;
         int CONTENT_CLASS       = 10;

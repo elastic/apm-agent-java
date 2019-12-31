@@ -57,7 +57,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "The lower you set it, the more accurate the durations will be.\n" +
             "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
             "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
-        .addValidator(RangeValidator.min(TimeDuration.of("10ms")))
+        .addValidator(RangeValidator.min(TimeDuration.of("5ms")))
         .buildWithDefault(TimeDuration.of("20ms"));
 
     private final ConfigurationOption<List<WildcardMatcher>> includedClasses = ConfigurationOption

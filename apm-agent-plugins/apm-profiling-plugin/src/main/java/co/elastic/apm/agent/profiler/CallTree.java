@@ -248,7 +248,7 @@ public class CallTree implements Recyclable {
     }
 
     protected Span asSpan(Root root, TraceContext parentContext) {
-        Span span = parentContext.createSpan(root.getStartTimestampUs(this))
+        Span span = parentContext.createSpan(root.getEpochMicros(this.start))
             .withType("app")
             .withSubtype("inferred");
 
@@ -313,7 +313,6 @@ public class CallTree implements Recyclable {
 
     public static class Root extends CallTree implements Recyclable {
         private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
-        private long timestampUs;
         protected TraceContext traceContext;
         private long activationTimestamp;
         @Nullable
@@ -348,9 +347,6 @@ public class CallTree implements Recyclable {
         }
 
         public void addStackTrace(ElasticApmTracer tracer, List<StackFrame> stackTrace, long nanoTime) {
-            if (count == 0) {
-                timestampUs = this.traceContext.getClock().getEpochMicros();
-            }
             // only "materialize" trace context if there's actually an associated stack trace to the activation
             // avoids allocating a TraceContext for very short activations which have no effect on the CallTree anyway
             if (activeSpan == null) {
@@ -371,19 +367,13 @@ public class CallTree implements Recyclable {
             return traceContext;
         }
 
-        public long getTimestampUs() {
-            return timestampUs;
-        }
-
-        public long getStartTimestampUs(CallTree callTree) {
-            long offsetUs = (callTree.start - this.start) / 1000;
-            return offsetUs + timestampUs;
+        public long getEpochMicros(long nanoTime) {
+            return traceContext.getClock().getEpochMicros(nanoTime);
         }
 
         @Override
         public void resetState() {
             super.resetState();
-            timestampUs = 0;
             activeSpan = null;
         }
     }

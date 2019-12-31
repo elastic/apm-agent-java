@@ -124,8 +124,13 @@ public class Id implements Recyclable {
     }
 
     public boolean dataEquals(byte[] data, int offset) {
-        int length = this.data.length;
-        return Arrays.equals(this.data, 0, length, data, offset, offset + length);
+        byte[] thisData = this.data;
+        for (int i = 0; i < thisData.length; i++) {
+            if (thisData[i] != data[i + offset]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

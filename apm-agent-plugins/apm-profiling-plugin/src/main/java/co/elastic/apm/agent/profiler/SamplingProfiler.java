@@ -34,6 +34,8 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ListBasedObjectPool;
+import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
+import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslatorThreeArg;
@@ -45,13 +47,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -62,14 +67,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
             @Override
             public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive, Thread thread) {
-                event.activation(active, thread.getId(), previouslyActive, nanoClock.nanoTime());
+                event.activation(active, threadMapper.getNativeThreadId(thread), previouslyActive, nanoClock.nanoTime());
             }
         };
     private final EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread> DEACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
             @Override
             public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive, Thread thread) {
-                event.deactivation(active, thread.getId(), previouslyActive, nanoClock.nanoTime());
+                event.deactivation(active, threadMapper.getNativeThreadId(thread), previouslyActive, nanoClock.nanoTime());
             }
         };
     // sizeof(ActivationEvent) is 176B so the ring buffer should be around 880KiB
@@ -79,14 +84,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final ScheduledExecutorService scheduler;
     private final Map<Long, CallTree.Root> profiledThreads;
     private final RingBuffer<ActivationEvent> eventBuffer;
-    private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
     private volatile boolean profilingSessionOngoing = false;
-    private final StackFrameCache stackFrameCache = new StackFrameCache();
     private final Sequence sequence;
     private final SequenceBarrier sequenceBarrier;
     private final ElasticApmTracer tracer;
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
+    private final AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
+    private final NativeThreadIdToJavaThreadMapper threadMapper = new NativeThreadIdToJavaThreadMapper();
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
         this(tracer,
@@ -154,7 +159,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         setProfilingSessionOngoing(true);
 
         logger.debug("Start profiling session");
-        profile(sampleRate, profilingDuration);
+        try {
+            profile(sampleRate, profilingDuration);
+        } catch (Exception e) {
+            logger.error("Stopping profiler", e);
+            return;
+        }
         logger.debug("End profiling session");
 
         boolean interrupted = Thread.currentThread().isInterrupted();
@@ -167,58 +177,74 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) {
-        long sampleRateNs = TimeUnit.MILLISECONDS.toNanos(sampleRate.getMillis());
-        long deadline = profilingDuration.getMillis() + System.currentTimeMillis();
-        ArrayList<StackFrame> stackTraces = new ArrayList<>(256);
-        while (!Thread.currentThread().isInterrupted() && System.currentTimeMillis() < deadline) {
-            try {
-                long startNs = System.nanoTime();
+    private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
+        File file = new File(System.getProperty("java.io.tmpdir") + "/traces" + System.currentTimeMillis() + ".jfr");
+        try {
+            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + file);
+            logger.info(startMessage);
 
-                takeThreadSnapshot(stackTraces);
+            Thread.sleep(profilingDuration.getMillis());
 
-                long durationNs = System.nanoTime() - startNs;
-                logger.trace("Taking snapshot took {}ns", durationNs);
-                TimeUnit.NANOSECONDS.sleep(sampleRateNs - durationNs);
-            } catch (RuntimeException e) {
-                logger.error("Exception while taking profiling snapshot", e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            String stopMessage = asyncProfiler.execute("stop");
+            logger.info(stopMessage);
+
+            processTraces(file);
+        } catch (InterruptedException e) {
+            asyncProfiler.stop();
+            Thread.currentThread().interrupt();
+        } finally {
+            if (!file.delete()) {
+                file.deleteOnExit();
             }
         }
     }
 
-    private void takeThreadSnapshot(List<StackFrame> stackTraces) {
+    private void processTraces(File file) throws IOException {
+        JfrParser jfrParser = new JfrParser(file);
+        final SortedSet<StackTraceEvent> stackTraceEvents = getStackTraceEvents(jfrParser);
+        logger.debug("Processing {} stack traces", stackTraceEvents.size());
+        List<StackFrame> stackFrames = new ArrayList<>();
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
-        long nanoTime = System.nanoTime();
-        processActivationEventsUpTo(nanoTime);
-        long[] profiledThreadIds = getProfiledThreadIds();
-        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(profiledThreadIds, Integer.MAX_VALUE);
-        if (profiledThreadIds.length == 0) {
-            return;
-        }
-        logger.trace("Taking snapshot of threads {} timestamp {}", profiledThreadIds, nanoTime);
+        ElasticApmTracer tracer = this.tracer;
+        for (Iterator<StackTraceEvent> iterator = stackTraceEvents.iterator(); iterator.hasNext(); ) {
+            StackTraceEvent stackTrace = iterator.next();
+            // make StackTraceEvent GC eligible asap
+            iterator.remove();
 
-        for (int i = 0; i < profiledThreadIds.length; i++) {
-            long threadId = profiledThreadIds[i];
-            ThreadInfo threadInfo = threadInfos[i];
-            if (threadInfo != null) {
-                CallTree.Root root = profiledThreads.get(threadId);
-                for (StackTraceElement stackTraceElement : ThreadInfoStacktraceAccessor.getStackTrace(threadInfo)) {
-                    if (isIncluded(stackTraceElement, excludedClasses, includedClasses)) {
-                        stackTraces.add(stackFrameCache.getStackFrame(stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
-                    }
-                }
-                root.addStackTrace(tracer, stackTraces, nanoTime);
-                stackTraces.clear();
+            // TODO write activation events into MappedByteBuffer (memory-mapped file)
+            processActivationEventsUpTo(stackTrace.nanoTime);
+            CallTree.Root root = profiledThreads.get((long) stackTrace.threadId);
+            if (root != null) {
+                jfrParser.getStackTrace(stackTrace.stackTraceId, true, stackFrames, excludedClasses, includedClasses);
+                root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
             }
+            stackFrames.clear();
         }
     }
 
-    private boolean isIncluded(StackTraceElement stackTraceElement, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
-        return WildcardMatcher.isAnyMatch(includedClasses, stackTraceElement.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackTraceElement.getClassName());
+    /**
+     * Returns stack trace events of relevant threads sorted by timestamp.
+     * The events in the JFR file are not in order.
+     * Even for the same thread, a more recent event might come before an older event.
+     * In order to be able to correlate stack trace events and activation events, both need to be in order.
+     *
+     * Returns only events for threads where at least one activation happened
+     */
+    private SortedSet<StackTraceEvent> getStackTraceEvents(JfrParser jfrParser) throws IOException {
+        final long[] nativeThreadIds = threadMapper.getSortedNativeThreadIds();
+        final SortedSet<StackTraceEvent> stackTraceEvents = new TreeSet<>();
+        jfrParser.consumeStackTraces(new JfrParser.StackTraceConsumer() {
+            @Override
+            public void onCallTree(int threadId, long stackTraceId, long nanoTime) {
+                // binary search in primitive array as opposed to lookup in set to avoid allocations
+                // this is beneficial as number of stackTraces is much greater than number of threads
+                if (Arrays.binarySearch(nativeThreadIds, threadId) >= 0) {
+                    stackTraceEvents.add(new StackTraceEvent(nanoTime, stackTraceId, threadId));
+                }
+            }
+        });
+        return stackTraceEvents;
     }
 
     public void processActivationEventsUpTo(long timestamp) {
@@ -298,6 +324,23 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
     // --
+
+    private static class StackTraceEvent implements Comparable<StackTraceEvent> {
+        private final long nanoTime;
+        private final long stackTraceId;
+        private final int threadId;
+
+        private StackTraceEvent(long nanoTime, long stackTraceId, int threadId) {
+            this.nanoTime = nanoTime;
+            this.stackTraceId = stackTraceId;
+            this.threadId = threadId;
+        }
+
+        @Override
+        public int compareTo(StackTraceEvent o) {
+            return Long.compare(nanoTime, o.nanoTime);
+        }
+    }
 
     private static class ActivationEvent {
         @Nullable

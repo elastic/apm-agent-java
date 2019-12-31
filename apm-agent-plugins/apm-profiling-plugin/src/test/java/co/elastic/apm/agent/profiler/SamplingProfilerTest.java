@@ -27,6 +27,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.MockReporter;
 import co.elastic.apm.agent.MockTracer;
 import co.elastic.apm.agent.configuration.SpyConfiguration;
+import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.Scope;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -35,6 +36,8 @@ import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.util.List;
@@ -45,6 +48,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
+// async-profiler doesn't work on Windows
+@DisabledOnOs(OS.WINDOWS)
 class SamplingProfilerTest {
 
     private MockReporter reporter;
@@ -57,6 +62,9 @@ class SamplingProfilerTest {
         ProfilingConfiguration profilingConfig = config.getConfig(ProfilingConfiguration.class);
         when(profilingConfig.getIncludedClasses()).thenReturn(List.of(WildcardMatcher.valueOf(getClass().getName())));
         when(profilingConfig.isProfilingEnabled()).thenReturn(true);
+        when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
+        when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
+        when(profilingConfig.getSampleRate()).thenReturn(TimeDuration.of("5ms"));
         tracer = MockTracer.createRealTracer(reporter, config);
     }
 
@@ -76,8 +84,8 @@ class SamplingProfilerTest {
 
         await()
             .pollDelay(10, TimeUnit.MILLISECONDS)
-            .timeout(500, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSizeGreaterThanOrEqualTo(2));
+            .timeout(5000, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> assertThat(reporter.getSpans()).hasSize(4));
 
         Optional<Span> inferredSpanA = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#aInferred")).findAny();
         assertThat(inferredSpanA).isPresent();

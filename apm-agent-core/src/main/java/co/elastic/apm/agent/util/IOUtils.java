@@ -209,13 +209,13 @@ public class IOUtils {
         }
     }
 
-    public static File exportResourceToTemp(String resource) {
-        try (InputStream resourceStream = IOUtils.class.getClassLoader().getResourceAsStream(resource)) {
+    public static File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
+        try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
                 throw new IllegalStateException("Agent jar not found");
             }
-            String hash = md5Hash(IOUtils.class.getClassLoader().getResourceAsStream(resource));
-            File tempFile = new File(System.getProperty("java.io.tmpdir"), resource + "." + hash);
+            String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
+            File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
             if (!tempFile.exists()) {
                 try (OutputStream out = new FileOutputStream(tempFile)) {
                     byte[] buffer = new byte[1024];

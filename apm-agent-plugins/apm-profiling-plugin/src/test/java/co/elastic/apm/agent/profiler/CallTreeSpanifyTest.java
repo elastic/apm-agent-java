@@ -65,7 +65,6 @@ class CallTreeSpanifyTest {
             " bb ",
             "aaae"
         });
-        long rootTimestamp = callTree.getTimestampUs();
         callTree.spanify();
         assertThat(reporter.getSpans()).hasSize(4);
         assertThat(reporter.getSpans().stream()

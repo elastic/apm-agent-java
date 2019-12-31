@@ -1,14 +1,36 @@
+/*-
+ * #%L
+ * Elastic APM Java agent
+ * %%
+ * Copyright (C) 2018 - 2019 Elastic and contributors
+ * %%
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ * #L%
+ */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
-import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.util.IOUtils;
 import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Java API for in-process profiling. Serves as a wrapper around
@@ -17,42 +39,6 @@ import java.util.List;
  * libasyncProfiler.so.
  */
 public abstract class AsyncProfiler {
-
-    public static void main(String[] args) throws Exception {
-        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
-
-        File file = new File(System.getProperty("java.io.tmpdir") + "/traces" + System.currentTimeMillis() + ".jfr");
-        try {
-            System.out.println(asyncProfiler.execute("start,jfr,event=wall,interval=10000000,alluser,file=" + file));
-            a();
-            System.out.println(asyncProfiler.execute("stop"));
-            JfrParser jfrParser = new JfrParser(file);
-            jfrParser.parse((threadId, stackTraceId, nanoTime) -> {
-                List<StackFrame> stackFrames = new ArrayList<>();
-                jfrParser.getStackTrace(stackTraceId, false, stackFrames);
-                if (!stackFrames.isEmpty()) {
-                    System.out.println(stackFrames);
-                }
-                stackFrames.clear();
-            });
-
-        } finally {
-            if (!file.delete()) {
-                file.deleteOnExit();
-            }
-        }
-    }
-
-    private static void a() throws InterruptedException {
-        Thread.sleep(250);
-        b();
-        Thread.sleep(250);
-        b();
-    }
-
-    private static void b() throws InterruptedException {
-        Thread.sleep(250);
-    }
 
     @Nullable
     private static AsyncProfiler instance;
@@ -63,12 +49,12 @@ public abstract class AsyncProfiler {
         this.version = version0();
     }
 
-    // TODO export libasyncProfiler.so to temp directory, based on current OS (reuse if unchanged)
     public static AsyncProfiler getInstance() {
         if (instance != null) {
             return instance;
         }
-        File file = IOUtils.exportResourceToTemp("libasyncProfiler.so");
+        // TODO export libasyncProfiler.so based on current OS
+        File file = IOUtils.exportResourceToTemp("asyncprofiler/libasyncProfiler.so", "libasyncProfiler", ".so");
         System.load(file.getAbsolutePath());
 
         instance = newInstance();
@@ -81,10 +67,10 @@ public abstract class AsyncProfiler {
     private static AsyncProfiler newInstance() {
         try {
             return new ByteBuddy()
-                .redefine(DirectNativeBinding.class)
+                .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
                 .name("one.profiler.AsyncProfiler")
                 .make()
-                .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
+                .load(AsyncProfiler.class.getClassLoader(), new ClassLoadingStrategy.ForUnsafeInjection())
                 .getLoaded()
                 .getConstructor()
                 .newInstance();
