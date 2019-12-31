@@ -39,13 +39,13 @@ class JfrParserTest {
 
     @Test
     void name() throws Exception {
-        JfrParser jfrParser = new JfrParser(new File(getClass().getClassLoader().getResource("recording.jfr").getFile()));
+        JfrParser jfrParser = new JfrParser(new File(getClass().getClassLoader().getResource("recording.jfr").getFile()), List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
         assertThat(jfrParser.getMajor()).isZero();
         assertThat(jfrParser.getMinor()).isEqualTo((short) 9);
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
         jfrParser.consumeStackTraces((threadId, stackTraceId, nanoTime) -> {
-            jfrParser.getStackTrace(stackTraceId, true, stackFrames, List.of(), List.of(caseSensitiveMatcher("co.elastic.apm.*")));
+            jfrParser.getStackTrace(stackTraceId, true, stackFrames);
             if (!stackFrames.isEmpty()) {
                 stackTraces.incrementAndGet();
             }

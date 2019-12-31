@@ -200,12 +200,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void processTraces(File file) throws IOException {
-        JfrParser jfrParser = new JfrParser(file);
+        List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
+        List<WildcardMatcher> includedClasses = config.getIncludedClasses();
+        JfrParser jfrParser = new JfrParser(file, excludedClasses, includedClasses);
         final SortedSet<StackTraceEvent> stackTraceEvents = getStackTraceEvents(jfrParser);
         logger.debug("Processing {} stack traces", stackTraceEvents.size());
         List<StackFrame> stackFrames = new ArrayList<>();
-        List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
-        List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         ElasticApmTracer tracer = this.tracer;
         for (Iterator<StackTraceEvent> iterator = stackTraceEvents.iterator(); iterator.hasNext(); ) {
             StackTraceEvent stackTrace = iterator.next();
@@ -216,7 +216,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             processActivationEventsUpTo(stackTrace.nanoTime);
             CallTree.Root root = profiledThreads.get((long) stackTrace.threadId);
             if (root != null) {
-                jfrParser.getStackTrace(stackTrace.stackTraceId, true, stackFrames, excludedClasses, includedClasses);
+                jfrParser.getStackTrace(stackTrace.stackTraceId, true, stackFrames);
                 root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
             }
             stackFrames.clear();

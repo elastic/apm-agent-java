@@ -63,14 +63,19 @@ public class JfrParser {
     private final Map<Long, LazyStackFrame> frames = new HashMap<>();
     private final int metadataOffset;
     private final StringBuilder symbolBuilder = new StringBuilder();
+    private final List<WildcardMatcher> excludedClasses;
+    private final List<WildcardMatcher> includedClasses;
 
-    public JfrParser(File file) throws IOException {
-        FileChannel channel = new RandomAccessFile(file, "r").getChannel();
-        logger.info("Parsing {} ({} bytes)", file, channel.size());
-        if (channel.size() > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Input file too large");
+    public JfrParser(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
+        this.excludedClasses = excludedClasses;
+        this.includedClasses = includedClasses;
+        try (FileChannel channel = new RandomAccessFile(file, "r").getChannel()) {
+            logger.info("Parsing {} ({} bytes)", file, channel.size());
+            if (channel.size() > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Input file too large");
+            }
+            this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
         }
-        this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
         for (byte magicByte : MAGIC_BYTES) {
             if (buffer.get() != magicByte) {
                 throw new IllegalArgumentException("Not a JFR file");
@@ -130,7 +135,8 @@ public class JfrParser {
                     this.stackTracePositions.put(stackTraceKey, pos);
                     buffer.get(); // truncated
                     int numFrames = buffer.getInt();
-                    setPosition(buffer, buffer.position() + numFrames * 13);
+                    int sizeOfFrame = 13;
+                    setPosition(buffer, buffer.position() + numFrames * sizeOfFrame);
                 }
                 break;
             case ContentTypeId.CONTENT_CLASS:
@@ -165,7 +171,7 @@ public class JfrParser {
                 for (int i = 1; i <= count; i++) {
                     short id = buffer.getShort();
                     assert i == id;
-                    threadStates[i] = readUtf8String();
+                    threadStates[i] = readUtf8String().toString();
                 }
                 break;
             case ContentTypeId.CONTENT_FRAME_TYPE:
@@ -173,7 +179,7 @@ public class JfrParser {
                 for (int i = 1 ; i <= count; i++) {
                     byte id = buffer.get();
                     assert i == id;
-                    isJavaFrameType[(int) id] = JAVA_FRAME_TYPES.contains(readUtf8String());
+                    isJavaFrameType[(int) id] = JAVA_FRAME_TYPES.contains(readUtf8String().toString());
                 }
                 break;
             default:
@@ -218,7 +224,7 @@ public class JfrParser {
         void onCallTree(int threadId, long stackTraceId, long nanoTime);
     }
 
-    public void getStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
+    public void getStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames) {
         MappedByteBuffer buffer = this.buffer;
         int position = buffer.position();
         setPosition(buffer, stackTracePositions.get((int) stackTraceId));
@@ -232,8 +238,8 @@ public class JfrParser {
             byte frameType = buffer.get();
             if (!onlyJavaFrames || isJavaFrameType(frameType)) {
                 LazyStackFrame lazyStackFrame = frames.get(method);
-                StackFrame stackFrame = lazyStackFrame.getStackFrame(this);
-                if (isIncluded(stackFrame, excludedClasses, includedClasses)) {
+                if (lazyStackFrame.isIncluded(this)) {
+                    StackFrame stackFrame = lazyStackFrame.resolve(this);
                     stackFrames.add(stackFrame);
                 }
             }
@@ -241,15 +247,11 @@ public class JfrParser {
         setPosition(buffer, position);
     }
 
-    private static boolean isIncluded(StackFrame stackFrame, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) {
-        return WildcardMatcher.isAnyMatch(includedClasses, stackFrame.getClassName()) && WildcardMatcher.isNoneMatch(excludedClasses, stackFrame.getClassName());
-    }
-
     private boolean isJavaFrameType(byte frameType) {
         return isJavaFrameType[frameType];
     }
 
-    private String resolveSymbol(int pos, boolean replaceSlashWithDot) {
+    private StringBuilder resolveSymbol(int pos, boolean replaceSlashWithDot) {
         int currentPos = buffer.position();
         setPosition(buffer, pos);
         try {
@@ -259,21 +261,30 @@ public class JfrParser {
         }
     }
 
+    private boolean isClassIncluded(CharSequence className) {
+        return WildcardMatcher.isAnyMatch(includedClasses, className) && WildcardMatcher.isNoneMatch(excludedClasses, className);
+    }
+
     private static void setPosition(MappedByteBuffer buffer, int pos) {
         ((Buffer) buffer).position(pos);
     }
 
     private StackFrame resolveStackFrame(int classId, int methodName) {
-        String className = symbols.get(classes.get(classId)).resolveClassName(this);
-        String method = symbols.get(methodName).resolve(this);
-        return new StackFrame(className, Objects.requireNonNull(method));
+        Symbol classNameSymbol = symbols.get(classes.get(classId));
+        if (classNameSymbol.isClassNameIncluded(this)) {
+            String className = classNameSymbol.resolveClassName(this);
+            String method = symbols.get(methodName).resolve(this);
+            return new StackFrame(className, Objects.requireNonNull(method));
+        } else {
+            return LazyStackFrame.EXCLUDED;
+        }
     }
 
-    private String readUtf8String() {
+    private StringBuilder readUtf8String() {
         return readUtf8String(false);
     }
 
-    private String readUtf8String(boolean replaceSlashWithDot) {
+    private StringBuilder readUtf8String(boolean replaceSlashWithDot) {
         int size = buffer.getShort();
         StringBuilder symbolBuilder = this.symbolBuilder;
         symbolBuilder.setLength(0);
@@ -285,7 +296,7 @@ public class JfrParser {
                 symbolBuilder.append(c);
             }
         }
-        return symbolBuilder.toString();
+        return symbolBuilder;
     }
 
     private interface EventTypeId {
@@ -312,6 +323,9 @@ public class JfrParser {
     }
 
     private static class LazyStackFrame {
+
+        private final static StackFrame EXCLUDED = new StackFrame("excluded", "excluded");
+
         private final int classId;
         private final int methodName;
 
@@ -323,15 +337,20 @@ public class JfrParser {
             this.methodName = methodName;
         }
 
-        public StackFrame getStackFrame(JfrParser parser) {
+        public StackFrame resolve(JfrParser parser) {
             if (stackFrame == null) {
                 stackFrame = parser.resolveStackFrame(classId, methodName);
             }
             return stackFrame;
         }
+
+        public boolean isIncluded(JfrParser parser) {
+            return resolve(parser) != EXCLUDED;
+        }
     }
 
     private static class Symbol {
+        private static final String EXCLUDED = "3x cluded";
         private final int pos;
         @Nullable
         private String resolved;
@@ -350,10 +369,19 @@ public class JfrParser {
             return resolve(parser, true);
         }
 
+        private boolean isClassNameIncluded(JfrParser parser) {
+            return resolve(parser, true) != EXCLUDED;
+        }
+
         @Nullable
-        private String resolve(JfrParser parser, boolean replaceSlashWithDot) {
+        private String resolve(JfrParser parser, boolean className) {
             if (resolved == null) {
-                resolved = parser.resolveSymbol(pos, replaceSlashWithDot);
+                StringBuilder stringBuilder = parser.resolveSymbol(pos, className);
+                if (className && !parser.isClassIncluded(stringBuilder)) {
+                    resolved = EXCLUDED;
+                } else {
+                    resolved = stringBuilder.toString();
+                }
             }
             if (resolved.isEmpty()) {
                 return null;
