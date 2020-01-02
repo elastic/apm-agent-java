@@ -44,6 +44,7 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.util.BinaryHeaderMap;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,6 +57,7 @@ import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
@@ -291,13 +293,13 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testSpanMessageContextSerialization() {
+    void testSpanMessageContextSerialization() throws BinaryHeaderMap.InsufficientCapacityException {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
             .withTopic("test-topic")
             .withBody("test-body")
-            .addHeader("test-header1", "value")
-            .addHeader("test-header2", "value")
+            .addHeader("text-header", "text-value")
+            .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
             .withAge(20);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
@@ -313,8 +315,8 @@ class DslJsonSerializerTest {
         assertThat("test-body").isEqualTo(body.textValue());
         JsonNode headers = message.get("headers");
         assertThat(headers).isNotNull();
-        assertThat(headers.get("test-header1").textValue()).isEqualTo("value");
-        assertThat(headers.get("test-header2").textValue()).isEqualTo("value");
+        assertThat(headers.get("text-header").textValue()).isEqualTo("text-value");
+        assertThat(headers.get("binary-header").textValue()).isEqualTo("binary-value");
         JsonNode age = message.get("age");
         assertThat(age).isNotNull();
         JsonNode ms = age.get("ms");
