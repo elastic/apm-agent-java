@@ -27,12 +27,12 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -423,8 +423,8 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifyMessageHeaders(Message message, Transaction receiveTransaction) throws JMSException {
-        Map<String, String> headersMap = new HashMap<>();
-        for (NoRandomAccessMap.Entry<String, String> header : receiveTransaction.getContext().getMessage().getHeaders()) {
+        Map<String, CharSequence> headersMap = new HashMap<>();
+        for (Headers.Header header : receiveTransaction.getContext().getMessage().getHeaders()) {
             headersMap.put(header.getKey(), header.getValue());
         }
         assertThat(headersMap).isNotEmpty();

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 /**
@@ -78,6 +79,17 @@ public class TraceContext extends TraceContextHolder {
             return false;
         }
     };
+    // todo: traceparent header- apply agreed binary format
+    private static final ChildContextCreator<byte[]> FROM_TRACEPARENT_BINARY_HEADER = new ChildContextCreator<byte[]>() {
+        @Override
+        public boolean asChildOf(TraceContext child, byte[] traceparent) {
+            if (traceparent != null && traceparent.length == 55) {
+                // todo- avoid deserialization and String allocation once we agree on a binary format
+                return child.asChildOf(new String(traceparent, StandardCharsets.UTF_8));
+            }
+            return false;
+        }
+    };
 
     private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
         @Override
@@ -105,6 +117,8 @@ public class TraceContext extends TraceContextHolder {
     private final Id parentId = Id.new64BitId();
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingHeader = new StringBuilder(TRACE_PARENT_LENGTH);
+    // todo: traceparent header- apply agreed binary format
+    private final byte[] outgoingBinaryHeader = new byte[TRACE_PARENT_LENGTH];
     private byte flags;
     private boolean discard;
     // weakly referencing to avoid CL leaks in case of leaked spans
@@ -148,6 +162,10 @@ public class TraceContext extends TraceContextHolder {
 
     public static ChildContextCreator<String> fromTraceparentHeader() {
         return FROM_TRACEPARENT_HEADER;
+    }
+
+    public static ChildContextCreator<byte[]> fromTraceparentBinaryHeader() {
+        return FROM_TRACEPARENT_BINARY_HEADER;
     }
 
     public static ChildContextCreator<ElasticApmTracer> fromActive() {
@@ -340,9 +358,23 @@ public class TraceContext extends TraceContextHolder {
             // for unsampled traces, propagate the ID of the transaction in calls to downstream services
             // such that the parentID of those transactions point to a transaction that exists
             // remember that we do report unsampled transactions
-            fillTraceParentHeader(outgoingHeader, isSampled() ? id : transactionId);
+            fillOutgoingTraceParentHeader();
         }
         return outgoingHeader;
+    }
+
+    public void fillOutgoingTraceParentHeader() {
+        fillTraceParentHeader(outgoingHeader, isSampled() ? id : transactionId);
+    }
+
+    /**
+     * Returns a binary representation of the {@code traceparent} header for downstream services.
+     */
+    public byte[] getOutgoingTraceParentBinaryHeader() {
+        if (outgoingHeader.length() == 0) {
+            fillOutgoingTraceParentHeader();
+        }
+        return outgoingBinaryHeader;
     }
 
     private void fillTraceParentHeader(StringBuilder sb, Id spanId) {
@@ -352,6 +384,11 @@ public class TraceContext extends TraceContextHolder {
         spanId.writeAsHex(sb);
         sb.append('-');
         HexUtils.writeByteAsHex(flags, sb);
+
+        // todo: traceparent header- apply agreed binary format
+        for (int i = 0; i < sb.length(); i++) {
+            outgoingBinaryHeader[i] = (byte) sb.charAt(i);
+        }
     }
 
     @Override
@@ -369,6 +406,7 @@ public class TraceContext extends TraceContextHolder {
         parentId.copyFrom(other.parentId);
         transactionId.copyFrom(other.transactionId);
         outgoingHeader.append(other.outgoingHeader);
+        System.arraycopy(outgoingBinaryHeader, 0, other.outgoingBinaryHeader, 0, outgoingBinaryHeader.length);
         flags = other.flags;
         discard = other.discard;
         clock.init(other.clock);

@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.impl.context;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
+import co.elastic.apm.agent.util.BinaryHeaderMap;
 
 import javax.annotation.Nullable;
 
@@ -51,7 +51,7 @@ public class Message implements Recyclable {
     /**
      * A mapping of message headers (in JMS includes properties as well)
      */
-    private final NoRandomAccessMap<String, String> headers = new NoRandomAccessMap<>();
+    private final Headers headers = new Headers();
 
     @Nullable
     public String getQueueName() {
@@ -92,6 +92,11 @@ public class Message implements Recyclable {
         return this;
     }
 
+    public Message addHeader(String key, byte[] value) throws BinaryHeaderMap.InsufficientCapacityException {
+        headers.add(key, value);
+        return this;
+    }
+
     public long getAge() {
         return age;
     }
@@ -101,7 +106,7 @@ public class Message implements Recyclable {
         return this;
     }
 
-    public NoRandomAccessMap<String, String> getHeaders() {
+    public Headers getHeaders() {
         return headers;
     }
 

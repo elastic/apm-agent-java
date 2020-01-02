@@ -35,7 +35,7 @@ import java.util.List;
  * The map doesn't allocate during addition or iteration.
  * This map does not support any form of concurrency. It can be either be in a write mode (through its {@link #add}
  * method) or read mode (through the {@link #iterator()} API) at a given time.
- * <p>
+ *
  * NOTE: this map does not guarantee visibility, therefore ensuring visibility when switching from read to write mode
  * (or the other way around) is under the responsibility of the map's user.
  *
@@ -122,7 +122,7 @@ public class NoRandomAccessMap<K, V> implements Recyclable, Iterable<NoRandomAcc
 
     private class NoGarbageIterator implements java.util.Iterator<NoRandomAccessMap.Entry<K, V>> {
         int index = 0;
-        EntryImpl entry = new EntryImpl();
+        final EntryImpl entry = new EntryImpl();
 
         @Override
         public boolean hasNext() {
