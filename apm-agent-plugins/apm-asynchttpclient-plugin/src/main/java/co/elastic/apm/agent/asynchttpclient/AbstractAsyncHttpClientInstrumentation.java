@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -47,6 +48,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoad
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -76,6 +78,9 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
+            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnCompletedInstrumentation.class);
+            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnThrowableInstrumentation.class);
+            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnStatusReceivedInstrumentation.class);
 
             final TraceContextHolder<?> parent = tracer.getActive();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getUri().toUrl(), request.getUri().getHost());
@@ -121,9 +126,12 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             this.methodMatcher = methodMatcher;
         }
 
+        /**
+         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Class)}
+         */
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("org.asynchttpclient.AsyncHandler"));
+            return none();
         }
 
         @Override
