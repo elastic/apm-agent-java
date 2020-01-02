@@ -39,12 +39,14 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
@@ -61,8 +63,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -70,6 +74,7 @@ import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.classLoa
 import static co.elastic.apm.agent.bci.bytebuddy.ClassLoaderNameMatcher.isReflectionClassLoader;
 import static net.bytebuddy.asm.Advice.ExceptionHandler.Default.PRINTING;
 import static net.bytebuddy.matcher.ElementMatchers.any;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -86,6 +91,7 @@ public class ElasticApmAgent {
     private static Instrumentation instrumentation;
     @Nullable
     private static ResettableClassFileTransformer resettableClassFileTransformer;
+    private static final List<ResettableClassFileTransformer> dynamicClassFileTransformers = new ArrayList<>();
     @Nullable
     private static File agentJarFile;
 
@@ -135,12 +141,12 @@ public class ElasticApmAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
                 numberOfAdvices++;
-                agentBuilder = applyAdvice(tracer, agentBuilder, advice);
+                agentBuilder = applyAdvice(tracer, agentBuilder, advice, new ElementMatcher.Junction.Conjunction<>(advice.getTypeMatcher(), not(isInterface())));
             }
         }
         logger.debug("Applied {} advices", numberOfAdvices);
@@ -167,7 +173,7 @@ public class ElasticApmAgent {
     }
 
     private static AgentBuilder applyAdvice(final ElasticApmTracer tracer, final AgentBuilder agentBuilder,
-                                            final ElasticApmInstrumentation instrumentation) {
+                                            final ElasticApmInstrumentation instrumentation, final ElementMatcher<? super TypeDescription> typeMatcher) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.debug("Applying instrumentation {}", instrumentation.getClass().getName());
         final boolean classLoadingMatchingPreFilter = tracer.getConfig(CoreConfiguration.class).isClassLoadingMatchingPreFilter();
@@ -175,7 +181,6 @@ public class ElasticApmAgent {
         final ElementMatcher.Junction<ClassLoader> classLoaderMatcher = instrumentation.getClassLoaderMatcher();
         final ElementMatcher<? super NamedElement> typeMatcherPreFilter = instrumentation.getTypeMatcherPreFilter();
         final ElementMatcher.Junction<ProtectionDomain> versionPostFilter = instrumentation.getImplementationVersionPostFilter();
-        final ElementMatcher<? super TypeDescription> typeMatcher = new ElementMatcher.Junction.Conjunction<>(instrumentation.getTypeMatcher(), not(isInterface()));
         final ElementMatcher<? super MethodDescription> methodMatcher = instrumentation.getMethodMatcher();
         return agentBuilder
             .type(new AgentBuilder.RawMatcher() {
@@ -311,11 +316,15 @@ public class ElasticApmAgent {
             throw new IllegalStateException("Reset was called before init");
         }
         resettableClassFileTransformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
-        instrumentation = null;
         resettableClassFileTransformer = null;
+        for (ResettableClassFileTransformer transformer : dynamicClassFileTransformers) {
+            transformer.reset(instrumentation, AgentBuilder.RedefinitionStrategy.RETRANSFORMATION);
+        }
+        dynamicClassFileTransformers.clear();
+        instrumentation = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
@@ -393,5 +402,75 @@ public class ElasticApmAgent {
     @Nullable
     public static String getAgentHome() {
         return agentJarFile == null ? null : agentJarFile.getParent();
+    }
+
+    private static final Map<Class<? extends ElasticApmInstrumentation>, WeakConcurrentSet<Class<?>>> alreadyInstrumented = new ConcurrentHashMap<Class<? extends ElasticApmInstrumentation>, WeakConcurrentSet<Class<?>>>();
+
+    public static void ensureInstrumented(Class<?> classToInstrument, Class<? extends ElasticApmInstrumentation> instrumentationClass) {
+        WeakConcurrentSet<Class<?>> instrumentedClasses = getOrCreate(instrumentationClass);
+
+        if (!instrumentedClasses.contains(classToInstrument)) {
+            synchronized (ElasticApmAgent.class) {
+                ElasticApmTracer tracer = ElasticApmInstrumentation.tracer;
+                if (tracer == null || instrumentation == null) {
+                    throw new IllegalStateException("Agent is not initialized");
+                }
+
+                if (!instrumentedClasses.contains(classToInstrument)) {
+                    instrumentedClasses.add(classToInstrument);
+                    CoreConfiguration config = tracer.getConfig(CoreConfiguration.class);
+                    ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
+                    ElementMatcher.Junction<TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher());
+                    if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
+                        final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
+                        final ByteBuddy byteBuddy = new ByteBuddy()
+                            .with(TypeValidation.of(logger.isDebugEnabled()))
+                            .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
+                        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID);
+                        agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher);
+                        dynamicClassFileTransformers.add(agentBuilder.installOn(instrumentation));
+                    }
+                }
+            }
+        }
+    }
+
+    private static WeakConcurrentSet<Class<?>> getOrCreate(Class<? extends ElasticApmInstrumentation> instrumentationClass) {
+        WeakConcurrentSet<Class<?>> instrumentedClasses = alreadyInstrumented.get(instrumentationClass);
+        if (instrumentedClasses == null) {
+            instrumentedClasses = new WeakConcurrentSet<Class<?>>(WeakConcurrentSet.Cleaner.INLINE);
+            WeakConcurrentSet<Class<?>> racy = alreadyInstrumented.put(instrumentationClass, instrumentedClasses);
+            if (racy != null) {
+                instrumentedClasses = racy;
+            }
+        }
+        return instrumentedClasses;
+    }
+
+    @Nullable
+    private static ElementMatcher.Junction<TypeDescription> getTypeMatcher(Class<?> classToInstrument, ElementMatcher<? super MethodDescription> methodMatcher) {
+
+        MethodList<MethodDescription.InDefinedShape> matchingMethods = TypeDescription.ForLoadedType.of(classToInstrument).getDeclaredMethods().filter(methodMatcher);
+        if (!matchingMethods.isEmpty()) {
+            return is(classToInstrument);
+        }
+        if (classToInstrument.getSuperclass() == null) {
+            return null;
+        }
+        return getTypeMatcher(classToInstrument.getSuperclass(), methodMatcher);
+    }
+
+    private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {
+        try {
+            if (instrumentation.getConstructor() != null) {
+                return instrumentation.getConstructor().newInstance();
+            } else if (instrumentation.getConstructor(ElasticApmTracer.class) != null) {
+                return instrumentation.getConstructor(ElasticApmTracer.class).newInstance(ElasticApmInstrumentation.tracer);
+            } else {
+                throw new IllegalArgumentException("No matching constructor found for " + instrumentation);
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
 }
