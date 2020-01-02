@@ -91,7 +91,6 @@ public abstract class AbstractInstrumentationTest {
     @AfterEach
     public final void cleanUp() {
         tracer.resetServiceNameOverrides();
-        System.out.println("Thread.currentThread().getName() = " + Thread.currentThread().getName());
         assertThat(tracer.getActive()).isNull();
     }
 }
