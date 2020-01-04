@@ -27,12 +27,14 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
+import java.io.IOException;
+
 public class ProfilingFactory implements LifecycleListener {
 
     private final SamplingProfiler profiler;
     private final NanoClock nanoClock;
 
-    public ProfilingFactory(ElasticApmTracer tracer) {
+    public ProfilingFactory(ElasticApmTracer tracer) throws IOException {
         boolean envTest = false;
         // in unit tests, where assertions are enabled, this envTest is true
         assert envTest = true;

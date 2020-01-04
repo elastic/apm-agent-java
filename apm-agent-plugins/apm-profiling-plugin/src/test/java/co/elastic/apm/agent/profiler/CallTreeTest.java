@@ -72,7 +72,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testCallTree() {
+    void testCallTree() throws Exception {
         TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
@@ -100,7 +100,7 @@ class CallTreeTest {
 
 
     @Test
-    void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() {
+    void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() throws Exception {
         assertCallTree(new String[]{
             " b b",
             "aaaa"
@@ -112,7 +112,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testBasicCallTree() {
+    void testBasicCallTree() throws Exception {
         assertCallTree(new String[]{
             " c  ",
             " bb ",
@@ -129,7 +129,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testShouldNotCreateInferredSpansForPillarsAndLeafShouldHaveStacktrace() {
+    void testShouldNotCreateInferredSpansForPillarsAndLeafShouldHaveStacktrace() throws Exception {
         assertCallTree(new String[]{
             " d ",
             " c ",
@@ -147,7 +147,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testSameTopOfStackDifferentBottom() {
+    void testSameTopOfStackDifferentBottom() throws Exception {
         assertCallTree(new String[]{
             "cccc",
             "aabb"
@@ -160,7 +160,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testStackTraceWithRecursion() {
+    void testStackTraceWithRecursion() throws Exception {
         assertCallTree(new String[]{
             "bcbc",
             "bbbb",
@@ -176,7 +176,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testFirstInferredSpanShouldHaveNoStackTrace() {
+    void testFirstInferredSpanShouldHaveNoStackTrace() throws Exception {
         assertCallTree(new String[]{
             "bb",
             "aa"
@@ -189,7 +189,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testCallTreeWithSpanActivations() {
+    void testCallTreeWithSpanActivations() throws Exception {
         assertCallTree(new String[]{
             "     c ee   ",
             "   bbb dd   ",
@@ -212,7 +212,7 @@ class CallTreeTest {
     }
 
     @Test
-    void testDectivationBeforeEnd() {
+    void testDectivationBeforeEnd() throws Exception {
         assertCallTree(new String[]{
             "   dd      ",
             "   cccc c  ",
@@ -234,10 +234,11 @@ class CallTreeTest {
         });
     }
 
-    private void assertCallTree(String[] stackTraces, Object[][] expectedTree) {
+    private void assertCallTree(String[] stackTraces, Object[][] expectedTree) throws Exception {
         assertCallTree(stackTraces, expectedTree, null);
     }
-    private void assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) {
+
+    private void assertCallTree(String[] stackTraces, Object[][] expectedTree, @Nullable Object[][] expectedSpans) throws Exception {
         CallTree.Root root = getCallTree(tracer, stackTraces);
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < expectedTree.length; i++) {
@@ -317,7 +318,7 @@ class CallTreeTest {
         return ((spanName).length() - 1) / 2;
     }
 
-    public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) {
+    public static CallTree.Root getCallTree(ElasticApmTracer tracer, String[] stackTraces) throws Exception {
         ProfilingFactory profilingFactory = tracer.getLifecycleListener(ProfilingFactory.class);
         SamplingProfiler profiler = profilingFactory.getProfiler();
         FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
@@ -326,10 +327,8 @@ class CallTreeTest {
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, null)
             .activate();
         transaction.getTraceContext().getClock().init(0, 0);
-        profiler.processActivationEventsUpTo(nanoClock.nanoTime());
-        CallTree.Root root = profiler.getRoot();
-        assertThat(root).isNotNull();
         Map<String, AbstractSpan<?>> spanMap = new HashMap<>();
+        List<StackTraceEvent> stackTraceEvents = new ArrayList<>();
         for (int i = 0; i < stackTraces[0].length(); i++) {
             nanoClock.setNanoTime(i * TimeUnit.MILLISECONDS.toNanos(10));
             List<StackFrame> trace = new ArrayList<>();
@@ -337,20 +336,43 @@ class CallTreeTest {
                 char c = stackTrace.charAt(i);
                 if (Character.isDigit(c)) {
                     handleSpanEvent(tracer, spanMap, Character.toString(c), nanoClock.nanoTime());
-                    profiler.processActivationEventsUpTo(nanoClock.nanoTime());
                     break;
                 } else if (!Character.isSpaceChar(c)) {
                     trace.add(StackFrame.of(CallTreeTest.class.getName(), Character.toString(c)));
                 }
             }
             if (!trace.isEmpty()) {
-                root.addStackTrace(tracer, trace, nanoClock.nanoTime());
+                stackTraceEvents.add(new StackTraceEvent(trace, nanoClock.nanoTime()));
             }
         }
+        profiler.consumeActivationEventsFromRingBufferAndWriteToFile();
+        profiler.startProcessingActivationEventsFile();
+        CallTree.Root root = null;
+        for (StackTraceEvent stackTraceEvent : stackTraceEvents) {
+            profiler.processActivationEventsUpTo(stackTraceEvent.nanoTime);
+            if (root == null) {
+                root = profiler.getRoot(Thread.currentThread());
+                assertThat(root).isNotNull();
+            }
+            root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime);
+        }
         transaction.deactivate().end(nanoClock.nanoTime() / 1000);
+        assertThat(root).isNotNull();
         root.end();
         profiler.clear();
         return root;
+    }
+
+    private static class StackTraceEvent {
+
+        private final List<StackFrame> trace;
+        private final long nanoTime;
+
+        public StackTraceEvent(List<StackFrame> trace, long nanoTime) {
+
+            this.trace = trace;
+            this.nanoTime = nanoTime;
+        }
     }
 
     private static void handleSpanEvent(ElasticApmTracer tracer, Map<String, AbstractSpan<?>> spanMap, String name, long nanoTime) {

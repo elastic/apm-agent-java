@@ -52,11 +52,9 @@ public class SamplingProfilerQueueTest {
         // no more free slots after adding RING_BUFFER_SIZE events
         assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isFalse();
 
-        // processing first event
-        profiler.processActivationEventsUpTo(timeAfterFirstEvent);
+        profiler.consumeActivationEventsFromRingBufferAndWriteToFile();
 
-        // now there should be one free slot
+        // now there should be free slots
         assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isTrue();
-        assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isFalse();
     }
 }

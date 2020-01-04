@@ -58,7 +58,7 @@ class CallTreeSpanifyTest {
     }
 
     @Test
-    void testSpanification() {
+    void testSpanification() throws Exception {
         CallTree.Root callTree = CallTreeTest.getCallTree(tracer, new String[]{
             " d  ",
             " c  ",

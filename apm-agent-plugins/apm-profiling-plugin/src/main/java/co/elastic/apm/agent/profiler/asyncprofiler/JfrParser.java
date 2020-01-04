@@ -69,7 +69,8 @@ public class JfrParser {
     public JfrParser(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
-        try (FileChannel channel = new RandomAccessFile(file, "r").getChannel()) {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            FileChannel channel = raf.getChannel();
             logger.info("Parsing {} ({} bytes)", file, channel.size());
             if (channel.size() > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Input file too large");

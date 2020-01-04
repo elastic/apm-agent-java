@@ -38,6 +38,7 @@ import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.asyncprofiler.JfrParser;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.EventPoller;
 import com.lmax.disruptor.EventTranslatorThreeArg;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
@@ -49,6 +50,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,6 +65,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
@@ -86,21 +93,24 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final RingBuffer<ActivationEvent> eventBuffer;
     private volatile boolean profilingSessionOngoing = false;
     private final Sequence sequence;
-    private final SequenceBarrier sequenceBarrier;
     private final ElasticApmTracer tracer;
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
     private final AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
     private final NativeThreadIdToJavaThreadMapper threadMapper = new NativeThreadIdToJavaThreadMapper();
+    private final MappedByteBuffer activationEventBuffer;
+    private final EventPoller<ActivationEvent> poller;
+    private final File activationEventsFile;
+    private final File jfrFile;
 
-    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) {
+    public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
             tracer.getConfig(ProfilingConfiguration.class),
             ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler"),
             new HashMap<Long, CallTree.Root>(), nanoClock);
     }
 
-    SamplingProfiler(final ElasticApmTracer tracer, ProfilingConfiguration config, ScheduledExecutorService scheduler, Map<Long, CallTree.Root> profiledThreads, NanoClock nanoClock) {
+    SamplingProfiler(final ElasticApmTracer tracer, ProfilingConfiguration config, ScheduledExecutorService scheduler, Map<Long, CallTree.Root> profiledThreads, NanoClock nanoClock) throws IOException {
         this.tracer = tracer;
         this.config = config;
         this.scheduler = scheduler;
@@ -110,14 +120,18 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         this.sequence = new Sequence();
         // tells the ring buffer to not override slots which have not been read yet
         this.eventBuffer.addGatingSequences(sequence);
-        // allows to get/wait for the sequences available for read via waitFor
-        this.sequenceBarrier = eventBuffer.newBarrier();
+        this.poller = eventBuffer.newPoller();
         this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(new ArrayList<CallTree.Root>(), 512, new Allocator<CallTree.Root>() {
             @Override
             public CallTree.Root createInstance() {
                 return new CallTree.Root(tracer);
             }
         });
+        jfrFile = File.createTempFile("apm-traces-", ".jfr");
+        activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(activationEventsFile, "rw")) {
+            activationEventBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 100_000 * ActivationEvent.SERIALIZED_SIZE);
+        }
     }
 
     private RingBuffer<ActivationEvent> createRingBuffer() {
@@ -178,42 +192,78 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
-        File file = new File(System.getProperty("java.io.tmpdir") + "/traces" + System.currentTimeMillis() + ".jfr");
         try {
-            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + file);
+            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + jfrFile);
             logger.info(startMessage);
 
-            Thread.sleep(profilingDuration.getMillis());
+            consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
 
             String stopMessage = asyncProfiler.execute("stop");
             logger.info(stopMessage);
 
-            processTraces(file);
+            processTraces(jfrFile);
         } catch (InterruptedException e) {
             asyncProfiler.stop();
             Thread.currentThread().interrupt();
-        } finally {
-            if (!file.delete()) {
-                file.deleteOnExit();
+        }
+    }
+
+    private void consumeActivationEventsFromRingBufferAndWriteToFile(TimeDuration profilingDuration) throws Exception {
+        resetActivationEventBuffer();
+        long threshold = System.currentTimeMillis() + profilingDuration.getMillis();
+        long sleep = 100_000;
+        while (System.currentTimeMillis() < threshold) {
+            if (activationEventBuffer.hasRemaining()) {
+                EventPoller.PollState poll = consumeActivationEventsFromRingBufferAndWriteToFile();
+                if (poll == EventPoller.PollState.PROCESSING) {
+                    sleep = 100_000;
+                } else {
+                    sleep *= 2;
+                }
+                LockSupport.parkNanos(Math.min(sleep, 10_000_000));
+            } else {
+                // the file is full, sleep the rest of the profilingDuration
+                Thread.sleep(Math.max(0, threshold - System.currentTimeMillis()));
             }
         }
+    }
+
+    private void resetActivationEventBuffer() {
+        ((Buffer) activationEventBuffer).clear();
+    }
+
+    EventPoller.PollState consumeActivationEventsFromRingBufferAndWriteToFile() throws Exception {
+        return poller.poll(new EventPoller.Handler<ActivationEvent>() {
+            @Override
+            public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) {
+                if (endOfBatch) {
+                    SamplingProfiler.this.sequence.set(sequence);
+                }
+                if (activationEventBuffer.hasRemaining()) {
+                    event.serialize(activationEventBuffer);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     private void processTraces(File file) throws IOException {
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         JfrParser jfrParser = new JfrParser(file, excludedClasses, includedClasses);
+        startProcessingActivationEventsFile();
         final SortedSet<StackTraceEvent> stackTraceEvents = getStackTraceEvents(jfrParser);
         logger.debug("Processing {} stack traces", stackTraceEvents.size());
         List<StackFrame> stackFrames = new ArrayList<>();
         ElasticApmTracer tracer = this.tracer;
+        ActivationEvent event = new ActivationEvent();
         for (Iterator<StackTraceEvent> iterator = stackTraceEvents.iterator(); iterator.hasNext(); ) {
             StackTraceEvent stackTrace = iterator.next();
             // make StackTraceEvent GC eligible asap
             iterator.remove();
 
-            // TODO write activation events into MappedByteBuffer (memory-mapped file)
-            processActivationEventsUpTo(stackTrace.nanoTime);
+            processActivationEventsUpTo(stackTrace.nanoTime, event);
             CallTree.Root root = profiledThreads.get((long) stackTrace.threadId);
             if (root != null) {
                 jfrParser.getStackTrace(stackTrace.stackTraceId, true, stackFrames);
@@ -247,46 +297,30 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return stackTraceEvents;
     }
 
-    public void processActivationEventsUpTo(long timestamp) {
-        RingBuffer<ActivationEvent> eventBuffer = this.eventBuffer;
-        try {
-            long nextSequence = sequence.get() + 1L;
-            // We never want to wait until new elements are available,
-            // we just want to process all available events
-            // See NoWaitStrategy
-            long availableSequence = sequenceBarrier.waitFor(nextSequence);
-            while (nextSequence <= availableSequence) {
-                ActivationEvent event = eventBuffer.get(nextSequence);
-                if (event.happenedBeforeOrAt(timestamp)) {
-                    event.handle(this);
-                    nextSequence++;
-                } else {
-                    // the next events are guaranteed to be older
-                    // only after a sequence is acquired, the timestamp is set within the EventTranslator
-                    sequence.set(nextSequence - 1);
-                    return;
-                }
+    void processActivationEventsUpTo(long timestamp) {
+        processActivationEventsUpTo(timestamp, new ActivationEvent());
+    }
+
+    public void processActivationEventsUpTo(long timestamp, ActivationEvent event) {
+        MappedByteBuffer buf = this.activationEventBuffer;
+        while (buf.hasRemaining()) {
+            long eventTimestamp = peekLong(buf);
+            if (eventTimestamp <= timestamp) {
+                event.deserialize(buf);
+                event.handle(this);
+            } else {
+                return;
             }
-            sequence.set(availableSequence);
-        } catch (Exception ignore) {
-            // our NoWaitStrategy does not throw exceptions
         }
     }
 
-    private long[] getProfiledThreadIds() {
-        long[] result = new long[profiledThreads.size()];
-        int i = 0;
-        for (Map.Entry<Long, CallTree.Root> entry : profiledThreads.entrySet()) {
-            if (entry.getValue() != null) {
-                result[i++] = entry.getKey();
-            }
+    private static long peekLong(ByteBuffer buf) {
+        int pos = buf.position();
+        try {
+            return buf.getLong();
+        } finally {
+            ((Buffer) buf).position(pos);
         }
-        if (i < result.length) {
-            long[] resultTruncated = new long[i];
-            System.arraycopy(result, 0, resultTruncated, 0, i);
-            return resultTruncated;
-        }
-        return result;
     }
 
     @Override
@@ -300,6 +334,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     public void stop() throws Exception {
         // cancels/interrupts the profiling thread
         scheduler.shutdownNow();
+        if (!jfrFile.delete()) {
+            jfrFile.deleteOnExit();
+        }
+        if (!activationEventsFile.delete()) {
+            activationEventsFile.deleteOnExit();
+        }
     }
 
     void setProfilingSessionOngoing(boolean profilingSessionOngoing) {
@@ -309,19 +349,30 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
+    void startProcessingActivationEventsFile() {
+        ((Buffer) activationEventBuffer).flip();
+    }
+
     // for testing
-    CallTree.Root getRoot() {
-        return profiledThreads.get(Thread.currentThread().getId());
+    CallTree.Root getRoot(Thread thread) {
+        return profiledThreads.get(threadMapper.getNativeThreadId(thread));
     }
 
     void clear() {
         profiledThreads.clear();
+        // consume all remaining events from the ring buffer
         try {
-            // skip all events in buffer
-            sequence.set(sequenceBarrier.waitFor(sequence.get() + 1L));
+            poller.poll(new EventPoller.Handler<ActivationEvent>() {
+                @Override
+                public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) {
+                    SamplingProfiler.this.sequence.set(sequence);
+                    return true;
+                }
+            });
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        resetActivationEventBuffer();
     }
     // --
 
@@ -343,6 +394,19 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private static class ActivationEvent {
+        public static final int SERIALIZED_SIZE =
+            Long.SIZE / Byte.SIZE + // timestamp
+                Short.SIZE / Byte.SIZE + // serviceName index
+                TraceContext.SERIALIZED_LENGTH + // traceContextBuffer
+                TraceContext.SERIALIZED_LENGTH + // previousContextBuffer
+                1 + // rootContext
+                Long.SIZE / Byte.SIZE + // threadId
+                1; // activation
+
+        private static final Map<String, Short> serviceNameMap = new HashMap<>();
+        private static final Map<Short, String> serviceNameBackMap = new HashMap<>();
+
+        private long timestamp;
         @Nullable
         private String serviceName;
         private byte[] traceContextBuffer = new byte[TraceContext.SERIALIZED_LENGTH];
@@ -350,11 +414,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         private boolean rootContext;
         private long threadId;
         private boolean activation;
-        private long timestamp;
-
-        public boolean happenedBeforeOrAt(long timestamp) {
-            return this.timestamp <= timestamp;
-        }
 
         public void activation(TraceContextHolder<?> context, long threadId, @Nullable TraceContextHolder<?> previousContext, long nanoTime) {
             set(context.getTraceContext(), threadId, true, previousContext != null ? previousContext.getTraceContext() : null, nanoTime);
@@ -403,12 +462,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             samplingProfiler.profiledThreads.put(threadId, root);
         }
 
-        private TraceContext getTraceContext(SamplingProfiler samplingProfiler, byte[] traceContextBuffer) {
-            TraceContext traceContext = TraceContext.with64BitId(samplingProfiler.tracer);
-            traceContext.deserialize(traceContextBuffer, serviceName);
-            return traceContext;
-        }
-
         private void handleDeactivationEvent(SamplingProfiler samplingProfiler) {
             if (rootContext) {
                 stopProfiling(samplingProfiler);
@@ -430,6 +483,36 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 callTree.spanify();
                 samplingProfiler.rootPool.recycle(callTree);
             }
+        }
+
+        public void serialize(ByteBuffer buf) {
+            buf.putLong(timestamp);
+            buf.putShort(getServiceNameIndex());
+            buf.put(traceContextBuffer);
+            buf.put(previousContextBuffer);
+            buf.put(rootContext ? (byte) 1 : (byte) 0);
+            buf.putLong(threadId);
+            buf.put(activation ? (byte) 1 : (byte) 0);
+        }
+
+        public void deserialize(ByteBuffer buf) {
+            timestamp = buf.getLong();
+            serviceName = serviceNameBackMap.get(buf.getShort());
+            buf.get(traceContextBuffer);
+            buf.get(previousContextBuffer);
+            rootContext = buf.get() == 1;
+            threadId = buf.getLong();
+            activation = buf.get() == 1;
+        }
+
+        private short getServiceNameIndex() {
+            Short index = serviceNameMap.get(serviceName);
+            if (index == null) {
+                index = (short) serviceNameMap.size();
+                serviceNameMap.put(serviceName, index);
+                serviceNameBackMap.put(index, serviceName);
+            }
+            return index;
         }
     }
 

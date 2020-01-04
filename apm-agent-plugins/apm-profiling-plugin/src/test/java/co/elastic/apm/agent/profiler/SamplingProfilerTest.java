@@ -98,7 +98,6 @@ class SamplingProfilerTest {
 
         Optional<Span> inferredSpanC = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#cInferred")).findAny();
         assertThat(inferredSpanC).isPresent();
-        System.out.println(inferredSpanC.get().getTraceContext().getParentId());
         assertThat(inferredSpanC.get().isChildOf(explicitSpanB.get())).isTrue();
 
         Optional<Span> inferredSpanD = reporter.getSpans().stream().filter(s -> s.getNameAsString().equals("SamplingProfilerTest#dInferred")).findAny();
