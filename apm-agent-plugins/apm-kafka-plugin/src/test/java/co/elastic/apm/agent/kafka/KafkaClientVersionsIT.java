@@ -43,7 +43,7 @@ public class KafkaClientVersionsIT {
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"0.11.0.0"},
+//            {"0.11.0.0"},
             {"2.4.0"}
         });
     }
