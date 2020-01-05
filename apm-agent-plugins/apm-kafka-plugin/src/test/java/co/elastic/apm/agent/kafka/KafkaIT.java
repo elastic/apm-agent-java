@@ -43,11 +43,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
@@ -70,6 +71,7 @@ import static org.mockito.Mockito.when;
  * b.  the creation of consumer transaction- one per consumed record
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
+@Ignore
 public class KafkaIT extends AbstractInstrumentationTest {
 
     static final String REQUEST_TOPIC = UUID.randomUUID().toString();
@@ -92,8 +94,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         this.coreConfiguration = config.getConfig(CoreConfiguration.class);
     }
 
-    @BeforeAll
-    static void setup() {
+    @BeforeClass
+    public static void setup() {
         // confluent versions 5.3.x correspond Kafka versions 2.3.x -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("5.3.0");
@@ -115,8 +117,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         );
     }
 
-    @AfterAll
-    static void tearDown() {
+    @AfterClass
+    public static void tearDown() {
         producer.close();
         replyConsumer.unsubscribe();
         replyConsumer.close();
@@ -124,7 +126,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         kafka.stop();
     }
 
-    @BeforeEach
+    @Before
     public void startTransaction() {
         reporter.reset();
         Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
@@ -134,7 +136,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
     }
 
-    @AfterEach
+    @After
     public void endTransaction() {
         Transaction currentTransaction = tracer.currentTransaction();
         if (currentTransaction != null) {
@@ -143,8 +145,29 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     @Test
-    void testSendTwoRecords_IterableFor() {
+    public void testSendTwoRecords_IterableFor() {
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testSendTwoRecords_IterableForEach() {
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOREACH);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testSendTwoRecords_IterableSpliterator() {
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_SPLITERATOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testSendTwoRecords_RecordsIterable() {
+        consumerThread.setIterationMode(RecordIterationMode.RECORDS_ITERABLE);
         sendTwoRecordsAndConsumeReplies();
         verifyTracing();
     }
@@ -159,7 +182,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         record2.headers().add(TEST_KEY, TEST_VALUE.getBytes(StandardCharsets.UTF_8));
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
-        await().atMost(500, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
+        await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
+        await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == 4);
         // todo: change back to 2.4.0 API - Duration.ofSeconds(2)
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
         assertThat(callback).isNotEmpty();
@@ -218,7 +242,6 @@ public class KafkaIT extends AbstractInstrumentationTest {
         TransactionContext transactionContext = transaction.getContext();
         Message message = transactionContext.getMessage();
         assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
-        System.out.println("message.getAge() = " + message.getAge());
         assertThat(message.getTopicName()).isEqualTo(REQUEST_TOPIC);
         // todo - message body
 //        assertThat(MESSAGE_BODY).isEqualTo(message.getBody());
@@ -242,7 +265,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         );
     }
 
-    private static class Consumer extends Thread {
+    static class Consumer extends Thread {
         private volatile boolean running;
         private volatile RecordIterationMode iterationMode;
 
@@ -270,11 +293,19 @@ public class KafkaIT extends AbstractInstrumentationTest {
                     // todo: change back to 2.4.0 API - Duration.ofMillis(100)
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
                     if (records != null) {
-                        switch (iterationMode) {
-                            case ITERABLE_FOR:
-                                for (ConsumerRecord<String, String> record : records) {
-                                    producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
-                                }
+                        // Can't use switch because of the test runner in a dedicated class loader
+                        if (iterationMode == RecordIterationMode.ITERABLE_FOR) {
+                            for (ConsumerRecord<String, String> record : records) {
+                                producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            }
+                        } else if (iterationMode == RecordIterationMode.ITERABLE_FOREACH) {
+                            records.forEach(new ConsumerRecordConsumer());
+                        } else if (iterationMode == RecordIterationMode.ITERABLE_SPLITERATOR) {
+                            records.spliterator().forEachRemaining(new ConsumerRecordConsumer());
+                        } else if (iterationMode == RecordIterationMode.RECORDS_ITERABLE) {
+                            for (ConsumerRecord<String, String> record : records.records(REQUEST_TOPIC)) {
+                                producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -289,12 +320,21 @@ public class KafkaIT extends AbstractInstrumentationTest {
         }
     }
 
-    private static enum RecordIterationMode {
+    enum RecordIterationMode {
         ITERABLE_FOR,
         ITERABLE_FOREACH,
         ITERABLE_SPLITERATOR,
-        ITERATOR,
         RECORD_LIST,
         RECORDS_ITERABLE
+    }
+
+    /**
+     * Must implement explicitly in order to use the dependency injection runner
+     */
+    static class ConsumerRecordConsumer implements java.util.function.Consumer<ConsumerRecord<String, String>> {
+        @Override
+        public void accept(ConsumerRecord<String, String> record) {
+            producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+        }
     }
 }

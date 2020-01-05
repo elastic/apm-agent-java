@@ -30,6 +30,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 
 import javax.annotation.Nullable;
@@ -42,18 +43,20 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation {
 
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "rawtypes"})
     @Nullable
     @VisibleForAdvice
     // Referencing Kafka classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<KafkaInstrumentationHelper<Callback>> kafkaInstrHelperManager;
+    public static HelperClassManager<KafkaInstrumentationHelper<Callback, ConsumerRecord>> kafkaInstrHelperManager;
 
     private synchronized static void init(ElasticApmTracer tracer) {
         if (kafkaInstrHelperManager == null) {
             kafkaInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
                 "co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelperImpl",
                 "co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelperImpl$CallbackWrapperAllocator",
-                "co.elastic.apm.agent.kafka.helper.CallbackWrapper");
+                "co.elastic.apm.agent.kafka.helper.CallbackWrapper",
+                "co.elastic.apm.agent.kafka.ConsumerRecordsIterator",
+                "co.elastic.apm.agent.kafka.ConsumerRecordsIterable");
         }
     }
 

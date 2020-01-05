@@ -53,7 +53,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
     private final NoGarbageIterator iterator;
 
     public BinaryHeaderMap() {
-        valueBuffer = CharBuffer.allocate(256);
+        valueBuffer = CharBuffer.allocate(64);
         keys = new ArrayList<>(10);
         valueLengths = new int[10];
         iterator = new NoGarbageIterator();
@@ -139,7 +139,7 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
     public static class Entry {
         @Nullable
         String key;
-        CharBuffer value = CharBuffer.allocate(256);
+        CharBuffer value = CharBuffer.allocate(64);
 
         public String getKey() {
             if (key == null) {

@@ -22,19 +22,26 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.kafka.helper;
+package co.elastic.apm.agent.kafka;
 
-import co.elastic.apm.agent.bci.VisibleForAdvice;
-import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import javax.annotation.Nullable;
 import java.util.Iterator;
 
-@VisibleForAdvice
-public interface KafkaInstrumentationHelper<C, CR> {
-    C wrapCallback(@Nullable C callback, Span span);
+@SuppressWarnings("rawtypes")
+public class ConsumerRecordsIterable implements Iterable<ConsumerRecord> {
 
-    Iterator<CR> wrapConsumerRecordIterator(Iterator<CR> iterator);
+    private final Iterable<ConsumerRecord> delegate;
+    private final ElasticApmTracer tracer;
 
-    Iterable<CR> wrapConsumerRecordIterable(Iterable<CR> iterable);
+    public ConsumerRecordsIterable(Iterable<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+        this.delegate = delegate;
+        this.tracer = tracer;
+    }
+
+    @Override
+    public Iterator<ConsumerRecord> iterator() {
+        return new ConsumerRecordsIterator(delegate.iterator(), tracer);
+    }
 }

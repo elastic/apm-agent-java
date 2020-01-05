@@ -35,6 +35,7 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.ApiVersions;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -97,8 +98,8 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
                 return null;
             }
 
-            //noinspection ConstantConditions
-            KafkaInstrumentationHelper<Callback> kafkaInstrumentationHelper =
+            //noinspection ConstantConditions,rawtypes
+            KafkaInstrumentationHelper<Callback, ConsumerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             //noinspection ConstantConditions
             callback = kafkaInstrumentationHelper.wrapCallback(callback, span);

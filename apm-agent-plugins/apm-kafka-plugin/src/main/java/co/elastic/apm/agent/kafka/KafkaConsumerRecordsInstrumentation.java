@@ -25,11 +25,14 @@
 package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
 
 import javax.annotation.Nullable;
 
@@ -37,8 +40,11 @@ import java.util.Iterator;
 
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.returns;
+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
-public class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstrumentation {
+public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstrumentation {
 
     public KafkaConsumerRecordsInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
@@ -49,26 +55,76 @@ public class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstrumentatio
         return named("org.apache.kafka.clients.consumer.ConsumerRecords");
     }
 
-    @Override
-    public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("iterator").and(isPublic());
-    }
+    public static class IteratorInstrumentation extends KafkaConsumerRecordsInstrumentation {
+        public IteratorInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
 
-    @Override
-    public Class<?> getAdviceClass() {
-        return ConsumerRecordsAdvice.class;
-    }
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("iterator")
+                .and(isPublic())
+                .and(takesArguments(0))
+                .and(returns(Iterator.class));
+        }
 
-    public static class ConsumerRecordsAdvice {
+        @Override
+        public Class<?> getAdviceClass() {
+            return ConsumerRecordsAdvice.class;
+        }
 
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void wrapIterator(@Nullable @Advice.Return(readOnly = false) Iterator<ConsumerRecord> iterator) {
-            if (tracer == null || tracer.currentTransaction() != null) {
-                return;
+        @SuppressWarnings("rawtypes")
+        public static class ConsumerRecordsAdvice {
+
+            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
+            public static void wrapIterator(@Nullable @Advice.Return(readOnly = false) Iterator<ConsumerRecord> iterator) {
+                if (tracer == null || tracer.currentTransaction() != null) {
+                    return;
+                }
+
+                //noinspection ConstantConditions,rawtypes
+                KafkaInstrumentationHelper<Callback, ConsumerRecord> kafkaInstrumentationHelper =
+                    kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+                if (iterator != null && kafkaInstrumentationHelper != null) {
+                    iterator = kafkaInstrumentationHelper.wrapConsumerRecordIterator(iterator);
+                }
             }
+        }
+    }
 
-            if (iterator != null) {
-                iterator = new ConsumerRecordsIterator(iterator, tracer);
+    public static class RecordsInstrumentation extends KafkaConsumerRecordsInstrumentation {
+        public RecordsInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("records")
+                .and(isPublic())
+                .and(takesArgument(0, String.class))
+                .and(returns(Iterable.class));
+        }
+
+        @Override
+        public Class<?> getAdviceClass() {
+            return ConsumerRecordsAdvice.class;
+        }
+
+        @SuppressWarnings("rawtypes")
+        public static class ConsumerRecordsAdvice {
+
+            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
+            public static void wrapIterable(@Nullable @Advice.Return(readOnly = false) Iterable<ConsumerRecord> iterable) {
+                if (tracer == null || tracer.currentTransaction() != null) {
+                    return;
+                }
+
+                //noinspection ConstantConditions,rawtypes
+                KafkaInstrumentationHelper<Callback, ConsumerRecord> kafkaInstrumentationHelper =
+                    kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+                if (iterable != null && kafkaInstrumentationHelper != null) {
+                    iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);
+                }
             }
         }
     }

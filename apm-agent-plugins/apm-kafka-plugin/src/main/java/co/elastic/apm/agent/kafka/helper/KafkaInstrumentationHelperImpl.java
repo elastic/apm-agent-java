@@ -26,17 +26,22 @@ package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.kafka.ConsumerRecordsIterable;
+import co.elastic.apm.agent.kafka.ConsumerRecordsIterator;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.jctools.queues.atomic.AtomicQueueFactory;
 
 import javax.annotation.Nullable;
 
+import java.util.Iterator;
+
 import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
-public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelper<Callback> {
+public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelper<Callback, ConsumerRecord> {
 
     private final ObjectPool<CallbackWrapper> callbackWrapperObjectPool;
     private final ElasticApmTracer tracer;
@@ -68,5 +73,17 @@ public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelpe
 
     void recycle(CallbackWrapper callbackWrapper) {
         callbackWrapperObjectPool.recycle(callbackWrapper);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Iterator<ConsumerRecord> wrapConsumerRecordIterator(Iterator<ConsumerRecord> iterator) {
+        return new ConsumerRecordsIterator(iterator, tracer);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Iterable<ConsumerRecord> wrapConsumerRecordIterable(Iterable<ConsumerRecord> iterable) {
+        return new ConsumerRecordsIterable(iterable, tracer);
     }
 }
