@@ -102,6 +102,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final EventPoller<ActivationEvent> poller;
     private final File activationEventsFile;
     private final File jfrFile;
+    private final WriteActivationEventToFileHandler writeActivationEventToFileHandler = new WriteActivationEventToFileHandler();
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -211,16 +212,20 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void consumeActivationEventsFromRingBufferAndWriteToFile(TimeDuration profilingDuration) throws Exception {
         resetActivationEventBuffer();
         long threshold = System.currentTimeMillis() + profilingDuration.getMillis();
-        long sleep = 100_000;
+        long initialSleep = 100_000;
+        long maxSleep = 10_000_000;
+        long sleep = initialSleep;
         while (System.currentTimeMillis() < threshold) {
             if (activationEventBuffer.hasRemaining()) {
                 EventPoller.PollState poll = consumeActivationEventsFromRingBufferAndWriteToFile();
                 if (poll == EventPoller.PollState.PROCESSING) {
-                    sleep = 100_000;
+                    sleep = initialSleep;
                 } else {
-                    sleep *= 2;
+                    if (sleep < maxSleep) {
+                        sleep *= 2;
+                    }
                 }
-                LockSupport.parkNanos(Math.min(sleep, 10_000_000));
+                LockSupport.parkNanos(sleep);
             } else {
                 // the file is full, sleep the rest of the profilingDuration
                 Thread.sleep(Math.max(0, threshold - System.currentTimeMillis()));
@@ -233,22 +238,14 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     EventPoller.PollState consumeActivationEventsFromRingBufferAndWriteToFile() throws Exception {
-        return poller.poll(new EventPoller.Handler<ActivationEvent>() {
-            @Override
-            public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) {
-                if (endOfBatch) {
-                    SamplingProfiler.this.sequence.set(sequence);
-                }
-                if (activationEventBuffer.hasRemaining()) {
-                    event.serialize(activationEventBuffer);
-                    return true;
-                }
-                return false;
-            }
-        });
+        return poller.poll(writeActivationEventToFileHandler);
     }
 
     private void processTraces(File file) throws IOException {
+        if (activationEventBuffer.position() == 0) {
+            logger.debug("No activation events during this period. Skip processing stack traces.");
+            return;
+        }
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         JfrParser jfrParser = new JfrParser(file, excludedClasses, includedClasses);
@@ -530,6 +527,21 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
         @Override
         public void signalAllWhenBlocking() {
+        }
+    }
+
+    // extracting to a class instead of instantiating an anonymous inner class makes a huge difference in allocations
+    private class WriteActivationEventToFileHandler implements EventPoller.Handler<ActivationEvent> {
+        @Override
+        public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) {
+            if (endOfBatch) {
+                SamplingProfiler.this.sequence.set(sequence);
+            }
+            if (activationEventBuffer.hasRemaining()) {
+                event.serialize(activationEventBuffer);
+                return true;
+            }
+            return false;
         }
     }
 }
