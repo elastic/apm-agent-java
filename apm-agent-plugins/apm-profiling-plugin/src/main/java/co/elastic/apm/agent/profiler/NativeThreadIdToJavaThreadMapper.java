@@ -25,46 +25,35 @@
 package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
+import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.LockSupport;
 
 public class NativeThreadIdToJavaThreadMapper {
 
     private final WeakConcurrentMap<Thread, Long> threadToNativeThread = new WeakConcurrentMap<Thread, Long>(false);
-    private final Set<Long> nativeThreadIds = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
     private AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
 
     public long getNativeThreadId(Thread thread) {
         Long nativeThreadId = threadToNativeThread.get(thread);
         if (nativeThreadId == null) {
-            do {
+            nativeThreadId = asyncProfiler.getNativeThreadId(thread);
+            while (nativeThreadId == -1) {
                 nativeThreadId = asyncProfiler.getNativeThreadId(thread);
                 LockSupport.parkNanos(200);
-            } while (nativeThreadId == -1);
-            if (threadToNativeThread.putIfAbsent(thread, nativeThreadId) == null) {
-                nativeThreadIds.add(nativeThreadId);
             }
+            threadToNativeThread.putIfAbsent(thread, nativeThreadId);
         }
         return nativeThreadId;
     }
 
-    public long[] getSortedNativeThreadIds() {
-        Set<Long> nativeThreadIds = new TreeSet<>();
+    public LongHashSet getNativeThreadIds() {
+        LongHashSet nativeThreadIds = new LongHashSet(threadToNativeThread.approximateSize());
         for (Map.Entry<Thread, Long> entry : threadToNativeThread) {
             nativeThreadIds.add(entry.getValue());
         }
-        long[] result = new long[nativeThreadIds.size()];
-        int i = 0;
-        for (Long nativeThreadId : nativeThreadIds) {
-            result[i] = nativeThreadId;
-            i++;
-        }
-        return result;
+        return nativeThreadIds;
     }
 }

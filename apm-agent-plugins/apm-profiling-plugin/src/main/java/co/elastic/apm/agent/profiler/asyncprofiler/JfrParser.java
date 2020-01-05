@@ -26,6 +26,10 @@ package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.profiler.collections.Int2IntHashMap;
+import co.elastic.apm.agent.profiler.collections.Int2ObjectHashMap;
+import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,36 +41,32 @@ import java.nio.Buffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class JfrParser {
+public class JfrParser implements Recyclable {
 
     private static final Logger logger = LoggerFactory.getLogger(JfrParser.class);
 
     private static final byte[] MAGIC_BYTES = new byte[]{'F', 'L', 'R', '\0'};
     private static final Set<String> JAVA_FRAME_TYPES = new HashSet<>(Arrays.asList("Interpreted", "JIT compiled", "Inlined"));
 
-    private final MappedByteBuffer buffer;
-    private final short major;
-    private final short minor;
-    private final int eventsOffset;
+    private MappedByteBuffer buffer;
+    private int eventsOffset;
+    private int metadataOffset;
     private boolean[] isJavaFrameType;
     private String[] threadStates;
-    private final Map<Integer, Integer> classes = new HashMap<>();
-    private final Map<Integer, Symbol> symbols = new HashMap<>();
-    private final Map<Integer, Integer> stackTracePositions = new HashMap<>();
-    private final Map<Long, LazyStackFrame> frames = new HashMap<>();
-    private final int metadataOffset;
+    private final Int2IntHashMap classes = new Int2IntHashMap(-1);
+    private final Int2ObjectHashMap<Symbol> symbols = new Int2ObjectHashMap<>();
+    private final Int2IntHashMap stackTracePositions = new Int2IntHashMap(-1);
+    private final Long2ObjectHashMap<LazyStackFrame> frames = new Long2ObjectHashMap<>();
     private final StringBuilder symbolBuilder = new StringBuilder();
-    private final List<WildcardMatcher> excludedClasses;
-    private final List<WildcardMatcher> includedClasses;
+    private List<WildcardMatcher> excludedClasses;
+    private List<WildcardMatcher> includedClasses;
 
-    public JfrParser(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
+    public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
         this.excludedClasses = excludedClasses;
         this.includedClasses = includedClasses;
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
@@ -82,8 +82,8 @@ public class JfrParser {
                 throw new IllegalArgumentException("Not a JFR file");
             }
         }
-        major = buffer.getShort();
-        minor = buffer.getShort();
+        short major = buffer.getShort();
+        short minor = buffer.getShort();
         if (major != 0 && minor != 9) {
             throw new IllegalArgumentException(String.format("Can only parse version 0.9. Was %d.%d", (int) major, (int) minor));
         }
@@ -171,7 +171,9 @@ public class JfrParser {
                 threadStates = new String[count + 1];
                 for (int i = 1; i <= count; i++) {
                     short id = buffer.getShort();
-                    assert i == id;
+                    if (i != id) {
+                        throw new IllegalStateException();
+                    }
                     threadStates[i] = readUtf8String().toString();
                 }
                 break;
@@ -179,21 +181,15 @@ public class JfrParser {
                 isJavaFrameType = new boolean[count + 1];
                 for (int i = 1 ; i <= count; i++) {
                     byte id = buffer.get();
-                    assert i == id;
+                    if (i != id) {
+                        throw new IllegalStateException();
+                    }
                     isJavaFrameType[(int) id] = JAVA_FRAME_TYPES.contains(readUtf8String().toString());
                 }
                 break;
             default:
                 throw new IOException("Unknown content type " + contentTypeId);
         }
-    }
-
-    short getMajor() {
-        return major;
-    }
-
-    short getMinor() {
-        return minor;
     }
 
     private void skipString() {
@@ -298,6 +294,22 @@ public class JfrParser {
             }
         }
         return symbolBuilder;
+    }
+
+    @Override
+    public void resetState() {
+        buffer = null;
+        eventsOffset = 0;
+        metadataOffset = 0;
+        isJavaFrameType = null;
+        threadStates = null;
+        classes.clear();
+        symbols.clear();
+        stackTracePositions.clear();
+        frames.clear();
+        symbolBuilder.setLength(0);
+        excludedClasses = null;
+        includedClasses = null;
     }
 
     private interface EventTypeId {
