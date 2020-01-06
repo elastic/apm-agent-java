@@ -107,7 +107,7 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
             span.withType("messaging").withSubtype("kafka").withAction("send");
             String topic = record.topic();
             span.withName("KafkaProducer#send to ").appendToName(topic);
-            span.getContext().getMessage().withTopic(topic);
+            span.getContext().getMessage().withQueue(topic);
 
             // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
             // https://kafka.apache.org/0110/documentation.html#messageformat

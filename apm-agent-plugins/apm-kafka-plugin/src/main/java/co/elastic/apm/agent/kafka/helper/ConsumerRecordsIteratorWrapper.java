@@ -85,7 +85,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
             }
             transaction.withType("messaging").withName("Kafka record from " + record.topic()).activate();
             Message message = transaction.getContext().getMessage();
-            message.withTopic(record.topic());
+            message.withQueue(record.topic());
             if (record.timestampType() == TimestampType.CREATE_TIME) {
                 message.withAge(System.currentTimeMillis() - record.timestamp());
             }

@@ -250,7 +250,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + requestTopic);
         SpanContext context = sendSpan.getContext();
         Message message = context.getMessage();
-        assertThat(message.getTopicName()).isEqualTo(requestTopic);
+        assertThat(message.getQueueName()).isEqualTo(requestTopic);
         // todo - add destination assertions
     }
 
@@ -263,7 +263,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         TransactionContext transactionContext = transaction.getContext();
         Message message = transactionContext.getMessage();
         assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
-        assertThat(message.getTopicName()).isEqualTo(REQUEST_TOPIC);
+        assertThat(message.getQueueName()).isEqualTo(REQUEST_TOPIC);
         // todo - message body
 //        assertThat(MESSAGE_BODY).isEqualTo(message.getBody());
         Headers headers = message.getHeaders();
