@@ -82,6 +82,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "When set to false, Elastic APM will not affect your application at all.\n" +
             "\n" +
             "NOTE: Both active and instrument needs to be true for instrumentation to be running.")
+        .dynamic(true)
         .buildWithDefault(true);
 
     private final ConfigurationOption<String> serviceName = ConfigurationOption.stringOption()
@@ -231,6 +232,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "Valid options are ${allInstrumentationGroupNames}.\n" +
             "If you want to try out incubating features,\n" +
             "set the value to an empty string.")
+        .dynamic(true)
         .buildWithDefault(Collections.<String>singleton("incubating"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption
@@ -417,6 +419,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             "public @@javax.inject.Scope your.application.package.*\n" +
             "----\n" +
             "NOTE: This method is only available in the Elastic APM Java Agent.")
+        .dynamic(true)
         .buildWithDefault(Collections.<MethodMatcher>emptyList());
 
     private final ConfigurationOption<TimeDuration> traceMethodsDurationThreshold = TimeDurationValueConverter.durationOption("ms")
@@ -492,6 +495,10 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
 
     public boolean isInstrument() {
         return instrument.get();
+    }
+
+    public List<ConfigurationOption<?>> getInstrumentationOptions() {
+        return Arrays.asList(instrument, traceMethods, disabledInstrumentations);
     }
 
     public String getServiceName() {

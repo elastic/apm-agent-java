@@ -47,6 +47,7 @@ import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.lang.annotation.Retention;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -100,6 +101,17 @@ class TraceMethodInstrumentationTest {
         assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
         assertThat(reporter.getSpans()).hasSize(1);
         assertThat(reporter.getFirstSpan().getNameAsString()).isEqualTo("TestClass#traceMeToo");
+    }
+
+    @Test
+    void testReInitTraceMethod() throws Exception {
+        when(coreConfiguration.getTraceMethods()).thenReturn(
+            List.of(MethodMatcher.of("private co.elastic.apm.agent.bci.methodmatching.TraceMethodInstrumentationTest$TestClass#traceMe()")));
+        ElasticApmAgent.reInitInstrumentation().get();
+        TestClass.traceMe();
+        assertThat(reporter.getTransactions()).hasSize(1);
+        assertThat(reporter.getFirstTransaction().getNameAsString()).isEqualTo("TestClass#traceMe");
+        assertThat(reporter.getSpans()).hasSize(0);
     }
 
     @Test
