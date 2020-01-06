@@ -29,6 +29,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.List;
 
 @VisibleForAdvice
 public interface KafkaInstrumentationHelper<C, CR> {
@@ -37,4 +38,6 @@ public interface KafkaInstrumentationHelper<C, CR> {
     Iterator<CR> wrapConsumerRecordIterator(Iterator<CR> iterator);
 
     Iterable<CR> wrapConsumerRecordIterable(Iterable<CR> iterable);
+
+    List<CR> wrapConsumerRecordList(List<CR> list);
 }

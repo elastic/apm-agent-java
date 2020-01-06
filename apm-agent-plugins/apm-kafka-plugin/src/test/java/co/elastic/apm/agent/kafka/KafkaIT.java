@@ -172,6 +172,27 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyTracing();
     }
 
+    @Test
+    public void testSendTwoRecords_RecordListIterableFor() {
+        consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testSendTwoRecords_RecordListIterableForEach() {
+        consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_ITERABLE_FOREACH);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testSendTwoRecords_RecordListSubList() {
+        consumerThread.setIterationMode(RecordIterationMode.RECORD_LIST_SUB_LIST);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
     private void sendTwoRecordsAndConsumeReplies() {
         String value1 = UUID.randomUUID().toString();
         String value2 = UUID.randomUUID().toString();
@@ -292,8 +313,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
                 try {
                     // todo: change back to 2.4.0 API - Duration.ofMillis(100)
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
-                    if (records != null) {
-                        // Can't use switch because of the test runner in a dedicated class loader
+                    if (records != null && !records.isEmpty()) {
+                        // Can't use switch because we run this test in a dedicated class loader, where the anonymous
+                        // class created by the enum switch cannot be loaded
                         if (iterationMode == RecordIterationMode.ITERABLE_FOR) {
                             for (ConsumerRecord<String, String> record : records) {
                                 producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
@@ -306,6 +328,19 @@ public class KafkaIT extends AbstractInstrumentationTest {
                             for (ConsumerRecord<String, String> record : records.records(REQUEST_TOPIC)) {
                                 producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
                             }
+                        } else if (iterationMode == RecordIterationMode.RECORD_LIST_ITERABLE_FOR) {
+                            List<ConsumerRecord<String, String>> recordList = records.records(records.partitions().iterator().next());
+                            for (ConsumerRecord<String, String> record : recordList) {
+                                producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            }
+                        } else if (iterationMode == RecordIterationMode.RECORD_LIST_SUB_LIST) {
+                            List<ConsumerRecord<String, String>> recordList = records.records(records.partitions().iterator().next());
+                            for (ConsumerRecord<String, String> record : recordList.subList(0, 2)) {
+                                producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            }
+                        } else if (iterationMode == RecordIterationMode.RECORD_LIST_ITERABLE_FOREACH) {
+                            List<ConsumerRecord<String, String>> recordList = records.records(records.partitions().iterator().next());
+                            recordList.forEach(new ConsumerRecordConsumer());
                         }
                     }
                 } catch (Exception e) {
@@ -324,7 +359,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
         ITERABLE_FOR,
         ITERABLE_FOREACH,
         ITERABLE_SPLITERATOR,
-        RECORD_LIST,
+        RECORD_LIST_ITERABLE_FOR,
+        RECORD_LIST_ITERABLE_FOREACH,
+        RECORD_LIST_SUB_LIST,
         RECORDS_ITERABLE
     }
 

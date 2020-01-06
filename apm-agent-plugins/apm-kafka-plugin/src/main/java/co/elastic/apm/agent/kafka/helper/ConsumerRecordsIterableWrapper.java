@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.kafka;
+package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -30,18 +30,18 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import java.util.Iterator;
 
 @SuppressWarnings("rawtypes")
-public class ConsumerRecordsIterable implements Iterable<ConsumerRecord> {
+class ConsumerRecordsIterableWrapper implements Iterable<ConsumerRecord> {
 
     private final Iterable<ConsumerRecord> delegate;
     private final ElasticApmTracer tracer;
 
-    public ConsumerRecordsIterable(Iterable<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIterableWrapper(Iterable<ConsumerRecord> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }
 
     @Override
     public Iterator<ConsumerRecord> iterator() {
-        return new ConsumerRecordsIterator(delegate.iterator(), tracer);
+        return new ConsumerRecordsIteratorWrapper(delegate.iterator(), tracer);
     }
 }

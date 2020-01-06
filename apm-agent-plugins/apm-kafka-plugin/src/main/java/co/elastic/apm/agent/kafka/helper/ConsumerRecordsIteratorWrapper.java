@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.kafka;
+package co.elastic.apm.agent.kafka.helper;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Message;
@@ -38,14 +38,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 
 @SuppressWarnings("rawtypes")
-public class ConsumerRecordsIterator implements Iterator<ConsumerRecord> {
+class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
 
-    public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIterator.class);
+    public static final Logger logger = LoggerFactory.getLogger(ConsumerRecordsIteratorWrapper.class);
 
     private final Iterator<ConsumerRecord> delegate;
     private final ElasticApmTracer tracer;
 
-    public ConsumerRecordsIterator(Iterator<ConsumerRecord> delegate, ElasticApmTracer tracer) {
+    public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
     }
@@ -78,10 +78,10 @@ public class ConsumerRecordsIterator implements Iterator<ConsumerRecord> {
                 transaction = tracer.startTransaction(
                     TraceContext.fromTraceparentBinaryHeader(),
                     traceParentHeader.value(),
-                    ConsumerRecordsIterator.class.getClassLoader()
+                    ConsumerRecordsIteratorWrapper.class.getClassLoader()
                 );
             } else {
-                transaction = tracer.startRootTransaction(ConsumerRecordsIterator.class.getClassLoader());
+                transaction = tracer.startRootTransaction(ConsumerRecordsIteratorWrapper.class.getClassLoader());
             }
             transaction.withType("messaging").withName("Kafka record from " + record.topic()).activate();
             Message message = transaction.getContext().getMessage();

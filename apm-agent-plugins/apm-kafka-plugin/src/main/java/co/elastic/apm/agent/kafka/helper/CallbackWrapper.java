@@ -31,7 +31,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 import javax.annotation.Nullable;
 
-public class CallbackWrapper implements Callback, Recyclable {
+class CallbackWrapper implements Callback, Recyclable {
 
     private final KafkaInstrumentationHelperImpl helper;
 

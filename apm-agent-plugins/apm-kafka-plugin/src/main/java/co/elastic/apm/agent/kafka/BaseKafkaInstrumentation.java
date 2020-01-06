@@ -55,8 +55,9 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
                 "co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelperImpl",
                 "co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelperImpl$CallbackWrapperAllocator",
                 "co.elastic.apm.agent.kafka.helper.CallbackWrapper",
-                "co.elastic.apm.agent.kafka.ConsumerRecordsIterator",
-                "co.elastic.apm.agent.kafka.ConsumerRecordsIterable");
+                "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIteratorWrapper",
+                "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIterableWrapper",
+                "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper");
         }
     }
 

@@ -33,10 +33,12 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.TopicPartition;
 
 import javax.annotation.Nullable;
 
 import java.util.Iterator;
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -124,6 +126,43 @@ public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstr
                     kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
                 if (iterable != null && kafkaInstrumentationHelper != null) {
                     iterable = kafkaInstrumentationHelper.wrapConsumerRecordIterable(iterable);
+                }
+            }
+        }
+    }
+
+    public static class RecordsListInstrumentation extends KafkaConsumerRecordsInstrumentation {
+        public RecordsListInstrumentation(ElasticApmTracer tracer) {
+            super(tracer);
+        }
+
+        @Override
+        public ElementMatcher<? super MethodDescription> getMethodMatcher() {
+            return named("records")
+                .and(isPublic())
+                .and(takesArgument(0, TopicPartition.class))
+                .and(returns(List.class));
+        }
+
+        @Override
+        public Class<?> getAdviceClass() {
+            return ConsumerRecordsAdvice.class;
+        }
+
+        @SuppressWarnings("rawtypes")
+        public static class ConsumerRecordsAdvice {
+
+            @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
+            public static void wrapRecordList(@Nullable @Advice.Return(readOnly = false) List<ConsumerRecord> list) {
+                if (tracer == null || tracer.currentTransaction() != null) {
+                    return;
+                }
+
+                //noinspection ConstantConditions,rawtypes
+                KafkaInstrumentationHelper<Callback, ConsumerRecord> kafkaInstrumentationHelper =
+                    kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+                if (list != null && kafkaInstrumentationHelper != null) {
+                    list = kafkaInstrumentationHelper.wrapConsumerRecordList(list);
                 }
             }
         }
