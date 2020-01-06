@@ -24,10 +24,13 @@
  */
 package co.elastic.apm.agent.kafka.helper;
 
+import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.util.BinaryHeaderMap;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -44,10 +47,14 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
 
     private final Iterator<ConsumerRecord> delegate;
     private final ElasticApmTracer tracer;
+    private final CoreConfiguration coreConfiguration;
+    private final MessagingConfiguration messagingConfiguration;
 
     public ConsumerRecordsIteratorWrapper(Iterator<ConsumerRecord> delegate, ElasticApmTracer tracer) {
         this.delegate = delegate;
         this.tracer = tracer;
+        coreConfiguration = tracer.getConfig(CoreConfiguration.class);
+        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
     }
 
     @Override
@@ -72,31 +79,44 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
         endCurrentTransaction();
         ConsumerRecord record = delegate.next();
         try {
-            Header traceParentHeader = record.headers().lastHeader(TraceContext.TRACE_PARENT_HEADER);
-            Transaction transaction;
-            if (traceParentHeader != null) {
-                transaction = tracer.startTransaction(
-                    TraceContext.fromTraceparentBinaryHeader(),
-                    traceParentHeader.value(),
-                    ConsumerRecordsIteratorWrapper.class.getClassLoader()
-                );
-            } else {
-                transaction = tracer.startRootTransaction(ConsumerRecordsIteratorWrapper.class.getClassLoader());
-            }
-            transaction.withType("messaging").withName("Kafka record from " + record.topic()).activate();
-            Message message = transaction.getContext().getMessage();
-            message.withQueue(record.topic());
-            if (record.timestampType() == TimestampType.CREATE_TIME) {
-                message.withAge(System.currentTimeMillis() - record.timestamp());
-            }
-            // todo - add destination fields
-            for (Header header : record.headers()) {
-                if (!TraceContext.TRACE_PARENT_HEADER.equals(header.key())) {
-                    try {
-                        message.addHeader(header.key(), header.value());
-                    } catch (BinaryHeaderMap.InsufficientCapacityException e) {
-                        logger.error("Failed to trace Kafka header", e);
+            String topic = record.topic();
+            if (!WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topic)) {
+                Header traceParentHeader = record.headers().lastHeader(TraceContext.TRACE_PARENT_HEADER);
+                Transaction transaction;
+                if (traceParentHeader != null) {
+                    transaction = tracer.startTransaction(
+                        TraceContext.fromTraceparentBinaryHeader(),
+                        traceParentHeader.value(),
+                        ConsumerRecordsIteratorWrapper.class.getClassLoader()
+                    );
+                } else {
+                    transaction = tracer.startRootTransaction(ConsumerRecordsIteratorWrapper.class.getClassLoader());
+                }
+                transaction.withType("messaging").withName("Kafka record from " + topic).activate();
+                Message message = transaction.getContext().getMessage();
+                message.withQueue(topic);
+                if (record.timestampType() == TimestampType.CREATE_TIME) {
+                    message.withAge(System.currentTimeMillis() - record.timestamp());
+                }
+                // todo - add destination fields
+
+                if (coreConfiguration.isCaptureHeaders()) {
+                    for (Header header : record.headers()) {
+                        String key = header.key();
+                        if (!TraceContext.TRACE_PARENT_HEADER.equals(key) &&
+                            WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
+                            try {
+                                message.addHeader(key, header.value());
+                            } catch (BinaryHeaderMap.InsufficientCapacityException e) {
+                                logger.error("Failed to trace Kafka header", e);
+                            }
+                        }
                     }
+                }
+
+                if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                    message.appendToBody("key=").appendToBody(String.valueOf(record.key())).appendToBody("; ")
+                        .appendToBody("value=").appendToBody(String.valueOf(record.value()));
                 }
             }
         } catch (Exception e) {

@@ -26,6 +26,7 @@ package co.elastic.apm.agent.kafka;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
@@ -33,6 +34,7 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -78,9 +80,11 @@ public class KafkaIT extends AbstractInstrumentationTest {
     static final String REPLY_TOPIC = UUID.randomUUID().toString();
     static final String REQUEST_KEY = "request-key";
     static final String REPLY_KEY = "response-key";
-    public static final String MESSAGE_BODY = "test message body";
-    public static final String TEST_KEY = "test_key";
-    public static final String TEST_VALUE = "test_value";
+    public static final String FIRST_MESSAGE_VALUE = "First message body";
+    public static final String SECOND_MESSAGE_VALUE = "Second message body";
+    public static final String TEST_HEADER_KEY = "test_header";
+    public static final String PASSWORD_HEADER_KEY = "password";
+    public static final String TEST_HEADER_VALUE = "test_header_value";
 
     private static KafkaContainer kafka;
     private static String bootstrapServers;
@@ -89,9 +93,13 @@ public class KafkaIT extends AbstractInstrumentationTest {
     private static KafkaProducer<String, String> producer;
 
     private final CoreConfiguration coreConfiguration;
+    private final MessagingConfiguration messagingConfiguration;
+
+    private TestScenario testScenario;
 
     public KafkaIT() {
         this.coreConfiguration = config.getConfig(CoreConfiguration.class);
+        this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
     @BeforeClass
@@ -133,7 +141,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         transaction.withName("Kafka-Test Transaction");
         transaction.withType("request");
         transaction.withResult("success");
-        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        testScenario = TestScenario.NORMAL;
     }
 
     @After
@@ -193,28 +201,81 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyTracing();
     }
 
+    @Test
+    public void testBodyCaptureEnabled() {
+        when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+        testScenario = TestScenario.BODY_CAPTURE_ENABLED;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testHeaderCaptureDisabled() {
+        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
+        testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testHeaderSanitation() {
+        testScenario = TestScenario.SANITIZED_HEADER;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
+    public void testIgnoreTopic() {
+        when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
+        testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
     private void sendTwoRecordsAndConsumeReplies() {
-        String value1 = UUID.randomUUID().toString();
-        String value2 = UUID.randomUUID().toString();
         final StringBuilder callback = new StringBuilder();
-        ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, value1);
-        record1.headers().add(TEST_KEY, TEST_VALUE.getBytes(StandardCharsets.UTF_8));
-        ProducerRecord<String, String> record2 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, value2);
-        record2.headers().add(TEST_KEY, TEST_VALUE.getBytes(StandardCharsets.UTF_8));
+        ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, FIRST_MESSAGE_VALUE);
+        String headerKey = (testScenario == TestScenario.SANITIZED_HEADER) ? PASSWORD_HEADER_KEY : TEST_HEADER_KEY;
+        record1.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
+        ProducerRecord<String, String> record2 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, SECOND_MESSAGE_VALUE);
+        record2.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
-        await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
-        await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == 4);
+        if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
+            await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
+            await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == 4);
+        }
         // todo: change back to 2.4.0 API - Duration.ofSeconds(2)
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
         assertThat(callback).isNotEmpty();
         assertThat(replies.count()).isEqualTo(2);
         Iterator<ConsumerRecord<String, String>> iterator = replies.iterator();
-        assertThat(iterator.next().value()).isEqualTo(value1);
-        assertThat(iterator.next().value()).isEqualTo(value2);
+        assertThat(iterator.next().value()).isEqualTo(FIRST_MESSAGE_VALUE);
+        assertThat(iterator.next().value()).isEqualTo(SECOND_MESSAGE_VALUE);
     }
 
     private void verifyTracing() {
+        if (testScenario == TestScenario.IGNORE_REQUEST_TOPIC) {
+            verifyOnlyResponseTopicTracing();
+        } else {
+            verifyRequestAndResponseTopicsTracing();
+        }
+    }
+
+    private void verifyOnlyResponseTopicTracing() {
+        List<Span> spans = reporter.getSpans();
+        // we expect only one span for polling the reply topic
+        assertThat(spans).hasSize(1);
+        verifyPollSpanContents(spans.get(0));
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).isEmpty();
+    }
+
+    private void verifyRequestAndResponseTopicsTracing() {
         List<Span> spans = reporter.getSpans();
         // we expect two send spans to request topic, two send spans to reply topic and one poll span from reply topic
         assertThat(spans).hasSize(5);
@@ -229,8 +290,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(2);
-        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0);
-        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1);
+        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0, FIRST_MESSAGE_VALUE);
+        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE);
 
         Span pollSpan = spans.get(4);
         verifyPollSpanContents(pollSpan);
@@ -254,7 +315,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // todo - add destination assertions
     }
 
-    private void verifyKafkaTransactionContents(Transaction transaction, Span parentSpan) {
+    private void verifyKafkaTransactionContents(Transaction transaction, Span parentSpan, String messageValue) {
         assertThat(transaction.getType()).isEqualTo("messaging");
         assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
         TraceContext traceContext = transaction.getTraceContext();
@@ -264,13 +325,21 @@ public class KafkaIT extends AbstractInstrumentationTest {
         Message message = transactionContext.getMessage();
         assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
         assertThat(message.getQueueName()).isEqualTo(REQUEST_TOPIC);
-        // todo - message body
-//        assertThat(MESSAGE_BODY).isEqualTo(message.getBody());
+        if (testScenario == TestScenario.BODY_CAPTURE_ENABLED) {
+            String messageBody = "key=" + REQUEST_KEY + "; value=" + messageValue;
+            assertThat(messageBody).isEqualTo(message.getBody().toString());
+        } else {
+            assertThat(message.getBody().length()).isEqualTo(0);
+        }
         Headers headers = message.getHeaders();
-        assertThat(headers.size()).isEqualTo(1);
-        Headers.Header testHeader = headers.iterator().next();
-        assertThat(testHeader.getKey()).isEqualTo(TEST_KEY);
-        assertThat(testHeader.getValue().toString()).isEqualTo(TEST_VALUE);
+        if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER) {
+            assertThat(headers).isEmpty();
+        } else {
+            assertThat(headers.size()).isEqualTo(1);
+            Headers.Header testHeader = headers.iterator().next();
+            assertThat(testHeader.getKey()).isEqualTo(TEST_HEADER_KEY);
+            assertThat(testHeader.getValue().toString()).isEqualTo(TEST_HEADER_VALUE);
+        }
         // todo - add destination assertions
     }
 
@@ -363,6 +432,14 @@ public class KafkaIT extends AbstractInstrumentationTest {
         RECORD_LIST_ITERABLE_FOREACH,
         RECORD_LIST_SUB_LIST,
         RECORDS_ITERABLE
+    }
+
+    enum TestScenario {
+        NORMAL,
+        BODY_CAPTURE_ENABLED,
+        HEADERS_CAPTURE_DISABLED,
+        SANITIZED_HEADER,
+        IGNORE_REQUEST_TOPIC
     }
 
     /**

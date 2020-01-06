@@ -84,6 +84,11 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
                 return null;
             }
 
+            String topic = record.topic();
+            if (ignoreTopic(topic)) {
+                return null;
+            }
+
             final TraceContextHolder<?> activeSpan = tracer.getActive();
             if (activeSpan == null || !activeSpan.isSampled()) {
                 return null;
@@ -105,7 +110,6 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
             callback = kafkaInstrumentationHelper.wrapCallback(callback, span);
 
             span.withType("messaging").withSubtype("kafka").withAction("send");
-            String topic = record.topic();
             span.withName("KafkaProducer#send to ").appendToName(topic);
             span.getContext().getMessage().withQueue(topic);
 

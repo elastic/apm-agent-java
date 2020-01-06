@@ -37,7 +37,8 @@ public class KafkaClientVersionsIT {
 
     public KafkaClientVersionsIT(String version) throws Exception {
         runner = new TestClassWithDependencyRunner("org.apache.kafka", "kafka-clients", version,
-            KafkaIT.class, KafkaIT.Consumer.class, KafkaIT.RecordIterationMode.class, KafkaIT.ConsumerRecordConsumer.class);
+            KafkaIT.class, KafkaIT.Consumer.class, KafkaIT.RecordIterationMode.class, KafkaIT.TestScenario.class,
+            KafkaIT.ConsumerRecordConsumer.class);
     }
 
     @Parameterized.Parameters(name = "{0}")

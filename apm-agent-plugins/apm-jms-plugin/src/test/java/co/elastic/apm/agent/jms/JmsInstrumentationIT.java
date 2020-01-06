@@ -27,6 +27,7 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -71,8 +72,8 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -353,7 +354,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
         assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
         // Body and headers should not be captured for receive spans
-        assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
+        assertThat(receiveSpan.getContext().getMessage().getBody().length()).isEqualTo(0);
         assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
         // Age should be captured for receive spans, unless disabled
         if (disableTimestamp) {
@@ -416,7 +417,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             } else {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            assertThat(receiveTransaction.getContext().getMessage().getBody().toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
@@ -496,7 +497,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             } else {
                 assertThat(receiveTransaction.getContext().getMessage().getTopicName()).isEqualTo(destinationName);
             }
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            assertThat(receiveTransaction.getContext().getMessage().getBody().toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }

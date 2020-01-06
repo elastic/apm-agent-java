@@ -63,7 +63,7 @@ public class BodyProcessor implements Processor {
             if (context.getRequest().getBody() != null) {
                 context.getRequest().redactBody();
             }
-            if (context.getMessage().getBody() != null) {
+            if (context.getMessage().getBody().length() > 0) {
                 context.getMessage().redactBody();
             }
         }

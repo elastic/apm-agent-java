@@ -39,8 +39,7 @@ public class Message implements Recyclable {
     @Nullable
     private String topicName;
 
-    @Nullable
-    private String body;
+    private final StringBuilder body = new StringBuilder();
 
     /**
      * Represents the message age in milliseconds. Since 0 is a valid value (can occur due to clock skews between
@@ -73,18 +72,24 @@ public class Message implements Recyclable {
         return this;
     }
 
-    @Nullable
-    public String getBody() {
+    public StringBuilder getBody() {
         return body;
     }
 
     public Message withBody(@Nullable String body) {
-        this.body = body;
+        this.body.setLength(0);
+        this.body.append(body);
+        return this;
+    }
+
+    public Message appendToBody(CharSequence bodyContent) {
+        this.body.append(bodyContent);
         return this;
     }
 
     public void redactBody() {
-        body = REDACTED_CONTEXT_STRING;
+        body.setLength(0);
+        body.append(REDACTED_CONTEXT_STRING);
     }
 
     public Message addHeader(String key, String value) {
@@ -111,14 +116,14 @@ public class Message implements Recyclable {
     }
 
     public boolean hasContent() {
-        return queueName != null || topicName != null || body != null || headers.size() > 0;
+        return queueName != null || topicName != null || body.length() > 0 || headers.size() > 0;
     }
 
     @Override
     public void resetState() {
         queueName = null;
         topicName = null;
-        body = null;
+        body.setLength(0);
         headers.resetState();
         age = -1L;
     }
@@ -126,7 +131,8 @@ public class Message implements Recyclable {
     public void copyFrom(Message other) {
         this.queueName = other.getQueueName();
         this.topicName = other.getTopicName();
-        this.body = other.body;
+        this.body.setLength(0);
+        this.body.append(other.body);
         this.headers.copyFrom(other.getHeaders());
         this.age = other.getAge();
     }

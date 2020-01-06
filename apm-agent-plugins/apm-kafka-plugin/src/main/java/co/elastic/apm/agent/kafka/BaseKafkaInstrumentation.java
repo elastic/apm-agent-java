@@ -27,8 +27,10 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
+import co.elastic.apm.agent.matcher.WildcardMatcher;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
@@ -49,6 +51,8 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
     // Referencing Kafka classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
     public static HelperClassManager<KafkaInstrumentationHelper<Callback, ConsumerRecord>> kafkaInstrHelperManager;
 
+    private static MessagingConfiguration messagingConfiguration;
+
     private synchronized static void init(ElasticApmTracer tracer) {
         if (kafkaInstrHelperManager == null) {
             kafkaInstrHelperManager = HelperClassManager.ForAnyClassLoader.of(tracer,
@@ -59,6 +63,12 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIterableWrapper",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper");
         }
+        messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+    }
+
+    @VisibleForAdvice
+    public static boolean ignoreTopic(String topicName) {
+        return WildcardMatcher.isAnyMatch(messagingConfiguration.getIgnoreMessageQueues(), topicName);
     }
 
     BaseKafkaInstrumentation(ElasticApmTracer tracer) {

@@ -22,7 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.jms;
+package co.elastic.apm.agent.configuration;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
@@ -31,7 +31,6 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 import org.stagemonitor.configuration.converter.ListValueConverter;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 

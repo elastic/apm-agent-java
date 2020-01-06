@@ -740,7 +740,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         if (message.hasContent()) {
             writeFieldName("message");
             jw.writeByte(OBJECT_START);
-            if (message.getBody() != null) {
+            if (message.getBody().length() > 0) {
                 writeLongStringField("body", message.getBody());
             }
             serializeMessageHeaders(message);
@@ -1106,7 +1106,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
 
-    void writeLongStringField(final String fieldName, @Nullable final String value) {
+    void writeLongStringField(final String fieldName, @Nullable final CharSequence value) {
         if (value != null) {
             writeFieldName(fieldName);
             writeLongStringValue(value);
@@ -1160,11 +1160,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeString(value);
     }
 
-    private void writeLongStringValue(String value) {
+    private void writeLongStringValue(CharSequence value) {
         writeLongStringValue(value, replaceBuilder, jw);
     }
 
-    private static void writeLongStringValue(String value, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void writeLongStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
