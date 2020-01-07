@@ -130,6 +130,25 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testErrorSerializationWithClassname() {
+        when(apmServerClient.supportsStacktraceClassname()).thenReturn(true);
+
+        ErrorCapture error = new ErrorCapture(MockTracer.create());
+        error.setException(new Exception("test"));
+
+        JsonNode errorTree = readJsonString(serializer.toJsonString(error));
+
+        JsonNode jsonStackTrace = errorTree.get("exception").get("stacktrace");
+        assertThat(jsonStackTrace.getNodeType()).isEqualTo(JsonNodeType.ARRAY);
+        assertThat(jsonStackTrace).isNotNull();
+
+        for (JsonNode stackTraceElement : jsonStackTrace) {
+            assertThat(stackTraceElement.get("filename")).isNull();
+            assertThat(stackTraceElement.get("classname")).isNotNull();
+        }
+    }
+
+    @Test
     void testErrorSerializationOutsideTrace() {
         MockReporter reporter = new MockReporter();
         ElasticApmTracer tracer = MockTracer.createRealTracer(reporter);

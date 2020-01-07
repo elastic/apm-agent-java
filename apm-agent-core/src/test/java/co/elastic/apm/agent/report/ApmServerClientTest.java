@@ -185,8 +185,8 @@ public class ApmServerClientTest {
 
     @Test
     public void testApmServerVersion() throws IOException {
-        assertThat(apmServerClient.isAtLeast(new Version("6.7.0"))).isTrue();
-        assertThat(apmServerClient.isAtLeast(new Version("6.7.1"))).isFalse();
+        assertThat(apmServerClient.isAtLeast(Version.of("6.7.0"))).isTrue();
+        assertThat(apmServerClient.isAtLeast(Version.of("6.7.1"))).isFalse();
         assertThat(apmServerClient.supportsNonStringLabels()).isTrue();
         apmServer1.stubFor(get(urlEqualTo("/")).willReturn(okForJson(Map.of("version", "6.6.1"))));
         config.save("server_urls", new URL("http", "localhost", apmServer1.port(), "/").toString(), SpyConfiguration.CONFIG_SOURCE_NAME);

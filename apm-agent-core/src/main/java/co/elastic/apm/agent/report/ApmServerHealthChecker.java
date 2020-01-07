@@ -104,7 +104,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
                             if (logger.isDebugEnabled()) {
                                 logger.debug("APM server {} version is: {}", connection.getURL(), versionString);
                             }
-                            return new Version(versionString);
+                            return Version.of(versionString);
                         } catch (Exception e) {
                             logger.warn("Failed to parse version of APM server {}: {}", connection.getURL(), e.getMessage());
                         }
