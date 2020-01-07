@@ -29,7 +29,6 @@ import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import java.util.Map;
-import java.util.concurrent.locks.LockSupport;
 
 public class NativeThreadIdToJavaThreadMapper {
 
@@ -40,10 +39,6 @@ public class NativeThreadIdToJavaThreadMapper {
         Long nativeThreadId = threadToNativeThread.get(thread);
         if (nativeThreadId == null) {
             nativeThreadId = asyncProfiler.getNativeThreadId(thread);
-            while (nativeThreadId == -1) {
-                nativeThreadId = asyncProfiler.getNativeThreadId(thread);
-                LockSupport.parkNanos(200);
-            }
             threadToNativeThread.putIfAbsent(thread, nativeThreadId);
         }
         return nativeThreadId;

@@ -49,15 +49,18 @@ public abstract class AsyncProfiler {
         this.version = version0();
     }
 
-    public static AsyncProfiler getInstance() {
+    public static synchronized AsyncProfiler getInstance() {
         if (instance != null) {
             return instance;
         }
+        System.out.println("new instance");
         // TODO export libasyncProfiler.so based on current OS
         File file = IOUtils.exportResourceToTemp("asyncprofiler/libasyncProfiler.so", "libasyncProfiler", ".so");
         System.load(file.getAbsolutePath());
 
         instance = newInstance();
+        // initializes async-profiler
+        instance.getNativeThreadId(Thread.currentThread());
         return instance;
     }
 
