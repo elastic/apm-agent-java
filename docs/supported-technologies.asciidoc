@@ -329,6 +329,10 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 
  Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls (since 1.10.0)
 |1.0.0
+|log4j
+|2.0+
+|Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
+|1.11.0
 
 |===
 

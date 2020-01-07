@@ -1,1 +1,2 @@
 co.elastic.apm.agent.error.logging.Slf4jLoggingInstrumentation
+co.elastic.apm.agent.error.logging.Log4jLoggingInstrumentation

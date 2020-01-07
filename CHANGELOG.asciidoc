@@ -25,10 +25,15 @@ endif::[]
 
 [float]
 ===== Features
+
 * Add support for <<supported-databases, Redis Lettuce client>>
+* Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
+* Instrument log4j Logger#error(String, Throwable) (#919)
+  Automatically captures exceptions when calling `logger.error("message", exception)`
 
 [float]
 ===== Bug Fixes
+
 * Fix parsing value of `trace_methods` configuration property {pull}930[#930]
 * Workaround for `java.util.logging` deadlock {pull}965[#965]
 
