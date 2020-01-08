@@ -43,12 +43,12 @@ import org.asynchttpclient.Request;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -57,6 +57,12 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
     @VisibleForAdvice
     public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+
+    @VisibleForAdvice
+    public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+        AsyncHandlerOnCompletedInstrumentation.class,
+        AsyncHandlerOnThrowableInstrumentation.class,
+        AsyncHandlerOnStatusReceivedInstrumentation.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -78,9 +84,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
-            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnCompletedInstrumentation.class);
-            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnThrowableInstrumentation.class);
-            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), AsyncHandlerOnStatusReceivedInstrumentation.class);
+            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
             final TraceContextHolder<?> parent = tracer.getActive();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getUri().toUrl(), request.getUri().getHost());
@@ -126,12 +130,9 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             this.methodMatcher = methodMatcher;
         }
 
-        /**
-         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Class)}
-         */
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return none();
+            return any()/*.and(ElasticApmAgent.getTypeMatcher(asyncHandler.getClass()))*/;
         }
 
         @Override
