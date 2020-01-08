@@ -54,6 +54,7 @@ import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
@@ -233,7 +234,40 @@ public class KafkaIT extends AbstractInstrumentationTest {
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
+
+        // we expect only one span for polling the reply topic
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(1);
+        verifyPollSpanContents(spans.get(0));
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).isEmpty();
+    }
+
+    @Test
+    public void testTransactionCreationWithoutContext() {
+        testScenario = TestScenario.NO_CONTEXT_PROPAGATION;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        // Send without context
+        sendTwoRecordsAndConsumeReplies();
+
+        // We expect two transactions from records read from the request topic, each creating a send span as well.
+        // In addition we expect two transactions from the main test thread, iterating over reply messages.
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(2);
+        Span sendSpan1 = spans.get(0);
+        verifySendSpanContents(sendSpan1, REPLY_TOPIC);
+        Span sendSpan2 = spans.get(1);
+        verifySendSpanContents(sendSpan2, REPLY_TOPIC);
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).hasSize(4);
+        verifyKafkaTransactionContents(transactions.get(0), null, null, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(1), null, null, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(2), sendSpan1, null, REPLY_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
     }
 
     private void sendTwoRecordsAndConsumeReplies() {
@@ -247,7 +281,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         producer.send(record2, (metadata, exception) -> callback.append("done"));
         if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
             await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
-            await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == 4);
+            int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
+            await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
         }
         // todo: change back to 2.4.0 API - Duration.ofSeconds(2)
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
@@ -256,26 +291,11 @@ public class KafkaIT extends AbstractInstrumentationTest {
         Iterator<ConsumerRecord<String, String>> iterator = replies.iterator();
         assertThat(iterator.next().value()).isEqualTo(FIRST_MESSAGE_VALUE);
         assertThat(iterator.next().value()).isEqualTo(SECOND_MESSAGE_VALUE);
+        // this is required in order to end transactions related to the record iteration
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     private void verifyTracing() {
-        if (testScenario == TestScenario.IGNORE_REQUEST_TOPIC) {
-            verifyOnlyResponseTopicTracing();
-        } else {
-            verifyRequestAndResponseTopicsTracing();
-        }
-    }
-
-    private void verifyOnlyResponseTopicTracing() {
-        List<Span> spans = reporter.getSpans();
-        // we expect only one span for polling the reply topic
-        assertThat(spans).hasSize(1);
-        verifyPollSpanContents(spans.get(0));
-        List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).isEmpty();
-    }
-
-    private void verifyRequestAndResponseTopicsTracing() {
         List<Span> spans = reporter.getSpans();
         // we expect two send spans to request topic, two send spans to reply topic and one poll span from reply topic
         assertThat(spans).hasSize(5);
@@ -290,8 +310,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(2);
-        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0, FIRST_MESSAGE_VALUE);
-        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE);
+        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0, FIRST_MESSAGE_VALUE, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE, REQUEST_TOPIC);
 
         Span pollSpan = spans.get(4);
         verifyPollSpanContents(pollSpan);
@@ -315,24 +335,28 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // todo - add destination assertions
     }
 
-    private void verifyKafkaTransactionContents(Transaction transaction, Span parentSpan, String messageValue) {
+    private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
+                                                @Nullable String messageValue, String topic) {
         assertThat(transaction.getType()).isEqualTo("messaging");
-        assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
+        assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + topic);
         TraceContext traceContext = transaction.getTraceContext();
-        assertThat(traceContext.getTraceId()).isEqualTo(parentSpan.getTraceContext().getTraceId());
-        assertThat(traceContext.getParentId()).isEqualTo(parentSpan.getTraceContext().getId());
+        if (parentSpan != null) {
+            assertThat(traceContext.getTraceId()).isEqualTo(parentSpan.getTraceContext().getTraceId());
+            assertThat(traceContext.getParentId()).isEqualTo(parentSpan.getTraceContext().getId());
+        }
         TransactionContext transactionContext = transaction.getContext();
         Message message = transactionContext.getMessage();
         assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
-        assertThat(message.getQueueName()).isEqualTo(REQUEST_TOPIC);
-        if (testScenario == TestScenario.BODY_CAPTURE_ENABLED) {
+        assertThat(message.getQueueName()).isEqualTo(topic);
+        if (testScenario == TestScenario.BODY_CAPTURE_ENABLED && messageValue != null) {
             String messageBody = "key=" + REQUEST_KEY + "; value=" + messageValue;
             assertThat(messageBody).isEqualTo(message.getBody().toString());
         } else {
             assertThat(message.getBody().length()).isEqualTo(0);
         }
         Headers headers = message.getHeaders();
-        if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER) {
+        if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER ||
+            topic.equals(REPLY_TOPIC)) {
             assertThat(headers).isEmpty();
         } else {
             assertThat(headers.size()).isEqualTo(1);
@@ -439,7 +463,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         BODY_CAPTURE_ENABLED,
         HEADERS_CAPTURE_DISABLED,
         SANITIZED_HEADER,
-        IGNORE_REQUEST_TOPIC
+        IGNORE_REQUEST_TOPIC,
+        NO_CONTEXT_PROPAGATION
     }
 
     /**
