@@ -158,7 +158,7 @@ NOTE: Both active and instrument needs to be true for instrumentation to be runn
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `true` | Boolean | false
+| `true` | Boolean | true
 |============
 
 
@@ -412,7 +412,7 @@ set the value to an empty string.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `incubating` | Collection | false
+| `incubating` | Collection | true
 |============
 
 
@@ -625,7 +625,7 @@ NOTE: This method is only available in the Elastic APM Java Agent.
 [options="header"]
 |============
 | Default                          | Type                | Dynamic
-| `<none>` | List | false
+| `<none>` | List | true
 |============
 
 
@@ -1584,7 +1584,7 @@ The default unit for this option is `ms`
 # 
 # NOTE: Both active and instrument needs to be true for instrumentation to be running.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: Boolean
 # Default value: true
 #
@@ -1725,7 +1725,7 @@ The default unit for this option is `ms`
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: incubating
 #
@@ -1860,7 +1860,7 @@ The default unit for this option is `ms`
 # ----
 # NOTE: This method is only available in the Elastic APM Java Agent.
 #
-# This setting can not be changed at runtime. Changes require a restart of the application.
+# This setting can be changed at runtime
 # Type: comma separated list
 # Default value: 
 #

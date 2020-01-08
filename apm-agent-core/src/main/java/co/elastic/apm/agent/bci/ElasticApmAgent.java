@@ -137,7 +137,8 @@ public class ElasticApmAgent {
             return;
         }
         ElasticApmInstrumentation.staticInit(tracer);
-        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger);
+        // POOL_ONLY because we don't want to cause eager linking on startup as the class path may not be complete yet
+        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.POOL_ONLY);
         resettableClassFileTransformer = agentBuilder.installOn(ElasticApmAgent.instrumentation);
         CoreConfiguration coreConfig = tracer.getConfig(CoreConfiguration.class);
         for (ConfigurationOption instrumentationOption : coreConfig.getInstrumentationOptions()) {
@@ -171,18 +172,19 @@ public class ElasticApmAgent {
     static synchronized void doReInitInstrumentation(Iterable<ElasticApmInstrumentation> instrumentations) {
         final Logger logger = LoggerFactory.getLogger(ElasticApmAgent.class);
         logger.info("Re initializing instrumentation");
-        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger);
+        // HYBRID to speed up the matchers, assuming dependant classes have already loaded so we don't interfere with the ordering of initialization
+        AgentBuilder agentBuilder = initAgentBuilder(tracer, instrumentation, instrumentations, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID);
 
         resettableClassFileTransformer = agentBuilder.patchOnByteBuddyAgent(resettableClassFileTransformer);
     }
 
-    private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation, Iterable<ElasticApmInstrumentation> instrumentations, Logger logger) {
+    private static AgentBuilder initAgentBuilder(ElasticApmTracer tracer, Instrumentation instrumentation, Iterable<ElasticApmInstrumentation> instrumentations, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy) {
         final CoreConfiguration coreConfiguration = tracer.getConfig(CoreConfiguration.class);
         ElasticApmAgent.instrumentation = instrumentation;
         final ByteBuddy byteBuddy = new ByteBuddy()
             .with(TypeValidation.of(logger.isDebugEnabled()))
             .with(FailSafeDeclaredMethodsCompiler.INSTANCE);
-        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger);
+        AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, coreConfiguration, logger, descriptionStrategy);
         int numberOfAdvices = 0;
         for (final ElasticApmInstrumentation advice : instrumentations) {
             if (isIncluded(advice, coreConfiguration)) {
@@ -360,7 +362,7 @@ public class ElasticApmAgent {
         resettableClassFileTransformer = null;
     }
 
-    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger) {
+    private static AgentBuilder getAgentBuilder(final ByteBuddy byteBuddy, final CoreConfiguration coreConfiguration, Logger logger, AgentBuilder.DescriptionStrategy descriptionStrategy) {
         final List<WildcardMatcher> classesExcludedFromInstrumentation = coreConfiguration.getClassesExcludedFromInstrumentation();
 
         AgentBuilder.LocationStrategy locationStrategy = AgentBuilder.LocationStrategy.ForClassLoader.WEAK;
@@ -378,7 +380,7 @@ public class ElasticApmAgent {
 
         return new AgentBuilder.Default(byteBuddy)
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-            .with(AgentBuilder.DescriptionStrategy.Default.HYBRID)
+            .with(descriptionStrategy)
             .with(locationStrategy)
             .with(new ErrorLoggingListener())
             // ReaderMode.FAST as we don't need to read method parameter names
