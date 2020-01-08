@@ -693,11 +693,8 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     private void serializeStackTraceElement(StackTraceElement stacktrace) {
         jw.writeByte(OBJECT_START);
-        if (apmServerClient.supportsStacktraceClassname()) {
-            writeField("classname", stacktrace.getClassName());
-        } else {
-            writeField("filename", stacktrace.getFileName());
-        }
+        writeField("filename", stacktrace.getFileName());
+        writeField("classname", stacktrace.getClassName());
         writeField("function", stacktrace.getMethodName());
         writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
         writeField("lineno", stacktrace.getLineNumber());
