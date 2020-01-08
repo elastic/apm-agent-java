@@ -190,6 +190,7 @@ class DslJsonSerializerTest {
 
         for (JsonNode stackTraceElement : jsonStackTrace) {
             assertThat(stackTraceElement.get("filename")).isNotNull();
+            assertThat(stackTraceElement.get("classname")).isNotNull();
             assertThat(stackTraceElement.get("function")).isNotNull();
             assertThat(stackTraceElement.get("library_frame")).isNotNull();
             assertThat(stackTraceElement.get("lineno")).isNotNull();

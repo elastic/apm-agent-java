@@ -26,6 +26,8 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -47,8 +49,6 @@ import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
@@ -694,6 +694,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private void serializeStackTraceElement(StackTraceElement stacktrace) {
         jw.writeByte(OBJECT_START);
         writeField("filename", stacktrace.getFileName());
+        writeField("classname", stacktrace.getClassName());
         writeField("function", stacktrace.getMethodName());
         writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
         writeField("lineno", stacktrace.getLineNumber());
