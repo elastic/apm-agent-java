@@ -76,12 +76,12 @@ public class ConnectionAdvice {
             String cmd =
                 // try to determine main commands in a garbage free way
                 command.containsKey("find") ? "find" :
-                    command.containsKey("insert") ? "insert" :
-                        command.containsKey("count") ? "count" :
-                            command.containsKey("drop") ? "drop" :
-                                command.containsKey("update") ? "update" :
-                                    command.containsKey("delete") ? "delete" :
-                                        command.containsKey("create") ? "create" :
+                command.containsKey("insert") ? "insert" :
+                command.containsKey("count") ? "count" :
+                command.containsKey("drop") ? "drop" :
+                command.containsKey("update") ? "update" :
+                command.containsKey("delete") ? "delete" :
+                command.containsKey("create") ? "create" :
                 command.containsKey("getMore") ? "getMore" :
                 // fall back to getting the first key which is the command name
                 // by allocating a key set and an iterator
