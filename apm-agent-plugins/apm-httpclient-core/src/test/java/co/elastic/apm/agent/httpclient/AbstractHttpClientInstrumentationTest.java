@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.httpclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -87,14 +89,47 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         verifyHttpSpan("/");
     }
 
+    @Test
+    public void testHttpCallWithIpv4() throws Exception {
+        performGet("http://127.0.0.1:" + wireMockRule.port() + "/");
+        verifyHttpSpan("http", "127.0.0.1", wireMockRule.port(), "/");
+    }
+
+    @Test
+    public void testHttpCallWithIpv6() throws Exception {
+        if (!isIpv6Supported()) {
+            return;
+        }
+        performGet("http://[::1]:" + wireMockRule.port() + "/");
+        verifyHttpSpan("http", "[::1]", wireMockRule.port(), "/");
+    }
+
+    protected boolean isIpv6Supported() {
+        return true;
+    }
+
     protected void verifyHttpSpan(String path) throws Exception {
+        verifyHttpSpan("http", "localhost", wireMockRule.port(), path);
+    }
+
+    protected void verifyHttpSpan(String scheme, String host, int port, String path) throws Exception {
         assertThat(reporter.getFirstSpan(500)).isNotNull();
         assertThat(reporter.getSpans()).hasSize(1);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
-        assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
-        assertThat(reporter.getSpans().get(0).getType()).isEqualTo("external");
-        assertThat(reporter.getSpans().get(0).getSubtype()).isEqualTo("http");
-        assertThat(reporter.getSpans().get(0).getAction()).isNull();
+        Span span = reporter.getSpans().get(0);
+        String baseUrl = scheme + "://" + host + ":" + port;
+        assertThat(span.getContext().getHttp().getUrl()).isEqualTo(baseUrl + path);
+        assertThat(span.getContext().getHttp().getStatusCode()).isEqualTo(200);
+        assertThat(span.getType()).isEqualTo("external");
+        assertThat(span.getSubtype()).isEqualTo("http");
+        assertThat(span.getAction()).isNull();
+        Destination destination = span.getContext().getDestination();
+        int addressStartIndex = (host.startsWith("[")) ? 1 : 0;
+        int addressEndIndex = (host.endsWith("]")) ? host.length() - 1 : host.length();
+        assertThat(destination.getAddress().toString()).isEqualTo(host.substring(addressStartIndex, addressEndIndex));
+        assertThat(destination.getPort()).isEqualTo(wireMockRule.port());
+        assertThat(destination.getService().getName().toString()).isEqualTo(baseUrl);
+        assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockRule.port());
+        assertThat(destination.getService().getType()).isEqualTo("external");
 
         final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
         verify(anyRequestedFor(urlPathEqualTo(path))

@@ -292,6 +292,28 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanDestinationContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("whatever.com").withPort(80)
+            .getService()
+            .withName("http://whatever.com")
+            .withResource("whatever.com:80")
+            .withType("external");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode destination = context.get("destination");
+        assertThat(destination).isNotNull();
+        assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
+        assertThat(80).isEqualTo(destination.get("port").intValue());
+        JsonNode service = destination.get("service");
+        assertThat(service).isNotNull();
+        assertThat("http://whatever.com").isEqualTo(service.get("name").textValue());
+        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat("external").isEqualTo(service.get("type").textValue());
+    }
+
+    @Test
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()

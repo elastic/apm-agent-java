@@ -1,3 +1,4 @@
 # The EULA allows for testing purposes:
 # You may install and use copies of the software [...] to design, develop, test and demonstrate your programs.
 mcr.microsoft.com/mssql/server:2017-CU12
+ibmcom/db2:11.5.0.0a
