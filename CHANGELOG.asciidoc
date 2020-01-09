@@ -28,6 +28,9 @@ endif::[]
 
 * Add support for <<supported-databases, Redis Lettuce client>>
 * Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
+* Instrument log4j Logger#error(String, Throwable) ({pull}919[#919])
+  Automatically captures exceptions when calling `logger.error("message", exception)`
+* Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
 
 [float]
 ===== Bug Fixes

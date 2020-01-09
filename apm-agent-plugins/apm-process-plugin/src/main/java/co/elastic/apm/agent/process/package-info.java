@@ -22,28 +22,7 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+@NonnullApi
+package co.elastic.apm.agent.process;
 
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
-
-import java.util.Collection;
-
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
-
-public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
-        return ret;
-    }
-}
+import co.elastic.apm.agent.annotation.NonnullApi;

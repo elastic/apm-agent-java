@@ -33,17 +33,17 @@ import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
-public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
+public class Log4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
 
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
+        return hasSuperType(named("org.apache.logging.log4j.Logger")).and(not(hasSuperType(named("org.slf4j.Logger"))));
     }
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
         Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
+        ret.add("log4j");
         return ret;
     }
 }

@@ -22,28 +22,27 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.agent.error.logging;
+package co.elastic.apm.agent.process;
 
-import net.bytebuddy.description.type.TypeDescription;
+import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import net.bytebuddy.matcher.ElementMatcher;
 
+import java.util.Arrays;
 import java.util.Collection;
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
+import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 
-public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
+public abstract class BaseProcessInstrumentation extends ElasticApmInstrumentation {
 
     @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
+    public final ElementMatcher.Junction<ClassLoader> getClassLoaderMatcher() {
+        // java.lang.* is loaded from bootstrap classloader
+        return isBootstrapClassLoader();
     }
 
     @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
-        return ret;
+    public final Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("process", "incubating");
     }
+
 }

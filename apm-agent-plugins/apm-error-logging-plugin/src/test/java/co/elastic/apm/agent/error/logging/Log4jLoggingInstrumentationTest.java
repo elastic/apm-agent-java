@@ -24,26 +24,18 @@
  */
 package co.elastic.apm.agent.error.logging;
 
-import net.bytebuddy.description.type.TypeDescription;
-import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
+class Log4jLoggingInstrumentationTest extends AbstractErrorLoggingInstrumentationTest {
 
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
+    private static final Logger logger = LogManager.getLogger(Log4jLoggingInstrumentationTest.class);
 
-public class Slf4jLoggingInstrumentation extends AbstractLoggingInstrumentation {
-
-    @Override
-    public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-        return hasSuperType(named("org.slf4j.Logger")).and(not(hasSuperType(named("org.apache.logging.log4j.Logger"))));
+    @Test
+    void captureException() {
+        logger.error("exception captured", new RuntimeException("some business exception"));
+        verifyThatExceptionCaptured(1, "some business exception", RuntimeException.class);
     }
 
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        Collection<String> ret = super.getInstrumentationGroupNames();
-        ret.add("slf4j");
-        return ret;
-    }
 }
