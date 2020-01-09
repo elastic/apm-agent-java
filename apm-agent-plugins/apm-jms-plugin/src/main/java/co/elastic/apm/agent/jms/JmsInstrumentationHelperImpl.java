@@ -99,7 +99,12 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         try {
             if (span.isSampled()) {
                 message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                span.getContext().getDestination().getService()
+                    .withName("jms")
+                    .withResource("jms")
+                    .withType(MESSAGING_TYPE);
                 if (destinationName != null) {
+                    span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                     span.withName("JMS SEND to ");
                     addDestinationDetails(null, destination, destinationName, span);
                     if (isDestinationNameComputed) {

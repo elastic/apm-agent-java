@@ -91,6 +91,9 @@ public abstract class AbstractInstrumentationTest {
     @AfterEach
     public final void cleanUp() {
         tracer.resetServiceNameOverrides();
-        assertThat(tracer.getActive()).isNull();
+
+        assertThat(tracer.getActive())
+            .describedAs("nothing should be left active at end of test, failure will likely indicate a span/transaction still active")
+            .isNull();
     }
 }

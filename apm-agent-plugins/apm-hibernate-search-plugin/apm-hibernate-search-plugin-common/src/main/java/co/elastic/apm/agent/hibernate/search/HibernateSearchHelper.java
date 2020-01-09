@@ -51,14 +51,14 @@ public final class HibernateSearchHelper {
 
             span = active.createSpan().activate();
 
-            span.withType("db")
-                .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                .withAction(methodName);
+            span.withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_TYPE)
+                    .withSubtype(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+                    .withAction(methodName);
             span.getContext().getDb()
-                .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
-                .withStatement(query);
+                    .withType(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_TYPE)
+                    .withStatement(query);
             span.withName(HibernateSearchConstants.HIBERNATE_SEARCH_ORM_SPAN_NAME)
-                .appendToName(" ").appendToName(methodName).appendToName("()");
+                    .appendToName(" ").appendToName(methodName).appendToName("()");
         }
         return span;
     }

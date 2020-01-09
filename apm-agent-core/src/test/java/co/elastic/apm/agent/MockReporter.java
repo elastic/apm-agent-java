@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent;
 
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.PayloadUtils;
@@ -64,6 +65,12 @@ public class MockReporter implements Reporter {
     private static final JsonSchema errorSchema;
     private static final JsonSchema spanSchema;
     private static final DslJsonSerializer dslJsonSerializer;
+
+    // A set of exit span subtypes that do not support address and port discovery
+    private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
+    // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
+    private boolean disableDestinationAddressCheck;
+
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Span> spans = new ArrayList<>();
     private final List<ErrorCapture> errors = new ArrayList<>();
@@ -78,6 +85,7 @@ public class MockReporter implements Reporter {
         ApmServerClient apmServerClient = mock(ApmServerClient.class);
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
+        SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
     }
 
     public MockReporter() {
@@ -91,6 +99,10 @@ public class MockReporter implements Reporter {
 
     private static JsonSchema getSchema(String resource) {
         return JsonSchemaFactory.getInstance().getSchema(MockReporter.class.getResourceAsStream(resource));
+    }
+
+    public void disableDestinationAddressCheck() {
+        disableDestinationAddressCheck = true;
     }
 
     @Override
@@ -108,7 +120,23 @@ public class MockReporter implements Reporter {
             return;
         }
         verifySpanSchema(asJson(dslJsonSerializer.toJsonString(span)));
+        verifyDestinationFields(span);
         spans.add(span);
+    }
+
+    private void verifyDestinationFields(Span span) {
+        if (!span.isExit()) {
+            return;
+        }
+        Destination destination = span.getContext().getDestination();
+        if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
+            assertThat(destination.getAddress()).isNotEmpty();
+            assertThat(destination.getPort()).isGreaterThan(0);
+        }
+        Destination.Service service = destination.getService();
+        assertThat(service.getName()).isNotEmpty();
+        assertThat(service.getResource()).isNotEmpty();
+        assertThat(service.getType()).isNotNull();
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {

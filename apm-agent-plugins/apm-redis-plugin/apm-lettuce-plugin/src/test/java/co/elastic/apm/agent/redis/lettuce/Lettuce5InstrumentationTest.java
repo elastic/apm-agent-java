@@ -51,6 +51,7 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     public void setUpLettuce() {
         RedisClient client = RedisClient.create(RedisURI.create("localhost", redisPort));
         connection = client.connect();
+        reporter.disableDestinationAddressCheck();
     }
 
     @Test
@@ -108,5 +109,10 @@ public class Lettuce5InstrumentationTest extends AbstractRedisInstrumentationTes
     @After
     public void tearDownLettuce() {
         connection.close();
+    }
+
+    @Override
+    protected boolean destinationAddressSupported() {
+        return false;
     }
 }

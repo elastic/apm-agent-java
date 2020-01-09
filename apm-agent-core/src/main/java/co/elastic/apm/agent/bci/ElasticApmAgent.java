@@ -74,6 +74,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
@@ -342,11 +343,16 @@ public class ElasticApmAgent {
                 : AgentBuilder.PoolStrategy.Default.FAST)
             .ignore(any(), isReflectionClassLoader())
             .or(any(), classLoaderWithName("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"))
+            // ideally, those bootstrap classpath inclusions should be set at plugin level, see issue #952
             .or(nameStartsWith("java.")
                 .and(
                     not(
                         nameEndsWith("URLConnection")
                             .or(nameStartsWith("java.util.concurrent."))
+                            .or(named("java.lang.ProcessBuilder"))
+                            .or(named("java.lang.ProcessImpl"))
+                            .or(named("java.lang.Process"))
+                            .or(named("java.lang.UNIXProcess"))
                     )
                 )
             )

@@ -30,7 +30,9 @@ import co.elastic.apm.agent.redis.RedisSpanUtils;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
+import redis.clients.jedis.BinaryJedis;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -46,8 +48,13 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 public class JedisInstrumentation extends ElasticApmInstrumentation {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    private static void beforeSendCommand(@Advice.Local("span") Span span, @Advice.Origin("#m") String method) {
-       span = RedisSpanUtils.createRedisSpan(method);
+    private static void beforeSendCommand(@Advice.This(typing = Assigner.Typing.DYNAMIC) BinaryJedis thiz,
+                                          @Advice.Local("span") Span span,
+                                          @Advice.Origin("#m") String method) {
+        span = RedisSpanUtils.createRedisSpan(method);
+        span.getContext().getDestination()
+            .withAddress(thiz.getClient().getHost())
+            .withPort(thiz.getClient().getPort());
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
@@ -63,9 +70,7 @@ public class JedisInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("redis.clients.jedis.Jedis")
-            .or(named("redis.clients.jedis.BinaryJedis"))
-            .or(named("redis.clients.jedis.ShardedJedis"))
-            .or(named("redis.clients.jedis.BinaryShardedJedis"));
+            .or(named("redis.clients.jedis.BinaryJedis"));
     }
 
     @Override
