@@ -53,32 +53,8 @@ public abstract class AsyncProfiler {
         if (instance != null) {
             return instance;
         }
-        String libraryName = getLibraryFileName();
-        File file = IOUtils.exportResourceToTemp("asyncprofiler/" + libraryName + ".so", libraryName, ".so");
-        System.load(file.getAbsolutePath());
-
         instance = newInstance();
         return instance;
-    }
-
-    private static String getLibraryFileName() {
-        String os = System.getProperty("os.name").toLowerCase();
-        String arch = System.getProperty("os.arch").toLowerCase();
-        if (os.contains("nix") || os.contains("nux")) {
-            // TODO include binaries for async-profiler 1.7 once it's released
-            if (true) {
-                throw new IllegalStateException("Linux is not supported until async-profiler 1.7 is released");
-            }
-            if (arch.contains("arm") || arch.contains("aarch")) {
-                return "libasyncProfiler-arm";
-            } else {
-                return "libasyncProfiler";
-            }
-        } else if (os.contains("mac")) {
-            return "libasyncProfiler-macos";
-        } else {
-            throw new IllegalStateException("Async-profiler does not work on " + os);
-        }
     }
 
     /*
@@ -90,7 +66,7 @@ public abstract class AsyncProfiler {
                 .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
                 .name("one.profiler.AsyncProfiler")
                 .make()
-                .load(AsyncProfiler.class.getClassLoader(), new ClassLoadingStrategy.ForUnsafeInjection())
+                .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
                 .getLoaded()
                 .getConstructor()
                 .newInstance();
@@ -210,6 +186,36 @@ public abstract class AsyncProfiler {
     public abstract long getNativeThreadId0();
 
     public static class DirectNativeBinding extends AsyncProfiler {
+
+        static {
+            loadNativeLibrary();
+        }
+
+        private static void loadNativeLibrary() {
+            String libraryName = getLibraryFileName();
+            File file = IOUtils.exportResourceToTemp("asyncprofiler/" + libraryName + ".so", libraryName, ".so");
+            System.load(file.getAbsolutePath());
+        }
+
+        private static String getLibraryFileName() {
+            String os = System.getProperty("os.name").toLowerCase();
+            String arch = System.getProperty("os.arch").toLowerCase();
+            if (os.contains("nix") || os.contains("nux")) {
+                // TODO include binaries for async-profiler 1.7 once it's released
+                if (true) {
+                    throw new IllegalStateException("Linux is not supported until async-profiler 1.7 is released");
+                }
+                if (arch.contains("arm") || arch.contains("aarch")) {
+                    return "libasyncProfiler-arm";
+                } else {
+                    return "libasyncProfiler";
+                }
+            } else if (os.contains("mac")) {
+                return "libasyncProfiler-macos";
+            } else {
+                throw new IllegalStateException("Async-profiler does not work on " + os);
+            }
+        }
 
         public native void start0(String event, long interval, boolean reset) throws IllegalStateException;
         public native void stop0() throws IllegalStateException;
