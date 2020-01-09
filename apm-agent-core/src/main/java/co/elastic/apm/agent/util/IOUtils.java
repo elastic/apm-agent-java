@@ -212,7 +212,7 @@ public class IOUtils {
     public static File exportResourceToTemp(String resource, String tempFileNamePrefix, String tempFileNameExtension) {
         try (InputStream resourceStream = IOUtils.class.getResourceAsStream("/" + resource)) {
             if (resourceStream == null) {
-                throw new IllegalStateException("Agent jar not found");
+                throw new IllegalStateException(resource + " not found");
             }
             String hash = md5Hash(IOUtils.class.getResourceAsStream("/" + resource));
             File tempFile = new File(System.getProperty("java.io.tmpdir"), tempFileNamePrefix + "-" + hash + tempFileNameExtension);
@@ -233,10 +233,10 @@ public class IOUtils {
     }
 
     public static String md5Hash(InputStream resourceAsStream) throws IOException, NoSuchAlgorithmException {
-        try (InputStream agentJar = resourceAsStream) {
+        try (InputStream is = resourceAsStream) {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] buffer = new byte[1024];
-            DigestInputStream dis = new DigestInputStream(agentJar, md);
+            DigestInputStream dis = new DigestInputStream(is, md);
             while (dis.read(buffer) != -1) {}
             return String.format("%032x", new BigInteger(1, md.digest()));
         }
