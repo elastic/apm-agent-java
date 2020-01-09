@@ -41,7 +41,7 @@ import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventPoller;
-import com.lmax.disruptor.EventTranslatorThreeArg;
+import com.lmax.disruptor.EventTranslatorTwoArg;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
@@ -70,18 +70,18 @@ import java.util.concurrent.locks.LockSupport;
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
-    private final EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread> ACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive, Thread thread) {
-                event.activation(active, threadMapper.getNativeThreadId(thread), previouslyActive, nanoClock.nanoTime());
+            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder<?> active, TraceContextHolder<?> previouslyActive) {
+                event.activation(active, threadMapper.getNativeThreadId(), previouslyActive, nanoClock.nanoTime());
             }
         };
-    private final EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread> DEACTIVATION_EVENT_TRANSLATOR =
-        new EventTranslatorThreeArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>, Thread>() {
+    private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> DEACTIVATION_EVENT_TRANSLATOR =
+        new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
-            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive, Thread thread) {
-                event.deactivation(active, threadMapper.getNativeThreadId(thread), previouslyActive, nanoClock.nanoTime());
+            public void translateTo(ActivationEvent event, long sequence, TraceContextHolder active, TraceContextHolder previouslyActive) {
+                event.deactivation(active, threadMapper.getNativeThreadId(), previouslyActive, nanoClock.nanoTime());
             }
         };
     // sizeof(ActivationEvent) is 176B so the ring buffer should be around 880KiB
@@ -104,6 +104,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final File jfrFile;
     private final WriteActivationEventToFileHandler writeActivationEventToFileHandler = new WriteActivationEventToFileHandler();
     private final JfrParser jfrParser = new JfrParser();
+    private volatile int profilingSessions;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -147,22 +148,23 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             new NoWaitStrategy());
     }
 
-    public boolean onActivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            return eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive, thread);
+            return eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
         }
         return false;
     }
 
-    public boolean onDeactivation(Thread thread, TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
+    public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            return eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive, thread);
+            return eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
         }
         return false;
     }
 
     @Override
     public void run() {
+        profilingSessions++;
         if (config.isProfilingDisabled()) {
             scheduler.schedule(this, config.getProfilingInterval().getMillis(), TimeUnit.MILLISECONDS);
             return;
@@ -351,8 +353,8 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     // for testing
-    CallTree.Root getRoot(Thread thread) {
-        return profiledThreads.get(threadMapper.getNativeThreadId(thread));
+    CallTree.Root getRoot() {
+        return profiledThreads.get(threadMapper.getNativeThreadId());
     }
 
     void clear() {
@@ -370,6 +372,10 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             throw new RuntimeException(e);
         }
         resetActivationEventBuffer();
+    }
+
+    int getProfilingSessions() {
+        return profilingSessions;
     }
     // --
 

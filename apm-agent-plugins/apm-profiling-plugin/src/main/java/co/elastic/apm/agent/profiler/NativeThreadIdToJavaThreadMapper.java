@@ -26,27 +26,35 @@ package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
+import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
 import java.util.Map;
 
 public class NativeThreadIdToJavaThreadMapper {
 
-    private final WeakConcurrentMap<Thread, Long> threadToNativeThread = new WeakConcurrentMap<Thread, Long>(false);
+    private final DetachedThreadLocal<Long> threadToNativeThread = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
     private AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
 
-    public long getNativeThreadId(Thread thread) {
-        Long nativeThreadId = threadToNativeThread.get(thread);
+    /**
+     * Returns the native thread id of the current thread
+     */
+    public long getNativeThreadId() {
+        Long nativeThreadId = threadToNativeThread.get();
         if (nativeThreadId == null) {
-            nativeThreadId = asyncProfiler.getNativeThreadId(thread);
-            threadToNativeThread.putIfAbsent(thread, nativeThreadId);
+            nativeThreadId = asyncProfiler.getNativeThreadId();
+            threadToNativeThread.set(nativeThreadId);
         }
         return nativeThreadId;
     }
 
+    /**
+     * Returns the native thread ids of all threads for which {@link #getNativeThreadId()} has been called and which are not GC'ed yet.
+     */
     public LongHashSet getNativeThreadIds() {
-        LongHashSet nativeThreadIds = new LongHashSet(threadToNativeThread.approximateSize());
-        for (Map.Entry<Thread, Long> entry : threadToNativeThread) {
+        WeakConcurrentMap<Thread, Long> backingMap = threadToNativeThread.getBackingMap();
+        LongHashSet nativeThreadIds = new LongHashSet(backingMap.approximateSize());
+        for (Map.Entry<Thread, Long> entry : backingMap) {
             nativeThreadIds.add(entry.getValue());
         }
         return nativeThreadIds;

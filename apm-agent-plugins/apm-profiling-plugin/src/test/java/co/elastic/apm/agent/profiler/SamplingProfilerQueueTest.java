@@ -41,20 +41,20 @@ public class SamplingProfilerQueueTest {
         profiler.setProfilingSessionOngoing(true);
         TraceContext traceContext = TraceContext.with64BitId(tracer);
 
-        assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isTrue();
+        assertThat(profiler.onActivation(traceContext, null)).isTrue();
         long timeAfterFirstEvent = System.nanoTime();
         Thread.sleep(1);
 
         for (int i = 0; i < SamplingProfiler.RING_BUFFER_SIZE -1; i++) {
-            assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isTrue();
+            assertThat(profiler.onActivation(traceContext, null)).isTrue();
         }
 
         // no more free slots after adding RING_BUFFER_SIZE events
-        assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isFalse();
+        assertThat(profiler.onActivation(traceContext, null)).isFalse();
 
         profiler.consumeActivationEventsFromRingBufferAndWriteToFile();
 
         // now there should be free slots
-        assertThat(profiler.onActivation(Thread.currentThread(), traceContext, null)).isTrue();
+        assertThat(profiler.onActivation(traceContext, null)).isTrue();
     }
 }

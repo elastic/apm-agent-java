@@ -49,7 +49,7 @@ public class ProfilingActivationListener implements ActivationListener {
         if (!context.isSampled()) {
             return;
         }
-        profiler.onActivation(Thread.currentThread(), context, tracer.getActive());
+        profiler.onActivation(context, tracer.getActive());
     }
 
     @Override
@@ -57,6 +57,6 @@ public class ProfilingActivationListener implements ActivationListener {
         if (!deactivatedContext.isSampled()) {
             return;
         }
-        profiler.onDeactivation(Thread.currentThread(), deactivatedContext, tracer.getActive());
+        profiler.onDeactivation(deactivatedContext, tracer.getActive());
     }
 }

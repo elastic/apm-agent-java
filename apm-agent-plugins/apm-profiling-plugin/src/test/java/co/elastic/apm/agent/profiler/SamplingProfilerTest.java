@@ -54,6 +54,7 @@ class SamplingProfilerTest {
 
     private MockReporter reporter;
     private ElasticApmTracer tracer;
+    private SamplingProfiler profiler;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +67,7 @@ class SamplingProfilerTest {
         when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
         when(profilingConfig.getSampleRate()).thenReturn(TimeDuration.of("5ms"));
         tracer = MockTracer.createRealTracer(reporter, config);
+        profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }
 
     @AfterEach
@@ -75,6 +77,11 @@ class SamplingProfilerTest {
 
     @Test
     void testProfileTransaction() throws Exception {
+        // ensure profiler is initialized
+        await()
+            .pollDelay(10, TimeUnit.MILLISECONDS)
+            .timeout(5000, TimeUnit.MILLISECONDS)
+            .until(() -> profiler.getProfilingSessions() > 1);
         Transaction transaction = tracer.startRootTransaction(null).withName("transaction");
         try (Scope scope = transaction.activateInScope()) {
             aInferred(transaction);

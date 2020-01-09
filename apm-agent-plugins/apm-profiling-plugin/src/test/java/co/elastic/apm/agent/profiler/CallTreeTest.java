@@ -351,7 +351,7 @@ class CallTreeTest {
         for (StackTraceEvent stackTraceEvent : stackTraceEvents) {
             profiler.processActivationEventsUpTo(stackTraceEvent.nanoTime);
             if (root == null) {
-                root = profiler.getRoot(Thread.currentThread());
+                root = profiler.getRoot();
                 assertThat(root).isNotNull();
             }
             root.addStackTrace(tracer, stackTraceEvent.trace, stackTraceEvent.nanoTime);

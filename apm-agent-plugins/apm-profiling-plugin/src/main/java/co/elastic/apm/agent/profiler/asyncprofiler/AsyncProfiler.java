@@ -53,14 +53,11 @@ public abstract class AsyncProfiler {
         if (instance != null) {
             return instance;
         }
-        System.out.println("new instance");
         // TODO export libasyncProfiler.so based on current OS
         File file = IOUtils.exportResourceToTemp("asyncprofiler/libasyncProfiler.so", "libasyncProfiler", ".so");
         System.load(file.getAbsolutePath());
 
         instance = newInstance();
-        // initializes async-profiler
-        instance.getNativeThreadId(Thread.currentThread());
         return instance;
     }
 
@@ -174,21 +171,13 @@ public abstract class AsyncProfiler {
     }
 
     /**
-     * Get OS thread ID of the given Java thread. On Linux, this is the same number
+     * Get OS thread ID of the current Java thread. On Linux, this is the same number
      * as gettid() returns. The result ID matches 'tid' in the profiler output.
      *
-     * @param thread Java thread object
-     * @return Positive number that matches native (OS level) thread ID,
-     * or -1 if the given thread has not yet started or has already finished
+     * @return 64-bit integer that matches native (OS level) thread ID
      */
-    public long getNativeThreadId(Thread thread) {
-        synchronized (thread) {
-            Thread.State state = thread.getState();
-            if (state != Thread.State.NEW && state != Thread.State.TERMINATED) {
-                return getNativeThreadId0(thread);
-            }
-        }
-        return -1;
+    public long getNativeThreadId() {
+        return getNativeThreadId0();
     }
 
     public abstract void start0(String event, long interval, boolean reset) throws IllegalStateException;
@@ -198,7 +187,7 @@ public abstract class AsyncProfiler {
     public abstract String dumpTraces0(int maxTraces);
     public abstract String dumpFlat0(int maxMethods);
     public abstract String version0();
-    public abstract long getNativeThreadId0(Thread thread);
+    public abstract long getNativeThreadId0();
 
     public static class DirectNativeBinding extends AsyncProfiler {
 
@@ -209,7 +198,7 @@ public abstract class AsyncProfiler {
         public native String dumpTraces0(int maxTraces);
         public native String dumpFlat0(int maxMethods);
         public native String version0();
-        public native long getNativeThreadId0(Thread thread);
+        public native long getNativeThreadId0();
     }
 
     /**
