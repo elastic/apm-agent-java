@@ -276,6 +276,10 @@ public class JfrParser implements Recyclable {
 
     /**
      * Resolves the stack trace with the given {@code stackTraceId}.
+     * <p>
+     * Note that his allocates strings for {@link Symbol#resolved} in case a stack frame has not already been resolved for the current JFR file yet.
+     * These strings are currently not cached so this can create some GC pressure.
+     * </p>
      *
      * @param stackTraceId   The id of the stack traced.
      *                       Used to look up the position of the file in which the given stack trace is stored via {@link #stackTraceIdToFilePositions}.

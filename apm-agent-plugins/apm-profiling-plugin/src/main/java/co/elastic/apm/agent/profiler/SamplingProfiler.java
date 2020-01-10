@@ -27,6 +27,7 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -67,9 +68,63 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
+/**
+ * Correlates {@link ActivationEvent}s with {@link StackFrame}s which are recorded by {@link AsyncProfiler},
+ * a native <a href="http://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html">{@code AsyncGetCallTree}</a>-based
+ * (and therefore <a href="http://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html"> non safepoint-biased</a>)
+ * JVMTI agent.
+ * <p>
+ * Recording of {@link ActivationEvent}s:
+ * </p>
+ * <p>
+ * The {@link #onActivation} and {@link #onDeactivation} methods are called by {@link ProfilingActivationListener}
+ * which register an {@link ActivationEvent} in to a {@linkplain #eventBuffer ring buffer} whenever a {@link Span}
+ * gets {@link Span#activate()}d or {@link Span#deactivate()}d while a {@linkplain #profilingSessionOngoing profiling session is ongoing}.
+ * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventBuffer memory-mapped file}.
+ * That is necessary because within a profiling session (which lasts 10s by default) there may be many more {@link ActivationEvent}s
+ * than the ring buffer can hold {@link #RING_BUFFER_SIZE}.
+ * The file can hold {@link #ACTIVATION_EVENTS_IN_FILE} events and each is {@link ActivationEvent#SERIALIZED_SIZE} in size.
+ * This process is completely garbage free thanks to the {@link RingBuffer} acting as an object pool for {@link ActivationEvent}s.
+ * </p>
+ * <p>
+ * Recording stack traces:
+ * </p>
+ * <p>
+ * The same background thread that processes the {@link ActivationEvent}s starts the wall clock profiler of async-profiler via
+ * {@link AsyncProfiler#execute(String)}.
+ * After the {@link ProfilingConfiguration#getProfilingDuration()} is over it stops the profiling and starts processing the JFR file created
+ * by async-profiler with {@link JfrParser}.
+ * </p>
+ * <p>
+ * Correlating {@link ActivationEvent}s with the traces recorded by {@link AsyncProfiler}:
+ * </p>
+ * <p>
+ * After both the JFR file and the memory-mapped file containing the {@link ActivationEvent}s have been written,
+ * it's now time to process them in tandem.
+ * The {@link ActivationEvent}s file is guaranteed to contain the events in ascending order in terms of their {@link ActivationEvent#timestamp}.
+ * Unfortunately, the same is not true for the JFR file where the {@link JfrParser.EventTypeId#EVENT_EXECUTION_SAMPLE} events are in a rather
+ * random order.
+ * Which is why they have to be sorted before they can be correlated with {@link ActivationEvent}s.
+ * See {@link #getStackTraceEvents(JfrParser)}.
+ * The result of the next processing step, performed by {@link #processTraces(File)},
+ * is a correlation of activations and traces in the form of {@link CallTree.Root}s which are created for each thread which has seen an {@linkplain Span#activate() activation}.
+ * Once {@linkplain ActivationEvent#handleDeactivationEvent(SamplingProfiler) handling the deactivation event} of the root span in a thread
+ * (after which {@link ElasticApmTracer#getActive()} would return {@code null}),
+ * the {@link CallTree} is {@linkplain CallTree#spanify(CallTree.Root, TraceContext) converted into regular spans}.
+ * </p>
+ * <p>
+ * Overall, the allocation rate does not depend on the number of {@link ActivationEvent}s but only on
+ * {@link ProfilingConfiguration#getProfilingInterval()} and {@link ProfilingConfiguration#getSampleRate()}.
+ * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
+ * {@link ActivationEvent} in a given profiling session.
+ * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
+ * we will {@link JfrParser#getStackTrace(long, boolean, List) resolve the full stack trace}.
+ * </p>
+ */
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
+    private static final int ACTIVATION_EVENTS_IN_FILE = 100_000;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -132,7 +187,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         jfrFile = File.createTempFile("apm-traces-", ".jfr");
         activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(activationEventsFile, "rw")) {
-            activationEventBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 100_000 * ActivationEvent.SERIALIZED_SIZE);
+            activationEventBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE);
         }
     }
 
@@ -148,6 +203,17 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             new NoWaitStrategy());
     }
 
+    /**
+     * Called whenever a span is activated.
+     * <p>
+     * This and {@link #onDeactivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * context.
+     * </p>
+     *
+     * @param activeSpan       the span which is about to be activated
+     * @param previouslyActive the span which has previously been activated
+     * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
+     */
     public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
             return eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
@@ -155,6 +221,17 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         return false;
     }
 
+    /**
+     * Called whenever a span is deactivated.
+     * <p>
+     * This and {@link #onActivation(TraceContextHolder, TraceContextHolder)} are the only methods which are executed in a multi-threaded
+     * context.
+     * </p>
+     *
+     * @param activeSpan       the span which is about to be activated
+     * @param previouslyActive the span which has previously been activated
+     * @return {@code true}, if the event could be processed, {@code false} if the internal event queue is full which means the event has been discarded
+     */
     public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
             return eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
