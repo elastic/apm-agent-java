@@ -178,6 +178,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         // tells the ring buffer to not override slots which have not been read yet
         this.eventBuffer.addGatingSequences(sequence);
         this.poller = eventBuffer.newPoller();
+        // call tree roots are pooled so that fast activations/deactivations with no associated stack traces don't cause allocations
         this.rootPool = ListBasedObjectPool.<CallTree.Root>ofRecyclable(new ArrayList<CallTree.Root>(), 512, new Allocator<CallTree.Root>() {
             @Override
             public CallTree.Root createInstance() {

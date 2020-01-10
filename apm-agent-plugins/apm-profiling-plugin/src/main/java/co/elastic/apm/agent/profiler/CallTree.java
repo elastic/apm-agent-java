@@ -39,6 +39,23 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+/**
+ * Converts a sequence of stack traces into a tree structure of method calls.
+ * <pre>
+ *             count
+ *  b b     a      4
+ * aaaa ->  ├─b    1
+ *          └─b    1
+ * </pre>
+ * <p>
+ * It also stores information about which span is the parent of a particular call tree node,
+ * based on which span has been {@linkplain ElasticApmTracer#getActive() active} at that time.
+ * </p>
+ * <p>
+ * This allows to {@linkplain Root#spanify() infer spans from the call tree} which have the correct parent/child relationships
+ * with the regular spans.
+ * </p>
+ */
 public class CallTree implements Recyclable {
 
     @Nullable
@@ -188,6 +205,15 @@ public class CallTree implements Recyclable {
         return children.isEmpty();
     }
 
+    /**
+     * Returns {@code true} if this node has just one child and no self time.
+     *
+     * <pre>
+     *  c
+     *  b  <- b is a pillar
+     * aaa
+     * </pre>
+     */
     private boolean isPillar() {
         return children.size() == 1 && children.get(0).count == count;
     }
@@ -311,6 +337,11 @@ public class CallTree implements Recyclable {
         children.clear();
     }
 
+    /**
+     * A special kind of a {@link CallTree} node which represents the root of the call tree.
+     * This acts as the interface to the outside to add new nodes to the tree or to update existing ones by
+     * {@linkplain #addStackTrace(ElasticApmTracer, List, long) adding stack traces}.
+     */
     public static class Root extends CallTree implements Recyclable {
         private static final StackFrame ROOT_FRAME = new StackFrame("root", "root");
         protected TraceContext traceContext;
@@ -356,6 +387,17 @@ public class CallTree implements Recyclable {
             addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, activationTimestamp, nanoTime);
         }
 
+        /**
+         * Creates spans for call tree nodes if they are either not a {@linkplain #isPillar() pillar} or are a {@linkplain #isLeaf() leaf}.
+         * Nodes which are not converted to {@link Span}s are part of the {@link Span#stackFrames} for the nodes which do get converted to a span.
+         * <p>
+         * Parent/child relationships with the regular spans are maintained.
+         * One exception is that an inferred span can't be the parent of a regular span.
+         * That is because the regular spans have already been reported once the inferred spans are created.
+         * In the future, we might make it possible to update the {@link TraceContext#parentId}
+         * of a regular span so that it correctly reflects being a child of an inferred span.
+         * </p>
+         */
         public void spanify() {
             List<CallTree> callTrees = getChildren();
             for (int i = 0, size = callTrees.size(); i < size; i++) {
