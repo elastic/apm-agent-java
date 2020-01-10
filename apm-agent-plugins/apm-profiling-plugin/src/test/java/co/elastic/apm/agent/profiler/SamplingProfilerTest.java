@@ -65,7 +65,7 @@ class SamplingProfilerTest {
         when(profilingConfig.isProfilingEnabled()).thenReturn(true);
         when(profilingConfig.getProfilingDuration()).thenReturn(TimeDuration.of("500ms"));
         when(profilingConfig.getProfilingInterval()).thenReturn(TimeDuration.of("500ms"));
-        when(profilingConfig.getSampleRate()).thenReturn(TimeDuration.of("5ms"));
+        when(profilingConfig.getSamplingInterval()).thenReturn(TimeDuration.of("5ms"));
         tracer = MockTracer.createRealTracer(reporter, config);
         profiler = tracer.getLifecycleListener(ProfilingFactory.class).getProfiler();
     }

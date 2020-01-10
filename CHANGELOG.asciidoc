@@ -30,6 +30,9 @@ endif::[]
 * Add `context.message.age.ms` field for JMS message receiving spans and transactions - {pull}970[#970]
 * Instrument log4j Logger#error(String, Throwable) (#919)
   Automatically captures exceptions when calling `logger.error("message", exception)`
+* Add a sampling profiler based on https://github.com/jvm-profiling-tools/async-profiler[async-profiler].
+  This is a low-overhead way of seeing which methods make your transactions slow.
+  See <<config-profiling>> for more details.
 
 [float]
 ===== Bug Fixes

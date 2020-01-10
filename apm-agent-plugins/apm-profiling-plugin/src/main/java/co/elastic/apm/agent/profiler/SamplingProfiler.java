@@ -114,7 +114,7 @@ import java.util.concurrent.locks.LockSupport;
  * </p>
  * <p>
  * Overall, the allocation rate does not depend on the number of {@link ActivationEvent}s but only on
- * {@link ProfilingConfiguration#getProfilingInterval()} and {@link ProfilingConfiguration#getSampleRate()}.
+ * {@link ProfilingConfiguration#getProfilingInterval()} and {@link ProfilingConfiguration#getSamplingInterval()}.
  * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
  * {@link ActivationEvent} in a given profiling session.
  * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
@@ -248,7 +248,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             return;
         }
 
-        TimeDuration sampleRate = config.getSampleRate();
+        TimeDuration sampleRate = config.getSamplingInterval();
         TimeDuration profilingDuration = config.getProfilingDuration();
 
         setProfilingSessionOngoing(true);

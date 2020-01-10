@@ -34,7 +34,6 @@ import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class ProfilingConfiguration extends ConfigurationOptionProvider {
@@ -42,15 +41,28 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
     private static final String PROFILING_CATEGORY = "Profiling";
 
     private final ConfigurationOption<Boolean> profilingEnabled = ConfigurationOption.<Boolean>booleanOption()
-        .key("profiling_inferred_spans")
+        .key("profiling_spans_enabled")
         .configurationCategory(PROFILING_CATEGORY)
-        .description("Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.")
+        .description("Set to `true` to make the agent create spans for method executions based on\n" +
+            "https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.\n" +
+            "\n" +
+            "If this is enabled, the agent will start a profiling session every\n" +
+            "<<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.\n" +
+            "If a transaction happens within a profiling session,\n" +
+            "the agent creates spans for slow methods.\n" +
+            "\n" +
+            "Note that due to the nature of how sampling profilers work,\n" +
+            "the duration of the inferred spans are not exact, but only estimations.\n" +
+            "The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.\n" +
+            "\n" +
+            "NOTE: This feature is not available on Windows")
         .tags("experimental")
         .dynamic(true)
+        .tags("added[1.13.0]")
         .buildWithDefault(false);
 
-    private final ConfigurationOption<TimeDuration> sampleRate = TimeDurationValueConverter.durationOption("ms")
-        .key("profiling_sampling_duration")
+    private final ConfigurationOption<TimeDuration> samplingInterval = TimeDurationValueConverter.durationOption("ms")
+        .key("profiling_sampling_interval")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
         .description("The frequency at which stack traces are gathered within a profiling session.\n" +
@@ -58,6 +70,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
             "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
         .addValidator(RangeValidator.min(TimeDuration.of("5ms")))
+        .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("20ms"));
 
     private final ConfigurationOption<List<WildcardMatcher>> includedClasses = ConfigurationOption
@@ -70,7 +83,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
-        .buildWithDefault(Collections.singletonList(WildcardMatcher.matchAll()));
+        .tags("added[1.13.0]")
+        .buildWithDefault(WildcardMatcher.matchAllList());
 
     private final ConfigurationOption<List<WildcardMatcher>> excludedClasses = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -80,6 +94,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "\n" +
             WildcardMatcher.DOCUMENTATION)
         .dynamic(true)
+        .tags("added[1.13.0]")
         .buildWithDefault(Arrays.asList(
             WildcardMatcher.caseSensitiveMatcher("java.*"),
             WildcardMatcher.caseSensitiveMatcher("javax.*"),
@@ -94,6 +109,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .addValidator(RangeValidator.min(TimeDuration.of("0ms")))
         .dynamic(true)
+        .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("61s"));
 
     private final ConfigurationOption<TimeDuration> profilingDuration = TimeDurationValueConverter.durationOption("s")
@@ -105,6 +121,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
         .addValidator(RangeValidator.min(TimeDuration.of("1s")))
+        .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("10s"));
 
     public boolean isProfilingEnabled() {
@@ -115,8 +132,8 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         return !isProfilingEnabled();
     }
 
-    public TimeDuration getSampleRate() {
-        return sampleRate.get();
+    public TimeDuration getSamplingInterval() {
+        return samplingInterval.get();
     }
 
     public List<WildcardMatcher> getIncludedClasses() {

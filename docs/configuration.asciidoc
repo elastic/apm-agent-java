@@ -101,8 +101,8 @@ Click on a key to get more information.
 * <<config-messaging>>
 ** <<config-ignore-message-queues>>
 * <<config-profiling>>
-** <<config-profiling-inferred-spans>>
-** <<config-profiling-sampling-duration>>
+** <<config-profiling-spans-enabled>>
+** <<config-profiling-sampling-interval>>
 ** <<config-profiling-included-classes>>
 ** <<config-profiling-excluded-classes>>
 ** <<config-profiling-interval>>
@@ -411,7 +411,7 @@ you should add an additional entry to this list (make sure to also include the d
 ==== `disable_instrumentations`
 
 A list of instrumentations which should be disabled.
-Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
+Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 If you want to try out incubating features,
 set the value to an empty string.
 
@@ -582,6 +582,13 @@ NOTE: This feature requires APM Server 7.2+
 ==== `trace_methods` (added[1.3.0,Enhancements in 1.4.0, 1.7.0 and 1.9.0])
 
 A list of methods for which to create a transaction or span.
+
+If you want to monitor a large number of methods,
+use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.
+
+This works by instrumenting each matching method to include code that creates a span for the method.
+While creating a span is quite cheap in terms of performance,
+instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
 
 The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
 You can use wildcards for the class name, the annotation name, the method name and the parameter types.
@@ -1215,10 +1222,22 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 === Profiling configuration options
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-profiling-inferred-spans]]
-==== `profiling_inferred_spans` (experimental)
+[[config-profiling-spans-enabled]]
+==== `profiling_spans_enabled` (added[1.13.0])
 
-Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.
+Set to `true` to make the agent create spans for method executions based on
+https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+
+If this is enabled, the agent will start a profiling session every
+<<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.
+If a transaction happens within a profiling session,
+the agent creates spans for slow methods.
+
+Note that due to the nature of how sampling profilers work,
+the duration of the inferred spans are not exact, but only estimations.
+The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+
+NOTE: This feature is not available on Windows
 
 
 [options="header"]
@@ -1231,13 +1250,13 @@ Set to `true` to make the agent create spans for method executions based on a sa
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.profiling_inferred_spans` | `profiling_inferred_spans` | `ELASTIC_APM_PROFILING_INFERRED_SPANS`
+| `elastic.apm.profiling_spans_enabled` | `profiling_spans_enabled` | `ELASTIC_APM_PROFILING_SPANS_ENABLED`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
-[[config-profiling-sampling-duration]]
-==== `profiling_sampling_duration`
+[[config-profiling-sampling-interval]]
+==== `profiling_sampling_interval` (added[1.13.0])
 
 The frequency at which stack traces are gathered within a profiling session.
 The lower you set it, the more accurate the durations will be.
@@ -1258,13 +1277,13 @@ The default unit for this option is `ms`
 [options="header"]
 |============
 | Java System Properties      | Property file   | Environment
-| `elastic.apm.profiling_sampling_duration` | `profiling_sampling_duration` | `ELASTIC_APM_PROFILING_SAMPLING_DURATION`
+| `elastic.apm.profiling_sampling_interval` | `profiling_sampling_interval` | `ELASTIC_APM_PROFILING_SAMPLING_INTERVAL`
 |============
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-included-classes]]
-==== `profiling_included_classes`
+==== `profiling_included_classes` (added[1.13.0])
 
 If set, the agent will only create inferred spans for methods which match this list.
 Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
@@ -1292,7 +1311,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-excluded-classes]]
-==== `profiling_excluded_classes`
+==== `profiling_excluded_classes` (added[1.13.0])
 
 Excludes classes for which no profiler-inferred spans should be created.
 
@@ -1318,7 +1337,7 @@ Prepending an element with `(?-i)` makes the matching case sensitive.
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-interval]]
-==== `profiling_interval`
+==== `profiling_interval` (added[1.13.0])
 
 The interval at which profiling sessions should be started.
 
@@ -1342,7 +1361,7 @@ The default unit for this option is `s`
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
 [[config-profiling-duration]]
-==== `profiling_duration`
+==== `profiling_duration` (added[1.13.0])
 
 The duration of a profiling session.
 For sampled transactions which fall within a profiling session (they start after and end before the session),
@@ -1883,7 +1902,7 @@ The default unit for this option is `ms`
 # sanitize_field_names=password,passwd,pwd,secret,*key,*token*,*session*,*credit*,*card*,authorization,set-cookie
 
 # A list of instrumentations which should be disabled.
-# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `thread-info-stacktrace`, `urlconnection`.
+# Valid options are `annotations`, `apache-httpclient`, `asynchttpclient`, `concurrent`, `elasticsearch-restclient`, `exception-handler`, `executor`, `hibernate-search`, `http-client`, `incubating`, `jax-rs`, `jax-ws`, `jdbc`, `jedis`, `jms`, `jsf`, `lettuce`, `log4j`, `logging`, `mongodb-client`, `mule`, `okhttp`, `opentracing`, `public-api`, `quartz`, `redis`, `render`, `scheduled`, `servlet-api`, `servlet-api-async`, `servlet-input-stream`, `slf4j`, `spring-mvc`, `spring-resttemplate`, `spring-service-name`, `spring-view-render`, `urlconnection`.
 # If you want to try out incubating features,
 # set the value to an empty string.
 #
@@ -1976,6 +1995,13 @@ The default unit for this option is `ms`
 # global_labels=
 
 # A list of methods for which to create a transaction or span.
+# 
+# If you want to monitor a large number of methods,
+# use  <<config-profiling-spans-enabled, `profiling_spans_enabled`>> instead.
+# 
+# This works by instrumenting each matching method to include code that creates a span for the method.
+# While creating a span is quite cheap in terms of performance,
+# instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
 # 
 # The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
 # You can use wildcards for the class name, the annotation name, the method name and the parameter types.
@@ -2389,13 +2415,25 @@ The default unit for this option is `ms`
 # Profiling                                #
 ############################################
 
-# Set to `true` to make the agent create spans for method executions based on a sampling aka statistical profiler.
+# Set to `true` to make the agent create spans for method executions based on
+# https://github.com/jvm-profiling-tools/async-profiler[async-profiler], a sampling aka statistical profiler.
+# 
+# If this is enabled, the agent will start a profiling session every
+# <<config-profiling-interval, `profiling_interval`>> which lasts for <<config-profiling-duration, `profiling_duration`>>.
+# If a transaction happens within a profiling session,
+# the agent creates spans for slow methods.
+# 
+# Note that due to the nature of how sampling profilers work,
+# the duration of the inferred spans are not exact, but only estimations.
+# The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+# 
+# NOTE: This feature is not available on Windows
 #
 # This setting can be changed at runtime
 # Type: Boolean
 # Default value: false
 #
-# profiling_inferred_spans=false
+# profiling_spans_enabled=false
 
 # The frequency at which stack traces are gathered within a profiling session.
 # The lower you set it, the more accurate the durations will be.
@@ -2408,7 +2446,7 @@ The default unit for this option is `ms`
 # The default unit for this option is ms.
 # Default value: 20ms
 #
-# profiling_sampling_duration=20ms
+# profiling_sampling_interval=20ms
 
 # If set, the agent will only create inferred spans for methods which match this list.
 # Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.
