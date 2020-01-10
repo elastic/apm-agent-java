@@ -12,6 +12,8 @@ following sources:
  - LMAX Disruptor - Copyright 2011 LMAX Ltd.
  - Byte Buddy (https://bytebuddy.net) - Copyright Rafael Winterhalter
  - JCTools
+ - https://github.com/jvm-profiling-tools/async-profiler
+ - https://github.com/real-logic/agrona
 
 ------------------------------------------------------------------------------
 

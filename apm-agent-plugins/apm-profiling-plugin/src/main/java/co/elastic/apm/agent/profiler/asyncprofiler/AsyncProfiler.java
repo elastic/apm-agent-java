@@ -22,6 +22,21 @@
  * under the License.
  * #L%
  */
+/*
+ * Copyright 2018 Andrei Pangin
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package co.elastic.apm.agent.profiler.asyncprofiler;
 
 import co.elastic.apm.agent.util.IOUtils;
@@ -37,6 +52,11 @@ import java.io.File;
  * async-profiler native library. This class is a singleton.
  * The first call to {@link #getInstance()} initiates loading of
  * libasyncProfiler.so.
+ * <p>
+ * This is based on https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/java/one/profiler/AsyncProfiler.java,
+ * under Apache License 2.0.
+ * It is modified to allow it to be shaded into the {@code co.elastic.apm} namespace
+ * </p>
  */
 public abstract class AsyncProfiler {
 
@@ -53,26 +73,8 @@ public abstract class AsyncProfiler {
         if (instance != null) {
             return instance;
         }
-        instance = newInstance();
+        instance = DirectNativeBinding.newInstance();
         return instance;
-    }
-
-    /*
-     * Allows AsyncProfiler to be shaded. JNI mapping works for a specific package so shading normally doesn't work.
-     */
-    private static AsyncProfiler newInstance() {
-        try {
-            return new ByteBuddy()
-                .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
-                .name("one.profiler.AsyncProfiler")
-                .make()
-                .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
-                .getLoaded()
-                .getConstructor()
-                .newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     /**
@@ -185,6 +187,9 @@ public abstract class AsyncProfiler {
     public abstract String version0();
     public abstract long getNativeThreadId0();
 
+    /**
+     * Inspired by https://gist.github.com/raphw/be0994259e75652f057c9e1d3ee5f567
+     */
     public static class DirectNativeBinding extends AsyncProfiler {
 
         static {
@@ -217,6 +222,24 @@ public abstract class AsyncProfiler {
             }
         }
 
+        /*
+         * Allows AsyncProfiler to be shaded. JNI mapping works for a specific package so shading normally doesn't work.
+         */
+        private static AsyncProfiler newInstance() {
+            try {
+                return new ByteBuddy()
+                    .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
+                    .name("one.profiler.AsyncProfiler")
+                    .make()
+                    .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
+                    .getLoaded()
+                    .getConstructor()
+                    .newInstance();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
         public native void start0(String event, long interval, boolean reset) throws IllegalStateException;
         public native void stop0() throws IllegalStateException;
         public native String execute0(String command) throws IllegalArgumentException, java.io.IOException;
@@ -238,7 +261,7 @@ public abstract class AsyncProfiler {
     /**
      * Predefined event names to use in {@link AsyncProfiler#start(String, long)}
      */
-    public class Events {
+    public static class Events {
         public static final String CPU    = "cpu";
         public static final String ALLOC  = "alloc";
         public static final String LOCK   = "lock";
