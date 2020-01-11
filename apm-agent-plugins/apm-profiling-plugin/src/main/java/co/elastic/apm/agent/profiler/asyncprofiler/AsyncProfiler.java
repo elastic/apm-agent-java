@@ -73,8 +73,26 @@ public abstract class AsyncProfiler {
         if (instance != null) {
             return instance;
         }
-        instance = DirectNativeBinding.newInstance();
+        instance = newInstance();
         return instance;
+    }
+
+    /*
+     * Allows AsyncProfiler to be shaded. JNI mapping works for a specific package so shading normally doesn't work.
+     */
+    private static AsyncProfiler newInstance() {
+        try {
+            return new ByteBuddy()
+                .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
+                .name("one.profiler.AsyncProfiler")
+                .make()
+                .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
+                .getLoaded()
+                .getConstructor()
+                .newInstance();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -219,24 +237,6 @@ public abstract class AsyncProfiler {
                 return "libasyncProfiler-macos";
             } else {
                 throw new IllegalStateException("Async-profiler does not work on " + os);
-            }
-        }
-
-        /*
-         * Allows AsyncProfiler to be shaded. JNI mapping works for a specific package so shading normally doesn't work.
-         */
-        private static AsyncProfiler newInstance() {
-            try {
-                return new ByteBuddy()
-                    .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
-                    .name("one.profiler.AsyncProfiler")
-                    .make()
-                    .load(AsyncProfiler.class.getClassLoader(), ClassLoadingStrategy.Default.CHILD_FIRST)
-                    .getLoaded()
-                    .getConstructor()
-                    .newInstance();
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
             }
         }
 
