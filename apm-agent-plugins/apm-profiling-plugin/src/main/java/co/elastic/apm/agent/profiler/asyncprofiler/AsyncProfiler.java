@@ -205,12 +205,12 @@ public abstract class AsyncProfiler {
         private static String getLibraryFileName() {
             String os = System.getProperty("os.name").toLowerCase();
             String arch = System.getProperty("os.arch").toLowerCase();
-            if (os.contains("nix") || os.contains("nux")) {
+            if (os.contains("linux")) {
                 // TODO include binaries for async-profiler 1.7 once it's released
-                if (true) {
-                    throw new IllegalStateException("Linux is not supported until async-profiler 1.7 is released");
-                }
                 if (arch.contains("arm") || arch.contains("aarch")) {
+                    if (true) {
+                        throw new IllegalStateException("ARM is not supported until async-profiler 1.7 is released");
+                    }
                     return "libasyncProfiler-arm";
                 } else {
                     return "libasyncProfiler";
