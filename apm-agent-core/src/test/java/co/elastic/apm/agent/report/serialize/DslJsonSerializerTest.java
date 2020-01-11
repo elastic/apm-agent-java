@@ -192,6 +192,7 @@ class DslJsonSerializerTest {
 
         for (JsonNode stackTraceElement : jsonStackTrace) {
             assertThat(stackTraceElement.get("filename")).isNotNull();
+            assertThat(stackTraceElement.get("classname")).isNotNull();
             assertThat(stackTraceElement.get("function")).isNotNull();
             assertThat(stackTraceElement.get("library_frame")).isNotNull();
             assertThat(stackTraceElement.get("lineno")).isNotNull();
@@ -290,6 +291,28 @@ class DslJsonSerializerTest {
         assertThat(http.get("method").textValue()).isEqualTo("GET");
         assertThat(http.get("url").textValue()).isEqualTo("http://whatever.com/path");
         assertThat(http.get("status_code").intValue()).isEqualTo(523);
+    }
+
+    @Test
+    void testSpanDestinationContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("whatever.com").withPort(80)
+            .getService()
+            .withName("http://whatever.com")
+            .withResource("whatever.com:80")
+            .withType("external");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode destination = context.get("destination");
+        assertThat(destination).isNotNull();
+        assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
+        assertThat(80).isEqualTo(destination.get("port").intValue());
+        JsonNode service = destination.get("service");
+        assertThat(service).isNotNull();
+        assertThat("http://whatever.com").isEqualTo(service.get("name").textValue());
+        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat("external").isEqualTo(service.get("type").textValue());
     }
 
     @Test

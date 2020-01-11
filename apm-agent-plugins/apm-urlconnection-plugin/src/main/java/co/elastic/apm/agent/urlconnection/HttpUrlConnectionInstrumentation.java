@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -82,7 +82,7 @@ public abstract class HttpUrlConnectionInstrumentation extends ElasticApmInstrum
             span = inFlightSpans.get(thiz);
             if (span == null && !connected) {
                 final URL url = thiz.getURL();
-                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getHost());
+                span = HttpClientHelper.startHttpClientSpan(tracer.getActive(), thiz.getRequestMethod(), url.toString(), url.getProtocol(), url.getHost(), url.getPort());
                 if (span != null) {
                     if (thiz.getRequestProperty(TraceContext.TRACE_PARENT_HEADER) == null) {
                         thiz.addRequestProperty(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());

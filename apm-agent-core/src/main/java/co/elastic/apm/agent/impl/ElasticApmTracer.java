@@ -408,7 +408,6 @@ public class ElasticApmTracer {
         return configurationRegistry.getConfig(pluginClass);
     }
 
-    @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction) {
         if (logger.isDebugEnabled()) {
             logger.debug("} endTransaction {}", transaction);
@@ -425,7 +424,6 @@ public class ElasticApmTracer {
         }
     }
 
-    @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
         if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
