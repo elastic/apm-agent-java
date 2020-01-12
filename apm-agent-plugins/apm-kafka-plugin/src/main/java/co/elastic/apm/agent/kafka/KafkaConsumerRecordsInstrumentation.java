@@ -33,7 +33,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.TopicPartition;
 
 import javax.annotation.Nullable;
 
@@ -140,7 +139,7 @@ public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstr
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("records")
                 .and(isPublic())
-                .and(takesArgument(0, TopicPartition.class))
+                .and(takesArgument(0, named("org.apache.kafka.common.TopicPartition")))
                 .and(returns(List.class));
         }
 
