@@ -287,6 +287,16 @@ side, the agent reads the context from the Message property through `javax.jms.M
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
 |1.7.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
 
+|Kafka
+|0.11.0+
+|The agent captures Kafka record sends and polls. If `org.apache.kafka.clients.consumer.Consumer#poll` is invoked from
+within a traced transaction, a span will be created. Otherwise, the agent attempts to create a transaction for each
+record read from the returned batch *as the consumer iterates over returned records.* This requires some heuristics on
+the agent part, so in some cases kafka-transactions may seem missing or out of order.
+If both producer and consumer are traced, then distributed tracing is supported, meaning the transaction on the consumer
+side will be a part of the same trace containing the producer side as well.
+|1.13.0
+
 |===
 
 
