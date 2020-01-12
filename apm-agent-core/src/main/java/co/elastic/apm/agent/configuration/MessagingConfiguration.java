@@ -37,8 +37,9 @@ import java.util.List;
 public class MessagingConfiguration extends ConfigurationOptionProvider {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
+    private static final String COLLECT_QUEUE_ADDRESS = "collect_queue_address";
 
-    private ConfigurationOption<Strategy> messagePollingTransaction = ConfigurationOption.enumOption(Strategy.class)
+    private ConfigurationOption<Strategy> messagePollingTransactionStrategy = ConfigurationOption.enumOption(Strategy.class)
         .key(MESSAGE_POLLING_TRANSACTION_STRATEGY)
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
@@ -46,9 +47,18 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
             "attempt to create a transaction for the message handling code occurring if the polling method returns a message, \n" +
             "or both. Valid options are: `POLLING`, `HANDLING` and `BOTH`. \n" +
             "\n" +
-            "This option is case-insensitive.")
+            "This option is case-insensitive and is only relevant for JMS.")
         .dynamic(true)
         .buildWithDefault(Strategy.HANDLING);
+
+    private ConfigurationOption<Boolean> collectQueueAddress = ConfigurationOption.booleanOption()
+        .key(COLLECT_QUEUE_ADDRESS)
+        .configurationCategory(MESSAGING_CATEGORY)
+        .tags("internal")
+        .description("Determines whether the agent should collect destination address and port, as this may be \n" +
+            "an expensive operation.")
+        .dynamic(true)
+        .buildWithDefault(Boolean.TRUE);
 
     private final ConfigurationOption<List<WildcardMatcher>> ignoreMessageQueues = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -64,11 +74,16 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
     public MessagingConfiguration.Strategy getMessagePollingTransactionStrategy() {
-        return messagePollingTransaction.get();
+        return messagePollingTransactionStrategy.get();
     }
 
     public List<WildcardMatcher> getIgnoreMessageQueues() {
         return ignoreMessageQueues.get();
+    }
+
+    @VisibleForAdvice
+    public boolean shouldCollectQueueAddress() {
+        return collectQueueAddress.get();
     }
 
     @VisibleForAdvice

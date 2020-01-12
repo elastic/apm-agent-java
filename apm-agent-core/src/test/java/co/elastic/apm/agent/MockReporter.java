@@ -47,8 +47,10 @@ import com.networknt.schema.ValidationMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -68,6 +70,8 @@ public class MockReporter implements Reporter {
 
     // A set of exit span subtypes that do not support address and port discovery
     private static final Set<String> SPAN_TYPES_WITHOUT_ADDRESS;
+    // A map of exit span type to actions that that do not support address and port discovery
+    private static final Map<String, Collection<String>> SPAN_ACTIONS_WITHOUT_ADDRESS;
     // And for any case the disablement of the check cannot rely on subtype (eg Redis, where Jedis supports and Lettuce does not)
     private boolean disableDestinationAddressCheck;
 
@@ -86,6 +90,7 @@ public class MockReporter implements Reporter {
         when(apmServerClient.isAtLeast(any())).thenReturn(true);
         dslJsonSerializer = new DslJsonSerializer(mock(StacktraceConfiguration.class), apmServerClient);
         SPAN_TYPES_WITHOUT_ADDRESS = Set.of("jms");
+        SPAN_ACTIONS_WITHOUT_ADDRESS = Map.of("kafka", Set.of("poll"));
     }
 
     public MockReporter() {
@@ -130,8 +135,12 @@ public class MockReporter implements Reporter {
         }
         Destination destination = span.getContext().getDestination();
         if (!disableDestinationAddressCheck && !SPAN_TYPES_WITHOUT_ADDRESS.contains(span.getSubtype())) {
-            assertThat(destination.getAddress()).isNotEmpty();
-            assertThat(destination.getPort()).isGreaterThan(0);
+            // see if this span's action is not supported for its subtype
+            Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
+            if (!unsupportedActions.contains(span.getAction())) {
+                assertThat(destination.getAddress()).isNotEmpty();
+                assertThat(destination.getPort()).isGreaterThan(0);
+            }
         }
         Destination.Service service = destination.getService();
         assertThat(service.getName()).isNotEmpty();

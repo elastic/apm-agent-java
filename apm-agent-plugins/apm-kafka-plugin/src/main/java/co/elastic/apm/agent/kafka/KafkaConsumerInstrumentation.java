@@ -79,8 +79,10 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             }
 
             span.withType("messaging").withSubtype("kafka").withAction("poll")
-                .withName("KafkaConsumer#poll", AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK)
-                .activate();
+                .withName("KafkaConsumer#poll", AbstractSpan.PRIO_HIGH_LEVEL_FRAMEWORK);
+            span.getContext().getDestination().getService()
+                .withType("messaging").withName("kafka").withResource("kafka");
+            span.activate();
             return span;
         }
 

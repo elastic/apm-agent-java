@@ -39,11 +39,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.record.RecordBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+
+import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -106,12 +110,14 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
             //noinspection ConstantConditions,rawtypes
             KafkaInstrumentationHelper<Callback, ConsumerRecord> kafkaInstrumentationHelper =
                 kafkaInstrHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
-            //noinspection ConstantConditions
+            //noinspection ConstantConditions,UnusedAssignment
             callback = kafkaInstrumentationHelper.wrapCallback(callback, span);
 
             span.withType("messaging").withSubtype("kafka").withAction("send");
             span.withName("KafkaProducer#send to ").appendToName(topic);
             span.getContext().getMessage().withQueue(topic);
+            span.getContext().getDestination().getService().withType("messaging").withName("kafka")
+                .getResource().append("kafka/").append(topic);
 
             // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
             // https://kafka.apache.org/0110/documentation.html#messageformat
@@ -132,10 +138,43 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
         @SuppressWarnings("unused")
         @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
         public static void afterSend(@Advice.Enter @Nullable final Span span,
+                                     @SuppressWarnings("rawtypes") @Advice.Argument(0) final ProducerRecord record,
+                                     @SuppressWarnings("rawtypes") @Advice.This final KafkaProducer thiz,
                                      @Advice.Thrown final Throwable throwable) {
 
             if (span != null) {
+
+                // Topic address collection is normally very fast, as it uses cached cluster state information. However,
+                // when the cluster metadata is required to be updated, its query may block for a short period. In
+                // addition, the discovery operation allocates two objects. Therefore, we have the ability to turn it off.
+                if (messagingConfiguration.shouldCollectQueueAddress()) {
+                    try {
+                        // Better get the destination now, as if the partition's leader was replaced, it may be reflected at
+                        // this point.
+                        @SuppressWarnings("unchecked") List<PartitionInfo> partitions = thiz.partitionsFor(record.topic());
+                        Integer partition = record.partition();
+                        PartitionInfo partitionInfo = null;
+                        if (partition != null) {
+                            partitionInfo = partitions.get(partition);
+                        } else if (!partitions.isEmpty()) {
+                            // probably not a partitioned topic, so look for the singe entry
+                            partitionInfo = partitions.get(0);
+                        }
+                        if (partitionInfo != null) {
+                            // Records are always sent to the leader of a partition and then synced with replicas internally by
+                            // the broker.
+                            Node leader = partitionInfo.leader();
+                            if (leader != null) {
+                                span.getContext().getDestination().withAddress(leader.host()).withPort(leader.port());
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to get Kafka producer's destination", e);
+                    }
+                }
+
                 span.captureException(throwable);
+
                 // Not ending here- ending in the callback
                 span.deactivate();
             }

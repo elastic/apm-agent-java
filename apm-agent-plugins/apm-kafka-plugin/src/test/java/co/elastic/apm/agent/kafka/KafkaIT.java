@@ -27,6 +27,7 @@ package co.elastic.apm.agent.kafka;
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
@@ -88,6 +89,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
     public static final String TEST_HEADER_VALUE = "test_header_value";
 
     private static KafkaContainer kafka;
+    private static int kafkaPort;
     private static String bootstrapServers;
     private static Consumer consumerThread;
     private static KafkaConsumer<String, String> replyConsumer;
@@ -109,6 +111,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("5.3.0");
         kafka.start();
+        kafkaPort = kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
         bootstrapServers = kafka.getBootstrapServers();
         consumerThread = new Consumer();
         consumerThread.start();
@@ -229,6 +232,16 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testDestinationAddressCollectionDisabled() {
+        when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
+        testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        reporter.disableDestinationAddressCheck();
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
     public void testIgnoreTopic() {
         when(messagingConfiguration.getIgnoreMessageQueues()).thenReturn(List.of(WildcardMatcher.valueOf(REQUEST_TOPIC)));
         testScenario = TestScenario.IGNORE_REQUEST_TOPIC;
@@ -272,7 +285,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     private void sendTwoRecordsAndConsumeReplies() {
         final StringBuilder callback = new StringBuilder();
-        ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, FIRST_MESSAGE_VALUE);
+        ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, 0, REQUEST_KEY, FIRST_MESSAGE_VALUE);
         String headerKey = (testScenario == TestScenario.SANITIZED_HEADER) ? PASSWORD_HEADER_KEY : TEST_HEADER_KEY;
         record1.headers().add(headerKey, TEST_HEADER_VALUE.getBytes(StandardCharsets.UTF_8));
         ProducerRecord<String, String> record2 = new ProducerRecord<>(REQUEST_TOPIC, REQUEST_KEY, SECOND_MESSAGE_VALUE);
@@ -284,7 +297,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
             int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
             await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
         }
-        // todo: change back to 2.4.0 API - Duration.ofSeconds(2)
+        //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
         assertThat(callback).isNotEmpty();
         assertThat(replies.count()).isEqualTo(2);
@@ -322,17 +335,32 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(pollSpan.getSubtype()).isEqualTo("kafka");
         assertThat(pollSpan.getAction()).isEqualTo("poll");
         assertThat(pollSpan.getNameAsString()).isEqualTo("KafkaConsumer#poll");
+        Destination.Service service = pollSpan.getContext().getDestination().getService();
+        assertThat(service.getType()).isEqualTo("messaging");
+        assertThat(service.getResource().toString()).isEqualTo("kafka");
+        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
-    private void verifySendSpanContents(Span sendSpan, String requestTopic) {
+    private void verifySendSpanContents(Span sendSpan, String topicName) {
         assertThat(sendSpan.getType()).isEqualTo("messaging");
         assertThat(sendSpan.getSubtype()).isEqualTo("kafka");
         assertThat(sendSpan.getAction()).isEqualTo("send");
-        assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + requestTopic);
+        assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + topicName);
         SpanContext context = sendSpan.getContext();
         Message message = context.getMessage();
-        assertThat(message.getQueueName()).isEqualTo(requestTopic);
-        // todo - add destination assertions
+        assertThat(message.getQueueName()).isEqualTo(topicName);
+        Destination destination = context.getDestination();
+        if (testScenario != TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED) {
+            assertThat(destination.getPort()).isEqualTo(kafkaPort);
+            assertThat(destination.getAddress().toString()).isEqualTo(kafka.getContainerIpAddress());
+        } else {
+            assertThat(destination.getPort()).isEqualTo(0);
+            assertThat(destination.getAddress().toString()).isEmpty();
+        }
+        Destination.Service service = destination.getService();
+        assertThat(service.getType()).isEqualTo("messaging");
+        assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
+        assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
     private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
@@ -362,9 +390,9 @@ public class KafkaIT extends AbstractInstrumentationTest {
             assertThat(headers.size()).isEqualTo(1);
             Headers.Header testHeader = headers.iterator().next();
             assertThat(testHeader.getKey()).isEqualTo(TEST_HEADER_KEY);
+            //noinspection ConstantConditions
             assertThat(testHeader.getValue().toString()).isEqualTo(TEST_HEADER_VALUE);
         }
-        // todo - add destination assertions
     }
 
     static KafkaConsumer<String, String> createKafkaConsumer() {
@@ -404,7 +432,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
             kafkaConsumer.subscribe(Collections.singletonList(REQUEST_TOPIC));
             while (running) {
                 try {
-                    // todo: change back to 2.4.0 API - Duration.ofMillis(100)
+                    //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
                     if (records != null && !records.isEmpty()) {
                         // Can't use switch because we run this test in a dedicated class loader, where the anonymous
@@ -464,7 +492,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         HEADERS_CAPTURE_DISABLED,
         SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
-        NO_CONTEXT_PROPAGATION
+        NO_CONTEXT_PROPAGATION,
+        TOPIC_ADDRESS_COLLECTION_DISABLED
     }
 
     /**

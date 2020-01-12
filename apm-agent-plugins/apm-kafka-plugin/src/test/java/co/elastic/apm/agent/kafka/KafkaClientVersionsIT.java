@@ -44,8 +44,14 @@ public class KafkaClientVersionsIT {
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"0.11.0.0"},
-//            {"2.4.0"}
+            // No real need to run both versions, the APIs are the same. Running both requires a separate module
+            // because within a module that declares the dependency, the Kafka client is loaded by the app class loader
+            // IN ADDITION to the test class loader. This works fine only when the tested version is the same as the
+            // dependency version, probably due to some static initializations done by the first one loaded.
+            // We use this test runner framework only so it runs from a class loader that is not the app class loader,
+            // in order to verify that we don't have class visibility problems.
+//            {"0.11.0.0"},
+            {"2.4.0"}
         });
     }
 

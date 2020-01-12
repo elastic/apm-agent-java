@@ -51,7 +51,9 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
     // Referencing Kafka classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
     public static HelperClassManager<KafkaInstrumentationHelper<Callback, ConsumerRecord>> kafkaInstrHelperManager;
 
-    private static MessagingConfiguration messagingConfiguration;
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    @VisibleForAdvice
+    public static MessagingConfiguration messagingConfiguration;
 
     private synchronized static void init(ElasticApmTracer tracer) {
         if (kafkaInstrHelperManager == null) {
