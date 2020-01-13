@@ -191,7 +191,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling spans to be created without yielding a message
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnTracedThread(queue, disableTimestamp);
@@ -285,7 +285,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling transactions to be created without yielding a message, thus ignored
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnNonTracedThread(queue);
@@ -641,7 +641,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 target.run();
                 if (sleepBetweenCycles) {
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(5);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
