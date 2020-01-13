@@ -100,14 +100,10 @@ import java.util.concurrent.locks.LockSupport;
  * </p>
  * <p>
  * After both the JFR file and the memory-mapped file containing the {@link ActivationEvent}s have been written,
- * it's now time to process them in tandem.
- * The {@link ActivationEvent}s file is guaranteed to contain the events in ascending order in terms of their {@link ActivationEvent#timestamp}.
- * Unfortunately, the same is not true for the JFR file where the {@link JfrParser.EventTypeId#EVENT_EXECUTION_SAMPLE} events are in a rather
- * random order.
- * Which is why they have to be sorted before they can be correlated with {@link ActivationEvent}s.
- * See {@link #getStackTraceEvents(JfrParser)}.
- * The result of the next processing step, performed by {@link #processTraces(File)},
- * is a correlation of activations and traces in the form of {@link CallTree.Root}s which are created for each thread which has seen an {@linkplain Span#activate() activation}.
+ * it's now time to process them in tandem by correlating based on thread ids and timestamps.
+ * The result of this correlation, performed by {@link #processTraces(File)},
+ * are {@link CallTree}s which are created for each thread which has seen an {@linkplain Span#activate() activation}
+ * and at least one stack trace.
  * Once {@linkplain ActivationEvent#handleDeactivationEvent(SamplingProfiler) handling the deactivation event} of the root span in a thread
  * (after which {@link ElasticApmTracer#getActive()} would return {@code null}),
  * the {@link CallTree} is {@linkplain CallTree#spanify(CallTree.Root, TraceContext) converted into regular spans}.
