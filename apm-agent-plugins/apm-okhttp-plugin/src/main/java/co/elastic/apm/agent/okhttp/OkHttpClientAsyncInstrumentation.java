@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -92,7 +93,9 @@ public class OkHttpClientAsyncInstrumentation extends ElasticApmInstrumentation 
             final TraceContextHolder<?> parent = tracer.getActive();
 
             Request request = originalRequest;
-            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), request.url().toString(), request.url().getHost());
+            URL url = request.url();
+            span = HttpClientHelper.startHttpClientSpan(parent, request.method(), url.toString(), url.getProtocol(),
+                OkHttpClientHelper.computeHostName(url.getHost()), url.getPort());
             if (span != null) {
                 span.activate();
                 originalRequest = originalRequest.newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();

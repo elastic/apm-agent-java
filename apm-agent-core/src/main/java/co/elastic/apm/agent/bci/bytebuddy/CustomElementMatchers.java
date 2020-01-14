@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -140,20 +140,20 @@ public class CustomElementMatchers {
              *
              * @param protectionDomain a {@link ProtectionDomain} from which to look for the manifest file
              * @return true if version parsed from the manifest file is lower than or equals to the matcher's version
-             * 
+             *
              * NOTE: MAY RETURN FALSE POSITIVES - returns true if matching fails, logging a warning message
              */
             @Override
             public boolean matches(@Nullable ProtectionDomain protectionDomain) {
                 try {
                     Version pdVersion = readImplementationVersionFromManifest(protectionDomain);
-                    Version limitVersion = new Version(version);
+                    Version limitVersion = Version.of(version);
                     if (pdVersion != null) {
                         return pdVersion.compareTo(limitVersion) <= 0;
                     }
                 } catch (Exception e) {
                     logger.info("Cannot read implementation version based on ProtectionDomain. This should not affect " +
-                        "you agent's functionality. Failed with message: " + e.getMessage());
+                        "your agent's functionality. Failed with message: " + e.getMessage());
                     logger.debug("Implementation version parsing error: " + protectionDomain, e);
                 }
                 return true;
@@ -182,7 +182,7 @@ public class CustomElementMatchers {
                         if (manifest != null) {
                             String implementationVersion = manifest.getMainAttributes().getValue("Implementation-Version");
                             if (implementationVersion != null) {
-                                version = new Version(implementationVersion);
+                                version = Version.of(implementationVersion);
                             }
                         }
                     }
