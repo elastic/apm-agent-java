@@ -397,7 +397,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String spanName = sendSpan.getNameAsString();
         assertThat(spanName).startsWith("JMS SEND to ");
         assertThat(spanName).endsWith(destinationName);
-        boolean isQueue = spanName.contains("queue");
+
         assertThat(sendSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
         verifySendSpanDestinationDetails(sendSpan, destinationName);
@@ -462,7 +462,6 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         String spanName = sendInitialMessageSpan.getNameAsString();
         assertThat(spanName).startsWith("JMS SEND to ");
         assertThat(spanName).endsWith(destinationName);
-        boolean isQueue = spanName.contains("queue");
         assertThat(sendInitialMessageSpan.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
         assertThat(sendInitialMessageSpan.getContext().getMessage().getAge()).isEqualTo(-1L);
         verifySendSpanDestinationDetails(sendInitialMessageSpan, destinationName);
