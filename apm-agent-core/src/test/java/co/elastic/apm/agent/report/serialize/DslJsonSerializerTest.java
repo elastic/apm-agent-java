@@ -190,6 +190,7 @@ class DslJsonSerializerTest {
 
         for (JsonNode stackTraceElement : jsonStackTrace) {
             assertThat(stackTraceElement.get("filename")).isNotNull();
+            assertThat(stackTraceElement.get("classname")).isNotNull();
             assertThat(stackTraceElement.get("function")).isNotNull();
             assertThat(stackTraceElement.get("library_frame")).isNotNull();
             assertThat(stackTraceElement.get("lineno")).isNotNull();
@@ -291,29 +292,72 @@ class DslJsonSerializerTest {
     }
 
     @Test
+    void testSpanDestinationContextSerialization() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getDestination().withAddress("whatever.com").withPort(80)
+            .getService()
+            .withName("http://whatever.com")
+            .withResource("whatever.com:80")
+            .withType("external");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode destination = context.get("destination");
+        assertThat(destination).isNotNull();
+        assertThat("whatever.com").isEqualTo(destination.get("address").textValue());
+        assertThat(80).isEqualTo(destination.get("port").intValue());
+        JsonNode service = destination.get("service");
+        assertThat(service).isNotNull();
+        assertThat("http://whatever.com").isEqualTo(service.get("name").textValue());
+        assertThat("whatever.com:80").isEqualTo(service.get("resource").textValue());
+        assertThat("external").isEqualTo(service.get("type").textValue());
+    }
+
+    @Test
     void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
-            .withTopic("test-topic")
+            .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("test-header1", "value")
-            .addHeader("test-header2", "value");
+            .addHeader("test-header2", "value")
+            .withAge(20);
 
         JsonNode spanJson = readJsonString(serializer.toJsonString(span));
         JsonNode context = spanJson.get("context");
         JsonNode message = context.get("message");
         assertThat(message).isNotNull();
         JsonNode queue = message.get("queue");
-        assertThat(queue).isNull();
-        JsonNode topic = message.get("topic");
-        assertThat(topic).isNotNull();
-        assertThat("test-topic").isEqualTo(topic.get("name").textValue());
+        assertThat(queue).isNotNull();
+        assertThat("test-queue").isEqualTo(queue.get("name").textValue());
         JsonNode body = message.get("body");
         assertThat("test-body").isEqualTo(body.textValue());
         JsonNode headers = message.get("headers");
         assertThat(headers).isNotNull();
         assertThat(headers.get("test-header1").textValue()).isEqualTo("value");
         assertThat(headers.get("test-header2").textValue()).isEqualTo("value");
+        JsonNode age = message.get("age");
+        assertThat(age).isNotNull();
+        JsonNode ms = age.get("ms");
+        assertThat(ms).isNotNull();
+        assertThat(ms.longValue()).isEqualTo(20);
+    }
+
+    @Test
+    void testSpanMessageContextInvalidTimestamp() {
+        Span span = new Span(MockTracer.create());
+        span.getContext().getMessage()
+            .withQueue("test-queue");
+
+        JsonNode spanJson = readJsonString(serializer.toJsonString(span));
+        JsonNode context = spanJson.get("context");
+        JsonNode message = context.get("message");
+        assertThat(message).isNotNull();
+        JsonNode queue = message.get("queue");
+        assertThat(queue).isNotNull();
+        assertThat("test-queue").isEqualTo(queue.get("name").textValue());
+        JsonNode age = message.get("age");
+        assertThat(age).isNull();
     }
 
     @Test
@@ -470,7 +514,7 @@ class DslJsonSerializerTest {
             .addHeader("response_header", "value")
             .withStatusCode(418);
 
-        transaction.getContext().getMessage().withQueue("test_queue");
+        transaction.getContext().getMessage().withQueue("test_queue").withAge(0);
 
         String jsonString = serializer.toJsonString(transaction);
         JsonNode json = readJsonString(jsonString);
@@ -518,6 +562,11 @@ class DslJsonSerializerTest {
         JsonNode queue = message.get("queue");
         assertThat(queue).isNotNull();
         assertThat("test_queue").isEqualTo(queue.get("name").textValue());
+        JsonNode age = message.get("age");
+        assertThat(age).isNotNull();
+        JsonNode ms = age.get("ms");
+        assertThat(ms).isNotNull();
+        assertThat(ms.longValue()).isEqualTo(0);
     }
 
     private JsonNode readJsonString(String jsonString) {

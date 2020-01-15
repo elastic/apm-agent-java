@@ -125,8 +125,8 @@ public class ActiveMqArtemisFacade implements BrokerFacade {
     }
 
     @Override
-    public void send(Destination destination, Message message) {
-        context.createProducer().send(destination, message);
+    public void send(Destination destination, Message message, boolean disableTimestamp) {
+        context.createProducer().setDisableMessageTimestamp(disableTimestamp).send(destination, message);
     }
 
     @Override

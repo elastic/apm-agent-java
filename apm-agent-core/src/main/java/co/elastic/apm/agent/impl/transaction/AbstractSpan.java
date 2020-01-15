@@ -188,16 +188,16 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
      * as the underlying {@link StringBuilder} instance will be reused.
      * </p>
      *
-     * @param s the string to append to the name
+     * @param cs the char sequence to append to the name
      * @return {@code this}, for chaining
      */
-    public T appendToName(String s) {
-        return appendToName(s, PRIO_DEFAULT);
+    public T appendToName(CharSequence cs) {
+        return appendToName(cs, PRIO_DEFAULT);
     }
 
-    public T appendToName(String s, int priority) {
+    public T appendToName(CharSequence cs, int priority) {
         if (priority >= namePriority) {
-            this.name.append(s);
+            this.name.append(cs);
             this.namePriority = priority;
         }
         return (T) this;

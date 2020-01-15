@@ -70,8 +70,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
         this.methodMatcher = methodMatcher;
         jdbcHelperManager = HelperClassManager.ForSingleClassLoader.of(tracer,
             "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1",
-            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$ConnectionMetaData");
+            "co.elastic.apm.agent.jdbc.helper.JdbcHelperImpl$1");
     }
 
     @Override

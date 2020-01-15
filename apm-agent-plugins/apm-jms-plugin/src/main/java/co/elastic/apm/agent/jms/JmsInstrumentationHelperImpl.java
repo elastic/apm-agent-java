@@ -98,7 +98,12 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
         try {
             if (span.isSampled()) {
                 message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                span.getContext().getDestination().getService()
+                    .withName("jms")
+                    .withResource("jms")
+                    .withType(MESSAGING_TYPE);
                 if (destinationName != null) {
+                    span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                     span.withName("JMS SEND to ");
                     addDestinationDetails(null, destination, destinationName, span);
                     if (isDestinationNameComputed) {
@@ -180,7 +185,24 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 .getContext().getMessage().withQueue(destinationName);
         } else if (destination instanceof Topic) {
             span.appendToName("topic ").appendToName(destinationName)
-                .getContext().getMessage().withTopic(destinationName);
+                .getContext().getMessage().withQueue(destinationName);
+        }
+    }
+
+    @Override
+    public void setMessageAge(Message message, AbstractSpan span) {
+        try {
+            long messageTimestamp = message.getJMSTimestamp();
+            if (messageTimestamp > 0) {
+                long now = System.currentTimeMillis();
+                if (now > messageTimestamp) {
+                    span.getContext().getMessage().withAge(now - messageTimestamp);
+                } else {
+                    span.getContext().getMessage().withAge(0);
+                }
+            }
+        } catch (JMSException e) {
+            logger.warn("Failed to get message timestamp", e);
         }
     }
 

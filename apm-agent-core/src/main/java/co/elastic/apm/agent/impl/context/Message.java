@@ -37,10 +37,13 @@ public class Message implements Recyclable {
     private String queueName;
 
     @Nullable
-    private String topicName;
-
-    @Nullable
     private String body;
+
+    /**
+     * Represents the message age in milliseconds. Since 0 is a valid value (can occur due to clock skews between
+     * sender and receiver) - a negative value represents invalid or unavailable age.
+     */
+    private long age = -1L;
 
     /**
      * A mapping of message headers (in JMS includes properties as well)
@@ -54,16 +57,6 @@ public class Message implements Recyclable {
 
     public Message withQueue(String queueName) {
         this.queueName = queueName;
-        return this;
-    }
-
-    @Nullable
-    public String getTopicName() {
-        return topicName;
-    }
-
-    public Message withTopic(String topicName) {
-        this.topicName = topicName;
         return this;
     }
 
@@ -86,26 +79,35 @@ public class Message implements Recyclable {
         return this;
     }
 
+    public long getAge() {
+        return age;
+    }
+
+    public Message withAge(long age) {
+        this.age = age;
+        return this;
+    }
+
     public NoRandomAccessMap<String, String> getHeaders() {
         return headers;
     }
 
     public boolean hasContent() {
-        return queueName != null || topicName != null || body != null || headers.size() > 0;
+        return queueName != null || body != null || headers.size() > 0;
     }
 
     @Override
     public void resetState() {
         queueName = null;
-        topicName = null;
         body = null;
         headers.resetState();
+        age = -1L;
     }
 
     public void copyFrom(Message other) {
         this.queueName = other.getQueueName();
-        this.topicName = other.getTopicName();
         this.body = other.body;
         this.headers.copyFrom(other.getHeaders());
+        this.age = other.getAge();
     }
 }

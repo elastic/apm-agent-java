@@ -140,6 +140,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
+            .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -340,7 +341,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         do {
             reportedSpans = supplier.get();
         } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
-        assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
+        assertThat(reportedSpans)
+            .describedAs("at least one span is expected")
+            .isNotEmpty();
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
         }
@@ -455,11 +458,13 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private void validateServiceName(JsonNode event) {
-        if (currentTestApp.getExpectedServiceName() != null && event != null) {
-            assertThat(event.get("context").get("service"))
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", currentTestApp.getExpectedServiceName(), event)
+        String expectedServiceName = currentTestApp.getExpectedServiceName();
+        if (expectedServiceName != null && event != null) {
+            JsonNode contextService = event.get("context").get("service");
+            assertThat(contextService)
+                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-            assertThat(event.get("context").get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
+                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
         }
     }
 
