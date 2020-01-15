@@ -30,6 +30,7 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
 import com.dslplatform.json.MapConverter;
@@ -106,7 +107,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
 
     @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("apm-remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDeamonPool(ThreadUtils.addElasticApmThreadPrefix("remote-config-poller"), 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {

@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.bci.bytebuddy;
 
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.type.TypeDescription;
@@ -61,7 +62,7 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
                                           final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
-        ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner", 1)
+        ExecutorUtils.createSingleThreadSchedulingDeamonPool(ThreadUtils.addElasticApmThreadPrefix("type-cache-pool-cleaner"), 1)
             .scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {

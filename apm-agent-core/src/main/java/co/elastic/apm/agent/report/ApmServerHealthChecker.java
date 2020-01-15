@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.report;
 
 import co.elastic.apm.agent.util.ExecutorUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
 import co.elastic.apm.agent.util.Version;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonReader;
@@ -55,7 +56,7 @@ public class ApmServerHealthChecker implements Callable<Version> {
     }
 
     public Future<Version> checkHealthAndGetMinVersion() {
-        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool("apm-server-healthcheck", 1);
+        ThreadPoolExecutor pool = ExecutorUtils.createSingleThreadDeamonPool(ThreadUtils.addElasticApmThreadPrefix("server-healthcheck"), 1);
         try {
             return pool.submit(this);
         } finally {
