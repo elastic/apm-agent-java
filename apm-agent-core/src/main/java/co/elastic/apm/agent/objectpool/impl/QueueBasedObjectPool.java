@@ -26,6 +26,7 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Resetter;
 import com.lmax.disruptor.EventFactory;
 
 import javax.annotation.Nullable;
@@ -36,7 +37,6 @@ import java.util.Queue;
 public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Collection<T> {
 
     private final Queue<T> queue;
-    private final Resetter<T> resetter;
 
     /**
      * @param queue                   the underlying queue
@@ -54,9 +54,8 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
     }
 
     private QueueBasedObjectPool(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
-        super(allocator);
+        super(allocator, resetter);
         this.queue = queue;
-        this.resetter = resetter;
         if (preAllocate) {
             for (int i = 0; i < this.queue.size(); i++) {
                 this.queue.offer(allocator.createInstance());
@@ -71,8 +70,7 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
     }
 
     @Override
-    public void recycle(T obj) {
-        resetter.recycle(obj);
+    protected void returnToAvailablePool(T obj) {
         queue.offer(obj);
     }
 
@@ -84,6 +82,7 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
 
     @Override
     public void close() {
+        // TODO : do we need to clear queue to avoid any leak ?
     }
 
     @Override

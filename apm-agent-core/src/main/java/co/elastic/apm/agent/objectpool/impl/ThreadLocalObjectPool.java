@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Resetter;
 
 import javax.annotation.Nullable;
 
@@ -35,8 +36,8 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     private final int maxNumPooledObjectsPerThread;
     private final boolean preAllocate;
 
-    public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final Allocator<T> allocator) {
-        super(allocator);
+    public ThreadLocalObjectPool(int maxNumPooledObjectsPerThread, boolean preAllocate, Allocator<T> allocator) {
+        super(allocator, Resetter.ForRecyclable.get());
         this.maxNumPooledObjectsPerThread = maxNumPooledObjectsPerThread;
         this.preAllocate = preAllocate;
     }
@@ -48,8 +49,7 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     }
 
     @Override
-    public void recycle(T obj) {
-        obj.resetState();
+    protected void returnToAvailablePool(T obj) {
         getStack().push(obj);
     }
 

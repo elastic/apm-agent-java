@@ -30,17 +30,25 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+/**
+ * Object pool that wrap two object pools as a single pool with the following properties:
+ * <ul>
+ * <li>object instances are created from 1st pool, then 2cnd if first fails</li>
+ * <li>objects returned to the pool are stored in 2cnd pool</li>
+ * </ul>
+ *
+ * @param <T>
+ */
 public class MixedObjectPool<T> extends AbstractObjectPool<T> {
 
     private final ObjectPool<T> primaryPool;
     private final ObjectPool<T> secondaryPool;
 
-    public MixedObjectPool(final Allocator<T> allocator, ObjectPool<T> primaryPool, ObjectPool<T> secondaryPool) {
-        super(allocator);
+    public MixedObjectPool(Allocator<T> allocator, ObjectPool<T> primaryPool, ObjectPool<T> secondaryPool) {
+        super(allocator, null);
         this.primaryPool = primaryPool;
         this.secondaryPool = secondaryPool;
     }
-
 
     @Nullable
     @Override
@@ -54,10 +62,9 @@ public class MixedObjectPool<T> extends AbstractObjectPool<T> {
     }
 
     @Override
-    public void recycle(T obj) {
+    void returnToAvailablePool(T obj) {
         secondaryPool.recycle(obj);
     }
-
 
     @Override
     public int getSize() {

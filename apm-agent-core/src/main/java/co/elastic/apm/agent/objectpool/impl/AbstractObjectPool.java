@@ -26,32 +26,35 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
+import co.elastic.apm.agent.objectpool.Resetter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
 
     protected final Allocator<T> allocator;
-    private final AtomicInteger garbageCreated = new AtomicInteger();
+    protected final Resetter<T> resetter;
+    private final AtomicInteger garbageCreated;
 
-    protected AbstractObjectPool(Allocator<T> allocator) {
+    protected AbstractObjectPool(Allocator<T> allocator, Resetter<T> resetter) {
         this.allocator = allocator;
+        this.resetter = resetter;
+        this.garbageCreated = new AtomicInteger();
     }
 
     @Override
-    public T createInstance() {
-        T recyclable = tryCreateInstance();
-        if (recyclable == null) {
-            // queue is empty, falling back to creating a new instance
+    public final T createInstance() {
+        T object = tryCreateInstance();
+        if (object == null) {
+            // pool does not have available instance, falling back to creating a new one
             garbageCreated.incrementAndGet();
-            return allocator.createInstance();
-        } else {
-            return recyclable;
+            object = allocator.createInstance();
         }
+        return object;
     }
 
     @Override
-    public void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements) {
+    public final void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements) {
         for (int i = 0; i < maxElements; i++) {
             T obj = tryCreateInstance();
             if (obj == null) {
@@ -60,6 +63,19 @@ public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
             otherPool.recycle(obj);
         }
     }
+
+    @Override
+    public final void recycle(T obj) {
+        resetter.recycle(obj);
+        returnToAvailablePool(obj);
+    }
+
+    /**
+     * Pushes object reference back into the available pooled instances
+     *
+     * @param obj recycled object to return to pool
+     */
+    abstract protected void returnToAvailablePool(T obj);
 
     @Override
     public long getGarbageCreated() {
