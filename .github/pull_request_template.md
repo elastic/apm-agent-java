@@ -48,11 +48,6 @@ Run the test suite to make sure that nothing is broken. See https://github.com/e
 Add a checklist of things that are required to be reviewed in order to have the PR approved
 -->
 
-## How to test this PR locally
-<!-- _(Recommended)_
-Explain here how this PR will be tested by the reviewer: commands, dependencies, steps, etc.
--->
-
 ## Related issues
 <!-- _(Recommended)_
 Link related issues below. Insert the issue link or reference after the word "Closes" if merging this should automatically close it. For more info see:
@@ -67,11 +62,6 @@ https://help.github.com/articles/closing-issues-using-keywords/
 <!-- _(Recommended)_
 Explain here the different behaviors that this PR introduces or modifies in this project, user roles, environment configuration, etc.
 If you are familiar with Gherkin test scenarios, we recommend its usage: https://cucumber.io/docs/gherkin/reference/
--->
-
-## Logs
-<!-- _(Recommended)_
-Paste here output logs discovered while creating this PR, or any other output you consider important to be shared with the team.
 -->
 
 ## Screenshots
