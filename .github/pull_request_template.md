@@ -60,7 +60,7 @@ https://help.github.com/articles/closing-issues-using-keywords/
 - Closes #ISSUE_ID
 - Relates #ISSUE_ID
 - Requires #ISSUE_ID
-- Superseeds #ISSUE_ID
+- Supersedes #ISSUE_ID
 -->
 
 ## Use cases
