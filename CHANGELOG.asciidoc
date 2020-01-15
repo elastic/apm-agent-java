@@ -31,7 +31,7 @@ endif::[]
 * Instrument log4j Logger#error(String, Throwable) ({pull}919[#919]) Automatically captures exceptions when calling `logger.error("message", exception)`
 * Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
 * Add `destination` fields to exit span contexts - {pull}976[#976]
-* Deleted `context.message.topicName` field. - {pull}993[#993]
+* Removed `context.message.topic.name` field. - {pull}993[#993]
 
 [float]
 ===== Bug Fixes
