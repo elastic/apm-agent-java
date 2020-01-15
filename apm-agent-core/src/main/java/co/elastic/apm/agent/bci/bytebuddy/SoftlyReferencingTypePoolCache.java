@@ -62,7 +62,7 @@ public class SoftlyReferencingTypePoolCache extends AgentBuilder.PoolStrategy.Wi
     public SoftlyReferencingTypePoolCache(final TypePool.Default.ReaderMode readerMode,
                                           final int clearIfNotAccessedSinceMinutes, ElementMatcher.Junction<ClassLoader> ignoredClassLoaders) {
         super(readerMode);
-        ExecutorUtils.createSingleThreadSchedulingDeamonPool(ThreadUtils.addElasticApmThreadPrefix("type-cache-pool-cleaner"), 1)
+        ExecutorUtils.createSingleThreadSchedulingDeamonPool("type-cache-pool-cleaner", 1)
             .scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {

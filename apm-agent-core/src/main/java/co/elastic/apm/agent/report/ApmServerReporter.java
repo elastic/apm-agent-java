@@ -253,7 +253,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs) {
         if (intervalMs > 0 && metricsReportingScheduler == null) {
-            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool(ThreadUtils.addElasticApmThreadPrefix("metrics-reporter"), 1);
+            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("metrics-reporter", 1);
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

@@ -42,7 +42,9 @@ public class DataStructures {
      */
     public static <K, V> WeakConcurrentMap<K, V> createWeakConcurrentMapWithCleanerThread() {
         WeakConcurrentMap<K, V> map = new WeakConcurrentMap<>(true);
-        map.getCleanerThread().setContextClassLoader(null);
+        Thread cleanerThread = map.getCleanerThread();
+        cleanerThread.setName(ThreadUtils.addElasticApmThreadPrefix(cleanerThread.getName()));
+        cleanerThread.setContextClassLoader(null);
         return map;
     }
 }
