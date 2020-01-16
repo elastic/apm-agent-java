@@ -44,7 +44,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testOneEntry() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testOneEntry() {
         headerMap.add("foo", "bar".getBytes());
         int numElements = 0;
         for (BinaryHeaderMap.Entry entry : headerMap) {
@@ -56,7 +56,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testLongHeader() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testLongHeader() {
         final String longRandomString = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_VALUE_LENGTH + 1);
         headerMap.add("long", longRandomString.getBytes());
         headerMap.add("foo", "bar".getBytes());
@@ -71,20 +71,14 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testMapOverflow() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testMapOverflow() {
         final String longRandomString = RandomStringUtils.randomAlphanumeric(DslJsonSerializer.MAX_VALUE_LENGTH + 3);
         for (int i = 0; i < 9; i++) {
             headerMap.add("long" + i, longRandomString.getBytes());
             headerMap.add("foo", "bar".getBytes());
         }
         assertThat(headerMap.size()).isEqualTo(18);
-        Exception overflowException = null;
-        try {
-            headerMap.add("long10", longRandomString.getBytes());
-        } catch (BinaryHeaderMap.InsufficientCapacityException e) {
-            overflowException = e;
-        }
-        assertThat(overflowException).isNotNull();
+        assertThat(headerMap.add("long10", longRandomString.getBytes())).isFalse();
         assertThat(headerMap.size()).isEqualTo(18);
         Iterator<BinaryHeaderMap.Entry> iterator = headerMap.iterator();
         for (int i = 0; i < 9; i++) {
@@ -98,7 +92,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testNonUtf8EncodedValue() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testNonUtf8EncodedValue() {
         assertThat(headerMap.add("foo", "bar".getBytes())).isTrue();
         assertThat(headerMap.add("ignore", Base64.getDecoder().decode("ignore"))).isFalse();
         assertThat(headerMap.add("baz", "qux".getBytes())).isTrue();
@@ -113,7 +107,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testTwoEntries() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testTwoEntries() {
         headerMap.add(String.valueOf(0), "value0".getBytes());
         headerMap.add(String.valueOf(1), "value1".getBytes());
         int index = 0;
@@ -128,7 +122,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testCopyFrom() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testCopyFrom() {
         headerMap.add(String.valueOf(0), "value0".getBytes());
         headerMap.add(String.valueOf(1), "value1".getBytes());
         BinaryHeaderMap copy = new BinaryHeaderMap();
@@ -146,7 +140,7 @@ class BinaryHeaderMapTest {
     }
 
     @Test
-    void testTwoIterations() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testTwoIterations() {
         headerMap.add(String.valueOf(0), "value".getBytes());
         headerMap.add(String.valueOf(1), "value".getBytes());
         int numElements = 0;

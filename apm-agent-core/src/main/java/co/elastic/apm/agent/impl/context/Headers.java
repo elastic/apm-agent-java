@@ -43,7 +43,7 @@ public class Headers implements Recyclable, Iterable<Headers.Header> {
         textHeaders.add(key, value);
     }
 
-    public boolean add(String key, byte[] value) throws BinaryHeaderMap.InsufficientCapacityException {
+    public boolean add(String key, byte[] value) {
         return binaryHeaders.add(key, value);
     }
 

@@ -37,7 +37,6 @@ import java.util.List;
 public class MessagingConfiguration extends ConfigurationOptionProvider {
     private static final String MESSAGING_CATEGORY = "Messaging";
     private static final String MESSAGE_POLLING_TRANSACTION_STRATEGY = "message_polling_transaction_strategy";
-    private static final String COLLECT_QUEUE_ADDRESS = "collect_queue_address";
 
     private ConfigurationOption<Strategy> messagePollingTransactionStrategy = ConfigurationOption.enumOption(Strategy.class)
         .key(MESSAGE_POLLING_TRANSACTION_STRATEGY)
@@ -52,7 +51,7 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .buildWithDefault(Strategy.HANDLING);
 
     private ConfigurationOption<Boolean> collectQueueAddress = ConfigurationOption.booleanOption()
-        .key(COLLECT_QUEUE_ADDRESS)
+        .key("collect_queue_address")
         .configurationCategory(MESSAGING_CATEGORY)
         .tags("internal")
         .description("Determines whether the agent should collect destination address and port, as this may be \n" +
@@ -73,6 +72,20 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .buildWithDefault(Collections.<WildcardMatcher>emptyList());
 
+    private final ConfigurationOption<Boolean> endMessagingTransactionOnPoll = ConfigurationOption.booleanOption()
+        .key("end_messaging_transaction_on_poll")
+        .configurationCategory(MESSAGING_CATEGORY)
+        .tags("internal")
+        .description("When tracing messaging systems, we sometimes create transactions based on consumed messages \n" +
+            "when they are iterated-over after being polled. This means that transaction ending relies on the \n" +
+            "iterating behavior, which means transactions may be left unclosed. In such cases, we deactivate \n" +
+            "and close such transactions when the next poll action is invoked on the same thread. \n" +
+            "However, if the messaging transaction itself tries to poll a queue, it will be ended prematurely. In \n" +
+            "such cases, set this property to false." +
+            WildcardMatcher.DOCUMENTATION)
+        .dynamic(true)
+        .buildWithDefault(Boolean.TRUE);
+
     public MessagingConfiguration.Strategy getMessagePollingTransactionStrategy() {
         return messagePollingTransactionStrategy.get();
     }
@@ -84,6 +97,11 @@ public class MessagingConfiguration extends ConfigurationOptionProvider {
     @VisibleForAdvice
     public boolean shouldCollectQueueAddress() {
         return collectQueueAddress.get();
+    }
+
+    @VisibleForAdvice
+    public boolean shouldEndMessagingTransactionOnPoll() {
+        return endMessagingTransactionOnPoll.get();
     }
 
     @VisibleForAdvice

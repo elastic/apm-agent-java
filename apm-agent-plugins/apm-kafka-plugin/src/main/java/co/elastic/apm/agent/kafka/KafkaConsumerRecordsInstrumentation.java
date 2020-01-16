@@ -31,8 +31,10 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.TopicPartition;
 
 import javax.annotation.Nullable;
 
@@ -56,6 +58,9 @@ public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstr
         return named("org.apache.kafka.clients.consumer.ConsumerRecords");
     }
 
+    /**
+     * Instruments the {@link ConsumerRecords#iterator()} method
+     */
     public static class IteratorInstrumentation extends KafkaConsumerRecordsInstrumentation {
         public IteratorInstrumentation(ElasticApmTracer tracer) {
             super(tracer);
@@ -93,6 +98,9 @@ public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstr
         }
     }
 
+    /**
+     * Instruments the {@link ConsumerRecords#records(String)} method
+     */
     public static class RecordsInstrumentation extends KafkaConsumerRecordsInstrumentation {
         public RecordsInstrumentation(ElasticApmTracer tracer) {
             super(tracer);
@@ -130,6 +138,9 @@ public abstract class KafkaConsumerRecordsInstrumentation extends BaseKafkaInstr
         }
     }
 
+    /**
+     * Instruments the {@link ConsumerRecords#records(TopicPartition)} method
+     */
     public static class RecordsListInstrumentation extends KafkaConsumerRecordsInstrumentation {
         public RecordsListInstrumentation(ElasticApmTracer tracer) {
             super(tracer);

@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -71,6 +72,14 @@ public class KafkaConsumerInstrumentation extends BaseKafkaInstrumentation {
             final TraceContextHolder<?> activeSpan = tracer.getActive();
             if (activeSpan == null || !activeSpan.isSampled()) {
                 return null;
+            }
+
+            if (messagingConfiguration.shouldEndMessagingTransactionOnPoll() && activeSpan instanceof Transaction) {
+                Transaction transaction = (Transaction) activeSpan;
+                if ("messaging".equals(transaction.getType())) {
+                    transaction.deactivate().end();
+                    return null;
+                }
             }
 
             Span span = activeSpan.createExitSpan();

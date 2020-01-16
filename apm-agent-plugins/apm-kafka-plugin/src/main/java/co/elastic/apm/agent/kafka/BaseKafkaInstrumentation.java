@@ -36,8 +36,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
@@ -79,7 +79,8 @@ public abstract class BaseKafkaInstrumentation extends ElasticApmInstrumentation
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
-        return Collections.singletonList("kafka");
+        // Incubating until we implement traceparent binary format
+        return Arrays.asList("kafka", "incubating");
     }
 
     @Override

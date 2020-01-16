@@ -38,7 +38,7 @@ class CallbackWrapper implements Callback, Recyclable {
     @Nullable
     private Callback delegate;
     @SuppressWarnings("NotNullFieldNotInitialized")
-    private Span span;
+    private volatile Span span;
 
     CallbackWrapper(KafkaInstrumentationHelperImpl helper) {
         this.helper = helper;

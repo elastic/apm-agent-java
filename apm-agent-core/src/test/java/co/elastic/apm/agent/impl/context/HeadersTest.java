@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.impl.context;
 
-import co.elastic.apm.agent.util.BinaryHeaderMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,7 @@ class HeadersTest {
     private Headers headers = new Headers();
 
     @BeforeEach
-    void fill() throws BinaryHeaderMap.InsufficientCapacityException {
+    void fill() {
         headers.add("bin0", "bin-val0".getBytes());
         headers.add("text0", "text-val0");
         headers.add("text1", "text-val1");
@@ -71,7 +70,7 @@ class HeadersTest {
 
     @SuppressWarnings("ConstantConditions")
     @Test
-    void testCopyFrom() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testCopyFrom() {
         Headers copy = new Headers();
         copy.add("bin2", "bin-val2".getBytes());
         copy.add("text2", "text-val2");

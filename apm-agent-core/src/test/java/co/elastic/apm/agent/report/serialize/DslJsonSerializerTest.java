@@ -44,7 +44,6 @@ import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.util.BinaryHeaderMap;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -316,7 +315,7 @@ class DslJsonSerializerTest {
     }
 
     @Test
-    void testSpanMessageContextSerialization() throws BinaryHeaderMap.InsufficientCapacityException {
+    void testSpanMessageContextSerialization() {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
             .withQueue("test-queue")

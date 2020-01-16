@@ -98,10 +98,6 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
                 return null;
             }
 
-            if (activeSpan instanceof Span && "kafka".equals(((Span) activeSpan).getSubtype())) {
-                return null;
-            }
-
             Span span = activeSpan.createExitSpan();
             if (span == null) {
                 return null;

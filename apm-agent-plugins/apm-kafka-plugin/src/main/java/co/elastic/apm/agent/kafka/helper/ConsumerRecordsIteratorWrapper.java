@@ -31,7 +31,6 @@ import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.BinaryHeaderMap;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.TimestampType;
@@ -98,18 +97,13 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
                 if (record.timestampType() == TimestampType.CREATE_TIME) {
                     message.withAge(System.currentTimeMillis() - record.timestamp());
                 }
-                // todo - add destination fields
 
                 if (coreConfiguration.isCaptureHeaders()) {
                     for (Header header : record.headers()) {
                         String key = header.key();
                         if (!TraceContext.TRACE_PARENT_HEADER.equals(key) &&
                             WildcardMatcher.anyMatch(coreConfiguration.getSanitizeFieldNames(), key) == null) {
-                            try {
-                                message.addHeader(key, header.value());
-                            } catch (BinaryHeaderMap.InsufficientCapacityException e) {
-                                logger.error("Failed to trace Kafka header", e);
-                            }
+                            message.addHeader(key, header.value());
                         }
                     }
                 }

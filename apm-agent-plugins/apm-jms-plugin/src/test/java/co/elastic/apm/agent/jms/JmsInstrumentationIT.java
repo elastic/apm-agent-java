@@ -354,7 +354,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
         assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
         // Body and headers should not be captured for receive spans
-        assertThat(receiveSpan.getContext().getMessage().getBody().length()).isEqualTo(0);
+        assertThat(receiveSpan.getContext().getMessage().getBodyForRead()).isNull();
         assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
         // Age should be captured for receive spans, unless disabled
         if (disableTimestamp) {
@@ -416,7 +416,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
@@ -488,7 +490,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody().toString()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }

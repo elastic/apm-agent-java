@@ -206,6 +206,14 @@ public class KafkaIT extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testSendTwoRecords_PartiallyIterate() {
+        // Here we test that the KafkaConsumer#poll instrumentation will end transactions that are left open
+        consumerThread.setIterationMode(RecordIterationMode.PARTIALLY_ITERATE);
+        sendTwoRecordsAndConsumeReplies();
+        verifyTracing();
+    }
+
+    @Test
     public void testBodyCaptureEnabled() {
         when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
         testScenario = TestScenario.BODY_CAPTURE_ENABLED;
@@ -378,9 +386,11 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(message.getQueueName()).isEqualTo(topic);
         if (testScenario == TestScenario.BODY_CAPTURE_ENABLED && messageValue != null) {
             String messageBody = "key=" + REQUEST_KEY + "; value=" + messageValue;
-            assertThat(messageBody).isEqualTo(message.getBody().toString());
+            StringBuilder body = message.getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(messageBody).isEqualTo(body.toString());
         } else {
-            assertThat(message.getBody().length()).isEqualTo(0);
+            assertThat(message.getBodyForRead()).isNull();
         }
         Headers headers = message.getHeaders();
         if (testScenario == TestScenario.HEADERS_CAPTURE_DISABLED || testScenario == TestScenario.SANITIZED_HEADER ||
@@ -462,6 +472,16 @@ public class KafkaIT extends AbstractInstrumentationTest {
                         } else if (iterationMode == RecordIterationMode.RECORD_LIST_ITERABLE_FOREACH) {
                             List<ConsumerRecord<String, String>> recordList = records.records(records.partitions().iterator().next());
                             recordList.forEach(new ConsumerRecordConsumer());
+                        } else if (iterationMode == RecordIterationMode.PARTIALLY_ITERATE) {
+                            // we should normally get a batch of two, but may get one in two different polls
+                            List<ConsumerRecord<String, String>> recordList = records.records(records.partitions().iterator().next());
+                            Iterator<ConsumerRecord<String, String>> iterator = recordList.iterator();
+                            ConsumerRecord<String, String> record = iterator.next();
+                            producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            if (recordList.size() == 2) {
+                                record = iterator.next();
+                                producer.send(new ProducerRecord<>(REPLY_TOPIC, REPLY_KEY, record.value()));
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -483,7 +503,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         RECORD_LIST_ITERABLE_FOR,
         RECORD_LIST_ITERABLE_FOREACH,
         RECORD_LIST_SUB_LIST,
-        RECORDS_ITERABLE
+        RECORDS_ITERABLE,
+        PARTIALLY_ITERATE
     }
 
     enum TestScenario {

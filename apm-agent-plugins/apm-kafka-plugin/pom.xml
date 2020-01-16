@@ -11,7 +11,7 @@
     <properties>
         <apm-agent-parent.base.dir>${project.basedir}/../..</apm-agent-parent.base.dir>
         <version.testcontainers>1.12.4</version.testcontainers>
-        <version.kafka>2.4.0</version.kafka>
+        <version.kafka>[2.4.0,)</version.kafka>
     </properties>
 
     <artifactId>apm-kafka-plugin</artifactId>

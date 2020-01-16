@@ -26,6 +26,8 @@ package co.elastic.apm.agent.util;
 
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.nio.Buffer;
@@ -47,6 +49,8 @@ import java.util.Iterator;
 public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Entry> {
     public static final int MAXIMUM_HEADER_BUFFER_SIZE = DslJsonSerializer.MAX_VALUE_LENGTH * 10;
 
+    private static final Logger logger = LoggerFactory.getLogger(BinaryHeaderMap.class);
+
     private CharBuffer valueBuffer;
     private final ArrayList<String> keys;
     private int[] valueLengths;
@@ -67,12 +71,14 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         return size() == 0;
     }
 
-    public boolean add(String key, byte[] value) throws InsufficientCapacityException {
+    public boolean add(String key, byte[] value) {
         int valuesPos = valueBuffer.position();
         CoderResult coderResult = IOUtils.decodeUtf8Bytes(value, valueBuffer);
         while (coderResult.isOverflow()) {
             ((Buffer) valueBuffer).limit(valuesPos);
-            enlargeBuffer();
+            if (!enlargeBuffer()) {
+                return false;
+            }
             coderResult = IOUtils.decodeUtf8Bytes(value, valueBuffer);
         }
         boolean result;
@@ -91,15 +97,17 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
         return result;
     }
 
-    private void enlargeBuffer() throws InsufficientCapacityException {
+    private boolean enlargeBuffer() {
         if (valueBuffer.capacity() == MAXIMUM_HEADER_BUFFER_SIZE) {
-            throw new InsufficientCapacityException();
+            logger.debug("Headers buffer reached its maximal size ({}) and cannot be further enlarged", MAXIMUM_HEADER_BUFFER_SIZE);
+            return false;
         }
         int newCapacity = Math.min(valueBuffer.capacity() * 2, MAXIMUM_HEADER_BUFFER_SIZE);
         CharBuffer newBuffer = CharBuffer.allocate(newCapacity);
         ((Buffer) valueBuffer).flip();
         newBuffer.put(valueBuffer);
         valueBuffer = newBuffer;
+        return true;
     }
 
     private void enlargeValueLengths() {
@@ -212,12 +220,6 @@ public class BinaryHeaderMap implements Recyclable, Iterable<BinaryHeaderMap.Ent
             index = 0;
             nextValueOffset = 0;
             entry.reset();
-        }
-    }
-
-    public static class InsufficientCapacityException extends Exception {
-        public InsufficientCapacityException() {
-            super("Headers buffer is to large, cannot append anymore headers");
         }
     }
 }
