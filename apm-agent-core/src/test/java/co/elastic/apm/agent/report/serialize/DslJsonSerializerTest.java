@@ -319,7 +319,7 @@ class DslJsonSerializerTest {
     void testSpanMessageContextSerialization() throws BinaryHeaderMap.InsufficientCapacityException {
         Span span = new Span(MockTracer.create());
         span.getContext().getMessage()
-            .withTopic("test-topic")
+            .withQueue("test-queue")
             .withBody("test-body")
             .addHeader("text-header", "text-value")
             .addHeader("binary-header", "binary-value".getBytes(StandardCharsets.UTF_8))
@@ -330,10 +330,8 @@ class DslJsonSerializerTest {
         JsonNode message = context.get("message");
         assertThat(message).isNotNull();
         JsonNode queue = message.get("queue");
-        assertThat(queue).isNull();
-        JsonNode topic = message.get("topic");
-        assertThat(topic).isNotNull();
-        assertThat("test-topic").isEqualTo(topic.get("name").textValue());
+        assertThat(queue).isNotNull();
+        assertThat("test-queue").isEqualTo(queue.get("name").textValue());
         JsonNode body = message.get("body");
         assertThat("test-body").isEqualTo(body.textValue());
         JsonNode headers = message.get("headers");

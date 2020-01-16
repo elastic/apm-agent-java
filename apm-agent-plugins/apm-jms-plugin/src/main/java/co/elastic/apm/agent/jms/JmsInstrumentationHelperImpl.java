@@ -186,7 +186,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 .getContext().getMessage().withQueue(destinationName);
         } else if (destination instanceof Topic) {
             span.appendToName("topic ").appendToName(destinationName)
-                .getContext().getMessage().withTopic(destinationName);
+                .getContext().getMessage().withQueue(destinationName);
         }
     }
 
