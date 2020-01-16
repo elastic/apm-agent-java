@@ -814,17 +814,12 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
             }
-            if (message.getTopicName() != null) {
-                writeFieldName("topic");
-                jw.writeByte(OBJECT_START);
-                writeLastField("name", message.getTopicName());
-                jw.writeByte(OBJECT_END);
-            } else {
-                writeFieldName("queue");
-                jw.writeByte(OBJECT_START);
-                writeLastField("name", message.getQueueName());
-                jw.writeByte(OBJECT_END);
-            }
+
+            writeFieldName("queue");
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", message.getQueueName());
+            jw.writeByte(OBJECT_END);
+
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
