@@ -137,7 +137,7 @@ public class TestClassWithDependencyRunner {
         resolver.setName("central");
         //you can specify the url resolution pattern strategy
         resolver.addArtifactPattern(
-            "http://repo1.maven.org/maven2/"
+            "https://repo1.maven.org/maven2/"
                 + "[organisation]/[module]/[revision]/[artifact](-[revision]).[ext]");
         //adding maven repo resolver
         ivySettings.addResolver(resolver);
