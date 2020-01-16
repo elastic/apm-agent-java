@@ -127,8 +127,8 @@ public class ElasticApmTracerBuilder {
         return tracer;
     }
 
-    private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, int rate, TimeUnit seconds) {
-        ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader", 1);
+    private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {
+        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader", 1);
         configurationReloader.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
