@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

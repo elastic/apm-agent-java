@@ -42,20 +42,26 @@ import co.elastic.apm.agent.impl.payload.SystemInfo;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.report.ApmServerClient;
+import co.elastic.apm.agent.util.IOUtils;
 import com.dslplatform.json.JsonWriter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
@@ -71,6 +77,7 @@ class DslJsonSerializerTest {
     private DslJsonSerializer serializer;
     private ObjectMapper objectMapper;
     private ApmServerClient apmServerClient;
+    private JsonSchema schema;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +86,7 @@ class DslJsonSerializerTest {
         apmServerClient = mock(ApmServerClient.class);
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient);
         objectMapper = new ObjectMapper();
+        schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
     }
 
     @Test
@@ -567,6 +575,62 @@ class DslJsonSerializerTest {
         JsonNode ms = age.get("ms");
         assertThat(ms).isNotNull();
         assertThat(ms.longValue()).isEqualTo(0);
+    }
+
+    @Test
+    void testBodyBuffer() throws IOException {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        IOUtils.decodeUtf8Bytes("{f".getBytes(StandardCharsets.UTF_8), bodyBuffer);
+        IOUtils.decodeUtf8Bytes(new byte[]{0, 0, 'o', 'o', 0}, 2, 2, bodyBuffer);
+        IOUtils.decodeUtf8Byte((byte) '}', bodyBuffer);
+        bodyBuffer.flip();
+        final String content = serializer.toJsonString(transaction);
+        System.out.println(content);
+        final JsonNode transactionJson = objectMapper.readTree(content);
+        assertThat(transactionJson.get("context").get("request").get("body").textValue()).isEqualTo("{foo}");
+
+        transaction.resetState();
+        assertThat((Object) transaction.getContext().getRequest().getBodyBuffer()).isNull();
+    }
+
+    @Test
+    void testBodyBufferCopy() throws IOException {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        final CharBuffer bodyBuffer = transaction.getContext().getRequest().withBodyBuffer();
+        IOUtils.decodeUtf8Bytes("{foo}".getBytes(StandardCharsets.UTF_8), bodyBuffer);
+        bodyBuffer.flip();
+
+        Transaction copy = createTransactionWithRequiredValues();
+        copy.getContext().copyFrom(transaction.getContext());
+
+        assertThat(objectMapper.readTree(serializer.toJsonString(copy)).get("context"))
+            .isEqualTo(objectMapper.readTree(serializer.toJsonString(transaction)).get("context"));
+    }
+
+    @Test
+    void testCustomContext() throws Exception {
+        final Transaction transaction = createTransactionWithRequiredValues();
+        transaction.addCustomContext("string", "foo");
+        final String longString = RandomStringUtils.randomAlphanumeric(10001);
+        transaction.addCustomContext("long_string", longString);
+        transaction.addCustomContext("number", 42);
+        transaction.addCustomContext("boolean", true);
+
+        final JsonNode customContext = objectMapper.readTree(serializer.toJsonString(transaction)).get("context").get("custom");
+        assertThat(customContext.get("string").textValue()).isEqualTo("foo");
+        assertThat(customContext.get("long_string").textValue()).isEqualTo(longString.substring(0, 9999) + "…");
+        assertThat(customContext.get("number").intValue()).isEqualTo(42);
+        assertThat(customContext.get("boolean").booleanValue()).isEqualTo(true);
+    }
+
+    private Transaction createTransactionWithRequiredValues() {
+        Transaction t = new Transaction(MockTracer.create());
+        t.start(TraceContext.asRoot(), null, (long) 0, ConstantSampler.of(true), getClass().getClassLoader());
+        t.withType("type");
+        t.getContext().getRequest().withMethod("GET");
+        t.getContext().getRequest().getUrl().appendToFull("http://localhost:8080/foo/bar");
+        return t;
     }
 
     private JsonNode readJsonString(String jsonString) {

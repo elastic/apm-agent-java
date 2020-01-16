@@ -111,8 +111,6 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ir.status().getStatus()).isEqualTo(201);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
-
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: PUT /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 201, "PUT");
@@ -128,7 +126,6 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         searchRequest.source(sourceBuilder);
         SearchResponse sr = doSearch(searchRequest);
         verifyTotalHits(sr.getHits());
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -147,8 +144,6 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
-
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
         boolean updateSpanFound = false;
@@ -166,7 +161,6 @@ public abstract class AbstractEs6_4ClientInstrumentationTest extends AbstractEsC
         assertThat(dr.status().getStatus()).isEqualTo(200);
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
 
-        System.out.println(reporter.generateTransactionPayloadJson());
     }
 
     protected void verifyTotalHits(SearchHits searchHits) {

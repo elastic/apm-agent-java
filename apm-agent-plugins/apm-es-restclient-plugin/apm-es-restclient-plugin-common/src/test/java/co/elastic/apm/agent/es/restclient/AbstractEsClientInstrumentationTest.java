@@ -89,8 +89,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     public void assertThatErrorsExistWhenDeleteNonExistingIndex() throws IOException {
 
-        System.out.println(reporter.generateErrorPayloadJson());
-
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
         ErrorCapture errorCapture = errorCaptures.get(0);
@@ -141,7 +139,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -149,7 +146,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span>spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -157,7 +153,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterBulkRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);

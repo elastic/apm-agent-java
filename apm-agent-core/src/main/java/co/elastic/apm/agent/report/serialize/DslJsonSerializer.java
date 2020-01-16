@@ -26,8 +26,8 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
@@ -38,17 +38,14 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.Node;
-import co.elastic.apm.agent.impl.payload.Payload;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.RuntimeInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
-import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -232,19 +229,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         metricRegistry.report(this);
     }
 
-    @Deprecated
-    private void serializeErrorPayload(ErrorPayload payload) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        serializeService(payload.getService());
-        jw.writeByte(COMMA);
-        serializeProcess(payload.getProcess());
-        jw.writeByte(COMMA);
-        serializeSystem(payload.getSystem());
-        jw.writeByte(COMMA);
-        serializeErrors(payload.getErrors());
-        jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
     private void serializeErrors(List<ErrorCapture> errors) {
         writeFieldName("errors");
         jw.writeByte(ARRAY_START);
@@ -310,18 +294,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    public String toJsonString(final Payload payload) {
-        jw.reset();
-        if (payload instanceof TransactionPayload) {
-            serializeTransactionPayload((TransactionPayload) payload);
-        } else if (payload instanceof ErrorPayload) {
-            serializeErrorPayload((ErrorPayload) payload);
-        }
-        final String s = jw.toString();
-        jw.reset();
-        return s;
-    }
-
     public String toJsonString(final Transaction transaction) {
         jw.reset();
         serializeTransaction(transaction);
@@ -356,30 +328,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     public String toString() {
         return jw.toString();
-    }
-
-    @Deprecated
-    private void serializeTransactionPayload(final TransactionPayload payload) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        serializeService(payload.getService());
-        jw.writeByte(COMMA);
-        serializeProcess(payload.getProcess());
-        jw.writeByte(COMMA);
-        serializeSystem(payload.getSystem());
-        jw.writeByte(COMMA);
-        serializeSpans(payload.getSpans());
-        serializeTransactions(payload);
-        jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
-    @Deprecated
-    private void serializeTransactions(final TransactionPayload payload) {
-        writeFieldName("transactions");
-        jw.writeByte(ARRAY_START);
-        if (payload.getTransactions().size() > 0) {
-            serializeTransactions(payload.getTransactions());
-        }
-        jw.writeByte(ARRAY_END);
     }
 
     private void serializeService(final Service service) {
@@ -612,6 +560,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     /**
      * TODO: remove in 2.0
      * To be removed for agents working only with APM server 7.0 or higher, where schema contains span.type, span.subtype and span.action
+     *
      * @param span serialized span
      */
     private void serializeSpanType(Span span) {
