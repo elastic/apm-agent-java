@@ -29,7 +29,7 @@ Please make sure you have signed our [Contributor License Agreement](https://www
 - [ ] My code follows the [style guidelines of this project](CONTRIBUTING.md#java-language-formatting-guidelines)
 - [ ] I have rebased my changes on top of the latest master branch
 <!--
-Update your local repository with the most recent code from the main repo, and rebase your branch on top of the latest master branch. We prefer your initial changes to be squashed into a single commit. Later, if we ask you to make changes, add them as separate commits. This makes them easier to review. As a final step before merging we will either ask you to squash all commits yourself or we'll do it for you.
+Update your local repository with the most recent code from the main repo, and rebase your branch on top of the latest master branch. We prefer your initial changes to be squashed into a single commit. Later, if we ask you to make changes, add them as separate commits. This makes them easier to review.
 -->
 - [ ] I have performed a self-review of my own code
 - [ ] I have made corresponding changes to the documentation
@@ -40,7 +40,7 @@ Run the test suite to make sure that nothing is broken. See https://github.com/e
 -->
 - [ ] I have updated [CHANGELOG.asciidoc](CHANGELOG.asciidoc)
 - [ ] I have updated [supported-technologies.asciidoc](docs/supported-technologies.asciidoc)
-- [ ] Added an API method or config option? Document in which version this will be introduced.
+- [ ] Added an API method or config option? Document in which version this will be introduced
 - [ ] Added an instrumentation plugin? How did you make sure that old, non-supported versions are not instrumented by accident?
 
 ## Author's Checklist
