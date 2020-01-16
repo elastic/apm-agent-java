@@ -64,6 +64,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,7 +78,6 @@ class DslJsonSerializerTest {
     private DslJsonSerializer serializer;
     private ObjectMapper objectMapper;
     private ApmServerClient apmServerClient;
-    private JsonSchema schema;
 
     @BeforeEach
     void setUp() {
@@ -86,7 +86,6 @@ class DslJsonSerializerTest {
         apmServerClient = mock(ApmServerClient.class);
         serializer = new DslJsonSerializer(stacktraceConfiguration, apmServerClient);
         objectMapper = new ObjectMapper();
-        schema = JsonSchemaFactory.getInstance().getSchema(getClass().getResourceAsStream("/schema/transactions/payload.json"));
     }
 
     @Test
@@ -623,6 +622,48 @@ class DslJsonSerializerTest {
         assertThat(customContext.get("number").intValue()).isEqualTo(42);
         assertThat(customContext.get("boolean").booleanValue()).isEqualTo(true);
     }
+
+    @Test
+    void testJsonSchemaDslJsonEmptyValues() throws IOException {
+        Transaction transaction = new Transaction(MockTracer.create());
+        final String content = serializer.toJsonString(transaction);
+        System.out.println(content);
+        JsonNode transactionNode = objectMapper.readTree(content);
+        assertThat(transactionNode.get("timestamp").asLong()).isEqualTo(0);
+        assertThat(transactionNode.get("duration").asDouble()).isEqualTo(0.0);
+        assertThat(transactionNode.get("context").get("tags")).isEmpty();
+        assertThat(transactionNode.get("sampled").asBoolean()).isEqualTo(false);
+        assertThat(transactionNode.get("span_count").get("dropped").asInt()).isEqualTo(0);
+        assertThat(transactionNode.get("span_count").get("started").asInt()).isEqualTo(0);
+    }
+
+    @Test
+    void testSystemInfo() {
+        String arc = System.getProperty("os.arch");
+        String platform = System.getProperty("os.name");
+        String hostname = SystemInfo.getNameOfLocalHost();
+
+        MetaData metaData = createMetaData();
+        serializer.serializeMetadata(metaData);
+
+        JsonNode system = readJsonString(serializer.toString()).get("system");
+
+        assertThat(arc).isEqualTo(system.get("architecture").asText());
+        assertThat(hostname).isEqualTo(system.get("hostname").asText());
+        assertThat(platform).isEqualTo(system.get("platform").asText());
+    }
+
+    private MetaData createMetaData() {
+        return createMetaData(SystemInfo.create());
+    }
+
+    private MetaData createMetaData(SystemInfo system) {
+        Service service = new Service().withAgent(new Agent("name", "version")).withName("name");
+        final ProcessInfo processInfo = new ProcessInfo("title");
+        processInfo.getArgv().add("test");
+        return new MetaData(processInfo, service, system, new HashMap<>(0));
+    }
+
 
     private Transaction createTransactionWithRequiredValues() {
         Transaction t = new Transaction(MockTracer.create());

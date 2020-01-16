@@ -482,14 +482,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    private void serializeTransactions(final List<Transaction> transactions) {
-        serializeTransaction(transactions.get(0));
-        for (int i = 1; i < transactions.size(); i++) {
-            jw.writeByte(COMMA);
-            serializeTransaction(transactions.get(i));
-        }
-    }
-
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());

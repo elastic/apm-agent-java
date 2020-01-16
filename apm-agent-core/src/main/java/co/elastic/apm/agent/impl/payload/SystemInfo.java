@@ -99,7 +99,7 @@ public class SystemInfo {
         return create(null);
     }
 
-    static String getNameOfLocalHost() {
+    public static String getNameOfLocalHost() {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
