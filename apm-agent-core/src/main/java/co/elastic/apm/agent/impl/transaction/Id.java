@@ -70,10 +70,17 @@ public class Id implements Recyclable {
         onMutation();
     }
 
+    /**
+     * Sets the id based on a byte array
+     *
+     * @param bytes the byte array used to fill this id's {@link #data}
+     * @param offset the offset in the byte array
+     * @return the number of read bytes which is equivalent to {@link #getLength()}
+     */
     public int fromBytes(byte[] bytes, int offset) {
         System.arraycopy(bytes, offset, data, 0, data.length);
         onMutation();
-        return offset + data.length;
+        return data.length;
     }
 
     public int toBytes(byte[] bytes, int offset) {

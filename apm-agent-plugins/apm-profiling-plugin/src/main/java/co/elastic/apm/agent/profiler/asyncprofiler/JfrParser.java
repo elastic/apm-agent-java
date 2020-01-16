@@ -85,11 +85,11 @@ public class JfrParser implements Recyclable {
     private List<WildcardMatcher> includedClasses;
 
     /**
-     * Initializes the parser to make it ready for {@link #getStackTrace(long, boolean, List)} to be called.
+     * Initializes the parser to make it ready for {@link #resolveStackTrace(long, boolean, List)} to be called.
      *
      * @param file            the JFR file to parse
-     * @param excludedClasses Class names to exclude in stack traces (has an effect on {@link #getStackTrace(long, boolean, List)})
-     * @param includedClasses Class names to include in stack traces (has an effect on {@link #getStackTrace(long, boolean, List)})
+     * @param excludedClasses Class names to exclude in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List)})
+     * @param includedClasses Class names to include in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List)})
      * @throws IOException if some I/O error occurs
      */
     public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
@@ -112,7 +112,7 @@ public class JfrParser implements Recyclable {
         }
         short major = buffer.getShort();
         short minor = buffer.getShort();
-        if (major != 0 && minor != 9) {
+        if (major != 0 || minor != 9) {
             throw new IllegalArgumentException(String.format("Can only parse version 0.9. Was %d.%d", major, minor));
         }
         // safe as we only process files where size <= Integer.MAX_VALUE
@@ -268,7 +268,7 @@ public class JfrParser implements Recyclable {
          * @param threadId     The native thread id for with the event was recorded.
          *                     Note that this is not the same as {@link Thread#getId()}.
          * @param stackTraceId The id of the stack trace event.
-         *                     Can be used to resolve the stack trace via {@link #getStackTrace(long, boolean, List)}
+         *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List)}
          * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
          */
         void onCallTree(int threadId, long stackTraceId, long nanoTime);
@@ -288,7 +288,7 @@ public class JfrParser implements Recyclable {
      * @param stackFrames    The mutable list where the stack frames are written to.
      *                       Don't forget to {@link List#clear()} the list before calling this method if the list is reused.
      */
-    public void getStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames) {
+    public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames) {
         if (buffer == null) {
             throw new IllegalStateException("getStackTrace was called before parse");
         }

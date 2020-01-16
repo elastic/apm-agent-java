@@ -312,18 +312,6 @@ public class ElasticApmTracer {
      * @return a new started span
      * @see #startSpan(TraceContext.ChildContextCreator, Object)
      */
-    public <A, B> Span startSpan(TraceContext.ChildContextCreatorTwoArg<A, B> childContextCreator, A arg0, @Nullable B arg1, long epochMicros) {
-        Span span = createSpan();
-        final boolean dropped = isDropped(epochMicros);
-        span.start(childContextCreator, arg0, arg1, epochMicros, dropped);
-        return span;
-    }
-    /**
-     * @param parentContext the trace context of the parent
-     * @param epochMicros   the start timestamp of the span in microseconds after epoch
-     * @return a new started span
-     * @see #startSpan(TraceContext.ChildContextCreator, Object)
-     */
     public <T> Span startSpan(TraceContext.ChildContextCreator<T> childContextCreator, T parentContext, long epochMicros) {
         Span span = createSpan();
         final boolean dropped = isDropped(epochMicros);

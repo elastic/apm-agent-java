@@ -114,7 +114,7 @@ import java.util.concurrent.locks.LockSupport;
  * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
  * {@link ActivationEvent} in a given profiling session.
  * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
- * we will {@link JfrParser#getStackTrace(long, boolean, List) resolve the full stack trace}.
+ * we will {@link JfrParser#resolveStackTrace(long, boolean, List) resolve the full stack trace}.
  * </p>
  */
 public class SamplingProfiler implements Runnable, LifecycleListener {
@@ -271,12 +271,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         try {
             String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + jfrFile);
-            logger.info(startMessage);
+            logger.debug(startMessage);
 
             consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
 
             String stopMessage = asyncProfiler.execute("stop");
-            logger.info(stopMessage);
+            logger.debug(stopMessage);
 
             processTraces(jfrFile);
         } catch (InterruptedException e) {
@@ -322,6 +322,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
+        long start = System.nanoTime();
         List<WildcardMatcher> excludedClasses = config.getExcludedClasses();
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         try {
@@ -338,12 +339,15 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 processActivationEventsUpTo(stackTrace.nanoTime, event);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
                 if (root != null) {
-                    jfrParser.getStackTrace(stackTrace.stackTraceId, true, stackFrames);
+                    jfrParser.resolveStackTrace(stackTrace.stackTraceId, true, stackFrames);
                     root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
                 }
                 stackFrames.clear();
             }
         } finally {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Processing traces took {}µs", (System.nanoTime() - start) / 1000);
+            }
             jfrParser.resetState();
         }
     }
@@ -398,9 +402,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
     @Override
     public void start(ElasticApmTracer tracer) {
-        if (config.isProfilingEnabled()) {
-            scheduler.submit(this);
-        }
+        scheduler.submit(this);
     }
 
     @Override
@@ -554,7 +556,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
 
         private void stopProfiling(SamplingProfiler samplingProfiler) {
             CallTree.Root callTree = samplingProfiler.profiledThreads.get(threadId);
-            if (callTree != null && callTree.getTraceContext().traceIdAndIdEquals(traceContextBuffer)) {
+            if (callTree != null && callTree.getRootContext().traceIdAndIdEquals(traceContextBuffer)) {
                 samplingProfiler.profiledThreads.remove(threadId);
                 callTree.end();
                 callTree.removeNodesFasterThan(0.01f, 2);

@@ -44,7 +44,7 @@ class JfrParserTest {
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
         jfrParser.consumeStackTraces((threadId, stackTraceId, nanoTime) -> {
-            jfrParser.getStackTrace(stackTraceId, true, stackFrames);
+            jfrParser.resolveStackTrace(stackTraceId, true, stackFrames);
             if (!stackFrames.isEmpty()) {
                 stackTraces.incrementAndGet();
             }

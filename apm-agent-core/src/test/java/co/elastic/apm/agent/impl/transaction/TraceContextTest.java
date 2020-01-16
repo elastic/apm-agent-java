@@ -208,22 +208,4 @@ class TraceContextTest {
         assertThat(deserialized.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
     }
 
-    @Test
-    void testDeserializationChildOf() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        traceContext.asRootSpan(ConstantSampler.of(true));
-
-        byte[] serializedContext = new byte[TraceContext.SERIALIZED_LENGTH];
-        traceContext.serialize(serializedContext);
-
-        TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        TraceContext.fromSerialized().asChildOf(child, serializedContext, null);
-
-        assertThat(child.getTraceId()).isEqualTo(traceContext.getTraceId());
-        assertThat(child.getTransactionId()).isEqualTo(traceContext.getTransactionId());
-        assertThat(child.getParentId()).isEqualTo(traceContext.getId());
-        assertThat(child.isSampled()).isEqualTo(traceContext.isSampled());
-        assertThat(child.isDiscard()).isEqualTo(traceContext.isDiscard());
-        assertThat(child.getClock().getOffset()).isEqualTo(traceContext.getClock().getOffset());
-    }
 }

@@ -670,7 +670,7 @@ of their duration.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1265,7 +1265,7 @@ The minimal duration of a profiling-inferred span is the same as the value of th
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `20ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============
@@ -1343,7 +1343,7 @@ The interval at which profiling sessions should be started.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `61s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1370,7 +1370,7 @@ They appear in the trace waterfall view like regular spans.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1454,7 +1454,7 @@ WARNING: If timeouts are disabled or set to a high value, your app could experie
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1554,7 +1554,7 @@ NOTE: This value has to be lower than the APM Server's `read_timeout` setting.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1604,7 +1604,7 @@ Set to `0s` to deactivate.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `30s`.
-The default unit for this option is `s`
+The default unit for this option is `s`.
 
 [options="header"]
 |============
@@ -1720,7 +1720,7 @@ To disable stack trace collection for spans completely, set the value to `0ms`.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `5ms`.
-The default unit for this option is `ms`
+The default unit for this option is `ms`.
 
 [options="header"]
 |============

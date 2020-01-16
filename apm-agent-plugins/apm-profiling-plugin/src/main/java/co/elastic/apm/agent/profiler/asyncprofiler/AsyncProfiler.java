@@ -83,6 +83,8 @@ public abstract class AsyncProfiler {
     private static AsyncProfiler newInstance() {
         try {
             return new ByteBuddy()
+                // ClassFileLocator.ForClassLoader.ofBootLoader() can't resolve resources added via Instrumentation.appendToBootstrapClassLoaderSearch
+                // see also https://stackoverflow.com/questions/51347432/why-cant-i-load-resources-which-are-appended-to-the-bootstrap-class-loader-sear
                 .redefine(DirectNativeBinding.class, ClassFileLocator.ForClassLoader.ofSystemLoader())
                 .name("one.profiler.AsyncProfiler")
                 .make()
