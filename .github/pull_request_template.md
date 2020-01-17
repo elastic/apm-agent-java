@@ -27,7 +27,6 @@ List here all the items you have verified BEFORE sending this PR. Please DO NOT 
 <!--
 Update your local repository with the most recent code from the main repo, and rebase your branch on top of the latest master branch. We prefer your initial changes to be squashed into a single commit. Later, if we ask you to make changes, add them as separate commits. This makes them easier to review.
 -->
-- [ ] I have performed a self-review of my own code
 - [ ] I have made corresponding changes to the documentation
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing [**unit** tests](https://github.com/elastic/apm-agent-java/blob/master/CONTRIBUTING.md#testing) pass locally with my changes
