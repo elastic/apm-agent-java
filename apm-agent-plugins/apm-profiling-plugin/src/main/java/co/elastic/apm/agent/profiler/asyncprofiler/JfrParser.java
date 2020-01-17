@@ -85,11 +85,11 @@ public class JfrParser implements Recyclable {
     private List<WildcardMatcher> includedClasses;
 
     /**
-     * Initializes the parser to make it ready for {@link #resolveStackTrace(long, boolean, List)} to be called.
+     * Initializes the parser to make it ready for {@link #resolveStackTrace(long, boolean, List, int)} to be called.
      *
      * @param file            the JFR file to parse
-     * @param excludedClasses Class names to exclude in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List)})
-     * @param includedClasses Class names to include in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List)})
+     * @param excludedClasses Class names to exclude in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List, int)})
+     * @param includedClasses Class names to include in stack traces (has an effect on {@link #resolveStackTrace(long, boolean, List, int)})
      * @throws IOException if some I/O error occurs
      */
     public void parse(File file, List<WildcardMatcher> excludedClasses, List<WildcardMatcher> includedClasses) throws IOException {
@@ -268,7 +268,7 @@ public class JfrParser implements Recyclable {
          * @param threadId     The native thread id for with the event was recorded.
          *                     Note that this is not the same as {@link Thread#getId()}.
          * @param stackTraceId The id of the stack trace event.
-         *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List)}
+         *                     Can be used to resolve the stack trace via {@link #resolveStackTrace(long, boolean, List, int)}
          * @param nanoTime     The timestamp of the event which can be correlated with {@link System#nanoTime()}
          */
         void onCallTree(int threadId, long stackTraceId, long nanoTime);
@@ -280,6 +280,9 @@ public class JfrParser implements Recyclable {
      * Note that his allocates strings for {@link Symbol#resolved} in case a stack frame has not already been resolved for the current JFR file yet.
      * These strings are currently not cached so this can create some GC pressure.
      * </p>
+     * <p>
+     * Excludes frames based on the {@link WildcardMatcher}s supplied to {@link #parse(File, List, List)}.
+     * </p>
      *
      * @param stackTraceId   The id of the stack traced.
      *                       Used to look up the position of the file in which the given stack trace is stored via {@link #stackTraceIdToFilePositions}.
@@ -287,8 +290,11 @@ public class JfrParser implements Recyclable {
      *                       If {@code false}, will also resolve {@code Native}, {@code Kernel} and {@code C++} frames.
      * @param stackFrames    The mutable list where the stack frames are written to.
      *                       Don't forget to {@link List#clear()} the list before calling this method if the list is reused.
+     * @param maxStackDepth  The max size of the stackFrames list (excluded frames don't take up space).
+     *                       In contrast to async-profiler's {@code jstackdepth} argument this does not truncate the bottom of the stack, only the top.
+     *                       This is important to properly create a call tree without making it overly complex.
      */
-    public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames) {
+    public void resolveStackTrace(long stackTraceId, boolean onlyJavaFrames, List<StackFrame> stackFrames, int maxStackDepth) {
         if (buffer == null) {
             throw new IllegalStateException("getStackTrace was called before parse");
         }
@@ -300,18 +306,25 @@ public class JfrParser implements Recyclable {
         buffer.get(); // truncated
         int numFrames = buffer.getInt();
         for (int i = 0; i < numFrames; i++) {
-            long method = buffer.getLong();
+            long frameId = buffer.getLong();
             buffer.getInt(); // bci (always set to 0 by async-profiler)
             byte frameType = buffer.get();
-            if (!onlyJavaFrames || isJavaFrameType(frameType)) {
-                LazyStackFrame lazyStackFrame = framesByFrameId.get(method);
-                if (lazyStackFrame.isIncluded(this)) {
-                    StackFrame stackFrame = lazyStackFrame.resolve(this);
-                    stackFrames.add(stackFrame);
-                }
+            addFrameIfIncluded(stackFrames, onlyJavaFrames, frameId, frameType);
+            if (stackFrames.size() == maxStackDepth) {
+                break;
             }
         }
         setPosition(buffer, position);
+    }
+
+    private void addFrameIfIncluded(List<StackFrame> stackFrames, boolean onlyJavaFrames, long frameId, byte frameType) {
+        if (!onlyJavaFrames || isJavaFrameType(frameType)) {
+            LazyStackFrame lazyStackFrame = framesByFrameId.get(frameId);
+            if (lazyStackFrame.isIncluded(this)) {
+                StackFrame stackFrame = lazyStackFrame.resolve(this);
+                stackFrames.add(stackFrame);
+            }
+        }
     }
 
     private boolean isJavaFrameType(byte frameType) {

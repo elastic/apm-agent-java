@@ -1368,6 +1368,9 @@ For sampled transactions which fall within a profiling session (they start after
 so-called inferred spans will be created.
 They appear in the trace waterfall view like regular spans.
 
+NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
+
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `10s`.
 The default unit for this option is `s`.
@@ -2490,6 +2493,9 @@ The default unit for this option is `ms`.
 # For sampled transactions which fall within a profiling session (they start after and end before the session),
 # so-called inferred spans will be created.
 # They appear in the trace waterfall view like regular spans.
+# 
+# NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+# If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration

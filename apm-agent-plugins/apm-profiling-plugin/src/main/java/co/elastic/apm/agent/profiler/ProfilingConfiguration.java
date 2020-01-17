@@ -117,7 +117,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .description("The duration of a profiling session.\n" +
             "For sampled transactions which fall within a profiling session (they start after and end before the session),\n" +
             "so-called inferred spans will be created.\n" +
-            "They appear in the trace waterfall view like regular spans.")
+            "They appear in the trace waterfall view like regular spans.\n" +
+            "\n" +
+            "NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.\n" +
+            "If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
         .addValidator(RangeValidator.min(TimeDuration.of("1s")))

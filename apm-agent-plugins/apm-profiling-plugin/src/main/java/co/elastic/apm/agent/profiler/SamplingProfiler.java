@@ -114,13 +114,14 @@ import java.util.concurrent.locks.LockSupport;
  * Having said that, there are some optimizations so that the JFR file is not processed at all if there have not been any
  * {@link ActivationEvent} in a given profiling session.
  * Also, only if there's a {@link CallTree.Root} for a {@link StackTraceEvent},
- * we will {@link JfrParser#resolveStackTrace(long, boolean, List) resolve the full stack trace}.
+ * we will {@link JfrParser#resolveStackTrace(long, boolean, List, int) resolve the full stack trace}.
  * </p>
  */
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
     private static final int ACTIVATION_EVENTS_IN_FILE = 100_000;
+    private static final int MAX_STACK_DEPTH = 256;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -213,7 +214,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            return eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
+            boolean success = eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
+            if (!success && logger.isDebugEnabled()) {
+                logger.debug("Could not add activation event to ring buffer as no slots are available");
+            }
+            return success;
         }
         return false;
     }
@@ -231,7 +236,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
-            return eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
+            boolean success = eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
+            if (!success && logger.isDebugEnabled()) {
+                logger.debug("Could not add deactivation event to ring buffer as no slots are available");
+            }
+            return success;
         }
         return false;
     }
@@ -303,6 +312,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 }
                 LockSupport.parkNanos(sleep);
             } else {
+                logger.warn("The activation events file is full. Try lowering the profiling_duration.");
                 // the file is full, sleep the rest of the profilingDuration
                 Thread.sleep(Math.max(0, threshold - System.currentTimeMillis()));
             }
@@ -339,7 +349,10 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 processActivationEventsUpTo(stackTrace.nanoTime, event);
                 CallTree.Root root = profiledThreads.get(stackTrace.threadId);
                 if (root != null) {
-                    jfrParser.resolveStackTrace(stackTrace.stackTraceId, true, stackFrames);
+                    jfrParser.resolveStackTrace(stackTrace.stackTraceId, true, stackFrames, MAX_STACK_DEPTH);
+                    if (stackFrames.size() == MAX_STACK_DEPTH) {
+                        logger.debug("Max stack depth reached. Set profiling_included_classes or profiling_excluded_classes.");
+                    }
                     root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
                 }
                 stackFrames.clear();

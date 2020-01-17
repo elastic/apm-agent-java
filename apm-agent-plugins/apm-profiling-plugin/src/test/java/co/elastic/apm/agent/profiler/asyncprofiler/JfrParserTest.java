@@ -37,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class JfrParserTest {
 
+    private static final int MAX_STACK_DEPTH = 2;
+
     @Test
     void name() throws Exception {
         JfrParser jfrParser = new JfrParser();
@@ -44,9 +46,10 @@ class JfrParserTest {
         AtomicInteger stackTraces = new AtomicInteger();
         ArrayList<StackFrame> stackFrames = new ArrayList<>();
         jfrParser.consumeStackTraces((threadId, stackTraceId, nanoTime) -> {
-            jfrParser.resolveStackTrace(stackTraceId, true, stackFrames);
+            jfrParser.resolveStackTrace(stackTraceId, true, stackFrames, MAX_STACK_DEPTH);
             if (!stackFrames.isEmpty()) {
                 stackTraces.incrementAndGet();
+                assertThat(stackFrames).hasSizeLessThanOrEqualTo(MAX_STACK_DEPTH);
             }
             stackFrames.clear();
         });
