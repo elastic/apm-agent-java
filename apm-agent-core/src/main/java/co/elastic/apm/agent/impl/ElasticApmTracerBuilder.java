@@ -39,6 +39,7 @@ import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.report.ReporterFactory;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
+import co.elastic.apm.agent.util.ExecutorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOptionProvider;
@@ -49,11 +50,13 @@ import org.stagemonitor.configuration.source.EnvironmentVariableConfigurationSou
 import org.stagemonitor.configuration.source.SimpleSource;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ElasticApmTracerBuilder {
@@ -99,16 +102,17 @@ public class ElasticApmTracerBuilder {
 
     public ElasticApmTracer build() {
         boolean addApmServerConfigSource = false;
+        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (configurationRegistry == null) {
             addApmServerConfigSource = true;
             final List<ConfigurationSource> configSources = getConfigSources(agentArguments);
             configurationRegistry = getDefaultConfigurationRegistry(configSources);
+            lifecycleListeners.add(scheduleReloadAtRate(configurationRegistry, 30, TimeUnit.SECONDS));
         }
         final ApmServerClient apmServerClient = new ApmServerClient(configurationRegistry.getConfig(ReporterConfiguration.class));
         final DslJsonSerializer payloadSerializer = new DslJsonSerializer(configurationRegistry.getConfig(StacktraceConfiguration.class), apmServerClient);
         final MetaData metaData = MetaData.create(configurationRegistry, null, null);
         ApmServerConfigurationSource configurationSource = null;
-        List<LifecycleListener> lifecycleListeners = new ArrayList<>();
         if (addApmServerConfigSource) {
             configurationSource = new ApmServerConfigurationSource(payloadSerializer, metaData, apmServerClient);
             configurationRegistry.addConfigurationSource(configurationSource);
@@ -123,6 +127,24 @@ public class ElasticApmTracerBuilder {
         return tracer;
     }
 
+    private LifecycleListener scheduleReloadAtRate(final ConfigurationRegistry configurationRegistry, final int rate, TimeUnit seconds) {
+        final ScheduledThreadPoolExecutor configurationReloader = ExecutorUtils.createSingleThreadSchedulingDeamonPool("configuration-reloader", 1);
+        configurationReloader.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                logger.debug("Beginning scheduled configuration reload (interval is {} sec)...", rate);
+                configurationRegistry.reloadDynamicConfigurationOptions();
+                logger.debug("Finished scheduled configuration reload");
+            }
+        }, rate, rate, seconds);
+        return LifecycleListener.ClosableAdapter.of(new Closeable() {
+            @Override
+            public void close() {
+                configurationReloader.shutdown();
+            }
+        });
+    }
+
     private ConfigurationRegistry getDefaultConfigurationRegistry(List<ConfigurationSource> configSources) {
         try {
             final ConfigurationRegistry configurationRegistry = ConfigurationRegistry.builder()
@@ -130,7 +152,6 @@ public class ElasticApmTracerBuilder {
                 .optionProviders(DependencyInjectingServiceLoader.load(ConfigurationOptionProvider.class))
                 .failOnMissingRequiredValues(true)
                 .build();
-            configurationRegistry.scheduleReloadAtRate(30, TimeUnit.SECONDS);
             return configurationRegistry;
         } catch (IllegalStateException e) {
             logger.warn(e.getMessage());

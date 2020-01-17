@@ -27,6 +27,7 @@ package co.elastic.apm.agent.concurrent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.util.DataStructures;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -55,7 +56,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 public abstract class ExecutorInstrumentation extends ElasticApmInstrumentation {
 
     @VisibleForAdvice
-    public static final WeakConcurrentSet<Executor> excluded = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.THREAD);
+    public static final WeakConcurrentSet<Executor> excluded = DataStructures.createWeakConcurrentSetWithCleanerThread();
     @VisibleForAdvice
     public static final Set<String> excludedClasses = new HashSet<>();
 
