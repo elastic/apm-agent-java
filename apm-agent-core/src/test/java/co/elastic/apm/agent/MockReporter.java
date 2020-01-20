@@ -54,6 +54,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -299,8 +301,8 @@ public class MockReporter implements Reporter {
 
     public void reset() {
         transactions.clear();
-        errors.clear();
         spans.clear();
+        errors.clear();
     }
 
     /**
@@ -313,12 +315,44 @@ public class MockReporter implements Reporter {
         spans.forEach(Span::decrementReferences);
     }
 
+    /**
+     * Decrements transactions and spans reference count and check that they are properly recycled. This method should likely be called
+     * last in the test execution as it destroys any transaction/span that has happened.
+     */
     public void assertRecycledAfterDecrementingReferences() {
-        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isFalse());
-        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isFalse());
-        transactions.forEach(Transaction::decrementReferences);
-        spans.forEach(Span::decrementReferences);
-        transactions.forEach(t -> assertThat(t.getTraceContext().getId().isEmpty()).isTrue());
-        spans.forEach(s -> assertThat(s.getTraceContext().getId().isEmpty()).isTrue());
+
+        Predicate<AbstractSpan<?>> hasEmptyTraceContext = as -> as.getTraceContext().getId().isEmpty();
+
+        List<Transaction> transactionsToFlush = transactions.stream()
+            .filter(hasEmptyTraceContext.negate())
+            .collect(Collectors.toList());
+
+        List<Span> spansToFlush = spans.stream()
+            .filter(hasEmptyTraceContext.negate())
+            .collect(Collectors.toList());
+
+        transactionsToFlush.forEach(Transaction::decrementReferences);
+        spansToFlush.forEach(Span::decrementReferences);
+
+        // after decrement, all transactions and spans should have been recycled
+        transactions.forEach(t -> {
+            assertThat(hasEmptyTraceContext.test(t))
+                .describedAs("should have empty trace context : %s", t)
+                .isTrue();
+            assertThat(t.isReferenced())
+                .describedAs("should not have any reference left, but has %d : %s", t.getReferenceCount(), t)
+                .isFalse();
+        });
+        spans.forEach(s -> {
+            assertThat(hasEmptyTraceContext.test(s))
+                .describedAs("should have empty trace context : %s", s)
+                .isTrue();
+            assertThat(s.isReferenced())
+                .describedAs("should not have any reference left, but has %d : %s", s.getReferenceCount(), s)
+                .isFalse();
+        });
+
+        // errors are recycled directly because they have no reference counter
+        errors.forEach(ErrorCapture::recycle);
     }
 }

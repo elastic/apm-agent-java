@@ -28,6 +28,7 @@ import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Resetter;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
@@ -47,40 +48,38 @@ public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
         T object = tryCreateInstance();
         if (object == null) {
             // pool does not have available instance, falling back to creating a new one
-            garbageCreated.incrementAndGet();
             object = allocator.createInstance();
         }
         return object;
     }
 
     @Override
-    public final void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements) {
-        for (int i = 0; i < maxElements; i++) {
-            T obj = tryCreateInstance();
-            if (obj == null) {
-                return;
-            }
-            otherPool.recycle(obj);
+    public final void recycle(T obj) {
+        resetter.recycle(obj);
+        if (!returnToAvailablePool(obj)) {
+            // when not able to return object to pool, it means this object will be garbage-collected
+            garbageCreated.incrementAndGet();
         }
     }
 
     @Override
-    public final void recycle(T obj) {
-        resetter.recycle(obj);
-        returnToAvailablePool(obj);
+    public final long getGarbageCreated() {
+        return garbageCreated.longValue();
     }
 
     /**
      * Pushes object reference back into the available pooled instances
      *
      * @param obj recycled object to return to pool
+     * @return true if object has been returned to pool, false if pool is already full
      */
-    abstract protected void returnToAvailablePool(T obj);
+    abstract protected boolean returnToAvailablePool(T obj);
 
-    @Override
-    public long getGarbageCreated() {
-        return garbageCreated.longValue();
-    }
-
-
+    /**
+     * Tries to create an instance in pool
+     *
+     * @return {@code null} if pool capacity is exhausted
+     */
+    @Nullable
+    abstract protected T tryCreateInstance();
 }

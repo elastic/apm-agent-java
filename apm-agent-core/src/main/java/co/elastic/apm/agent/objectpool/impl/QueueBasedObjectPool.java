@@ -27,28 +27,37 @@ package co.elastic.apm.agent.objectpool.impl;
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.Resetter;
-import com.lmax.disruptor.EventFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Queue;
 
-public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Collection<T> {
+public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> {
 
     private final Queue<T> queue;
 
     /**
-     * @param queue                   the underlying queue
-     * @param preAllocate             when set to true, the allocator will be used to create maxPooledElements objects
-     *                                which are then stored in the queue
-     * @param allocator a factory method which is used to create new instances of the recyclable object. This factory is
-     *                                used when there are no objects in the queue and to preallocate the queue.
+     * Creates a queue based pooled for types that implement {@link Recyclable}, use {@link #of(Queue, boolean, Allocator, Resetter)}
+     * for other pooled object types.
+     *
+     * @param queue       the underlying queue
+     * @param preAllocate when set to true, queue will be be pre-allocated with object instance.
+     * @param allocator   a factory used to create new instances of the recyclable object. This factory is used when
+     *                    there are no objects in the queue and to preallocate the queue
      */
     public static <T extends Recyclable> QueueBasedObjectPool<T> ofRecyclable(Queue<T> queue, boolean preAllocate, Allocator<T> allocator) {
         return new QueueBasedObjectPool<>(queue, preAllocate, allocator, Resetter.ForRecyclable.<T>get());
     }
 
+    /**
+     * Creates a queue based pooled for types that do not implement {@link Recyclable}, use {@link #ofRecyclable(Queue, boolean, Allocator)}
+     * for types that implement {@link Recyclable}.
+     *
+     * @param queue       the underlying queue
+     * @param preAllocate when set to true, queue will be be pre-allocated with object instances fitting queue size
+     * @param allocator   a factory used to create new instances of the recyclable object. This factory is used when
+     *                    there are no objects in the queue and to preallocate the queue
+     * @param resetter    a reset strategy class
+     */
     public static <T> QueueBasedObjectPool<T> of(Queue<T> queue, boolean preAllocate, Allocator<T> allocator, Resetter<T> resetter) {
         return new QueueBasedObjectPool<>(queue, preAllocate, allocator, resetter);
     }
@@ -57,9 +66,10 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
         super(allocator, resetter);
         this.queue = queue;
         if (preAllocate) {
-            for (int i = 0; i < this.queue.size(); i++) {
-                this.queue.offer(allocator.createInstance());
-            }
+            boolean addMore;
+            do {
+                addMore = queue.offer(allocator.createInstance());
+            } while (addMore);
         }
     }
 
@@ -70,8 +80,8 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
     }
 
     @Override
-    protected void returnToAvailablePool(T obj) {
-        queue.offer(obj);
+    protected boolean returnToAvailablePool(T obj) {
+        return queue.offer(obj);
     }
 
     @Override
@@ -80,94 +90,4 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> implements Co
         return queue.size();
     }
 
-    @Override
-    public void close() {
-        // TODO : do we need to clear queue to avoid any leak ?
-    }
-
-    @Override
-    public int getSize() {
-        return queue.size();
-    }
-
-    @Override
-    public int size() {
-        return queue.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return queue.isEmpty();
-    }
-
-    @Override
-    public boolean contains(Object o) {
-        return queue.contains(o);
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-        return queue.iterator();
-    }
-
-    @Override
-    public Object[] toArray() {
-        return queue.toArray();
-    }
-
-    @Override
-    public <T1> T1[] toArray(T1[] a) {
-        return queue.toArray(a);
-    }
-
-    @Override
-    public boolean add(T t) {
-        return queue.add(t);
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        return queue.remove(o);
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return queue.containsAll(c);
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends T> c) {
-        return queue.addAll(c);
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        return queue.removeAll(c);
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return queue.retainAll(c);
-    }
-
-    @Override
-    public void clear() {
-        queue.clear();
-    }
-
-    private static class PooledObjectHolder<T> {
-        @Nullable
-        T value;
-
-        public void set(T value) {
-            this.value = value;
-        }
-    }
-
-    private static class PooledObjectEventFactory<T> implements EventFactory<PooledObjectHolder<T>> {
-        @Override
-        public PooledObjectHolder<T> newInstance() {
-            return new PooledObjectHolder<>();
-        }
-    }
 }
