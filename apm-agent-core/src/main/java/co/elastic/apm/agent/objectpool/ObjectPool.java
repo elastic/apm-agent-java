@@ -52,7 +52,7 @@ public interface ObjectPool<T> {
     int getObjectsInPool();
 
     /**
-     * @return number of times that pool capacity was exhausted and un-pooled instances have been used
+     * @return number of times that objects could not be returned to the pool because the pool was already full
      */
     long getGarbageCreated();
 }
