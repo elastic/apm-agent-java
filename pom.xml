@@ -244,10 +244,16 @@
                 </plugins>
             </build>
         </profile>
-    </profiles>
-
-    <build>
-        <plugins>
+        <profile>
+          <id>docker</id>
+          <activation>
+            <activeByDefault>false</activeByDefault>
+            <property>
+              <name>buildDocker</name>
+            </property>
+          </activation>
+          <build>
+            <plugins>
             <!-- Attempt to generate artifact for Docker -->
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
@@ -303,6 +309,13 @@
               </executions>
             </plugin>
             <!-- End Docker building -->
+          </plugins>
+          </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
