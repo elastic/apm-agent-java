@@ -97,7 +97,7 @@ public class JfrParser implements Recyclable {
         this.includedClasses = includedClasses;
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             FileChannel channel = raf.getChannel();
-            logger.info("Parsing {} ({} bytes)", file, channel.size());
+            logger.debug("Parsing {} ({} bytes)", file, channel.size());
             if (channel.size() > Integer.MAX_VALUE) {
                 // mapping a file into memory is only possible for chunks of the file which fall into the Integer range (2GB)
                 // that is because MappedByteBuffers are ByteBuffers which only accept ints in position(int pos)
