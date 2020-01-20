@@ -1,0 +1,4 @@
+co.elastic.apm.agent.kafka.KafkaProducerHeadersInstrumentation
+co.elastic.apm.agent.kafka.ConsumerRecordsIteratorInstrumentation
+co.elastic.apm.agent.kafka.ConsumerRecordsRecordsInstrumentation
+co.elastic.apm.agent.kafka.ConsumerRecordsRecordListInstrumentation

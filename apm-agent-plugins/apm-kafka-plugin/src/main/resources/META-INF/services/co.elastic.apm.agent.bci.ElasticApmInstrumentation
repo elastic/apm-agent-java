@@ -1,5 +1,0 @@
-co.elastic.apm.agent.kafka.KafkaProducerInstrumentation
-co.elastic.apm.agent.kafka.KafkaConsumerInstrumentation
-co.elastic.apm.agent.kafka.KafkaConsumerRecordsInstrumentation$IteratorInstrumentation
-co.elastic.apm.agent.kafka.KafkaConsumerRecordsInstrumentation$RecordsInstrumentation
-co.elastic.apm.agent.kafka.KafkaConsumerRecordsInstrumentation$RecordsListInstrumentation
