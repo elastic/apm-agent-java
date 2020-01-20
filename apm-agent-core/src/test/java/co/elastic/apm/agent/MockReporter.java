@@ -26,9 +26,6 @@ package co.elastic.apm.agent;
 
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.error.ErrorPayload;
-import co.elastic.apm.agent.impl.payload.PayloadUtils;
-import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -238,27 +235,6 @@ public class MockReporter implements Reporter {
 
     public synchronized ErrorCapture getFirstError() {
         return errors.iterator().next();
-    }
-
-    /**
-     * @deprecated part of v1 intake protocol
-     */
-    @Deprecated
-    public String generateTransactionPayloadJson() {
-        TransactionPayload payload = PayloadUtils.createTransactionPayload();
-        payload.getTransactions().addAll(transactions);
-        payload.getSpans().addAll(spans);
-        return dslJsonSerializer.toJsonString(payload);
-    }
-
-    /**
-     * @deprecated part of v1 intake protocol
-     */
-    @Deprecated
-    public String generateErrorPayloadJson() {
-        ErrorPayload errorPayload = PayloadUtils.createErrorPayload();
-        errorPayload.getErrors().addAll(errors);
-        return dslJsonSerializer.toJsonString(errorPayload);
     }
 
     @Override

@@ -26,6 +26,8 @@ package co.elastic.apm.agent.context;
 
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 
+import java.io.Closeable;
+
 /**
  * A {@link LifecycleListener} notifies about the start and stop event of the {@link ElasticApmTracer}.
  * <p>
@@ -58,4 +60,27 @@ public interface LifecycleListener {
      * @throws Exception When something goes wrong performing the cleanup.
      */
     void stop() throws Exception;
+
+    class ClosableAdapter implements LifecycleListener {
+
+        private final Closeable closeable;
+
+        public static LifecycleListener of(Closeable closeable) {
+            return new ClosableAdapter(closeable);
+        }
+
+        private ClosableAdapter(Closeable closeable) {
+            this.closeable = closeable;
+        }
+
+        @Override
+        public void start(ElasticApmTracer tracer) {
+
+        }
+
+        @Override
+        public void stop() throws Exception {
+            closeable.close();
+        }
+    }
 }

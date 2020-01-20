@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -22,31 +22,16 @@
  * under the License.
  * #L%
  */
-package co.elastic.apm.servlet;
+package co.elastic.apm.agent.util;
 
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import org.mockserver.client.MockServerClient;
-import org.testcontainers.containers.GenericContainer;
+public final class ThreadUtils {
 
-/**
- * Acts as a mock for the APM-server.
- */
-public class MockServerContainer extends GenericContainer<MockServerContainer> {
+    private static final String ELASTIC_APM_THREAD_PREFIX = "elastic-apm-";
 
-    private MockServerClient client;
-
-    public MockServerContainer() {
-        super("jamesdbloom/mockserver:mockserver-5.4.1");
-        addExposedPorts(1080);
+    private ThreadUtils() {
     }
 
-    @Override
-    protected void containerIsStarted(InspectContainerResponse containerInfo) {
-        super.containerIsStarted(containerInfo);
-        client = new MockServerClient(getContainerIpAddress(), getFirstMappedPort());
-    }
-
-    public MockServerClient getClient() {
-        return client;
+    public static String addElasticApmThreadPrefix(String purpose) {
+        return ELASTIC_APM_THREAD_PREFIX + purpose;
     }
 }

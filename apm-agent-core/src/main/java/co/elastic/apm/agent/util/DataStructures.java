@@ -25,6 +25,9 @@
 package co.elastic.apm.agent.util;
 
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
+import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataStructures {
 
@@ -42,7 +45,15 @@ public class DataStructures {
      */
     public static <K, V> WeakConcurrentMap<K, V> createWeakConcurrentMapWithCleanerThread() {
         WeakConcurrentMap<K, V> map = new WeakConcurrentMap<>(true);
+        map.getCleanerThread().setName(ThreadUtils.addElasticApmThreadPrefix(map.getCleanerThread().getName()));
         map.getCleanerThread().setContextClassLoader(null);
         return map;
     }
+
+    public static <V> WeakConcurrentSet<V> createWeakConcurrentSetWithCleanerThread() {
+        WeakConcurrentSet<V> set = new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.THREAD);
+        set.getCleanerThread().setName(ThreadUtils.addElasticApmThreadPrefix(set.getCleanerThread().getName()));
+        return set;
+    }
+
 }
