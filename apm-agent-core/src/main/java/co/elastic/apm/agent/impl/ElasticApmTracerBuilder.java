@@ -107,7 +107,7 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
-    public ElasticApmTracerBuilder withLifecycleListener(LifecycleListener listener){
+    public ElasticApmTracerBuilder withLifecycleListener(LifecycleListener listener) {
         this.extraLifecycleListeners.add(listener);
         return this;
     }
