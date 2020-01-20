@@ -248,6 +248,61 @@
 
     <build>
         <plugins>
+            <!-- Attempt to generate artifact for Docker -->
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-dependency-plugin</artifactId>
+              <executions>
+                <execution>
+                  <goals>
+                    <goal>copy</goal>
+                  </goals>
+                  <phase>prepare-package</phase>
+                  <configuration>
+                    <artifactItems>
+                      <artifactItem>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>apm-agent-java</artifactId>
+                        <version>0.1.2</version>
+                        <overWrite>true</overWrite>
+                        <outputDirectory>target/dependency</outputDirectory>
+                        <destFileName>apm-agent-java.jar</destFileName>
+                      </artifactItem>
+                    </artifactItems>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <!-- End artifact gathering -->
+            <!-- Begin Docker building -->
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>exec-maven-plugin</artifactId>
+              <version>1.6.0</version>
+              <inherited>false</inherited>
+              <executions>
+                <execution>
+                  <id>docker-package</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>exec</goal>
+                  </goals>
+                  <configuration>
+                    <executable>docker</executable>
+                    <workingDirectory>${project.basedir}</workingDirectory>
+                    <arguments>
+                      <argument>build</argument>
+                      <argument>.</argument>
+                      <argument>-t</argument>
+                      <argument>${project.groupId}/apm-agent-java:${project.version}</argument>
+                      <argument>--build-arg</argument>
+                      <argument>JAR_FILE=target/dependency/apm-agent-java.jar</argument>
+                    </arguments>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <!-- End Docker building -->
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
