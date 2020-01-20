@@ -102,7 +102,7 @@ public class ElasticApmTracerBuilder {
         return this;
     }
 
-    public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactory objectPoolFactory){
+    public ElasticApmTracerBuilder withObjectPoolFactory(ObjectPoolFactory objectPoolFactory) {
         this.objectPoolFactory = objectPoolFactory;
         return this;
     }
