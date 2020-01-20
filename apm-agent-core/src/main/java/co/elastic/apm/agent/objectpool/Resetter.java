@@ -25,7 +25,7 @@
 package co.elastic.apm.agent.objectpool;
 
 /**
- * Defines resetter that is responsible to reset pooled object state
+ * Defines reset strategy to use for a given pooled object type when they are returned to pool
  *
  * @param <T> pooled object type
  */
