@@ -80,7 +80,7 @@ public class QueueBasedObjectPool<T> extends AbstractObjectPool<T> {
     }
 
     @Override
-    protected boolean returnToAvailablePool(T obj) {
+    protected boolean returnToPool(T obj) {
         return queue.offer(obj);
     }
 

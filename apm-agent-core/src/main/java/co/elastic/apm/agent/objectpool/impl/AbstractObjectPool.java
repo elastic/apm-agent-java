@@ -56,7 +56,7 @@ public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
     @Override
     public final void recycle(T obj) {
         resetter.recycle(obj);
-        if (!returnToAvailablePool(obj)) {
+        if (!returnToPool(obj)) {
             // when not able to return object to pool, it means this object will be garbage-collected
             garbageCreated.incrementAndGet();
         }
@@ -73,7 +73,7 @@ public abstract class AbstractObjectPool<T> implements ObjectPool<T> {
      * @param obj recycled object to return to pool
      * @return true if object has been returned to pool, false if pool is already full
      */
-    abstract protected boolean returnToAvailablePool(T obj);
+    abstract protected boolean returnToPool(T obj);
 
     /**
      * Tries to create an instance in pool

@@ -50,20 +50,13 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     }
 
     @Override
-    protected boolean returnToAvailablePool(T obj) {
+    protected boolean returnToPool(T obj) {
         return getStack().push(obj);
     }
 
     @Override
     public int getObjectsInPool() {
         return getStack().size();
-    }
-
-    @Override
-    public void close() {
-        // only removes the entry of the current thread
-        // this could lead to class loader leaks
-        objectPool.remove();
     }
 
     private FixedSizeStack<T> getStack() {

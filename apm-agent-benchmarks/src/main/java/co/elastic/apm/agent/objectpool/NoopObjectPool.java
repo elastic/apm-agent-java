@@ -48,7 +48,7 @@ public class NoopObjectPool<T> extends AbstractObjectPool<T> {
     }
 
     @Override
-    protected boolean returnToAvailablePool(T obj) {
+    protected boolean returnToPool(T obj) {
         return false;
     }
 
