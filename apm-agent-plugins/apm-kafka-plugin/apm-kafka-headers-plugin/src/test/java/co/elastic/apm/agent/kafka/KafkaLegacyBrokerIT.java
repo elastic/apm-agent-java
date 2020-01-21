@@ -30,6 +30,7 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
+import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -52,6 +53,7 @@ import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +65,8 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 /**
+ * Tests newer client with a 0.10.2.2 version
+ * <p>
  * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
  * 1.  reduce waits to a minimum within tests
  * 2.  test both consumer instrumentation functionalities:
@@ -70,7 +74,7 @@ import static org.mockito.Mockito.when;
  * b.  the creation of consumer transaction- one per consumed record
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
-public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
+public class KafkaLegacyBrokerIT extends AbstractInstrumentationTest {
 
     static final String REQUEST_TOPIC = UUID.randomUUID().toString();
     static final String REPLY_TOPIC = UUID.randomUUID().toString();
@@ -80,7 +84,6 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     public static final String SECOND_MESSAGE_VALUE = "Second message body";
 
     private static KafkaContainer kafka;
-    private static int kafkaPort;
     private static String bootstrapServers;
     private static Consumer consumerThread;
     private static KafkaConsumer<String, String> replyConsumer;
@@ -91,18 +94,19 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     private TestScenario testScenario;
 
-    public KafkaLegacyClientIT() {
+    public KafkaLegacyBrokerIT() {
         this.coreConfiguration = config.getConfig(CoreConfiguration.class);
         this.messagingConfiguration = config.getConfig(MessagingConfiguration.class);
     }
 
     @BeforeClass
     public static void setup() {
-        // confluent versions 5.3.x correspond Kafka versions 2.3.x -
+        reporter.disableDestinationAddressCheck();
+
+        // confluent versions 3.2.x correspond Kafka versions 0.10.2.2 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
-        kafka = new KafkaContainer("5.3.0");
+        kafka = new KafkaContainer("3.2.2");
         kafka.start();
-        kafkaPort = kafka.getMappedPort(KafkaContainer.KAFKA_PORT);
         bootstrapServers = kafka.getBootstrapServers();
         consumerThread = new Consumer();
         consumerThread.start();
@@ -214,23 +218,6 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     }
 
     @Test
-    public void testHeaderCaptureDisabled() {
-        when(coreConfiguration.isCaptureHeaders()).thenReturn(false);
-        testScenario = TestScenario.HEADERS_CAPTURE_DISABLED;
-        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
-    }
-
-    @Test
-    public void testHeaderSanitation() {
-        testScenario = TestScenario.SANITIZED_HEADER;
-        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
-        sendTwoRecordsAndConsumeReplies();
-        verifyTracing();
-    }
-
-    @Test
     public void testDestinationAddressCollectionDisabled() {
         when(messagingConfiguration.shouldCollectQueueAddress()).thenReturn(false);
         testScenario = TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED;
@@ -255,6 +242,33 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         assertThat(transactions).isEmpty();
     }
 
+    @Test
+    public void testTransactionCreationWithoutContext() {
+        testScenario = TestScenario.NO_CONTEXT_PROPAGATION;
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        //noinspection ConstantConditions
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+
+        // Send without context
+        sendTwoRecordsAndConsumeReplies();
+
+        // We expect two transactions from records read from the request topic, each creating a send span as well.
+        // In addition we expect two transactions from the main test thread, iterating over reply messages.
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).hasSize(2);
+        Span sendSpan1 = spans.get(0);
+        verifySendSpanContents(sendSpan1, REPLY_TOPIC);
+        Span sendSpan2 = spans.get(1);
+        verifySendSpanContents(sendSpan2, REPLY_TOPIC);
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).hasSize(4);
+        verifyKafkaTransactionContents(transactions.get(0), null, null, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(1), null, null, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(2), sendSpan1, null, REPLY_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
+    }
+
     private void sendTwoRecordsAndConsumeReplies() {
         final StringBuilder callback = new StringBuilder();
         ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, 0, REQUEST_KEY, FIRST_MESSAGE_VALUE);
@@ -262,8 +276,11 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         producer.send(record1);
         producer.send(record2, (metadata, exception) -> callback.append("done"));
         if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
-            await().atMost(2000, MILLISECONDS).until(() -> reporter.getSpans().size() == 2);
+            await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
+            int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
+            await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
         }
+        //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
         assertThat(callback).isNotEmpty();
         assertThat(replies.count()).isEqualTo(2);
@@ -276,17 +293,23 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     private void verifyTracing() {
         List<Span> spans = reporter.getSpans();
-        // we expect two send spans to request topic and one poll span from reply topic
-        assertThat(spans).hasSize(3);
+        // we expect two send spans to request topic, two send spans to reply topic and one poll span from reply topic
+        assertThat(spans).hasSize(5);
         Span sendRequestSpan0 = spans.get(0);
-        verifySendSpanContents(sendRequestSpan0);
+        verifySendSpanContents(sendRequestSpan0, REQUEST_TOPIC);
         Span sendRequestSpan1 = spans.get(1);
-        verifySendSpanContents(sendRequestSpan1);
+        verifySendSpanContents(sendRequestSpan1, REQUEST_TOPIC);
+        Span sendReplySpan0 = spans.get(2);
+        verifySendSpanContents(sendReplySpan0, REPLY_TOPIC);
+        Span sendReplySpan1 = spans.get(3);
+        verifySendSpanContents(sendReplySpan1, REPLY_TOPIC);
 
         List<Transaction> transactions = reporter.getTransactions();
-        assertThat(transactions).isEmpty();
+        assertThat(transactions).hasSize(2);
+        verifyKafkaTransactionContents(transactions.get(0), sendRequestSpan0, FIRST_MESSAGE_VALUE, REQUEST_TOPIC);
+        verifyKafkaTransactionContents(transactions.get(1), sendRequestSpan1, SECOND_MESSAGE_VALUE, REQUEST_TOPIC);
 
-        Span pollSpan = spans.get(2);
+        Span pollSpan = spans.get(4);
         verifyPollSpanContents(pollSpan);
     }
 
@@ -301,38 +324,52 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
         assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
-    private void verifySendSpanContents(Span sendSpan) {
+    private void verifySendSpanContents(Span sendSpan, String topicName) {
         assertThat(sendSpan.getType()).isEqualTo("messaging");
         assertThat(sendSpan.getSubtype()).isEqualTo("kafka");
         assertThat(sendSpan.getAction()).isEqualTo("send");
-        assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + REQUEST_TOPIC);
+        assertThat(sendSpan.getNameAsString()).isEqualTo("KafkaProducer#send to " + topicName);
         SpanContext context = sendSpan.getContext();
         Message message = context.getMessage();
-        assertThat(message.getQueueName()).isEqualTo(REQUEST_TOPIC);
-        Destination destination = context.getDestination();
-        if (testScenario != TestScenario.TOPIC_ADDRESS_COLLECTION_DISABLED) {
-            assertThat(destination.getPort()).isEqualTo(kafkaPort);
-            assertThat(destination.getAddress().toString()).isEqualTo(kafka.getContainerIpAddress());
-        } else {
-            assertThat(destination.getPort()).isEqualTo(0);
-            assertThat(destination.getAddress().toString()).isEmpty();
-        }
-        Destination.Service service = destination.getService();
+        assertThat(message.getQueueName()).isEqualTo(topicName);
+        Destination.Service service = context.getDestination().getService();
         assertThat(service.getType()).isEqualTo("messaging");
-        assertThat(service.getResource().toString()).isEqualTo("kafka/" + REQUEST_TOPIC);
+        assertThat(service.getResource().toString()).isEqualTo("kafka/" + topicName);
         assertThat(service.getName().toString()).isEqualTo("kafka");
     }
 
+    private void verifyKafkaTransactionContents(Transaction transaction, @Nullable Span parentSpan,
+                                                @Nullable String messageValue, String topic) {
+        assertThat(transaction.getType()).isEqualTo("messaging");
+        assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + topic);
+        TraceContext traceContext = transaction.getTraceContext();
+        if (parentSpan != null) {
+            assertThat(traceContext.getTraceId()).isNotEqualTo(parentSpan.getTraceContext().getTraceId());
+            assertThat(traceContext.getParentId()).isNotEqualTo(parentSpan.getTraceContext().getId());
+        }
+        TransactionContext transactionContext = transaction.getContext();
+        Message message = transactionContext.getMessage();
+        assertThat(message.getAge()).isGreaterThanOrEqualTo(0);
+        assertThat(message.getQueueName()).isEqualTo(topic);
+        if (testScenario == TestScenario.BODY_CAPTURE_ENABLED && messageValue != null) {
+            String messageBody = "key=" + REQUEST_KEY + "; value=" + messageValue;
+            StringBuilder body = message.getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(messageBody).isEqualTo(body.toString());
+        } else {
+            assertThat(message.getBodyForRead()).isNull();
+        }
+    }
 
     static KafkaConsumer<String, String> createKafkaConsumer() {
         return new KafkaConsumer<>(
-                ImmutableMap.of(
-                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
-                        ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),
-                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
-                ),
-                new StringDeserializer(),
-                new StringDeserializer()
+            ImmutableMap.of(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+            ),
+            new StringDeserializer(),
+            new StringDeserializer()
         );
     }
 
@@ -361,6 +398,7 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
             kafkaConsumer.subscribe(Collections.singletonList(REQUEST_TOPIC));
             while (running) {
                 try {
+                    //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
                     if (records != null && !records.isEmpty()) {
                         // Can't use switch because we run this test in a dedicated class loader, where the anonymous
@@ -428,9 +466,8 @@ public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
     enum TestScenario {
         NORMAL,
         BODY_CAPTURE_ENABLED,
-        HEADERS_CAPTURE_DISABLED,
-        SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
+        NO_CONTEXT_PROPAGATION,
         TOPIC_ADDRESS_COLLECTION_DISABLED
     }
 

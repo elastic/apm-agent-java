@@ -27,12 +27,16 @@ package co.elastic.apm.agent.kafka.helper;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
 
 @SuppressWarnings("rawtypes")
 public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> {
+
+    public static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHeadersHelperImpl.class);
 
     private final ElasticApmTracer tracer;
 
@@ -42,16 +46,31 @@ public class KafkaInstrumentationHeadersHelperImpl implements KafkaInstrumentati
 
     @Override
     public Iterator<ConsumerRecord> wrapConsumerRecordIterator(Iterator<ConsumerRecord> consumerRecordIterator) {
-        return new ConsumerRecordsIteratorWrapper(consumerRecordIterator, tracer);
+        try {
+            return new ConsumerRecordsIteratorWrapper(consumerRecordIterator, tracer);
+        } catch (Throwable throwable) {
+            logger.debug("Failed to wrap Kafka ConsumerRecords iterator", throwable);
+            return consumerRecordIterator;
+        }
     }
 
     @Override
     public Iterable<ConsumerRecord> wrapConsumerRecordIterable(Iterable<ConsumerRecord> consumerRecordIterable) {
-        return new ConsumerRecordsIterableWrapper(consumerRecordIterable, tracer);
+        try {
+            return new ConsumerRecordsIterableWrapper(consumerRecordIterable, tracer);
+        } catch (Throwable throwable) {
+            logger.debug("Failed to wrap Kafka ConsumerRecords", throwable);
+            return consumerRecordIterable;
+        }
     }
 
     @Override
     public List<ConsumerRecord> wrapConsumerRecordList(List<ConsumerRecord> consumerRecordList) {
-        return new ConsumerRecordsListWrapper(consumerRecordList, tracer);
+        try {
+            return new ConsumerRecordsListWrapper(consumerRecordList, tracer);
+        } catch (Throwable throwable) {
+            logger.debug("Failed to wrap Kafka ConsumerRecords list", throwable);
+            return consumerRecordList;
+        }
     }
 }

@@ -110,7 +110,12 @@ public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelpe
             // don't wrap twice
             return callback;
         }
-        return callbackWrapperObjectPool.createInstance().wrap(callback, span);
+        try {
+            return callbackWrapperObjectPool.createInstance().wrap(callback, span);
+        } catch (Throwable throwable) {
+            logger.debug("Failed to wrap Kafka send callback", throwable);
+            return callback;
+        }
     }
 
     void recycle(CallbackWrapper callbackWrapper) {
@@ -118,7 +123,7 @@ public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelpe
     }
 
     @Override
-    public void onSendEnd(Span span, ProducerRecord producerRecord, KafkaProducer kafkaProducer, Throwable throwable) {
+    public void onSendEnd(Span span, ProducerRecord producerRecord, KafkaProducer kafkaProducer, @Nullable Throwable throwable) {
 
         // Topic address collection is normally very fast, as it uses cached cluster state information. However,
         // when the cluster metadata is required to be updated, its query may block for a short period. In

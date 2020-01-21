@@ -107,7 +107,7 @@ public class KafkaIT extends AbstractInstrumentationTest {
 
     @BeforeClass
     public static void setup() {
-        // confluent versions 5.3.x correspond Kafka versions 2.3.x -
+        // confluent versions 5.3.0 correspond Kafka versions 2.3.0 -
         // https://docs.confluent.io/current/installation/versions-interoperability.html#cp-and-apache-ak-compatibility
         kafka = new KafkaContainer("5.3.0");
         kafka.start();

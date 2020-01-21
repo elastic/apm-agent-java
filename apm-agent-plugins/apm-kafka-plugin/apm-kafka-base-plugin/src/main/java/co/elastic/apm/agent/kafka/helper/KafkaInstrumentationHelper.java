@@ -35,7 +35,8 @@ public interface KafkaInstrumentationHelper<C, PR, P> {
     @Nullable
     Span onSendStart(PR producerRecord);
 
+    @Nullable
     C wrapCallback(@Nullable C callback, Span span);
 
-    void onSendEnd(Span span, PR producerRecord, P kafkaProducer, Throwable throwable);
+    void onSendEnd(Span span, PR producerRecord, P kafkaProducer, @Nullable Throwable throwable);
 }

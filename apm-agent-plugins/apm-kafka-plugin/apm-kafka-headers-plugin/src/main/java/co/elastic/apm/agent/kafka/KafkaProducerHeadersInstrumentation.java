@@ -52,6 +52,9 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
     @SuppressWarnings("WeakerAccess")
     public static final Logger logger = LoggerFactory.getLogger(KafkaProducerInstrumentation.class);
 
+    @VisibleForAdvice
+    public static boolean headersSupported = true;
+
     public KafkaProducerHeadersInstrumentation(ElasticApmTracer tracer) {
         super(tracer);
     }
@@ -98,7 +101,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
 
             // Avoid adding headers to records sent to a version older than 0.11.0 - see specifications in
             // https://kafka.apache.org/0110/documentation.html#messageformat
-            if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2) {
+            if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
                 try {
                     record.headers().add(TraceContext.TRACE_PARENT_HEADER,
                         span.getTraceContext().getOutgoingTraceParentBinaryHeader());
@@ -114,16 +117,31 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
         }
 
         @SuppressWarnings("unused")
-        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
-        public static void afterSend(@Advice.Enter @Nullable final Span span,
-                                     @Advice.Argument(0) final ProducerRecord record,
-                                     @Advice.This final KafkaProducer thiz,
-                                     @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper,
-                                     @Advice.Thrown final Throwable throwable) {
+        @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, repeatOn = Advice.OnNonDefaultValue.class)
+        public static boolean afterSend(@Advice.Enter(readOnly = false) @Nullable Span span,
+                                        @Advice.Argument(value = 0, readOnly = false) ProducerRecord record,
+                                        @Advice.This final KafkaProducer thiz,
+                                        @Advice.Local("helper") @Nullable KafkaInstrumentationHelper<Callback, ProducerRecord, KafkaProducer> helper,
+                                        @Advice.Thrown @Nullable final Throwable throwable) {
 
+            if (throwable != null && throwable.getMessage().contains("Magic v1 does not support record headers")) {
+                // Probably our fault - ignore span and retry. May happen when using a new client with an old (< 0.11.0)
+                // broker. In such cases we DO check the version, but the first version check may be not yet up to date.
+                if (span != null) {
+                    //noinspection unchecked
+                    record = new ProducerRecord(record.topic(), record.partition(), record.timestamp(),
+                        record.key(), record.value(), record.headers());
+                    record.headers().remove(TraceContext.TRACE_PARENT_HEADER);
+                    span.deactivate();
+                    span = null;
+                    headersSupported = false;
+                    return true;
+                }
+            }
             if (helper != null && span != null) {
                 helper.onSendEnd(span, record, thiz, throwable);
             }
+            return false;
         }
     }
 }
