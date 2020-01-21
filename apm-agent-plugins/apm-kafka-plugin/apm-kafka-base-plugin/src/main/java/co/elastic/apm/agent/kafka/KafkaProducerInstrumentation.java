@@ -38,6 +38,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import javax.annotation.Nullable;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -60,7 +61,9 @@ public class KafkaProducerInstrumentation extends BaseKafkaInstrumentation {
 
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
-        return named("doSend").and(takesArgument(0, named("org.apache.kafka.clients.producer.ProducerRecord")));
+        return isPublic().and(named("send"))
+            .and(takesArgument(0, named("org.apache.kafka.clients.producer.ProducerRecord")))
+            .and(takesArgument(1, named("org.apache.kafka.clients.producer.Callback")));
     }
 
     @Override

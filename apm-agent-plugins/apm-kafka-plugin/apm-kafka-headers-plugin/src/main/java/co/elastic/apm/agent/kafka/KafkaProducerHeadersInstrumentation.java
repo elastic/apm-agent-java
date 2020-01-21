@@ -128,6 +128,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                 // Probably our fault - ignore span and retry. May happen when using a new client with an old (< 0.11.0)
                 // broker. In such cases we DO check the version, but the first version check may be not yet up to date.
                 if (span != null) {
+                    logger.info("Adding header to Kafka record is not allowed with the used broker, attempting to resend record");
                     //noinspection unchecked
                     record = new ProducerRecord(record.topic(), record.partition(), record.timestamp(),
                         record.key(), record.value(), record.headers());
