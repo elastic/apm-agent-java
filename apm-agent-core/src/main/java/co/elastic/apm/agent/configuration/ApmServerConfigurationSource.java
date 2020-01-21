@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -106,7 +105,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
 
     @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("apm-remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
