@@ -66,7 +66,8 @@ public class MockTracer {
         return new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
-            // use testing bookkeeper implementation here so we will
+            // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
+            // is left behind
             .withObjectPoolFactory(objectPoolFactory)
             .withLifecycleListener(new LifecycleListener() {
                 @Override
