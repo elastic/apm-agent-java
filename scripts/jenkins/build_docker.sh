@@ -18,7 +18,7 @@ GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
 readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
 
 echo "INFO: Downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
-curl -L  -o apm-agent-java.jar "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
+curl -L -s -o apm-agent-java.jar "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
 
 echo "INFO: Starting Docker build for version $GIT_TAG"
 
