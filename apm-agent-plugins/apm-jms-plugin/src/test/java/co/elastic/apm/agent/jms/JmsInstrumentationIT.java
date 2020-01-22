@@ -390,7 +390,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     private void verifySendListenOnNonTracedThread(String destinationName, TextMessage message, int expectedReadTransactions) throws JMSException {
-        await().atMost(500, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
+        await().atMost(1000, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);

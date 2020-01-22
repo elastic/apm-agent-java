@@ -32,6 +32,7 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.ApmServerClient;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,13 +48,19 @@ class JmxMetricTrackerTest {
 
     private MetricRegistry metricRegistry;
     private JmxConfiguration config;
+    private ElasticApmTracer tracer;
 
     @BeforeEach
     void setUp() {
-        ElasticApmTracer tracer = MockTracer.createRealTracer();
+        tracer = MockTracer.createRealTracer();
         metricRegistry = tracer.getMetricRegistry();
         config = tracer.getConfig(JmxConfiguration.class);
         tracer.getLifecycleListener(JmxMetricTracker.class).init(ManagementFactory.getPlatformMBeanServer());
+    }
+
+    @AfterEach
+    void cleanup(){
+        tracer.stop();
     }
 
     @Test
