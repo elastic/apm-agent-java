@@ -14,7 +14,8 @@ set -euxo pipefail
 #FIXME DRY between Docker scripts
 echo "INFO: Fetching latest tag"
 #TODO Move this into apm-pipeline-library
-readonly CUR_TAG=`git describe --abbrev=0|sed s/^v//`
+CUR_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
+readonly CUR_TAG=${CUR_TAG:-$CUR_TAG_DEFAULT}
 
 # 2. Construct the image:tag that we are working with
 # This is roughly <repo>/<namespace>/image
