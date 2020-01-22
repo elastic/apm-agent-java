@@ -14,7 +14,8 @@ fi
 
 echo "INFO: Fetching latest tag"
 #TODO Move this into apm-pipeline-library
-readonly GIT_TAG=`git describe --abbrev=0|sed s/^v//`
+GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
+readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
 
 echo "INFO: Downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
 curl -L  -o apm-agent-java.jar "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
