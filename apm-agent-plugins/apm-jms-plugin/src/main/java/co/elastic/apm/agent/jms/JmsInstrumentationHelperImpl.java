@@ -71,7 +71,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     public Span startJmsSendSpan(Destination destination, Message message) {
 
         final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
+        if (activeSpan == null) {
             return null;
         }
 
@@ -97,8 +97,8 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
+            message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
             if (span.isSampled()) {
-                message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
                 span.getContext().getDestination().getService()
                     .withName("jms")
                     .withResource("jms")

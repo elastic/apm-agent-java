@@ -209,6 +209,20 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     }
 
     @Test
+    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
+        final Queue queue = createTestQueue();
+        Transaction currentTransaction = tracer.currentTransaction();
+        //noinspection ConstantConditions
+        currentTransaction.getTraceContext().setSampled(false);
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+        Transaction receiveTransaction = reporter.getFirstTransaction(500);
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
+        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTransaction.getTraceContext().getTraceId());
+        assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
+    }
+
+    @Test
     public void testQueueSendReceiveOnNonTracedThreadInActive() throws Exception {
         when(coreConfiguration.isActive()).thenReturn(false);
         final Queue queue = createTestQueue();
@@ -386,7 +400,10 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        //noinspection ConstantConditions
+        if (tracer.currentTransaction().isSampled()) {
+            verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        }
     }
 
     private void verifySendListenOnNonTracedThread(String destinationName, TextMessage message, int expectedReadTransactions) throws JMSException {
