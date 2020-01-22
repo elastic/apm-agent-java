@@ -258,7 +258,6 @@ If you have access to make releases, the process is as follows:
    1. Tags this new commit with the version name, e.g. `v1.1.0`
    1. Advances the version for next development iteration and makes a commit
    1. Uploads artifacts to maven central
-   1. (Optional) If the `push_docker` parameter is set, build and push a Docker image for this release to the docker.elastic.co repo.
 1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
 1. Fetch and checkout the latest tag e.g. `git fetch origin`
 1. If this was a major release,
