@@ -86,7 +86,7 @@ public class KafkaInstrumentationHelperImpl implements KafkaInstrumentationHelpe
         }
 
         final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
+        if (activeSpan == null) {
             return null;
         }
 

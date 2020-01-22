@@ -32,6 +32,7 @@ endif::[]
 * Add instrumentation for external process execution through `java.lang.Process` and Apache `commons-exec` - {pull}903[#903]
 * Add `destination` fields to exit span contexts - {pull}976[#976]
 * Removed `context.message.topic.name` field. - {pull}993[#993]
+* Add Kafka support, currently marked as `incubating` (off by default), until binary traceparent header is implemented - {pull}981[#981]
 
 [float]
 ===== Bug Fixes

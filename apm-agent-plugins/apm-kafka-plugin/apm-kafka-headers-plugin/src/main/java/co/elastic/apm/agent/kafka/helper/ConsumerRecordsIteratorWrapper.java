@@ -98,7 +98,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
                     message.withAge(System.currentTimeMillis() - record.timestamp());
                 }
 
-                if (coreConfiguration.isCaptureHeaders()) {
+                if (transaction.isSampled() && coreConfiguration.isCaptureHeaders()) {
                     for (Header header : record.headers()) {
                         String key = header.key();
                         if (!TraceContext.TRACE_PARENT_HEADER.equals(key) &&
@@ -108,7 +108,7 @@ class ConsumerRecordsIteratorWrapper implements Iterator<ConsumerRecord> {
                     }
                 }
 
-                if (coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
+                if (transaction.isSampled() && coreConfiguration.getCaptureBody() != CoreConfiguration.EventType.OFF) {
                     message.appendToBody("key=").appendToBody(String.valueOf(record.key())).appendToBody("; ")
                         .appendToBody("value=").appendToBody(String.valueOf(record.value()));
                 }

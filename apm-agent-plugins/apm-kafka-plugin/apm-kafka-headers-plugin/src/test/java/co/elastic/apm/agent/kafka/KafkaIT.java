@@ -78,8 +78,8 @@ import static org.mockito.Mockito.when;
 @Ignore
 public class KafkaIT extends AbstractInstrumentationTest {
 
-    static final String REQUEST_TOPIC = UUID.randomUUID().toString();
-    static final String REPLY_TOPIC = UUID.randomUUID().toString();
+    static final String REQUEST_TOPIC = "Request-Topic";
+    static final String REPLY_TOPIC = "Reply-Topic";
     static final String REQUEST_KEY = "request-key";
     static final String REPLY_KEY = "response-key";
     public static final String FIRST_MESSAGE_VALUE = "First message body";
@@ -291,6 +291,27 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
     }
 
+    @Test
+    public void testSendTwoRecords_TransactionNotSampled() {
+        testScenario = TestScenario.NON_SAMPLED_TRANSACTION;
+        //noinspection ConstantConditions
+        tracer.currentTransaction().getTraceContext().setSampled(false);
+        consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
+        sendTwoRecordsAndConsumeReplies();
+
+        // We expect no spans and two transactions (not sampled)
+        List<Span> spans = reporter.getSpans();
+        assertThat(spans).isEmpty();
+        List<Transaction> transactions = reporter.getTransactions();
+        assertThat(transactions).hasSize(2);
+        Transaction transaction1 = transactions.get(0);
+        assertThat(transaction1.getType()).isEqualTo("messaging");
+        assertThat(transaction1.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
+        Transaction transaction2 = transactions.get(1);
+        assertThat(transaction2.getType()).isEqualTo("messaging");
+        assertThat(transaction2.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
+    }
+
     private void sendTwoRecordsAndConsumeReplies() {
         final StringBuilder callback = new StringBuilder();
         ProducerRecord<String, String> record1 = new ProducerRecord<>(REQUEST_TOPIC, 0, REQUEST_KEY, FIRST_MESSAGE_VALUE);
@@ -302,8 +323,10 @@ public class KafkaIT extends AbstractInstrumentationTest {
         producer.send(record2, (metadata, exception) -> callback.append("done"));
         if (testScenario != TestScenario.IGNORE_REQUEST_TOPIC) {
             await().atMost(2000, MILLISECONDS).until(() -> reporter.getTransactions().size() == 2);
-            int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
-            await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
+            if (testScenario != TestScenario.NON_SAMPLED_TRANSACTION) {
+                int expectedSpans = (testScenario == TestScenario.NO_CONTEXT_PROPAGATION) ? 2 : 4;
+                await().atMost(500, MILLISECONDS).until(() -> reporter.getSpans().size() == expectedSpans);
+            }
         }
         //noinspection deprecation - this poll overload is deprecated in newer clients, but enables testing of old ones
         ConsumerRecords<String, String> replies = replyConsumer.poll(2000);
@@ -514,7 +537,8 @@ public class KafkaIT extends AbstractInstrumentationTest {
         SANITIZED_HEADER,
         IGNORE_REQUEST_TOPIC,
         NO_CONTEXT_PROPAGATION,
-        TOPIC_ADDRESS_COLLECTION_DISABLED
+        TOPIC_ADDRESS_COLLECTION_DISABLED,
+        NON_SAMPLED_TRANSACTION
     }
 
     /**
