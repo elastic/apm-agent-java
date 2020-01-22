@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package co.elastic.apm.agent.grpc;
+
+service Hello {
+    rpc SayHello (HelloRequest) returns (HelloReply) {
+    }
+}
+
+message HelloRequest {
+    string userName = 1;
+}
+
+message HelloReply {
+    string message = 1;
+}
