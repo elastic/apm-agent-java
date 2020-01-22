@@ -26,8 +26,9 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
-import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
@@ -56,7 +57,6 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -71,7 +71,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -93,7 +93,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
      * so that {@link #getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
-    static final int MAX_VALUE_LENGTH = 1024;
+    public static final int MAX_VALUE_LENGTH = 1024;
     public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
@@ -121,7 +121,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 public void flush() throws IOException {
                     os.write(buf, 0, size());
                     os.flush();
-                    logger.trace(new String(buf, 0, size(), Charset.forName("UTF-8")));
+                    logger.trace(new String(buf, 0, size(), StandardCharsets.UTF_8));
                 }
             };
         } else {
@@ -711,8 +711,9 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         if (message.hasContent()) {
             writeFieldName("message");
             jw.writeByte(OBJECT_START);
-            if (message.getBody() != null) {
-                writeLongStringField("body", message.getBody());
+            StringBuilder body = message.getBodyForRead();
+            if (body != null && body.length() > 0) {
+                writeLongStringField("body", message.getBodyForWrite());
             }
             serializeMessageHeaders(message);
             int messageAge = (int) message.getAge();
@@ -735,17 +736,17 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
     private void serializeMessageHeaders(Message message) {
-        NoRandomAccessMap<String, String> headers = message.getHeaders();
+        Headers headers = message.getHeaders();
         if (!headers.isEmpty()) {
             writeFieldName("headers");
             jw.writeByte(OBJECT_START);
-            Iterator<NoRandomAccessMap.Entry<String, String>> iterator = headers.iterator();
+            Iterator<Headers.Header> iterator = headers.iterator();
             while (iterator.hasNext()) {
-                NoRandomAccessMap.Entry<String, String> next = iterator.next();
+                Headers.Header header = iterator.next();
                 if (iterator.hasNext()) {
-                    writeField(next.getKey(), next.getValue());
+                    writeField(header.getKey(), header.getValue());
                 } else {
-                    writeLastField(next.getKey(), next.getValue());
+                    writeLastField(header.getKey(), header.getValue());
                 }
             }
             jw.writeByte(OBJECT_END);
@@ -1072,7 +1073,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
 
-    void writeLongStringField(final String fieldName, @Nullable final String value) {
+    void writeLongStringField(final String fieldName, @Nullable final CharSequence value) {
         if (value != null) {
             writeFieldName(fieldName);
             writeLongStringValue(value);
@@ -1080,7 +1081,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    void writeField(final String fieldName, @Nullable final String value) {
+    void writeField(final String fieldName, @Nullable final CharSequence value) {
         writeField(fieldName, value, replaceBuilder, jw);
     }
 
@@ -1126,11 +1127,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeString(value);
     }
 
-    private void writeLongStringValue(String value) {
+    private void writeLongStringValue(CharSequence value) {
         writeLongStringValue(value, replaceBuilder, jw);
     }
 
-    private static void writeLongStringValue(String value, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void writeLongStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
@@ -1174,13 +1175,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
-    void writeLastField(final String fieldName, @Nullable final String value) {
+    void writeLastField(final String fieldName, @Nullable final CharSequence value) {
         writeLastField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeLastField(final String fieldName, @Nullable final String value, StringBuilder replaceBuilder, final JsonWriter jw) {
+    static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName(fieldName, jw);
-        if (value != null) {
+        if (value != null && value.length() > 0) {
             writeStringValue(value, replaceBuilder, jw);
         } else {
             jw.writeNull();

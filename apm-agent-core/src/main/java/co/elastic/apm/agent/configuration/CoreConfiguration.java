@@ -229,8 +229,7 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of instrumentations which should be disabled.\n" +
             "Valid options are ${allInstrumentationGroupNames}.\n" +
-            "If you want to try out incubating features,\n" +
-            "set the value to an empty string.")
+            "If you want to try out incubating features, set the value to an empty string.")
         .buildWithDefault(Collections.<String>singleton("incubating"));
 
     private final ConfigurationOption<List<WildcardMatcher>> unnestExceptions = ConfigurationOption

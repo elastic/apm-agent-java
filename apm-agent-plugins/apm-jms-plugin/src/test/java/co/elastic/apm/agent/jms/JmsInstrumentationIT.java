@@ -27,12 +27,13 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -71,8 +72,8 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -190,7 +191,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling spans to be created without yielding a message
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnTracedThread(queue, disableTimestamp);
@@ -284,7 +285,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling transactions to be created without yielding a message, thus ignored
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnNonTracedThread(queue);
@@ -353,7 +354,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
         assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
         // Body and headers should not be captured for receive spans
-        assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
+        assertThat(receiveSpan.getContext().getMessage().getBodyForRead()).isNull();
         assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
         // Age should be captured for receive spans, unless disabled
         if (disableTimestamp) {
@@ -415,15 +416,17 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
     }
 
     private void verifyMessageHeaders(Message message, Transaction receiveTransaction) throws JMSException {
-        Map<String, String> headersMap = new HashMap<>();
-        for (NoRandomAccessMap.Entry<String, String> header : receiveTransaction.getContext().getMessage().getHeaders()) {
+        Map<String, CharSequence> headersMap = new HashMap<>();
+        for (Headers.Header header : receiveTransaction.getContext().getMessage().getHeaders()) {
             headersMap.put(header.getKey(), header.getValue());
         }
         assertThat(headersMap).isNotEmpty();
@@ -487,7 +490,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }
@@ -621,7 +626,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 target.run();
                 if (sleepBetweenCycles) {
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(5);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
