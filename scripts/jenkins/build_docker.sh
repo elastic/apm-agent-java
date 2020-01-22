@@ -7,7 +7,7 @@ then
 elif ! docker version
 then
   echo "ERROR: Building Docker image requires Docker daemon to be running" && exit 1
-elif ! which curl
+elif ! command -v curl
 then
   echo "ERROR: Building Docker image requires cURL to be installed" && exit 1
 fi
