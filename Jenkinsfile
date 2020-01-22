@@ -297,7 +297,7 @@ pipeline {
             sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
             // Get Docker registry credentials
             dockerLogin(secret: ${ELASTIC_DOCKER_SECRET}, registry: 'docker.elastic.co')
-            sh(label: "Push Docker image"), script: "scripts/jenkins/push_docker.sh"
+            sh(label: "Push Docker image"), script: "scripts/jenkins/push_docker.sh")
           }
         }
         stage('Opbeans') {
