@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-if ! which docker
+if ! command -v docker
 then
   echo "ERROR: Building Docker image requires Docker binary to be installed" && exit 1
 elif ! docker version
