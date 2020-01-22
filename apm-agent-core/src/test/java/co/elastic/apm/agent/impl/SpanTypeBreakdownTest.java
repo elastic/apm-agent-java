@@ -60,8 +60,6 @@ class SpanTypeBreakdownTest {
 
     @AfterEach
     void cleanup() {
-        reporter.assertRecycledAfterDecrementingReferences();
-
         // some extra checks might be done when tracer is being stopped
         tracer.stop();
     }

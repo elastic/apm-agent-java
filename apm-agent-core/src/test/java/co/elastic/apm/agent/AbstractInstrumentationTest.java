@@ -29,7 +29,6 @@ import co.elastic.apm.agent.configuration.SpyConfiguration;
 import co.elastic.apm.agent.context.LifecycleListener;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
-import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.junit.After;
@@ -59,22 +58,15 @@ public abstract class AbstractInstrumentationTest {
 
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
+
         tracer = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(new LifecycleListener() {
-                @Override
-                public void start(ElasticApmTracer tracer) {
-
-                }
-
-                @Override
-                public void stop() throws Exception {
-                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-                    reporter.assertRecycledAfterDecrementingReferences();
-                }
-            })
+            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+                reporter.assertRecycledAfterDecrementingReferences();
+            }))
             .build();
         ElasticApmAgent.initInstrumentation(tracer, ByteBuddyAgent.install());
     }

@@ -69,18 +69,15 @@ public class MockTracer {
             // use testing bookkeeper implementation here so we will check that no forgotten recyclable object
             // is left behind
             .withObjectPoolFactory(objectPoolFactory)
-            .withLifecycleListener(new LifecycleListener() {
-                @Override
-                public void start(ElasticApmTracer tracer) {
+            .withLifecycleListener(LifecycleListener.ClosableAdapter.of(() -> {
 
+                if (reporter instanceof MockReporter) {
+                    ((MockReporter) reporter).assertRecycledAfterDecrementingReferences();
                 }
 
-                @Override
-                public void stop() {
-                    // checking proper object pool usage using tracer lifecycle events
-                    objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
-                }
-            })
+                // checking proper object pool usage using tracer lifecycle events
+                objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
+            }))
             .build();
     }
 
