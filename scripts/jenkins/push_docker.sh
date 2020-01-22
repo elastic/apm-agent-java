@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-# This script is intended to work in conjunction with the build_docker.#!/bin/sh
+# This script is intended to work in conjunction with the build_docker 
 # script. It assumes that build_docker.sh has been run at least once, thereby
 # creating a Docker image to push. If this script does not detect an image
 # to be uploaded, it will fail.
