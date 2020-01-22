@@ -29,6 +29,8 @@ import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
 import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.context.Headers;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
@@ -120,13 +122,22 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         receiveNoWaitFlow.set(false);
         expectNoTraces.set(false);
         reporter.reset();
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.withName("JMS-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        startAndActivateTransaction(null);
         brokerFacade.beforeTest();
         noopQ = brokerFacade.createQueue("NOOP");
         when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+    }
+
+    private void startAndActivateTransaction(@Nullable Sampler sampler) {
+        Transaction transaction;
+        if (sampler == null) {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        } else {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, sampler, -1, null).activate();
+        }
+        transaction.withName("JMS-Test Transaction");
+        transaction.withType("request");
+        transaction.withResult("success");
     }
 
     @After
@@ -208,17 +219,22 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
         final Queue queue = createTestQueue();
-        Transaction currentTransaction = tracer.currentTransaction();
-        //noinspection ConstantConditions
-        currentTransaction.getTraceContext().setSampled(false);
+
+        // End current transaction and start a non-sampled one
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+        startAndActivateTransaction(ConstantSampler.of(false));
+
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
         Transaction receiveTransaction = reporter.getFirstTransaction(500);
+        assertThat(receiveTransaction.isSampled()).isFalse();
         assertThat(reporter.getSpans()).isEmpty();
         assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
-        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(currentTransaction.getTraceContext().getTraceId());
+        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
         assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 
