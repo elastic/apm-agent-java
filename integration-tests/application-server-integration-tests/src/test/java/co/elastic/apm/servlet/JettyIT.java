@@ -67,8 +67,7 @@ public class JettyIT extends AbstractServletContainerIntegrationTest {
 
     @Override
     public boolean isExpectedStacktrace(String path) {
-        // only from version 9.4 Jetty includes a valid Throwable instance and only in the onComplete
-        return version.equals("9.4") || !path.equals("/async-dispatch-servlet");
+        return !path.equals("/async-dispatch-servlet");
     }
 
     @Override
