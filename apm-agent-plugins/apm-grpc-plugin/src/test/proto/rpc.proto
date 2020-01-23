@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "co.elastic.apm.agent.grpc.testapp";
+option java_package = "co.elastic.apm.agent.grpc.testapp.generated";
 
 package helloworld;
 
@@ -12,6 +12,7 @@ service Hello {
 
 message HelloRequest {
     string userName = 1;
+    int32 depth = 2;
 }
 
 message HelloReply {

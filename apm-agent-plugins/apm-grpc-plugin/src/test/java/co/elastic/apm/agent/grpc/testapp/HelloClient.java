@@ -24,8 +24,9 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.grpc.testapp.HelloGrpc;
-import co.elastic.apm.agent.grpc.testapp.HelloRequest;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloGrpc;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -48,13 +49,19 @@ public class HelloClient {
             .build());
     }
 
-    private HelloClient(ManagedChannel channel){
+    private HelloClient(ManagedChannel channel) {
         this.channel = channel;
         this.blockingStub = HelloGrpc.newBlockingStub(channel);
     }
 
     public Optional<String> sayHello(String user) {
-        HelloRequest.Builder request = HelloRequest.newBuilder();
+        return sayHello(user, 0);
+    }
+
+    public Optional<String> sayHello(String user, int depth) {
+        HelloRequest.Builder request = HelloRequest.newBuilder()
+            .setDepth(depth);
+
         if (user != null) {
             request.setUserName(user);
         }

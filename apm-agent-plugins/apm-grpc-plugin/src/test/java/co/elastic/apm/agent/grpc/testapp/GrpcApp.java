@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -36,20 +36,22 @@ public class GrpcApp {
     private static final int PORT = 50051;
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        HelloServer server = new HelloServer();
-        server.start(PORT);
+        HelloServer server = new HelloServer(PORT);
+        server.start();
 
         HelloClient client = new HelloClient("localhost", PORT);
 
-        sendMessage(client, "bob");
-        sendMessage(client, null);
+        sendMessage(client, "bob", 0);
+        sendMessage(client, null, 0);
+        sendMessage(client, "bob", 2);
+        sendMessage(client, null, 2);
 
         client.stop();
         server.stop();
     }
 
-    static void sendMessage(HelloClient client, String name) {
-        client.sayHello(name).ifPresentOrElse(
+    static void sendMessage(HelloClient client, String name, int depth) {
+        client.sayHello(name, depth).ifPresentOrElse(
             m -> logger.info("received message = {}", m),
             () -> logger.error("oops! something went wrong")
         );

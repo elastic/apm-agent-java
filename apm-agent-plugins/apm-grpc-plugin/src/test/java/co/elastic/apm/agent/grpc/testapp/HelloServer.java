@@ -24,9 +24,9 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.grpc.testapp.HelloGrpc;
-import co.elastic.apm.agent.grpc.testapp.HelloRequest;
-import co.elastic.apm.agent.grpc.testapp.HelloReply;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloGrpc;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloReply;
+import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
@@ -35,62 +35,73 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class HelloServer {
 
     private static final Logger logger = LoggerFactory.getLogger(HelloServer.class);
 
-    @Nullable
-    private Server server;
+    private final int port;
+    private final Server server;
 
-    public HelloServer() {
+    public HelloServer(int port) {
+        this.port = port;
+        HelloClient nestedClient = new HelloClient("localhost", port);
+        HelloGrpcImpl serverImpl = new HelloGrpcImpl(nestedClient);
+        this.server = ServerBuilder.forPort(port)
+            .addService(serverImpl)
+            .build();
+
     }
 
-    public void start(int port) throws IOException {
+    public void start() throws IOException {
         logger.info("starting grpc server on port {}", port);
-        HelloGrpcImpl serverImpl = new HelloGrpcImpl();
-
-        server = ServerBuilder.forPort(port)
-            .addService(serverImpl)
-            .build()
-            .start();
+        server.start();
+        logger.info("grpc server start complete");
     }
 
     public void stop() throws InterruptedException {
         logger.info("stopping grpc server");
-        if (null != server) {
-            server.shutdown().awaitTermination();
-        }
-        logger.info("grpc server shutdown complete");
-    }
-
-    public void blockUntilShutdown() throws InterruptedException {
-        if (null != server) {
-            server.awaitTermination();
-        }
+        server.shutdown().awaitTermination();
         logger.info("grpc server shutdown complete");
     }
 
     // service implementation
-    static class HelloGrpcImpl extends HelloGrpc.HelloImplBase {
+    private static class HelloGrpcImpl extends HelloGrpc.HelloImplBase {
+
+        private final HelloClient client;
+
+        HelloGrpcImpl(HelloClient client){
+            this.client = client;
+        }
+
         @Override
         public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
 
             String userName = request.getUserName();
+            int depth = request.getDepth();
+            String message;
 
-            if (userName.isEmpty()) {
-                // this seems to be the preferred way to deal with errors on server implementation
-                responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
-                return;
+            if (depth > 0) {
+                int nextDepth = depth -1;
+                String nestedResult = client.sayHello(userName, nextDepth).orElse(String.format("error(%d)", nextDepth));
+                message = String.format("nested(%d) -> %s", depth, nestedResult);
+            } else {
+
+                if (userName.isEmpty()) {
+                    // this seems to be the preferred way to deal with errors on server implementation
+                    responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+                    return;
+                }
+
+                message = String.format("hello(%s)", userName);
             }
-
             HelloReply reply = HelloReply.newBuilder()
-                .setMessage(String.format("Hello %s", userName))
+                .setMessage(message)
                 .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+
         }
     }
 }
