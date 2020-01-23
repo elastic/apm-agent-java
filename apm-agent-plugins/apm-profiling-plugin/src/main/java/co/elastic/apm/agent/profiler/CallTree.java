@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 
 /**
@@ -114,12 +113,13 @@ public class CallTree implements Recyclable {
      * Adds a single stack trace to the call tree which either updates the {@link #lastSeen} timestamp of an existing call tree node,
      * {@linkplain #end() ends} a node, or {@linkplain #addChild adds a new child}.
      *
-     * @param iterator            the stack trace which is iterated over in reverse order
+     * @param stackFrames         the stack trace which is iterated over in reverse order
+     * @param index               the current index of {@code stackFrames}
      * @param activeSpan          the trace context of the currently {@linkplain ElasticApmTracer#getActive() active transaction/span
      * @param activationTimestamp the timestamp of when {@code traceContext} has been activated
      * @param nanoTime            the timestamp of when this stack trace has been recorded
      */
-    protected void addFrame(ListIterator<StackFrame> iterator, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime) {
+    protected void addFrame(List<StackFrame> stackFrames, int index, @Nullable TraceContext activeSpan, long activationTimestamp, long nanoTime) {
         count++;
         lastSeen = nanoTime;
         //     c ee   <- traceContext not set - they are not a child of the active span but the frame below them
@@ -140,17 +140,17 @@ public class CallTree implements Recyclable {
         // if the frame corresponding to the last child is not in the stack trace
         // it's assumed to have ended one tick ago
         boolean endChild = true;
-        if (iterator.hasPrevious()) {
-            final StackFrame frame = iterator.previous();
+        if (index >= 1) {
+            final StackFrame frame = stackFrames.get(--index);
             if (lastChild != null) {
                 if (!lastChild.isEnded() && frame.equals(lastChild.frame)) {
-                    lastChild.addFrame(iterator, activeSpan, activationTimestamp, nanoTime);
+                    lastChild.addFrame(stackFrames, index, activeSpan, activationTimestamp, nanoTime);
                     endChild = false;
                 } else {
-                    addChild(frame, iterator, activeSpan, activationTimestamp, nanoTime);
+                    addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime);
                 }
             } else {
-                addChild(frame, iterator, activeSpan, activationTimestamp, nanoTime);
+                addChild(frame, stackFrames, index, activeSpan, activationTimestamp, nanoTime);
             }
         }
         if (lastChild != null && !lastChild.isEnded() && endChild) {
@@ -158,14 +158,14 @@ public class CallTree implements Recyclable {
         }
     }
 
-    void addChild(StackFrame frame, ListIterator<StackFrame> iterator, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
+    void addChild(StackFrame frame, List<StackFrame> stackFrames, int index, @Nullable TraceContext traceContext, long activationTimestamp, long nanoTime) {
         CallTree callTree = new CallTree();
         callTree.set(this, frame, nanoTime);
         if (traceContext != null) {
             callTree.activation(traceContext, activationTimestamp);
         }
         children.add(callTree);
-        callTree.addFrame(iterator, null, activationTimestamp, nanoTime);
+        callTree.addFrame(stackFrames, index, null, activationTimestamp, nanoTime);
     }
 
     long getDurationUs() {
@@ -176,6 +176,7 @@ public class CallTree implements Recyclable {
         return count;
     }
 
+    @Nullable
     public StackFrame getFrame() {
         return frame;
     }
@@ -420,7 +421,7 @@ public class CallTree implements Recyclable {
                 activeSpan = TraceContext.with64BitId(tracer);
                 activeSpan.deserialize(activeSpanSerialized, rootContext.getServiceName());
             }
-            addFrame(stackTrace.listIterator(stackTrace.size()), activeSpan, activationTimestamp, nanoTime);
+            addFrame(stackTrace, stackTrace.size(), activeSpan, activationTimestamp, nanoTime);
         }
 
         /**
