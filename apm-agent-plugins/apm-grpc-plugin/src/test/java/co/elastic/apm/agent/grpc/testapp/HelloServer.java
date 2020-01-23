@@ -92,6 +92,8 @@ public class HelloServer {
                     // this seems to be the preferred way to deal with errors on server implementation
                     responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
                     return;
+                } else if ("boom".equals(userName)) {
+                    throw new RuntimeException("boom");
                 }
 
                 message = String.format("hello(%s)", userName);

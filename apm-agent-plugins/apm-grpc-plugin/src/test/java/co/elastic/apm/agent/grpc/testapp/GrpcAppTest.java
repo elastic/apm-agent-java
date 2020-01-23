@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 class GrpcAppTest {
 
@@ -23,13 +22,31 @@ class GrpcAppTest {
     }
 
     @Test
-    void sendSimpleMessage() throws Exception {
+    void nestedChecks() throws Exception {
         checkMsg("joe", 0, "hello(joe)");
         checkMsg("bob", 1, "nested(1)->hello(bob)");
         checkMsg("rob", 2, "nested(2)->nested(1)->hello(rob)");
     }
 
-    private void checkMsg(String name, int depth, String expectedMsg){
+    @Test
+    void recommendedServerErrorHandling() {
+        exceptionOrErrorCheck(null);
+    }
+
+    @Test
+    void uncaughtExceptionServerErrorHandling() {
+        // should be strictly indentical to "recommended way to handle errors" from client perspective
+        // but might differ server side
+        exceptionOrErrorCheck("boom");
+    }
+
+    void exceptionOrErrorCheck(String name) {
+        checkMsg(name, 0, null);
+        checkMsg(name, 1, "nested(1)->error(0)");
+        checkMsg(name, 2, "nested(2)->nested(1)->error(0)");
+    }
+
+    private void checkMsg(String name, int depth, String expectedMsg) {
         String msg = app.sendMessage(name, depth);
         assertThat(msg).isEqualTo(expectedMsg);
     }
