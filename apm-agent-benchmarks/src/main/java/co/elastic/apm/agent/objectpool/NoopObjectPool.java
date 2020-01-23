@@ -24,10 +24,36 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-public interface Recyclable {
+import co.elastic.apm.agent.objectpool.impl.AbstractObjectPool;
 
-    /**
-     * resets pooled object state so it can be reused
-     */
-    void resetState();
+import javax.annotation.Nullable;
+import java.io.IOException;
+
+/**
+ * No-Op object pool that does not perform any pooling and will always create new instances
+ *
+ * @param <T> pooled object type
+ */
+public class NoopObjectPool<T> extends AbstractObjectPool<T> {
+
+    public NoopObjectPool(Allocator<T> allocator, Resetter<T> resetter) {
+        super(allocator, resetter);
+    }
+
+    @Nullable
+    @Override
+    public T tryCreateInstance() {
+        // will never try to reuse any instance, thus return null makes it create all the time
+        return null;
+    }
+
+    @Override
+    protected boolean returnToPool(T obj) {
+        return false;
+    }
+
+    @Override
+    public int getObjectsInPool() {
+        return 0;
+    }
 }

@@ -29,7 +29,7 @@ import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.Recyclable;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import co.elastic.apm.agent.objectpool.impl.Resetter;
+import co.elastic.apm.agent.objectpool.Resetter;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 

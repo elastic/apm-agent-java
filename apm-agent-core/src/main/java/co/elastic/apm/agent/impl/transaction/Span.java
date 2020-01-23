@@ -192,7 +192,7 @@ public class Span extends AbstractSpan<Span> implements Recyclable {
     @Override
     public void beforeEnd(long epochMicros) {
         if (logger.isDebugEnabled()) {
-            logger.debug("} endSpan {}", this);
+            logger.debug("endSpan {}", this);
             if (logger.isTraceEnabled()) {
                 logger.trace("ending span at", new RuntimeException("this exception is just used to record where the span has been ended from"));
             }

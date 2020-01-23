@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,54 +24,36 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
+/**
+ * Defines reset strategy to use for a given pooled object type when they are returned to pool
+ *
+ * @param <T> pooled object type
+ */
+public interface Resetter<T> {
 
-public class NoopObjectPool<T extends Recyclable> implements ObjectPool<T> {
+    /**
+     * Recycles a pooled object state
+     *
+     * @param object object to recycle
+     */
+    void recycle(T object);
 
-    private final Allocator<T> allocator;
+    /**
+     * Resetter for objects that implement {@link Recyclable}
+     *
+     * @param <T> recyclable object type
+     */
+    class ForRecyclable<T extends Recyclable> implements Resetter<T> {
+        private static ForRecyclable INSTANCE = new ForRecyclable();
 
-    public NoopObjectPool(Allocator<T> allocator) {
-        this.allocator = allocator;
+        public static <T extends Recyclable> Resetter<T> get() {
+            return INSTANCE;
+        }
+
+        @Override
+        public void recycle(Recyclable object) {
+            object.resetState();
+        }
     }
 
-    @Nullable
-    @Override
-    public T tryCreateInstance() {
-        return allocator.createInstance();
-    }
-
-    @Override
-    public T createInstance() {
-        return allocator.createInstance();
-    }
-
-    @Override
-    public void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements) {
-
-    }
-
-    @Override
-    public void recycle(T obj) {
-
-    }
-
-    @Override
-    public int getSize() {
-        return 0;
-    }
-
-    @Override
-    public int getObjectsInPool() {
-        return 0;
-    }
-
-    @Override
-    public long getGarbageCreated() {
-        return 0;
-    }
-
-    @Override
-    public void close() throws IOException {
-    }
 }

@@ -36,6 +36,7 @@ import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.metrics.Timer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.source.SimpleSource;
@@ -55,6 +56,12 @@ class SpanTypeBreakdownTest {
     void setUp() {
         reporter = new MockReporter();
         tracer = MockTracer.createRealTracer(reporter);
+    }
+
+    @AfterEach
+    void cleanup() {
+        // some extra checks might be done when tracer is being stopped
+        tracer.stop();
     }
 
     /*
