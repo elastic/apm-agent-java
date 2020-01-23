@@ -26,9 +26,9 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Resetter;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -43,17 +43,15 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
 
     private final List<T> pool;
     private final int limit;
-    private final Resetter<T> resetter;
 
     public static <T extends Recyclable> ListBasedObjectPool<T> ofRecyclable(List<T> list, int limit, Allocator<T> allocator) {
         return new ListBasedObjectPool<>(list, limit, allocator, Resetter.ForRecyclable.<T>get());
     }
 
     public ListBasedObjectPool(List<T> pool, int limit, Allocator<T> allocator, Resetter<T> resetter) {
-        super(allocator);
+        super(allocator, resetter);
         this.pool = pool;
         this.limit = limit;
-        this.resetter = resetter;
     }
 
     @Nullable
@@ -66,16 +64,12 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
     }
 
     @Override
-    public void recycle(T obj) {
+    protected boolean returnToPool(T obj) {
         if (pool.size() < limit) {
-            resetter.recycle(obj);
             pool.add(obj);
+            return true;
         }
-    }
-
-    @Override
-    public int getSize() {
-        return pool.size();
+        return false;
     }
 
     @Override
@@ -83,7 +77,4 @@ public class ListBasedObjectPool<T> extends AbstractObjectPool<T> {
         return pool.size();
     }
 
-    @Override
-    public void close() throws IOException {
-    }
 }

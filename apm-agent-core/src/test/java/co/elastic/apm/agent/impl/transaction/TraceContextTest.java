@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -28,36 +28,68 @@ import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.sampling.ConstantSampler;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 class TraceContextTest {
 
+    private void parseHeaderAndVerifyContext(String flagsValue, boolean isSampled, boolean useBinaryRepresentation) {
+        final String parentHeader = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-" + flagsValue;
+        final TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        if (useBinaryRepresentation) {
+            assertThat(TraceContext.fromTraceparentBinaryHeader().asChildOf(child, parentHeader.getBytes(StandardCharsets.UTF_8))).isTrue();
+        } else {
+            assertThat(child.asChildOf(parentHeader)).isTrue();
+        }
+        assertThat(child.getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        assertThat(child.getTraceContext().getParentId().toString()).isEqualTo("b9c7c989f97918e1");
+        assertThat(child.isSampled()).isEqualTo(isSampled);
+        String childHeader;
+        if (useBinaryRepresentation) {
+            childHeader = new String(child.getOutgoingTraceParentBinaryHeader(), StandardCharsets.UTF_8);
+        } else {
+            childHeader = child.getOutgoingTraceParentHeader().toString();
+        }
+        assertThat(childHeader).endsWith("-" + flagsValue);
+
+        // create a grandchild to ensure proper regenerated trace context
+        final TraceContext grandchild = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        assertThat(grandchild.asChildOf(childHeader)).isTrue();
+        assertThat(grandchild.getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
+        assertThat(grandchild.getTraceContext().getParentId().toString()).isEqualTo(child.getTraceContext().getId().toString());
+        assertThat(grandchild.isSampled()).isEqualTo(isSampled);
+    }
+
     @Test
     void parseFromTraceParentHeaderNotRecorded() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00";
-        assertThat(traceContext.asChildOf(header)).isTrue();
-        assertThat(traceContext.isSampled()).isFalse();
-        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-00");
+        parseHeaderAndVerifyContext("00", false, false);
     }
 
     @Test
     void parseFromTraceParentHeaderRecorded() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
-        assertThat(traceContext.asChildOf(header)).isTrue();
-        assertThat(traceContext.isSampled()).isTrue();
-        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-01");
+        parseHeaderAndVerifyContext("01", true, false);
     }
 
     @Test
     void parseFromTraceParentHeaderUnsupportedFlag() {
-        final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
-        assertThat(traceContext.asChildOf(header)).isTrue();
-        assertThat(traceContext.isSampled()).isTrue();
-        assertThat(traceContext.getOutgoingTraceParentHeader().toString()).endsWith("-03");
+        parseHeaderAndVerifyContext("03", true, false);
+    }
+
+    @Test
+    void parseFromBinaryTraceParentHeaderNotRecorded() {
+        parseHeaderAndVerifyContext("00", false, true);
+    }
+
+    @Test
+    void parseFromBinaryTraceParentHeaderRecorded() {
+        parseHeaderAndVerifyContext("01", true, true);
+    }
+
+    @Test
+    void parseFromBinaryTraceParentHeaderUnsupportedFlag() {
+        parseHeaderAndVerifyContext("03", true, true);
     }
 
     @Test

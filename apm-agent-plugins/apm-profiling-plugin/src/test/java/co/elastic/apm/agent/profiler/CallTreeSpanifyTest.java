@@ -31,6 +31,7 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
+import co.elastic.apm.agent.objectpool.Resetter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,7 +97,7 @@ class CallTreeSpanifyTest {
     void testCallTreeWithActiveSpan() {
         TraceContext rootContext = CallTreeTest.rootTraceContext(tracer);
         TraceContext traceContext = rootContext.getTraceContext();
-        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer), Resetter.ForRecyclable.get()), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
 
         TraceContext spanContext = TraceContext.with64BitId(tracer);

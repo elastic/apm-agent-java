@@ -161,7 +161,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
             tracer.getConfig(ProfilingConfiguration.class),
-            ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-sampling-profiler"),
+            ExecutorUtils.createSingleThreadSchedulingDeamonPool("sampling-profiler"),
             nanoClock);
     }
 

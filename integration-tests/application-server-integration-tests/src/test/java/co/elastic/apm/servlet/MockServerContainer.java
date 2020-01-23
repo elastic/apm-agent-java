@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -30,8 +30,6 @@ import org.testcontainers.containers.GenericContainer;
 
 /**
  * Acts as a mock for the APM-server.
- * It stores the {@link co.elastic.apm.agent.impl.payload.Payload}s sent to it,
- * which can be retrieved via the {@link #client}.
  */
 public class MockServerContainer extends GenericContainer<MockServerContainer> {
 

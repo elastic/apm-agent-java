@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -137,7 +137,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
 
         doPerformRequest("DELETE", "/" + SECOND_INDEX);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         validateSpanContentAfterIndexDeleteRequest();
     }
@@ -153,7 +152,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         ).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
         assertThat(ir.status().getStatus()).isEqualTo(201);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -172,7 +170,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         assertThat(sr.getHits().totalHits).isEqualTo(1L);
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAR);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -191,7 +188,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         sr = doSearch(new SearchRequest(INDEX));
         assertThat(sr.getHits().getAt(0).getSourceAsMap().get(FOO)).isEqualTo(BAZ);
 
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         spans = reporter.getSpans();
         assertThat(spans).hasSize(2);
@@ -209,7 +205,6 @@ public class ElasticsearchRestClientInstrumentationIT extends AbstractEsClientIn
         DeleteResponse dr = doDelete(new DeleteRequest(INDEX, DOC_TYPE, DOC_ID));
         validateSpanContent(spans.get(0), String.format("Elasticsearch: DELETE /%s/%s/%s", INDEX, DOC_TYPE, DOC_ID), 200, "DELETE");
 
-        System.out.println(reporter.generateTransactionPayloadJson());
     }
 
     @Test

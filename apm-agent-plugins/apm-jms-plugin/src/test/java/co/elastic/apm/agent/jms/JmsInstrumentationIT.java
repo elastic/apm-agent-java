@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,12 +27,15 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
+import co.elastic.apm.agent.impl.context.Headers;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -71,8 +74,8 @@ import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.JMS_TRACE_PARENT
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelper.MESSAGING_TYPE;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TEMP;
 import static co.elastic.apm.agent.jms.JmsInstrumentationHelperImpl.TIBCO_TMP_QUEUE_PREFIX;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.BOTH;
-import static co.elastic.apm.agent.jms.MessagingConfiguration.Strategy.POLLING;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.BOTH;
+import static co.elastic.apm.agent.configuration.MessagingConfiguration.Strategy.POLLING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -119,13 +122,22 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         receiveNoWaitFlow.set(false);
         expectNoTraces.set(false);
         reporter.reset();
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
-        transaction.withName("JMS-Test Transaction");
-        transaction.withType("request");
-        transaction.withResult("success");
+        startAndActivateTransaction(null);
         brokerFacade.beforeTest();
         noopQ = brokerFacade.createQueue("NOOP");
         when(coreConfiguration.getCaptureBody()).thenReturn(CoreConfiguration.EventType.ALL);
+    }
+
+    private void startAndActivateTransaction(@Nullable Sampler sampler) {
+        Transaction transaction;
+        if (sampler == null) {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        } else {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, sampler, -1, null).activate();
+        }
+        transaction.withName("JMS-Test Transaction");
+        transaction.withType("request");
+        transaction.withResult("success");
     }
 
     @After
@@ -190,7 +202,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling spans to be created without yielding a message
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnTracedThread(queue, disableTimestamp);
@@ -205,6 +217,25 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
     public void testQueueSendReceiveOnNonTracedThread() throws Exception {
         final Queue queue = createTestQueue();
         doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    public void testQueueSendReceiveOnNonTracedThread_NonSampledTransaction() throws Exception {
+        final Queue queue = createTestQueue();
+
+        // End current transaction and start a non-sampled one
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+        startAndActivateTransaction(ConstantSampler.of(false));
+
+        doTestSendReceiveOnNonTracedThread(() -> brokerFacade.receive(queue, 10), queue, false);
+        Transaction receiveTransaction = reporter.getFirstTransaction(500);
+        assertThat(receiveTransaction.isSampled()).isFalse();
+        assertThat(reporter.getSpans()).isEmpty();
+        assertThat(receiveTransaction.getNameAsString()).startsWith("JMS RECEIVE from queue " + queue.getQueueName());
+        assertThat(receiveTransaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId());
+        assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
     }
 
     @Test
@@ -284,7 +315,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         thread.start();
 
         // sleeping to allow time for polling transactions to be created without yielding a message, thus ignored
-        Thread.sleep(40);
+        Thread.sleep(50);
 
         try {
             verifyQueueSendReceiveOnNonTracedThread(queue);
@@ -353,7 +384,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         assertThat(receiveSpan.getTraceContext().getParentId()).isEqualTo(receiveTransaction.getTraceContext().getId());
         assertThat(receiveSpan.getContext().getMessage().getQueueName()).isEqualTo(queue.getQueueName());
         // Body and headers should not be captured for receive spans
-        assertThat(receiveSpan.getContext().getMessage().getBody()).isNull();
+        assertThat(receiveSpan.getContext().getMessage().getBodyForRead()).isNull();
         assertThat(receiveSpan.getContext().getMessage().getHeaders()).isEmpty();
         // Age should be captured for receive spans, unless disabled
         if (disableTimestamp) {
@@ -385,11 +416,14 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
         Message incomingMessage = resultQ.poll(2, TimeUnit.SECONDS);
         assertThat(incomingMessage).isNotNull();
         verifyMessage(message, incomingMessage);
-        verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        //noinspection ConstantConditions
+        if (tracer.currentTransaction().isSampled()) {
+            verifySendReceiveOnNonTracedThread(queue.getQueueName(), outgoingMessage);
+        }
     }
 
     private void verifySendListenOnNonTracedThread(String destinationName, TextMessage message, int expectedReadTransactions) throws JMSException {
-        await().atMost(500, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
+        await().atMost(1000, MILLISECONDS).until(() -> reporter.getTransactions().size() == expectedReadTransactions);
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -415,15 +449,17 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             verifyMessageHeaders(message, receiveTransaction);
         }
     }
 
     private void verifyMessageHeaders(Message message, Transaction receiveTransaction) throws JMSException {
-        Map<String, String> headersMap = new HashMap<>();
-        for (NoRandomAccessMap.Entry<String, String> header : receiveTransaction.getContext().getMessage().getHeaders()) {
+        Map<String, CharSequence> headersMap = new HashMap<>();
+        for (Headers.Header header : receiveTransaction.getContext().getMessage().getHeaders()) {
             headersMap.put(header.getKey(), header.getValue());
         }
         assertThat(headersMap).isNotEmpty();
@@ -487,7 +523,9 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
             assertThat(receiveTransaction.getTraceContext().getParentId()).isEqualTo(sendInitialMessageSpan.getTraceContext().getId());
             assertThat(receiveTransaction.getType()).isEqualTo(MESSAGING_TYPE);
             assertThat(receiveTransaction.getContext().getMessage().getQueueName()).isEqualTo(destinationName);
-            assertThat(receiveTransaction.getContext().getMessage().getBody()).isEqualTo(message.getText());
+            StringBuilder body = receiveTransaction.getContext().getMessage().getBodyForRead();
+            assertThat(body).isNotNull();
+            assertThat(body.toString()).isEqualTo(message.getText());
             assertThat(receiveTransaction.getContext().getMessage().getAge()).isGreaterThanOrEqualTo(0);
             transactionId = receiveTransaction.getTraceContext().getId();
         }
@@ -621,7 +659,7 @@ public class JmsInstrumentationIT extends AbstractInstrumentationTest {
                 target.run();
                 if (sleepBetweenCycles) {
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(5);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,22 +24,35 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
+/**
+ * Object pool
+ *
+ * @param <T> pooled object type. Does not have to implement {@link Recyclable} in order to allow for dealing with objects
+ *            that are outside of elastic apm agent (like standard JDK or third party library classes).
+ */
+public interface ObjectPool<T> {
 
-public interface ObjectPool<T> extends Closeable {
-    @Nullable
-    T tryCreateInstance();
-
+    /**
+     * Tries to reuse any existing instance if pool has any, otherwise creates a new un-pooled instance
+     *
+     * @return object instance, either from pool or freshly allocated
+     */
     T createInstance();
 
-    void fillFromOtherPool(ObjectPool<T> otherPool, int maxElements);
-
+    /**
+     * Recycles an object
+     *
+     * @param obj object to recycle
+     */
     void recycle(T obj);
 
-    int getSize();
-
+    /**
+     * @return number of available objects in pool
+     */
     int getObjectsInPool();
 
+    /**
+     * @return number of times that objects could not be returned to the pool because the pool was already full
+     */
     long getGarbageCreated();
 }

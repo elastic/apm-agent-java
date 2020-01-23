@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,17 +26,19 @@ package co.elastic.apm.agent.objectpool.impl;
 
 import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.Recyclable;
+import co.elastic.apm.agent.objectpool.Resetter;
 
 import javax.annotation.Nullable;
 
+// this implementation has been moved to 'benchmarks' module because it is not used in production code (yet)
 public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectPool<T> {
 
     private final ThreadLocal<FixedSizeStack<T>> objectPool = new ThreadLocal<>();
     private final int maxNumPooledObjectsPerThread;
     private final boolean preAllocate;
 
-    public ThreadLocalObjectPool(final int maxNumPooledObjectsPerThread, final boolean preAllocate, final Allocator<T> allocator) {
-        super(allocator);
+    public ThreadLocalObjectPool(int maxNumPooledObjectsPerThread, boolean preAllocate, Allocator<T> allocator) {
+        super(allocator, Resetter.ForRecyclable.get());
         this.maxNumPooledObjectsPerThread = maxNumPooledObjectsPerThread;
         this.preAllocate = preAllocate;
     }
@@ -48,26 +50,13 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
     }
 
     @Override
-    public void recycle(T obj) {
-        obj.resetState();
-        getStack().push(obj);
+    protected boolean returnToPool(T obj) {
+        return getStack().push(obj);
     }
 
     @Override
     public int getObjectsInPool() {
         return getStack().size();
-    }
-
-    @Override
-    public void close() {
-        // only removes the entry of the current thread
-        // this could lead to class loader leaks
-        objectPool.remove();
-    }
-
-    @Override
-    public int getSize() {
-        return maxNumPooledObjectsPerThread;
     }
 
     private FixedSizeStack<T> getStack() {
@@ -99,6 +88,12 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
             this.top = -1;
         }
 
+        /**
+         * Adds an object on top of the stack
+         *
+         * @param obj object to push to stack
+         * @return {@code true} if object has been added to stack, {@code false} if maximum capacity has been reached
+         */
         boolean push(T obj) {
             int newTop = top + 1;
             if (newTop >= stack.length) {
@@ -109,6 +104,11 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
             return true;
         }
 
+        /**
+         * Removes object from top of the stack
+         *
+         * @return object on top of stack (if any), {@code null} otherwise
+         */
         @Nullable
         T pop() {
             if (top < 0) return null;
@@ -117,6 +117,11 @@ public class ThreadLocalObjectPool<T extends Recyclable> extends AbstractObjectP
             return obj;
         }
 
+        /**
+         * Get stack size
+         *
+         * @return stack size
+         */
         int size() {
             return top + 1;
         }

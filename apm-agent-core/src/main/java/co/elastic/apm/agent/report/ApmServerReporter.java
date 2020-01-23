@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -32,6 +32,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
@@ -108,7 +109,7 @@ public class ApmServerReporter implements Reporter {
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
                 thread.setDaemon(true);
-                thread.setName("apm-reporter");
+                thread.setName(ThreadUtils.addElasticApmThreadPrefix("server-reporter"));
                 return thread;
             }
         }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
@@ -252,7 +253,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs) {
         if (intervalMs > 0 && metricsReportingScheduler == null) {
-            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-metrics-reporter");
+            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("metrics-reporter");
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

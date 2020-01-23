@@ -34,6 +34,7 @@ import co.elastic.apm.agent.impl.transaction.StackFrame;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.objectpool.NoopObjectPool;
+import co.elastic.apm.agent.objectpool.Resetter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,14 +68,13 @@ class CallTreeTest {
 
     @AfterEach
     void tearDown() {
-        reporter.assertRecycledAfterDecrementingReferences();
         tracer.stop();
     }
 
     @Test
     void testCallTree() throws Exception {
         TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer)), traceContext.serialize(), traceContext.getServiceName(), 0);
+        CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer), Resetter.ForRecyclable.get()), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
@@ -296,7 +296,6 @@ class CallTreeTest {
                     .isEqualTo(stackTrace);
             }
         }
-        reporter.reset();
     }
 
     @Nullable
@@ -324,7 +323,9 @@ class CallTreeTest {
         FixedNanoClock nanoClock = (FixedNanoClock) profilingFactory.getNanoClock();
         nanoClock.setNanoTime(0);
         profiler.setProfilingSessionOngoing(true);
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, null)
+        Transaction transaction = tracer
+            .startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(true), 0, null)
+            .withName("Call Tree Root")
             .activate();
         transaction.getTraceContext().getClock().init(0, 0);
         Map<String, AbstractSpan<?>> spanMap = new HashMap<>();
