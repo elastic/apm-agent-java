@@ -120,8 +120,9 @@ import java.util.concurrent.locks.LockSupport;
 public class SamplingProfiler implements Runnable, LifecycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SamplingProfiler.class);
-    private static final int ACTIVATION_EVENTS_IN_FILE = 100_000;
+    private static final int ACTIVATION_EVENTS_IN_FILE = 1_000_000;
     private static final int MAX_STACK_DEPTH = 256;
+    private static final int PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB = 10;
     private final EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>> ACTIVATION_EVENT_TRANSLATOR =
         new EventTranslatorTwoArg<ActivationEvent, TraceContextHolder<?>, TraceContextHolder<?>>() {
             @Override
@@ -185,7 +186,19 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(activationEventsFile, "rw")) {
             activationEventBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE);
+            preAllocate(activationEventBuffer, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
         }
+    }
+
+    /**
+     * Makes sure that the first blocks of the file are contiguous to provide fast sequential access
+     */
+    private static void preAllocate(MappedByteBuffer activationEventBuffer, int mb) {
+        byte[] oneKb = new byte[1024];
+        for (int i = 0; i < mb * 1024; i++) {
+            activationEventBuffer.put(oneKb);
+        }
+        activationEventBuffer.clear();
     }
 
     private RingBuffer<ActivationEvent> createRingBuffer() {

@@ -1232,9 +1232,12 @@ If this is enabled, the agent will start a profiling session every
 If a transaction happens within a profiling session,
 the agent creates spans for slow methods.
 
-Note that due to the nature of how sampling profilers work,
+Due to the nature of how sampling profilers work,
 the duration of the inferred spans are not exact, but only estimations.
 The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+
+The inferred spans are created after a profiling session has ended.
+This means there is a delay between the regular and the inferred spans being visible in the UI.
 
 NOTE: This feature is not available on Windows
 
@@ -1368,6 +1371,7 @@ so-called inferred spans will be created.
 They appear in the trace waterfall view like regular spans.
 
 NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+Warnings will be logged if the activation events file is full.
 If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
 
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -2424,9 +2428,12 @@ The default unit for this option is `ms`.
 # If a transaction happens within a profiling session,
 # the agent creates spans for slow methods.
 # 
-# Note that due to the nature of how sampling profilers work,
+# Due to the nature of how sampling profilers work,
 # the duration of the inferred spans are not exact, but only estimations.
 # The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.
+# 
+# The inferred spans are created after a profiling session has ended.
+# This means there is a delay between the regular and the inferred spans being visible in the UI.
 # 
 # NOTE: This feature is not available on Windows
 #
@@ -2493,6 +2500,7 @@ The default unit for this option is `ms`.
 # They appear in the trace waterfall view like regular spans.
 # 
 # NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.
+# Warnings will be logged if the activation events file is full.
 # If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.
 #
 # This setting can be changed at runtime

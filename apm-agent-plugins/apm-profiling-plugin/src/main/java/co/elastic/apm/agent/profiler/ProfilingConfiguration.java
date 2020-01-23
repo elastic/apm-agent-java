@@ -51,9 +51,12 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "If a transaction happens within a profiling session,\n" +
             "the agent creates spans for slow methods.\n" +
             "\n" +
-            "Note that due to the nature of how sampling profilers work,\n" +
+            "Due to the nature of how sampling profilers work,\n" +
             "the duration of the inferred spans are not exact, but only estimations.\n" +
             "The <<config-profiling-sampling-interval, `profiling_sampling_interval`>> lets you fine tune the trade-off between accuracy and overhead.\n" +
+            "\n" +
+            "The inferred spans are created after a profiling session has ended.\n" +
+            "This means there is a delay between the regular and the inferred spans being visible in the UI.\n" +
             "\n" +
             "NOTE: This feature is not available on Windows")
         .tags("experimental")
@@ -120,6 +123,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "They appear in the trace waterfall view like regular spans.\n" +
             "\n" +
             "NOTE: It is not recommended to set much higher durations as it may fill the activation events file and async-profiler's frame buffer.\n" +
+            "Warnings will be logged if the activation events file is full.\n" +
             "If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
