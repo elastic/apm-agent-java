@@ -316,11 +316,6 @@ public class TraceContext extends TraceContextHolder {
         return isRecorded();
     }
 
-    @Override
-    public void setSampled(boolean isSampled) {
-        setRecorded(isSampled);
-    }
-
     /**
      * When {@code true}, this span should be recorded aka. sampled.
      *

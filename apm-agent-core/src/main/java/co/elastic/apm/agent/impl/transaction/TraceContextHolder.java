@@ -142,10 +142,6 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         return getTraceContext().isSampled();
     }
 
-    public void setSampled(boolean isSampled) {
-        getTraceContext().setSampled(isSampled);
-    }
-
     public boolean isExit() {
         return isExit;
     }

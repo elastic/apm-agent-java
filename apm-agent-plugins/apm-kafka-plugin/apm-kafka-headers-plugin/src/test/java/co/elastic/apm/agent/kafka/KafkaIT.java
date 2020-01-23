@@ -32,6 +32,8 @@ import co.elastic.apm.agent.impl.context.Headers;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.SpanContext;
 import co.elastic.apm.agent.impl.context.TransactionContext;
+import co.elastic.apm.agent.impl.sampling.ConstantSampler;
+import co.elastic.apm.agent.impl.sampling.Sampler;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -141,11 +143,20 @@ public class KafkaIT extends AbstractInstrumentationTest {
     @Before
     public void startTransaction() {
         reporter.reset();
-        Transaction transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        startAndActivateTransaction(null);
+        testScenario = TestScenario.NORMAL;
+    }
+
+    private void startAndActivateTransaction(@Nullable Sampler sampler) {
+        Transaction transaction;
+        if (sampler == null) {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        } else {
+            transaction = tracer.startTransaction(TraceContext.asRoot(), null, sampler, -1, null).activate();
+        }
         transaction.withName("Kafka-Test Transaction");
         transaction.withType("request");
         transaction.withResult("success");
-        testScenario = TestScenario.NORMAL;
     }
 
     @After
@@ -291,11 +302,16 @@ public class KafkaIT extends AbstractInstrumentationTest {
         verifyKafkaTransactionContents(transactions.get(3), sendSpan2, null, REPLY_TOPIC);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testSendTwoRecords_TransactionNotSampled() {
         testScenario = TestScenario.NON_SAMPLED_TRANSACTION;
-        //noinspection ConstantConditions
-        tracer.currentTransaction().getTraceContext().setSampled(false);
+
+        // End current transaction and start a non-sampled one
+        tracer.currentTransaction().deactivate().end();
+        reporter.reset();
+        startAndActivateTransaction(ConstantSampler.of(false));
+
         consumerThread.setIterationMode(RecordIterationMode.ITERABLE_FOR);
         sendTwoRecordsAndConsumeReplies();
 
@@ -304,12 +320,12 @@ public class KafkaIT extends AbstractInstrumentationTest {
         assertThat(spans).isEmpty();
         List<Transaction> transactions = reporter.getTransactions();
         assertThat(transactions).hasSize(2);
-        Transaction transaction1 = transactions.get(0);
-        assertThat(transaction1.getType()).isEqualTo("messaging");
-        assertThat(transaction1.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
-        Transaction transaction2 = transactions.get(1);
-        assertThat(transaction2.getType()).isEqualTo("messaging");
-        assertThat(transaction2.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC);
+        transactions.forEach(transaction -> assertThat(transaction.isSampled()).isFalse());
+        transactions.forEach(transaction -> assertThat(
+            transaction.getTraceContext().getTraceId()).isEqualTo(tracer.currentTransaction().getTraceContext().getTraceId())
+        );
+        transactions.forEach(transaction -> assertThat(transaction.getType()).isEqualTo("messaging"));
+        transactions.forEach(transaction -> assertThat(transaction.getNameAsString()).isEqualTo("Kafka record from " + REQUEST_TOPIC));
     }
 
     private void sendTwoRecordsAndConsumeReplies() {
