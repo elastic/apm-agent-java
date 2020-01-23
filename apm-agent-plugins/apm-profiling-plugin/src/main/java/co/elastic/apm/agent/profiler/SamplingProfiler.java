@@ -148,7 +148,6 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final ElasticApmTracer tracer;
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
-    private final AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
     private final NativeThreadIdToJavaThreadMapper threadMapper = new NativeThreadIdToJavaThreadMapper();
     private final MappedByteBuffer activationEventBuffer;
     private final EventPoller<ActivationEvent> poller;
@@ -278,6 +277,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
+        AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
             String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + jfrFile);
             logger.debug(startMessage);

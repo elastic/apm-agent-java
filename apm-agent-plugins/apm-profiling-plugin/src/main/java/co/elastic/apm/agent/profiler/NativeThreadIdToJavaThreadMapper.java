@@ -34,7 +34,6 @@ import java.util.Map;
 public class NativeThreadIdToJavaThreadMapper {
 
     private final DetachedThreadLocal<Long> threadToNativeThread = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
-    private AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
 
     /**
      * Returns the native thread id of the current thread
@@ -42,7 +41,7 @@ public class NativeThreadIdToJavaThreadMapper {
     public long getNativeThreadId() {
         Long nativeThreadId = threadToNativeThread.get();
         if (nativeThreadId == null) {
-            nativeThreadId = asyncProfiler.getNativeThreadId();
+            nativeThreadId = AsyncProfiler.getInstance().getNativeThreadId();
             threadToNativeThread.set(nativeThreadId);
         }
         return nativeThreadId;

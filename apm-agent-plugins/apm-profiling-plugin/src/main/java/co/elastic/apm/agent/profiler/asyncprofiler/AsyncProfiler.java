@@ -61,7 +61,7 @@ import java.io.File;
 public abstract class AsyncProfiler {
 
     @Nullable
-    private static AsyncProfiler instance;
+    private static volatile AsyncProfiler instance;
 
     private final String version;
 
@@ -69,12 +69,17 @@ public abstract class AsyncProfiler {
         this.version = version0();
     }
 
-    public static synchronized AsyncProfiler getInstance() {
-        if (instance != null) {
+    public static AsyncProfiler getInstance() {
+        AsyncProfiler result = AsyncProfiler.instance;
+        if (result != null) {
+            return result;
+        }
+        synchronized (AsyncProfiler.class) {
+            if (instance == null) {
+                instance = newInstance();
+            }
             return instance;
         }
-        instance = newInstance();
-        return instance;
     }
 
     /*
