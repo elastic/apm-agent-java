@@ -28,33 +28,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class GrpcApp {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcApp.class);
 
     private static final int PORT = 50051;
+    private HelloServer server;
+    private HelloClient client;
+
+    public GrpcApp(){
+
+    }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        HelloServer server = new HelloServer(PORT);
+        GrpcApp app = new GrpcApp();
+        app.start();
+        app.sampleRequests(null);
+        app.stop();
+    }
+
+    public HelloClient start() throws IOException {
+        server = new HelloServer(PORT);
+        client = new HelloClient("localhost", PORT);
         server.start();
+        return client;
+    }
 
-        HelloClient client = new HelloClient("localhost", PORT);
+    private void sampleRequests(HelloClient client) {
+        sendMessage("bob", 0);
+        sendMessage(null, 0);
+        sendMessage("bob", 2);
+        sendMessage(null, 2);
+    }
 
-        sendMessage(client, "bob", 0);
-        sendMessage(client, null, 0);
-        sendMessage(client, "bob", 2);
-        sendMessage(client, null, 2);
-
+    public void stop() throws InterruptedException {
         client.stop();
         server.stop();
     }
 
-    static void sendMessage(HelloClient client, String name, int depth) {
-        client.sayHello(name, depth).ifPresentOrElse(
-            m -> logger.info("received message = {}", m),
-            () -> logger.error("oops! something went wrong")
-        );
+    public String sendMessage(String name, int depth) {
+        Optional<String> response = client.sayHello(name, depth);
+        if (!response.isPresent()) {
+            logger.error("oops! something went wrong");
+            return null;
+        } else {
+            String msg = response.get();
+            logger.info("received message = {}", msg);
+            return msg;
+        }
     }
 
 

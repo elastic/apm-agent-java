@@ -85,7 +85,7 @@ public class HelloServer {
             if (depth > 0) {
                 int nextDepth = depth -1;
                 String nestedResult = client.sayHello(userName, nextDepth).orElse(String.format("error(%d)", nextDepth));
-                message = String.format("nested(%d) -> %s", depth, nestedResult);
+                message = String.format("nested(%d)->%s", depth, nestedResult);
             } else {
 
                 if (userName.isEmpty()) {
