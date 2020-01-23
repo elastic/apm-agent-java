@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,7 +28,7 @@ import co.elastic.apm.agent.benchmark.AbstractBenchmark;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.ElasticApmTracerBuilder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
-import co.elastic.apm.agent.objectpool.impl.MixedObjectPool;
+import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.objectpool.impl.ThreadLocalObjectPool;
 import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
@@ -51,12 +51,11 @@ import java.util.concurrent.TimeUnit;
 public class ObjectPoolBenchmark extends AbstractBenchmark {
 
     private ElasticApmTracer tracer;
-    private QueueBasedObjectPool<Transaction> blockingQueueObjectPool;
-    private QueueBasedObjectPool<Transaction> agronaQueueObjectPool;
-    private MixedObjectPool<Transaction> mixedObjectPool;
-    private ThreadLocalObjectPool<Transaction> threadLocalObjectPool;
-    private QueueBasedObjectPool<Transaction> jctoolsQueueObjectPool;
-    private QueueBasedObjectPool<Transaction> jctoolsAtomicQueueObjectPool;
+    private ObjectPool<Transaction> blockingQueueObjectPool;
+    private ObjectPool<Transaction> agronaQueueObjectPool;
+    private ObjectPool<Transaction> threadLocalObjectPool;
+    private ObjectPool<Transaction> jctoolsQueueObjectPool;
+    private ObjectPool<Transaction> jctoolsAtomicQueueObjectPool;
 
     public static void main(String[] args) throws RunnerException {
         run(ObjectPoolBenchmark.class);
@@ -69,16 +68,12 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
         jctoolsQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcArrayQueue<>(256), true, () -> new Transaction(tracer));
         jctoolsAtomicQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(256), true, () -> new Transaction(tracer));
         agronaQueueObjectPool = QueueBasedObjectPool.ofRecyclable(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer));
-        mixedObjectPool = new MixedObjectPool<>(() -> new Transaction(tracer),
-            new ThreadLocalObjectPool<>(256, true, () -> new Transaction(tracer)),
-            QueueBasedObjectPool.ofRecyclable(new ManyToManyConcurrentArrayQueue<>(256), true, () -> new Transaction(tracer)));
         threadLocalObjectPool = new ThreadLocalObjectPool<>(64, true, () -> new Transaction(tracer));
     }
 
     @TearDown
     public void tearDown() {
         System.out.println("Objects created by agronaQueueObjectPool: " + agronaQueueObjectPool.getGarbageCreated());
-        System.out.println("Objects created by MixedObjectPool: " + mixedObjectPool.getGarbageCreated());
     }
 
     //    @Benchmark
@@ -116,14 +111,6 @@ public class ObjectPoolBenchmark extends AbstractBenchmark {
     public Transaction testBlockingQueueObjectPool() {
         Transaction transaction = blockingQueueObjectPool.createInstance();
         blockingQueueObjectPool.recycle(transaction);
-        return transaction;
-    }
-
-    //    @Benchmark
-    @Threads(8)
-    public Transaction testMixedObjectPool() {
-        Transaction transaction = mixedObjectPool.createInstance();
-        mixedObjectPool.recycle(transaction);
         return transaction;
     }
 

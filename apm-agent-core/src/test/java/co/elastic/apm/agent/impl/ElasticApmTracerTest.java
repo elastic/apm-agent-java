@@ -36,6 +36,8 @@ import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
+import co.elastic.apm.agent.objectpool.TestObjectPoolFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.stagemonitor.configuration.ConfigurationRegistry;
@@ -55,14 +57,24 @@ class ElasticApmTracerTest {
     private MockReporter reporter;
     private ConfigurationRegistry config;
 
+    private TestObjectPoolFactory objectPoolFactory;
+
     @BeforeEach
     void setUp() {
+        objectPoolFactory = new TestObjectPoolFactory();
         reporter = new MockReporter();
         config = SpyConfiguration.createSpyConfig();
         tracerImpl = new ElasticApmTracerBuilder()
             .configurationRegistry(config)
             .reporter(reporter)
+            .withObjectPoolFactory(objectPoolFactory)
             .build();
+    }
+
+    @AfterEach
+    void cleanupAndCheck() {
+        reporter.assertRecycledAfterDecrementingReferences();
+        objectPoolFactory.checkAllPooledObjectsHaveBeenRecycled();
     }
 
     @Test
@@ -204,13 +216,16 @@ class ElasticApmTracerTest {
     }
 
     @Test
-    void testRecordExceptionWithTrace() {
+    void testRecordExceptionWithTraceSampled() {
         innerRecordExceptionWithTrace(true);
+    }
+
+    @Test
+    void testRecordExceptionWithTraceNotSampled() {
         innerRecordExceptionWithTrace(false);
     }
 
     private void innerRecordExceptionWithTrace(boolean sampled) {
-        reporter.reset();
         Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, ConstantSampler.of(sampled), -1, null);
         transaction.withType("test-type");
         try (Scope scope = transaction.activateInScope()) {
@@ -220,23 +235,36 @@ class ElasticApmTracerTest {
                 .getUrl()
                 .withPathname("/foo");
             tracerImpl.currentTransaction().captureException(new Exception("from transaction"));
-            ErrorCapture error = validateError(transaction, sampled, transaction);
-            assertThat(error.getContext().getRequest().getHeaders().get("foo")).isEqualTo("bar");
-            reporter.reset();
+
             Span span = transaction.createSpan().activate();
             span.captureException(new Exception("from span"));
-            validateError(span, sampled, transaction);
+
+            List<ErrorCapture> errors = reporter.getErrors();
+            assertThat(errors).hasSize(2);
+
+            // 1st one is from transaction
+            validateError(errors.get(0), transaction, sampled, transaction);
+            assertThat(errors.get(0).getContext().getRequest().getHeaders().get("foo")).isEqualTo("bar");
+
+            // second one is the one from span
+            validateError(errors.get(1), span, sampled, transaction);
+
             span.deactivate().end();
-            transaction.end();
         }
+        transaction.end();
     }
 
-    private ErrorCapture validateError(AbstractSpan span, boolean sampled, Transaction correspondingTransaction) {
+    private ErrorCapture validateSingleError(AbstractSpan<?> span, boolean sampled, Transaction correspondingTransaction) {
         assertThat(reporter.getErrors()).hasSize(1);
-        ErrorCapture error = reporter.getFirstError();
-        assertThat(error.getTraceContext().isChildOf(span.getTraceContext())).isTrue();
+        return validateError(reporter.getFirstError(), span, sampled, correspondingTransaction);
+    }
+
+    private ErrorCapture validateError(ErrorCapture error, AbstractSpan<?> span, boolean sampled, Transaction transaction) {
+        assertThat(error.getTraceContext().isChildOf(span.getTraceContext()))
+            .describedAs("error trace context [%s] should be a child of span trace context [%s]", error.getTraceContext(), span.getTraceContext())
+            .isTrue();
         assertThat(error.getTransactionInfo().isSampled()).isEqualTo(sampled);
-        assertThat(error.getTransactionInfo().getType()).isEqualTo(correspondingTransaction.getType());
+        assertThat(error.getTransactionInfo().getType()).isEqualTo(transaction.getType());
         return error;
     }
 
@@ -266,18 +294,19 @@ class ElasticApmTracerTest {
     @Test
     void testDisable() {
         when(config.getConfig(CoreConfiguration.class).isActive()).thenReturn(false);
-        Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()); // 1
         try (Scope scope = transaction.activateInScope()) {
             assertThat(tracerImpl.currentTransaction()).isSameAs(transaction);
             assertThat(transaction.isSampled()).isFalse();
-            Span span = tracerImpl.getActive().createSpan();
+            Span span = transaction.createSpan();
             try (Scope spanScope = span.activateInScope()) {
                 assertThat(tracerImpl.getActive()).isSameAs(span);
                 assertThat(tracerImpl.getActive()).isNotNull();
             }
+            span.end();
             assertThat(tracerImpl.getActive()).isSameAs(transaction);
-            transaction.end();
         }
+        transaction.end();
         assertThat(tracerImpl.currentTransaction()).isNull();
         assertThat(reporter.getTransactions()).isEmpty();
         assertThat(reporter.getSpans()).isEmpty();
@@ -387,6 +416,7 @@ class ElasticApmTracerTest {
 
         final Span span = transaction.createSpan(10);
         span.end(20);
+
         transaction.end(30);
 
         assertThat(transaction.getTimestamp()).isEqualTo(0);
@@ -444,6 +474,7 @@ class ElasticApmTracerTest {
             .build();
         tracer.overrideServiceNameForClassLoader(getClass().getClassLoader(), "overridden");
         tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).end();
+
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isEqualTo("overridden");
     }
 
