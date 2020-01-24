@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -49,6 +49,7 @@ public class ServletApiTestApp extends TestApp {
 
     @Override
     public void test(AbstractServletContainerIntegrationTest test) throws Exception {
+        testInferredSpans(test);
         testTransactionReporting(test);
         testTransactionErrorReporting(test);
         testSpanErrorReporting(test);
@@ -123,6 +124,11 @@ public class ServletApiTestApp extends TestApp {
         assertThat(span.get("parent_id").textValue()).isEqualTo(outerTransaction.get("id").textValue());
         assertThat(span.get("context").get("http").get("url").textValue()).endsWith("hello-world.jsp");
         assertThat(span.get("context").get("http").get("status_code").intValue()).isEqualTo(200);
+    }
+
+    private void testInferredSpans(AbstractServletContainerIntegrationTest test) throws Exception {
+        test.executeAndValidateRequest("/simple-webapp/servlet?sleep=100", "Hello World", 200, Map.of());
+        await().until(test::hasInferredSpans);
     }
 
     private void testTransactionReporting(AbstractServletContainerIntegrationTest test) throws Exception {

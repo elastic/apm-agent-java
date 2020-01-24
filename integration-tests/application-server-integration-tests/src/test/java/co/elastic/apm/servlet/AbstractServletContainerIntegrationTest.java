@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -61,8 +61,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static co.elastic.apm.agent.report.IntakeV2ReportingEventHandler.INTAKE_V2_URL;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -141,6 +143,10 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
+            .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
+            .withEnv("ELASTIC_APM_PROFILING_DURATION", "1s")
+            .withEnv("ELASTIC_APM_PROFILING_INTERVAL", "1s")
+            .withEnv("ELASTIC_APM_PROFILING_SAMPLING_INTERVAL", "10ms")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -345,7 +351,9 @@ public abstract class AbstractServletContainerIntegrationTest {
             .describedAs("at least one span is expected")
             .isNotEmpty();
         for (JsonNode span : reportedSpans) {
-            assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
+            assertThat(span.get("transaction_id").textValue())
+                .describedAs("Unexpected transaction id for span %s", span)
+                .isEqualTo(transactionId);
         }
         return reportedSpans;
     }
@@ -407,9 +415,23 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     public List<JsonNode> getReportedSpans() {
-        final List<JsonNode> transactions = getEvents("span");
-        transactions.forEach(mockReporter::verifySpanSchema);
-        return transactions;
+        final List<JsonNode> spans = getEvents("span");
+        spans.forEach(mockReporter::verifySpanSchema);
+        return spans.stream()
+            .filter(s -> !isInferredSpan(s))
+            .collect(Collectors.toList());
+    }
+
+    public boolean hasInferredSpans() {
+        return getEvents("span").stream()
+            .anyMatch(this::isInferredSpan);
+    }
+
+    private boolean isInferredSpan(JsonNode s) {
+        return Optional.ofNullable(s.get("type"))
+            .map(JsonNode::textValue)
+            .filter(type -> type.endsWith("inferred"))
+            .isPresent();
     }
 
     public List<JsonNode> getReportedErrors() {
