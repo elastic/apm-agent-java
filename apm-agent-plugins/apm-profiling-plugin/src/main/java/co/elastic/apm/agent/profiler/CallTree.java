@@ -92,15 +92,33 @@ public class CallTree implements Recyclable {
         this.activationTimestamp = activationTimestamp;
     }
 
-    protected void handleDeactivation(TraceContext deactivatedSpan, long timestamp) {
+    protected void handleDeactivation(TraceContext deactivatedSpan, long activationTimestamp, long deactivationTimestamp) {
         if (deactivatedSpan.equals(activeContextOfDirectParent)) {
-            deactivationTimestamp = timestamp;
+            this.deactivationTimestamp = deactivationTimestamp;
+
         } else {
             CallTree lastChild = getLastChild();
-            if (lastChild != null && !lastChild.isEnded()) {
-                lastChild.handleDeactivation(deactivatedSpan, timestamp);
+            if (lastChild != null) {
+                lastChild.handleDeactivation(deactivatedSpan, activationTimestamp, deactivationTimestamp);
             }
         }
+        // if an actual child span is deactivated after this call tree node has ended
+        // it means that this node has actually ended at least at the same point, if not after, the actual span has been deactivated
+        //
+        // [a(inferred)]    ─► [a(inferred)  ] <- set end timestamp to timestamp of deactivation of b
+        // └─[b(actual)  ]     └─[b(actual)  ]
+        // see also CallTreeTest::testDectivationAfterEnd
+        if (happenedDuring(activationTimestamp) && happenedAfter(deactivationTimestamp)) {
+            lastSeen = deactivationTimestamp;
+        }
+    }
+
+    private boolean happenedDuring(long timestamp) {
+        return start <= timestamp && timestamp <= lastSeen;
+    }
+
+    private boolean happenedAfter(long timestamp) {
+        return lastSeen < timestamp;
     }
 
     public static CallTree.Root createRoot(ObjectPool<CallTree.Root> rootPool, byte[] traceContext, @Nullable String serviceName, long nanoTime) {
@@ -194,7 +212,7 @@ public class CallTree implements Recyclable {
         // └[a(inferred)]   │  [b(inferred)]
         //  [b(infer.) ]    └► [c        ]
         //  └─[d(i.)]          └──[d(i.)]
-        // see also profiler.CallTreeTest::testDectivationBeforeEnd
+        // see also CallTreeTest::testDectivationBeforeEnd
         if (deactivationHappenedBeforeEnd()) {
             start = Math.min(activationTimestamp, start);
             List<CallTree> callTrees = getChildren();
@@ -407,7 +425,7 @@ public class CallTree implements Recyclable {
 
         public void onDeactivation(byte[] active, long timestamp) {
             if (activeSpan != null) {
-                handleDeactivation(activeSpan, timestamp);
+                handleDeactivation(activeSpan, activationTimestamp, timestamp);
             } else {
                 logger.debug("tried to handle deactivation without an active span");
             }

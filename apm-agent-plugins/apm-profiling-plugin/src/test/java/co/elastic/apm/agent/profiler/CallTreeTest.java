@@ -234,6 +234,26 @@ class CallTreeTest {
         });
     }
 
+    @Test
+    void testDectivationAfterEnd() throws Exception {
+        assertCallTree(new String[]{
+            "    ccc    ",
+            "  b bbb    ", // <- deactivation for span 2 happens after b ends
+            " aa aaa aa ", //    that means b must have ended after 2 has been deactivated
+            "1  2   2  1"  //    but we saw the last stack trace of b before the deactivation of 2
+        }, new Object[][] {
+            {"a",     7},
+            {"  b",   4},
+            {"    c", 3},
+        }, new Object[][] {
+            {"1",        10},
+            {"  a",       8},
+            {"    b",     5},
+            {"      2",   4},
+            {"        c", 2},
+        });
+    }
+
     private void assertCallTree(String[] stackTraces, Object[][] expectedTree) throws Exception {
         assertCallTree(stackTraces, expectedTree, null);
     }
@@ -288,7 +308,9 @@ class CallTreeTest {
                             parentName, spans.get(parentName).getTraceContext().getId(), span.getTraceContext().getParentId())
                         .isTrue();
                 }
-                assertThat(span.getDuration()).isEqualTo(durationMs * 1000);
+                assertThat(span.getDuration())
+                    .describedAs("Unexpected duration for span %s", span)
+                    .isEqualTo(durationMs * 1000);
                 assertThat(Objects.requireNonNullElse(((Span) span).getStackFrames(), List.<StackFrame>of())
                     .stream()
                     .map(StackFrame::getMethodName)
