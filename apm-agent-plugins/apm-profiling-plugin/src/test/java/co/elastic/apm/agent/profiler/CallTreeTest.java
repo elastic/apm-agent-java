@@ -211,6 +211,14 @@ class CallTreeTest {
         });
     }
 
+    /*
+     * [1        ]    [1        ]
+     *  [a      ]      [a      ]
+     *   [2   ]    ─┐   [b     ]
+     *    [b    ]   │   [c    ]
+     *    [c   ]    └►  [2   ]
+     *    []             []
+     */
     @Test
     void testDectivationBeforeEnd() throws Exception {
         assertCallTree(new String[]{
@@ -234,23 +242,34 @@ class CallTreeTest {
         });
     }
 
+    /*
+     * [1        ]    [1        ]
+     *  [a      ]      [a      ]
+     *   [b   ]    ->   [b    ]
+     *    [c  ]    ->    [c   ]
+     *     [2  ]          [2  ]
+     *      []             []
+     */
     @Test
     void testDectivationAfterEnd() throws Exception {
         assertCallTree(new String[]{
-            "    ccc    ",
-            "  b bbb    ", // <- deactivation for span 2 happens after b ends
-            " aa aaa aa ", //    that means b must have ended after 2 has been deactivated
-            "1  2   2  1"  //    but we saw the last stack trace of b before the deactivation of 2
+            "     dd     ",
+            "   c ccc    ",
+            "  bb bbb    ", // <- deactivation for span 2 happens after b ends
+            " aaa aaa aa ", //    that means b must have ended after 2 has been deactivated
+            "1   2   2  1"  //    but we saw the last stack trace of b before the deactivation of 2
         }, new Object[][] {
-            {"a",     7},
-            {"  b",   4},
-            {"    c", 3},
+            {"a",       8},
+            {"  b",     5},
+            {"    c",   4},
+            {"      d", 2},
         }, new Object[][] {
-            {"1",        10},
-            {"  a",       8},
-            {"    b",     5},
-            {"      2",   4},
-            {"        c", 2},
+            {"1",          11},
+            {"  a",         9},
+            {"    b",       6},
+            {"      c",     5},
+            {"        2",   4},
+            {"          d", 1},
         });
     }
 
