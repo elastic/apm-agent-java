@@ -198,7 +198,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         for (int i = 0; i < mb * 1024; i++) {
             activationEventBuffer.put(oneKb);
         }
-        activationEventBuffer.clear();
+        ((Buffer) activationEventBuffer).clear();
     }
 
     private RingBuffer<ActivationEvent> createRingBuffer() {
