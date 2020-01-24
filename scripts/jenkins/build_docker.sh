@@ -12,13 +12,27 @@ then
   echo "ERROR: Building Docker image requires cURL to be installed" && exit 1
 fi
 
-echo "INFO: Fetching latest tag"
-#TODO Move this into apm-pipeline-library
-GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
+echo "INFO: Determining latest tag"
+readonly GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
 readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
 
-echo "INFO: Downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
-curl -L -s -o apm-agent-java.jar "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
+readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+readonly PROJECT_ROOT=$SCRIPT_PATH/../../
+
+if [ ! -z "$(ls -A ) $SCRIPT_PATH/../../elastic-apm-agent/target" ]
+then
+  # We have build files to use
+  echo "INFO: Found local build artifact. Using locally built for Docker build"
+  find -E $PROJECT_ROOT/elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} $PROJECT_ROOT/apm-agent-java.jar \;
+  # cp $SCRIPT_PATH/../../elastic-apm-agent/target/elastic-apm-agent-.*!('-javadoc'|'-sources').jar $SCRIPT_PATH/../../apm-agent-java.jar
+elif [ ! -z ${SONATYPE_FALLBACK+x} ]
+then
+  echo "INFO: No local build artifact and SONATYPE_FALLBACK. Falling back to downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
+  curl -L -s -o apm-agent-java.jar \
+    "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
+  else
+    echo "ERROR: No suitable build artifact was found. Re-running this script with the SONATYPE_FALLBACK variable set to true will try to use the Sonatype artifact for the latest tag"
+fi
 
 echo "INFO: Starting Docker build for version $GIT_TAG"
 
@@ -33,8 +47,12 @@ else
 fi
 
 function finish {
-  echo "INFO: Cleaning up downloaded artifact"
-  rm apm-agent-java.jar
+
+  if [ -f apm-agent-java.jar ]
+  then
+    echo "INFO: Cleaning up downloaded artifact"
+    rm apm-agent-java.jar
+  fi
 }
 
 trap finish EXIT
