@@ -522,4 +522,8 @@ public abstract class AbstractServletContainerIntegrationTest {
     public OkHttpClient getHttpClient() {
         return httpClient;
     }
+
+    public boolean isHotSpotBased() {
+        return true;
+    }
 }
