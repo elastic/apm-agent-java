@@ -288,7 +288,7 @@ pipeline {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
-        stage('Docker build') {
+        stage('Docker push') {
           when {
             beforeAgent true
             expression { return params.push_docker }
