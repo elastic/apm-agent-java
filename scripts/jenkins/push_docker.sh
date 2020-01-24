@@ -4,7 +4,7 @@ set -euxo pipefail
 # This script is present on workers but may not be present in a development
 # environment.
 
-if [ ${WORKERS+x} ]  # We are on a CI worker
+if [ ${WORKSPACE+x} ]  # We are on a CI worker
 then
   source /usr/local/bin/bash_standard_lib.sh
 fi
