@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# This script is intended to work in conjunction with the build_docker 
+# This script is present on workers but may not be present in a development
+# environment.
+
+if [ ${WORKERS+x} ]  # We are on a CI worker
+then
+  source /usr/local/bin/bash_standard_lib.sh
+fi
+
+readonly RETRIES=3
+
+# This script is intended to work in conjunction with the build_docker
 # script. It assumes that build_docker.sh has been run at least once, thereby
 # creating a Docker image to push. If this script does not detect an image
 # to be uploaded, it will fail.
@@ -24,7 +34,12 @@ readonly DOCKER_PUSH_IMAGE="docker.elastic.co/apm/apm-agent-java:$CUR_TAG"
 # 3. Proceed with pushing to the registry
 readonly DOCKER_REGISTRY_URL=`echo $DOCKER_PUSH_IMAGE|cut -f1 -d/`
 echo "INFO: Pushing image $DOCKER_PUSH_IMAGE to $DOCKER_REGISTRY_URL"
-docker push $DOCKER_PUSH_IMAGE || echo "Push failed. When running in " \
-  "the CI, login should happen automatically. If running this script " \
-  "by hand, you may need to run 'docker login' first and then re-run " \
-  "this script."
+
+if [ ${WORKERS+x} ]  # We are on a CI worker
+then
+  retry $RETRIES docker push $DOCKER_PUSH_IMAGE || echo "Push failed after 5 \
+   retries"
+else  # We are in a local (non-CI) environment
+  docker push $DOCKER_PUSH_IMAGE || echo "You may need to run 'docker login' \
+  first and then re-run this script"
+fi
