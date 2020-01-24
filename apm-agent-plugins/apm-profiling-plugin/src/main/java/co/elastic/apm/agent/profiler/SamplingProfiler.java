@@ -273,8 +273,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         logger.debug("Start profiling session");
         try {
             profile(sampleRate, profilingDuration);
-        } catch (Exception e) {
-            logger.error("Stopping profiler", e);
+        } catch (Throwable t) {
+            setProfilingSessionOngoing(false);
+            logger.error("Stopping profiler", t);
             return;
         }
         logger.debug("End profiling session");
