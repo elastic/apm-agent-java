@@ -586,7 +586,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
             if (callTree != null && callTree.getRootContext().traceIdAndIdEquals(traceContextBuffer)) {
                 samplingProfiler.profiledThreads.remove(threadId);
                 callTree.end();
-                callTree.removeNodesFasterThan(0.01f, 2);
+                callTree.removeNodesFasterThan(samplingProfiler.config.getInferredSpansMinDuration().getMillis(), 2);
                 callTree.spanify();
                 samplingProfiler.rootPool.recycle(callTree);
             }

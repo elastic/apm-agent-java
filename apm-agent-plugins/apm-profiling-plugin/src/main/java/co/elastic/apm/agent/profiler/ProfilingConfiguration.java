@@ -27,7 +27,6 @@ package co.elastic.apm.agent.profiler;
 import co.elastic.apm.agent.configuration.converter.ListValueConverter;
 import co.elastic.apm.agent.configuration.converter.TimeDuration;
 import co.elastic.apm.agent.configuration.converter.TimeDurationValueConverter;
-import co.elastic.apm.agent.configuration.validation.RangeValidator;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.matcher.WildcardMatcherValueConverter;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -35,6 +34,9 @@ import org.stagemonitor.configuration.ConfigurationOptionProvider;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static co.elastic.apm.agent.configuration.validation.RangeValidator.isInRange;
+import static co.elastic.apm.agent.configuration.validation.RangeValidator.min;
 
 public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
@@ -72,9 +74,20 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "The lower you set it, the more accurate the durations will be.\n" +
             "This comes at the expense of higher overhead and more spans for potentially irrelevant operations.\n" +
             "The minimal duration of a profiling-inferred span is the same as the value of this setting.")
-        .addValidator(RangeValidator.min(TimeDuration.of("5ms")))
+        .addValidator(isInRange(TimeDuration.of("1ms"), TimeDuration.of("1s")))
         .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("20ms"));
+
+    private final ConfigurationOption<TimeDuration> inferredSpansMinDuration = TimeDurationValueConverter.durationOption("ms")
+        .key("profiling_spans_min_duration")
+        .configurationCategory(PROFILING_CATEGORY)
+        .dynamic(true)
+        .description("The minimum duration of an inferred span.\n" +
+            "Note that the min duration is also implicitly set by the sampling interval.\n" +
+            "However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.")
+        .tags("added[1.13.0]")
+        .addValidator(min(TimeDuration.of("0ms")))
+        .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<List<WildcardMatcher>> includedClasses = ConfigurationOption
         .builder(new ListValueConverter<>(new WildcardMatcherValueConverter()), List.class)
@@ -110,7 +123,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .key("profiling_interval")
         .description("The interval at which profiling sessions should be started.")
         .configurationCategory(PROFILING_CATEGORY)
-        .addValidator(RangeValidator.min(TimeDuration.of("0ms")))
+        .addValidator(min(TimeDuration.of("0ms")))
         .dynamic(true)
         .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("61s"));
@@ -127,7 +140,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
             "If you want to have more profiling coverage, try decreasing <<config-profiling-interval, `profiling_interval`>>.")
         .configurationCategory(PROFILING_CATEGORY)
         .dynamic(true)
-        .addValidator(RangeValidator.min(TimeDuration.of("1s")))
+        .addValidator(min(TimeDuration.of("1s")))
         .tags("added[1.13.0]")
         .buildWithDefault(TimeDuration.of("10s"));
 
@@ -141,6 +154,10 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
 
     public TimeDuration getSamplingInterval() {
         return samplingInterval.get();
+    }
+
+    public TimeDuration getInferredSpansMinDuration() {
+        return inferredSpansMinDuration.get();
     }
 
     public List<WildcardMatcher> getIncludedClasses() {

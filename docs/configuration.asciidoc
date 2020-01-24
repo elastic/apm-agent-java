@@ -103,6 +103,7 @@ Click on a key to get more information.
 * <<config-profiling>>
 ** <<config-profiling-spans-enabled>>
 ** <<config-profiling-sampling-interval>>
+** <<config-profiling-spans-min-duration>>
 ** <<config-profiling-included-classes>>
 ** <<config-profiling-excluded-classes>>
 ** <<config-profiling-interval>>
@@ -1284,6 +1285,32 @@ The default unit for this option is `ms`.
 
 // This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
 [float]
+[[config-profiling-spans-min-duration]]
+==== `profiling_spans_min_duration` (added[1.13.0])
+
+The minimum duration of an inferred span.
+Note that the min duration is also implicitly set by the sampling interval.
+However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+
+Supports the duration suffixes `ms`, `s` and `m`.
+Example: `0ms`.
+The default unit for this option is `ms`.
+
+[options="header"]
+|============
+| Default                          | Type                | Dynamic
+| `0ms` | TimeDuration | true
+|============
+
+
+[options="header"]
+|============
+| Java System Properties      | Property file   | Environment
+| `elastic.apm.profiling_spans_min_duration` | `profiling_spans_min_duration` | `ELASTIC_APM_PROFILING_SPANS_MIN_DURATION`
+|============
+
+// This file is auto generated. Please make your changes in *Configuration.java (for example CoreConfiguration.java) and execute ConfigurationExporter
+[float]
 [[config-profiling-included-classes]]
 ==== `profiling_included_classes` (added[1.13.0])
 
@@ -2455,6 +2482,18 @@ The default unit for this option is `ms`.
 # Default value: 20ms
 #
 # profiling_sampling_interval=20ms
+
+# The minimum duration of an inferred span.
+# Note that the min duration is also implicitly set by the sampling interval.
+# However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+#
+# This setting can be changed at runtime
+# Type: TimeDuration
+# Supports the duration suffixes ms, s and m. Example: 0ms.
+# The default unit for this option is ms.
+# Default value: 0ms
+#
+# profiling_spans_min_duration=0ms
 
 # If set, the agent will only create inferred spans for methods which match this list.
 # Setting a value may slightly increase performance and can reduce clutter by only creating spans for the classes you are interested in.

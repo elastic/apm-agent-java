@@ -77,27 +77,31 @@ class CallTreeTest {
         CallTree.Root root = CallTree.createRoot(new NoopObjectPool<>(() -> new CallTree.Root(tracer), Resetter.ForRecyclable.get()), traceContext.serialize(), traceContext.getServiceName(), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), 0);
         root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(10));
-        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "b"), StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(20));
+        root.addStackTrace(tracer, List.of(StackFrame.of("A", "a")), TimeUnit.MILLISECONDS.toNanos(30));
         root.end();
+        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10));
 
         System.out.println(root);
 
-        assertThat(root.getCount()).isEqualTo(3);
+        assertThat(root.getCount()).isEqualTo(4);
         assertThat(root.getChildren()).hasSize(1);
 
         CallTree a = root.getLastChild();
         assertThat(a).isNotNull();
         assertThat(a.getFrame().getMethodName()).isEqualTo("a");
-        assertThat(a.getCount()).isEqualTo(3);
+        assertThat(a.getCount()).isEqualTo(4);
         assertThat(a.getChildren()).hasSize(1);
 
         CallTree b = a.getLastChild();
         assertThat(b).isNotNull();
         assertThat(b.getFrame().getMethodName()).isEqualTo("b");
-        assertThat(b.getCount()).isEqualTo(1);
+        assertThat(b.getCount()).isEqualTo(2);
         assertThat(b.getChildren()).isEmpty();
-    }
 
+        root.removeNodesFasterThan(2, TimeUnit.MILLISECONDS.toNanos(10) + 1);
+        assertThat(a.getChildren()).isEmpty();
+    }
 
     @Test
     void testTwoDistinctInvocationsOfMethodBShouldNotBeFoldedIntoOne() throws Exception {

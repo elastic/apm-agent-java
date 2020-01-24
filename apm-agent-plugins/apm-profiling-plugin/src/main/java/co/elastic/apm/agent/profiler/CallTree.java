@@ -187,7 +187,11 @@ public class CallTree implements Recyclable {
     }
 
     long getDurationUs() {
-        return (lastSeen - start) / 1000;
+        return getDurationNs() / 1000;
+    }
+
+    private long getDurationNs() {
+        return lastSeen - start;
     }
 
     public int getCount() {
@@ -341,21 +345,24 @@ public class CallTree implements Recyclable {
         }
     }
 
-    public void removeNodesFasterThan(float percent, int minCount) {
-        int ticks = (int) (count * percent);
-        removeNodesFasterThan(Math.max(ticks, minCount));
+    public void removeNodesFasterThan(long minDurationMs, int minCount) {
+        removeNodesFasterThan(minCount, minDurationMs * 1_000_000);
     }
 
-    public void removeNodesFasterThan(int minCount) {
+    public void removeNodesFasterThan(int minCount, long minDurationNs) {
         List<CallTree> callTrees = getChildren();
         for (int i = 0; i < callTrees.size(); i++) {
             CallTree child = callTrees.get(i);
-            if (child.count < minCount) {
+            if (child.count < minCount || child.isFasterThan(minDurationNs)) {
                 callTrees.remove(i--);
             } else {
-                child.removeNodesFasterThan(minCount);
+                child.removeNodesFasterThan(minCount, minDurationNs);
             }
         }
+    }
+
+    private boolean isFasterThan(long minDurationNs) {
+        return getDurationNs() < minDurationNs;
     }
 
     @Override
