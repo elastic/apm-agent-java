@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -57,10 +57,10 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInst
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
-            if (original.containsHeader(TraceContext.TRACE_PARENT_HEADER) && !redirect.containsHeader(TraceContext.TRACE_PARENT_HEADER)) {
-                String traceContext = original.getFirstHeader(TraceContext.TRACE_PARENT_HEADER).getValue();
+            if (original.containsHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME) && !redirect.containsHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
+                String traceContext = original.getFirstHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME).getValue();
                 if (traceContext != null) {
-                    redirect.setHeader(TraceContext.TRACE_PARENT_HEADER, traceContext);
+                    redirect.setHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, traceContext);
                 }
             }
         }

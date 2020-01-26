@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -103,7 +103,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
             // https://kafka.apache.org/0110/documentation.html#messageformat
             if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
                 try {
-                    record.headers().add(TraceContext.TRACE_PARENT_HEADER,
+                    record.headers().add(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME,
                         span.getTraceContext().getOutgoingTraceParentBinaryHeader());
                 } catch (final IllegalStateException e) {
                     // headers are in a read-only state
@@ -132,7 +132,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                     //noinspection unchecked
                     record = new ProducerRecord(record.topic(), record.partition(), record.timestamp(),
                         record.key(), record.value(), record.headers());
-                    record.headers().remove(TraceContext.TRACE_PARENT_HEADER);
+                    record.headers().remove(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME);
                     span.deactivate();
                     span = null;
                     headersSupported = false;

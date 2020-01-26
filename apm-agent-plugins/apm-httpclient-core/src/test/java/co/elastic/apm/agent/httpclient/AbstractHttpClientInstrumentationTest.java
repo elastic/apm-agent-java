@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -131,9 +131,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(destination.getService().getResource().toString()).isEqualTo(host + ":" + wireMockRule.port());
         assertThat(destination.getService().getType()).isEqualTo("external");
 
-        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentTextHeader().toString();
         verify(anyRequestedFor(urlPathEqualTo(path))
-            .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
+            .withHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, equalTo(traceParentHeader)));
     }
 
     @Test
@@ -168,11 +168,11 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getStatusCode()).isEqualTo(200);
 
-        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentTextHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/redirect"))
-            .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
+            .withHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, equalTo(traceParentHeader)));
         verify(getRequestedFor(urlPathEqualTo("/"))
-            .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
+            .withHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, equalTo(traceParentHeader)));
     }
 
     @Test
@@ -187,9 +187,9 @@ public abstract class AbstractHttpClientInstrumentationTest extends AbstractInst
         assertThat(reporter.getFirstError().getException().getClass()).isNotNull();
         assertThat(reporter.getSpans().get(0).getContext().getHttp().getUrl()).isEqualTo(getBaseUrl() + path);
 
-        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentHeader().toString();
+        final String traceParentHeader = reporter.getFirstSpan().getTraceContext().getOutgoingTraceParentTextHeader().toString();
         verify(getRequestedFor(urlPathEqualTo("/circular-redirect"))
-            .withHeader(TraceContext.TRACE_PARENT_HEADER, equalTo(traceParentHeader)));
+            .withHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, equalTo(traceParentHeader)));
     }
 
     protected String getBaseUrl() {
