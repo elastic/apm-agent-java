@@ -28,7 +28,7 @@ readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 readonly NAMESPACE="observability"
 
-if [ "$(ls -A  ${PROJECT_ROOT}elastic-apm-agent/target)" ]
+if [ "$(ls -A  ${PROJECT_ROOT}elastic-apm-agent/target/*.jar)" ]
 then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
@@ -45,8 +45,8 @@ fi
 
 echo "INFO: Starting Docker build for version $GIT_TAG"
 
-docker build . -t docker.elastic.co/$NAMESPACE/apm-agent-java:$GIT_TAG \
-  --build-arg JAR_FILE=apm-agent-java.jar
+docker build -t docker.elastic.co/$NAMESPACE/apm-agent-java:$GIT_TAG \
+  --build-arg JAR_FILE=apm-agent-java.jar .
 
 if [ $? -eq 0 ]
 then
