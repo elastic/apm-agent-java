@@ -231,14 +231,14 @@ public abstract class AsyncProfiler {
             String os = System.getProperty("os.name").toLowerCase();
             String arch = System.getProperty("os.arch").toLowerCase();
             if (os.contains("linux")) {
-                // TODO include binaries for async-profiler 1.7 once it's released
                 if (arch.contains("arm") || arch.contains("aarch")) {
-                    if (true) {
-                        throw new IllegalStateException("ARM is not supported until async-profiler 1.7 is released");
-                    }
-                    return "libasyncProfiler-arm";
+                    return "libasyncProfiler-linux-arm";
+                } else if (arch.contains("64")) {
+                    return "libasyncProfiler-linux-x64";
+                } else if (arch.contains("86")) {
+                    return "libasyncProfiler-linux-x86";
                 } else {
-                    return "libasyncProfiler";
+                    throw new IllegalStateException("Async-profiler does not work on Linux " + arch);
                 }
             } else if (os.contains("mac")) {
                 return "libasyncProfiler-macos";
