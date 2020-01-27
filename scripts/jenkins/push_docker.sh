@@ -21,11 +21,17 @@ readonly RETRIES=3
 
 # 1. Grab the tag we are working with
 
-#FIXME DRY between Docker scripts
-echo "INFO: Fetching latest tag"
-#TODO Move this into apm-pipeline-library
-CUR_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
-readonly CUR_TAG=${CUR_TAG:-$CUR_TAG_DEFAULT}
+echo "INFO: Determining latest tag"
+if [ ! -z ${TAG_NAME+x} ]
+then
+  echo "INFO: Detected TAG_NAME variable. Probably a Jenkins instance."
+  readonly GIT_TAG_DEFAULT=$(echo $TAG_NAME|sed s/^v//)
+else
+  echo "INFO: Did not detect TAG_NAME. Examining git log for latest tag"
+  readonly GIT_TAG_DEFAULT=$(git describe --abbrev=0|sed s/^v//)
+fi
+
+readonly CUR_TAG=${CUR_TAG:-$GIT_TAG_DEFAULT}
 
 # 2. Construct the image:tag that we are working with
 # This is roughly <repo>/<namespace>/image
