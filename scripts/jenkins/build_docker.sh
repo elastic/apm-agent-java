@@ -19,11 +19,11 @@ readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
 readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 
-if [ ! -z "$(ls -A ) $SCRIPT_PATH/../../elastic-apm-agent/target" ]
+if [ "$(ls -A  $SCRIPT_PATH/../../elastic-apm-agent/target)" ]
 then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
-  find -E $PROJECT_ROOT/elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} $PROJECT_ROOT/apm-agent-java.jar \;
+  find -E $PROJECT_ROOT/elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} $PROJECT_ROOT/apm-agent-java.jar \; || echo "INFO: No locally built image found"
   # cp $SCRIPT_PATH/../../elastic-apm-agent/target/elastic-apm-agent-.*!('-javadoc'|'-sources').jar $SCRIPT_PATH/../../apm-agent-java.jar
 elif [ ! -z ${SONATYPE_FALLBACK+x} ]
 then
@@ -32,6 +32,7 @@ then
     "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
   else
     echo "ERROR: No suitable build artifact was found. Re-running this script with the SONATYPE_FALLBACK variable set to true will try to use the Sonatype artifact for the latest tag"
+    exit 1
 fi
 
 echo "INFO: Starting Docker build for version $GIT_TAG"
