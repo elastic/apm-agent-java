@@ -115,7 +115,7 @@ class TraceContextTest {
     }
 
     @Test
-    void outgoingTextHeader() {
+    void outgoingHeader() {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         final String header = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-03";
         assertThat(traceContext.asChildOf(header)).isTrue();
@@ -231,6 +231,20 @@ class TraceContextTest {
             childContext.getTraceId().toString(), rootContext.getId().toString(), "00", "00");
         verifyTraceContextContents(childContext.getOutgoingTraceParentBinaryHeader(),
             childContext.getTraceId().toString(), rootContext.getId().toString(), (byte) 0x00, (byte) 0x00);
+    }
+
+    @Test
+    void testPropagateSpanIdForSampledSpan_TextFormat() {
+        final TraceContext rootContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        rootContext.asRootSpan(ConstantSampler.of(true));
+
+        final TraceContext childContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        childContext.asChildOf(rootContext);
+
+        verifyTraceContextContents(childContext.getOutgoingTraceParentTextHeader().toString(),
+            childContext.getTraceId().toString(), childContext.getId().toString(), "00", "01");
+        verifyTraceContextContents(childContext.getOutgoingTraceParentBinaryHeader(),
+            childContext.getTraceId().toString(), childContext.getId().toString(), (byte) 0x00, (byte) 0x01);
     }
 
     @Test

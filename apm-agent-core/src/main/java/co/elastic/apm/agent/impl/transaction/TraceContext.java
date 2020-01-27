@@ -52,7 +52,7 @@ import java.util.concurrent.Callable;
  *       Header name     Version           Trace-Id                Span-Id     Flags
  * </pre>
  * <p>
- * Binary representation (e.g. post-0.11.0.0 Kafka record header), based on
+ * Binary representation (e.g. 0.11.0.0+ Kafka record header), based on
  * https://github.com/elastic/apm/blob/master/docs/agent-development.md#binary-fields:
  * <pre>
  *      traceparent     = version version_format
@@ -251,7 +251,7 @@ public class TraceContext extends TraceContextHolder {
             // TODO don't blindly trust the flags from the caller
             // consider implement rate limiting and/or having a list of trusted sources
             // trace the request if it's either requested or if the parent has recorded it
-            flags = getTraceOptions(traceParentHeader);
+            flags = HexUtils.getNextByte(traceParentHeader, TEXT_HEADER_FLAGS_OFFSET);
             clock.init();
             return true;
         } catch (IllegalArgumentException e) {
@@ -264,7 +264,7 @@ public class TraceContext extends TraceContextHolder {
 
     public boolean asChildOf(byte[] traceParentHeader) {
         if (logger.isTraceEnabled()) {
-            logger.trace("Binary header content UTF-decoded: {}", new String(traceParentHeader, StandardCharsets.UTF_8));
+            logger.trace("Binary header content UTF-8-decoded: {}", new String(traceParentHeader, StandardCharsets.UTF_8));
         }
         try {
             if (traceParentHeader.length < BINARY_FORMAT_EXPECTED_LENGTH) {
@@ -273,7 +273,7 @@ public class TraceContext extends TraceContextHolder {
             }
             // Current spec says: "Note, that parsing should not treat any additional bytes in the end of the buffer
             // as an invalid status. Those fields can be added for padding purposes.", which means there is no upper
-            // limit. In addition, no version is specified as erroneous, so version is informative.
+            // limit. In addition, no version is specified as erroneous, so version is non-informative.
 
             byte fieldId = traceParentHeader[BINARY_FORMAT_TRACE_ID_OFFSET];
             if (fieldId != BINARY_FORMAT_TRACE_ID_FIELD_ID) {
@@ -339,10 +339,6 @@ public class TraceContext extends TraceContextHolder {
         serviceName = parent.serviceName;
         applicationClassLoader = parent.applicationClassLoader;
         onMutation();
-    }
-
-    private byte getTraceOptions(String traceParent) {
-        return HexUtils.getNextByte(traceParent, TEXT_HEADER_FLAGS_OFFSET);
     }
 
     @Override
