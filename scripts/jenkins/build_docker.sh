@@ -18,6 +18,7 @@ readonly GIT_TAG=${GIT_TAG:-$GIT_TAG_DEFAULT}
 
 readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
+readonly NAMESPACE="observability"
 
 if [ "$(ls -A  $SCRIPT_PATH/../../elastic-apm-agent/target)" ]
 then
@@ -37,7 +38,7 @@ fi
 
 echo "INFO: Starting Docker build for version $GIT_TAG"
 
-docker build . -t docker.elastic.co/apm/apm-agent-java:$GIT_TAG \
+docker build . -t docker.elastic.co/$NAMESPACE/apm-agent-java:$GIT_TAG \
   --build-arg JAR_FILE=apm-agent-java.jar
 
 if [ $? -eq 0 ]
