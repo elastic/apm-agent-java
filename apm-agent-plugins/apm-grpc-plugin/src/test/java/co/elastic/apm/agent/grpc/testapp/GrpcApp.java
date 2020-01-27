@@ -38,7 +38,7 @@ public class GrpcApp {
     private HelloServer server;
     private HelloClient client;
 
-    public GrpcApp(){
+    public GrpcApp() {
 
     }
 
@@ -49,11 +49,10 @@ public class GrpcApp {
         app.stop();
     }
 
-    public HelloClient start() throws IOException {
+    public void start() throws IOException {
         server = new HelloServer(PORT);
         client = new HelloClient("localhost", PORT);
         server.start();
-        return client;
     }
 
     private void sampleRequests(HelloClient client) {

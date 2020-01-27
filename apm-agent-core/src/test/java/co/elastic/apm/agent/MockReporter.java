@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -180,7 +181,11 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Transaction getFirstTransaction() {
-        return transactions.iterator().next();
+        Iterator<Transaction> it = transactions.iterator();
+        assertThat(it)
+            .describedAs("should have at least one transaction, but does not")
+            .hasNext();
+        return it.next();
     }
 
     public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {

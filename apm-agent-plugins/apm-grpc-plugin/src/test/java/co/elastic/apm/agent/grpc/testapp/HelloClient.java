@@ -27,8 +27,13 @@ package co.elastic.apm.agent.grpc.testapp;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +56,15 @@ public class HelloClient {
 
     private HelloClient(ManagedChannel channel) {
         this.channel = channel;
-        this.blockingStub = HelloGrpc.newBlockingStub(channel);
+        this.blockingStub = HelloGrpc.newBlockingStub(channel).withInterceptors(new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+
+
+
+                return next.newCall(method, callOptions);
+            }
+        });
     }
 
     public Optional<String> sayHello(String user) {

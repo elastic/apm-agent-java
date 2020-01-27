@@ -4,8 +4,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>apm-agent-plugins</artifactId>
         <groupId>co.elastic.apm</groupId>
+        <artifactId>apm-agent-plugins</artifactId>
         <version>1.12.1-SNAPSHOT</version>
     </parent>
 
@@ -19,12 +19,13 @@
     </properties>
 
     <dependencies>
+        <!-- our instrumentation depends on this -->
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
+            <artifactId>grpc-api</artifactId>
             <version>${grpc.version}</version>
-            <scope>test</scope>
         </dependency>
+        <!-- test only -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
@@ -34,6 +35,12 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
             <version>${grpc.version}</version>
             <scope>test</scope>
         </dependency>

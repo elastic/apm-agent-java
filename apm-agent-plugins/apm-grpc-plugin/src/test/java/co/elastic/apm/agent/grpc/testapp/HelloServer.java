@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
+import co.elastic.apm.agent.grpc.GrpcUnaryServerInterceptor;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
@@ -50,6 +51,7 @@ public class HelloServer {
         HelloGrpcImpl serverImpl = new HelloGrpcImpl(nestedClient);
         this.server = ServerBuilder.forPort(port)
             .addService(serverImpl)
+            .intercept(new GrpcUnaryServerInterceptor())
             .build();
 
     }
@@ -93,6 +95,7 @@ public class HelloServer {
                     responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
                     return;
                 } else if ("boom".equals(userName)) {
+                    // this will be translated into a Status#UNKNOWN
                     throw new RuntimeException("boom");
                 }
 

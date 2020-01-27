@@ -1,11 +1,13 @@
 package co.elastic.apm.agent.grpc.testapp;
 
+import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// this class just tests the sample application normal behavior, not the behavior when it's instrumented
 class GrpcAppTest {
 
     private GrpcApp app;
@@ -19,6 +21,16 @@ class GrpcAppTest {
     @AfterEach
     void afterEach() throws Exception {
         app.stop();
+    }
+
+    @Test
+    void simpleCall() {
+        checkMsg("joe", 1, "hello(joe)");
+    }
+
+    @Test
+    void simpleErrorCall() {
+        checkMsg(null, 0, null);
     }
 
     @Test
