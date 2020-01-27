@@ -33,7 +33,6 @@ then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
   find -E $PROJECT_ROOT/elastic-apm-agent/target -regex '.*/elastic-apm-agent-[0-9]+.[0-9]+.[0-9]+(-SNAPSHOT)?.jar' -exec cp {} $PROJECT_ROOT/apm-agent-java.jar \; || echo "INFO: No locally built image found"
-  # cp $SCRIPT_PATH/../../elastic-apm-agent/target/elastic-apm-agent-.*!('-javadoc'|'-sources').jar $SCRIPT_PATH/../../apm-agent-java.jar
 elif [ ! -z ${SONATYPE_FALLBACK+x} ]
 then
   echo "INFO: No local build artifact and SONATYPE_FALLBACK. Falling back to downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
