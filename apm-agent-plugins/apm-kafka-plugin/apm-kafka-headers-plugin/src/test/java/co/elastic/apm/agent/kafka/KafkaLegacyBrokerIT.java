@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -66,7 +66,9 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests newer client with a 0.10.2.2 version
+ * Tests newer client with a 0.10.2.2 version.
+ * This test is disabled because may fail on CI, maybe because of running in parallel to the current broker test.
+ * It is still useful to be ran locally to test the legacy broker.
  * <p>
  * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
  * 1.  reduce waits to a minimum within tests

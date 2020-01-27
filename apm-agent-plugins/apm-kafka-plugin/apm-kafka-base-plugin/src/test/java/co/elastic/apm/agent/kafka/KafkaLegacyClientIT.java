@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,6 +48,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
@@ -63,6 +64,9 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 /**
+ * This test is disabled because may fail on CI, maybe because of running in parallel to the current client test.
+ * It is still useful to be ran locally to test the legacy client.
+ * <p>
  * Each test sends a message to a request topic and waits on a reply message. This serves two purposes:
  * 1.  reduce waits to a minimum within tests
  * 2.  test both consumer instrumentation functionalities:
@@ -70,6 +74,7 @@ import static org.mockito.Mockito.when;
  * b.  the creation of consumer transaction- one per consumed record
  */
 @SuppressWarnings("NotNullFieldNotInitialized")
+@Ignore
 public class KafkaLegacyClientIT extends AbstractInstrumentationTest {
 
     static final String REQUEST_TOPIC = UUID.randomUUID().toString();
