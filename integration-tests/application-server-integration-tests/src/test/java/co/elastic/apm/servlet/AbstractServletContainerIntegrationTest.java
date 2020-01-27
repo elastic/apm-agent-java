@@ -144,9 +144,6 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
             .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withEnv("ELASTIC_APM_PROFILING_SPANS_ENABLED", "true")
-            .withEnv("ELASTIC_APM_PROFILING_DURATION", "1s")
-            .withEnv("ELASTIC_APM_PROFILING_INTERVAL", "1s")
-            .withEnv("ELASTIC_APM_PROFILING_SAMPLING_INTERVAL", "10ms")
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -420,11 +417,6 @@ public abstract class AbstractServletContainerIntegrationTest {
         return spans.stream()
             .filter(s -> !isInferredSpan(s))
             .collect(Collectors.toList());
-    }
-
-    public boolean hasInferredSpans() {
-        return getEvents("span").stream()
-            .anyMatch(this::isInferredSpan);
     }
 
     private boolean isInferredSpan(JsonNode s) {

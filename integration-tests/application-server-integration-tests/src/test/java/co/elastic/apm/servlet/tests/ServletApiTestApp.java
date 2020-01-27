@@ -49,9 +49,6 @@ public class ServletApiTestApp extends TestApp {
 
     @Override
     public void test(AbstractServletContainerIntegrationTest test) throws Exception {
-        if (test.isHotSpotBased()) {
-            testInferredSpans(test);
-        }
         testTransactionReporting(test);
         testTransactionErrorReporting(test);
         testSpanErrorReporting(test);
@@ -126,11 +123,6 @@ public class ServletApiTestApp extends TestApp {
         assertThat(span.get("parent_id").textValue()).isEqualTo(outerTransaction.get("id").textValue());
         assertThat(span.get("context").get("http").get("url").textValue()).endsWith("hello-world.jsp");
         assertThat(span.get("context").get("http").get("status_code").intValue()).isEqualTo(200);
-    }
-
-    private void testInferredSpans(AbstractServletContainerIntegrationTest test) throws Exception {
-        test.executeAndValidateRequest("/simple-webapp/servlet?sleep=500", "Hello World", 200, Map.of());
-        await("No inferred spans found").until(test::hasInferredSpans);
     }
 
     private void testTransactionReporting(AbstractServletContainerIntegrationTest test) throws Exception {
