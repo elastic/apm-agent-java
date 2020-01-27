@@ -28,7 +28,7 @@ readonly SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 readonly PROJECT_ROOT=$SCRIPT_PATH/../../
 readonly NAMESPACE="observability"
 
-if [ "$(ls -A  $SCRIPT_PATH/../../elastic-apm-agent/target)" ]
+if [ "$(ls -A  ${PROJECT_ROOT}elastic-apm-agent/target)" ]
 then
   # We have build files to use
   echo "INFO: Found local build artifact. Using locally built for Docker build"
