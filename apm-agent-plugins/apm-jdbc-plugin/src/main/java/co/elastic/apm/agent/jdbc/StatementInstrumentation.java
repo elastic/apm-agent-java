@@ -159,6 +159,8 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
                                 .getDb()
                                 .withAffectedRowsCount(statement.getUpdateCount());
                         } catch (Throwable throwable) {
+                            // When the getUpdateCount API is not supported- log once, remember and don't try to invoke again on the
+                            // same statement class
                             Boolean previous = statementClassesNotSupportingUpdateCount.putIfAbsent(statementClassName, Boolean.TRUE);
                             if (previous == null) {
                                 logger.warn("Cannot obtain update count for class {}", statementClassName);
@@ -406,6 +408,8 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
                             // however in practice adding this extra call seem to not have noticeable side effects
                             .withAffectedRowsCount(statement.getUpdateCount());
                     } catch (Throwable throwable) {
+                        // When the getUpdateCount API is not supported- log once, remember and don't try to invoke again on the
+                        // same statement class
                         Boolean previous = statementClassesNotSupportingUpdateCount.putIfAbsent(statementClassName, Boolean.TRUE);
                         if (previous == null) {
                             logger.warn("Cannot obtain update count for class {}", statementClassName);
