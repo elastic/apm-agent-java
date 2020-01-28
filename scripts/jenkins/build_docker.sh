@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# See full documentation in the "Creating and publishing Docker images" section
+# of CONTRIBUTING.md
+
 set -euxo pipefail
 
 if ! command -v docker
