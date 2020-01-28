@@ -51,7 +51,7 @@ public class HelloServer {
         HelloGrpcImpl serverImpl = new HelloGrpcImpl(nestedClient);
         this.server = ServerBuilder.forPort(port)
             .addService(serverImpl)
-            .intercept(new GrpcUnaryServerInterceptor())
+//            .intercept(new GrpcUnaryServerInterceptor())
             .build();
 
     }

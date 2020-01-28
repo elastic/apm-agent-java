@@ -1,1 +1,3 @@
-#co.elastic.apm.agent.grpc.GrpcServerInstrumentation
+co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallListenerInstrumentation
+co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallHandlerInstrumentation
+co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallInstrumentation
