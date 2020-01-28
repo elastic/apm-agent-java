@@ -18,7 +18,7 @@ Talk about what you would like to do.
 It may be that somebody is already working on it,
 or that there are particular issues that you should know about before implementing the change.
 
-Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through. 
+Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through.
 
 ### Testing
 
@@ -53,13 +53,13 @@ they will be executed by a CI server.
    there are a few things which need to be configured.
    Open the preferences,
    search for nullable and enable the inspections `Constant conditions & exceptions` and `@NotNull/@Nullable problems`
-   
+
    <img width="684" alt="inspections" src="https://user-images.githubusercontent.com/2163464/43443888-87e3ffd2-94a2-11e8-8cc6-263f408479e3.png">
 1. In the same window,
    select `Constant conditions & exceptions`
    click on `Configure annotations`,
    and select the `javax.annotation` annotations.
-    
+
    <img width="382" alt="configure annotations" src="https://user-images.githubusercontent.com/2163464/43444414-f1e5ce5a-94a3-11e8-8fa4-9f048c50ccc0.png">
 
 ##### Useful Live Templates
@@ -173,7 +173,7 @@ we should think about whether they bring us closer to or further away from those
     document why you did something that way,
     rather than how you did it.
     The latter should be expressed by readable code.
-    Documenting the considered alternatives can also help others a lot to understand the problem space. 
+    Documenting the considered alternatives can also help others a lot to understand the problem space.
 * Diagnosability
   * Most issues should be resolvable when the user provides their debug logs.
     This decreases the back-and-forth to gather additional information.
@@ -251,7 +251,7 @@ and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo
 If you have access to make releases, the process is as follows:
 
 1. Check if sonatype is up: https://status.maven.org
-1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
+1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`.
    1. In case you want to update the version, execute `mvn release:update-versions`
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
    1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
@@ -259,7 +259,7 @@ If you have access to make releases, the process is as follows:
    1. Advances the version for next development iteration and makes a commit
    1. Uploads artifacts to maven central
 1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
-1. Fetch and checkout the latest tag e.g. `git fetch origin` 
+1. Fetch and checkout the latest tag e.g. `git fetch origin`
 1. If this was a major release,
    create a new branch for the major
    1. For example `git checkout -b 2.x && git push -u origin`
