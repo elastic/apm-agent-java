@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,9 @@
 package co.elastic.apm.agent.redis;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.Span;
+import org.assertj.core.api.Java6Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +38,7 @@ import javax.net.ServerSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -74,5 +77,24 @@ public abstract class AbstractRedisInstrumentationTest extends AbstractInstrumen
         assertThat(reporter.getSpans().stream().map(Span::getSubtype).distinct()).containsExactly("redis");
         assertThat(reporter.getSpans().stream().map(Span::getAction).distinct()).containsExactly("query");
         assertThat(reporter.getSpans().stream().map(Span::isExit).distinct()).containsExactly(true);
+        verifyDestinationDetails(reporter.getSpans());
+    }
+
+    private void verifyDestinationDetails(List<Span> spanList) {
+        for (Span span : spanList) {
+            Destination destination = span.getContext().getDestination();
+            if (destinationAddressSupported()) {
+                assertThat(destination.getAddress().toString()).isEqualTo("localhost");
+                assertThat(destination.getPort()).isEqualTo(redisPort);
+            }
+            Destination.Service service = destination.getService();
+            Java6Assertions.assertThat(service.getName().toString()).isEqualTo("redis");
+            Java6Assertions.assertThat(service.getResource().toString()).isEqualTo("redis");
+            Java6Assertions.assertThat(service.getType()).isEqualTo("db");
+        }
+    }
+
+    protected boolean destinationAddressSupported() {
+        return true;
     }
 }

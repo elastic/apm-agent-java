@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -58,7 +58,11 @@ public class HexUtils {
     }
 
     public static void writeBytesAsHex(byte[] bytes, StringBuilder sb) {
-        for (int i = 0; i < bytes.length; i++) {
+        writeBytesAsHex(bytes, 0, bytes.length, sb);
+    }
+
+    public static void writeBytesAsHex(byte[] bytes, int offset, int length, StringBuilder sb) {
+        for (int i = offset; i < offset + length; i++) {
             writeByteAsHex(bytes[i], sb);
         }
     }
@@ -98,6 +102,15 @@ public class HexUtils {
         }
         for (int i = 0; i < charsToRead; i += 2) {
             bytes[i / 2] = getNextByte(hexEncodedString, offset + i);
+        }
+    }
+
+    public static void decode(String hexEncodedString, int srcOffset, int srcLength, byte[] bytes, int destOffset) {
+        if (hexEncodedString.length() < srcOffset + srcLength) {
+            throw new IllegalArgumentException(String.format("Can't read %d chars from string %s with offset %d", srcLength, hexEncodedString, srcOffset));
+        }
+        for (int i = 0; i < srcLength; i += 2) {
+            bytes[destOffset + (i / 2)] = getNextByte(hexEncodedString, srcOffset + i);
         }
     }
 }

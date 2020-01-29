@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -26,6 +26,7 @@ package co.elastic.apm.agent.jms;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.configuration.CoreConfiguration;
+import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
@@ -70,7 +71,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
     public Span startJmsSendSpan(Destination destination, Message message) {
 
         final TraceContextHolder<?> activeSpan = tracer.getActive();
-        if (activeSpan == null || !activeSpan.isSampled()) {
+        if (activeSpan == null) {
             return null;
         }
 
@@ -96,9 +97,14 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
+            message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
             if (span.isSampled()) {
-                message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                span.getContext().getDestination().getService()
+                    .withName("jms")
+                    .withResource("jms")
+                    .withType(MESSAGING_TYPE);
                 if (destinationName != null) {
+                    span.getContext().getDestination().getService().getResource().append("/").append(destinationName);
                     span.withName("JMS SEND to ");
                     addDestinationDetails(null, destination, destinationName, span);
                     if (isDestinationNameComputed) {
@@ -180,7 +186,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                 .getContext().getMessage().withQueue(destinationName);
         } else if (destination instanceof Topic) {
             span.appendToName("topic ").appendToName(destinationName)
-                .getContext().getMessage().withTopic(destinationName);
+                .getContext().getMessage().withQueue(destinationName);
         }
     }
 

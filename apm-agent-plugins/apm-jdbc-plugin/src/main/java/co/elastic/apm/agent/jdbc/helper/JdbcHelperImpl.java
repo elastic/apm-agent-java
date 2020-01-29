@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.jdbc.helper;
 
 import co.elastic.apm.agent.bci.VisibleForAdvice;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -72,35 +73,23 @@ public class JdbcHelperImpl extends JdbcHelper {
         span.withType(DB_SPAN_TYPE);
         try {
             final ConnectionMetaData connectionMetaData = getConnectionMetaData(connection);
-            span.withSubtype(connectionMetaData.dbVendor)
+            span.withSubtype(connectionMetaData.getDbVendor())
                 .withAction(DB_SPAN_ACTION);
             span.getContext().getDb()
-                .withUser(connectionMetaData.user)
+                .withUser(connectionMetaData.getUser())
                 .withStatement(sql)
                 .withType("sql");
+            Destination destination = span.getContext().getDestination()
+                .withAddress(connectionMetaData.getHost())
+                .withPort(connectionMetaData.getPort());
+            destination.getService()
+                .withName(connectionMetaData.getDbVendor())
+                .withResource(connectionMetaData.getDbVendor())
+                .withType(DB_SPAN_TYPE);
         } catch (SQLException e) {
             logger.warn("Ignored exception", e);
         }
         return span;
-    }
-
-    @Nullable
-    private String getMethod(@Nullable String sql) {
-        if (sql == null) {
-            return null;
-        }
-        // don't allocate objects for the common case
-        if (sql.startsWith("SELECT") || sql.startsWith("select")) {
-            return "SELECT";
-        }
-        sql = sql.trim();
-        final int indexOfWhitespace = sql.indexOf(' ');
-        if (indexOfWhitespace > 0) {
-            return sql.substring(0, indexOfWhitespace).toUpperCase();
-        } else {
-            // for example COMMIT
-            return sql.toUpperCase();
-        }
     }
 
     /*
@@ -117,42 +106,14 @@ public class JdbcHelperImpl extends JdbcHelper {
         return parentSpan.getType() != null && parentSpan.getType().equals(DB_SPAN_TYPE);
     }
 
-
     private ConnectionMetaData getConnectionMetaData(Connection connection) throws SQLException {
         ConnectionMetaData connectionMetaData = metaDataMap.get(connection);
         if (connectionMetaData == null) {
             final DatabaseMetaData metaData = connection.getMetaData();
-            String dbVendor = getDbVendor(metaData.getURL());
-            connectionMetaData = new ConnectionMetaData(dbVendor, metaData.getUserName());
+            connectionMetaData = ConnectionMetaData.create(metaData.getURL(), metaData.getUserName());
             metaDataMap.put(connection, connectionMetaData);
         }
         return connectionMetaData;
 
-    }
-
-    private String getDbVendor(String url) {
-        // jdbc:h2:mem:test
-        //     ^
-        int indexOfJdbc = url.indexOf("jdbc:");
-        if (indexOfJdbc != -1) {
-            // h2:mem:test
-            String urlWithoutJdbc = url.substring(indexOfJdbc + 5);
-            int indexOfColonAfterVendor = urlWithoutJdbc.indexOf(":");
-            if (indexOfColonAfterVendor != -1) {
-                // h2
-                return urlWithoutJdbc.substring(0, indexOfColonAfterVendor);
-            }
-        }
-        return "unknown";
-    }
-
-    private static class ConnectionMetaData {
-        final String dbVendor;
-        final String user;
-
-        private ConnectionMetaData(String dbVendor, String user) {
-            this.dbVendor = dbVendor;
-            this.user = user;
-        }
     }
 }

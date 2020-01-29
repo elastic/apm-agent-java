@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -39,11 +39,16 @@ public class RedisSpanUtils {
                 if (activeSpan.isExit()) {
                     return null;
                 }
-                return activeSpan.createSpan()
+                Span span = activeSpan.createSpan()
                     .withName(command)
                     .withType("db")
                     .withSubtype("redis")
-                    .withAction("query")
+                    .withAction("query");
+                span.getContext().getDestination().getService()
+                    .withName("redis")
+                    .withResource("redis")
+                    .withType("db");
+                return span
                     .asExit()
                     .activate();
             }

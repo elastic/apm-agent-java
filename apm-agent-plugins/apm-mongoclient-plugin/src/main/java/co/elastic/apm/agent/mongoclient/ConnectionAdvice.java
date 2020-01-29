@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,8 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
+import com.mongodb.ServerAddress;
+import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
@@ -43,7 +45,9 @@ public class ConnectionAdvice {
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Span onEnter(@Advice.Argument(0) Object databaseOrMongoNamespace, @Advice.Argument(1) BsonDocument command) {
+    public static Span onEnter(@Advice.This Connection thiz,
+                               @Advice.Argument(0) Object databaseOrMongoNamespace,
+                               @Advice.Argument(1) BsonDocument command) {
         Span span = ElasticApmInstrumentation.createExitSpan();
 
         if (span == null) {
@@ -62,16 +66,22 @@ public class ConnectionAdvice {
 
         span.withType("db").withSubtype("mongodb")
             .appendToName(database).getContext().getDb().withType("mongodb");
+        span.getContext().getDestination().getService()
+            .withName("mongodb").withResource("mongodb").withType("db");
+        ServerAddress serverAddress = thiz.getDescription().getServerAddress();
+        span.getContext().getDestination()
+            .withAddress(serverAddress.getHost())
+            .withPort(serverAddress.getPort());
         try {
             String cmd =
                 // try to determine main commands in a garbage free way
-                command.containsKey("find")    ? "find"    :
-                command.containsKey("insert")  ? "insert"  :
-                command.containsKey("count")   ? "count"   :
-                command.containsKey("drop")    ? "drop"    :
-                command.containsKey("update")  ? "update"  :
-                command.containsKey("delete")  ? "delete"  :
-                command.containsKey("create")  ? "create"  :
+                command.containsKey("find") ? "find" :
+                command.containsKey("insert") ? "insert" :
+                command.containsKey("count") ? "count" :
+                command.containsKey("drop") ? "drop" :
+                command.containsKey("update") ? "update" :
+                command.containsKey("delete") ? "delete" :
+                command.containsKey("create") ? "create" :
                 command.containsKey("getMore") ? "getMore" :
                 // fall back to getting the first key which is the command name
                 // by allocating a key set and an iterator

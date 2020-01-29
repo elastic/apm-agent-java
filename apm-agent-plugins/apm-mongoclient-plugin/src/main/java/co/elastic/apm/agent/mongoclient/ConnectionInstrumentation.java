@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,6 +28,8 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import com.mongodb.MongoNamespace;
+import com.mongodb.ServerAddress;
+import com.mongodb.connection.Connection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -76,7 +78,9 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
     @Nullable
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Span onEnter(@Advice.Argument(0) MongoNamespace namespace, @Advice.Origin("#m") String methodName) {
+    public static Span onEnter(@Advice.This Connection thiz,
+                               @Advice.Argument(0) MongoNamespace namespace,
+                               @Advice.Origin("#m") String methodName) {
         Span span = ElasticApmInstrumentation.createExitSpan();
 
         if (span == null) {
@@ -85,6 +89,13 @@ public class ConnectionInstrumentation extends MongoClientInstrumentation {
 
         span.withType("db").withSubtype("mongodb")
             .getContext().getDb().withType("mongodb");
+        span.getContext().getDestination().getService()
+            .withName("mongodb").withResource("mongodb").withType("db");
+        ServerAddress serverAddress = thiz.getDescription().getServerAddress();
+        span.getContext().getDestination()
+            .withAddress(serverAddress.getHost())
+            .withPort(serverAddress.getPort());
+
         String command = methodName;
         if (methodName.equals("query")) {
             // if the method name is query, that corresponds to the find command

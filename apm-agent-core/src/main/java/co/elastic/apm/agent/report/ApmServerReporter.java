@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,7 @@ import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.report.disruptor.ExponentionallyIncreasingSleepingWaitStrategy;
 import co.elastic.apm.agent.util.ExecutorUtils;
 import co.elastic.apm.agent.util.MathUtils;
+import co.elastic.apm.agent.util.ThreadUtils;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventTranslator;
 import com.lmax.disruptor.EventTranslatorOneArg;
@@ -108,7 +109,7 @@ public class ApmServerReporter implements Reporter {
             public Thread newThread(Runnable r) {
                 Thread thread = new Thread(r);
                 thread.setDaemon(true);
-                thread.setName("apm-reporter");
+                thread.setName(ThreadUtils.addElasticApmThreadPrefix("server-reporter"));
                 return thread;
             }
         }, ProducerType.MULTI, new ExponentionallyIncreasingSleepingWaitStrategy(100_000, 10_000_000));
@@ -252,7 +253,7 @@ public class ApmServerReporter implements Reporter {
     @Override
     public void scheduleMetricReporting(final MetricRegistry metricRegistry, long intervalMs) {
         if (intervalMs > 0 && metricsReportingScheduler == null) {
-            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("apm-metrics-reporter", 1);
+            metricsReportingScheduler = ExecutorUtils.createSingleThreadSchedulingDeamonPool("metrics-reporter", 1);
             metricsReportingScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

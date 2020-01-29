@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -261,7 +261,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testTransactionWithRemoteParentFunction() {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
-        ElasticApm.startTransactionWithRemoteParent(key -> parent.getOutgoingTraceParentHeader().toString()).end();
+        ElasticApm.startTransactionWithRemoteParent(key -> parent.getOutgoingTraceParentTextHeader().toString()).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }
 
@@ -269,7 +269,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testTransactionWithRemoteParentFunctions() {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
-        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
+        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, parent.getOutgoingTraceParentTextHeader().toString());
         ElasticApm.startTransactionWithRemoteParent(map::get, key -> Collections.singletonList(map.get(key))).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }
@@ -278,7 +278,7 @@ class ElasticApmApiInstrumentationTest extends AbstractInstrumentationTest {
     void testTransactionWithRemoteParentHeaders() {
         final TraceContext parent = TraceContext.with64BitId(tracer);
         parent.asRootSpan(ConstantSampler.of(true));
-        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_HEADER, parent.getOutgoingTraceParentHeader().toString());
+        final Map<String, String> map = Map.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, parent.getOutgoingTraceParentTextHeader().toString());
         ElasticApm.startTransactionWithRemoteParent(null, key -> Collections.singletonList(map.get(key))).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().isChildOf(parent)).isTrue();
     }

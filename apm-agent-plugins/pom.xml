@@ -44,6 +44,8 @@
         <module>apm-jmx-plugin</module>
         <module>apm-mule4-plugin</module>
         <module>apm-mongoclient-plugin</module>
+        <module>apm-process-plugin</module>
+        <module>apm-kafka-plugin</module>
     </modules>
 
     <dependencies>

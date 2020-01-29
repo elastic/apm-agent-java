@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -47,5 +47,10 @@ public class OkHttpClientInstrumentationTest extends AbstractHttpClientInstrumen
         client.newCall(request).execute().body().close();
     }
 
+    @Override
+    protected boolean isIpv6Supported() {
+        // see https://github.com/square/okhttp/issues/2618
+        return false;
+    }
 }
 

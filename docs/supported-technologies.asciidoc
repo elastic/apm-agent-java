@@ -13,6 +13,7 @@ This section lists all supported technologies.
 * <<supported-messaging-frameworks>>
 * <<supported-scheduling-frameworks>>
 * <<supported-logging-frameworks>>
+* <<supported-process-frameworks>>
 * <<supported-java-methods>>
 * <<supported-metrics>>
 * <<supported-technologies-caveats>>
@@ -284,7 +285,17 @@ same trace.
 side, the agent reads the context from the Message property through `javax.jms.MessageConsumer#receive`,
 `javax.jms.MessageConsumer#receiveNoWait`, `javax.jms.JMSConsumer#receive`, `javax.jms.JMSConsumer#receiveNoWait` or
 `javax.jms.MessageListener#onMessage` and uses it for enabling distributed tracing.
-|1.7.0 - Incubating (off by default). In order to enable, set the <<config-disable-instrumentations>> config option to an empty string
+|1.7.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+
+|Kafka
+| <0.11.0 - without distributed tracing; 0.11.0+ - full support
+|The agent captures Kafka record sends and polls. If `org.apache.kafka.clients.consumer.Consumer#poll` is invoked from
+within a traced transaction, a span will be created. Otherwise, the agent attempts to create a transaction for each
+record read from the returned batch *as the consumer iterates over returned records.* This requires some heuristics on
+the agent part, so in some cases kafka-transactions may seem missing or out of order.
+If both producer and consumer are traced, then distributed tracing is supported, meaning the transaction on the consumer
+side will be a part of the same trace containing the producer side as well. Kafka streams are not traced.
+|1.13.0
 
 |===
 
@@ -333,6 +344,25 @@ NOTE: only classes from packages configured in <<config-application-packages>>  
 |2.0+
 |Automatically <<api-span-capture-exception,captures exceptions>> for `logger.error("message", exception)` calls.
 |1.11.0
+
+|===
+
+[float]
+[[supported-process-frameworks]]
+=== Process frameworks
+
+|===
+|Framework |Supported versions | Description | Since
+
+|`java.lang.Process`
+|
+| Instruments `java.lang.Process` execution. Java 9 API using `ProcessHandler` is not supported yet.
+| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
+
+|Apache commons-exec
+|1.3
+| Async process support through `org.apache.commons.exec.DefaultExecutor` and subclasses instrumentation.
+| 1.13.0 - Incubating (off by default). Use <<config-disable-instrumentations>> to enable
 
 |===
 

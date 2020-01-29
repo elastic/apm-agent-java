@@ -10,6 +10,7 @@ pipeline {
     NOTIFY_TO = credentials('notify-to')
     JOB_GCS_BUCKET = credentials('gcs-bucket')
     DOCKERHUB_SECRET = 'secret/apm-team/ci/elastic-observability-dockerhub'
+    ELASTIC_DOCKER_SECRET = 'secret/apm-team/ci/docker-registry/prod'
     CODECOV_SECRET = 'secret/apm-team/ci/apm-agent-java-codecov'
     GITHUB_CHECK_ITS_NAME = 'Integration Tests'
     ITS_PIPELINE = 'apm-integration-tests-selector-mbp/master'
@@ -35,6 +36,7 @@ pipeline {
     booleanParam(name: 'test_ci', defaultValue: true, description: 'Enable test')
     booleanParam(name: 'smoketests_ci', defaultValue: true, description: 'Enable Smoke tests')
     booleanParam(name: 'bench_ci', defaultValue: true, description: 'Enable benchmarks')
+    booleanParam(name: 'push_docker', defaultValue: false, description: 'Push Docker image during release stage')
   }
 
   stages {
@@ -54,7 +56,7 @@ pipeline {
           steps {
             pipelineManager([ cancelPreviousRunningBuilds: [ when: 'PR' ] ])
             deleteDir()
-            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true)
+            gitCheckout(basedir: "${BASE_DIR}", githubNotifyFirstTimeContributor: true, reference: '/var/lib/jenkins/.git-references/apm-agent-java.git')
             stash allowEmpty: true, name: 'source', useDefaultExcludes: false
           }
         }
@@ -286,6 +288,18 @@ pipeline {
         tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
       }
       stages {
+        stage('Docker push') {
+          when {
+            beforeAgent true
+            expression { return params.push_docker }
+          }
+          steps {
+            sh(label: "Build Docker image", script: "scripts/jenkins/build_docker.sh")
+            // Get Docker registry credentials
+            dockerLogin(secret: "${ELASTIC_DOCKER_SECRET}", registry: 'docker.elastic.co')
+            sh(label: "Push Docker image", script: "scripts/jenkins/push_docker.sh")
+          }
+        }
         stage('Opbeans') {
           environment {
             REPO_NAME = "${OPBEANS_REPO}"

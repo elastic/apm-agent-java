@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,6 +26,10 @@ package co.elastic.apm.agent.report.serialize;
 
 import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.impl.context.AbstractContext;
+import co.elastic.apm.agent.impl.context.Headers;
+import co.elastic.apm.agent.impl.context.Destination;
+import co.elastic.apm.agent.impl.context.Db;
+import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.context.Message;
 import co.elastic.apm.agent.impl.context.Request;
 import co.elastic.apm.agent.impl.context.Response;
@@ -35,20 +39,15 @@ import co.elastic.apm.agent.impl.context.TransactionContext;
 import co.elastic.apm.agent.impl.context.Url;
 import co.elastic.apm.agent.impl.context.User;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
-import co.elastic.apm.agent.impl.error.ErrorPayload;
 import co.elastic.apm.agent.impl.payload.Agent;
 import co.elastic.apm.agent.impl.payload.Framework;
 import co.elastic.apm.agent.impl.payload.Language;
 import co.elastic.apm.agent.impl.payload.Node;
-import co.elastic.apm.agent.impl.payload.Payload;
 import co.elastic.apm.agent.impl.payload.ProcessInfo;
 import co.elastic.apm.agent.impl.payload.RuntimeInfo;
 import co.elastic.apm.agent.impl.payload.Service;
 import co.elastic.apm.agent.impl.payload.SystemInfo;
-import co.elastic.apm.agent.impl.payload.TransactionPayload;
 import co.elastic.apm.agent.impl.stacktrace.StacktraceConfiguration;
-import co.elastic.apm.agent.impl.context.Db;
-import co.elastic.apm.agent.impl.context.Http;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.SpanCount;
@@ -58,7 +57,6 @@ import co.elastic.apm.agent.metrics.Labels;
 import co.elastic.apm.agent.metrics.MetricRegistry;
 import co.elastic.apm.agent.metrics.MetricSet;
 import co.elastic.apm.agent.report.ApmServerClient;
-import co.elastic.apm.agent.util.NoRandomAccessMap;
 import co.elastic.apm.agent.util.PotentiallyMultiValuedMap;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
@@ -73,7 +71,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -95,7 +93,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
      * so that {@link #getBufferSize()} is the total amount of buffered bytes.
      */
     public static final int BUFFER_SIZE = 16384;
-    static final int MAX_VALUE_LENGTH = 1024;
+    public static final int MAX_VALUE_LENGTH = 1024;
     public static final int MAX_LONG_STRING_VALUE_LENGTH = 10000;
     private static final byte NEW_LINE = (byte) '\n';
     private static final Logger logger = LoggerFactory.getLogger(DslJsonSerializer.class);
@@ -123,7 +121,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 public void flush() throws IOException {
                     os.write(buf, 0, size());
                     os.flush();
-                    logger.trace(new String(buf, 0, size(), Charset.forName("UTF-8")));
+                    logger.trace(new String(buf, 0, size(), StandardCharsets.UTF_8));
                 }
             };
         } else {
@@ -231,19 +229,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         metricRegistry.report(this);
     }
 
-    @Deprecated
-    private void serializeErrorPayload(ErrorPayload payload) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        serializeService(payload.getService());
-        jw.writeByte(COMMA);
-        serializeProcess(payload.getProcess());
-        jw.writeByte(COMMA);
-        serializeSystem(payload.getSystem());
-        jw.writeByte(COMMA);
-        serializeErrors(payload.getErrors());
-        jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
     private void serializeErrors(List<ErrorCapture> errors) {
         writeFieldName("errors");
         jw.writeByte(ARRAY_START);
@@ -309,18 +294,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(JsonWriter.OBJECT_END);
     }
 
-    public String toJsonString(final Payload payload) {
-        jw.reset();
-        if (payload instanceof TransactionPayload) {
-            serializeTransactionPayload((TransactionPayload) payload);
-        } else if (payload instanceof ErrorPayload) {
-            serializeErrorPayload((ErrorPayload) payload);
-        }
-        final String s = jw.toString();
-        jw.reset();
-        return s;
-    }
-
     public String toJsonString(final Transaction transaction) {
         jw.reset();
         serializeTransaction(transaction);
@@ -355,30 +328,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
 
     public String toString() {
         return jw.toString();
-    }
-
-    @Deprecated
-    private void serializeTransactionPayload(final TransactionPayload payload) {
-        jw.writeByte(JsonWriter.OBJECT_START);
-        serializeService(payload.getService());
-        jw.writeByte(COMMA);
-        serializeProcess(payload.getProcess());
-        jw.writeByte(COMMA);
-        serializeSystem(payload.getSystem());
-        jw.writeByte(COMMA);
-        serializeSpans(payload.getSpans());
-        serializeTransactions(payload);
-        jw.writeByte(JsonWriter.OBJECT_END);
-    }
-
-    @Deprecated
-    private void serializeTransactions(final TransactionPayload payload) {
-        writeFieldName("transactions");
-        jw.writeByte(ARRAY_START);
-        if (payload.getTransactions().size() > 0) {
-            serializeTransactions(payload.getTransactions());
-        }
-        jw.writeByte(ARRAY_END);
     }
 
     private void serializeService(final Service service) {
@@ -533,14 +482,6 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    private void serializeTransactions(final List<Transaction> transactions) {
-        serializeTransaction(transactions.get(0));
-        for (int i = 1; i < transactions.size(); i++) {
-            jw.writeByte(COMMA);
-            serializeTransaction(transactions.get(i));
-        }
-    }
-
     private void serializeTransaction(final Transaction transaction) {
         jw.writeByte(OBJECT_START);
         writeTimestamp(transaction.getTimestamp());
@@ -611,6 +552,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     /**
      * TODO: remove in 2.0
      * To be removed for agents working only with APM server 7.0 or higher, where schema contains span.type, span.subtype and span.action
+     *
      * @param span serialized span
      */
     private void serializeSpanType(Span span) {
@@ -694,6 +636,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     private void serializeStackTraceElement(StackTraceElement stacktrace) {
         jw.writeByte(OBJECT_START);
         writeField("filename", stacktrace.getFileName());
+        writeField("classname", stacktrace.getClassName());
         writeField("function", stacktrace.getMethodName());
         writeField("library_frame", isLibraryFrame(stacktrace.getClassName()));
         writeField("lineno", stacktrace.getLineNumber());
@@ -728,6 +671,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         serializeMessageContext(context.getMessage());
         serializeDbContext(context.getDb());
         serializeHttpContext(context.getHttp());
+        serializeDestination(context.getDestination());
 
         writeFieldName("tags");
         serializeLabels(context);
@@ -736,12 +680,40 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
+    private void serializeDestination(Destination destination) {
+        if (destination.hasContent()) {
+            writeFieldName("destination");
+            jw.writeByte(OBJECT_START);
+            if (destination.getAddress().length() > 0) {
+                writeField("address", destination.getAddress());
+            }
+            if (destination.getPort() > 0) {
+                writeField("port", destination.getPort());
+            }
+            serializeService(destination.getService());
+            jw.writeByte(OBJECT_END);
+            jw.writeByte(COMMA);
+        }
+    }
+
+    private void serializeService(Destination.Service service) {
+        if (service.hasContent()) {
+            writeFieldName("service");
+            jw.writeByte(OBJECT_START);
+            writeField("name", service.getName());
+            writeField("resource", service.getResource());
+            writeLastField("type", service.getType());
+            jw.writeByte(OBJECT_END);
+        }
+    }
+
     private void serializeMessageContext(final Message message) {
         if (message.hasContent()) {
             writeFieldName("message");
             jw.writeByte(OBJECT_START);
-            if (message.getBody() != null) {
-                writeLongStringField("body", message.getBody());
+            StringBuilder body = message.getBodyForRead();
+            if (body != null && body.length() > 0) {
+                writeLongStringField("body", message.getBodyForWrite());
             }
             serializeMessageHeaders(message);
             int messageAge = (int) message.getAge();
@@ -752,34 +724,29 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
                 jw.writeByte(OBJECT_END);
                 jw.writeByte(COMMA);
             }
-            if (message.getTopicName() != null) {
-                writeFieldName("topic");
-                jw.writeByte(OBJECT_START);
-                writeLastField("name", message.getTopicName());
-                jw.writeByte(OBJECT_END);
-            } else {
-                writeFieldName("queue");
-                jw.writeByte(OBJECT_START);
-                writeLastField("name", message.getQueueName());
-                jw.writeByte(OBJECT_END);
-            }
+
+            writeFieldName("queue");
+            jw.writeByte(OBJECT_START);
+            writeLastField("name", message.getQueueName());
+            jw.writeByte(OBJECT_END);
+
             jw.writeByte(OBJECT_END);
             jw.writeByte(COMMA);
         }
     }
 
     private void serializeMessageHeaders(Message message) {
-        NoRandomAccessMap<String, String> headers = message.getHeaders();
+        Headers headers = message.getHeaders();
         if (!headers.isEmpty()) {
             writeFieldName("headers");
             jw.writeByte(OBJECT_START);
-            Iterator<NoRandomAccessMap.Entry<String, String>> iterator = headers.iterator();
+            Iterator<Headers.Header> iterator = headers.iterator();
             while (iterator.hasNext()) {
-                NoRandomAccessMap.Entry<String, String> next = iterator.next();
+                Headers.Header header = iterator.next();
                 if (iterator.hasNext()) {
-                    writeField(next.getKey(), next.getValue());
+                    writeField(header.getKey(), header.getValue());
                 } else {
-                    writeLastField(next.getKey(), next.getValue());
+                    writeLastField(header.getKey(), header.getValue());
                 }
             }
             jw.writeByte(OBJECT_END);
@@ -1106,7 +1073,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
     }
 
 
-    void writeLongStringField(final String fieldName, @Nullable final String value) {
+    void writeLongStringField(final String fieldName, @Nullable final CharSequence value) {
         if (value != null) {
             writeFieldName(fieldName);
             writeLongStringValue(value);
@@ -1114,7 +1081,7 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         }
     }
 
-    void writeField(final String fieldName, @Nullable final String value) {
+    void writeField(final String fieldName, @Nullable final CharSequence value) {
         writeField(fieldName, value, replaceBuilder, jw);
     }
 
@@ -1160,11 +1127,11 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeString(value);
     }
 
-    private void writeLongStringValue(String value) {
+    private void writeLongStringValue(CharSequence value) {
         writeLongStringValue(value, replaceBuilder, jw);
     }
 
-    private static void writeLongStringValue(String value, StringBuilder replaceBuilder, JsonWriter jw) {
+    private static void writeLongStringValue(CharSequence value, StringBuilder replaceBuilder, JsonWriter jw) {
         if (value.length() > MAX_LONG_STRING_VALUE_LENGTH) {
             replaceBuilder.setLength(0);
             replaceBuilder.append(value, 0, Math.min(value.length(), MAX_LONG_STRING_VALUE_LENGTH + 1));
@@ -1208,13 +1175,13 @@ public class DslJsonSerializer implements PayloadSerializer, MetricRegistry.Metr
         jw.writeByte(COMMA);
     }
 
-    void writeLastField(final String fieldName, @Nullable final String value) {
+    void writeLastField(final String fieldName, @Nullable final CharSequence value) {
         writeLastField(fieldName, value, replaceBuilder, jw);
     }
 
-    static void writeLastField(final String fieldName, @Nullable final String value, StringBuilder replaceBuilder, final JsonWriter jw) {
+    static void writeLastField(final String fieldName, @Nullable final CharSequence value, StringBuilder replaceBuilder, final JsonWriter jw) {
         writeFieldName(fieldName, jw);
-        if (value != null) {
+        if (value != null && value.length() > 0) {
             writeStringValue(value, replaceBuilder, jw);
         } else {
             jw.writeNull();

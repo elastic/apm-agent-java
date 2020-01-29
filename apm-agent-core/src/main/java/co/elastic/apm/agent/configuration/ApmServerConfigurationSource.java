@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
 import org.stagemonitor.configuration.ConfigurationRegistry;
 import org.stagemonitor.configuration.source.AbstractConfigurationSource;
-import org.stagemonitor.util.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -106,7 +105,7 @@ public class ApmServerConfigurationSource extends AbstractConfigurationSource im
 
     @Override
     public void start(final ElasticApmTracer tracer) {
-        threadPool = ExecutorUtils.createSingleThreadDeamonPool("apm-remote-config-poller", 1);
+        threadPool = ExecutorUtils.createSingleThreadDeamonPool("remote-config-poller", 1);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {

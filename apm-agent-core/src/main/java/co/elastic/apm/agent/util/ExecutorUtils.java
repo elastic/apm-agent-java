@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -39,12 +39,13 @@ public final class ExecutorUtils {
         // don't instantiate
     }
 
-    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadName, int queueCapacity) {
-        final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
+    public static ScheduledThreadPoolExecutor createSingleThreadSchedulingDeamonPool(final String threadPurpose, int queueCapacity) {
+        final ThreadFactory daemonThreadFactory = new NamedThreadFactory(ThreadUtils.addElasticApmThreadPrefix(threadPurpose));
         return new ScheduledThreadPoolExecutor(queueCapacity, daemonThreadFactory);
     }
 
-    public static ThreadPoolExecutor createSingleThreadDeamonPool(final String threadName, int queueCapacity) {
+    public static ThreadPoolExecutor createSingleThreadDeamonPool(final String threadPurpose, int queueCapacity) {
+        String threadName = ThreadUtils.addElasticApmThreadPrefix(threadPurpose);
         final ThreadFactory daemonThreadFactory = new NamedThreadFactory(threadName);
         return new NamedDaemonThreadPoolExecutor(queueCapacity, daemonThreadFactory, threadName);
     }

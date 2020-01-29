@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -42,14 +42,12 @@ import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import co.elastic.apm.agent.metrics.MetricRegistry;
-import co.elastic.apm.agent.objectpool.Allocator;
 import co.elastic.apm.agent.objectpool.ObjectPool;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+import co.elastic.apm.agent.objectpool.ObjectPoolFactory;
 import co.elastic.apm.agent.report.Reporter;
 import co.elastic.apm.agent.report.ReporterConfiguration;
 import co.elastic.apm.agent.util.DependencyInjectingServiceLoader;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
-import org.jctools.queues.atomic.AtomicQueueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.configuration.ConfigurationOption;
@@ -64,8 +62,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-
-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
 
 /**
  * This is the tracer implementation which provides access to lower level agent functionality.
@@ -121,65 +117,27 @@ public class ElasticApmTracer {
     boolean assertionsEnabled = false;
     private static final WeakConcurrentMap<ClassLoader, String> serviceNameByClassLoader = new WeakConcurrentMap.WithInlinedExpunction<>();
 
-    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter) {
+    ElasticApmTracer(ConfigurationRegistry configurationRegistry, Reporter reporter, ObjectPoolFactory poolFactory) {
         this.metricRegistry = new MetricRegistry(configurationRegistry.getConfig(ReporterConfiguration.class));
         this.configurationRegistry = configurationRegistry;
         this.reporter = reporter;
         this.stacktraceConfiguration = configurationRegistry.getConfig(StacktraceConfiguration.class);
         int maxPooledElements = configurationRegistry.getConfig(ReporterConfiguration.class).getMaxQueueSize() * 2;
         coreConfiguration = configurationRegistry.getConfig(CoreConfiguration.class);
-        transactionPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Transaction>newQueue(createBoundedMpmc(maxPooledElements)), false,
-            new Allocator<Transaction>() {
-                @Override
-                public Transaction createInstance() {
-                    return new Transaction(ElasticApmTracer.this);
-                }
-            });
-        spanPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<Span>newQueue(createBoundedMpmc(maxPooledElements)), false,
-            new Allocator<Span>() {
-                @Override
-                public Span createInstance() {
-                    return new Span(ElasticApmTracer.this);
-                }
-            });
+
+        transactionPool = poolFactory.createTransactionPool(maxPooledElements, this);
+        spanPool = poolFactory.createSpanPool(maxPooledElements, this);
+
         // we are assuming that we don't need as many errors as spans or transactions
-        errorPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ErrorCapture>newQueue(createBoundedMpmc(maxPooledElements / 2)), false,
-            new Allocator<ErrorCapture>() {
-                @Override
-                public ErrorCapture createInstance() {
-                    return new ErrorCapture(ElasticApmTracer.this);
-                }
-            });
-        // consider specialized object pools which return the objects to the thread-local pool of their originating thread
-        // with a combination of DetachedThreadLocal and org.jctools.queues.MpscRelaxedArrayQueue
-        runnableSpanWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<SpanInScopeRunnableWrapper>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
-            new Allocator<SpanInScopeRunnableWrapper>() {
-                @Override
-                public SpanInScopeRunnableWrapper createInstance() {
-                    return new SpanInScopeRunnableWrapper(ElasticApmTracer.this);
-                }
-            });
-        callableSpanWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<SpanInScopeCallableWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
-            new Allocator<SpanInScopeCallableWrapper<?>>() {
-                @Override
-                public SpanInScopeCallableWrapper<?> createInstance() {
-                    return new SpanInScopeCallableWrapper<>(ElasticApmTracer.this);
-                }
-            });
-        runnableContextWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ContextInScopeRunnableWrapper>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
-            new Allocator<ContextInScopeRunnableWrapper>() {
-                @Override
-                public ContextInScopeRunnableWrapper createInstance() {
-                    return new ContextInScopeRunnableWrapper(ElasticApmTracer.this);
-                }
-            });
-        callableContextWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<ContextInScopeCallableWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_RUNNABLES)), false,
-            new Allocator<ContextInScopeCallableWrapper<?>>() {
-                @Override
-                public ContextInScopeCallableWrapper<?> createInstance() {
-                    return new ContextInScopeCallableWrapper<>(ElasticApmTracer.this);
-                }
-            });
+        errorPool = poolFactory.createErrorPool(maxPooledElements/2, this);
+
+        runnableSpanWrapperObjectPool = poolFactory.createRunnableWrapperPool(MAX_POOLED_RUNNABLES, this);
+        callableSpanWrapperObjectPool = poolFactory.createCallableWrapperPool(MAX_POOLED_RUNNABLES, this);
+
+        runnableContextWrapperObjectPool = poolFactory.createRunnableContextPool(MAX_POOLED_RUNNABLES, this);
+        callableContextWrapperObjectPool = poolFactory.createCallableContextPool(MAX_POOLED_RUNNABLES, this);
+
+
         sampler = ProbabilitySampler.of(coreConfiguration.getSampleRate().get());
         coreConfiguration.getSampleRate().addChangeListener(new ConfigurationOption.ChangeListener<Double>() {
             @Override
@@ -391,7 +349,6 @@ public class ElasticApmTracer {
         return configurationRegistry.getConfig(pluginClass);
     }
 
-    @SuppressWarnings("ReferenceEquality")
     public void endTransaction(Transaction transaction) {
         if (logger.isDebugEnabled()) {
             logger.debug("} endTransaction {}", transaction);
@@ -408,7 +365,6 @@ public class ElasticApmTracer {
         }
     }
 
-    @SuppressWarnings("ReferenceEquality")
     public void endSpan(Span span) {
         if (span.isSampled() && !span.isDiscard()) {
             long spanFramesMinDurationMs = stacktraceConfiguration.getSpanFramesMinDurationMs();
@@ -487,9 +443,6 @@ public class ElasticApmTracer {
         try {
             configurationRegistry.close();
             reporter.close();
-            transactionPool.close();
-            spanPool.close();
-            errorPool.close();
         } catch (Exception e) {
             logger.warn("Suppressed exception while calling stop()", e);
         }

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -140,6 +140,7 @@ public abstract class AbstractServletContainerIntegrationTest {
             .withEnv("ELASTIC_APM_CAPTURE_JMX_METRICS", "object_name[java.lang:type=Memory] attribute[HeapMemoryUsage:metric_name=test_heap_metric]")
             .withEnv("ELASTIC_APM_CAPTURE_BODY", "all")
             .withEnv("ELASTIC_APM_TRACE_METHODS", "public @@javax.enterprise.context.NormalScope co.elastic.*")
+            .withEnv("ELASTIC_APM_DISABLED_INSTRUMENTATIONS", "") // enable all instrumentations for integration tests
             .withLogConsumer(new StandardOutLogConsumer().withPrefix(containerName))
             .withExposedPorts(webPort)
             .withFileSystemBind(pathToJavaagent, "/elastic-apm-agent.jar")
@@ -340,7 +341,9 @@ public abstract class AbstractServletContainerIntegrationTest {
         do {
             reportedSpans = supplier.get();
         } while (reportedSpans.size() == 0 && System.currentTimeMillis() - start < timeout);
-        assertThat(reportedSpans.size()).isGreaterThanOrEqualTo(1);
+        assertThat(reportedSpans)
+            .describedAs("at least one span is expected")
+            .isNotEmpty();
         for (JsonNode span : reportedSpans) {
             assertThat(span.get("transaction_id").textValue()).isEqualTo(transactionId);
         }
@@ -455,11 +458,13 @@ public abstract class AbstractServletContainerIntegrationTest {
     }
 
     private void validateServiceName(JsonNode event) {
-        if (currentTestApp.getExpectedServiceName() != null && event != null) {
-            assertThat(event.get("context").get("service"))
-                .withFailMessage("No service name set. Expected '%s'. Event was %s", currentTestApp.getExpectedServiceName(), event)
+        String expectedServiceName = currentTestApp.getExpectedServiceName();
+        if (expectedServiceName != null && event != null) {
+            JsonNode contextService = event.get("context").get("service");
+            assertThat(contextService)
+                .withFailMessage("No service name set. Expected '%s'. Event was %s", expectedServiceName, event)
                 .isNotNull();
-            assertThat(event.get("context").get("service").get("name").textValue()).isEqualTo(currentTestApp.getExpectedServiceName());
+                assertThat(contextService.get("name").textValue()).isEqualTo(expectedServiceName);
         }
     }
 

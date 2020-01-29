@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -59,7 +59,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
-        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo("bar");
+        assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
     }
 
     @Test
@@ -69,7 +69,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo("foo");
-        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo("bar");
+        assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
     }
 
     @Test
@@ -79,7 +79,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
-        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -89,7 +89,7 @@ class BodyProcessorTest {
         final Transaction transaction = processTransaction();
 
         assertThat(transaction.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
-        assertThat(transaction.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(transaction.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -99,7 +99,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
-        assertThat(error.getContext().getMessage().getBody()).isEqualTo("bar");
+        assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
     }
 
     @Test
@@ -109,7 +109,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
-        assertThat(error.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     @Test
@@ -119,7 +119,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo("foo");
-        assertThat(error.getContext().getMessage().getBody()).isEqualTo("bar");
+        assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo("bar");
     }
 
     @Test
@@ -129,7 +129,7 @@ class BodyProcessorTest {
         final ErrorCapture error = processError();
 
         assertThat(error.getContext().getRequest().getBody().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
-        assertThat(error.getContext().getMessage().getBody()).isEqualTo(REDACTED_CONTEXT_STRING);
+        assertThat(error.getContext().getMessage().getBodyForRead().toString()).isEqualTo(REDACTED_CONTEXT_STRING);
     }
 
     private Transaction processTransaction() {

@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -28,6 +28,7 @@ import co.elastic.apm.agent.impl.MetaData;
 import co.elastic.apm.agent.report.processor.ProcessorEventHandler;
 import co.elastic.apm.agent.report.serialize.DslJsonSerializer;
 import co.elastic.apm.agent.report.serialize.PayloadSerializer;
+import co.elastic.apm.agent.util.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stagemonitor.util.IOUtils;
@@ -83,7 +84,7 @@ public class IntakeV2ReportingEventHandler implements ReportingEventHandler {
         this.metaData = metaData;
         this.apmServerClient = apmServerClient;
         this.deflater = new Deflater(GZIP_COMPRESSION_LEVEL);
-        this.timeoutTimer = new Timer("apm-request-timeout-timer", true);
+        this.timeoutTimer = new Timer(ThreadUtils.addElasticApmThreadPrefix("request-timeout-timer"), true);
     }
 
     /*

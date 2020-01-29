@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,39 +24,74 @@
  */
 package co.elastic.apm.agent.objectpool;
 
-import co.elastic.apm.agent.objectpool.Recyclable;
-import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
-import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-public class ObjectPoolTest {
+public abstract class ObjectPoolTest<T extends ObjectPool<TestRecyclable>> {
 
     private static final int MAX_SIZE = 16;
-    private ObjectPool<TestRecyclable> objectPool;
+    private T objectPool;
 
     @BeforeEach
-    void setUp() {
-//        objectPool = new ThreadLocalObjectPool<>(10, false, TestRecyclable::new);
-        objectPool = QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<>(MAX_SIZE), true, TestRecyclable::new);
+    void beforeEach() {
+        objectPool = createObjectPool(MAX_SIZE);
+    }
+
+    public T getObjectPool() {
+        return objectPool;
+    }
+
+    protected abstract T createObjectPool(int maxSize);
+
+    @Test
+    public void testMaxElements() {
+        List<TestRecyclable> recyclables = new ArrayList<>();
+        for (int i = 0; i < MAX_SIZE * 2; i++) {
+            TestRecyclable instance = objectPool.createInstance();
+            instance.setState(i + 1);
+            recyclables.add(instance);
+        }
+
+        for (int i = 0; i < recyclables.size(); i++) {
+            objectPool.recycle(recyclables.get(i));
+            long garbageCreated = objectPool.getGarbageCreated();
+            if (i < MAX_SIZE) {
+                assertThat(objectPool.getObjectsInPool())
+                    .isEqualTo(i + 1);
+                assertThat(garbageCreated)
+                    .describedAs("no garbage created until reaching pool capacity")
+                    .isEqualTo(0);
+            } else {
+                assertThat(objectPool.getObjectsInPool())
+                    .describedAs("pool capacity should stay at max capacity")
+                    .isEqualTo(MAX_SIZE);
+                assertThat(garbageCreated)
+                    .describedAs("garbage created for each returned instance over pool capacity")
+                    .isEqualTo(i - MAX_SIZE + 1);
+            }
+        }
+
+        assertThat(objectPool.getObjectsInPool())
+            .describedAs("pool max size should be enforced")
+            .isEqualTo(MAX_SIZE);
+
+        assertThat(objectPool.getGarbageCreated())
+            .describedAs("pool created garbage should be equal to instances count")
+            .isEqualTo(MAX_SIZE);
     }
 
     @Test
-    public void testMaxElements() throws Exception {
-        for (int i = 0; i < MAX_SIZE * 2; i++) {
-            objectPool.recycle(new TestRecyclable(i));
-        }
-        assertThat(objectPool.getObjectsInPool()).isEqualTo(MAX_SIZE);
-    }
+    public void testOverconsume() {
 
-    @Test
-    public void testOverconsume() throws Exception {
-        for (int i = 0; i < MAX_SIZE * 2; i++) {
-            objectPool.recycle(new TestRecyclable(i));
-        }
+        // this test provides us in the expected state where we have the max number of objects in pool allocated
+        testMaxElements();
+
         assertThat(objectPool.getObjectsInPool()).isEqualTo(MAX_SIZE);
 
         for (int i = 0; i < MAX_SIZE; i++) {
@@ -68,31 +103,33 @@ public class ObjectPoolTest {
     }
 
     @Test
-    public void testEmpty() throws Exception {
+    public void testEmpty() {
         assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
         assertThat(objectPool.createInstance()).isNotNull();
         assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
     }
 
     @Test
-    public void testRecycle() throws Exception {
-        final TestRecyclable instance = objectPool.createInstance();
-        instance.state = 1;
+    public void testRecycle() {
+        TestRecyclable instance = objectPool.createInstance();
+        instance.setState(1);
         objectPool.recycle(instance);
-        assertThat(instance.state).isEqualTo(0);
+        assertThat(instance.getState()).isEqualTo(0);
         assertThat(instance).isSameAs(objectPool.createInstance());
     }
 
     @Test
-    public void testRecycleInDifferentThread() throws Exception {
-        objectPool.recycle(new TestRecyclable());
-        assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
+    public void testRecycleInDifferentThread() {
         TestRecyclable instance = objectPool.createInstance();
+        objectPool.recycle(instance);
+        assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
+
+        final TestRecyclable recycledInstance = objectPool.createInstance();
         assertThat(objectPool.getObjectsInPool()).isEqualTo(0);
 
         assertSoftly(softly -> {
-            final Thread t1 = new Thread(() -> {
-                objectPool.recycle(instance);
+            Thread t1 = new Thread(() -> {
+                objectPool.recycle(recycledInstance);
                 assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
             });
             t1.start();
@@ -106,20 +143,4 @@ public class ObjectPoolTest {
         assertThat(objectPool.getObjectsInPool()).isEqualTo(1);
     }
 
-    private static class TestRecyclable implements Recyclable {
-
-        private int state;
-
-        TestRecyclable() {
-        }
-
-        TestRecyclable(int state) {
-            this.state = state;
-        }
-
-        @Override
-        public void resetState() {
-            state = 0;
-        }
-    }
 }

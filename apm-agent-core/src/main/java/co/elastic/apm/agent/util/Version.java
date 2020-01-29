@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -31,7 +31,11 @@ package co.elastic.apm.agent.util;
 public class Version implements Comparable<Version> {
     private final int[] numbers;
 
-    public Version(String version) {
+    public static Version of(String version) {
+        return new Version(version);
+    }
+
+    private Version(String version) {
         final String[] parts = version.split("\\-")[0].split("\\.");
         numbers = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {

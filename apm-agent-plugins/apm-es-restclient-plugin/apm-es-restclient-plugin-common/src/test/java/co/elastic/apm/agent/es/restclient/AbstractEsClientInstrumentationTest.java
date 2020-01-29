@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -25,6 +25,7 @@
 package co.elastic.apm.agent.es.restclient;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.context.Destination;
 import co.elastic.apm.agent.impl.error.ErrorCapture;
 import co.elastic.apm.agent.impl.context.Db;
 import co.elastic.apm.agent.impl.context.Http;
@@ -88,8 +89,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
 
     public void assertThatErrorsExistWhenDeleteNonExistingIndex() throws IOException {
 
-        System.out.println(reporter.generateErrorPayloadJson());
-
         List<ErrorCapture> errorCaptures = reporter.getErrors();
         assertThat(errorCaptures).hasSize(1);
         ErrorCapture errorCapture = errorCaptures.get(0);
@@ -120,6 +119,16 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     protected void validateSpanContent(Span span, String expectedName, int statusCode, String method) {
         validateSpanContentWithoutContext(span, expectedName, statusCode, method);
         validateHttpContextContent(span.getContext().getHttp(), statusCode, method);
+        validateDestinationContextContent(span.getContext().getDestination());
+    }
+
+    private void validateDestinationContextContent(Destination destination) {
+        assertThat(destination).isNotNull();
+        assertThat(destination.getAddress().toString()).isEqualTo(container.getContainerIpAddress());
+        assertThat(destination.getPort()).isEqualTo(container.getMappedPort(9200));
+        assertThat(destination.getService().getName().toString()).isEqualTo(ELASTICSEARCH);
+        assertThat(destination.getService().getResource().toString()).isEqualTo(ELASTICSEARCH);
+        assertThat(destination.getService().getType()).isEqualTo(SPAN_TYPE);
     }
 
     private void validateHttpContextContent(Http http, int statusCode, String method) {
@@ -130,7 +139,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterIndexCreateRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -138,7 +146,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterIndexDeleteRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span>spans = reporter.getSpans();
         assertThat(spans).hasSize(1);
@@ -146,7 +153,6 @@ public abstract class AbstractEsClientInstrumentationTest extends AbstractInstru
     }
 
     protected void validateSpanContentAfterBulkRequest() {
-        System.out.println(reporter.generateTransactionPayloadJson());
 
         List<Span> spans = reporter.getSpans();
         assertThat(spans).hasSize(1);

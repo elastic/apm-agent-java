@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -421,7 +421,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         // --------------------------------------------------------
 
         TextMap textMapExtractAdapter = new TextMapAdapter(Map.of(
-            TraceContext.TRACE_PARENT_HEADER,
+            TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME,
             "00-" + traceIdString + "-" + parentIdString + "-01",
             "User-Agent", "curl"));
         //ExternalProcessSpanContext
@@ -440,7 +440,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         Span otSpan = apmTracer.buildSpan("span")
             .asChildOf(apmTracer.extract(Format.Builtin.TEXT_MAP,
                 new TextMapAdapter(Map.of(
-                    TraceContext.TRACE_PARENT_HEADER, "00-" + traceId + "-" + parentId + "-01",
+                    TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, "00-" + traceId + "-" + parentId + "-01",
                     "User-Agent", "curl"))))
             .start();
         final Scope scope = apmTracer.activateSpan(otSpan);
@@ -456,7 +456,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(otSpan.context(), Format.Builtin.TEXT_MAP, new TextMapAdapter(map));
         final TraceContext injectedContext = TraceContext.with64BitId(tracer);
-        assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_HEADER))).isTrue();
+        assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME))).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(transaction.getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();

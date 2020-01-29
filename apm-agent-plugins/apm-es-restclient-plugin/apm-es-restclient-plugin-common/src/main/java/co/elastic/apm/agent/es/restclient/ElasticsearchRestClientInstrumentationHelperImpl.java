@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,6 +32,7 @@ import co.elastic.apm.agent.objectpool.ObjectPool;
 import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
 import co.elastic.apm.agent.util.IOUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.ResponseListener;
@@ -105,6 +106,7 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
                     }
                 }
             }
+            span.getContext().getDestination().getService().withName(ELASTICSEARCH).withResource(ELASTICSEARCH).withType(SPAN_TYPE);
         }
         return span;
     }
@@ -114,13 +116,21 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
         try {
             String url = null;
             int statusCode = -1;
+            String address = null;
+            int port = -1;
             if (response != null) {
-                url = response.getHost().toURI();
+                HttpHost host = response.getHost();
+                address = host.getHostName();
+                port = host.getPort();
+                url = host.toURI();
                 statusCode = response.getStatusLine().getStatusCode();
             } else if (t != null) {
                 if (t instanceof ResponseException) {
                     ResponseException esre = (ResponseException) t;
-                    url = esre.getResponse().getHost().toURI();
+                    HttpHost host = esre.getResponse().getHost();
+                    address = host.getHostName();
+                    port = host.getPort();
+                    url = host.toURI();
                     statusCode = esre.getResponse().getStatusLine().getStatusCode();
                 }
                 span.captureException(t);
@@ -129,9 +139,8 @@ public class ElasticsearchRestClientInstrumentationHelperImpl implements Elastic
             if (url != null && !url.isEmpty()) {
                 span.getContext().getHttp().withUrl(url);
             }
-            if (statusCode > 0) {
-                span.getContext().getHttp().withStatusCode(statusCode);
-            }
+            span.getContext().getHttp().withStatusCode(statusCode);
+            span.getContext().getDestination().withAddress(address).withPort(port);
         } finally {
             span.end();
         }

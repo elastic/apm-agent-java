@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -67,7 +67,7 @@ public class ApmServerClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApmServerClient.class);
     private static final String USER_AGENT = "elasticapm-java/" + VersionUtils.getAgentVersion();
-    private static final Version APM_SERVER_NON_STRING_LABEL_SUPPORT = new Version("6.7.0");
+    private static final Version VERSION_6_7 = Version.of("6.7.0");
     private final ReporterConfiguration reporterConfiguration;
     private volatile List<URL> serverUrls;
     private volatile Future<Version> apmServerVersion;
@@ -286,7 +286,7 @@ public class ApmServerClient {
     }
 
     public boolean supportsNonStringLabels() {
-        return isAtLeast(APM_SERVER_NON_STRING_LABEL_SUPPORT);
+        return isAtLeast(VERSION_6_7);
     }
 
     public boolean isAtLeast(Version apmServerVersion) {

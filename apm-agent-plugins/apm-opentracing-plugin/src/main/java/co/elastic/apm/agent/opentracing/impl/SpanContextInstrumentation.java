@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -81,7 +81,7 @@ public class SpanContextInstrumentation extends OpenTracingBridgeInstrumentation
 
         @VisibleForAdvice
         public static Iterable<Map.Entry<String, String>> doGetBaggage(TraceContext traceContext) {
-            return Collections.singletonMap(TraceContext.TRACE_PARENT_HEADER, traceContext.getOutgoingTraceParentHeader().toString()).entrySet();
+            return Collections.singletonMap(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, traceContext.getOutgoingTraceParentTextHeader().toString()).entrySet();
         }
     }
 

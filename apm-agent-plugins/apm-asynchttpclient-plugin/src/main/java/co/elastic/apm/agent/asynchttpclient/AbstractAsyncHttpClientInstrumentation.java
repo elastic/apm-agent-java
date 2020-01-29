@@ -2,7 +2,7 @@
  * #%L
  * Elastic APM Java agent
  * %%
- * Copyright (C) 2018 - 2019 Elastic and contributors
+ * Copyright (C) 2018 - 2020 Elastic and contributors
  * %%
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -39,6 +39,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
+import org.asynchttpclient.uri.Uri;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -87,11 +88,12 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
             final TraceContextHolder<?> parent = tracer.getActive();
-            span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getUri().toUrl(), request.getUri().getHost());
+            Uri uri = request.getUri();
+            span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), uri.toUrl(), uri.getScheme(), uri.getHost(), uri.getPort());
 
             if (span != null) {
                 span.activate();
-                request.getHeaders().add(TraceContext.TRACE_PARENT_HEADER, span.getTraceContext().getOutgoingTraceParentHeader().toString());
+                request.getHeaders().add(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
                 handlerSpanMap.put(asyncHandler, span);
             }
         }
