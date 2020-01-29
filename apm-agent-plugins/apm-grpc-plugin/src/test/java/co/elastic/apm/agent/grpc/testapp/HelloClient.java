@@ -67,10 +67,6 @@ public class HelloClient {
         });
     }
 
-    public Optional<String> sayHello(String user) {
-        return sayHello(user, 0);
-    }
-
     public Optional<String> sayHello(String user, int depth) {
         HelloRequest.Builder request = HelloRequest.newBuilder()
             .setDepth(depth);

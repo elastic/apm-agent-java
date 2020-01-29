@@ -1,6 +1,5 @@
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.AbstractInstrumentationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +8,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 // this class just tests the sample application normal behavior, not the behavior when it's instrumented
 class GrpcAppTest {
+
+    // TODO : try to cancel call from client-side (only possible with async client)
 
     private GrpcApp app;
 
@@ -25,7 +26,7 @@ class GrpcAppTest {
 
     @Test
     void simpleCall() {
-        checkMsg("joe", 1, "hello(joe)");
+        checkMsg("joe", 0, "hello(joe)");
     }
 
     @Test
@@ -47,7 +48,7 @@ class GrpcAppTest {
 
     @Test
     void uncaughtExceptionServerErrorHandling() {
-        // should be strictly indentical to "recommended way to handle errors" from client perspective
+        // should be strictly identical to "recommended way to handle errors" from client perspective
         // but might differ server side
         exceptionOrErrorCheck("boom");
     }
