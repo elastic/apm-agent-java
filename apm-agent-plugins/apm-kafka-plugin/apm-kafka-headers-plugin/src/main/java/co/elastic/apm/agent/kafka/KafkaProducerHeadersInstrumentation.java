@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -28,15 +28,18 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHelper;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.ApiVersions;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.record.RecordBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,8 +106,13 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
             // https://kafka.apache.org/0110/documentation.html#messageformat
             if (apiVersions.maxUsableProduceMagic() >= RecordBatch.MAGIC_VALUE_V2 && headersSupported) {
                 try {
-                    record.headers().add(TraceContext.TRACE_PARENT_HEADER,
-                        span.getTraceContext().getOutgoingTraceParentBinaryHeader());
+                    //noinspection ConstantConditions
+                    KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
+                        kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
+                    if (kafkaInstrumentationHelper != null) {
+                        Header elasticHeader = kafkaInstrumentationHelper.getOutgoingTraceparentHeader(span);
+                        record.headers().add(elasticHeader);
+                    }
                 } catch (final IllegalStateException e) {
                     // headers are in a read-only state
                     logger.debug("Failed to add header to Kafka record {}, probably to headers' read-only state.", record);
@@ -132,7 +140,7 @@ public class KafkaProducerHeadersInstrumentation extends BaseKafkaHeadersInstrum
                     //noinspection unchecked
                     record = new ProducerRecord(record.topic(), record.partition(), record.timestamp(),
                         record.key(), record.value(), record.headers());
-                    record.headers().remove(TraceContext.TRACE_PARENT_HEADER);
+                    record.headers().remove(TraceContext.TRACE_PARENT_BINARY_HEADER_NAME);
                     span.deactivate();
                     span = null;
                     headersSupported = false;

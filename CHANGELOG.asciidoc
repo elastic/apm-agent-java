@@ -33,6 +33,8 @@ endif::[]
 * Add `destination` fields to exit span contexts - {pull}976[#976]
 * Removed `context.message.topic.name` field. - {pull}993[#993]
 * Add Kafka support, currently marked as `incubating` (off by default), until binary traceparent header is implemented - {pull}981[#981]
+* Add support for binary `traceparent` header format (see the https://github.com/elastic/apm/blob/master/docs/agent-development.md#Binary-Fields[spec]
+for more details) - {pull}1009[#1009]
 * Add a sampling profiler based on https://github.com/jvm-profiling-tools/async-profiler[async-profiler].
   This is a low-overhead way of seeing which methods make your transactions slow.
   See <<config-profiling>> for more details.
