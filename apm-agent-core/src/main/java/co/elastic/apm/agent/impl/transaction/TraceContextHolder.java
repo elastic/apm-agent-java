@@ -165,6 +165,7 @@ public abstract class TraceContextHolder<T extends TraceContextHolder> implement
         return (T) this;
     }
 
+    @Nullable
     public String captureExceptionAndGetErrorId(@Nullable Throwable t) {
         return tracer.captureExceptionAndGetErrorId(getTraceContext().getClock().getEpochMicros(), t, this);
     }
