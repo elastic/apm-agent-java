@@ -111,8 +111,9 @@ enum NoopTransaction implements Transaction {
     }
 
     @Override
-    public void captureException(Throwable throwable) {
+    public String captureException(Throwable throwable) {
         // co.elastic.apm.agent.plugin.api.CaptureExceptionInstrumentation
+        return "";
     }
 
     @Nonnull

@@ -320,7 +320,13 @@ public class ElasticApmTracer {
         captureException(epochMicros, e, parent, null);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
+    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
+        return (errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null);
+    }
+
+    @Nullable
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent, @Nullable ClassLoader initiatingClassLoader) {
         // note: if we add inheritance support for exception filtering, caching would be required for performance
         if (e != null && !WildcardMatcher.isAnyMatch(coreConfiguration.getIgnoreExceptions(), e.getClass().getName())) {
             ErrorCapture error = errorPool.createInstance();
@@ -338,7 +344,9 @@ public class ElasticApmTracer {
                 error.getTraceContext().setServiceName(getServiceName(initiatingClassLoader));
             }
             reporter.report(error);
+            return error;
         }
+        return null;
     }
 
     public ConfigurationRegistry getConfigurationRegistry() {

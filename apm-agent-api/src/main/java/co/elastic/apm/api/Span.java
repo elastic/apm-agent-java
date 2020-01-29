@@ -281,7 +281,7 @@ public interface Span {
      *
      * @param throwable the exception to report
      */
-    void captureException(Throwable throwable);
+    String captureException(Throwable throwable);
 
     /**
      * Returns the id of this span (never {@code null})
