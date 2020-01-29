@@ -85,6 +85,70 @@ pipeline {
         }
       }
     }
+
+// TMP move to watch tests run sequentially 
+      /**
+        Run smoke tests for different servers and databases.
+      */
+      stage('Smoke Tests 02') {
+        agent { label 'linux && immutable' }
+        options { skipDefaultCheckout() }
+        environment {
+          HOME = "${env.WORKSPACE}"
+          JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+          PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        }
+        when {
+          beforeAgent true
+          expression { return params.smoketests_ci }
+        }
+        steps {
+          withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh './scripts/jenkins/smoketests-02.sh'
+            }
+          }
+        }
+        post {
+          always {
+            reportTestResults()
+          }
+        }
+      }
+
+      /**
+        Run smoke tests for different servers and databases.
+      */
+      stage('Smoke Tests 01') {
+        agent { label 'linux && immutable' }
+        options { skipDefaultCheckout() }
+        environment {
+          HOME = "${env.WORKSPACE}"
+          JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
+          PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        }
+        when {
+          beforeAgent true
+          expression { return params.smoketests_ci }
+        }
+        steps {
+          withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
+            deleteDir()
+            unstash 'build'
+            dir("${BASE_DIR}"){
+              sh './scripts/jenkins/smoketests-01.sh'
+            }
+          }
+        }
+        post {
+          always {
+            reportTestResults()
+          }
+        }
+      }
+
     stage('Tests') {
       environment {
         MAVEN_CONFIG = "${params.MAVEN_CONFIG} ${env.MAVEN_CONFIG}"
@@ -123,66 +187,8 @@ pipeline {
             }
           }
         }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 01') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          environment {
-            HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
-          when {
-            beforeAgent true
-            expression { return params.smoketests_ci }
-          }
-          steps {
-            withGithubNotify(context: 'Smoke Tests 01', tab: 'tests') {
-              deleteDir()
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-01.sh'
-              }
-            }
-          }
-          post {
-            always {
-              reportTestResults()
-            }
-          }
-        }
-        /**
-          Run smoke tests for different servers and databases.
-        */
-        stage('Smoke Tests 02') {
-          agent { label 'linux && immutable' }
-          options { skipDefaultCheckout() }
-          environment {
-            HOME = "${env.WORKSPACE}"
-            JAVA_HOME = "${env.HUDSON_HOME}/.java/java10"
-            PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-          }
-          when {
-            beforeAgent true
-            expression { return params.smoketests_ci }
-          }
-          steps {
-            withGithubNotify(context: 'Smoke Tests 02', tab: 'tests') {
-              deleteDir()
-              unstash 'build'
-              dir("${BASE_DIR}"){
-                sh './scripts/jenkins/smoketests-02.sh'
-              }
-            }
-          }
-          post {
-            always {
-              reportTestResults()
-            }
-          }
-        }
+
+
         /**
           Run the benchmarks and store the results on ES.
           The result JSON files are also archive into Jenkins.
