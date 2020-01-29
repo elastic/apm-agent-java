@@ -24,6 +24,7 @@
  */
 package co.elastic.apm.agent.asynchttpclient;
 
+import co.elastic.apm.agent.bci.ElasticApmAgent;
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
@@ -43,9 +44,10 @@ import org.asynchttpclient.uri.Uri;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
-import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
+import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.isBootstrapClassLoader;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -56,6 +58,12 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
     @VisibleForAdvice
     public static final WeakConcurrentMap<AsyncHandler<?>, Span> handlerSpanMap = new WeakConcurrentMap.WithInlinedExpunction<>();
+
+    @VisibleForAdvice
+    public static final List<Class<? extends ElasticApmInstrumentation>> ASYNC_HANDLER_INSTRUMENTATIONS = Arrays.<Class<? extends ElasticApmInstrumentation>>asList(
+        AsyncHandlerOnCompletedInstrumentation.class,
+        AsyncHandlerOnThrowableInstrumentation.class,
+        AsyncHandlerOnStatusReceivedInstrumentation.class);
 
     @Override
     public Collection<String> getInstrumentationGroupNames() {
@@ -77,6 +85,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             if (tracer == null || tracer.getActive() == null) {
                 return;
             }
+            ElasticApmAgent.ensureInstrumented(asyncHandler.getClass(), ASYNC_HANDLER_INSTRUMENTATIONS);
 
             final TraceContextHolder<?> parent = tracer.getActive();
             Uri uri = request.getUri();
@@ -123,9 +132,13 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             this.methodMatcher = methodMatcher;
         }
 
+        /**
+         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Collection)},
+         * based on the type of the {@linkplain AsyncHandler} implementation class.
+         */
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return hasSuperType(named("org.asynchttpclient.AsyncHandler"));
+            return any();
         }
 
         @Override
