@@ -320,7 +320,8 @@ public class ElasticApmTracer {
         captureException(epochMicros, e, parent, null);
     }
 
-    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+    @Nullable
+    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
         ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
         return (errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null);
     }

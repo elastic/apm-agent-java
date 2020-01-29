@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 class ElasticApmTracerTest {
@@ -489,4 +490,17 @@ class ElasticApmTracerTest {
         tracer.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader()).end();
         assertThat(reporter.getFirstTransaction().getTraceContext().getServiceName()).isNull();
     }
+
+    @Test
+    void testCaptureExceptionAndGetErrorId() {
+        Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
+        String errorId = tracerImpl.captureExceptionAndGetErrorId(System.currentTimeMillis() * 1000, new Exception("test"), transaction);
+        transaction.end();
+
+        assertThat(reporter.getErrors()).hasSize(1);
+        assertThat(errorId).isNotNull();
+        ErrorCapture error = reporter.getFirstError();
+        assertEquals(error.getTraceContext().getId().toString(), errorId);
+    }
+
 }
