@@ -81,6 +81,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 public class ElasticApmAgent {
@@ -408,6 +409,18 @@ public class ElasticApmAgent {
         return agentJarFile == null ? null : agentJarFile.getParent();
     }
 
+    /**
+     * Instruments a specific class at runtime with one or multiple instrumentation classes.
+     * <p>
+     * Note that {@link ElasticApmInstrumentation#getTypeMatcher()} will be
+     * {@linkplain net.bytebuddy.matcher.ElementMatcher.Junction#and(ElementMatcher) conjoined} with a
+     * {@linkplain #getTypeMatcher(Class, ElementMatcher, ElementMatcher.Junction) computed} {@link TypeDescription}
+     * that is specific to the provided class to instrument.
+     * </p>
+     *
+     * @param classToInstrument the class which should be instrumented
+     * @param instrumentationClasses the instrumentation which should be applied to the class to instrument.
+     */
     public static void ensureInstrumented(Class<?> classToInstrument, Collection<Class<? extends ElasticApmInstrumentation>> instrumentationClasses) {
         Set<Collection<Class<? extends ElasticApmInstrumentation>>> appliedInstrumentations = getOrCreate(classToInstrument);
 
@@ -433,7 +446,7 @@ public class ElasticApmAgent {
                     AgentBuilder agentBuilder = getAgentBuilder(byteBuddy, config, logger, AgentBuilder.DescriptionStrategy.Default.HYBRID);
                     for (Class<? extends ElasticApmInstrumentation> instrumentationClass : instrumentationClasses) {
                         ElasticApmInstrumentation apmInstrumentation = instantiate(instrumentationClass);
-                        ElementMatcher.Junction<TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher());
+                        ElementMatcher.Junction<? super TypeDescription> typeMatcher = getTypeMatcher(classToInstrument, apmInstrumentation.getMethodMatcher(), none());
                         if (typeMatcher != null && isIncluded(apmInstrumentation, config)) {
                             agentBuilder = applyAdvice(tracer, agentBuilder, apmInstrumentation, typeMatcher.and(apmInstrumentation.getTypeMatcher()));
                         }
@@ -457,16 +470,20 @@ public class ElasticApmAgent {
     }
 
     @Nullable
-    private static ElementMatcher.Junction<TypeDescription> getTypeMatcher(Class<?> classToInstrument, ElementMatcher<? super MethodDescription> methodMatcher) {
+    private static ElementMatcher.Junction<? super TypeDescription> getTypeMatcher(@Nullable Class<?> classToInstrument, ElementMatcher<? super MethodDescription> methodMatcher, ElementMatcher.Junction<? super TypeDescription> typeMatcher) {
+        if (classToInstrument == null) {
+            return typeMatcher;
+        }
+        if (matches(classToInstrument, methodMatcher)) {
+            // even if we have a match in this class, there could be another match in a super class
+            //if the method matcher matches multiple methods
+            typeMatcher = is(classToInstrument).or(typeMatcher);
+        }
+        return getTypeMatcher(classToInstrument.getSuperclass(), methodMatcher, typeMatcher);
+    }
 
-        MethodList<MethodDescription.InDefinedShape> matchingMethods = TypeDescription.ForLoadedType.of(classToInstrument).getDeclaredMethods().filter(methodMatcher);
-        if (!matchingMethods.isEmpty()) {
-            return is(classToInstrument);
-        }
-        if (classToInstrument.getSuperclass() == null) {
-            return null;
-        }
-        return getTypeMatcher(classToInstrument.getSuperclass(), methodMatcher);
+    private static boolean matches(Class<?> classToInstrument, ElementMatcher<? super MethodDescription> methodMatcher) {
+        return !TypeDescription.ForLoadedType.of(classToInstrument).getDeclaredMethods().filter(methodMatcher).isEmpty();
     }
 
     private static ElasticApmInstrumentation instantiate(Class<? extends ElasticApmInstrumentation> instrumentation) {

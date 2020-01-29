@@ -130,9 +130,13 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
             this.methodMatcher = methodMatcher;
         }
 
+        /**
+         * Overridden in {@link ElasticApmAgent#ensureInstrumented(Class, Collection)},
+         * based on the type of the {@linkplain AsyncHandler} implementation class.
+         */
         @Override
         public ElementMatcher<? super TypeDescription> getTypeMatcher() {
-            return any()/*.and(ElasticApmAgent.getTypeMatcher(asyncHandler.getClass()))*/;
+            return any();
         }
 
         @Override
