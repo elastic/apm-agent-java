@@ -36,11 +36,13 @@ import static org.mockito.Mockito.mock;
 
 class TraceContextTest {
 
+    private final byte[] outgoingBinaryTraceContext = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
+
     /**
      * Test flow:
      * 1.  create a parent context from a fixed string
      * 2.  create a child based on the string header - test {@link TraceContext#asChildOf(String)}
-     * 3.  create a grandchild based on binary header - test both {@link TraceContext#getOutgoingTraceParentBinaryHeader()}
+     * 3.  create a grandchild based on binary header - test {@link TraceContext#fillOutgoingTraceParentBinaryHeader(byte[])}
      * and {@link TraceContext#asChildOf(byte[])}
      * 4.  create a second grandchild based on text header - test both {@link TraceContext#getOutgoingTraceParentTextHeader()}
      * and {@link TraceContext#asChildOf(String)}
@@ -59,7 +61,8 @@ class TraceContextTest {
 
         // create a grandchild to ensure proper regenerated trace context
         final TraceContext grandchild1 = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        assertThat(TraceContext.fromTraceparentBinaryHeader().asChildOf(grandchild1, child.getOutgoingTraceParentBinaryHeader())).isTrue();
+        assertThat(child.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext)).isTrue();
+        assertThat(TraceContext.fromTraceparentBinaryHeader().asChildOf(grandchild1, outgoingBinaryTraceContext)).isTrue();
         assertThat(grandchild1.getTraceContext().getTraceId().toString()).isEqualTo("0af7651916cd43dd8448eb211c80319c");
         assertThat(grandchild1.getTraceContext().getParentId().toString()).isEqualTo(child.getTraceContext().getId().toString());
         assertThat(grandchild1.getTraceContext().getId()).isNotEqualTo(child.getTraceContext().getId());
@@ -88,6 +91,24 @@ class TraceContextTest {
     @Test
     void parseFromTraceParentHeaderUnsupportedFlag() {
         mixTextAndBinaryParsingAndContextPropagation("03", true);
+    }
+
+    @Test
+    void testBinaryHeaderSizeEnforcement() {
+        final String parentHeader = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
+        final TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        assertThat(TraceContext.fromTraceparentHeader().asChildOf(child, parentHeader)).isTrue();
+        byte[] outgoingBinaryHeader = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH - 1];
+        assertThat(child.fillOutgoingTraceParentBinaryHeader(outgoingBinaryHeader)).isFalse();
+    }
+
+    @Test
+    void testLongerBinaryHeader() {
+        final String parentHeader = "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01";
+        final TraceContext child = TraceContext.with64BitId(mock(ElasticApmTracer.class));
+        assertThat(TraceContext.fromTraceparentHeader().asChildOf(child, parentHeader)).isTrue();
+        byte[] outgoingBinaryHeader = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH + 1];
+        assertThat(child.fillOutgoingTraceParentBinaryHeader(outgoingBinaryHeader)).isTrue();
     }
 
     private void verifyTraceContextContents(String traceContext, String expectedTraceId, String expectedParentId,
@@ -122,8 +143,8 @@ class TraceContextTest {
         String parentId = traceContext.getId().toString();
         verifyTraceContextContents(traceContext.getOutgoingTraceParentTextHeader().toString(),
             "0af7651916cd43dd8448eb211c80319c", parentId, "00", "03");
-        verifyTraceContextContents(traceContext.getOutgoingTraceParentBinaryHeader(),
-            "0af7651916cd43dd8448eb211c80319c", parentId, (byte) 0x00, (byte) 0x03);
+        assertThat(traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext)).isTrue();
+        verifyTraceContextContents(outgoingBinaryTraceContext, "0af7651916cd43dd8448eb211c80319c", parentId, (byte) 0x00, (byte) 0x03);
     }
 
     @Test
@@ -135,9 +156,8 @@ class TraceContextTest {
         assertThat(outgoingStringHeader).hasSize(55);
         verifyTraceContextContents(outgoingStringHeader, traceContext.getTraceId().toString(),
             traceContext.getId().toString(), "00", "01");
-        byte[] outgoingBinaryHeader = traceContext.getOutgoingTraceParentBinaryHeader();
-        assertThat(outgoingBinaryHeader.length).isEqualTo(29);
-        verifyTraceContextContents(outgoingBinaryHeader, traceContext.getTraceId().toString(),
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        verifyTraceContextContents(outgoingBinaryTraceContext, traceContext.getTraceId().toString(),
             traceContext.getId().toString(), (byte) 0x00, (byte) 0x01);
     }
 
@@ -169,12 +189,15 @@ class TraceContextTest {
     @Test
     void testResetOutgoingBinaryHeader() {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
-        byte[] traceParentHeader = new byte[29];
-        System.arraycopy(traceContext.getOutgoingTraceParentBinaryHeader(), 0, traceParentHeader, 0, 29);
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        byte[] tmp = new byte[outgoingBinaryTraceContext.length];
+        System.arraycopy(outgoingBinaryTraceContext, 0, tmp, 0, 29);
         traceContext.asChildOf("00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-00");
-        assertThat(traceContext.getOutgoingTraceParentBinaryHeader()).isNotEqualTo(traceParentHeader);
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        assertThat(outgoingBinaryTraceContext).isNotEqualTo(tmp);
         traceContext.resetState();
-        assertThat(traceContext.getOutgoingTraceParentBinaryHeader()).isEqualTo(traceParentHeader);
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        assertThat(outgoingBinaryTraceContext).isEqualTo(tmp);
     }
 
     @Test
@@ -189,14 +212,19 @@ class TraceContextTest {
         assertThat(traceContext.getParentId()).isNotEqualTo(other.getParentId());
         assertThat(traceContext.isSampled()).isNotEqualTo(other.isSampled());
         assertThat(traceContext.getOutgoingTraceParentTextHeader()).isNotEqualTo(other.getOutgoingTraceParentTextHeader());
-        assertThat(traceContext.getOutgoingTraceParentBinaryHeader()).isNotEqualTo(other.getOutgoingTraceParentBinaryHeader());
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        byte[] otherHeader = new byte[outgoingBinaryTraceContext.length];
+        other.fillOutgoingTraceParentBinaryHeader(otherHeader);
+        assertThat(outgoingBinaryTraceContext).isNotEqualTo(otherHeader);
 
         other.copyFrom(traceContext);
         assertThat(traceContext.getTraceId()).isEqualTo(other.getTraceId());
         assertThat(traceContext.getParentId()).isEqualTo(other.getParentId());
         assertThat(traceContext.isSampled()).isEqualTo(other.isSampled());
         assertThat(traceContext.getOutgoingTraceParentTextHeader().toString()).isEqualTo(other.getOutgoingTraceParentTextHeader().toString());
-        assertThat(traceContext.getOutgoingTraceParentBinaryHeader()).isEqualTo(other.getOutgoingTraceParentBinaryHeader());
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        other.fillOutgoingTraceParentBinaryHeader(otherHeader);
+        assertThat(outgoingBinaryTraceContext).isEqualTo(otherHeader);
     }
 
     @Test
@@ -229,8 +257,9 @@ class TraceContextTest {
 
         verifyTraceContextContents(childContext.getOutgoingTraceParentTextHeader().toString(),
             childContext.getTraceId().toString(), rootContext.getId().toString(), "00", "00");
-        verifyTraceContextContents(childContext.getOutgoingTraceParentBinaryHeader(),
-            childContext.getTraceId().toString(), rootContext.getId().toString(), (byte) 0x00, (byte) 0x00);
+        childContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        verifyTraceContextContents(outgoingBinaryTraceContext, childContext.getTraceId().toString(),
+            rootContext.getId().toString(), (byte) 0x00, (byte) 0x00);
     }
 
     @Test
@@ -243,8 +272,9 @@ class TraceContextTest {
 
         verifyTraceContextContents(childContext.getOutgoingTraceParentTextHeader().toString(),
             childContext.getTraceId().toString(), childContext.getId().toString(), "00", "01");
-        verifyTraceContextContents(childContext.getOutgoingTraceParentBinaryHeader(),
-            childContext.getTraceId().toString(), childContext.getId().toString(), (byte) 0x00, (byte) 0x01);
+        childContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        verifyTraceContextContents(outgoingBinaryTraceContext, childContext.getTraceId().toString(),
+            childContext.getId().toString(), (byte) 0x00, (byte) 0x01);
     }
 
     @Test
@@ -324,14 +354,16 @@ class TraceContextTest {
     private void assertValid(byte[] binaryHeader) {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         assertThat(traceContext.asChildOf(binaryHeader)).isTrue();
-        verifyTraceContextContents(traceContext.getOutgoingTraceParentBinaryHeader(),
-            traceContext.getTraceId().toString(), traceContext.getId().toString(), (byte) 0x00, binaryHeader[28]);
+        traceContext.fillOutgoingTraceParentBinaryHeader(outgoingBinaryTraceContext);
+        verifyTraceContextContents(outgoingBinaryTraceContext, traceContext.getTraceId().toString(),
+            traceContext.getId().toString(), (byte) 0x00, binaryHeader[28]);
     }
 
     private byte[] convertToBinary(String textHeader) {
         final TraceContext traceContext = TraceContext.with64BitId(mock(ElasticApmTracer.class));
         traceContext.asChildOf(textHeader);
-        byte[] binaryHeader = traceContext.getOutgoingTraceParentBinaryHeader();
+        byte[] binaryHeader = new byte[TraceContext.BINARY_FORMAT_EXPECTED_LENGTH];
+        traceContext.fillOutgoingTraceParentBinaryHeader(binaryHeader);
         // replace the version and parent ID
         HexUtils.decode(textHeader, 0, 2, binaryHeader, 0);
         HexUtils.decode(textHeader, 36, 16, binaryHeader, 19);

@@ -80,7 +80,7 @@ public class TraceContext extends TraceContextHolder {
     private static final int TEXT_HEADER_FLAGS_OFFSET = 53;
 
     public static final String TRACE_PARENT_BINARY_HEADER_NAME = "elasticapmtraceparent";
-    private static final int BINARY_FORMAT_EXPECTED_LENGTH = 29;
+    public static final int BINARY_FORMAT_EXPECTED_LENGTH = 29;
     private static final byte BINARY_FORMAT_CURRENT_VERSION = (byte) 0b0000_0000;
     // one byte for the trace-id field id (0x00), followed by 16 bytes of the actual ID
     private static final int BINARY_FORMAT_TRACE_ID_OFFSET = 1;
@@ -148,8 +148,6 @@ public class TraceContext extends TraceContextHolder {
     private final Id parentId = Id.new64BitId();
     private final Id transactionId = Id.new64BitId();
     private final StringBuilder outgoingTextHeader = new StringBuilder(TEXT_HEADER_EXPECTED_LENGTH);
-    private final byte[] outgoingBinaryHeader = new byte[BINARY_FORMAT_EXPECTED_LENGTH];
-    private boolean outgoingBinaryHeaderSet = false;
     private byte flags;
     private boolean discard;
     // weakly referencing to avoid CL leaks in case of leaked spans
@@ -349,7 +347,6 @@ public class TraceContext extends TraceContextHolder {
         parentId.resetState();
         transactionId.resetState();
         outgoingTextHeader.setLength(0);
-        outgoingBinaryHeaderSet = false;
         flags = 0;
         discard = false;
         clock.resetState();
@@ -454,26 +451,28 @@ public class TraceContext extends TraceContextHolder {
     }
 
     /**
-     * Returns a binary representation of the {@code traceparent} header for downstream services.
-     * <p>
-     * NOTE: CALLER MAY NOT KEEP A REFERENCE TO THE RETURNED BYTE ARRAY, AS IT BELONGS TO THE TRACE CONTEXT INSTANCE
+     * Fills the given byte array with a binary representation of the {@code traceparent} header for downstream services.
+     *
+     * @param buffer buffer to fill
+     * @return true if buffer was filled, false otherwise
      */
-    public byte[] getOutgoingTraceParentBinaryHeader() {
-        if (!outgoingBinaryHeaderSet) {
-            outgoingBinaryHeader[0] = BINARY_FORMAT_CURRENT_VERSION;
-            outgoingBinaryHeader[BINARY_FORMAT_TRACE_ID_OFFSET] = BINARY_FORMAT_TRACE_ID_FIELD_ID;
-            traceId.toBytes(outgoingBinaryHeader, BINARY_FORMAT_TRACE_ID_OFFSET + 1);
-            outgoingBinaryHeader[BINARY_FORMAT_PARENT_ID_OFFSET] = BINARY_FORMAT_PARENT_ID_FIELD_ID;
-            // for unsampled traces, propagate the ID of the transaction in calls to downstream services
-            // such that the parentID of those transactions point to a transaction that exists
-            // remember that we do report unsampled transactions
-            Id parentId = isSampled() ? id : transactionId;
-            parentId.toBytes(outgoingBinaryHeader, BINARY_FORMAT_PARENT_ID_OFFSET + 1);
-            outgoingBinaryHeader[BINARY_FORMAT_FLAGS_OFFSET] = BINARY_FORMAT_FLAGS_FIELD_ID;
-            outgoingBinaryHeader[BINARY_FORMAT_FLAGS_OFFSET + 1] = flags;
-            outgoingBinaryHeaderSet = true;
+    public boolean fillOutgoingTraceParentBinaryHeader(byte[] buffer) {
+        if (buffer.length < BINARY_FORMAT_EXPECTED_LENGTH) {
+            logger.warn("Given byte array does not have the minimal required length - {}", BINARY_FORMAT_EXPECTED_LENGTH);
+            return false;
         }
-        return outgoingBinaryHeader;
+        buffer[0] = BINARY_FORMAT_CURRENT_VERSION;
+        buffer[BINARY_FORMAT_TRACE_ID_OFFSET] = BINARY_FORMAT_TRACE_ID_FIELD_ID;
+        traceId.toBytes(buffer, BINARY_FORMAT_TRACE_ID_OFFSET + 1);
+        buffer[BINARY_FORMAT_PARENT_ID_OFFSET] = BINARY_FORMAT_PARENT_ID_FIELD_ID;
+        // for unsampled traces, propagate the ID of the transaction in calls to downstream services
+        // such that the parentID of those transactions point to a transaction that exists
+        // remember that we do report unsampled transactions
+        Id parentId = isSampled() ? id : transactionId;
+        parentId.toBytes(buffer, BINARY_FORMAT_PARENT_ID_OFFSET + 1);
+        buffer[BINARY_FORMAT_FLAGS_OFFSET] = BINARY_FORMAT_FLAGS_FIELD_ID;
+        buffer[BINARY_FORMAT_FLAGS_OFFSET + 1] = flags;
+        return true;
     }
 
     @Override
@@ -505,7 +504,6 @@ public class TraceContext extends TraceContextHolder {
 
     private void onMutation() {
         outgoingTextHeader.setLength(0);
-        outgoingBinaryHeaderSet = false;
     }
 
     public boolean isRoot() {
