@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,6 +33,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -73,7 +74,7 @@ public class ConsumerRecordsIteratorInstrumentation extends KafkaConsumerRecords
             }
 
             //noinspection ConstantConditions,rawtypes
-            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord> kafkaInstrumentationHelper =
+            KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header> kafkaInstrumentationHelper =
                 kafkaInstrHeadersHelperManager.getForClassLoaderOfClass(KafkaProducer.class);
             if (iterator != null && kafkaInstrumentationHelper != null) {
                 iterator = kafkaInstrumentationHelper.wrapConsumerRecordIterator(iterator);
