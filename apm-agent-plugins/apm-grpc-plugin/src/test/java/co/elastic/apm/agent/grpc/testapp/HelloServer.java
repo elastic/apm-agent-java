@@ -24,7 +24,6 @@
  */
 package co.elastic.apm.agent.grpc.testapp;
 
-import co.elastic.apm.agent.grpc.GrpcUnaryServerInterceptor;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloGrpc;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloReply;
 import co.elastic.apm.agent.grpc.testapp.generated.HelloRequest;
