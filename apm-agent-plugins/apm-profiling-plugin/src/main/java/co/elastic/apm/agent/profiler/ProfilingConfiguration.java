@@ -84,7 +84,7 @@ public class ProfilingConfiguration extends ConfigurationOptionProvider {
         .dynamic(true)
         .description("The minimum duration of an inferred span.\n" +
             "Note that the min duration is also implicitly set by the sampling interval.\n" +
-            "However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.")
+            "However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.")
         .tags("added[1.13.0]")
         .addValidator(min(TimeDuration.of("0ms")))
         .buildWithDefault(TimeDuration.of("0ms"));

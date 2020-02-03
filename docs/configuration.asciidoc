@@ -1290,7 +1290,7 @@ The default unit for this option is `ms`.
 
 The minimum duration of an inferred span.
 Note that the min duration is also implicitly set by the sampling interval.
-However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
 
 Supports the duration suffixes `ms`, `s` and `m`.
 Example: `0ms`.
@@ -2485,7 +2485,7 @@ The default unit for this option is `ms`.
 
 # The minimum duration of an inferred span.
 # Note that the min duration is also implicitly set by the sampling interval.
-# However, decreasing the sampling interval also decreases the accuracy of the duration of inferred spans.
+# However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.
 #
 # This setting can be changed at runtime
 # Type: TimeDuration

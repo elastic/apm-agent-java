@@ -59,11 +59,10 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -80,7 +79,7 @@ import java.util.concurrent.locks.LockSupport;
  * The {@link #onActivation} and {@link #onDeactivation} methods are called by {@link ProfilingActivationListener}
  * which register an {@link ActivationEvent} in to a {@linkplain #eventBuffer ring buffer} whenever a {@link Span}
  * gets {@link Span#activate()}d or {@link Span#deactivate()}d while a {@linkplain #profilingSessionOngoing profiling session is ongoing}.
- * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventBuffer memory-mapped file}.
+ * A background thread consumes the {@link ActivationEvent}s and writes them to a {@linkplain #activationEventsMemoryMappedFile memory-mapped file}.
  * That is necessary because within a profiling session (which lasts 10s by default) there may be many more {@link ActivationEvent}s
  * than the ring buffer can hold {@link #RING_BUFFER_SIZE}.
  * The file can hold {@link #ACTIVATION_EVENTS_IN_FILE} events and each is {@link ActivationEvent#SERIALIZED_SIZE} in size.
@@ -150,13 +149,33 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private final NanoClock nanoClock;
     private final ObjectPool<CallTree.Root> rootPool;
     private final NativeThreadIdToJavaThreadMapper threadMapper = new NativeThreadIdToJavaThreadMapper();
-    private final MappedByteBuffer activationEventBuffer;
     private final EventPoller<ActivationEvent> poller;
-    private final File activationEventsFile;
     private final File jfrFile;
     private final WriteActivationEventToFileHandler writeActivationEventToFileHandler = new WriteActivationEventToFileHandler();
     private final JfrParser jfrParser = new JfrParser();
     private volatile int profilingSessions;
+
+    /**
+     * Events are written to a direct byte buffer first to minimize MappedByteBuffer#put calls
+     * Any put may potentially get stuck, causing long global time-to-safepoint pauses
+     */
+    private final ByteBuffer activationEventsBuffer;
+    /**
+     * Used to delete the file on {@link #stop()}
+     */
+    private final File activationEventsFile;
+    /**
+     * Used to close the file descriptor on {@link #stop()}
+     */
+    private final RandomAccessFile activationEventsRAF;
+    /**
+     * Used to efficiently write {@link #activationEventsBuffer} via {@link FileChannel#write(ByteBuffer)}
+     */
+    private final FileChannel activationEventsFileChannel;
+    /**
+     * Used to efficiently read the file
+     */
+    private final MappedByteBuffer activationEventsMemoryMappedFile;
 
     public SamplingProfiler(ElasticApmTracer tracer, NanoClock nanoClock) throws IOException {
         this(tracer,
@@ -184,21 +203,24 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         });
         jfrFile = File.createTempFile("apm-traces-", ".jfr");
         activationEventsFile = File.createTempFile("apm-activation-events-", ".bin");
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(activationEventsFile, "rw")) {
-            activationEventBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE);
-            preAllocate(activationEventBuffer, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
-        }
+        activationEventsBuffer = ByteBuffer.allocateDirect(ActivationEvent.SERIALIZED_SIZE * 128);
+        activationEventsRAF = new RandomAccessFile(activationEventsFile, "rw");
+        activationEventsFileChannel = activationEventsRAF.getChannel();
+        activationEventsMemoryMappedFile = activationEventsFileChannel.map(FileChannel.MapMode.READ_WRITE, 0, ACTIVATION_EVENTS_IN_FILE * ActivationEvent.SERIALIZED_SIZE);
+        preAllocate(activationEventsRAF, PRE_ALLOCATE_ACTIVATION_EVENTS_FILE_MB);
     }
 
     /**
      * Makes sure that the first blocks of the file are contiguous to provide fast sequential access
      */
-    private static void preAllocate(MappedByteBuffer activationEventBuffer, int mb) {
+    private static void preAllocate(RandomAccessFile randomAccessFile, int mb) throws IOException {
+        FileChannel channel = randomAccessFile.getChannel();
+        long initialPos = channel.position();
         byte[] oneKb = new byte[1024];
         for (int i = 0; i < mb * 1024; i++) {
-            activationEventBuffer.put(oneKb);
+            randomAccessFile.write(oneKb);
         }
-        ((Buffer) activationEventBuffer).clear();
+        channel.position(initialPos);
     }
 
     private RingBuffer<ActivationEvent> createRingBuffer() {
@@ -293,7 +315,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,alluser,file=" + jfrFile);
+            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,file=" + jfrFile);
             logger.debug(startMessage);
 
             consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
@@ -315,16 +337,17 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         long maxSleep = 10_000_000;
         long sleep = initialSleep;
         while (System.currentTimeMillis() < threshold) {
-            if (activationEventBuffer.hasRemaining()) {
+            if (activationEventsMemoryMappedFile.hasRemaining()) {
                 EventPoller.PollState poll = consumeActivationEventsFromRingBufferAndWriteToFile();
                 if (poll == EventPoller.PollState.PROCESSING) {
                     sleep = initialSleep;
+                    // don't sleep, after consuming the events there might be new ones in the ring buffer
                 } else {
                     if (sleep < maxSleep) {
                         sleep *= 2;
                     }
+                    LockSupport.parkNanos(sleep);
                 }
-                LockSupport.parkNanos(sleep);
             } else {
                 logger.warn("The activation events file is full. Try lowering the profiling_duration.");
                 // the file is full, sleep the rest of the profilingDuration
@@ -333,16 +356,13 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    private void resetActivationEventBuffer() {
-        ((Buffer) activationEventBuffer).clear();
-    }
-
     EventPoller.PollState consumeActivationEventsFromRingBufferAndWriteToFile() throws Exception {
         return poller.poll(writeActivationEventToFileHandler);
     }
 
     private void processTraces(File file) throws IOException {
-        if (activationEventBuffer.position() == 0) {
+        startProcessingActivationEventsFile();
+        if (activationEventsMemoryMappedFile.limit() == 0) {
             logger.debug("No activation events during this period. Skip processing stack traces.");
             return;
         }
@@ -351,8 +371,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         List<WildcardMatcher> includedClasses = config.getIncludedClasses();
         try {
             jfrParser.parse(file, excludedClasses, includedClasses);
-            startProcessingActivationEventsFile();
-            final SortedSet<StackTraceEvent> stackTraceEvents = getStackTraceEvents(jfrParser);
+            final List<StackTraceEvent> stackTraceEvents = getSortedStackTraceEvents(jfrParser);
             if (logger.isDebugEnabled()) {
                 logger.debug("Processing {} stack traces", stackTraceEvents.size());
             }
@@ -387,9 +406,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      *
      * Returns only events for threads where at least one activation happened
      */
-    private SortedSet<StackTraceEvent> getStackTraceEvents(JfrParser jfrParser) throws IOException {
+    private List<StackTraceEvent> getSortedStackTraceEvents(JfrParser jfrParser) throws IOException {
         final LongHashSet nativeThreadIds = threadMapper.getNativeThreadIds();
-        final SortedSet<StackTraceEvent> stackTraceEvents = new TreeSet<>();
+        final List<StackTraceEvent> stackTraceEvents = new ArrayList<>();
         jfrParser.consumeStackTraces(new JfrParser.StackTraceConsumer() {
             @Override
             public void onCallTree(int threadId, long stackTraceId, long nanoTime) {
@@ -398,6 +417,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                 }
             }
         });
+        Collections.sort(stackTraceEvents);
         return stackTraceEvents;
     }
 
@@ -406,7 +426,7 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     }
 
     public void processActivationEventsUpTo(long timestamp, ActivationEvent event) {
-        MappedByteBuffer buf = this.activationEventBuffer;
+        MappedByteBuffer buf = this.activationEventsMemoryMappedFile;
         while (buf.hasRemaining()) {
             long eventTimestamp = peekLong(buf);
             if (eventTimestamp <= timestamp) {
@@ -427,6 +447,26 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
+    private void resetActivationEventBuffer() throws IOException {
+        ((Buffer) activationEventsMemoryMappedFile).clear();
+        ((Buffer) activationEventsBuffer).clear();
+        activationEventsFileChannel.position(0L);
+    }
+
+    private void flushActivationEvents() throws IOException {
+        if (activationEventsBuffer.position() > 0) {
+            ((Buffer) activationEventsBuffer).flip();
+            activationEventsFileChannel.write(activationEventsBuffer);
+            activationEventsMemoryMappedFile.position((int) activationEventsFileChannel.position());
+            ((Buffer) activationEventsBuffer).clear();
+        }
+    }
+
+    void startProcessingActivationEventsFile() throws IOException {
+        flushActivationEvents();
+        ((Buffer) activationEventsMemoryMappedFile).flip();
+    }
+
     @Override
     public void start(ElasticApmTracer tracer) {
         scheduler.submit(this);
@@ -439,6 +479,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         if (!jfrFile.delete()) {
             jfrFile.deleteOnExit();
         }
+
+        // also closes the channel
+        activationEventsRAF.close();
         if (!activationEventsFile.delete()) {
             activationEventsFile.deleteOnExit();
         }
@@ -451,16 +494,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         }
     }
 
-    void startProcessingActivationEventsFile() {
-        ((Buffer) activationEventBuffer).flip();
-    }
-
     // for testing
     CallTree.Root getRoot() {
         return profiledThreads.get(threadMapper.getNativeThreadId());
     }
 
-    void clear() {
+    void clear() throws IOException {
         profiledThreads.clear();
         // consume all remaining events from the ring buffer
         try {
@@ -643,12 +682,15 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     // extracting to a class instead of instantiating an anonymous inner class makes a huge difference in allocations
     private class WriteActivationEventToFileHandler implements EventPoller.Handler<ActivationEvent> {
         @Override
-        public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) {
+        public boolean onEvent(ActivationEvent event, long sequence, boolean endOfBatch) throws IOException {
             if (endOfBatch) {
                 SamplingProfiler.this.sequence.set(sequence);
             }
-            if (activationEventBuffer.hasRemaining()) {
-                event.serialize(activationEventBuffer);
+            if (activationEventsMemoryMappedFile.hasRemaining()) {
+                event.serialize(activationEventsBuffer);
+                if (!activationEventsBuffer.hasRemaining()) {
+                    flushActivationEvents();
+                }
                 return true;
             }
             return false;
