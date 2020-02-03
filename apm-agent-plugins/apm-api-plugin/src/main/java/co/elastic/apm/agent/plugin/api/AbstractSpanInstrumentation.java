@@ -179,6 +179,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                             @Advice.Argument(0) Throwable t) {
+            context.captureException(t);
         }
     }
 

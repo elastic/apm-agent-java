@@ -138,7 +138,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         try {
             throw new RuntimeException("test exception");
         } catch (Exception e) {
-            errorId = transaction.captureException(e);
+            errorId = transaction.captureExceptionAndReturnErrorId(e);
         }
         endTransaction();
         assertThat(errorId).isNotNull();
@@ -152,7 +152,7 @@ class TransactionInstrumentationTest extends AbstractInstrumentationTest {
         try {
             throw new RuntimeException("test exception");
         } catch (Exception e) {
-            errorId = span.captureException(e);
+            errorId = span.captureExceptionAndReturnErrorId(e);
         } finally {
             span.end();
         }

@@ -386,6 +386,11 @@ transaction.setUser(user.getId(), user.getEmail(), user.getUsername());
 Captures an exception and reports it to the APM server.
 
 [float]
+[[api-transaction-capture-exception-return-error-id]]
+==== `String captureExceptionAndReturnErrorId(Exception e)`
+Captures an exception and reports it to the APM server. Returns the id of reported error.
+
+[float]
 [[api-transaction-get-id]]
 ==== `String getId()`
 Returns the id of this transaction (never `null`)
@@ -668,6 +673,11 @@ span.addLabel("foo", "bar");
 [[api-span-capture-exception]]
 ==== `void captureException(Exception e)`
 Captures an exception and reports it to the APM server.
+
+[float]
+[[api-span-capture-exception-return-error-id]]
+==== `String captureExceptionAndReturnErrorId(Exception e)`
+Captures an exception and reports it to the APM server. Returns the id of reported error.
 
 [float]
 [[api-span-get-id]]
