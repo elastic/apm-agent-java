@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -317,14 +317,9 @@ public class ElasticApmTracer {
         captureException(System.currentTimeMillis() * 1000, e, getActive(), initiatingClassLoader);
     }
 
-    public void captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
-        captureException(epochMicros, e, parent, null);
-    }
-
     @Nullable
-    public String captureExceptionAndGetErrorId(long epochMicros, @Nullable Throwable e, @Nullable TraceContextHolder<?> parent) {
-        ErrorCapture errorCapture = captureException(epochMicros, e, parent, null);
-        return (errorCapture != null ? errorCapture.getTraceContext().getId().toString() : null);
+    public ErrorCapture captureException(long epochMicros, @Nullable Throwable e, TraceContextHolder<?> parent) {
+        return captureException(epochMicros, e, parent, null);
     }
 
     @Nullable

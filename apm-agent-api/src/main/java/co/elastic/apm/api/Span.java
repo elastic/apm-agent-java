@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -58,7 +58,7 @@ public interface Span {
     /**
      * NOTE: THIS METHOD IS DEPRECATED AND WILL BE REMOVED IN VERSION 2.0.
      * Instead, setting the span type can be done when starting a new span through {@link #startSpan(String, String, String)}.
-     * 
+     *
      * @param type the type of the span
      */
     @Nonnull
@@ -79,9 +79,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *     <li>Indexed: Yes</li>
-     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *      <li>Indexed: Yes</li>
+     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
@@ -108,9 +108,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *     <li>Indexed: Yes</li>
-     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *      <li>Indexed: Yes</li>
+     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
@@ -141,9 +141,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *     <li>Indexed: Yes</li>
-     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *      <li>Indexed: Yes</li>
+     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
@@ -281,7 +281,15 @@ public interface Span {
      *
      * @param throwable the exception to report
      */
-    String captureException(Throwable throwable);
+    void captureException(Throwable throwable);
+
+    /**
+     * Captures an exception and reports it to the APM server.
+     *
+     * @param throwable the exception to report
+     * @return the id of reported error
+     */
+    String captureExceptionAndReturnErrorId(Throwable throwable);
 
     /**
      * Returns the id of this span (never {@code null})

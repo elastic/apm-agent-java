@@ -178,6 +178,18 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
+                                            @Advice.Argument(0) Throwable t) {
+        }
+    }
+
+    public static class CaptureExceptionAndReturnErrorIdInstrumentation extends AbstractSpanInstrumentation {
+        public CaptureExceptionAndReturnErrorIdInstrumentation() {
+            super(named("captureExceptionAndReturnErrorId").and(takesArguments(Throwable.class)));
+        }
+
+        @VisibleForAdvice
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void captureException(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
                                             @Advice.Argument(0) Throwable t,
                                             @Advice.Return(readOnly = false) String errorId) {
             errorId = context.captureExceptionAndGetErrorId(t);

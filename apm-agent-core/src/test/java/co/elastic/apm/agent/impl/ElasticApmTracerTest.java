@@ -494,7 +494,7 @@ class ElasticApmTracerTest {
     @Test
     void testCaptureExceptionAndGetErrorId() {
         Transaction transaction = tracerImpl.startTransaction(TraceContext.asRoot(), null, getClass().getClassLoader());
-        String errorId = tracerImpl.captureExceptionAndGetErrorId(System.currentTimeMillis() * 1000, new Exception("test"), transaction);
+        String errorId = transaction.captureExceptionAndGetErrorId(new Exception("test"));
         transaction.end();
 
         assertThat(reporter.getErrors()).hasSize(1);
