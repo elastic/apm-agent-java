@@ -79,9 +79,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *      <li>Indexed: Yes</li>
-     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *     <li>Indexed: Yes</li>
+     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
@@ -108,9 +108,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *      <li>Indexed: Yes</li>
-     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *     <li>Indexed: Yes</li>
+     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
@@ -141,9 +141,9 @@ public interface Span {
      * Multiple labels can be defined with different key-value pairs.
      * </p>
      * <ul>
-     *      <li>Indexed: Yes</li>
-     *      <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
-     *      <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
+     *     <li>Indexed: Yes</li>
+     *     <li>Elasticsearch type: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">object</a></li>
+     *     <li>Elasticsearch field: {@code labels} (previously {@code context.tags} in stack version {@code < 7.0})</li>
      * </ul>
      * <p>
      * Label values can be a string, boolean, or number.
