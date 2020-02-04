@@ -513,13 +513,13 @@ public class ElasticApmTracer {
         }
     }
 
-    private void assertIsActive(Object span, @Nullable Object currentlyActive) {
+    private void assertIsActive(TraceContextHolder<?> span, @Nullable TraceContextHolder<?> currentlyActive) {
         if (span != currentlyActive) {
             logger.warn("Deactivating a span ({}) which is not the currently active span ({}). " +
                 "This can happen when not properly deactivating a previous span.", span, currentlyActive);
 
             if (assertionsEnabled) {
-                throw new AssertionError();
+                throw new AssertionError("Deactivating a span that is not the active one");
             }
         }
     }
