@@ -1,3 +1,10 @@
-co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallListenerInstrumentation
-co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallHandlerInstrumentation
-co.elastic.apm.agent.grpc.GrpcServerInstrumentation$ServerCallInstrumentation
+# gRPC server part
+co.elastic.apm.agent.grpc.ServerCallListenerInstrumentation
+co.elastic.apm.agent.grpc.ServerCallHandlerInstrumentation
+co.elastic.apm.agent.grpc.ServerCallInstrumentation
+
+# gRPC client part
+co.elastic.apm.agent.grpc.ChannelInstrumentation
+co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$Constructor
+co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$Start
+co.elastic.apm.agent.grpc.ClientCallImplInstrumentation$End
