@@ -72,12 +72,7 @@ public class Destination implements Recyclable {
             int separator = addressPort.lastIndexOf(':');
             if (separator > 0) {
 
-                int port = -1;
-                try {
-                    port = Integer.parseInt(addressPort, separator + 1, addressPort.length(), 10);
-                } catch (NumberFormatException e) {
-                    // silently (and cowardly) ignored
-                }
+                int port = parsePort(addressPort, separator + 1, addressPort.length());
 
                 if (port > 0) {
                     return withPort(port)
@@ -86,6 +81,22 @@ public class Destination implements Recyclable {
             }
         }
         return this;
+    }
+
+    // a bit of manual parsing required because Integer.parseInt(...) from CharSequence is only available on Java9
+    private static int parsePort(CharSequence input, int start, int end) {
+        int port = 0;
+        for (int i = start; i < end; i++) {
+            char c = input.charAt(i);
+            if (c < '0' || c > '9') {
+                return -1;
+            }
+            port += (c - '0');
+            if (i < (end - 1)) {
+                port *= 10;
+            }
+        }
+        return port;
     }
 
     /**
