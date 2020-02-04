@@ -44,17 +44,8 @@ public class Destination implements Recyclable {
     private int port;
 
     public Destination withAddress(@Nullable CharSequence address) {
-        if (address != null && address.length() > 0) {
-            // remove square brackets for IPv6 addresses
-            int startIndex = 0;
-            if (address.charAt(0) == '[') {
-                startIndex = 1;
-            }
-            int endIndex = address.length();
-            if (address.charAt(endIndex - 1) == ']') {
-                endIndex--;
-            }
-            this.address.append(address, startIndex, endIndex);
+        if( address != null) {
+            return withAddress(address, 0, address.length());
         }
         return this;
     }
@@ -70,6 +61,59 @@ public class Destination implements Recyclable {
 
     public int getPort() {
         return port;
+    }
+
+    /**
+     * @param addressPort host address and port in the following format 'host:3128'
+     * @return destination with updated address and port
+     */
+    public Destination withAddressPort(@Nullable String addressPort) {
+        if (addressPort != null) {
+            int separator = addressPort.lastIndexOf(':');
+            if (separator > 0) {
+
+                int port = -1;
+                try {
+                    port = Integer.parseInt(addressPort, separator + 1, addressPort.length(), 10);
+                } catch (NumberFormatException e) {
+                    // silently (and cowardly) ignored
+                }
+
+                if (port > 0) {
+                    return withPort(port)
+                        .withAddress(addressPort, 0, separator);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * @param address address buffer
+     * @param start   address start (inclusive)
+     * @param end     address end (exclusive)
+     * @return destination with updated address
+     */
+    private Destination withAddress(CharSequence address, int start, int end) {
+        if (address.length() > 0 && start < end) {
+            int startIndex = start;
+            int endIndex = end - 1;
+            if (address.charAt(startIndex) == '[') {
+                startIndex++;
+            }
+            if (address.charAt(endIndex) == ']') {
+                endIndex--;
+            }
+
+            if (startIndex < endIndex) {
+                if (this.address.length() > 0) {
+                    // buffer reset required if it has already been used
+                    this.address.delete(0, this.address.length());
+                }
+                this.address.append(address, startIndex, endIndex + 1);
+            }
+        }
+        return this;
     }
 
     /**
