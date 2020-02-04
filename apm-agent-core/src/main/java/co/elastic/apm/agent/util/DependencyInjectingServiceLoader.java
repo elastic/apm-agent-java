@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -108,16 +109,36 @@ public class DependencyInjectingServiceLoader<T> {
     private T instantiate(String implementation) {
         try {
             final Class<?> implementationClass = Class.forName(implementation, true, classLoader);
+            checkClassModifiers(implementationClass);
             Constructor<?> constructor = getMatchingConstructor(implementationClass);
             if (constructor != null) {
+                checkConstructorModifiers(constructor);
                 return clazz.cast(constructor.newInstance(constructorArguments));
             } else {
-                return clazz.cast(implementationClass.getConstructor().newInstance());
+                constructor = implementationClass.getConstructor();
+                checkConstructorModifiers(constructor);
+                return clazz.cast(constructor.newInstance());
             }
         } catch (InstantiationException e) {
-            throw new ServiceConfigurationError(String.format("unable to instantiate '%s' class, please check descriptor in META-INF and class declaration ", implementation), e);
+            String msg = String.format("unable to instantiate '%s', please check descriptor in META-INF", implementation);
+            throw new ServiceConfigurationError(msg, e);
         } catch (Exception e) {
             throw new ServiceConfigurationError(e.getMessage(), e);
+        }
+    }
+
+    private static void checkConstructorModifiers(Constructor<?> constructor) {
+        if (!Modifier.isPublic(constructor.getModifiers())) {
+            throw new ServiceConfigurationError("constructor is not public : " + constructor);
+        }
+    }
+
+    private static void checkClassModifiers(Class<?> clazz) {
+        boolean isAbstract = Modifier.isAbstract(clazz.getModifiers());
+        boolean isPublic = Modifier.isPublic(clazz.getModifiers());
+
+        if (isAbstract || !isPublic) {
+            throw new ServiceConfigurationError(String.format("unable to instantiate '%s' because it's either abstract or not public", clazz));
         }
     }
 
