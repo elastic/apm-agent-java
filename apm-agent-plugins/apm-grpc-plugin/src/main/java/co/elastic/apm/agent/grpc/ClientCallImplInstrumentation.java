@@ -42,6 +42,18 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+/**
+ * Instruments gRPC client calls by relying on {@link ClientCall} internal implementation {@code io.grpc.internal.ClientCallImpl},
+ * which provides the full client call lifecycle in a single object instance.
+ * <br>
+ * <p>
+ * full call lifecycle is split in few sub-implementations:
+ * <ul>
+ *     <li>{@link Constructor} for constructor to get method call name</li>
+ *     <li>{@link Start} for client span start</li>
+ *     <li>{@link End} for client span end</li>
+ * </ul>
+ */
 public abstract class ClientCallImplInstrumentation extends BaseInstrumentation {
 
     @Override
@@ -76,8 +88,9 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                 return;
             }
 
-            span = GrpcHelper.createExitSpanAndActivate(tracer.currentTransaction(), method);
+            String methodName = method == null ? null : method.getFullMethodName();
 
+            span = GrpcHelper.createExitSpanAndActivate(tracer.currentTransaction(), methodName);
         }
 
         @Advice.OnMethodExit(suppress = Throwable.class)
@@ -85,7 +98,6 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
                                    @Advice.Local("span") @Nullable Span span) {
 
             GrpcHelper.registerSpanAndDeactivate(span, clientCall);
-
         }
     }
 
@@ -110,6 +122,7 @@ public abstract class ClientCallImplInstrumentation extends BaseInstrumentation 
      * Instruments {@code ClientCallImpl#halfClose} to terminate client call span
      */
     public static class End extends ClientCallImplInstrumentation {
+
         @Override
         public ElementMatcher<? super MethodDescription> getMethodMatcher() {
             return named("halfClose");

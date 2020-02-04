@@ -74,7 +74,6 @@ public class ChannelInstrumentation extends BaseInstrumentation {
         }
 
         GrpcHelper.enrichSpanContext(clientCall, channel.authority());
-
     }
 
 }

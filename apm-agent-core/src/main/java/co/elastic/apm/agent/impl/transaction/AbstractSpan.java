@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -86,6 +86,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
         /**
          * Stops the timer and increments the duration if no other direct children are still running
+         *
          * @param endTimestamp
          */
         void onChildEnd(long endTimestamp) {
@@ -175,6 +176,7 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
 
     /**
      * Only intended for testing purposes as this allocates a {@link String}
+     *
      * @return
      */
     public String getNameAsString() {
@@ -355,8 +357,20 @@ public abstract class AbstractSpan<T extends AbstractSpan> extends TraceContextH
         return tracer.wrapCallable(callable, this);
     }
 
+    /**
+     * Set start timestamp
+     *
+     * @param epochMicros start timestamp in micro-seconds since epoch
+     */
     public void setStartTimestamp(long epochMicros) {
         timestamp = epochMicros;
+    }
+
+    /**
+     * Set start timestamp from context current clock
+     */
+    public void setStartTimestampNow() {
+        timestamp = getTraceContext().getClock().getEpochMicros();
     }
 
     void onChildStart(long epochMicros) {

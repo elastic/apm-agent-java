@@ -91,7 +91,7 @@ public class ServerCallListenerInstrumentation extends BaseInstrumentation {
         // when there is a runtime exception thrown in one of the listener methods the calling code will catch it
         // and set 'unknown' status, we just replicate this behavior as we don't instrument the part that does this
         if (thrown != null) {
-            GrpcHelper.endTransaction(Status.UNKNOWN, thrown, tracer.currentTransaction());
+            GrpcHelper.endTransaction(Status.UNKNOWN.getCode().name(), thrown, tracer.currentTransaction());
         }
     }
 

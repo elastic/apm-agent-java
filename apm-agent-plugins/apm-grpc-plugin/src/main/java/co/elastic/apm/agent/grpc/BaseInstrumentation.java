@@ -25,6 +25,8 @@
 package co.elastic.apm.agent.grpc;
 
 import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
+import io.grpc.Metadata;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -35,6 +37,11 @@ import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 
 public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
 
+    /**
+     * Header used to carry transaction parent/child to/from other services
+     */
+    protected static final Metadata.Key<String> HEADER_KEY = Metadata.Key.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, Metadata.ASCII_STRING_MARSHALLER);
+
     @Override
     public ElementMatcher<? super NamedElement> getTypeMatcherPreFilter() {
         return nameStartsWith("io.grpc");
@@ -44,6 +51,5 @@ public abstract class BaseInstrumentation extends ElasticApmInstrumentation {
     public final Collection<String> getInstrumentationGroupNames() {
         return Collections.singleton("grpc");
     }
-
 
 }

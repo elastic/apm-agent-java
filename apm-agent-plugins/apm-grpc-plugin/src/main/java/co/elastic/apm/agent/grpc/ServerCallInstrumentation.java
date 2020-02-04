@@ -69,6 +69,6 @@ public class ServerCallInstrumentation extends BaseInstrumentation {
         if (null == tracer) {
             return;
         }
-        GrpcHelper.endTransaction(status, thrown, tracer.currentTransaction());
+        GrpcHelper.endTransaction(status.getCode().name(), thrown, tracer.currentTransaction());
     }
 }

@@ -70,7 +70,7 @@ public class ServerCallHandlerInstrumentation extends BaseInstrumentation {
             return;
         }
 
-        GrpcHelper.startTransaction(tracer, clazz.getClassLoader(), serverCall, headers);
+        GrpcHelper.startTransaction(tracer, clazz.getClassLoader(), serverCall.getMethodDescriptor().getFullMethodName(), headers.get(HEADER_KEY));
     }
 
 }

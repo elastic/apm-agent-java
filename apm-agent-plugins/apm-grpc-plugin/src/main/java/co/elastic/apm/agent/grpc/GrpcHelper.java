@@ -32,40 +32,39 @@ import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 import io.grpc.ClientCall;
-import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
-import io.grpc.ServerCall;
-import io.grpc.Status;
 
 import javax.annotation.Nullable;
 
+/**
+ * Helper class for gRPC client and server calls.
+ *
+ * <br>
+ * Since helper class is loaded in the bootstrap classloader, we have to make sure that this class does not import any gRPC class.
+ * {@see co.elastic.apm.agent.bci.HelperClassManager} for more details about this
+ */
 public class GrpcHelper {
 
     /**
-     * Header used to carry transaction parent/child to/from other services
+     * Map of all in-flight spans, is only used by client part.
+     * Key is {@link ClientCall}, but refered as {@link Object} to avoid loading any gRPC reference in the bootstrap classloader
      */
-    private static final Metadata.Key<String> HEADER_KEY = Metadata.Key.of(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, Metadata.ASCII_STRING_MARSHALLER);
-
-    /**
-     * Map of all in-flight spans, is only used by client part
-     */
-    private static final WeakConcurrentMap<ClientCall<?, ?>, Span> inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<ClientCall<?, ?>, Span>();
+    private static final WeakConcurrentMap<Object, Span> inFlightSpans = new WeakConcurrentMap.WithInlinedExpunction<Object, Span>();
 
     private static final String GRPC = "grpc";
 
     // transaction management (server part)
 
     @VisibleForAdvice
-    public static void startTransaction(ElasticApmTracer tracer, ClassLoader cl, ServerCall<?, ?> serverCall, Metadata headers) {
-        tracer.startTransaction(TraceContext.fromTraceparentHeader(), headers.get(HEADER_KEY), cl)
-            .withName(serverCall.getMethodDescriptor().getFullMethodName())
+    public static void startTransaction(ElasticApmTracer tracer, ClassLoader cl, String methodName, String header) {
+        tracer.startTransaction(TraceContext.fromTraceparentHeader(), header, cl)
+            .withName(methodName)
             .withType("request")
             .activate();
     }
 
 
     @VisibleForAdvice
-    public static void endTransaction(Status status, @Nullable Throwable thrown, @Nullable Transaction transaction) {
+    public static void endTransaction(String status, @Nullable Throwable thrown, @Nullable Transaction transaction) {
         if (transaction == null || transaction.getResult() != null) {
             return;
         }
@@ -73,7 +72,7 @@ public class GrpcHelper {
         // transaction might be terminated early in case of thrown exception
         // from method signature it's a runtime exception, thus very likely an issue in server implementation
         transaction
-            .withResult(status.getCode().name())
+            .withResult(status)
             .captureException(thrown)
             .deactivate()
             .end();
@@ -83,7 +82,7 @@ public class GrpcHelper {
 
     @Nullable
     @VisibleForAdvice
-    public static Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable MethodDescriptor<?, ?> method) {
+    public static Span createExitSpanAndActivate(@Nullable Transaction transaction, @Nullable String methodName) {
         Span span;
         if (null == transaction) {
             return null;
@@ -95,14 +94,14 @@ public class GrpcHelper {
             return null;
         }
 
-        return span.withName(method == null ? null : method.getFullMethodName())
+        return span.withName(methodName)
             .withType("external")
             .withSubtype(GRPC)
             .activate();
     }
 
     @VisibleForAdvice
-    public static void registerSpanAndDeactivate(@Nullable Span span, ClientCall<?, ?> clientCall) {
+    public static void registerSpanAndDeactivate(@Nullable Span span, Object clientCall) {
         if (span != null) {
             inFlightSpans.put(clientCall, span);
             span.deactivate();
@@ -110,16 +109,17 @@ public class GrpcHelper {
     }
 
     @VisibleForAdvice
-    public static void startSpan(ClientCall<?, ?> clientCall) {
+    public static void startSpan(Object clientCall) {
         Span span = inFlightSpans.get(clientCall);
         if (span == null) {
             return;
         }
+        span.setStartTimestampNow();
         span.activate();
     }
 
     @VisibleForAdvice
-    public static void endSpan(ClientCall<?, ?> clientCall) {
+    public static void endSpan(Object clientCall) {
         Span span = inFlightSpans.get(clientCall);
         if (span == null) {
             return;
@@ -130,7 +130,7 @@ public class GrpcHelper {
     }
 
     @VisibleForAdvice
-    public static void enrichSpanContext(ClientCall<?, ?> clientCall, @Nullable String authority) {
+    public static void enrichSpanContext(Object clientCall, @Nullable String authority) {
         if (authority == null) {
             return;
         }
