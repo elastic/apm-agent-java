@@ -138,14 +138,14 @@ public class MockReporter implements Reporter {
             // see if this span's action is not supported for its subtype
             Collection<String> unsupportedActions = SPAN_ACTIONS_WITHOUT_ADDRESS.getOrDefault(span.getSubtype(), Collections.emptySet());
             if (!unsupportedActions.contains(span.getAction())) {
-                assertThat(destination.getAddress()).isNotEmpty();
-                assertThat(destination.getPort()).isGreaterThan(0);
+                assertThat(destination.getAddress()).describedAs("destination address is required").isNotEmpty();
+                assertThat(destination.getPort()).describedAs("destination port is required").isGreaterThan(0);
             }
         }
         Destination.Service service = destination.getService();
-        assertThat(service.getName()).isNotEmpty();
-        assertThat(service.getResource()).isNotEmpty();
-        assertThat(service.getType()).isNotNull();
+        assertThat(service.getName()).describedAs("service name is required").isNotEmpty();
+        assertThat(service.getResource()).describedAs("service resourse is required").isNotEmpty();
+        assertThat(service.getType()).describedAs("service type is required").isNotNull();
     }
 
     public void verifyTransactionSchema(JsonNode jsonNode) {
