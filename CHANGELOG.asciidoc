@@ -35,6 +35,8 @@ endif::[]
 * Add Kafka support, currently marked as `incubating` (off by default), until binary traceparent header is implemented - {pull}981[#981]
 * Add support for binary `traceparent` header format (see the https://github.com/elastic/apm/blob/master/docs/agent-development.md#Binary-Fields[spec]
 for more details) - {pull}1009[#1009]
+* Add support for log correlation for log4j and log4j2, even when not used in combination with slf4j.
+  See <<supported-logging-frameworks>> for details.
 
 [float]
 ===== Bug Fixes
