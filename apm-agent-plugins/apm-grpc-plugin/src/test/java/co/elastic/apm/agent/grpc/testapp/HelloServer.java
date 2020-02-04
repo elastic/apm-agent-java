@@ -72,7 +72,7 @@ public class HelloServer {
 
         private final HelloClient client;
 
-        HelloGrpcImpl(HelloClient client){
+        HelloGrpcImpl(HelloClient client) {
             this.client = client;
         }
 
@@ -84,7 +84,7 @@ public class HelloServer {
             String message;
 
             if (depth > 0) {
-                int nextDepth = depth -1;
+                int nextDepth = depth - 1;
                 String nestedResult = client.sayHello(userName, nextDepth).orElse(String.format("error(%d)", nextDepth));
                 message = String.format("nested(%d)->%s", depth, nestedResult);
             } else {
