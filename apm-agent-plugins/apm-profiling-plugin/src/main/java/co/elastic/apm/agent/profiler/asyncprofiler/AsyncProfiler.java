@@ -203,6 +203,54 @@ public abstract class AsyncProfiler {
         return getNativeThreadId0();
     }
 
+    /**
+     * Adds the given thread to the set of profiled threads
+     *
+     * @param thread A thread to add; null means current thread
+     * @throws IllegalStateException If thread has not yet started or has already finished
+     */
+    public void enableProfilingThread(Thread thread) throws IllegalStateException {
+        filterThread(thread, true);
+    }
+
+    /**
+     * Removes the given thread to the set of profiled threads
+     *
+     * @param thread A thread to remove; null means current thread
+     * @throws IllegalStateException If thread has not yet started or has already finished
+     */
+    public void disableProfilingThread(Thread thread) throws IllegalStateException {
+        filterThread(thread, true);
+    }
+
+    /**
+     * Adds the current thread to the set of profiled threads
+     */
+    public void enableProfilingCurrentThread() {
+        filterThread0(null, true);
+    }
+
+    /**
+     * Removes the current thread to the set of profiled threads
+     */
+    public void disableProfilingCurrentThread() throws IllegalStateException {
+        filterThread0(null, true);
+    }
+
+    private void filterThread(Thread thread, boolean enable) throws IllegalStateException {
+        if (thread == null) {
+            filterThread0(null, enable);
+        } else {
+            synchronized (thread) {
+                Thread.State state = thread.getState();
+                if (state == Thread.State.NEW || state == Thread.State.TERMINATED) {
+                    throw new IllegalStateException("Thread must be running");
+                }
+                filterThread0(thread, enable);
+            }
+        }
+    }
+
     public abstract void start0(String event, long interval, boolean reset) throws IllegalStateException;
     public abstract void stop0() throws IllegalStateException;
     public abstract String execute0(String command) throws IllegalArgumentException, java.io.IOException;
@@ -211,6 +259,7 @@ public abstract class AsyncProfiler {
     public abstract String dumpFlat0(int maxMethods);
     public abstract String version0();
     public abstract long getNativeThreadId0();
+    public abstract void filterThread0(Thread thread, boolean enable);
 
     /**
      * Inspired by https://gist.github.com/raphw/be0994259e75652f057c9e1d3ee5f567
@@ -255,6 +304,7 @@ public abstract class AsyncProfiler {
         public native String dumpFlat0(int maxMethods);
         public native String version0();
         public native long getNativeThreadId0();
+        public native void filterThread0(Thread thread, boolean enable);
     }
 
     /**

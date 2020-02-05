@@ -25,15 +25,20 @@
 package co.elastic.apm.agent.profiler;
 
 import co.elastic.apm.agent.profiler.asyncprofiler.AsyncProfiler;
+import co.elastic.apm.agent.profiler.collections.Long2ObjectHashMap;
 import co.elastic.apm.agent.profiler.collections.LongHashSet;
 import com.blogspot.mydailyjava.weaklockfree.DetachedThreadLocal;
 import com.blogspot.mydailyjava.weaklockfree.WeakConcurrentMap;
 
+import javax.annotation.Nullable;
+import java.lang.ref.WeakReference;
 import java.util.Map;
 
 public class NativeThreadIdToJavaThreadMapper {
 
     private final DetachedThreadLocal<Long> threadToNativeThread = new DetachedThreadLocal<>(DetachedThreadLocal.Cleaner.INLINE);
+    private final Long2ObjectHashMap<WeakReference<Thread>> threadIdToThread = new Long2ObjectHashMap<WeakReference<Thread>>();
+    private final Object lock = new Object();
 
     /**
      * Returns the native thread id of the current thread
@@ -43,8 +48,40 @@ public class NativeThreadIdToJavaThreadMapper {
         if (nativeThreadId == null) {
             nativeThreadId = AsyncProfiler.getInstance().getNativeThreadId();
             threadToNativeThread.set(nativeThreadId);
+            synchronized (lock) {
+                threadIdToThread.put(nativeThreadId, new WeakReference<Thread>(Thread.currentThread()));
+            }
         }
         return nativeThreadId;
+    }
+
+    @Nullable
+    public Thread get(long nativeThreadId) {
+        // syncronization should not be a bottleneck here
+        // only when seeing a thread for the first time in getNativeThreadId, there is a small chance that application threads have to wait
+        synchronized (lock) {
+            WeakReference<Thread> threadRef = threadIdToThread.get(nativeThreadId);
+            if (threadRef != null) {
+                return threadRef.get();
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Removes the mapping from native thread id to {@link Thread} for threads that have already been garbage collected.
+     * <p>
+     * NOTE: Don't call this method from an application thread.
+     * </p>
+     */
+    public void expungeStaleEntries() {
+        synchronized (lock) {
+            for (Long2ObjectHashMap<WeakReference<Thread>>.EntryIterator iterator = threadIdToThread.entrySet().iterator(); iterator.hasNext(); ) {
+                if (iterator.next().getValue().get() == null) {
+                    iterator.remove();
+                }
+            }
+        }
     }
 
     /**

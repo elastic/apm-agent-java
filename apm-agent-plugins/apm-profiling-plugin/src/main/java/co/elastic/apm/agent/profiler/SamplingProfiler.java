@@ -248,6 +248,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     public boolean onActivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
+            if (previouslyActive == null) {
+                AsyncProfiler.getInstance().enableProfilingCurrentThread();
+            }
             boolean success = eventBuffer.tryPublishEvent(ACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
             if (!success && logger.isDebugEnabled()) {
                 logger.debug("Could not add activation event to ring buffer as no slots are available");
@@ -270,6 +273,9 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
      */
     public boolean onDeactivation(TraceContextHolder<?> activeSpan, @Nullable TraceContextHolder<?> previouslyActive) {
         if (profilingSessionOngoing) {
+            if (previouslyActive == null) {
+                AsyncProfiler.getInstance().disableProfilingCurrentThread();
+            }
             boolean success = eventBuffer.tryPublishEvent(DEACTIVATION_EVENT_TRANSLATOR, activeSpan, previouslyActive);
             if (!success && logger.isDebugEnabled()) {
                 logger.debug("Could not add deactivation event to ring buffer as no slots are available");
@@ -315,7 +321,12 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
     private void profile(TimeDuration sampleRate, TimeDuration profilingDuration) throws Exception {
         AsyncProfiler asyncProfiler = AsyncProfiler.getInstance();
         try {
-            String startMessage = asyncProfiler.execute("start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,file=" + jfrFile);
+            String startCommand = "start,jfr,event=wall,interval=" + sampleRate.getMillis() + "ms,filter,file=" + jfrFile;
+            threadMapper.expungeStaleEntries();
+            if (!profiledThreads.isEmpty()) {
+                restoreFilterState(asyncProfiler);
+            }
+            String startMessage = asyncProfiler.execute(startCommand);
             logger.debug(startMessage);
 
             consumeActivationEventsFromRingBufferAndWriteToFile(profilingDuration);
@@ -327,6 +338,19 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
         } catch (InterruptedException e) {
             asyncProfiler.stop();
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * When doing continuous profiling (interval=duration),
+     * we have to tell async-profiler which threads it should profile after re-starting it.
+     */
+    private void restoreFilterState(AsyncProfiler asyncProfiler) {
+        for (Long2ObjectHashMap<CallTree.Root>.KeyIterator iterator = profiledThreads.keySet().iterator(); iterator.hasNext(); ) {
+            Thread thread = threadMapper.get(iterator.nextLong());
+            if (thread != null && thread.getState() != Thread.State.TERMINATED) {
+                asyncProfiler.enableProfilingThread(thread);
+            }
         }
     }
 
