@@ -18,7 +18,7 @@ Talk about what you would like to do.
 It may be that somebody is already working on it,
 or that there are particular issues that you should know about before implementing the change.
 
-Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through. 
+Once you are all set to go, [this "cookbook recipe" blog post](https://www.elastic.co/blog/a-cookbook-for-contributing-a-plugin-to-the-elastic-apm-java-agent) can guide you through.
 
 ### Testing
 
@@ -53,13 +53,13 @@ they will be executed by a CI server.
    there are a few things which need to be configured.
    Open the preferences,
    search for nullable and enable the inspections `Constant conditions & exceptions` and `@NotNull/@Nullable problems`
-   
+
    <img width="684" alt="inspections" src="https://user-images.githubusercontent.com/2163464/43443888-87e3ffd2-94a2-11e8-8cc6-263f408479e3.png">
 1. In the same window,
    select `Constant conditions & exceptions`
    click on `Configure annotations`,
    and select the `javax.annotation` annotations.
-    
+
    <img width="382" alt="configure annotations" src="https://user-images.githubusercontent.com/2163464/43444414-f1e5ce5a-94a3-11e8-8fa4-9f048c50ccc0.png">
 
 ##### Useful Live Templates
@@ -173,7 +173,7 @@ we should think about whether they bring us closer to or further away from those
     document why you did something that way,
     rather than how you did it.
     The latter should be expressed by readable code.
-    Documenting the considered alternatives can also help others a lot to understand the problem space. 
+    Documenting the considered alternatives can also help others a lot to understand the problem space.
 * Diagnosability
   * Most issues should be resolvable when the user provides their debug logs.
     This decreases the back-and-forth to gather additional information.
@@ -251,7 +251,7 @@ and follow [those instructions](https://github.com/elastic/docs#for-a-local-repo
 If you have access to make releases, the process is as follows:
 
 1. Check if sonatype is up: https://status.maven.org
-1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`. 
+1. Review project version. The release version will be `${project.version}` without the `-SNAPSHOT`.
    1. In case you want to update the version, execute `mvn release:update-versions`
 1. Execute the release Jenkins job on the internal ci server. This job is same as the snapshot-build job, but it also:
    1. Removes `-SNAPSHOT` from all `${project.version}` occurrences and makes a commit before build
@@ -259,7 +259,7 @@ If you have access to make releases, the process is as follows:
    1. Advances the version for next development iteration and makes a commit
    1. Uploads artifacts to maven central
 1. Login to https://oss.sonatype.org, go to Staging Repositories, close and release the staged artifacts.
-1. Fetch and checkout the latest tag e.g. `git fetch origin` 
+1. Fetch and checkout the latest tag e.g. `git fetch origin`
 1. If this was a major release,
    create a new branch for the major
    1. For example `git checkout -b 2.x && git push -u origin`
@@ -271,5 +271,70 @@ If you have access to make releases, the process is as follows:
 1. Go to https://github.com/elastic/apm-agent-java/releases and draft a new release.
    Provide a link to release notes in documentation as release description.
 1. Update [`cloudfoundry/index.yml`](cloudfoundry/index.yml)
+1. Build and push a Docker image using the instructions below.
 1. Wait for released package to be available in [maven central](https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/)
 1. Publish release on Github. This will notify users watching repository.
+
+###  Docker images
+
+#### Pulling images for use
+
+Docker images are available for the APM Java agent. They can be downloaded from
+docker.elastic.co and are located in the `observability` namespace.
+
+For example, to download the v1.12.0 of the agent, use the following:
+
+```
+docker pull  docker.elastic.co/observability/apm-agent-java:1.12.0
+```
+
+#### Creating images for a Release
+
+Images are normally created and published as a part of the release process.
+Scripts which manage the Docker release process are located in [`scripts/jenkins/`](scripts/jenkins/).
+
+##### Building images locally
+
+Building images on a workstation requires the following:
+
+* Docker daemon installed and running
+* [cURL](https://curl.haxx.se/) installed
+* A local checkout of the `apm-agent-java` repo
+* The `git` command-line tool
+
+Local image building is handled via the [`build_docker.sh script`](scripts/jenkins/build_docker.sh).
+
+If you wish to use a locally built artifact in the built image, execute [`./mvnw package`](mvnw)`
+and ensure that artifacts are present in `elastic-apm-agent/target/*.jar`.
+
+To create a Docker image from artifacts generated by [`./mvnw package`](mvnw),
+run [`scripts/jenkins/build_docker.sh`](scripts/jenkins/build_docker.sh).
+
+Alternatively, it is also possible to use the most recent artifact from the [Sonatype
+repository](https://oss.sonatype.org/#nexus-search;gav~co.elastic.apm~apm-agent-java~~~).
+
+To do so, first clean any artifacts with [`./mvnw clean`](mvnw) and then run the Docker
+build script with the `SONATYPE_FALLBACK` environment variable present. For example,
+
+`SONATYPE_FALLBACK=1 scripts/jenkins/build_docker.sh`
+
+After running the [`build_docker.sh`](scripts/jenkins/build_docker.sh) script, images can be seen by executing
+`docker images|egrep docker.elastic.co/observability/apm-agent-java` which should
+produce output similar to the following:
+
+`docker.elastic.co/observability/apm-agent-java   1.12.0               1f45b5858d81        26 hours ago        10.6MB`
+
+No output from the above command indicates that the image did not build correctly
+and that the output of the [`build_docker.sh`](scripts/jenkins/build_docker.sh)
+script should be examined to determine the cause.
+
+
+#### Pushing a image to the Elastic repo
+
+_Notice:_ You must have access to release secrets in order to push images.
+
+Prior to pushing images, you must login to the Elastic Docker repo using the correct
+credentials using the [`docker login`](https://docs.docker.com/engine/reference/commandline/login/) command.
+
+To push an image, run the [`scripts/jenkins/push_docker.sh`](scripts/jenkins/push_docker.sh)
+script. An image will be pushed.

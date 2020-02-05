@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -291,7 +291,7 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
                                               @Advice.Argument(0) MethodHandle addHeader,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_HEADER, context.getTraceContext().getOutgoingTraceParentHeader().toString());
+                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, context.getTraceContext().getOutgoingTraceParentTextHeader().toString());
             }
         }
     }

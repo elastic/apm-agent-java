@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -89,10 +89,10 @@ public class ElasticApmApiInstrumentation extends ApiInstrumentation {
                                                @Advice.Argument(3) @Nullable Object headersExtractor) throws Throwable {
             if (tracer != null) {
                 if (headerExtractor != null) {
-                    final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_HEADER);
+                    final String traceparentHeader = (String) getFirstHeader.invoke(headerExtractor, TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME);
                     transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), traceparentHeader, clazz.getClassLoader());
                 } else if (headersExtractor != null) {
-                    final Iterable<String> traceparentHeader = (Iterable<String>) getAllHeaders.invoke(headersExtractor, TraceContext.TRACE_PARENT_HEADER);
+                    final Iterable<String> traceparentHeader = (Iterable<String>) getAllHeaders.invoke(headersExtractor, TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME);
                     final Iterator<String> iterator = traceparentHeader.iterator();
                     if (iterator.hasNext()) {
                         transaction = tracer.startTransaction(TraceContext.fromTraceparentHeader(), iterator.next(), clazz.getClassLoader());

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -74,8 +74,8 @@ public class OkHttpClientInstrumentation extends ElasticApmInstrumentation {
                     OkHttpClientHelper.computeHostName(httpUrl.host()), httpUrl.port());
                 if (span != null) {
                     span.activate();
-                    originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_HEADER,
-                        span.getTraceContext().getOutgoingTraceParentHeader().toString()).build();
+                    originalRequest = ((com.squareup.okhttp.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME,
+                        span.getTraceContext().getOutgoingTraceParentTextHeader().toString()).build();
                 }
             }
         }

@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +31,7 @@ import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 
@@ -42,7 +43,7 @@ public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumen
     @Nullable
     @VisibleForAdvice
     // Referencing Kafka classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord>> kafkaInstrHeadersHelperManager;
+    public static HelperClassManager<KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header>> kafkaInstrHeadersHelperManager;
 
     private synchronized static void init(ElasticApmTracer tracer) {
         if (kafkaInstrHeadersHelperManager == null) {
@@ -50,7 +51,8 @@ public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumen
                 "co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelperImpl",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIteratorWrapper",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIterableWrapper",
-                "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper");
+                "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper",
+                "co.elastic.apm.agent.kafka.helper.ElasticHeaderImpl");
         }
     }
 
