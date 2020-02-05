@@ -386,7 +386,11 @@ public class SamplingProfiler implements Runnable, LifecycleListener {
                     if (stackFrames.size() == MAX_STACK_DEPTH) {
                         logger.debug("Max stack depth reached. Set profiling_included_classes or profiling_excluded_classes.");
                     }
-                    root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
+                    // stack frames may not contain any Java frames
+                    // see https://github.com/jvm-profiling-tools/async-profiler/issues/271#issuecomment-582430233
+                    if (!stackFrames.isEmpty()) {
+                        root.addStackTrace(tracer, stackFrames, stackTrace.nanoTime);
+                    }
                 }
                 stackFrames.clear();
             }
