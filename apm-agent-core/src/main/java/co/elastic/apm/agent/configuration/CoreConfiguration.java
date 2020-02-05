@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -374,16 +374,26 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
         .configurationCategory(CORE_CATEGORY)
         .description("A list of methods for which to create a transaction or span.\n" +
             "\n" +
-            "The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.\n" +
-            "You can use wildcards for the class name, the annotation name, the method name and the parameter types.\n" +
-            "The `*` wildcard matches zero or more characters.\n" +
-            "That means that a wildcard in a package name also matches sub-packages\n" +
-            "Specifying an annotation is optional.\n" +
-            "When matching for annotations, only classes that are annotated with the specified annotation are considered.\n" +
-            "You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes " +
-            "that are annotated with an annotation that is itself annotated with the given meta-annotation.\n" +
-            "Specifying the parameter types is optional.\n" +
-            "The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.\n" +
+            "This works by instrumenting each matching method to include code that creates a span for the method.\n" +
+            "While creating a span is quite cheap in terms of performance,\n" +
+            "instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.\n" +
+            "\n" +
+            "Using a pointcut-like syntax, you can match based on\n" +
+            "\n" +
+            " - Method modifier (optional) +\n" +
+            "   Example: `public`, `protected`, `private` or `*`\n" +
+            " - Package and class name (wildcards include sub-packages) +\n" +
+            "   Example: `org.example.*`\n" +
+            " - Method name (optional since 1.4.0) +\n" +
+            "   Example: `myMeth*d`\n" +
+            " - Method argument types (optional) +\n" +
+            "   Example: `(*lang.String, int[])`\n" +
+            " - Classes with a specific annotation (optional) +\n" +
+            "   Example: `@*ApplicationScoped`\n" +
+            " - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +\n" +
+            "   Example: `@@javax.enterpr*se.context.NormalScope`\n" +
+            "\n" +
+            "The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.\n" +
             "\n" +
             "A few examples:\n" +
             "\n" +
@@ -432,9 +442,11 @@ public class CoreConfiguration extends ConfigurationOptionProvider {
             " - A \"forcibly-traced method\" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.\n" +
             "Set to 0 to disable.\n" +
             "\n" +
-            "NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.\n" +
-            "In order not to break span references, all spans leading to an async operations are never discarded, regardless \n" +
-            "of their duration.\n")
+            "NOTE: Transactions are never discarded, regardless of their duration.\n" +
+            "This configuration affects only spans.\n" +
+            "In order not to break span references,\n" +
+            "all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,\n" +
+            "regardless of their duration.\n")
         .buildWithDefault(TimeDuration.of("0ms"));
 
     private final ConfigurationOption<String> appendPackagesToBootDelagationProperty = ConfigurationOption.stringOption()

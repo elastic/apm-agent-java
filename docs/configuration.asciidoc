@@ -575,15 +575,26 @@ NOTE: This feature requires APM Server 7.2+
 
 A list of methods for which to create a transaction or span.
 
-The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-You can use wildcards for the class name, the annotation name, the method name and the parameter types.
-The `*` wildcard matches zero or more characters.
-That means that a wildcard in a package name also matches sub-packages
-Specifying an annotation is optional.
-When matching for annotations, only classes that are annotated with the specified annotation are considered.
-You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
-Specifying the parameter types is optional.
-The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+This works by instrumenting each matching method to include code that creates a span for the method.
+While creating a span is quite cheap in terms of performance,
+instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
+
+Using a pointcut-like syntax, you can match based on
+
+ - Method modifier (optional) +
+   Example: `public`, `protected`, `private` or `*`
+ - Package and class name (wildcards include sub-packages) +
+   Example: `org.example.*`
+ - Method name (optional since 1.4.0) +
+   Example: `myMeth*d`
+ - Method argument types (optional) +
+   Example: `(*lang.String, int[])`
+ - Classes with a specific annotation (optional) +
+   Example: `@*ApplicationScoped`
+ - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +
+   Example: `@@javax.enterpr*se.context.NormalScope`
+
+The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.
 
 A few examples:
 
@@ -648,9 +659,11 @@ Such methods will be traced and reported if one of the following applies:
  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 Set to 0 to disable.
 
-NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-In order not to break span references, all spans leading to an async operations are never discarded, regardless 
-of their duration.
+NOTE: Transactions are never discarded, regardless of their duration.
+This configuration affects only spans.
+In order not to break span references,
+all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
+regardless of their duration.
 
 
 Supports the duration suffixes `ms`, `s` and `m`.
@@ -1813,15 +1826,26 @@ The default unit for this option is `ms`
 
 # A list of methods for which to create a transaction or span.
 # 
-# The syntax is `modifier @fully.qualified.annotation.Name fully.qualified.class.Name#methodName(fully.qualified.parameter.Type)`.
-# You can use wildcards for the class name, the annotation name, the method name and the parameter types.
-# The `*` wildcard matches zero or more characters.
-# That means that a wildcard in a package name also matches sub-packages
-# Specifying an annotation is optional.
-# When matching for annotations, only classes that are annotated with the specified annotation are considered.
-# You can also match for meta-annotations by specifying the annotation with an @@ prefix. This will match classes that are annotated with an annotation that is itself annotated with the given meta-annotation.
-# Specifying the parameter types is optional.
-# The `modifier` can be omitted or one of `public`, `protected`, `private` or `*`.
+# This works by instrumenting each matching method to include code that creates a span for the method.
+# While creating a span is quite cheap in terms of performance,
+# instrumenting a whole code base or a method which is executed in a tight loop leads to significant overhead.
+# 
+# Using a pointcut-like syntax, you can match based on
+# 
+#  - Method modifier (optional) +
+#    Example: `public`, `protected`, `private` or `*`
+#  - Package and class name (wildcards include sub-packages) +
+#    Example: `org.example.*`
+#  - Method name (optional since 1.4.0) +
+#    Example: `myMeth*d`
+#  - Method argument types (optional) +
+#    Example: `(*lang.String, int[])`
+#  - Classes with a specific annotation (optional) +
+#    Example: `@*ApplicationScoped`
+#  - Classes with a specific annotation that is itself annotated with the given meta-annotation (optional) +
+#    Example: `@@javax.enterpr*se.context.NormalScope`
+# 
+# The syntax is `modifier @fully.qualified.AnnotationName fully.qualified.ClassName#methodName(fully.qualified.ParameterType)`.
 # 
 # A few examples:
 # 
@@ -1873,9 +1897,11 @@ The default unit for this option is `ms`
 #  - A "forcibly-traced method" (e.g. DB queries, HTTP exits, custom) was executed during the execution of this method.
 # Set to 0 to disable.
 # 
-# NOTE: Transaction are never discarded, regardless of their duration. This configuration affects only spans.
-# In order not to break span references, all spans leading to an async operations are never discarded, regardless 
-# of their duration.
+# NOTE: Transactions are never discarded, regardless of their duration.
+# This configuration affects only spans.
+# In order not to break span references,
+# all spans leading to an async operation or an exit span (such as a HTTP request or a DB query) are never discarded,
+# regardless of their duration.
 # 
 #
 # This setting can not be changed at runtime. Changes require a restart of the application.
