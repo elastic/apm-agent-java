@@ -11,9 +11,6 @@ then
 elif ! docker version
 then
   echo "ERROR: Building Docker image requires Docker daemon to be running" && exit 1
-elif ! command -v curl
-then
-  echo "ERROR: Building Docker image requires cURL to be installed" && exit 1
 fi
 
 echo "INFO: Determining latest tag"
@@ -40,6 +37,10 @@ then
 elif [ ! -z ${SONATYPE_FALLBACK+x} ]
 then
   echo "INFO: No local build artifact and SONATYPE_FALLBACK. Falling back to downloading artifact from Sonatype Nexus repository for version $GIT_TAG"
+  if ! command -v curl
+  then
+      echo "ERROR: Pulling images from Sonatype Nexus repo requires cURL to be installed" && exit 1
+  fi
   curl -L -s -o apm-agent-java.jar \
     "http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=co.elastic.apm&a=elastic-apm-agent&v=$GIT_TAG"
   else
