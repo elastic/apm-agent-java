@@ -24,9 +24,12 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.httpclient.helper.RequestHeaderAccessor;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
@@ -34,13 +37,12 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.apache.http.HttpRequest;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.conn.routing.HttpRoute;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.classLoaderCanLoadClass;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -53,7 +55,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 @SuppressWarnings("Duplicates")
-public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
+public class ApacheHttpClientInstrumentation extends BaseApacheHttpClientInstrumentation {
+
+    public ApacheHttpClientInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     private static class ApacheHttpClientAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -65,12 +71,17 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
             }
             final TraceContextHolder<?> parent = tracer.getActive();
             span = HttpClientHelper.startHttpClientSpan(parent, request.getMethod(), request.getURI(), route.getTargetHost().getHostName());
+            TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
+            TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
             if (span != null) {
                 span.activate();
-                request.addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
-            } else if (!request.containsHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME) && parent != null) {
+                if (headerSetter != null) {
+                    span.getTraceContext().setOutgoingTraceContextHeaders(request, new RequestHeaderAccessor());
+                }
+            } else if (headerGetter != null && !TraceContext.containsTraceContextTextHeaders(request, headerGetter)
+                && headerSetter != null && parent != null) {
                 // re-adds the header on redirects
-                request.addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, parent.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+                parent.getTraceContext().setOutgoingTraceContextHeaders(request, headerSetter);
             }
         }
 
@@ -122,10 +133,5 @@ public class ApacheHttpClientInstrumentation extends ElasticApmInstrumentation {
             .and(takesArgument(1, hasSuperType(named("org.apache.http.client.methods.HttpRequestWrapper"))))
             .and(takesArgument(2, hasSuperType(named("org.apache.http.client.protocol.HttpClientContext"))))
             .and(takesArgument(3, hasSuperType(named("org.apache.http.client.methods.HttpExecutionAware"))));
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "apache-httpclient");
     }
 }

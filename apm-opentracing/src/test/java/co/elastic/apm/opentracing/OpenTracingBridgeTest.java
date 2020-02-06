@@ -25,6 +25,7 @@
 package co.elastic.apm.opentracing;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
+import co.elastic.apm.agent.impl.TextHeaderMapAccessor;
 import co.elastic.apm.agent.impl.transaction.Id;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.Transaction;
@@ -456,7 +457,7 @@ class OpenTracingBridgeTest extends AbstractInstrumentationTest {
         final HashMap<String, String> map = new HashMap<>();
         apmTracer.inject(otSpan.context(), Format.Builtin.TEXT_MAP, new TextMapAdapter(map));
         final TraceContext injectedContext = TraceContext.with64BitId(tracer);
-        assertThat(injectedContext.asChildOf(map.get(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME))).isTrue();
+        assertThat(TraceContext.getFromTraceContextTextHeaders().asChildOf(injectedContext, map, TextHeaderMapAccessor.INSTANCE)).isTrue();
         assertThat(injectedContext.getTraceId().toString()).isEqualTo(traceId);
         assertThat(injectedContext.getParentId()).isEqualTo(transaction.getTraceContext().getId());
         assertThat(injectedContext.isSampled()).isTrue();

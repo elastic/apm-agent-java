@@ -104,25 +104,44 @@ public class TraceContext extends TraceContextHolder {
             return true;
         }
     };
-    private static final ChildContextCreator<String> FROM_TRACEPARENT_TEXT_HEADER = new ChildContextCreator<String>() {
-        @Override
-        public boolean asChildOf(TraceContext child, @Nullable String traceparent) {
-            if (traceparent != null) {
-                return child.asChildOf(traceparent);
+    private static final ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>> FROM_TRACE_CONTEXT_TEXT_HEADERS =
+        new ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>>() {
+            @Override
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, TextHeaderGetter<?> traceContextHeaderGetter) {
+                if (carrier == null) {
+                    return false;
+                }
+                // This cast is required, otherwise the compiler can't guarantee that the carrier type is allowed by the
+                // TextHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
+                // carrier type is the one expected in the provided TextHeaderGetter, we cannot enforce it through generics
+                // if we want to use this single ChildContextCreatorTwoArg instance for all types.
+                //noinspection unchecked
+                String traceparent = ((TextHeaderGetter<Object>) traceContextHeaderGetter).getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+                if (traceparent != null) {
+                    return child.asChildOf(traceparent);
+                }
+                return false;
             }
-            return false;
-        }
-    };
-    private static final ChildContextCreator<byte[]> FROM_TRACEPARENT_BINARY_HEADER = new ChildContextCreator<byte[]>() {
-        @Override
-        public boolean asChildOf(TraceContext child, @Nullable byte[] traceparent) {
-            if (traceparent != null) {
-                return child.asChildOf(traceparent);
+        };
+    private static final ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>> FROM_TRACE_CONTEXT_BINARY_HEADERS =
+        new ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>>() {
+            @Override
+            public boolean asChildOf(TraceContext child, @Nullable Object carrier, BinaryHeaderGetter<?> traceContextHeaderGetter) {
+                if (carrier == null) {
+                    return false;
+                }
+                // This cast is required, otherwise the compiler can't guarantee that the carrier type is allowed by the
+                // BinaryHeaderGetter (which have a runtime inferred type of ?). The caller must ensure anyway that the
+                // carrier type is the one expected in the provided BinaryHeaderGetter, we cannot enforce it through generics
+                // if we want to use this single ChildContextCreatorTwoArg instance for all types.
+                //noinspection unchecked
+                byte[] traceparent = ((BinaryHeaderGetter<Object>) traceContextHeaderGetter).getFirstHeader(TRACE_PARENT_BINARY_HEADER_NAME, carrier);
+                if (traceparent != null) {
+                    return child.asChildOf(traceparent);
+                }
+                return false;
             }
-            return false;
-        }
-    };
-
+        };
     private static final ChildContextCreator<ElasticApmTracer> FROM_ACTIVE = new ChildContextCreator<ElasticApmTracer>() {
         @Override
         public boolean asChildOf(TraceContext child, ElasticApmTracer tracer) {
@@ -140,6 +159,22 @@ public class TraceContext extends TraceContextHolder {
             return false;
         }
     };
+
+    public static <C> boolean containsTraceContextTextHeaders(C carrier, TextHeaderGetter<C> headerGetter) {
+        return headerGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier) != null;
+    }
+
+    public static <C> void removeTraceContextHeaders(C carrier, HeaderRemover<C> headerRemover) {
+        headerRemover.remove(TRACE_PARENT_TEXTUAL_HEADER_NAME, carrier);
+    }
+
+    public static <S, D> void copyTextHeaders(S source, TextHeaderGetter<S> headerGetter, D destination, TextHeaderSetter<D> headerSetter) {
+        String elasticApmTraceParent = headerGetter.getFirstHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, source);
+        if (elasticApmTraceParent != null) {
+            headerSetter.setHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, elasticApmTraceParent, destination);
+        }
+    }
+
     // ???????1 -> maybe recorded
     // ???????0 -> not recorded
     private static final byte FLAG_RECORDED = 0b0000_0001;
@@ -183,18 +218,19 @@ public class TraceContext extends TraceContextHolder {
      * Creates a new {@link TraceContext} with a 128 bit {@link #id},
      * suitable for errors,
      * as those might not have a trace reference and therefore require a larger id in order to be globally unique.
+     *
      * @param tracer a valid tracer
      */
     public static TraceContext with128BitId(ElasticApmTracer tracer) {
         return new TraceContext(tracer, Id.new128BitId());
     }
 
-    public static ChildContextCreator<String> fromTraceparentHeader() {
-        return FROM_TRACEPARENT_TEXT_HEADER;
+    public static ChildContextCreatorTwoArg<Object, TextHeaderGetter<?>> getFromTraceContextTextHeaders() {
+        return FROM_TRACE_CONTEXT_TEXT_HEADERS;
     }
 
-    public static ChildContextCreator<byte[]> fromTraceparentBinaryHeader() {
-        return FROM_TRACEPARENT_BINARY_HEADER;
+    public static ChildContextCreatorTwoArg<Object, BinaryHeaderGetter<?>> getFromTraceContextBinaryHeaders() {
+        return FROM_TRACE_CONTEXT_BINARY_HEADERS;
     }
 
     public static ChildContextCreator<ElasticApmTracer> fromActive() {
@@ -209,7 +245,7 @@ public class TraceContext extends TraceContextHolder {
         return AS_ROOT;
     }
 
-    public boolean asChildOf(String traceParentHeader) {
+    boolean asChildOf(String traceParentHeader) {
         traceParentHeader = traceParentHeader.trim();
         try {
             if (traceParentHeader.length() < TEXT_HEADER_EXPECTED_LENGTH) {
@@ -260,7 +296,7 @@ public class TraceContext extends TraceContextHolder {
         }
     }
 
-    public boolean asChildOf(byte[] traceParentHeader) {
+    boolean asChildOf(byte[] traceParentHeader) {
         if (logger.isTraceEnabled()) {
             logger.trace("Binary header content UTF-8-decoded: {}", new String(traceParentHeader, StandardCharsets.UTF_8));
         }
@@ -429,9 +465,50 @@ public class TraceContext extends TraceContextHolder {
     }
 
     /**
+     * Sets Trace context text headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the text headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - an HTTP request
+     */
+    public <C> void setOutgoingTraceContextHeaders(@Nullable C carrier, TextHeaderSetter<C> headerSetter) {
+        if (carrier == null) {
+            logger.warn("Attempted to set a text header to a null carrier through {}. Distributed tracing cannot be supported.", headerSetter.getClass().getName());
+            return;
+        }
+        headerSetter.setHeader(TRACE_PARENT_TEXTUAL_HEADER_NAME, getOutgoingTraceParentTextHeader().toString(), carrier);
+    }
+
+    /**
+     * Sets Trace context binary headers, using this context as parent, on the provided carrier using the provided setter
+     *
+     * @param carrier      the binary headers carrier
+     * @param headerSetter a setter implementing the actual addition of headers to the headers carrier
+     * @param <C>          the header carrier type, for example - a Kafka record
+     * @return true if Trace Context headers were set; false otherwise
+     */
+    public <C> boolean setOutgoingTraceContextHeaders(@Nullable C carrier, BinaryHeaderSetter<C> headerSetter) {
+        if (carrier == null) {
+            logger.warn("Attempted to set a binary header to a null carrier through {}. Distributed tracing cannot be supported.", headerSetter.getClass().getName());
+            return false;
+        }
+        byte[] buffer = headerSetter.getFixedLengthByteArray(TRACE_PARENT_BINARY_HEADER_NAME, BINARY_FORMAT_EXPECTED_LENGTH);
+        if (buffer == null || buffer.length != BINARY_FORMAT_EXPECTED_LENGTH) {
+            logger.warn("Header setter {} failed to provide a byte buffer with the proper length. Allocating a buffer for each header.",
+                headerSetter.getClass().getName());
+            buffer = new byte[BINARY_FORMAT_EXPECTED_LENGTH];
+        }
+        boolean headerBufferFilled = fillOutgoingTraceParentBinaryHeader(buffer);
+        if (headerBufferFilled) {
+            headerSetter.setHeader(TRACE_PARENT_BINARY_HEADER_NAME, buffer, carrier);
+        }
+        return headerBufferFilled;
+    }
+
+    /**
      * Returns the value of the {@code traceparent} header for downstream services.
      */
-    public StringBuilder getOutgoingTraceParentTextHeader() {
+    StringBuilder getOutgoingTraceParentTextHeader() {
         if (outgoingTextHeader.length() == 0) {
             // for unsampled traces, propagate the ID of the transaction in calls to downstream services
             // such that the parentID of those transactions point to a transaction that exists
@@ -456,7 +533,7 @@ public class TraceContext extends TraceContextHolder {
      * @param buffer buffer to fill
      * @return true if buffer was filled, false otherwise
      */
-    public boolean fillOutgoingTraceParentBinaryHeader(byte[] buffer) {
+    private boolean fillOutgoingTraceParentBinaryHeader(byte[] buffer) {
         if (buffer.length < BINARY_FORMAT_EXPECTED_LENGTH) {
             logger.warn("Given byte array does not have the minimal required length - {}", BINARY_FORMAT_EXPECTED_LENGTH);
             return false;
@@ -561,6 +638,10 @@ public class TraceContext extends TraceContextHolder {
 
     public interface ChildContextCreator<T> {
         boolean asChildOf(TraceContext child, T parent);
+    }
+
+    public interface ChildContextCreatorTwoArg<T, A> {
+        boolean asChildOf(TraceContext child, @Nullable T parent, A arg);
     }
 
     public TraceContext copy() {

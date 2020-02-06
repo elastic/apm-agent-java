@@ -30,7 +30,9 @@ import co.elastic.apm.agent.configuration.MessagingConfiguration;
 import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
+import co.elastic.apm.agent.impl.transaction.TraceContext;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 import co.elastic.apm.agent.matcher.WildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +99,7 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
             .activate();
 
         try {
-            message.setStringProperty(JMS_TRACE_PARENT_PROPERTY, span.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+            span.getTraceContext().setOutgoingTraceContextHeaders(message, JmsMessagePropertyAccessor.instance());
             if (span.isSampled()) {
                 span.getContext().getDestination().getService()
                     .withName("jms")
@@ -112,11 +114,20 @@ public class JmsInstrumentationHelperImpl implements JmsInstrumentationHelper<De
                     }
                 }
             }
-
         } catch (JMSException e) {
             logger.error("Failed to capture JMS span", e);
         }
         return span;
+    }
+
+    @Override
+    public Transaction startJmsTransaction(Message parentMessage, Class<?> instrumentedClass) {
+        return tracer.startChildTransaction(parentMessage, JmsMessagePropertyAccessor.instance(), instrumentedClass.getClassLoader());
+    }
+
+    @Override
+    public void makeChildOf(Transaction childTransaction, Message parentMessage) {
+        TraceContext.getFromTraceContextTextHeaders().asChildOf(childTransaction.getTraceContext(), parentMessage, JmsMessagePropertyAccessor.instance());
     }
 
     @VisibleForAdvice

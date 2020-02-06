@@ -28,6 +28,7 @@ import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.impl.transaction.AbstractSpan;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.Transaction;
 
 import javax.annotation.Nullable;
 
@@ -71,6 +72,10 @@ public interface JmsInstrumentationHelper<D, M, L> {
 
     @Nullable
     Span startJmsSendSpan(D destination, M message);
+
+    Transaction startJmsTransaction(M parentMessage, Class<?> instrumentedClass);
+
+    void makeChildOf(Transaction childTransaction, M parentMessage);
 
     @Nullable
     L wrapLambda(@Nullable L listener);

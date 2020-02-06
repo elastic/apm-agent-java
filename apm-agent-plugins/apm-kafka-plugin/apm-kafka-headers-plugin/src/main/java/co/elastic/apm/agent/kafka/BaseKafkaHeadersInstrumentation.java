@@ -31,7 +31,6 @@ import co.elastic.apm.agent.kafka.helper.KafkaInstrumentationHeadersHelper;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 
 import javax.annotation.Nullable;
 
@@ -43,7 +42,7 @@ public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumen
     @Nullable
     @VisibleForAdvice
     // Referencing Kafka classes is legal due to type erasure. The field must be public in order for it to be accessible from injected code
-    public static HelperClassManager<KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord, Header>> kafkaInstrHeadersHelperManager;
+    public static HelperClassManager<KafkaInstrumentationHeadersHelper<ConsumerRecord, ProducerRecord>> kafkaInstrHeadersHelperManager;
 
     private synchronized static void init(ElasticApmTracer tracer) {
         if (kafkaInstrHeadersHelperManager == null) {
@@ -52,7 +51,9 @@ public abstract class BaseKafkaHeadersInstrumentation extends BaseKafkaInstrumen
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIteratorWrapper",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsIterableWrapper",
                 "co.elastic.apm.agent.kafka.helper.ConsumerRecordsListWrapper",
-                "co.elastic.apm.agent.kafka.helper.ElasticHeaderImpl");
+                "co.elastic.apm.agent.kafka.helper.ElasticHeaderImpl",
+                "co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor",
+                "co.elastic.apm.agent.kafka.helper.KafkaRecordHeaderAccessor$HeaderValuesIterator");
         }
     }
 

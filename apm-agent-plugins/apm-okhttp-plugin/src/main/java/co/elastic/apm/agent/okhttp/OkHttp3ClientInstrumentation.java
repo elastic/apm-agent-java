@@ -24,11 +24,11 @@
  */
 package co.elastic.apm.agent.okhttp;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -36,15 +36,18 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import okhttp3.HttpUrl;
+import okhttp3.Request;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
-public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
+public class OkHttp3ClientInstrumentation extends AbstractOkHttp3ClientInstrumentation {
+
+    public OkHttp3ClientInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     @Override
     public Class<?> getAdviceClass() {
@@ -75,7 +78,14 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
                     OkHttpClientHelper.computeHostName(url.host()), url.port());
                 if (span != null) {
                     span.activate();
-                    originalRequest = ((okhttp3.Request) originalRequest).newBuilder().addHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, span.getTraceContext().getOutgoingTraceParentTextHeader().toString()).build();
+                    if (headerSetterHelperManager != null) {
+                        TextHeaderSetter<Request.Builder> headerSetter = headerSetterHelperManager.getForClassLoaderOfClass(Request.class);
+                        if (headerSetter != null) {
+                            Request.Builder builder = ((okhttp3.Request) originalRequest).newBuilder();
+                            span.getTraceContext().setOutgoingTraceContextHeaders(builder, headerSetter);
+                            originalRequest = builder.build();
+                        }
+                    }
                 }
             }
         }
@@ -107,10 +117,4 @@ public class OkHttp3ClientInstrumentation extends ElasticApmInstrumentation {
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("execute").and(returns(named("okhttp3.Response")));
     }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "okhttp");
-    }
-
 }

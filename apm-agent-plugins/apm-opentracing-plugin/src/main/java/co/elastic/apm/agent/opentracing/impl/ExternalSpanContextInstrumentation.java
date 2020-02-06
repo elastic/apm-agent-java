@@ -103,16 +103,12 @@ public class ExternalSpanContextInstrumentation extends OpenTracingBridgeInstrum
     @VisibleForAdvice
     @Nullable
     public static TraceContext parseTextMap(Iterable<Map.Entry<String, String>> textMap) {
-        TraceContext childTraceContext = null;
         if (tracer != null) {
-            for (Map.Entry<String, String> next : textMap) {
-                if (TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME.equals(next.getKey())) {
-                    childTraceContext = TraceContext.with64BitId(tracer);
-                    TraceContext.fromTraceparentHeader().asChildOf(childTraceContext, next.getValue());
-                    break;
-                }
+            TraceContext childTraceContext = TraceContext.with64BitId(tracer);
+            if (TraceContext.getFromTraceContextTextHeaders().asChildOf(childTraceContext, textMap, OpenTracingTextMapBridge.instance())) {
+                return childTraceContext;
             }
         }
-        return childTraceContext;
+        return null;
     }
 }

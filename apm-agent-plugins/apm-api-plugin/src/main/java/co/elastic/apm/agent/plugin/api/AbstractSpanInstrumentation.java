@@ -288,10 +288,11 @@ public class AbstractSpanInstrumentation extends ApiInstrumentation {
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void injectTraceHeaders(@Advice.FieldValue(value = "span", typing = Assigner.Typing.DYNAMIC) TraceContextHolder<?> context,
-                                              @Advice.Argument(0) MethodHandle addHeader,
+                                              @Advice.Argument(0) MethodHandle addHeaderMethodHandle,
                                               @Advice.Argument(1) @Nullable Object headerInjector) throws Throwable {
             if (headerInjector != null) {
-                addHeader.invoke(headerInjector, TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, context.getTraceContext().getOutgoingTraceParentTextHeader().toString());
+                HeaderInjectorBridge.instance().setAddHeaderMethodHandle(addHeaderMethodHandle);
+                context.getTraceContext().setOutgoingTraceContextHeaders(headerInjector, HeaderInjectorBridge.instance());
             }
         }
     }

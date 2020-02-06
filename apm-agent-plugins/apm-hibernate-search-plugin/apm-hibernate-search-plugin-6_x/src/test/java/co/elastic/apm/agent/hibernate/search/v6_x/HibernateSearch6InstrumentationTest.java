@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -26,7 +26,6 @@ package co.elastic.apm.agent.hibernate.search.v6_x;
 
 import co.elastic.apm.agent.AbstractInstrumentationTest;
 import co.elastic.apm.agent.hibernate.search.DeleteFileVisitor;
-import co.elastic.apm.agent.impl.transaction.TraceContext;
 import org.hibernate.search.engine.search.dsl.query.SearchQueryContext;
 import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
@@ -67,7 +66,7 @@ class HibernateSearch6InstrumentationTest extends AbstractInstrumentationTest {
 
     @BeforeEach
     void initSingleTest() {
-        tracer.startTransaction(TraceContext.asRoot(), null, null).activate();
+        tracer.startRootTransaction(null).activate();
     }
 
     @AfterEach

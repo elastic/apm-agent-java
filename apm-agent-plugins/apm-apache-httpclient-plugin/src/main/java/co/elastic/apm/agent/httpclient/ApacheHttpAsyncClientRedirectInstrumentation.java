@@ -24,7 +24,9 @@
  */
 package co.elastic.apm.agent.httpclient;
 
-import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
+import co.elastic.apm.agent.impl.ElasticApmTracer;
+import co.elastic.apm.agent.impl.transaction.TextHeaderGetter;
+import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContext;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.NamedElement;
@@ -36,8 +38,6 @@ import org.apache.http.HttpRequest;
 
 import javax.annotation.Nullable;
 import java.security.ProtectionDomain;
-import java.util.Arrays;
-import java.util.Collection;
 
 import static co.elastic.apm.agent.bci.bytebuddy.CustomElementMatchers.implementationVersionLte;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -47,7 +47,11 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 /**
  * In versions 4.0.1 or lower, the headers are not automatically copied to redirected HttpRequests, so this copies them over
  */
-public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInstrumentation {
+public class ApacheHttpAsyncClientRedirectInstrumentation extends BaseApacheHttpClientInstrumentation {
+
+    public ApacheHttpAsyncClientRedirectInstrumentation(ElasticApmTracer tracer) {
+        super(tracer);
+    }
 
     private static class ApacheHttpAsyncClientRedirectAdvice {
         @Advice.OnMethodExit(suppress = Throwable.class)
@@ -57,10 +61,11 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInst
                 return;
             }
             // org.apache.http.HttpMessage#containsHeader implementations do not allocate iterator since 4.0.1
-            if (original.containsHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME) && !redirect.containsHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME)) {
-                String traceContext = original.getFirstHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME).getValue();
-                if (traceContext != null) {
-                    redirect.setHeader(TraceContext.TRACE_PARENT_TEXTUAL_HEADER_NAME, traceContext);
+            TextHeaderSetter<HttpRequest> headerSetter = headerSetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
+            TextHeaderGetter<HttpRequest> headerGetter = headerGetterHelperClassManager.getForClassLoaderOfClass(HttpRequest.class);
+            if (headerGetter != null && headerSetter != null) {
+                if (TraceContext.containsTraceContextTextHeaders(original, headerGetter) && !TraceContext.containsTraceContextTextHeaders(redirect, headerGetter)) {
+                    TraceContext.copyTextHeaders(original, headerGetter, redirect, headerSetter);
                 }
             }
         }
@@ -93,10 +98,5 @@ public class ApacheHttpAsyncClientRedirectInstrumentation extends ElasticApmInst
     @Override
     public ElementMatcher<? super MethodDescription> getMethodMatcher() {
         return named("getRedirect");
-    }
-
-    @Override
-    public Collection<String> getInstrumentationGroupNames() {
-        return Arrays.asList("http-client", "apache-httpclient");
     }
 }
