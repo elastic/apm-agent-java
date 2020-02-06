@@ -42,6 +42,7 @@ for more details) - {pull}1009[#1009]
 * Fix parsing value of `trace_methods` configuration property {pull}930[#930]
 * Workaround for `java.util.logging` deadlock {pull}965[#965]
 * JMS should propagate traceparent header when transactions are not sampled {pull}999[#999]
+* Spans are not closed if JDBC implementation does not support `getUpdateCount` {pull}1008[#1008]
 
 [[release-notes-1.x]]
 === Java Agent version 1.x

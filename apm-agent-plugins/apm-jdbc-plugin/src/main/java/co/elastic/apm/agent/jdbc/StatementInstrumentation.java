@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -35,6 +35,8 @@ import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
@@ -42,6 +44,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static co.elastic.apm.agent.jdbc.ConnectionInstrumentation.JDBC_INSTRUMENTATION_GROUP;
 import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;
@@ -63,6 +67,16 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
     @Nullable
     @VisibleForAdvice
     public static HelperClassManager<JdbcHelper> jdbcHelperManager;
+
+    @SuppressWarnings("WeakerAccess")
+    @Nullable
+    @VisibleForAdvice
+    public static final ConcurrentMap<String, Boolean> statementClassesNotSupportingUpdateCount = new ConcurrentHashMap<>();
+
+    @SuppressWarnings("WeakerAccess")
+    @Nullable
+    @VisibleForAdvice
+    public static final Logger logger = LoggerFactory.getLogger(StatementInstrumentation.class);
 
     private final ElementMatcher<? super MethodDescription> methodMatcher;
 
@@ -105,6 +119,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
      *     <li>{@link Statement#executeQuery(String)} </li>
      * </ul>
      */
+    @SuppressWarnings("DuplicatedCode")
     public static class ExecuteWithQueryInstrumentation extends StatementInstrumentation {
 
         public ExecuteWithQueryInstrumentation(ElasticApmTracer tracer) {
@@ -129,16 +144,29 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
             return null;
         }
 
+        @SuppressWarnings({"ConstantConditions"})
         @VisibleForAdvice
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
-                                          @Advice.Thrown @Nullable Throwable t) throws SQLException {
+                                          @Advice.Thrown @Nullable Throwable t) {
             if (span != null) {
-                if( t == null){
-                    span.getContext()
-                        .getDb()
-                        .withAffectedRowsCount(statement.getUpdateCount());
+                if (t == null) {
+                    String statementClassName = statement.getClass().getName();
+                    if (!statementClassesNotSupportingUpdateCount.containsKey(statementClassName)) {
+                        try {
+                            span.getContext()
+                                .getDb()
+                                .withAffectedRowsCount(statement.getUpdateCount());
+                        } catch (Throwable throwable) {
+                            // When the getUpdateCount API is not supported- log once, remember and don't try to invoke again on the
+                            // same statement class
+                            Boolean previous = statementClassesNotSupportingUpdateCount.putIfAbsent(statementClassName, Boolean.TRUE);
+                            if (previous == null) {
+                                logger.warn("Cannot obtain update count for class {}", statementClassName);
+                            }
+                        }
+                    }
                 }
                 span.captureException(t)
                     .deactivate()
@@ -342,6 +370,7 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
      *     <li>{@link java.sql.PreparedStatement#executeQuery}</li>
      * </ul>
      */
+    @SuppressWarnings("DuplicatedCode")
     public static class ExecutePreparedStatementInstrumentation extends StatementInstrumentation {
         public ExecutePreparedStatementInstrumentation(ElasticApmTracer tracer) {
             super(tracer,
@@ -364,17 +393,29 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
             return null;
         }
 
+        @SuppressWarnings({"ConstantConditions"})
         @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)
         public static void onAfterExecute(@Advice.This Statement statement,
                                           @Advice.Enter @Nullable Span span,
-                                          @Advice.Thrown Throwable t) throws SQLException {
+                                          @Advice.Thrown Throwable t) {
             if (span != null) {
-                span.getContext()
-                    .getDb()
-                    // getUpdateCount javadoc indicates that this method should be called only once
-                    // however in practice adding this extra call seem to not have noticeable side effects
-                    .withAffectedRowsCount(statement.getUpdateCount());
-
+                String statementClassName = statement.getClass().getName();
+                if (!statementClassesNotSupportingUpdateCount.containsKey(statementClassName)) {
+                    try {
+                        span.getContext()
+                            .getDb()
+                            // getUpdateCount javadoc indicates that this method should be called only once
+                            // however in practice adding this extra call seem to not have noticeable side effects
+                            .withAffectedRowsCount(statement.getUpdateCount());
+                    } catch (Throwable throwable) {
+                        // When the getUpdateCount API is not supported- log once, remember and don't try to invoke again on the
+                        // same statement class
+                        Boolean previous = statementClassesNotSupportingUpdateCount.putIfAbsent(statementClassName, Boolean.TRUE);
+                        if (previous == null) {
+                            logger.warn("Cannot obtain update count for class {}", statementClassName);
+                        }
+                    }
+                }
                 span.captureException(t)
                     .deactivate()
                     .end();
