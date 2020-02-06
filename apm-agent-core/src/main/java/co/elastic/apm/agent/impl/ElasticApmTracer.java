@@ -200,7 +200,7 @@ public class ElasticApmTracer {
      *                              Used to determine the service name.
      * @return a transaction which is a child of the provided parent
      */
-    public Transaction startChildTransaction(@Nullable Object headerCarrier, TextHeaderGetter<?> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, textHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
@@ -216,8 +216,8 @@ public class ElasticApmTracer {
      *                              for log correlation.
      * @return a transaction which is a child of the provided parent
      */
-    public Transaction startChildTransaction(@Nullable Object headerCarrier, TextHeaderGetter<?> textHeadersGetter, Sampler sampler,
-                                             long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, TextHeaderGetter<C> textHeadersGetter, Sampler sampler,
+                                                 long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
@@ -238,7 +238,7 @@ public class ElasticApmTracer {
      *                              Used to determine the service name.
      * @return a transaction which is a child of the provided parent
      */
-    public Transaction startChildTransaction(@Nullable Object headerCarrier, BinaryHeaderGetter<?> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter, @Nullable ClassLoader initiatingClassLoader) {
         return startChildTransaction(headerCarrier, binaryHeadersGetter, sampler, -1, initiatingClassLoader);
     }
 
@@ -254,8 +254,8 @@ public class ElasticApmTracer {
      *                              for log correlation.
      * @return a transaction which is a child of the provided parent
      */
-    public Transaction startChildTransaction(@Nullable Object headerCarrier, BinaryHeaderGetter<?> binaryHeadersGetter,
-                                             Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
+    public <C> Transaction startChildTransaction(@Nullable C headerCarrier, BinaryHeaderGetter<C> binaryHeadersGetter,
+                                                 Sampler sampler, long epochMicros, @Nullable ClassLoader initiatingClassLoader) {
         Transaction transaction;
         if (!coreConfiguration.isActive()) {
             transaction = noopTransaction();
