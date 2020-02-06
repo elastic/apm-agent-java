@@ -29,7 +29,6 @@ import co.elastic.apm.agent.bci.ElasticApmInstrumentation;
 import co.elastic.apm.agent.bci.HelperClassManager;
 import co.elastic.apm.agent.bci.VisibleForAdvice;
 import co.elastic.apm.agent.http.client.HttpClientHelper;
-import co.elastic.apm.agent.impl.ElasticApmTracer;
 import co.elastic.apm.agent.impl.transaction.Span;
 import co.elastic.apm.agent.impl.transaction.TextHeaderSetter;
 import co.elastic.apm.agent.impl.transaction.TraceContextHolder;
@@ -72,7 +71,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
         AsyncHandlerOnThrowableInstrumentation.class,
         AsyncHandlerOnStatusReceivedInstrumentation.class);
 
-    public AbstractAsyncHttpClientInstrumentation(ElasticApmTracer tracer) {
+    public AbstractAsyncHttpClientInstrumentation() {
         if (headerSetterManager == null) {
             synchronized (AbstractAsyncHandlerInstrumentation.class) {
                 if (headerSetterManager == null) {
@@ -96,9 +95,6 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
     }
 
     public static class AsyncHttpClientInstrumentation extends AbstractAsyncHttpClientInstrumentation {
-        public AsyncHttpClientInstrumentation(ElasticApmTracer tracer) {
-            super(tracer);
-        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         private static void onBeforeExecute(@Advice.Argument(value = 0) Request request,
@@ -156,8 +152,7 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
         private final ElementMatcher<? super MethodDescription> methodMatcher;
 
-        protected AbstractAsyncHandlerInstrumentation(ElasticApmTracer tracer, ElementMatcher<? super MethodDescription> methodMatcher) {
-            super(tracer);
+        protected AbstractAsyncHandlerInstrumentation(ElementMatcher<? super MethodDescription> methodMatcher) {
             this.methodMatcher = methodMatcher;
         }
 
@@ -178,8 +173,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
     public static class AsyncHandlerOnCompletedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnCompletedInstrumentation(ElasticApmTracer tracer) {
-            super(tracer, named("onCompleted").and(takesArguments(0)));
+        public AsyncHandlerOnCompletedInstrumentation() {
+            super(named("onCompleted").and(takesArguments(0)));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -193,8 +188,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
     public static class AsyncHandlerOnThrowableInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnThrowableInstrumentation(ElasticApmTracer tracer) {
-            super(tracer, named("onThrowable").and(takesArguments(Throwable.class)));
+        public AsyncHandlerOnThrowableInstrumentation() {
+            super(named("onThrowable").and(takesArguments(Throwable.class)));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -208,8 +203,8 @@ public abstract class AbstractAsyncHttpClientInstrumentation extends ElasticApmI
 
     public static class AsyncHandlerOnStatusReceivedInstrumentation extends AbstractAsyncHandlerInstrumentation {
 
-        public AsyncHandlerOnStatusReceivedInstrumentation(ElasticApmTracer tracer) {
-            super(tracer, named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
+        public AsyncHandlerOnStatusReceivedInstrumentation() {
+            super(named("onStatusReceived").and(takesArgument(0, named("org.asynchttpclient.HttpResponseStatus"))));
         }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
