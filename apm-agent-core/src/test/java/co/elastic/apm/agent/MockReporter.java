@@ -11,9 +11,9 @@
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -181,11 +181,10 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Transaction getFirstTransaction() {
-        Iterator<Transaction> it = transactions.iterator();
-        assertThat(it)
-            .describedAs("should have at least one transaction, but does not")
-            .hasNext();
-        return it.next();
+        assertThat(transactions)
+            .describedAs("at least one transaction expected, none have been reported (yet)")
+            .isNotEmpty();
+        return transactions.get(0);
     }
 
     public Transaction getFirstTransaction(long timeoutMs) throws InterruptedException {
@@ -229,6 +228,9 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized Span getFirstSpan() {
+        assertThat(spans)
+            .describedAs("at least one span expected, none have been reported")
+            .isNotEmpty();
         return spans.get(0);
     }
 
@@ -241,6 +243,9 @@ public class MockReporter implements Reporter {
     }
 
     public synchronized ErrorCapture getFirstError() {
+        assertThat(errors)
+            .describedAs("at least one error expected, none have been reported")
+            .isNotEmpty();
         return errors.iterator().next();
     }
 
